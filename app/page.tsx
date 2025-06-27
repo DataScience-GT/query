@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { FaInstagram, FaGlobe } from "react-icons/fa";
+import { FaInstagram } from "react-icons/fa";
 
 export default function Home() {
   return (
@@ -13,7 +13,7 @@ export default function Home() {
           height={80}
           className="mb-8 rounded-full"
         />
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-800 text-center mb-2">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-800 text-center mb-4">
           Hacklytics 2026
         </h1>
         <div className="text-2xl text-gray-600 font-semibold mb-6 text-center">
@@ -34,10 +34,10 @@ export default function Home() {
         </div>
         <div className="flex space-x-6 mt-4">
           <a href="https://www.instagram.com/hacklytics/" target="_blank" rel="noopener noreferrer">
-            <FaInstagram className="text-3xl text-gray-800 hover:text-cyan-900 transition" />
+          <Image src="/instagram-logo.svg" alt="Website" width={32} height={32} className="text-3xl text-gray-800 hover:text-cyan-900 transition" />
           </a>
           <a href="https://datasciencegt.org/" target="_blank" rel="noopener noreferrer">
-            <FaGlobe className="text-3xl text-gray-800 hover:text-cyan-900 transition" />
+            <Image src="/globe.svg" alt="Website" width={32} height={32} className="text-3xl text-gray-800 hover:text-cyan-900 transition" />
           </a>
         </div>
       </div>
