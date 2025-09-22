@@ -1,10 +1,10 @@
 import React from 'react';
-import CandyIcon from '../ui/CandyIcon'; // Import the new component
+import CandyIcon from '../ui/CandyIcon';
 
 const AboutSection: React.FC = () => {
   return (
-    // All fixes applied here: <section> tag, id, scroll-mt-20, and bg class
-    <section id="about" className="section-anchor min-h-screen bg-[#a8c8ec]">
+    // Replaced the invalid hex code with your 'bg-sky' class
+    <section id="about" className="section-anchor scroll-mt-28 min-h-screen bg-sky">
       <div className="container mx-auto px-4 py-24 max-w-6xl">
         
         <div className="text-center mb-12">

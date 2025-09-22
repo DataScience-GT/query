@@ -5,13 +5,13 @@ import CloudButton from '../ui/CloudButton';
 
 export default function TracksSection() {
   return (
-    <section id="tracks" className="section-anchor scroll-mt-28 min-h-screen" style={{ backgroundColor: '#a8c8ec' }}>
+    // Corrected the hex code from #A4C7F to #A4C7FF
+    <section id="tracks" className="section-anchor scroll-mt-28 min-h-screen" style={{ backgroundColor: '#A4C7FF' }}>
       <div className="container mx-auto px-4 py-24 max-w-6xl">
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-white mb-8 drop-shadow-lg">
             Tracks
           </h1>
-          {/* This paragraph has been updated */}
           <p className="text-white text-lg leading-relaxed max-w-4xl mx-auto">
             We’re offering <strong>five magical tracks</strong> that blend data science with diverse domains, inviting you to explore imaginative solutions to the problems that matter to you most. Even if you don’t take home an overall prize, <strong>each track offers its own set of prizes</strong>, so your most inventive ideas still have a chance to shine.
           </p>
