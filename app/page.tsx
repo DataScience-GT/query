@@ -52,7 +52,7 @@ export default function HomePage() {
 
           {/* 3. Reduced graphic size */}
           <div className="mt-4 w-48 sm:w-64 md:w-[480px]">
-            <Image src="/earth-graphic.png" alt="Earth with golden ticket" width={600} height={600} className="w-full h-auto" />
+            <Image src="/.png" alt="" width={600} height={600} className="w-full h-auto" />
           </div>
         </div>
 
