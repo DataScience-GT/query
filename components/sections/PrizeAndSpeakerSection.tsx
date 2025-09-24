@@ -5,19 +5,19 @@ import Speakers from '../ui/Speaker';
 const ConferencePage: React.FC = () => {
   // Data can be managed here or fetched from an API
   const prizes = [
-    { 
-      position: '', 
-      amount: '', 
+    {
+      position: '',
+      amount: '',
       image: '../tickets/gold.png' // Path to your 1st place PNG
     },
-    { 
-      position: '2nd', 
-      amount: '', 
+    {
+      position: '2nd',
+      amount: '',
       image: '../tickets/silver.png' // Path to your 2nd place PNG
     },
-    { 
-      position: '', 
-      amount: '', 
+    {
+      position: '',
+      amount: '',
       image: '../tickets/bronze.png' // Path to your 3rd place PNG
     }
   ];
@@ -58,16 +58,20 @@ const ConferencePage: React.FC = () => {
   ];
 
   return (
-    // Replaced the gradient classes with the specified background color
-    <div className="min-h-screen bg-[#A4C7FF] py-16 px-4">
+    // The main section container. It now holds all the content.
+    // Added padding (py-16 px-4) for spacing around the content.
+    <section id="prizes" className="section-anchor scroll-mt-28 bg-sky py-16 px-4">
+      {/* This div centers the content and sets a max-width */}
       <div className="max-w-6xl mx-auto">
         {/* Render the Prizes component and pass the data */}
-        <Prizes prizes={prizes} />
-        
+        <div className="mb-24"> {/* Added margin-bottom for spacing */}
+          <Prizes prizes={prizes} />
+        </div>
+
         {/* Render the Speakers component and pass the data */}
         <Speakers speakers={speakers} />
       </div>
-    </div>
+    </section>
   );
 };
 
