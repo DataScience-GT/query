@@ -58,8 +58,7 @@ const ConferencePage: React.FC = () => {
   ];
 
   return (
-    // The main section container. It now holds all the content.
-    // Added padding (py-16 px-4) for spacing around the content.
+    // I used ai for this cuz i forgot about sections and im too lazy to write it all over again 
     <section id="prizes" className="section-anchor scroll-mt-28 bg-sky py-16 px-4">
       {/* This div centers the content and sets a max-width */}
       <div className="max-w-6xl mx-auto">
