@@ -1,6 +1,5 @@
 import React from 'react';
 
-// The interface now only requires the 'image' property.
 interface Prize {
   image: string;
 }
