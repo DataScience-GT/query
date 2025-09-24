@@ -23,6 +23,9 @@
   --navbar-blur: 6px;
   --navbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
+.justify-between {
+    justify-content: space-between;
+}
 
 /* Minimal utility classes to match app usage */
 .bg-sky { background-color: var(--color-sky); }

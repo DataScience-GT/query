@@ -3,9 +3,9 @@
 import React from 'react';
 import CloudBlueButton from '../ui/CloudButtonBlue';
 
-export default function FAQSection() {
+export default function FAQ() {
   return (
-    <section id="tracks" className="section-anchor scroll-mt-28 min-h-screen bg-blue-300">
+    <section id="faqs" className="section-anchor scroll-mt-28 min-h-screen bg-blue-300">
       <div className="container mx-auto px-4 py-24 max-w-6xl">
         <div className="text-center mb-16">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg">

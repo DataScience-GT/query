@@ -1,23 +1,21 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from "next/image";
 import { Truculenta } from 'next/font/google';
 
-// Font configuration remains the same
 const truculenta = Truculenta({
   subsets: ['latin'],
-  weight: ['800'], // Corresponds to font-extrabold
+  weight: ['800'],
 });
 
 const navItems = [
   { name: "About", href: "/#about" },
   { name: "Schedule", href: "/#schedule" },
   { name: "Tracks", href: "/#tracks" },
-  { name: "Sponsors", href: "/#sponsors" },
   { name: "Prizes", href: "/#prizes" },
+  { name: "Sponsors", href: "/#sponsors" },
   { name: "FAQs", href: "/#faqs" },
   { name: "Speakers", href: "/#speakers" },
 ];
@@ -28,35 +26,67 @@ export default function Navbar() {
   const [navVisible, setNavVisible] = useState(true);
   const lastScrollY = useRef(0);
   const headerRef = useRef<HTMLElement>(null);
+  
+  // Refs to manage the programmatic scroll state
+  const isClickScrolling = useRef(false);
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleScrollEvent = () => {
       const currentScrollY = window.scrollY;
       setScrolled(currentScrollY > 8);
 
-      if (currentScrollY < lastScrollY.current || currentScrollY <= 8) {
-        setNavVisible(true);
-      } else {
+      const isScrollingDown = currentScrollY > lastScrollY.current;
+
+      // **THE FIX**: Consolidate the visibility logic.
+      // Hide the navbar only if the user is scrolling down manually,
+      // and not at the very top of the page.
+      if (isScrollingDown && !isClickScrolling.current && currentScrollY > 8) {
         setNavVisible(false);
+      } else {
+        setNavVisible(true);
       }
+
       lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener('scroll', handleScrollEvent);
-    return () => window.removeEventListener('scroll', handleScrollEvent);
-  }, []);
+    
+    // Cleanup: remove listener and clear timeout when component unmounts
+    return () => {
+      window.removeEventListener('scroll', handleScrollEvent);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, []); // The empty dependency array is correct here
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
-    setOpen(false); // Close mobile menu on link click
+    setOpen(false);
     const id = href.replace('/#', '');
     const el = document.getElementById(id);
+
     if (el) {
+      // **THE FIX**: Set the flag and force the navbar to be visible
+      isClickScrolling.current = true;
+      setNavVisible(true);
+      
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+
       const navHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
       const elementPosition = el.getBoundingClientRect().top + window.scrollY;
       const offsetPosition = elementPosition - navHeight;
+      
       window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
       history.replaceState(null, '', `#${id}`);
+
+      // **THE FIX**: Reset the flag after the scroll animation is likely over
+      scrollTimeout.current = setTimeout(() => {
+        isClickScrolling.current = false;
+      }, 1000); // 1 second is a safe duration for most smooth scrolls
     }
   };
 
@@ -64,8 +94,6 @@ export default function Navbar() {
     return navItems.map((item) => {
       const isScrollLink = item.href.startsWith('/#');
       
-      // Mobile links are styled in the parent div for font consistency
-      // We only define per-link styles here
       const className = isMobile
         ? "block py-3 hover:text-wonka-red transition-colors"
         : "hover:text-wonka-red transition-colors";
