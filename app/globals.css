@@ -4,16 +4,24 @@
 @import "tailwindcss";
 
 /*
-  Define CSS variables in :root so browsers and tools understand them.
-  Tailwind won't auto-create utilities from these variables, so we add
-  small utility classes below to mirror the expected names used in the app.
+  Define all CSS variables in a single :root block for clarity.
 */
 :root {
+  /* Brand Colors */
   --color-sky: #A4C7FF;
-  --color-wonka-yellow: #fde047;
+  --color-wonka-yellow: #FFBC0A;
+;
   --color-wonka-red: #ef4444;
 
+  /* Custom Fonts */
   --font-family-willywonka: 'Willywonka', cursive;
+
+  /* Navbar Configuration */
+  --navbar-height: 64px;
+  --navbar-bg-top: #A4C7FF; /* Initial background color at the top of the page */
+  --navbar-bg-scrolled: rgba(164, 199, 255, 0.84); /* Background when scrolled */
+  --navbar-blur: 6px;
+  --navbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 /* Minimal utility classes to match app usage */
@@ -21,15 +29,6 @@
 .text-wonka-yellow { color: var(--color-wonka-yellow); }
 .bg-wonka-red { background-color: var(--color-wonka-red); }
 .text-wonka-red { color: var(--color-wonka-red); }
-
-/* Navbar configuration variables (tweak these to tune appearance) */
-:root {
-  --navbar-height: 64px; /* default navbar height */
-  --navbar-bg-top: #A4C7FF; /* start with A4C7FF */
-  --navbar-bg-scrolled: rgba(164,199,255,0.84); /* scrolled variation */
-  --navbar-blur: 6px;
-  --navbar-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
 
 /* Helper class for smooth navbar transitions */
 .navbar-transition {
@@ -52,7 +51,7 @@
   font-style: normal;
 }
 
-/* Utility class generated from the @theme variable for Willy Wonka font */
+/* Utility class for the Willy Wonka font */
 .font-willywonka {
   font-family: var(--font-family-willywonka);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import CloudButton from '../ui/CloudButton';
+import CloudButton from '../ui/CloudButtonYellow';
 
 export default function TracksSection() {
   return (
