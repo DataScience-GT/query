@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Interface for a single speaker
 interface Speaker {
   id: number;
   name: string;
@@ -10,7 +9,6 @@ interface Speaker {
   image: string;
 }
 
-// Interface for the component's props
 interface SpeakersProps {
   speakers: Speaker[];
 }
