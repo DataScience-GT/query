@@ -17,7 +17,7 @@ const navItems = [
   { name: "Prizes", href: "/#prizes" },
   { name: "Sponsors", href: "/#sponsors" },
   { name: "FAQs", href: "/#faqs" },
-  { name: "Speakers", href: "/#speakers" },
+  { name: "Speakers", href: "/#prizes" },
 ];
 
 export default function Navbar() {
