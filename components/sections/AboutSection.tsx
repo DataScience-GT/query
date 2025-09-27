@@ -31,7 +31,7 @@ const AboutSection: React.FC = () => {
             </h2>
             <div className="text-white text-lg leading-relaxed">
               <p>
-                <strong>HacklyticS 2026</strong> will take place on <strong>Feb. 20-22</strong>, located in Georgia Tech's <strong>Klaus Advanced Computing Building</strong>.
+                <strong>Hacklytics 2026</strong> will take place on <strong>Feb. 20-22</strong>, located in Georgia Tech's <strong>Klaus Advanced Computing Building</strong>.
               </p>
             </div>
             <div className="flex justify-start items-center mt-8">
@@ -47,15 +47,12 @@ const AboutSection: React.FC = () => {
             </h2>
             <div className="text-white text-lg leading-relaxed text-right">
               <p>
-                <strong>HacklyticS</strong> is your chance to <strong>gain hands-on data science experience</strong>, build projects that matter, and turn ideas into impact. Along the way, you'll <strong>connect with passionate hackers from all backgrounds</strong>, grow your network, and -- most importantly -- <strong>have a blast doing it</strong>.
+                <strong>Hacklytics</strong> is your chance to <strong>gain hands-on data science experience</strong>, build projects that matter, and turn ideas into impact. Along the way, you'll <strong>connect with passionate hackers from all backgrounds</strong>, grow your network, and -- most importantly -- <strong>have a blast doing it</strong>.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center items-center">
-          <CandyIcon /><CandyIcon /><CandyIcon /><CandyIcon />
-        </div>
       </div>
     </section>
   );
