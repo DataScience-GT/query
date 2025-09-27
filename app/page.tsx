@@ -16,16 +16,6 @@ const Cloud: React.FC<{ src: string; className?: string }> = ({ src, className }
 );
 
 export default function HomePage() {
-  const lollipops: string[] = [
-    "/lollipop-red.svg",
-    "/lollipop-green.svg",
-    "/lollipop-red.svg",
-    "/lollipop-green.svg",
-    "/lollipop-red.svg",
-    "/lollipop-green.svg",
-    "/lollipop-red.svg",
-  ];
-
   return (
     <main className="relative w-full font-sans text-gray-800">
       {/* MLH Trust Badge */}
@@ -44,15 +34,61 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <div className="relative w-full bg-sky overflow-hidden py-32">
-        {/* Clouds around the hero */}
+        {/* Background Clouds */}
         <Cloud src="/cloud-main/smallCloud.png" className="top-[5%] left-[5%] w-72 h-40 opacity-90" />
+
+        <Cloud src="/cloud-main/smallCloud.png" className="top-[5%] left-[70%] w-40 h-40 opacity-90" />
         <Cloud src="/cloud-main/midCloud.png" className="top-[20%] right-[10%] w-56 h-28 opacity-95" />
-        <Cloud src="/cloud-main/largecloud.png" className="top-[10%] right-[40%] w-64 h-32 opacity-80" />
+
+        <Cloud src="/cloud-main/largecloud.png" className="top-[60%] left-[5%] w-64 h-32 opacity-80" />
 
         {/* Bottom clouds */}
-        <Cloud src="/cloud-main/cloudBottom.png" className="bottom-0 left-0 w-full h-40 opacity-95" />
-        <Cloud src="/cloud-main/dateCloud.png" className="bottom-[12%] left-[5%] w-48 h-24 opacity-95" />
-        <Cloud src="/cloud-main/DSGTCloud.png" className="bottom-[10%] right-[5%] w-48 h-24 opacity-95" />
+        <Cloud
+          src="/cloud-main/cloudBottom.png"
+          className="bottom-0 left-0 w-2/3 h-52 -translate-x-1/4 opacity-95"
+        />
+        <Cloud
+          src="/cloud-main/cloudBottom.png"
+          className="bottom-0 right-0 w-2/3 h-52 translate-x-1/4 opacity-95"
+        />
+
+        {/* Candy images anchored to bottom */}
+        <div className="absolute bottom-0 left-[5%] w-60 h-60 z-30">
+          <Image
+            src="/cloud-main/candy/candyEnd.png"
+            alt="Candy left"
+            fill
+            className="object-contain scale-150"
+          />
+        </div>
+        <div className="absolute bottom-0 right-[5%] w-60 h-60 z-30">
+          <Image
+            src="/cloud-main/candy/candyEnd.png"
+            alt="Candy right"
+            fill
+            className="object-contain scale-150"
+          />
+        </div>
+
+        {/* DSGT image at the very bottom - INCREASED SIZE */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60rem] h-120 z-40">
+          <Image
+            src="/dsgt.png"
+            alt="DSGT Footer"
+            fill
+            className="object-contain"
+          />
+        </div>
+
+        {/* Floating date & DSGT clouds */}
+        <Cloud
+        src="/cloud-main/dateCloud.png"
+        className="bottom-[50%] left-[20%] w-64 h-32 opacity-95"
+        />
+        <Cloud
+        src="/cloud-main/DSGTCloud.png"
+        className="bottom-[40%] right-[5%] w-64 h-32 opacity-95"
+      />
 
         {/* Hero Content */}
         <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8">
@@ -65,38 +101,19 @@ export default function HomePage() {
           >
             Golden Byte
           </h1>
-          <button className="bg-wonka-red text-white font-bold text-base sm:text-xl px-5 sm:px-8 py-2 rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-105 mt-2">
+
+          {/* Apply Now! Button (185x67) with Truculenta font */}
+          <button
+            className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-105 mt-2`}
+            style={{ width: "185px", height: "67px", fontSize: "20px" }}
+          >
             Apply Now!
           </button>
 
-          {/* Floating Date and Tagline */}
-          <div className="hidden md:block absolute top-[18%] left-[6%] -rotate-12 text-xl md:text-3xl font-bold">
-            Feb 20-22
-          </div>
-          <div className="hidden md:block absolute top-[34%] right-[8%] rotate-12 text-sm md:text-2xl font-bold text-white bg-purple-500 px-3 py-1 rounded-lg">
-            Data Science @ GT
-          </div>
 
-          {/* Golden ticket graphic */}
-          <div className="mt-4 w-48 sm:w-64 md:w-[480px]">
-            <Image
-              src="/golden-ticket.png"
-              alt="Golden ticket graphic"
-              width={600}
-              height={600}
-              className="w-full h-auto"
-            />
-          </div>
+          {/* Golden ticket placeholder */}
+          <div className="mt-4 w-48 sm:w-64 md:w-[480px] h-[480px] bg-transparent mx-auto"></div>
         </div>
-
-        {/* Lollipop Footer */}
-        <footer className="absolute bottom-0 left-0 w-full h-20 sm:h-24 flex justify-around items-end z-20 px-4">
-          {lollipops.map((src, index) => (
-            <div key={index} className="relative w-10 h-14 sm:w-14 sm:h-18 md:w-16 md:h-24">
-              <Image src={src} alt="Lollipop" fill className="object-contain" />
-            </div>
-          ))}
-        </footer>
       </div>
 
       <HomeSections />

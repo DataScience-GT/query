@@ -5,52 +5,45 @@ import CloudBlueButton from '../ui/CloudButtonBlue';
 
 export default function FAQ() {
   return (
-    <section id="faqs" className="section-anchor scroll-mt-28 min-h-screen bg-blue-300">
+    <section id="faqs" className="section-anchor scroll-mt-28 min-h-screen bg-[#A4C7FF]">
       <div className="container mx-auto px-4 py-24 max-w-6xl">
         <div className="text-center mb-16">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg">
-            Tracks
+            FAQ
           </h1>
-          {/* Changed "five" to "eight" to reflect the new number of tracks */}
-          <p className="text-white text-lg leading-relaxed max-w-4xl mx-auto">
-            We’re offering <strong>eight magical tracks</strong> that blend data science with diverse domains, inviting you to explore imaginative solutions to the problems that matter to you most. Even if you don’t take home an overall prize, <strong>each track offers its own set of prizes</strong>, so your most inventive ideas still have a chance to shine.
-          </p>
         </div>
 
-        {/* The grid now contains eight items, which will naturally form a 4x2 layout on medium screens and up */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-12 max-w-5xl mx-auto items-start justify-items-center">
-          <CloudBlueButton title="Finance">
-            <p className="font-semibold">Analyze market trends, predict stock movements, and build fintech solutions.</p>
+          <CloudBlueButton title="Who can register?">
+            <p className="font-semibold">Any student currently enrolled in a University above the age of 18. For any discrepancies, please reach out.</p>
           </CloudBlueButton>
           
-          <CloudBlueButton title="Sports Analytics">
-            <p className="font-semibold">Dive into player performance, game strategy, and the future of sports data.</p>
+          <CloudBlueButton title="Where and when is it held?">
+            <p className="font-semibold">February 21st - February 23rd at the Klaus Advanced Computing Building</p>
           </CloudBlueButton>
           
-          <CloudBlueButton title="Health & Wellness">
-            <p className="font-semibold">Innovate in bioinformatics, patient care, and personal health technology.</p>
+          <CloudBlueButton title="How do I apply for Travel Reimbursements?">
+            <p className="font-semibold">Pending</p>
           </CloudBlueButton>
           
-          <CloudBlueButton title="Generative AI">
-            <p className="font-semibold">Explore the creative frontier of AI in art, music, and content creation.</p>
+          <CloudBlueButton title="Can you participate virtually">
+            <p className="font-semibold">Unfortunately, no, Hacklytics 2026 is only in person this year. Sponsors want to come see you work on your projects in person!</p>
           </CloudBlueButton>
           
-          {/* Removed the wrapper div from Smart Cities to make it a standard grid item */}
-          <CloudBlueButton title="Smart Cities">
-            <p className="font-semibold">Use data to improve urban living, transportation, and sustainability.</p>
+          <CloudBlueButton title="What is a data science hackathon?">
+            <p className="font-semibold">A datathon is a specific type of hackathon that focuses on data science. You can choose any datasets, programming languages, APIs, or algorithms you'd like to create visualizations, develop models, derive insights, and do anything you believe to be impactful! The sky's the limit!</p>
           </CloudBlueButton>
 
-          {/* Added three new tracks to bring the total to eight */}
-          <CloudBlueButton title="Education">
-            <p className="font-semibold">Personalize learning paths and create new tools for student engagement.</p>
+          <CloudBlueButton title="How many people per team?">
+            <p className="font-semibold">A maximum of 4 members per team. However, you’re allowed to work with fewer members as well!</p>
           </CloudBlueButton>
 
-          <CloudBlueButton title="Environment & Sustainability">
-            <p className="font-semibold">Model climate change, optimize energy use, and promote conservation.</p>
+          <CloudBlueButton title="What if I don’t have a team?">
+            <p className="font-semibold">Lots of people come in without teams! You can find people to form a team with during our team-building event or through our Discord.</p>
           </CloudBlueButton>
 
-          <CloudBlueButton title="Entertainment & Media">
-            <p className="font-semibold">Analyze audience behavior and innovate in content recommendation.</p>
+          <CloudBlueButton title="Is the event free?">
+            <p className="font-semibold">Yes! We also provide food and other goodies if you are in-person.</p>
           </CloudBlueButton>
         </div>
       </div>
