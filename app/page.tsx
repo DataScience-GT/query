@@ -103,12 +103,15 @@ export default function HomePage() {
           </h1>
 
           {/* Apply Now! Button (185x67) with Truculenta font */}
+          <a href="https://www.instagram.com/p/DNiRD-GNXh0/">
           <button
             className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-105 mt-2`}
             style={{ width: "185px", height: "67px", fontSize: "20px" }}
-          >
+            >
             Apply Now!
-          </button>
+            </button>
+            </a>
+
 
 
           {/* Golden ticket placeholder */}
