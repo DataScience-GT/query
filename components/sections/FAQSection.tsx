@@ -6,14 +6,15 @@ import CloudBlueButton from '../ui/CloudButtonBlue';
 export default function FAQ() {
   return (
     <section id="faqs" className="section-anchor scroll-mt-28 min-h-screen bg-[#A4C7FF]">
-      <div className="container mx-auto px-4 py-24 max-w-6xl">
-        <div className="text-center mb-16">
+      <div className="container mx-auto px-4 py-16 md:py-24 max-w-6xl">
+        <div className="text-center mb-12 md:mb-16">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg">
             FAQ
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-12 max-w-5xl mx-auto items-start justify-items-center">
+        {/* THE ONLY CHANGE IS HERE: Increased the shift from -translate-x-4 to -translate-x-8 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 md:gap-y-16 gap-x-12 max-w-5xl mx-auto items-center justify-items-center -translate-x-8 md:translate-x-0">
           <CloudBlueButton title="Who can register?">
             <p className="font-semibold">Any student currently enrolled in a University above the age of 18. For any discrepancies, please reach out.</p>
           </CloudBlueButton>
