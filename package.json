@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build && next export",
+    "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "export": "next export"
+    "lint": "next lint"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
