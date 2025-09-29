@@ -11,9 +11,6 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    appDir: true, // ensure app directory support for Next.js 15
-  },
   reactStrictMode: true, // recommended
 };
 
