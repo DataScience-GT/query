@@ -1,9 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  output: 'export', // enable static export
   images: {
-    unoptimized: true,  // required for static export
+    unoptimized: true, // required for static export
+    // Optional: allow external domains if needed by Supabase or other images
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
+  reactStrictMode: true, // recommended
 };
 
 module.exports = nextConfig;
