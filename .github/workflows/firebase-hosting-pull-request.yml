@@ -12,8 +12,18 @@ jobs:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣ Checkout repo
       - uses: actions/checkout@v4
-      - run: npm run build
+
+      # 2️⃣ Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 3️⃣ Build the Next.js project
+      - name: Build
+        run: npm run build
+
+      # 4️⃣ Deploy to Firebase Hosting preview channel
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
