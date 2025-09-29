@@ -1,6 +1,5 @@
 import React from 'react';
 import CandyIcon from '../ui/CandyIcon';
-
 const AboutSection: React.FC = () => {
   return (
     // Replaced the invalid hex code with your 'bg-sky' class
