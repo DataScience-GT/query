@@ -17,9 +17,8 @@ const Cloud: React.FC<{ src: string; className?: string }> = ({ src, className }
 
 export default function HomePage() {
   return (
-    // THE ONLY CHANGE IS HERE: Added 'overflow-hidden'
     <main className="relative w-full font-sans text-gray-800 overflow-hidden">
-      {/* MLH Trust Badge - Adjusted positioning for mobile */}
+      {/* MLH Trust Badge */}
       <a
         id="mlh-trust-badge"
         href="https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=white"
@@ -35,7 +34,7 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <div className="relative w-full bg-sky overflow-hidden py-20 md:py-32">
-        {/* Background Clouds - All are now responsive */}
+        {/* Background Clouds */}
         <Cloud
           src="/cloud-main/smallCloud.png"
           className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40"
@@ -53,14 +52,24 @@ export default function HomePage() {
           className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80"
         />
 
-        {/* Bottom clouds */}
+        {/* Bottom clouds - left */}
         <Cloud
           src="/cloud-main/cloudBottom.png"
-          className="bottom-0 left-0 w-2/3 h-32 -translate-x-1/4 opacity-95 md:h-52"
+          className="bottom-0 left-0 w-[50%] h-32 -translate-x-1/4 opacity-95 md:h-52"
         />
         <Cloud
           src="/cloud-main/cloudBottom.png"
-          className="bottom-0 right-0 w-2/3 h-32 translate-x-1/4 opacity-95 md:h-52"
+          className="bottom-0 left-0 w-[75%] h-32 -translate-x-[25%] opacity-95 md:h-52"
+        />
+
+        {/* Bottom clouds - right */}
+        <Cloud
+          src="/cloud-main/cloudBottom.png"
+          className="bottom-0 right-0 w-[50%] h-32 translate-x-1/4 opacity-95 md:h-52"
+        />
+        <Cloud
+          src="/cloud-main/cloudBottom.png"
+          className="bottom-0 right-0 w-[75%] h-32 translate-x-[25%] opacity-95 md:h-52"
         />
 
         {/* Candy images */}
@@ -82,14 +91,19 @@ export default function HomePage() {
         </div>
 
         {/* DSGT image */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xs h-32 z-40 md:w-[60rem] md:h-120 md:max-w-none">
-          <Image src="/dsgt.png" alt="DSGT Footer" fill className="object-contain" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
+          <Image
+            src="/dsgt.png"
+            alt="DSGT Footer"
+            fill
+            className="object-contain"
+          />
         </div>
 
         {/* Floating date & DSGT clouds */}
         <Cloud
           src="/cloud-main/dateCloud.png"
-          className="hidden md:block bottom-[50%] left-[20%] w-64 h-32 opacity-95"
+          className="hidden md:block bottom-[45%] left-[20%] w-64 h-32 opacity-95"
         />
         <Cloud
           src="/cloud-main/DSGTCloud.png"
@@ -111,7 +125,7 @@ export default function HomePage() {
           {/* Apply Now! Button */}
           <a href="https://form.typeform.com/to/ssQqAlXE">
             <button
-              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-105 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl`}
+              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl`}
             >
               Apply Now!
             </button>
