@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // enable static export
   images: {
     unoptimized: true, // required for static export
     // Optional: allow external domains if needed by Supabase or other images
