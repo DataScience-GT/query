@@ -27,10 +27,10 @@ export default function Navbar() {
   const lastScrollY = useRef(0);
   const headerRef = useRef<HTMLElement>(null);
   
-  // Refs to manage the programmatic scroll state
   const isClickScrolling = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Effect to handle showing/hiding the navbar on scroll
   useEffect(() => {
     const handleScrollEvent = () => {
       const currentScrollY = window.scrollY;
@@ -38,9 +38,6 @@ export default function Navbar() {
 
       const isScrollingDown = currentScrollY > lastScrollY.current;
 
-      // **THE FIX**: Consolidate the visibility logic.
-      // Hide the navbar only if the user is scrolling down manually,
-      // and not at the very top of the page.
       if (isScrollingDown && !isClickScrolling.current && currentScrollY > 8) {
         setNavVisible(false);
       } else {
@@ -52,14 +49,26 @@ export default function Navbar() {
 
     window.addEventListener('scroll', handleScrollEvent);
     
-    // Cleanup: remove listener and clear timeout when component unmounts
     return () => {
       window.removeEventListener('scroll', handleScrollEvent);
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
       }
     };
-  }, []); // The empty dependency array is correct here
+  }, []);
+
+  // **NEW**: Effect to prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    // Cleanup function to remove the class when the component unmounts
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [open]); // Re-run this effect when the 'open' state changes
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -68,7 +77,6 @@ export default function Navbar() {
     const el = document.getElementById(id);
 
     if (el) {
-      // **THE FIX**: Set the flag and force the navbar to be visible
       isClickScrolling.current = true;
       setNavVisible(true);
       
@@ -83,10 +91,9 @@ export default function Navbar() {
       window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
       history.replaceState(null, '', `#${id}`);
 
-      // **THE FIX**: Reset the flag after the scroll animation is likely over
       scrollTimeout.current = setTimeout(() => {
         isClickScrolling.current = false;
-      }, 1000); // 1 second is a safe duration for most smooth scrolls
+      }, 1000);
     }
   };
 
@@ -107,49 +114,64 @@ export default function Navbar() {
   };
 
   return (
-    <header
-      ref={headerRef}
-      className={`fixed top-0 z-40 w-full py-3 md:py-4 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'}`}
-      style={{
-        backgroundColor: scrolled ? 'var(--navbar-bg-scrolled)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(var(--navbar-blur))' : 'none',
-        boxShadow: scrolled ? 'var(--navbar-shadow)' : 'none'
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        <div className="flex-shrink-0">
-          <Image src="/logo.png" alt="Hacklytics logo" width={48} height={48} />
-        </div>
+    <> {/* Use a fragment to return multiple top-level elements */}
+      <header
+        ref={headerRef}
+        className={`fixed top-0 z-40 w-full py-3 md:py-4 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'}`}
+        style={{
+          backgroundColor: scrolled ? 'var(--navbar-bg-scrolled)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(var(--navbar-blur))' : 'none',
+          boxShadow: scrolled ? 'var(--navbar-shadow)' : 'none'
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <div className="flex-shrink-0">
+            <Link href="/" onClick={() => setOpen(false)}>
+              <Image src="/logo.png" alt="Hacklytics logo" width={48} height={48} />
+            </Link>
+          </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex flex-1 justify-center">
-          <nav className={`${truculenta.className} flex items-center space-x-10 text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
-            {renderNavLinks()}
-          </nav>
-        </div>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex flex-1 justify-center">
+            <nav className={`${truculenta.className} flex items-center space-x-10 text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
+              {renderNavLinks()}
+            </nav>
+          </div>
 
-        <div className="w-12 flex-shrink-0 flex justify-end">
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="p-2 rounded-md text-white focus:outline-none">
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {open ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                )}
-              </svg>
-            </button>
+          <div className="w-12 flex-shrink-0 flex justify-end">
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              {/* **MODIFIED**: Set z-index to 50 to ensure button is above the new fullscreen overlay */}
+              <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="relative z-50 p-2 rounded-md text-white focus:outline-none">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {open ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile Navigation Menu */}
-      <div className={`${open ? "block" : "hidden"} md:hidden`}>
-        <div className={`${truculenta.className} px-4 pt-4 pb-6 space-y-2 text-center text-white text-3xl font-extrabold uppercase leading-none tracking-normal`}>
+      {/* **MODIFIED**: Fullscreen Mobile Navigation Menu */}
+      <div 
+        className={`
+          md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center 
+          transition-opacity duration-300 ease-in-out
+          ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+        `}
+        style={{
+          backgroundColor: 'var(--navbar-bg-scrolled)',
+          backdropFilter: 'blur(var(--navbar-blur))'
+        }}
+      >
+        <div className={`${truculenta.className} space-y-4 text-center text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
           {renderNavLinks(true)}
         </div>
       </div>
-    </header>
+    </>
   );
 }
