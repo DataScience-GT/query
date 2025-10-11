@@ -3,7 +3,6 @@ import Prizes from '../ui/Prizes';
 import Speakers from '../ui/Speaker';
 
 const ConferencePage: React.FC = () => {
-  // Data can be managed here or fetched from an API
   const prizes = [
     {
       position: '',
