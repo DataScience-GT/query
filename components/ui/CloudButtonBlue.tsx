@@ -13,7 +13,6 @@ const CloudBlueButton: React.FC<CloudBlueButtonProps> = ({ title, children }) =>
 
   return (
     <div className="w-[600px] cursor-pointer mx-auto mb-8">
-      {/* Cloud Button */}
       <div
         className="w-full h-[150px] bg-contain bg-center bg-no-repeat flex items-center justify-center px-4 text-center"
         style={{ backgroundImage: "url('/cloud-color/cloudb/cloud-blue-down.png')" }}
@@ -23,15 +22,12 @@ const CloudBlueButton: React.FC<CloudBlueButtonProps> = ({ title, children }) =>
           {title}
         </span>
       </div>
-
-      {/* Content Area */}
       <div
         className={`transition-all duration-500 ease-in-out overflow-hidden mx-auto ${
           isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <div className="bg-gray-100 rounded-b-lg -mt-4 text-center w-[500px] mx-auto">
-          {/* Make inner content inline-block and max width 100% */}
           <div className="inline-block max-w-full px-4 py-4 text-left">
             <div className="text-gray-800 text-sm font-semibold break-words whitespace-pre-wrap">
               {children}
