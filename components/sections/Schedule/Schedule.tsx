@@ -8,7 +8,7 @@ export default function Schedule() {
   const [selectedDay, setSelectedDay] = useState('Sunday');
   const [selectedCategory, setSelectedCategory] = useState('all'); // start with “all”
 
-  // Show everything if “all” is selected, otherwise filter
+  // filtering button 
   const filtered =
     selectedCategory === 'all'
       ? scheduleData[selectedDay]
