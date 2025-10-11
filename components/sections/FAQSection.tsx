@@ -12,8 +12,6 @@ export default function FAQ() {
             FAQ
           </h1>
         </div>
-
-        {/* THE ONLY CHANGE IS HERE: Increased the shift from -translate-x-4 to -translate-x-8 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 md:gap-y-16 gap-x-12 max-w-5xl mx-auto items-center justify-items-center -translate-x-8 md:translate-x-0">
           <CloudBlueButton title="Who can register?">
             <p className="font-semibold">Any student currently enrolled in a University above the age of 18. For any discrepancies, please reach out.</p>
