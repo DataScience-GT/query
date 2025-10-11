@@ -5,7 +5,6 @@ import CloudButton from '../ui/CloudButtonYellow';
 
 export default function TracksSection() {
   return (
-    // Corrected the hex code from #A4C7F to #A4C7FF
     <section id="tracks" className="section-anchor scroll-mt-28 min-h-screen" style={{ backgroundColor: '#A4C7FF' }}>
       <div className="container mx-auto px-4 py-24 max-w-6xl">
         <div className="text-center mb-16">
