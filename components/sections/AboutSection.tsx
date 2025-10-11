@@ -2,7 +2,6 @@ import React from 'react';
 import CandyIcon from '../ui/CandyIcon';
 const AboutSection: React.FC = () => {
   return (
-    // Replaced the invalid hex code with your 'bg-sky' class
     <section id="about" className="section-anchor scroll-mt-28 min-h-screen bg-sky">
       <div className="container mx-auto px-4 py-24 max-w-6xl">
         
