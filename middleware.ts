@@ -1,12 +1,48 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/middleware";
 
-export function middleware(req: NextRequest) {
-  // Example: allow all requests
-  return NextResponse.next();
+export async function middleware(req: NextRequest) {
+  const url = req.nextUrl.clone();
+
+  // Create a supabase client tied to this request
+  const { supabase, supabaseResponse } = createClient(req);
+
+  // Use getUser() instead of getSession() for security
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  // If user is NOT logged in
+  if (error || !user) {
+    // Redirect away from protected routes
+    if (url.pathname.startsWith("/portal") || url.pathname.startsWith("/onboarding")) {
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  } else {
+    // User IS logged in
+    // Check if they've completed onboarding when accessing /portal
+    if (url.pathname.startsWith("/portal")) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('form_completed')
+        .eq('id', user.id)
+        .single();
+
+      // If form not completed, redirect to onboarding
+      if (!profile?.form_completed) {
+        url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
+  // Continue normally
+  return supabaseResponse;
 }
 
-// Optional: define paths where middleware runs
 export const config = {
-  matcher: '/:path*', // run for all routes
+  matcher: [
+    "/portal/:path*",
+    "/onboarding",
+    "/auth/callback",
+  ],
 };
