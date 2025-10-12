@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import Image from "next/image";
 import { Truculenta } from 'next/font/google';
+import { usePathname } from "next/navigation";
 
 const truculenta = Truculenta({
   subsets: ['latin'],
@@ -21,6 +22,8 @@ const navItems = [
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
+
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
@@ -29,6 +32,9 @@ export default function Navbar() {
   
   const isClickScrolling = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+   if (pathname?.startsWith("/portal") || pathname?.startsWith("/onboarding")) {
+    return null;
+  }
 
   // Effect to handle showing/hiding the navbar on scroll
   useEffect(() => {

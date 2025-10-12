@@ -3,6 +3,10 @@ import Image from "next/image";
 import React from "react";
 import HomeSections from "@/components/HomeSections";
 import { Truculenta } from "next/font/google";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+
+
 
 const truculenta = Truculenta({
   subsets: ["latin"],
@@ -16,6 +20,31 @@ const Cloud: React.FC<{ src: string; className?: string }> = ({ src, className }
 );
 
 export default function HomePage() {
+
+  const supabase = createClient();
+  const router = useRouter();
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: false,
+      },
+    });
+
+    if (error) {
+      console.error("Error logging in with Google:", error.message);
+    }
+  };
+
+
+
+
+
+
+
+
   return (
     <main className="relative w-full font-sans text-gray-800 overflow-hidden">
       {/* MLH Trust Badge */}
@@ -123,13 +152,12 @@ export default function HomePage() {
           </h1>
 
           {/* Apply Now! Button */}
-          <a href="https://form.typeform.com/to/ssQqAlXE">
             <button
+            onClick={handleGoogleLogin}
               className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl`}
             >
               Apply Now!
             </button>
-          </a>
 
           {/* Golden ticket placeholder */}
           <div className="mt-4 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto"></div>
