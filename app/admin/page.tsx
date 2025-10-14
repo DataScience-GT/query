@@ -17,7 +17,6 @@ export default function AdminScanPage() {
   const handleScan = async (data: string) => {
     if (!data || pause) return;
     
-    // Immediately pause to prevent showing the code
     setPause(true);
     
     try {
@@ -39,7 +38,6 @@ export default function AdminScanPage() {
   const closeModal = () => {
     setShowModal(false);
     setModalData(null);
-    // Resume scanning after modal closes
     setTimeout(() => setPause(false), 500);
   };
 
