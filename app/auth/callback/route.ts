@@ -10,25 +10,17 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   
-  if (error) {
+  if (error || !data.user) {
     console.error("Auth callback error:", error);
     return NextResponse.redirect(`${origin}/`);
   }
 
-  // Get the user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.redirect(`${origin}/`);
-  }
-
-  // check if they exist 
   const { data: profile } = await supabase
     .from('profiles')
     .select('form_completed')
-    .eq('id', user.id)
+    .eq('id', data.user.id)
     .single();
 
   const redirectUrl = profile?.form_completed 
