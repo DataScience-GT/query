@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitOnboardingForm } from "@/app/actions/onboarding";
 
-// Define the form data type
 interface OnboardingFormData {
   fullName: string;
   school: string;
@@ -260,7 +259,7 @@ const SelectField = ({ label, name, value, onChange, options, required = false }
       required={required}
       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
     >
-      <option value="">Select...</option>
+      <option value="">Select</option>
       {options.map((opt, i) => (
         <option key={i} value={opt.value}>{opt.label}</option>
       ))}

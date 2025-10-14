@@ -5,8 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(req: NextRequest) {
-  const response = NextResponse.redirect(new URL("/", req.url));
-
+  const response = NextResponse.redirect(new URL("/", req.url), { status: 303 });
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {

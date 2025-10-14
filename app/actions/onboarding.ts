@@ -21,12 +21,8 @@ export async function submitOnboardingForm(formData: OnboardingFormData) {
   
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   
-  console.log("=== ONBOARDING SUBMISSION DEBUG ===");
-  console.log("User:", user?.id, user?.email);
-  console.log("User Error:", userError);
   
   if (userError || !user) {
-    console.log("ERROR: No user found");
     return { success: false, error: "Unauthorized" };
   }
 
@@ -39,7 +35,6 @@ export async function submitOnboardingForm(formData: OnboardingFormData) {
   console.log("Existing Profile:", existingProfile);
   console.log("Fetch Error:", fetchError);
 
-  // update
   const updateData = {
     full_name: formData.fullName,
     school: formData.school,
@@ -63,11 +58,7 @@ export async function submitOnboardingForm(formData: OnboardingFormData) {
     .eq("id", user.id)
     .select();
 
-  console.log("Update Result:", updateResult);
-  console.log("Update Error:", error);
-
   if (error) {
-    console.error("Error updating profile:", error);
     return { success: false, error: error.message };
   }
 

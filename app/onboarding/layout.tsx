@@ -9,16 +9,6 @@ export default async function OnboardingLayout({ children }: { children: React.R
     redirect("/");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("form_completed")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.form_completed) {
-    redirect("/portal");
-  }
-
   //else
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-200 via-purple-200 to-yellow-200">
