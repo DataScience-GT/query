@@ -13,8 +13,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Header / Navbar */}
         <header className="flex items-center justify-between p-4 border-b border-yellow-600">
           <h1 className="text-lg font-bold">Hackathon Portal</h1>
-
-          {/* Example: hide full menu on mobile, show hamburger */}
           <nav className="hidden md:flex gap-6">
             <a href="/" className="hover:text-yellow-200">Home</a>
             <a href="/checkin" className="hover:text-yellow-200">Check-In</a>
