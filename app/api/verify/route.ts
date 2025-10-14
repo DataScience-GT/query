@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const uuid = searchParams.get("uuid");
+    const uuid = request.nextUrl.searchParams.get("uuid");
 
     if (!uuid) {
       return NextResponse.json(
@@ -14,51 +13,41 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
+    const now = new Date().toISOString();
+    const { data: updated, error: updateError } = await supabase
       .from("profiles")
-      .select("*")
+      .update({ checked_in: true, checked_in_at: now })
       .eq("id", uuid)
-      .single();
+      .is("checked_in", false)
+      .select("full_name, school, major, checked_in_at");
 
-    if (profileError || !profile) {
-      return NextResponse.json(
-        { success: false, message: "User not found" },
-        { status: 404 }
-      );
-    }
+    if (updateError) throw updateError;
 
-    // Check if already checked in
-    if (profile.checked_in) {
+    if (!updated || updated.length === 0) {
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("checked_in_at")
+        .eq("id", uuid)
+        .single();
+
       return NextResponse.json(
-        { 
-          success: false, 
-          message: `Already checked in at ${new Date(profile.checked_in_at).toLocaleString()}` 
+        {
+          success: false,
+          message: `Already checked in at ${new Date(
+            existing?.checked_in_at || ""
+          ).toLocaleString()}`,
         },
         { status: 400 }
       );
     }
-
-    // Mark as checked in
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ 
-        checked_in: true, 
-        checked_in_at: new Date().toISOString() 
-      })
-      .eq("id", uuid);
-
-    if (updateError) {
-      throw updateError;
-    }
+    const user = updated[0];
 
     return NextResponse.json({
       success: true,
-      userName: profile.full_name || "User",
-      school: profile.school,
-      major: profile.major,
-      scannedAt: new Date().toISOString(),
+      userName: user.full_name || "User",
+      school: user.school,
+      major: user.major,
+      scannedAt: user.checked_in_at,
     });
   } catch (error) {
     console.error("Verification error:", error);
