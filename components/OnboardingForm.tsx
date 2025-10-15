@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Upload, X, FileText } from "lucide-react";
 import { submitOnboardingForm } from "@/app/actions/onboarding";
 
 interface OnboardingFormData {
@@ -16,10 +16,10 @@ interface OnboardingFormData {
   dietaryRestrictions: string;
   skills: string;
   agreeToCodeOfConduct: boolean;
+  resume?: File | null;
 }
 
 export default function OnboardingForm() {
-  const router = useRouter();
   const [formData, setFormData] = useState<OnboardingFormData>({
     fullName: "",
     school: "",
@@ -32,35 +32,78 @@ export default function OnboardingForm() {
     dietaryRestrictions: "",
     skills: "",
     agreeToCodeOfConduct: false,
+    resume: null,
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [dragActive, setDragActive] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, type, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
+    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
   };
+
+  const handleFile = (file: File) => {
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      setFormData((prev) => ({ ...prev, resume: file }));
+      setFieldErrors((prev) => ({ ...prev, resume: "" }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, resume: "Only PDF files are allowed." }));
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  };
+
+  const removeResume = () => setFormData((prev) => ({ ...prev, resume: null }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.agreeToCodeOfConduct) {
-      setError("You must agree to the MLH Code of Conduct.");
+    setSuccess(false);
+
+    const requiredFields = ["fullName", "school", "major", "levelOfStudy", "graduationYear", "shirtSize"];
+    const newErrors: Record<string, string> = {};
+
+    requiredFields.forEach((field) => {
+      if (!formData[field as keyof OnboardingFormData]) newErrors[field] = "This field is required.";
+    });
+    if (!formData.agreeToCodeOfConduct) newErrors.agreeToCodeOfConduct = "You must agree to the MLH Code of Conduct.";
+    if (!formData.resume) newErrors.resume = "Please upload your resume in PDF format.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
       return;
     }
 
     setLoading(true);
     setError(null);
-
     try {
-      const result = await submitOnboardingForm(formData);
-      if (!result.success) {
-        throw new Error(result.error || "Failed to submit form");
-      }
-      // Force a hard refresh to the portal to ensure session is updated
-      window.location.href = "/portal";
+      const formDataToSend = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "resume" && value) formDataToSend.append(key, value);
+        else if (key !== "resume") formDataToSend.append(key, String(value));
+      });
+
+      await submitOnboardingForm(formDataToSend);
+      setSuccess(true);
+      setLoading(false);
     } catch (err: any) {
       setError(err.message || "Unexpected error");
       setLoading(false);
@@ -71,198 +114,217 @@ export default function OnboardingForm() {
   const years = Array.from({ length: 8 }, (_, i) => currentYear + i);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-8 bg-white rounded-2xl shadow-lg max-w-xl mx-auto mt-12">
-      <h1 className="text-3xl font-bold text-center mb-6">Complete Your Registration</h1>
-      
-      {error && (
-        <div className="text-red-700 bg-red-100 p-3 rounded border border-red-300">
-          {error}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/20 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent mb-3">
+            Welcome aboard
+          </h1>
+          <p className="text-slate-600 text-lg">Let's get you set up in just a few steps</p>
         </div>
-      )}
 
-      <InputField 
-        label="Full Name" 
-        name="fullName" 
-        value={formData.fullName} 
-        onChange={handleChange} 
-        required 
-      />
-      
-      <InputField 
-        label="School" 
-        name="school" 
-        value={formData.school} 
-        onChange={handleChange} 
-        required 
-      />
-      
-      <InputField 
-        label="Major" 
-        name="major" 
-        value={formData.major} 
-        onChange={handleChange} 
-        required 
-      />
-      
-      <SelectField 
-        label="Level of Study" 
-        name="levelOfStudy" 
-        value={formData.levelOfStudy} 
-        onChange={handleChange} 
-        required
-        options={[
-          { label: "High School", value: "high_school" },
-          { label: "Undergraduate", value: "undergraduate" },
-          { label: "Graduate", value: "graduate" },
-          { label: "PhD", value: "phd" },
-          { label: "Professional", value: "professional" },
-        ]}
-      />
-      
-      <SelectField 
-        label="Graduation Year" 
-        name="graduationYear" 
-        value={formData.graduationYear} 
-        onChange={handleChange} 
-        required
-        options={years.map(y => ({ label: y.toString(), value: y.toString() }))}
-      />
+        {success && (
+          <div className="mb-6 p-4 bg-green-100 border border-green-300 rounded-lg text-green-700 text-center flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-5 h-5" /> Registration submitted successfully!
+          </div>
+        )}
 
-      <InputField 
-        label="GitHub Username (Optional)" 
-        name="github" 
-        value={formData.github} 
-        onChange={handleChange} 
-      />
-      
-      <InputField 
-        label="LinkedIn Profile (Optional)" 
-        name="linkedin" 
-        value={formData.linkedin} 
-        onChange={handleChange} 
-      />
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {error && (
+            <p className="text-red-600 text-center text-sm font-medium">{error}</p>
+          )}
 
-      <SelectField 
-        label="Shirt Size" 
-        name="shirtSize" 
-        value={formData.shirtSize} 
-        onChange={handleChange} 
-        options={[
-          { label: "XS", value: "xs" },
-          { label: "S", value: "s" },
-          { label: "M", value: "m" },
-          { label: "L", value: "l" },
-          { label: "XL", value: "xl" },
-          { label: "XXL", value: "xxl" },
-        ]}
-      />
+          {/* Personal Information */}
+          <Section title="Personal Information">
+            <div className="grid md:grid-cols-2 gap-5">
+              <InputField label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} error={fieldErrors.fullName} />
+              <InputField label="School" name="school" value={formData.school} onChange={handleChange} error={fieldErrors.school} />
+            </div>
+            <div className="grid md:grid-cols-2 gap-5">
+              <InputField label="Major" name="major" value={formData.major} onChange={handleChange} error={fieldErrors.major} />
+              <SelectField
+                label="Level of Study"
+                name="levelOfStudy"
+                value={formData.levelOfStudy}
+                onChange={handleChange}
+                options={[
+                  { label: "High School", value: "high_school" },
+                  { label: "Undergraduate", value: "undergraduate" },
+                  { label: "Graduate", value: "graduate" },
+                  { label: "PhD", value: "phd" },
+                  { label: "Professional", value: "professional" },
+                ]}
+                error={fieldErrors.levelOfStudy}
+              />
+            </div>
+            <SelectField
+              label="Expected Graduation"
+              name="graduationYear"
+              value={formData.graduationYear}
+              onChange={handleChange}
+              options={years.map((y) => ({ label: y.toString(), value: y.toString() }))}
+              error={fieldErrors.graduationYear}
+            />
+          </Section>
 
-      <div>
-        <label className="block mb-2 font-medium">Dietary Restrictions (Optional)</label>
-        <textarea 
-          name="dietaryRestrictions" 
-          value={formData.dietaryRestrictions} 
-          onChange={handleChange}
-          rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          placeholder="Any allergies or dietary preferences?"
-        />
-      </div>
+          {/* Resume Upload */}
+          <Section title="Resume">
+            {!formData.resume ? (
+              <div
+                onDragEnter={() => setDragActive(true)}
+                onDragLeave={() => setDragActive(false)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+                  fieldErrors.resume
+                    ? "border-red-500 bg-red-50"
+                    : dragActive
+                    ? "border-purple-500 bg-purple-50"
+                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <Upload className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                <p className="text-slate-700 font-medium mb-1">Drop your resume or click below</p>
+                <p className="text-slate-500 text-sm mb-4">PDF format only</p>
+                <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 cursor-pointer">
+                  <FileText className="w-4 h-4" />
+                  Choose File
+                  <input type="file" accept=".pdf" onChange={handleFileInput} className="hidden" />
+                </label>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <FileText className="w-6 h-6 text-purple-600" />
+                <p className="text-slate-900 font-medium truncate">{formData.resume.name}</p>
+                <button type="button" onClick={removeResume} className="ml-auto text-slate-400 hover:text-red-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+            {fieldErrors.resume && <p className="text-red-500 text-sm mt-2">{fieldErrors.resume}</p>}
+          </Section>
 
-      <div>
-        <label className="block mb-2 font-medium">Skills & Interests (Optional)</label>
-        <textarea 
-          name="skills" 
-          value={formData.skills} 
-          onChange={handleChange}
-          rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          placeholder="Programming languages, frameworks, interests..."
-        />
-      </div>
+          {/* Professional Links */}
+          <Section title="Professional Links" subtitle="Optional but recommended">
+            <InputField label="GitHub" name="github" value={formData.github} onChange={handleChange} placeholder="github.com/username" />
+            <InputField label="LinkedIn" name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="linkedin.com/in/username" />
+          </Section>
 
-      <div className="flex items-start gap-3 p-4 bg-purple-50 rounded-lg">
-        <input 
-          type="checkbox" 
-          name="agreeToCodeOfConduct" 
-          checked={formData.agreeToCodeOfConduct} 
-          onChange={handleChange}
-          className="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
-          required
-        />
-        <span className="text-sm">
-          I agree to the{" "}
-          <a 
-            href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-purple-600 hover:underline font-medium"
+          {/* Additional Details */}
+          <Section title="Additional Details">
+            <SelectField
+              label="T-Shirt Size"
+              name="shirtSize"
+              value={formData.shirtSize}
+              onChange={handleChange}
+              options={[
+                { label: "XS", value: "xs" },
+                { label: "S", value: "s" },
+                { label: "M", value: "m" },
+                { label: "L", value: "l" },
+                { label: "XL", value: "xl" },
+              ]}
+              error={fieldErrors.shirtSize}
+            />
+            <TextAreaField label="Dietary Restrictions" name="dietaryRestrictions" value={formData.dietaryRestrictions} onChange={handleChange} />
+            <TextAreaField label="Skills & Interests" name="skills" value={formData.skills} onChange={handleChange} />
+          </Section>
+
+          {/* Code of Conduct */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="agreeToCodeOfConduct"
+                checked={formData.agreeToCodeOfConduct}
+                onChange={handleChange}
+                className={`w-5 h-5 border-2 rounded transition-all cursor-pointer ${
+                  fieldErrors.agreeToCodeOfConduct
+                    ? "border-red-500"
+                    : "border-slate-300"
+                } checked:bg-purple-600 checked:border-purple-600`}
+              />
+              <span className="text-slate-600 text-sm">
+                I agree to the{" "}
+                <a href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" rel="noopener noreferrer" className="text-purple-600 font-medium underline">
+                  MLH Code of Conduct
+                </a>
+              </span>
+            </label>
+            {fieldErrors.agreeToCodeOfConduct && <p className="text-red-500 text-sm mt-2">{fieldErrors.agreeToCodeOfConduct}</p>}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:shadow-lg disabled:opacity-60 transition-all"
           >
-            MLH Code of Conduct
-          </a>
-          {" *"}
-        </span>
+            {loading ? "Submitting..." : "Complete Registration"}
+          </button>
+        </form>
       </div>
-
-      <button 
-        type="submit" 
-        disabled={loading} 
-        className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
-      >
-        {loading ? "Submitting..." : "Complete Registration"}
-      </button>
-    </form>
+    </div>
   );
 }
 
-interface InputFieldProps {
-  label: string;
-  name: keyof OnboardingFormData;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean;
-}
-
-const InputField = ({ label, name, value, onChange, required = false }: InputFieldProps) => (
-  <div>
-    <label className="block mb-2 font-medium">
-      {label}{required && " *"}
-    </label>
-    <input 
-      name={name} 
-      value={value} 
-      onChange={onChange} 
-      required={required} 
-      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-    />
+/* Reusable UI components */
+const Section = ({ title, subtitle, children }: any) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+    <div className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 px-6 py-4 border-b border-slate-100">
+      <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
+      {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+    </div>
+    <div className="p-6 space-y-5">{children}</div>
   </div>
 );
 
-interface SelectFieldProps {
-  label: string;
-  name: keyof OnboardingFormData;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: { label: string; value: string }[];
-  required?: boolean;
-}
-
-const SelectField = ({ label, name, value, onChange, options, required = false }: SelectFieldProps) => (
+const InputField = ({ label, name, value, onChange, placeholder, error }: any) => (
   <div>
-    <label className="block mb-2 font-medium">
-      {label}{required && " *"}
-    </label>
-    <select 
-      name={name} 
-      value={value} 
-      onChange={onChange} 
-      required={required}
-      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+    <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+    <input
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all ${
+        error ? "border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-200 focus:ring-2 focus:ring-purple-200"
+      }`}
+    />
+    {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+  </div>
+);
+
+const SelectField = ({ label, name, value, onChange, options, error }: any) => (
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all appearance-none ${
+        error ? "border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-200 focus:ring-2 focus:ring-purple-200"
+      }`}
     >
       <option value="">Select</option>
-      {options.map((opt, i) => (
-        <option key={i} value={opt.value}>{opt.label}</option>
+      {options.map((o: any) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
       ))}
     </select>
+    {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+  </div>
+);
+
+const TextAreaField = ({ label, name, value, onChange }: any) => (
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      rows={3}
+      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
+    />
   </div>
 );
