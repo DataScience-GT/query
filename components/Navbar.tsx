@@ -15,9 +15,9 @@ const navItems = [
   { name: "Schedule", href: "/#schedule" },
   { name: "Tracks", href: "/#tracks" },
   { name: "Prizes", href: "/#prizes" },
-  { name: "Sponsors", href: "/#sponsors" },
-  { name: "FAQs", href: "/#faqs" },
   { name: "Speakers", href: "/#prizes" },
+  { name: "FAQs", href: "/#faqs" },
+  { name: "Sponsors", href: "/#sponsors" },
 ];
 
 export default function Navbar() {
