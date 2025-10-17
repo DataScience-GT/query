@@ -13,10 +13,10 @@ export default function HomeSections() {
   return (
     <>
       <AboutSection />
-      <TracksSection />
-      <FAQSection />
-      <PrizesSection />
       <ScheduleSection />
+      <TracksSection />
+      <PrizesSection />
+      <FAQSection />
       <SponsorSection />
     </>
   );
