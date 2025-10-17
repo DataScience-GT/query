@@ -6,7 +6,7 @@ export interface ScheduleEvent {
 }
 
 export type DaySchedule = Record<string, ScheduleEvent[]>;
-
+//typed array to where we can change the values later 
 export const scheduleData: DaySchedule = {
   Sunday: [
     { time: '09:00 AM', eventName: 'Pending', location: 'Pending', category: 'general' },

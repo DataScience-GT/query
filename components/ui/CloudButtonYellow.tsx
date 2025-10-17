@@ -21,7 +21,6 @@ const CloudButton: React.FC<CloudButtonProps> = ({ title, children }) => {
           isFlipped ? '[transform:rotateY(180deg)]' : ''
         }`}
       >
-        {/* FRONT SIDE */}
         <div 
           className="absolute w-full h-full [backface-visibility:hidden] bg-contain bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/cloud-color/cloudy/cloud-button.png')" }}
@@ -32,14 +31,11 @@ const CloudButton: React.FC<CloudButtonProps> = ({ title, children }) => {
             </span>
           </div>
         </div>
-
-        {/* BACK SIDE */}
         <div
           className="absolute w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-contain bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/cloud-color/cloudy/cloud-button.png')" }}
         >
           <div className="w-full h-full flex items-center justify-center text-center p-10">
-            {/* This is the line to change */}
             <div className="relative top-3 text-gray-800 text-sm font-semibold">
               {children}
             </div>

@@ -16,7 +16,6 @@ const Prizes: React.FC<PrizesProps> = ({ prizes }) => {
       </h2>
       <div className="flex flex-wrap justify-center gap-8">
         {prizes.map((prize, index) => (
-          // Removed the "shadow-2xl" class from this div
           <div
             key={index}
             className="w-80 h-40 bg-cover bg-center hover:scale-105 transition-transform duration-300 cursor-pointer"
