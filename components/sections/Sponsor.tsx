@@ -6,7 +6,6 @@ const SponsorsSection: React.FC = () => {
   return (
     <section
       id="sponsors"
-      // CHANGE: Removed 'min-h-screen' to allow the section height to fit its content, bringing the top and bottom closer.
       className="relative bg-[#A4C7FF] overflow-hidden flex flex-col justify-between"
     >
       {/* Main content */}

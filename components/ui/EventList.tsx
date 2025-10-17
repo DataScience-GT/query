@@ -13,7 +13,7 @@ export default function EventList({ events, iconFor }: Props) {
         <div
           key={i}
           className="grid grid-cols-1 md:grid-cols-3 gap-4 py-6 px-6"
-          style={{ backgroundColor: '#FE97B0' }} // keep pink background
+          style={{ backgroundColor: '#FE97B0' }}
         >
           <div className="flex items-center space-x-3">
             <span

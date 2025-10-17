@@ -1,14 +1,12 @@
 // app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
-// 1. Import IBM_Plex_Mono instead of Inter
 import { IBM_Plex_Mono } from 'next/font/google'
 import Navbar from '../components/Navbar'
 
-// 2. Configure IBM_Plex_Mono and assign it to the correct CSS variable
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  weight: ['400', '700'], // Specify the weights you need
+  weight: ['400', '700'],
   variable: '--font-ibm-plex-mono',
 })
 
@@ -24,7 +22,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* 3. Apply the new font variable to the body */}
       <body className={`${ibmPlexMono.variable} font-sans`}>
         <Navbar />
         {children}

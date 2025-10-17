@@ -4,7 +4,7 @@ import { categories } from '../sections/Schedule/data';
 interface Props {
   selected: string;
   onSelect: (id: string) => void;
-  bgColor?: string; // optional, default pink
+  bgColor?: string;
 }
 
 export default function CategoryFilter({ selected, onSelect, bgColor }: Props) {
@@ -13,7 +13,6 @@ export default function CategoryFilter({ selected, onSelect, bgColor }: Props) {
   return (
     <div style={{ backgroundColor: buttonBg }} className="py-6 px-6">
       <div className="flex flex-wrap justify-center gap-3">
-        {/* --- Always render a dedicated All button --- */}
         <button
           key="all"
           onClick={() => onSelect('all')}
@@ -26,8 +25,6 @@ export default function CategoryFilter({ selected, onSelect, bgColor }: Props) {
         >
           <span className="font-medium text-sm">All</span>
         </button>
-
-        {/* --- Existing category buttons --- */}
         {categories.map(cat => (
           <button
             key={cat.id}
