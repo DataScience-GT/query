@@ -90,8 +90,8 @@ export default function HomePage() {
           />
         </div>
 
-        {/* DSGT image */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
+        {/* DSGT image (behind mobile nav, in front on desktop) */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-10 md:z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
           <Image
             src="/dsgt.png"
             alt="DSGT Footer"
@@ -112,7 +112,9 @@ export default function HomePage() {
 
         {/* Hero Content */}
         <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8">
-          <h2 className={`${truculenta.className} text-4xl md:text-6xl font-black leading-none tracking-normal`}>
+          <h2
+            className={`${truculenta.className} text-4xl md:text-6xl font-black leading-none tracking-normal`}
+          >
             Hacklytics 2026:
           </h2>
           <h1
