@@ -26,7 +26,7 @@ const CloudButton: React.FC<CloudButtonProps> = ({ title, children }) => {
           style={{ backgroundImage: "url('/cloud-color/cloudy/cloud-button.png')" }}
         >
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-orange-500 font-bold text-2xl drop-shadow-sm">
+            <span className="text-orange-500 font-bold text-2xl drop-shadow-sm translate-y-3">
               {title}
             </span>
           </div>
@@ -35,7 +35,7 @@ const CloudButton: React.FC<CloudButtonProps> = ({ title, children }) => {
           className="absolute w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-contain bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/cloud-color/cloudy/cloud-button.png')" }}
         >
-          <div className="w-full h-full flex items-center justify-center text-center p-10">
+          <div className="w-full h-full flex items-center justify-center text-center p-10 translate-y-3">
             <div className="relative top-3 text-gray-800 text-sm font-semibold">
               {children}
             </div>
