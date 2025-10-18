@@ -1,21 +1,23 @@
 "use client";
 
-import React from 'react';
-import CloudBlueButton from '../ui/CloudButtonBlue';
+import React from "react";
+import CloudBlueButton from "../ui/CloudButtonBlue";
 
 export default function FAQ() {
   return (
-    <section id="faqs" className="section-anchor scroll-mt-28 min-h-screen bg-[#A4C7FF]">
-      <div className="container mx-auto px-4 py-16 md:py-24 max-w-6xl">
-        <div className="text-center mb-12 md:mb-16">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg">
+    <section
+      id="faqs"
+      className="section-anchor scroll-mt-28 min-h-screen bg-[#A4C7FF] py-20"
+    >
+      <div className="container mx-auto px-4 md:px-8 max-w-6xl">
+        <div className="text-center mb-16 md:mb-20">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-10 drop-shadow-lg">
             FAQ
           </h1>
         </div>
 
-        {/* Grid of cloud buttons shifted slightly to the left */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 md:gap-y-16 gap-x-12 max-w-5xl mx-auto items-center justify-items-center -translate-x-11 md:-translate-x-12">
-          
+        {/* Grid of cloud buttons, shifted slightly to the left with extra spacing */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-20 md:gap-y-28 gap-x-16 max-w-5xl mx-auto items-center justify-items-center -translate-x-11 md:-translate-x-12">
           <CloudBlueButton title="Who can register?">
             <p className="font-semibold">
               Any student currently enrolled in a University above the age of 18. For any discrepancies, please reach out.
@@ -61,7 +63,6 @@ export default function FAQ() {
               Yes! We also provide food and other goodies if you are in-person.
             </p>
           </CloudBlueButton>
-
         </div>
       </div>
     </section>
