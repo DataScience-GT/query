@@ -14,10 +14,10 @@ const AboutSection: React.FC = () => {
         <div className="bg-red-500 rounded-3xl p-8 mb-16 shadow-2xl">
           <div className="text-white text-lg leading-relaxed space-y-6">
             <p>
-              <strong>HacklyticS</strong> is a <strong>36-hour data science hackathon</strong> hosted by <strong>Data Science @ GT</strong>, Georgia Tech's largest data science club. Each year, hackers from across the globe join us in building <strong>impactful, data-driven projects</strong> tackling meaningful challenges.
+              <strong>Hacklytics</strong> is a <strong>36-hour data science hackathon</strong> hosted by <strong>Data Science @ GT</strong>, Georgia Tech's largest data science club. Each year, hackers from across the globe join us in building <strong>impactful, data-driven projects</strong> tackling meaningful challenges.
             </p>
             <p>
-              Inspired by the whimsical world of <strong>Willy Wonka</strong>, this year's theme invites you into a fantastical factory of technological development and discovery -- where curiosity fuels creativity, and <strong>innovation is your golden ticket</strong>. Tackle exciting challenges across our <strong>five tracks</strong>, each crafted to ignite your imagination and help you uncover the sweet rewards of solving complex issues through <strong>collaboration and code</strong>. So, bring your brightest ideas and your boldest builds; we promise your journey through HacklyticS will be <strong>anything but ordinary</strong>.
+              Inspired by the whimsical world of <strong>Willy Wonka</strong>, this year's theme invites you into a fantastical factory of technological development and discovery -- where curiosity fuels creativity, and <strong>innovation is your golden ticket</strong>. Tackle exciting challenges across our <strong>five tracks</strong>, each crafted to ignite your imagination and help you uncover the sweet rewards of solving complex issues through <strong>collaboration and code</strong>. So, bring your brightest ideas and your boldest builds; we promise your journey through Hacklytics will be <strong>anything but ordinary</strong>.
             </p>
           </div>
         </div>
