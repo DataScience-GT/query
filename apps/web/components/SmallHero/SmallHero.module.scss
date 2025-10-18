@@ -1,0 +1,121 @@
+$hero-foreground-color: rgb(229, 230, 219);
+
+.SmallHero {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: fit-content;
+    z-index: 1;
+
+    animation: fade-in 1s;
+
+    .HeroSep {
+        display: block;
+        position: relative;
+        width: 8em;
+        height: 2px;
+        border-bottom: 2px solid $hero-foreground-color;
+        margin: 30px 0;
+        transform: translateX(4px);
+
+        &:before {
+            content: "";
+            display: block;
+            position: absolute;
+            left: -6px;
+            top: -3px;
+
+            width: 3px;
+            height: 3px;
+            border: 2px solid $hero-foreground-color;
+            border-radius: 100%;
+        }
+        &:after {
+            content: "";
+            display: block;
+            position: absolute;
+            right: -6px;
+            top: -3px;
+
+            width: 3px;
+            height: 3px;
+            border: 2px solid $hero-foreground-color;
+            border-radius: 100%;
+        }
+    }
+
+    > .SmallHeroBlob {
+        display: block;
+        position: absolute;
+        z-index: -1;
+        width: 100%;
+        height: 8.5em;
+        top: 0;
+        right: 0;
+    }
+
+    > .SmallHeroWrapper {
+        display: flex;
+        position: relative;
+        height: 100%;
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 2.4em;
+        padding-bottom: 0;
+
+        > .SmallHeroLeft {
+            display: flex;
+            position: relative;
+            width: 80%;
+            float: left;
+
+            flex-direction: column;
+
+            > .major {
+                height: fit-content;
+                color: $hero-foreground-color;
+                font-weight: 700;
+                text-align: left;
+                width: fit-content;
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                text-shadow: 2px 2px $hero-foreground-color;
+                -webkit-text-stroke-width: 1.5px;
+                -webkit-text-stroke-color: $hero-foreground-color;
+                color: transparent;
+                letter-spacing: 0px;
+                font-size: 4em;
+            }
+
+            > .minor {
+                color: $hero-foreground-color;
+                font-weight: normal;
+                text-align: left;
+                width: fit-content;
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                letter-spacing: -1px;
+                font-size: 1.2em;
+            }
+        }
+    }
+}
+
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@media only screen and (max-width: 1000px) {
+    .SmallHero {
+        > .SmallHeroWrapper {
+            > .SmallHeroLeft {
+                width: 100%;
+                font-size: 12px;
+            }
+        }
+    }
+}
