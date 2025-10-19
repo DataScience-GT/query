@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // <-- import router
 
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 import smallblob from "../../assets/images/blobs/small-header--export.svg";
@@ -13,9 +14,11 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
+  const router = useRouter(); // <-- use router
   const [windowWidth, setWindowWidth] = useState(screen_width);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
+  const navbarHeight = 80; // adjust if your navbar height changes
 
   useEffect(() => {
     setWindowWidth(screen_width);
@@ -25,27 +28,45 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
-  const handleClick = (id: string) => {
+  const handleSmoothScroll = (href: string) => {
     setMenuOpen(false);
-    if (id.startsWith("#")) {
-      const el = document.querySelector(id);
-      el?.scrollIntoView({ behavior: "smooth" });
+
+    const scrollToSection = () => {
+      if (href.startsWith("/#")) {
+        const id = href.replace("/#", "#");
+        const element = document.querySelector(id);
+        if (element) {
+          const offsetTop =
+            element.getBoundingClientRect().top + window.scrollY - navbarHeight;
+          window.scrollTo({ top: offsetTop, behavior: "smooth" });
+        }
+      } else if (href === "/") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    if (window.location.pathname !== "/") {
+      // Navigate to homepage first, then scroll
+      router.push("/", { scroll: false });
+      setTimeout(scrollToSection, 100); // small delay to allow page load
+    } else {
+      scrollToSection();
     }
   };
 
   const menuItems = [
     { name: "Home", to: "/" },
-    { name: "About", to: "#about" },
-    { name: "Bootcamp", to: "#bootcamp" },
-    { name: "Hacklytics", to: "#hacklytics" },
-    { name: "Projects", to: "#projects" },
-    { name: "Get Involved", to: "#getinvolved" },
+    { name: "About", to: "/#about" },
+    { name: "Bootcamp", to: "/#bootcamp" },
+    { name: "Hacklytics", to: "/#hacklytics" },
+    { name: "Projects", to: "/#projects" },
+    { name: "Get Involved", to: "/#getinvolved" },
     { name: "Sign In", to: "https://member.datasciencegt.org", external: true },
   ];
 
   if (windowWidth >= WIDTH_THRESHOLD) {
     return (
-      <div className="absolute top-0 left-0 w-full h-24 z-20">
+      <div className="absolute top-0 left-0 w-full h-24 z-30">
         {page !== "home" && (
           <Image
             src={smallblob}
@@ -55,7 +76,13 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
         )}
         <div className="max-w-[1600px] mx-auto h-full flex justify-between items-center px-6">
           <div className="flex items-center gap-4">
-            <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+            <Link href="/">
+              <Image
+                src={logo}
+                alt="DSGT Logo"
+                className="h-16 w-auto cursor-pointer"
+              />
+            </Link>
             <h1
               className={`text-2xl font-bold ${
                 page === "home" ? "text-teal-500" : "text-black"
@@ -70,6 +97,8 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
                 <a
                   key={item.name}
                   href={item.to}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-lg font-extrabold text-black hover:text-teal-500 transition"
                 >
                   {item.name}
@@ -77,7 +106,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
               ) : (
                 <button
                   key={item.name}
-                  onClick={() => handleClick(item.to)}
+                  onClick={() => handleSmoothScroll(item.to)}
                   className="text-lg font-extrabold text-black hover:text-teal-500 transition"
                 >
                   {item.name}
@@ -92,10 +121,16 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
 
   // Mobile navbar
   return (
-    <div className="absolute top-0 left-0 w-full h-20 z-20">
+    <div className="absolute top-0 left-0 w-full h-20 z-30">
       <div className="flex justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
-          <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+          <Link href="/">
+            <Image
+              src={logo}
+              alt="DSGT Logo"
+              className="h-16 w-auto cursor-pointer"
+            />
+          </Link>
           <h1 className="text-2xl font-bold text-black">DSGT</h1>
         </div>
         <button
@@ -126,6 +161,8 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
               <a
                 key={item.name}
                 href={item.to}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-2xl font-bold text-teal-500 hover:text-yellow-400 transition"
               >
                 {item.name}
@@ -133,7 +170,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
             ) : (
               <button
                 key={item.name}
-                onClick={() => handleClick(item.to)}
+                onClick={() => handleSmoothScroll(item.to)}
                 className="text-2xl font-bold text-teal-500 hover:text-yellow-400 transition"
               >
                 {item.name}
