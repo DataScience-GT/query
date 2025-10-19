@@ -1,6 +1,6 @@
 # DSGT Monorepo Starter
 
-This monorepo starter was created by **Aamogh Sawant** to help future tech directories and developers streamline their projects with a structured, scalable setup.
+This monorepo starter was created by **Aamogh Sawant** to help future tech directors and developers streamline their projects with a structured, scalable setup.
 
 ## Getting Started
 
