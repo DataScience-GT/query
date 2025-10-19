@@ -1,58 +1,68 @@
-# Turborepo Tailwind CSS starter
+# DSGT Monorepo Starter
 
-This Turborepo starter is maintained by the Turborepo core team.
+This monorepo starter was created by **Aamogh Sawant** to help future tech directories and developers streamline their projects with a structured, scalable setup.
 
-## Using this example
+## Getting Started
 
-Run the following command:
-
+Set up your project by running:
 ```sh
 npx create-turbo@latest -e with-tailwind
 ```
 
-## What's inside?
+This creates a fully functional, TypeScript-based monorepo with Tailwind CSS and ready-to-use tooling.
 
-This Turborepo includes the following packages/apps:
+## What's Inside?
+
+This monorepo includes several apps and packages designed to accelerate development.
 
 ### Apps and Packages
 
-- `docs`: a [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `web`: another [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `ui`: a stub React component library with [Tailwind CSS](https://tailwindcss.com/) shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+**docs** — A Next.js application with Tailwind CSS for documentation, guides, or internal knowledge sharing.
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+**web** — Another Next.js application with Tailwind CSS for your main website or internal dashboards.
 
-### Building packages/ui
+**ui** — A shared React component library with Tailwind CSS for reusing UI components across apps. All classes are prefixed with `ui-` to avoid conflicts.
 
-This example is set up to produce compiled styles for `ui` components into the `dist` directory. The component `.tsx` files are consumed by the Next.js apps directly using `transpilePackages` in `next.config.ts`. This was chosen for several reasons:
+**@repo/eslint-config** — Centralized ESLint configuration, including `eslint-config-next` and `eslint-config-prettier` for consistent linting.
 
-- Make sharing one `tailwind.config.ts` to apps and packages as easy as possible.
-- Make package compilation simple by only depending on the Next.js Compiler and `tailwindcss`.
-- Ensure Tailwind classes do not overwrite each other. The `ui` package uses a `ui-` prefix for it's classes.
-- Maintain clear package export boundaries.
+**@repo/typescript-config** — Pre-configured TypeScript settings for all apps and packages.
 
-Another option is to consume `packages/ui` directly from source without building. If using this option, you will need to update the `tailwind.config.ts` in your apps to be aware of your package locations, so it can find all usages of the `tailwindcss` class names for CSS compilation.
+Everything is built with TypeScript for type safety and maintainable code.
 
-For example, in [tailwind.config.ts](packages/tailwind-config/tailwind.config.ts):
+## Building UI Components
 
-```js
-  content: [
-    // app content
-    `src/**/*.{js,ts,jsx,tsx}`,
-    // include packages if not transpiling
-    "../../packages/ui/*.{js,ts,jsx,tsx}",
-  ],
+The `ui` package produces compiled styles in the `dist` directory. Next.js apps consume these components using `transpilePackages` in `next.config.ts`.
+
+### Key Benefits
+
+- Easy sharing of a single `tailwind.config.ts` across apps and packages
+- Simple package compilation with minimal dependencies
+- Tailwind CSS class isolation (`ui-` prefix prevents overwriting)
+- Clear package boundaries and maintainable exports
+
+### Alternative: Consuming from Source
+
+You can consume `ui` components directly from source without building. Update your apps' `tailwind.config.ts`:
+```ts
+content: [
+  // app content
+  `src/**/*.{js,ts,jsx,tsx}`,
+  // include packages if consuming from source
+  "../../packages/ui/*.{js,ts,jsx,tsx}",
+]
 ```
 
-If you choose this strategy, you can remove the `tailwindcss` and `autoprefixer` dependencies from the `ui` package.
+If using this approach, remove `tailwindcss` and `autoprefixer` from the `ui` package.
 
-### Utilities
+## Utilities Included
 
-This Turborepo has some additional tools already setup for you:
+This monorepo comes pre-configured with:
 
-- [Tailwind CSS](https://tailwindcss.com/) for styles
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+- **Tailwind CSS** — Modern, responsive styling
+- **TypeScript** — Static type safety
+- **ESLint** — Consistent code quality
+- **Prettier** — Automatic code formatting
+
+## Questions?
+
+Feel free to reach out or contribute to improve this starter for the DSGT community.
