@@ -11,7 +11,6 @@ import { submitOnboardingForm } from "@/app/actions/onboarding";
 import schools from "./data/schools.json";
 import majors from "./data/majors.json";
 
-// Updated dietary restrictions
 const ALLERGIES = [
   "Milk",
   "Eggs",
