@@ -172,24 +172,31 @@ export default function OnboardingForm() {
           {/* Personal Info */}
           <Section title="Personal Information">
             <div className="grid md:grid-cols-2 gap-5">
-              <SelectField 
-                label="School *" 
-                name="school" 
-                value={formData.school} 
-                onChange={handleChange} 
-                options={schools.map(s=>({label:s,value:s}))} 
-                error={fieldErrors.school} 
-                small
-              />
-              <SelectField 
-                label="Major *" 
-                name="major" 
-                value={formData.major} 
-                onChange={handleChange} 
-                options={Object.values(majors).flat().map(m=>({label:m,value:m}))} 
-                error={fieldErrors.major} 
-                small
-              />
+              <div className="min-w-0">
+                <SelectField 
+                  label="School *" 
+                  name="school" 
+                  value={formData.school} 
+                  onChange={handleChange} 
+                  options={schools.map(s=>({
+                    label: s.length > 50 ? s.substring(0, 47) + '...' : s,
+                    value: s
+                  }))} 
+                  error={fieldErrors.school}
+                  small
+                />
+              </div>
+              <div className="min-w-0">
+                <SelectField 
+                  label="Major *" 
+                  name="major" 
+                  value={formData.major} 
+                  onChange={handleChange} 
+                  options={Object.values(majors).flat().map(m=>({label:m,value:m}))} 
+                  error={fieldErrors.major} 
+                  small
+                />
+              </div>
             </div>
             <div className="grid md:grid-cols-2 gap-5">
               <SelectField label="Level of Study *" name="levelOfStudy" value={formData.levelOfStudy} onChange={handleChange} options={LEVELS} error={fieldErrors.levelOfStudy}/>
