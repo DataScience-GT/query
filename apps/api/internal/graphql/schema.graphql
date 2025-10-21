@@ -1,0 +1,10 @@
+type User {
+  email: String!
+  name: String!
+  app: String!
+}
+
+type Query {
+  me: User!
+  events: [String!]!
+}
