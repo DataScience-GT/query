@@ -7,9 +7,10 @@ interface SelectFieldProps {
   onChange: (e: React.ChangeEvent<any>) => void;
   options: { label: string; value: string }[];
   error?: string;
+  small?: boolean;
 }
 
-export default function SelectField({ label, name, value, onChange, options, error }: SelectFieldProps) {
+export default function SelectField({ label, name, value, onChange, options, error, small }: SelectFieldProps) {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
@@ -20,6 +21,11 @@ export default function SelectField({ label, name, value, onChange, options, err
         className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all appearance-none ${
           error ? "border-red-500 focus:ring-2 focus:ring-red-200" : "border-slate-200 focus:ring-2 focus:ring-purple-200"
         }`}
+        style={small ? {
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden'
+        } : undefined}
       >
         <option value="">Select</option>
         {options.map((o) => (
