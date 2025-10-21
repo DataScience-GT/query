@@ -1,4 +1,4 @@
-# DSGT Monorepo Starter
+# Cerebra
 
 This monorepo starter was created by **Aamogh Sawant** to help future tech directors and developers streamline their projects with a structured, scalable setup.
 
