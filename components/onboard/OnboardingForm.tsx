@@ -12,22 +12,16 @@ import schools from "./data/schools.json";
 import majors from "./data/majors.json";
 
 const ALLERGIES = [
-  "Milk",
-  "Eggs",
-  "Fish",
-  "Crustacean Shellfish",
-  "Tree Nuts",
-  "Peanuts",
-  "Wheat",
-  "Soybeans",
-  "Halal",
-  "Kosher",
-  "Vegetarian",
-  "Vegan"
+  "Milk","Eggs","Fish","Crustacean Shellfish","Tree Nuts","Peanuts","Wheat","Soybeans",
+  "Halal","Kosher","Vegetarian","Vegan"
 ];
 
 const GENDERS = ["Male","Female","Non-binary","Prefer not to say"];
-const RACES = ["American Indian or Alaska Native","Asian","Black or African American","Hispanic or Latino","Native Hawaiian or Other Pacific Islander","White","Other","Prefer not to say"];
+const RACES = [
+  "American Indian or Alaska Native","Asian","Black or African American","Hispanic or Latino",
+  "Native Hawaiian or Other Pacific Islander","White","Other","Prefer not to say"
+];
+
 const LEVELS = [
   {label:"High School",value:"high_school"},
   {label:"Undergraduate",value:"undergraduate"},
@@ -35,6 +29,7 @@ const LEVELS = [
   {label:"PhD",value:"phd"},
   {label:"Professional",value:"professional"}
 ];
+
 const SHIRT_SIZES = ["XS","S","M","L","XL","XXL"];
 
 interface OnboardingFormData {
@@ -67,28 +62,11 @@ export default function OnboardingForm() {
   const years = useMemo(() => Array.from({ length: 8 }, (_, i) => currentYear + i), [currentYear]);
 
   const [formData, setFormData] = useState<OnboardingFormData>({
-    fullName: "",
-    school: "",
-    major: "",
-    levelOfStudy: "",
-    graduationYear: "",
-    dob: "",
-    github: "",
-    linkedin: "",
-    personalWebsite: "",
-    shirtSize: "",
-    gender: "",
-    raceEthnicity: "",
-    dietaryRestrictions: [],
-    skills: "",
-    motivation: "",
-    goals: "",
-    firstHackathon: false,
-    agreeToCodeOfConduct: false,
-    agreeToMLHPrivacy: false,
-    agreeToEmailConsent: false,
-    agreeToTOS: false,
-    resume: null,
+    fullName: "", school: "", major: "", levelOfStudy: "", graduationYear: "", dob: "",
+    github: "", linkedin: "", personalWebsite: "", shirtSize: "", gender: "", raceEthnicity: "",
+    dietaryRestrictions: [], skills: "", motivation: "", goals: "", firstHackathon: false,
+    agreeToCodeOfConduct: false, agreeToMLHPrivacy: false, agreeToEmailConsent: false,
+    agreeToTOS: false, resume: null
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
@@ -98,10 +76,7 @@ export default function OnboardingForm() {
 
   const handleChange = (e: React.ChangeEvent<any>) => {
     const { name, type, value, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     setFieldErrors(prev => ({ ...prev, [name]: "" }));
   };
 
@@ -110,19 +85,20 @@ export default function OnboardingForm() {
       ...prev,
       dietaryRestrictions: prev.dietaryRestrictions.includes(allergy)
         ? prev.dietaryRestrictions.filter(a => a !== allergy)
-        : [...prev.dietaryRestrictions, allergy],
+        : [...prev.dietaryRestrictions, allergy]
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Form submission started");
     setLoading(true);
     setError(null);
     setSuccess(false);
 
     const newErrors: Record<string,string> = {};
     const requiredFields: (keyof OnboardingFormData)[] = [
-      "fullName","school","major","levelOfStudy","graduationYear","shirtSize","dob","motivation","goals"
+      "fullName","school","major","levelOfStudy","graduationYear","shirtSize","dob"
     ];
     requiredFields.forEach(f => {
       if(!formData[f]) newErrors[f] = "This field is required";
@@ -132,23 +108,55 @@ export default function OnboardingForm() {
     if(!formData.agreeToMLHPrivacy) newErrors.agreeToMLHPrivacy = "You must agree to MLH Privacy Policy";
     if(!formData.agreeToTOS) newErrors.agreeToTOS = "You must agree to Hacklytics TOS";
 
+    console.log("Validation errors:", newErrors);
+
     if(Object.keys(newErrors).length > 0){
       setFieldErrors(newErrors);
       setLoading(false);
+      console.log("Form has validation errors, stopping submission");
       return;
     }
 
     try{
+      console.log("Creating FormData...");
       const data = new FormData();
-      Object.entries(formData).forEach(([key,value]) => {
-        if(key === "resume" && value) data.append(key,value as File);
-        else if(key === "dietaryRestrictions") data.append(key,JSON.stringify(value));
-        else data.append(key,String(value));
-      });
+      
+      // Append all text fields
+      data.append("fullName", formData.fullName);
+      data.append("school", formData.school);
+      data.append("major", formData.major);
+      data.append("levelOfStudy", formData.levelOfStudy);
+      data.append("graduationYear", formData.graduationYear);
+      data.append("dob", formData.dob);
+      data.append("github", formData.github);
+      data.append("linkedin", formData.linkedin);
+      data.append("personalWebsite", formData.personalWebsite);
+      data.append("shirtSize", formData.shirtSize);
+      data.append("gender", formData.gender);
+      data.append("raceEthnicity", formData.raceEthnicity);
+      data.append("skills", formData.skills);
 
+      
+      // Append dietary restrictions and booleans
+      data.append("dietaryRestrictions", JSON.stringify(formData.dietaryRestrictions));
+      data.append("firstHackathon", String(formData.firstHackathon));
+      data.append("agreeToCodeOfConduct", String(formData.agreeToCodeOfConduct));
+      data.append("agreeToMLHPrivacy", String(formData.agreeToMLHPrivacy));
+      data.append("agreeToEmailConsent", String(formData.agreeToEmailConsent));
+      data.append("agreeToTOS", String(formData.agreeToTOS));
+
+      // Append resume if present
+      if(formData.resume) {
+        console.log("Appending resume:", formData.resume.name);
+        data.append("resume", formData.resume);
+      }
+
+      console.log("Calling submitOnboardingForm...");
       await submitOnboardingForm(data);
+      console.log("Form submitted successfully!");
       setSuccess(true);
     }catch(err:any){
+      console.error("Submission error:", err);
       setError(err.message || "Unexpected error");
     }finally{
       setLoading(false);
@@ -166,36 +174,20 @@ export default function OnboardingForm() {
         {success && <p className="text-green-600 text-center mb-4">Registration submitted successfully!</p>}
         {error && <p className="text-red-600 text-center mb-4">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data">
 
           {/* Personal Info */}
           <Section title="Personal Information">
             <div className="grid md:grid-cols-2 gap-5">
-              <div className="min-w-0">
-                <SelectField 
-                  label="School *" 
-                  name="school" 
-                  value={formData.school} 
-                  onChange={handleChange} 
-                  options={schools.map(s=>({
-                    label: s.length > 50 ? s.substring(0, 47) + '...' : s,
-                    value: s
-                  }))} 
-                  error={fieldErrors.school}
-                  small
-                />
-              </div>
-              <div className="min-w-0">
-                <SelectField 
-                  label="Major *" 
-                  name="major" 
-                  value={formData.major} 
-                  onChange={handleChange} 
-                  options={Object.values(majors).flat().map(m=>({label:m,value:m}))} 
-                  error={fieldErrors.major} 
-                  small
-                />
-              </div>
+              <SelectField 
+                label="School *" name="school" value={formData.school} onChange={handleChange}
+                options={schools.map(s=>({label: s.length>50 ? s.substring(0,47)+'...' : s, value: s}))}
+                error={fieldErrors.school} small
+              />
+              <SelectField 
+                label="Major *" name="major" value={formData.major} onChange={handleChange}
+                options={Object.values(majors).flat().map(m=>({label:m,value:m}))} error={fieldErrors.major} small
+              />
             </div>
             <div className="grid md:grid-cols-2 gap-5">
               <SelectField label="Level of Study *" name="levelOfStudy" value={formData.levelOfStudy} onChange={handleChange} options={LEVELS} error={fieldErrors.levelOfStudy}/>

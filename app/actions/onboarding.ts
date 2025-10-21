@@ -19,25 +19,24 @@ export async function submitOnboardingForm(formData: FormData) {
   if (userError || !user) throw new Error("Unauthorized");
 
   const updateData: any = {
-    id: user.id,
-    email: user.email,
-    full_name: capitalizeName(formData.get("fullName") as string),
-    school: formData.get("school") as string,
-    major: formData.get("major") as string,
-    level_of_study: formData.get("levelOfStudy") as string,
-    graduation_date: formData.get("graduationYear") as string,
-    github: formData.get("github") as string || null,
-    linkedin: formData.get("linkedin") as string || null,
-    personal_website: formData.get("personalWebsite") as string || null,
-    shirt_size: formData.get("shirtSize") as string,
-    food_allergies: JSON.stringify(formData.get("dietaryRestrictions")),
-    skills: formData.get("skills") as string,
-    motivation: formData.get("motivation") as string,
-    goals: formData.get("goals") as string,
-    first_hackathon: formData.get("firstHackathon") === "true",
-    form_completed: true,
-    updated_at: new Date().toISOString(),
-  };
+  id: user.id,
+  email: user.email,
+  full_name: capitalizeName(formData.get("fullName") as string),
+  school: formData.get("school") as string,
+  major: formData.get("major") as string,
+  level_of_study: formData.get("levelOfStudy") as string,
+  graduation_date: formData.get("graduationYear") as string,
+  github: formData.get("github") as string || null,
+  linkedin: formData.get("linkedin") as string || null,
+  personal_website: formData.get("personalWebsite") as string || null,
+  shirt_size: formData.get("shirtSize") as string,
+  food_allergies: JSON.stringify(formData.get("dietaryRestrictions")),
+  skills: formData.get("skills") as string,
+  first_hackathon: formData.get("firstHackathon") === "true",
+  form_completed: true,
+  updated_at: new Date().toISOString(),
+};
+
 
   const resume = formData.get("resume") as File | null;
   if (resume) {
