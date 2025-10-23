@@ -7,51 +7,54 @@ const ConferencePage: React.FC = () => {
     {
       position: '',
       amount: '',
-      image: '../tickets/gold.png'
+      image: '../tickets/gold.png',
+      label: '(per person)' 
     },
     {
       position: '2nd',
       amount: '',
-      image: '../tickets/silver.png'
+      image: '../tickets/silver.png',
+      label: '(per person)'
     },
     {
       position: '',
       amount: '',
-      image: '../tickets/bronze.png'
+      image: '../tickets/bronze.png',
+      label: '(per person)'
     }
   ];
 
   const speakers = [
     {
       id: 1,
-      name: 'Pending',
-      title: 'Pending',
-      company: 'Pending',
-      bio: 'Pending',
+      name: 'TBD',
+      title: '',
+      company: '',
+      bio: '',
       image: '../wonka/wonka.png'
     },
     {
       id: 2,
-      name: 'Pending',
-      title: 'Pending',
-      company: 'Pending',
-      bio: 'Pending',
+      name: 'TBD',
+      title: '',
+      company: '',
+      bio: '',
       image: '../wonka/wonka.png'
     },
     {
       id: 3,
-      name: 'Pending',
-      title: 'Pending',
-      company: 'Pending',
-      bio: 'Pending',
+      name: 'TBD',
+      title: '',
+      company: '',
+      bio: '',
       image: '../wonka/wonka.png'
     },
     {
       id: 4,
-      name: 'Pending',
-      title: 'Pending',
-      company: 'Pending',
-      bio: 'Pending',
+      name: 'TBD',
+      title: '',
+      company: '',
+      bio: '',
       image: '../wonka/wonka.png'
     }
   ];

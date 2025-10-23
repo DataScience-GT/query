@@ -2,6 +2,7 @@ import React from 'react';
 
 interface Prize {
   image: string;
+  label?: string;
 }
 
 interface PrizesProps {
@@ -16,11 +17,17 @@ const Prizes: React.FC<PrizesProps> = ({ prizes }) => {
       </h2>
       <div className="flex flex-wrap justify-center gap-8">
         {prizes.map((prize, index) => (
-          <div
-            key={index}
-            className="w-80 h-40 bg-cover bg-center hover:scale-105 transition-transform duration-300 cursor-pointer"
-            style={{ backgroundImage: `url('${prize.image}')` }}
-          />
+          <div key={index} className="relative w-80 h-40 cursor-pointer">
+            <div
+              className="w-full h-full bg-cover bg-center hover:scale-105 transition-transform duration-300"
+              style={{ backgroundImage: `url('${prize.image}')` }}
+            />
+            {prize.label && (
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/4 bg-white/20 backdrop-blur-sm text-white text-sm px-2 py-1 rounded">
+                {prize.label}
+              </span>
+            )}
+          </div>
         ))}
       </div>
     </div>

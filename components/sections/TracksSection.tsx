@@ -26,17 +26,17 @@ export default function TracksSection() {
             <p className="font-semibold">Dive into player performance, game strategy, and the future of sports data.</p>
           </CloudButton>
           
-          <CloudButton title="Health & Wellness">
+          <CloudButton title="Healthcare">
             <p className="font-semibold">Innovate in bioinformatics, patient care, and personal health technology.</p>
           </CloudButton>
           
-          <CloudButton title="Generative AI">
+          <CloudButton title="Pure Imagination">
             <p className="font-semibold">Explore the creative frontier of AI in art, music, and content creation.</p>
           </CloudButton>
           
           <div className="md:col-span-2 flex justify-center mt-4">
-            <CloudButton title="Smart Cities">
-              <p className="font-semibold">Use data to improve urban living, transportation, and sustainability.</p>
+            <CloudButton title="Entertainment">
+              <p className="font-semibold">See how AI is transforming movies, gaming, and interactive experiences.</p>
             </CloudButton>
           </div>
 
