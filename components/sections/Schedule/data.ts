@@ -8,21 +8,21 @@ export interface ScheduleEvent {
 export type DaySchedule = Record<string, ScheduleEvent[]>;
 //typed array to where we can change the values later 
 export const scheduleData: DaySchedule = {
-  Sunday: [
+  Friday: [
     { time: '09:00 AM', eventName: 'Pending', location: 'Pending', category: 'general' },
     { time: '10:30 AM', eventName: 'Pending', location: 'Pending', category: 'food' },
     { time: '11:00 AM', eventName: 'Pending', location: 'Pending', category: 'workshop' },
     { time: '12:30 PM', eventName: 'Pending', location: 'Pending', category: 'food' },
     { time: '02:00 PM', eventName: 'Pending', location: 'Pending', category: 'activity' }
   ],
-  Friday: [
+  Saturday: [
     { time: '09:00 AM', eventName: 'Pending', location: 'Pending', category: 'workshop' },
     { time: '10:30 AM', eventName: 'Pending', location: 'Pending', category: 'food' },
     { time: '11:00 AM', eventName: 'Pending', location: 'Pending', category: 'workshop' },
     { time: '12:30 PM', eventName: 'Pending', location: 'Pending', category: 'food' },
     { time: '02:00 PM', eventName: 'Pending', location: 'Pending', category: 'activity' }
   ],
-  Saturday: [
+  Sunday: [
     { time: '09:00 AM', eventName: 'Pending', location: 'Pending', category: 'workshop' },
     { time: '10:30 AM', eventName: 'Pending', location: 'Pending', category: 'food' },
     { time: '11:00 AM', eventName: 'Pending', location: 'Pending', category: 'workshop' },
