@@ -17,9 +17,9 @@ This monorepo includes several apps and packages designed to accelerate developm
 
 ### Apps and Packages
 
-**docs** — A Next.js application with Tailwind CSS for documentation, guides, or internal knowledge sharing.
+**hacklytics** — A Next.js application with Tailwind CSS for documentation, guides, or internal knowledge sharing. (WILL BE CONVERTING TO REACT AND VITE)
 
-**web** — Another Next.js application with Tailwind CSS for your main website or internal dashboards.
+**web** — Another Next.js application with Tailwind CSS for your main website or internal dashboards. (WILL BE CONVERTING TO REACT AND VITE)
 
 **ui** — A shared React component library with Tailwind CSS for reusing UI components across apps. All classes are prefixed with `ui-` to avoid conflicts.
 
