@@ -3,11 +3,16 @@
 import React, { useState } from "react";
 
 interface CloudBlueButtonProps {
-  title: string;
+  title: string | React.ReactNode;
   children: React.ReactNode;
+  titleClassName?: string; // optional class for customizing title
 }
 
-const CloudBlueButton: React.FC<CloudBlueButtonProps> = ({ title, children }) => {
+const CloudBlueButton: React.FC<CloudBlueButtonProps> = ({
+  title,
+  children,
+  titleClassName,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const handleClick = () => setIsOpen(!isOpen);
 
@@ -21,7 +26,11 @@ const CloudBlueButton: React.FC<CloudBlueButtonProps> = ({ title, children }) =>
         }}
         onClick={handleClick}
       >
-        <span className="mt-6 text-orange-500 font-bold text-lg drop-shadow-sm break-words">
+        <span
+          className={`mt-6 text-orange-500 font-bold drop-shadow-sm break-words ${
+            titleClassName || "text-lg"
+          }`}
+        >
           {title}
         </span>
       </div>

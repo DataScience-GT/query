@@ -16,8 +16,8 @@ export default function FAQ() {
           </h1>
         </div>
 
-        {/* Grid of cloud buttons, shifted slightly to the left with extra spacing */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-20 md:gap-y-28 gap-x-16 max-w-5xl mx-auto items-center justify-items-center -translate-x-11 md:-translate-x-12">
+        {/* Grid of cloud buttons, with responsive left shift */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-20 md:gap-y-28 gap-x-16 max-w-5xl mx-auto items-center justify-items-center -translate-x-16 sm:-translate-x-14 md:-translate-x-12">
           <CloudBlueButton title="Who can register?">
             <p className="font-semibold">
               Any student currently enrolled in a University above the age of 18. For any discrepancies, please reach out.
@@ -30,9 +30,13 @@ export default function FAQ() {
             </p>
           </CloudBlueButton>
 
-          <CloudBlueButton title="How do I apply for Travel Reimbursements?">
-            <p className="font-semibold">Pending</p>
-          </CloudBlueButton>
+          <CloudBlueButton
+  title="How do I apply for Travel Reimbursements?"
+  titleClassName="text-base" //should?
+>
+  <p className="font-semibold">Pending</p>
+</CloudBlueButton>
+
 
           <CloudBlueButton title="Can you participate virtually">
             <p className="font-semibold">
