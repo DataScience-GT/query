@@ -13,14 +13,14 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "baseUrl": ".",         // must be set for path aliases
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["*"]         // maps @/utils/... to project_root/utils/...
+    },
+    "ignoreDeprecations": "6.0",
+    "plugins": [
+      { "name": "next" }
+    ]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
