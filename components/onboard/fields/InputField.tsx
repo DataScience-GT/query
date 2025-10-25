@@ -1,5 +1,7 @@
 "use client";
 
+import { HTMLInputTypeAttribute } from "react";
+
 interface InputFieldProps {
   label: string;
   name: string;
@@ -7,13 +9,15 @@ interface InputFieldProps {
   onChange: (e: React.ChangeEvent<any>) => void;
   placeholder?: string;
   error?: string;
+  type?: HTMLInputTypeAttribute;
 }
 
-export default function InputField({ label, name, value, onChange, placeholder, error }: InputFieldProps) {
+export default function InputField({ label, name, value, onChange, placeholder, error, type = "text" }: InputFieldProps) {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
       <input
+        type={type}
         name={name}
         value={value}
         onChange={onChange}
