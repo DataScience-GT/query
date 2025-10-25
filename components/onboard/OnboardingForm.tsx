@@ -120,7 +120,7 @@ export default function OnboardingForm() {
     try{
       console.log("Creating FormData...");
       const data = new FormData();
-      
+
       // Append all text fields
       data.append("fullName", formData.fullName);
       data.append("school", formData.school);
@@ -136,7 +136,7 @@ export default function OnboardingForm() {
       data.append("raceEthnicity", formData.raceEthnicity);
       data.append("skills", formData.skills);
 
-      
+
       // Append dietary restrictions and booleans
       data.append("dietaryRestrictions", JSON.stringify(formData.dietaryRestrictions));
       data.append("firstHackathon", String(formData.firstHackathon));
@@ -155,7 +155,7 @@ export default function OnboardingForm() {
       await submitOnboardingForm(data);
       console.log("Form submitted successfully!");
       setSuccess(true);
-    }catch(err:any){
+    }catch(err: any){
       console.error("Submission error:", err);
       setError(err.message || "Unexpected error");
     }finally{
@@ -179,12 +179,12 @@ export default function OnboardingForm() {
           {/* Personal Info */}
           <Section title="Personal Information">
             <div className="grid md:grid-cols-2 gap-5">
-              <SelectField 
+              <SelectField
                 label="School *" name="school" value={formData.school} onChange={handleChange}
                 options={schools.map(s=>({label: s.length>50 ? s.substring(0,47)+'...' : s, value: s}))}
                 error={fieldErrors.school} small
               />
-              <SelectField 
+              <SelectField
                 label="Major *" name="major" value={formData.major} onChange={handleChange}
                 options={Object.values(majors).flat().map(m=>({label:m,value:m}))} error={fieldErrors.major} small
               />

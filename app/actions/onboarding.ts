@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-const capitalizeName = (name: string) => name.replace(/\b\w/g, (c) => c.toUpperCase()); //lol im too lazy to go back and change how i assigned them ealier 
+const capitalizeName = (name: string) => name.replace(/\b\w/g, (c) => c.toUpperCase()); //lol im too lazy to go back and change how i assigned them ealier
 
 //rewritefilenameforanything
 const sanitizeFileName = (fileName: string) =>
@@ -40,9 +40,6 @@ export async function submitOnboardingForm(formData: FormData) {
 
   const resume = formData.get("resume") as File | null;
   if (resume) {
-    if (resume.type !== "application/pdf") throw new Error("Resume must be a PDF");
-    if (resume.size > 10 * 1024 * 1024) throw new Error("Resume must be smaller than 10MB");
-
     const filePath = `${user.id}/${sanitizeFileName(resume.name)}`;
     const buffer = Buffer.from(await resume.arrayBuffer());
     const { error: uploadError } = await supabase.storage
