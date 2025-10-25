@@ -23,7 +23,6 @@
         "*"
       ] // maps @/utils/... to project_root/utils/...
     },
-    "ignoreDeprecations": "6.0",
     "plugins": [
       {
         "name": "next"
