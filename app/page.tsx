@@ -20,11 +20,10 @@ const Cloud: React.FC<{ src: string; className?: string }> = ({ src, className }
 );
 
 export default function HomePage() {
-
-  const supabase = createClient();
   const router = useRouter();
 
   const handleGoogleLogin = async () => {
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -37,13 +36,6 @@ export default function HomePage() {
       console.error("Error logging in with Google:", error.message);
     }
   };
-
-
-
-
-
-
-
 
   return (
     <main className="relative w-full font-sans text-gray-800 overflow-hidden">
