@@ -273,8 +273,19 @@ export default function OnboardingForm() {
             {fieldErrors.agreeToTOS && <p className="text-red-500 text-sm mt-1">{fieldErrors.agreeToTOS}</p>}
           </Section>
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all disabled:opacity-60">
-            {loading ? "Submitting..." : "Submit"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-3"
+          >
+            {loading ? (
+              <>
+                <div className="h-5 w-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
+                Submitting...
+              </>
+            ) : (
+              "Submit"
+            )}
           </button>
         </form>
       </div>
