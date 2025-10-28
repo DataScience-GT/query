@@ -1,5 +1,6 @@
 "use server";
 
+import { Database } from "@/types/supabase";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -18,7 +19,7 @@ export async function submitOnboardingForm(formData: FormData) {
   } = await supabase.auth.getUser();
   if (userError || !user) throw new Error("Unauthorized");
 
-  const updateData: any = {
+const updateData: Database["public"]["Tables"]["profiles"]["Insert"] = {
   id: user.id,
   email: user.email,
   full_name: capitalizeName(formData.get("fullName") as string),

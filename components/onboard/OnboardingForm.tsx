@@ -276,7 +276,7 @@ export default function OnboardingForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-3"
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer"
           >
             {loading ? (
               <>
