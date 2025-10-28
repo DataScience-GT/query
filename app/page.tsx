@@ -1,12 +1,8 @@
 "use client";
 import Image from "next/image";
-import React, { useState } from "react";
+import React from "react";
 import HomeSections from "@/components/HomeSections";
 import { Truculenta } from "next/font/google";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
-
-
 
 const truculenta = Truculenta({
   subsets: ["latin"],
@@ -20,26 +16,6 @@ const Cloud: React.FC<{ src: string; className?: string }> = ({ src, className }
 );
 
 export default function HomePage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        skipBrowserRedirect: false,
-      },
-    });
-
-    if (error) {
-      console.error("Error logging in with Google:", error.message);
-      setLoading(false);
-    }
-  };
-
   return (
     <main className="relative w-full font-sans text-gray-800 overflow-hidden">
       {/* MLH Trust Badge */}
@@ -149,20 +125,13 @@ export default function HomePage() {
           </h1>
 
           {/* Apply Now! Button */}
+          <a href="https://form.typeform.com/to/ssQqAlXE">
             <button
-            onClick={handleGoogleLogin}
-              disabled={loading}
-              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl cursor-pointer flex items-center justify-center gap-3 disabled:opacity-75`}
+              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl`}
             >
-              {loading ? (
-                <>
-                  <div className="h-5 w-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
-                  Hold on tight...
-                </>
-              ) : (
-                "Apply Now!"
-              )}
+              Apply Now!
             </button>
+          </a>
 
           {/* Golden ticket placeholder */}
           <div className="mt-4 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto"></div>
