@@ -10,22 +10,14 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-  
-  if (error || !data.user) {
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
     console.error("Auth callback error:", error);
     return NextResponse.redirect(`${origin}/`);
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('form_completed')
-    .eq('id', data.user.id)
-    .single();
-
-  const redirectUrl = profile?.form_completed 
-    ? `${origin}/portal` 
-    : `${origin}/onboarding`;
-
-  return NextResponse.redirect(redirectUrl);
+  // Always redirect to the portal after login.
+  // The portal page will handle redirecting to onboarding if necessary.
+  return NextResponse.redirect(`${origin}/portal`);
 }
