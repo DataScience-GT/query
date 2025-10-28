@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import Image from "next/image";
 import { Truculenta } from 'next/font/google';
-import { usePathname } from "next/navigation";
 
 const truculenta = Truculenta({
   subsets: ['latin'],
@@ -22,8 +21,6 @@ const navItems = [
 ];
 
 export default function Navbar() {
-  const pathname = usePathname();
-
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
@@ -60,26 +57,18 @@ export default function Navbar() {
     };
   }, []);
 
-  // Effect to prevent body scroll when mobile menu is open
+  // **NEW**: Effect to prevent body scroll when mobile menu is open
   useEffect(() => {
     if (open) {
       document.body.classList.add('overflow-hidden');
     } else {
       document.body.classList.remove('overflow-hidden');
     }
+    // Cleanup function to remove the class when the component unmounts
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
-  }, [open]);
-
-  // ✅ MOVE THE CONDITIONAL RETURN HERE - AFTER ALL HOOKS
-  if (
-    pathname?.startsWith("/portal") ||
-    pathname?.startsWith("/onboarding") ||
-    pathname?.startsWith("/admin")
-  ) {
-    return null;
-  }
+  }, [open]); // Re-run this effect when the 'open' state changes
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -125,7 +114,7 @@ export default function Navbar() {
   };
 
   return (
-    <>
+    <> {/* Use a fragment to return multiple top-level elements */}
       <header
         ref={headerRef}
         className={`fixed top-0 z-40 w-full py-3 md:py-4 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'}`}
@@ -152,6 +141,7 @@ export default function Navbar() {
           <div className="w-12 flex-shrink-0 flex justify-end">
             {/* Mobile Menu Button */}
             <div className="md:hidden">
+              {/* **MODIFIED**: Set z-index to 50 to ensure button is above the new fullscreen overlay */}
               <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="relative z-50 p-2 rounded-md text-white focus:outline-none">
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {open ? (
@@ -166,7 +156,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Fullscreen Mobile Navigation Menu */}
+      {/* **MODIFIED**: Fullscreen Mobile Navigation Menu */}
       <div 
         className={`
           md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center 
