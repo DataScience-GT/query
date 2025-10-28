@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React from "react";
+import React, { useState } from "react";
 import HomeSections from "@/components/HomeSections";
 import { Truculenta } from "next/font/google";
 import { useRouter } from "next/navigation";
@@ -21,8 +21,10 @@ const Cloud: React.FC<{ src: string; className?: string }> = ({ src, className }
 
 export default function HomePage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
+    setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -34,6 +36,7 @@ export default function HomePage() {
 
     if (error) {
       console.error("Error logging in with Google:", error.message);
+      setLoading(false);
     }
   };
 
@@ -148,9 +151,17 @@ export default function HomePage() {
           {/* Apply Now! Button */}
             <button
             onClick={handleGoogleLogin}
-              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl cursor-pointer`}
+              disabled={loading}
+              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl cursor-pointer flex items-center justify-center gap-3 disabled:opacity-75`}
             >
-              Apply Now!
+              {loading ? (
+                <>
+                  <div className="h-5 w-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
+                  Hold on tight...
+                </>
+              ) : (
+                "Apply Now!"
+              )}
             </button>
 
           {/* Golden ticket placeholder */}
