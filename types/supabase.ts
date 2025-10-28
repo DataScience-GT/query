@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          checked_in: boolean
+          checked_in_at: string | null
           created_at: string
           dietary_restrictions: string | null
           email: string | null
@@ -39,6 +41,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
           dietary_restrictions?: string | null
           email?: string | null
@@ -62,6 +66,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
           dietary_restrictions?: string | null
           email?: string | null
