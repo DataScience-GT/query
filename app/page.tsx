@@ -148,7 +148,7 @@ export default function HomePage() {
           {/* Apply Now! Button */}
             <button
             onClick={handleGoogleLogin}
-              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl`}
+              className={`${truculenta.className} bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-600 transition-transform hover:scale-100 mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl cursor-pointer`}
             >
               Apply Now!
             </button>
