@@ -16,6 +16,12 @@ export default async function PortalPage() {
     .eq("id", user.id)
     .single();
 
+  // If the user is logged in but hasn't completed onboarding,
+  // redirect them to the onboarding page.
+  if (profile && !profile.form_completed) {
+    redirect("/onboarding");
+  }
+
   // assgin a user to the uuid 
   const uuid = user.id;
 
