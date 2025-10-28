@@ -1,17 +1,25 @@
 /** @type {import('next').NextConfig} */
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+if (!supabaseUrl) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+}
+
 const nextConfig = {
-  output: "export", // ✅ generate static HTML for Firebase Hosting
   images: {
-    unoptimized: true, // required for static export
-    // Optional: allow external domains if needed by Supabase or other images
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: new URL(supabaseUrl).hostname,
+        port: '',
+        pathname: '/storage/v1/object/**',
       },
     ],
+    // Add these to prevent optimization errors
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  reactStrictMode: true, // recommended
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

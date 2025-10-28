@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import Image from "next/image";
 import { Truculenta } from 'next/font/google';
+import { usePathname } from "next/navigation";
 
 const truculenta = Truculenta({
   subsets: ['latin'],
@@ -21,6 +22,8 @@ const navItems = [
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
+
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
@@ -57,6 +60,7 @@ export default function Navbar() {
     };
   }, []);
 
+  // Effect to prevent body scroll when mobile menu is open
   useEffect(() => {
     if (open) {
       document.body.classList.add('overflow-hidden');
@@ -66,7 +70,16 @@ export default function Navbar() {
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
-  }, [open]); 
+  }, [open]);
+
+  // ✅ MOVE THE CONDITIONAL RETURN HERE - AFTER ALL HOOKS
+  if (
+    pathname?.startsWith("/portal") ||
+    pathname?.startsWith("/onboarding") ||
+    pathname?.startsWith("/admin")
+  ) {
+    return null;
+  }
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -152,6 +165,8 @@ export default function Navbar() {
           </div>
         </div>
       </header>
+
+      {/* Fullscreen Mobile Navigation Menu */}
       <div 
         className={`
           md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center 
