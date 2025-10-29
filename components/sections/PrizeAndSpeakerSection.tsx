@@ -66,19 +66,6 @@ const ConferencePage: React.FC = () => {
           <Prizes prizes={prizes} />
         </div>
         <Speakers speakers={speakers} />
-        <div className="mt-16 text-center">
-          <div className="inline-block bg-white rounded-lg shadow-lg px-8 py-6 border-2 border-blue-100">
-            <p className="text-xl font-semibold text-gray-800">
-              Interested in sponsoring? Reach out to{' '}
-              <a 
-                href="mailto:hello@hacklytics.io" 
-                className="text-blue-600 hover:text-blue-700 transition-colors duration-200 underline decoration-2 underline-offset-2"
-              >
-                hello@hacklytics.io
-              </a>
-            </p>
-          </div>
-        </div>
       </div>
     </section>
   );
