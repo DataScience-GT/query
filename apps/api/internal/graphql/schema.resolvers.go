@@ -7,22 +7,213 @@ package graphql
 import (
 	"cerebra/apps/api/internal/graphql/generated"
 	"context"
+	"errors"
+	"fmt"
 )
 
-func (r *queryResolver) Me(ctx context.Context) (*generated.User, error) {
-	user := &generated.User{
-		Email: "john@example.com",
-		Name:  "John Doe",
-		App:   "Cerebra",
+// RegisterForHackathon creates a new user and adds them to the hackathon registry
+func (r *mutationResolver) RegisterForHackathon(ctx context.Context, name string, email string) (*generated.User, error) {
+	usersMu.Lock()
+	defer usersMu.Unlock()
+
+	for _, u := range users {
+		if u.Email == email {
+			return u, nil // already registered
+		}
 	}
+
+	user := &generated.User{
+		ID:    fmt.Sprintf("user_%d", len(users)+1),
+		Name:  name,
+		Email: email,
+	}
+	users = append(users, user)
 	return user, nil
 }
 
-func (r *queryResolver) Events(ctx context.Context) ([]string, error) {
-	events := []string{"Hackathon Kickoff", "Workshop on AI", "Closing Ceremony"}
-	return events, nil
+// CreateTeam creates a new hackathon team
+func (r *mutationResolver) CreateTeam(ctx context.Context, teamName string) (*generated.HackathonTeam, error) {
+	teamsMu.Lock()
+	defer teamsMu.Unlock()
+
+	for _, t := range teams {
+		if t.TeamName == teamName {
+			return nil, errors.New("team name already exists")
+		}
+	}
+
+	team := &generated.HackathonTeam{
+		ID:       fmt.Sprintf("team_%d", len(teams)+1),
+		TeamName: teamName,
+		Members:  []*generated.User{},
+	}
+	teams = append(teams, team)
+	return team, nil
 }
 
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+// JoinTeam allows a user to join an existing team
+func (r *mutationResolver) JoinTeam(ctx context.Context, teamID string, name string, email string) (*generated.HackathonTeam, error) {
+	teamsMu.Lock()
+	defer teamsMu.Unlock()
+	usersMu.Lock()
+	defer usersMu.Unlock()
 
-type queryResolver struct{ *Resolver }
+	var team *generated.HackathonTeam
+	for _, t := range teams {
+		if t.ID == teamID {
+			team = t
+			break
+		}
+	}
+	if team == nil {
+		return nil, errors.New("team not found")
+	}
+
+	// Check if user already exists
+	var user *generated.User
+	for _, u := range users {
+		if u.Email == email {
+			user = u
+			break
+		}
+	}
+
+	// Create new user if doesn't exist
+	if user == nil {
+		user = &generated.User{
+			ID:    fmt.Sprintf("user_%d", len(users)+1),
+			Name:  name,
+			Email: email,
+		}
+		users = append(users, user)
+	}
+
+	team.Members = append(team.Members, user)
+	return team, nil
+}
+
+// UpdateTeam updates project info for a team
+func (r *mutationResolver) UpdateTeam(ctx context.Context, teamID string, projectName *string, projectDescription *string, projectURL *string) (*generated.HackathonTeam, error) {
+	teamsMu.Lock()
+	defer teamsMu.Unlock()
+
+	for _, t := range teams {
+		if t.ID == teamID {
+			if projectName != nil {
+				t.ProjectName = projectName
+			}
+			if projectDescription != nil {
+				t.ProjectDescription = projectDescription
+			}
+			if projectURL != nil {
+				t.ProjectURL = projectURL
+			}
+			return t, nil
+		}
+	}
+	return nil, errors.New("team not found")
+}
+
+// SubmitProject is the resolver for the submitProject field.
+func (r *mutationResolver) SubmitProject(ctx context.Context, teamID string) (*generated.HackathonTeam, error) {
+	teamsMu.Lock()
+	defer teamsMu.Unlock()
+
+	for _, t := range teams {
+		if t.ID == teamID {
+			submitted := true
+			t.Submitted = &submitted
+			return t, nil
+		}
+	}
+	return nil, errors.New("team not found")
+}
+
+// JoinClub is the resolver for the joinClub field.
+func (r *mutationResolver) JoinClub(ctx context.Context, name string, email string) (*generated.User, error) {
+	return r.RegisterForHackathon(ctx, name, email)
+}
+
+// RsvpEvent is the resolver for the rsvpEvent field.
+func (r *mutationResolver) RsvpEvent(ctx context.Context, eventID string) (*generated.ClubEvent, error) {
+	eventsMu.Lock()
+	defer eventsMu.Unlock()
+
+	for _, e := range events {
+		if e.ID == eventID {
+			e.Rsvps++
+			return e, nil
+		}
+	}
+	return nil, errors.New("event not found")
+}
+
+// CancelRsvp is the resolver for the cancelRsvp field.
+func (r *mutationResolver) CancelRsvp(ctx context.Context, eventID string) (*generated.ClubEvent, error) {
+	eventsMu.Lock()
+	defer eventsMu.Unlock()
+
+	for _, e := range events {
+		if e.ID == eventID && e.Rsvps > 0 {
+			e.Rsvps--
+			return e, nil
+		}
+	}
+	return nil, errors.New("event not found")
+}
+
+// SubmitFeedback is the resolver for the submitFeedback field.
+func (r *mutationResolver) SubmitFeedback(ctx context.Context, eventID string, rating int, comment *string) (*bool, error) {
+	eventsMu.Lock()
+	defer eventsMu.Unlock()
+
+	result := false
+	for _, e := range events {
+		if e.ID == eventID {
+			// just pretend we saved it
+			result = true
+			return &result, nil
+		}
+	}
+	return &result, errors.New("event not found")
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*generated.User, error) {
+	usersMu.Lock()
+	defer usersMu.Unlock()
+
+	if len(users) == 0 {
+		return nil, errors.New("no user found")
+	}
+	return users[0], nil
+}
+
+// HackathonTeams is the resolver for the hackathonTeams field.
+func (r *queryResolver) HackathonTeams(ctx context.Context) ([]*generated.HackathonTeam, error) {
+	teamsMu.Lock()
+	defer teamsMu.Unlock()
+
+	return teams, nil
+}
+
+// HackathonStats is the resolver for the hackathonStats field.
+func (r *queryResolver) HackathonStats(ctx context.Context) (*generated.HackathonStats, error) {
+	usersMu.Lock()
+	teamsMu.Lock()
+	defer usersMu.Unlock()
+	defer teamsMu.Unlock()
+
+	return &generated.HackathonStats{
+		TotalParticipants: len(users),
+		TotalTeams:        len(teams),
+	}, nil
+}
+
+// ClubEvents is the resolver for the clubEvents field.
+func (r *queryResolver) ClubEvents(ctx context.Context) ([]*generated.ClubEvent, error) {
+	eventsMu.Lock()
+	defer eventsMu.Unlock()
+
+	return events, nil
+}

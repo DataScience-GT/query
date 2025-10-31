@@ -1,10 +1,53 @@
 type User {
-  email: String!
+  id: ID!
   name: String!
-  app: String!
+  email: String!
+}
+
+type TeamMember {
+  id: ID!
+  name: String!
+  email: String!
+}
+
+type HackathonTeam {
+  id: ID!
+  teamName: String!
+  projectName: String
+  projectDescription: String
+  projectURL: String
+  submitted: Boolean
+  members: [User!]!
+}
+
+type ClubEvent {
+  id: ID!
+  title: String!
+  date: String!
+  location: String
+  rsvps: Int!
+}
+
+type HackathonStats {
+  totalParticipants: Int!
+  totalTeams: Int!
+}
+
+type Mutation {
+  registerForHackathon(name: String!, email: String!): User
+  createTeam(teamName: String!): HackathonTeam
+  joinTeam(teamID: ID!, name: String!, email: String!): HackathonTeam
+  updateTeam(teamID: ID!, projectName: String, projectDescription: String, projectURL: String): HackathonTeam
+  submitProject(teamID: ID!): HackathonTeam
+  joinClub(name: String!, email: String!): User
+  rsvpEvent(eventID: ID!): ClubEvent
+  cancelRsvp(eventID: ID!): ClubEvent
+  submitFeedback(eventID: ID!, rating: Int!, comment: String): Boolean
 }
 
 type Query {
-  me: User!
-  events: [String!]!
+  me: User
+  hackathonTeams: [HackathonTeam!]!
+  hackathonStats: HackathonStats!
+  clubEvents: [ClubEvent!]!
 }
