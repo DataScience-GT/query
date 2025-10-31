@@ -2,11 +2,43 @@
 
 package generated
 
+type ClubEvent struct {
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	Date     string  `json:"date"`
+	Location *string `json:"location,omitempty"`
+	Rsvps    int     `json:"rsvps"`
+}
+
+type HackathonStats struct {
+	TotalParticipants int `json:"totalParticipants"`
+	TotalTeams        int `json:"totalTeams"`
+}
+
+type HackathonTeam struct {
+	ID                 string  `json:"id"`
+	TeamName           string  `json:"teamName"`
+	ProjectName        *string `json:"projectName,omitempty"`
+	ProjectDescription *string `json:"projectDescription,omitempty"`
+	ProjectURL         *string `json:"projectURL,omitempty"`
+	Submitted          *bool   `json:"submitted,omitempty"`
+	Members            []*User `json:"members"`
+}
+
+type Mutation struct {
+}
+
 type Query struct {
 }
 
-type User struct {
-	Email string `json:"email"`
+type TeamMember struct {
+	ID    string `json:"id"`
 	Name  string `json:"name"`
-	App   string `json:"app"`
+	Email string `json:"email"`
+}
+
+type User struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }

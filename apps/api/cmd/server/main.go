@@ -16,9 +16,12 @@ import (
 func main() {
 	r := chi.NewRouter()
 
+	// ✅ Using in-memory resolver (no DB for now)
+	resolver := &graphql.Resolver{}
+
 	srv := handler.NewDefaultServer(
 		generated.NewExecutableSchema(
-			generated.Config{Resolvers: &graphql.Resolver{}},
+			generated.Config{Resolvers: resolver},
 		),
 	)
 
@@ -30,8 +33,8 @@ func main() {
 		port = "4000"
 	}
 
-	log.Println(" Server running on port", port)
+	log.Printf("🚀 Server running at http://localhost:%s/graphql", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatal("Server failed:", err)
+		log.Fatal("❌ Server failed:", err)
 	}
 }
