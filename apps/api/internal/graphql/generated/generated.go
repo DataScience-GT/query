@@ -37,6 +37,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -44,21 +45,77 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ClubEvent struct {
+		Date     func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Location func(childComplexity int) int
+		Rsvps    func(childComplexity int) int
+		Title    func(childComplexity int) int
+	}
+
+	HackathonStats struct {
+		TotalParticipants func(childComplexity int) int
+		TotalTeams        func(childComplexity int) int
+	}
+
+	HackathonTeam struct {
+		ID                 func(childComplexity int) int
+		Members            func(childComplexity int) int
+		ProjectDescription func(childComplexity int) int
+		ProjectName        func(childComplexity int) int
+		ProjectURL         func(childComplexity int) int
+		Submitted          func(childComplexity int) int
+		TeamName           func(childComplexity int) int
+	}
+
+	Mutation struct {
+		CancelRsvp           func(childComplexity int, eventID string) int
+		CreateTeam           func(childComplexity int, teamName string) int
+		JoinClub             func(childComplexity int, name string, email string) int
+		JoinTeam             func(childComplexity int, teamID string, name string, email string) int
+		RegisterForHackathon func(childComplexity int, name string, email string) int
+		RsvpEvent            func(childComplexity int, eventID string) int
+		SubmitFeedback       func(childComplexity int, eventID string, rating int, comment *string) int
+		SubmitProject        func(childComplexity int, teamID string) int
+		UpdateTeam           func(childComplexity int, teamID string, projectName *string, projectDescription *string, projectURL *string) int
+	}
+
 	Query struct {
-		Events func(childComplexity int) int
-		Me     func(childComplexity int) int
+		ClubEvents     func(childComplexity int) int
+		HackathonStats func(childComplexity int) int
+		HackathonTeams func(childComplexity int) int
+		Me             func(childComplexity int) int
+	}
+
+	TeamMember struct {
+		Email func(childComplexity int) int
+		ID    func(childComplexity int) int
+		Name  func(childComplexity int) int
 	}
 
 	User struct {
-		App   func(childComplexity int) int
 		Email func(childComplexity int) int
+		ID    func(childComplexity int) int
 		Name  func(childComplexity int) int
 	}
 }
 
+type MutationResolver interface {
+	RegisterForHackathon(ctx context.Context, name string, email string) (*User, error)
+	CreateTeam(ctx context.Context, teamName string) (*HackathonTeam, error)
+	JoinTeam(ctx context.Context, teamID string, name string, email string) (*HackathonTeam, error)
+	UpdateTeam(ctx context.Context, teamID string, projectName *string, projectDescription *string, projectURL *string) (*HackathonTeam, error)
+	SubmitProject(ctx context.Context, teamID string) (*HackathonTeam, error)
+	JoinClub(ctx context.Context, name string, email string) (*User, error)
+	RsvpEvent(ctx context.Context, eventID string) (*ClubEvent, error)
+	CancelRsvp(ctx context.Context, eventID string) (*ClubEvent, error)
+	SubmitFeedback(ctx context.Context, eventID string, rating int, comment *string) (*bool, error)
+}
 type QueryResolver interface {
 	Me(ctx context.Context) (*User, error)
-	Events(ctx context.Context) ([]string, error)
+	HackathonTeams(ctx context.Context) ([]*HackathonTeam, error)
+	HackathonStats(ctx context.Context) (*HackathonStats, error)
+	ClubEvents(ctx context.Context) ([]*ClubEvent, error)
 }
 
 type executableSchema struct {
@@ -80,12 +137,211 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Query.events":
-		if e.complexity.Query.Events == nil {
+	case "ClubEvent.date":
+		if e.complexity.ClubEvent.Date == nil {
 			break
 		}
 
-		return e.complexity.Query.Events(childComplexity), true
+		return e.complexity.ClubEvent.Date(childComplexity), true
+	case "ClubEvent.id":
+		if e.complexity.ClubEvent.ID == nil {
+			break
+		}
+
+		return e.complexity.ClubEvent.ID(childComplexity), true
+	case "ClubEvent.location":
+		if e.complexity.ClubEvent.Location == nil {
+			break
+		}
+
+		return e.complexity.ClubEvent.Location(childComplexity), true
+	case "ClubEvent.rsvps":
+		if e.complexity.ClubEvent.Rsvps == nil {
+			break
+		}
+
+		return e.complexity.ClubEvent.Rsvps(childComplexity), true
+	case "ClubEvent.title":
+		if e.complexity.ClubEvent.Title == nil {
+			break
+		}
+
+		return e.complexity.ClubEvent.Title(childComplexity), true
+
+	case "HackathonStats.totalParticipants":
+		if e.complexity.HackathonStats.TotalParticipants == nil {
+			break
+		}
+
+		return e.complexity.HackathonStats.TotalParticipants(childComplexity), true
+	case "HackathonStats.totalTeams":
+		if e.complexity.HackathonStats.TotalTeams == nil {
+			break
+		}
+
+		return e.complexity.HackathonStats.TotalTeams(childComplexity), true
+
+	case "HackathonTeam.id":
+		if e.complexity.HackathonTeam.ID == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.ID(childComplexity), true
+	case "HackathonTeam.members":
+		if e.complexity.HackathonTeam.Members == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.Members(childComplexity), true
+	case "HackathonTeam.projectDescription":
+		if e.complexity.HackathonTeam.ProjectDescription == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.ProjectDescription(childComplexity), true
+	case "HackathonTeam.projectName":
+		if e.complexity.HackathonTeam.ProjectName == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.ProjectName(childComplexity), true
+	case "HackathonTeam.projectURL":
+		if e.complexity.HackathonTeam.ProjectURL == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.ProjectURL(childComplexity), true
+	case "HackathonTeam.submitted":
+		if e.complexity.HackathonTeam.Submitted == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.Submitted(childComplexity), true
+	case "HackathonTeam.teamName":
+		if e.complexity.HackathonTeam.TeamName == nil {
+			break
+		}
+
+		return e.complexity.HackathonTeam.TeamName(childComplexity), true
+
+	case "Mutation.cancelRsvp":
+		if e.complexity.Mutation.CancelRsvp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_cancelRsvp_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CancelRsvp(childComplexity, args["eventID"].(string)), true
+	case "Mutation.createTeam":
+		if e.complexity.Mutation.CreateTeam == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTeam_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateTeam(childComplexity, args["teamName"].(string)), true
+	case "Mutation.joinClub":
+		if e.complexity.Mutation.JoinClub == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_joinClub_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.JoinClub(childComplexity, args["name"].(string), args["email"].(string)), true
+	case "Mutation.joinTeam":
+		if e.complexity.Mutation.JoinTeam == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_joinTeam_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.JoinTeam(childComplexity, args["teamID"].(string), args["name"].(string), args["email"].(string)), true
+	case "Mutation.registerForHackathon":
+		if e.complexity.Mutation.RegisterForHackathon == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_registerForHackathon_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RegisterForHackathon(childComplexity, args["name"].(string), args["email"].(string)), true
+	case "Mutation.rsvpEvent":
+		if e.complexity.Mutation.RsvpEvent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_rsvpEvent_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RsvpEvent(childComplexity, args["eventID"].(string)), true
+	case "Mutation.submitFeedback":
+		if e.complexity.Mutation.SubmitFeedback == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_submitFeedback_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SubmitFeedback(childComplexity, args["eventID"].(string), args["rating"].(int), args["comment"].(*string)), true
+	case "Mutation.submitProject":
+		if e.complexity.Mutation.SubmitProject == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_submitProject_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SubmitProject(childComplexity, args["teamID"].(string)), true
+	case "Mutation.updateTeam":
+		if e.complexity.Mutation.UpdateTeam == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateTeam_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTeam(childComplexity, args["teamID"].(string), args["projectName"].(*string), args["projectDescription"].(*string), args["projectURL"].(*string)), true
+
+	case "Query.clubEvents":
+		if e.complexity.Query.ClubEvents == nil {
+			break
+		}
+
+		return e.complexity.Query.ClubEvents(childComplexity), true
+	case "Query.hackathonStats":
+		if e.complexity.Query.HackathonStats == nil {
+			break
+		}
+
+		return e.complexity.Query.HackathonStats(childComplexity), true
+	case "Query.hackathonTeams":
+		if e.complexity.Query.HackathonTeams == nil {
+			break
+		}
+
+		return e.complexity.Query.HackathonTeams(childComplexity), true
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -93,18 +349,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Me(childComplexity), true
 
-	case "User.app":
-		if e.complexity.User.App == nil {
+	case "TeamMember.email":
+		if e.complexity.TeamMember.Email == nil {
 			break
 		}
 
-		return e.complexity.User.App(childComplexity), true
+		return e.complexity.TeamMember.Email(childComplexity), true
+	case "TeamMember.id":
+		if e.complexity.TeamMember.ID == nil {
+			break
+		}
+
+		return e.complexity.TeamMember.ID(childComplexity), true
+	case "TeamMember.name":
+		if e.complexity.TeamMember.Name == nil {
+			break
+		}
+
+		return e.complexity.TeamMember.Name(childComplexity), true
+
 	case "User.email":
 		if e.complexity.User.Email == nil {
 			break
 		}
 
 		return e.complexity.User.Email(childComplexity), true
+	case "User.id":
+		if e.complexity.User.ID == nil {
+			break
+		}
+
+		return e.complexity.User.ID(childComplexity), true
 	case "User.name":
 		if e.complexity.User.Name == nil {
 			break
@@ -152,6 +427,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			}
 
 			return &response
+		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
+			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
 		}
 
 	default:
@@ -202,14 +492,57 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "../schema.graphql", Input: `type User {
-  email: String!
+  id: ID!
   name: String!
-  app: String!
+  email: String!
+}
+
+type TeamMember {
+  id: ID!
+  name: String!
+  email: String!
+}
+
+type HackathonTeam {
+  id: ID!
+  teamName: String!
+  projectName: String
+  projectDescription: String
+  projectURL: String
+  submitted: Boolean
+  members: [User!]!
+}
+
+type ClubEvent {
+  id: ID!
+  title: String!
+  date: String!
+  location: String
+  rsvps: Int!
+}
+
+type HackathonStats {
+  totalParticipants: Int!
+  totalTeams: Int!
+}
+
+type Mutation {
+  registerForHackathon(name: String!, email: String!): User
+  createTeam(teamName: String!): HackathonTeam
+  joinTeam(teamID: ID!, name: String!, email: String!): HackathonTeam
+  updateTeam(teamID: ID!, projectName: String, projectDescription: String, projectURL: String): HackathonTeam
+  submitProject(teamID: ID!): HackathonTeam
+  joinClub(name: String!, email: String!): User
+  rsvpEvent(eventID: ID!): ClubEvent
+  cancelRsvp(eventID: ID!): ClubEvent
+  submitFeedback(eventID: ID!, rating: Int!, comment: String): Boolean
 }
 
 type Query {
-  me: User!
-  events: [String!]!
+  me: User
+  hackathonTeams: [HackathonTeam!]!
+  hackathonStats: HackathonStats!
+  clubEvents: [ClubEvent!]!
 }
 `, BuiltIn: false},
 }
@@ -218,6 +551,150 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_cancelRsvp_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "eventID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["eventID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createTeam_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "teamName", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["teamName"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_joinClub_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_joinTeam_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "teamID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["teamID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_registerForHackathon_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_rsvpEvent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "eventID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["eventID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_submitFeedback_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "eventID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["eventID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "rating", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["rating"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "comment", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["comment"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_submitProject_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "teamID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["teamID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTeam_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "teamID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["teamID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "projectName", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["projectName"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "projectDescription", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["projectDescription"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "projectURL", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["projectURL"] = arg3
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -282,6 +759,893 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _ClubEvent_id(ctx context.Context, field graphql.CollectedField, obj *ClubEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ClubEvent_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ClubEvent_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ClubEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ClubEvent_title(ctx context.Context, field graphql.CollectedField, obj *ClubEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ClubEvent_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ClubEvent_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ClubEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ClubEvent_date(ctx context.Context, field graphql.CollectedField, obj *ClubEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ClubEvent_date,
+		func(ctx context.Context) (any, error) {
+			return obj.Date, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ClubEvent_date(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ClubEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ClubEvent_location(ctx context.Context, field graphql.CollectedField, obj *ClubEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ClubEvent_location,
+		func(ctx context.Context) (any, error) {
+			return obj.Location, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ClubEvent_location(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ClubEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ClubEvent_rsvps(ctx context.Context, field graphql.CollectedField, obj *ClubEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ClubEvent_rsvps,
+		func(ctx context.Context) (any, error) {
+			return obj.Rsvps, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ClubEvent_rsvps(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ClubEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonStats_totalParticipants(ctx context.Context, field graphql.CollectedField, obj *HackathonStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonStats_totalParticipants,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalParticipants, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonStats_totalParticipants(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonStats_totalTeams(ctx context.Context, field graphql.CollectedField, obj *HackathonStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonStats_totalTeams,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalTeams, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonStats_totalTeams(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_id(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_teamName(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_teamName,
+		func(ctx context.Context) (any, error) {
+			return obj.TeamName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_teamName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_projectName(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_projectName,
+		func(ctx context.Context) (any, error) {
+			return obj.ProjectName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_projectName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_projectDescription(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_projectDescription,
+		func(ctx context.Context) (any, error) {
+			return obj.ProjectDescription, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_projectDescription(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_projectURL(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_projectURL,
+		func(ctx context.Context) (any, error) {
+			return obj.ProjectURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_projectURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_submitted(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_submitted,
+		func(ctx context.Context) (any, error) {
+			return obj.Submitted, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_submitted(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HackathonTeam_members(ctx context.Context, field graphql.CollectedField, obj *HackathonTeam) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HackathonTeam_members,
+		func(ctx context.Context) (any, error) {
+			return obj.Members, nil
+		},
+		nil,
+		ec.marshalNUser2ᚕᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUserᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HackathonTeam_members(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HackathonTeam",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_registerForHackathon(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_registerForHackathon,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RegisterForHackathon(ctx, fc.Args["name"].(string), fc.Args["email"].(string))
+		},
+		nil,
+		ec.marshalOUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_registerForHackathon(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_registerForHackathon_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createTeam(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createTeam,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateTeam(ctx, fc.Args["teamName"].(string))
+		},
+		nil,
+		ec.marshalOHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createTeam(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_HackathonTeam_id(ctx, field)
+			case "teamName":
+				return ec.fieldContext_HackathonTeam_teamName(ctx, field)
+			case "projectName":
+				return ec.fieldContext_HackathonTeam_projectName(ctx, field)
+			case "projectDescription":
+				return ec.fieldContext_HackathonTeam_projectDescription(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_HackathonTeam_projectURL(ctx, field)
+			case "submitted":
+				return ec.fieldContext_HackathonTeam_submitted(ctx, field)
+			case "members":
+				return ec.fieldContext_HackathonTeam_members(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HackathonTeam", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createTeam_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_joinTeam(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_joinTeam,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().JoinTeam(ctx, fc.Args["teamID"].(string), fc.Args["name"].(string), fc.Args["email"].(string))
+		},
+		nil,
+		ec.marshalOHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_joinTeam(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_HackathonTeam_id(ctx, field)
+			case "teamName":
+				return ec.fieldContext_HackathonTeam_teamName(ctx, field)
+			case "projectName":
+				return ec.fieldContext_HackathonTeam_projectName(ctx, field)
+			case "projectDescription":
+				return ec.fieldContext_HackathonTeam_projectDescription(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_HackathonTeam_projectURL(ctx, field)
+			case "submitted":
+				return ec.fieldContext_HackathonTeam_submitted(ctx, field)
+			case "members":
+				return ec.fieldContext_HackathonTeam_members(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HackathonTeam", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_joinTeam_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateTeam(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateTeam,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateTeam(ctx, fc.Args["teamID"].(string), fc.Args["projectName"].(*string), fc.Args["projectDescription"].(*string), fc.Args["projectURL"].(*string))
+		},
+		nil,
+		ec.marshalOHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateTeam(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_HackathonTeam_id(ctx, field)
+			case "teamName":
+				return ec.fieldContext_HackathonTeam_teamName(ctx, field)
+			case "projectName":
+				return ec.fieldContext_HackathonTeam_projectName(ctx, field)
+			case "projectDescription":
+				return ec.fieldContext_HackathonTeam_projectDescription(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_HackathonTeam_projectURL(ctx, field)
+			case "submitted":
+				return ec.fieldContext_HackathonTeam_submitted(ctx, field)
+			case "members":
+				return ec.fieldContext_HackathonTeam_members(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HackathonTeam", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateTeam_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_submitProject(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_submitProject,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SubmitProject(ctx, fc.Args["teamID"].(string))
+		},
+		nil,
+		ec.marshalOHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_submitProject(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_HackathonTeam_id(ctx, field)
+			case "teamName":
+				return ec.fieldContext_HackathonTeam_teamName(ctx, field)
+			case "projectName":
+				return ec.fieldContext_HackathonTeam_projectName(ctx, field)
+			case "projectDescription":
+				return ec.fieldContext_HackathonTeam_projectDescription(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_HackathonTeam_projectURL(ctx, field)
+			case "submitted":
+				return ec.fieldContext_HackathonTeam_submitted(ctx, field)
+			case "members":
+				return ec.fieldContext_HackathonTeam_members(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HackathonTeam", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_submitProject_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_joinClub(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_joinClub,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().JoinClub(ctx, fc.Args["name"].(string), fc.Args["email"].(string))
+		},
+		nil,
+		ec.marshalOUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_joinClub(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_joinClub_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_rsvpEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_rsvpEvent,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RsvpEvent(ctx, fc.Args["eventID"].(string))
+		},
+		nil,
+		ec.marshalOClubEvent2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEvent,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_rsvpEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ClubEvent_id(ctx, field)
+			case "title":
+				return ec.fieldContext_ClubEvent_title(ctx, field)
+			case "date":
+				return ec.fieldContext_ClubEvent_date(ctx, field)
+			case "location":
+				return ec.fieldContext_ClubEvent_location(ctx, field)
+			case "rsvps":
+				return ec.fieldContext_ClubEvent_rsvps(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ClubEvent", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_rsvpEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_cancelRsvp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_cancelRsvp,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CancelRsvp(ctx, fc.Args["eventID"].(string))
+		},
+		nil,
+		ec.marshalOClubEvent2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEvent,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_cancelRsvp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ClubEvent_id(ctx, field)
+			case "title":
+				return ec.fieldContext_ClubEvent_title(ctx, field)
+			case "date":
+				return ec.fieldContext_ClubEvent_date(ctx, field)
+			case "location":
+				return ec.fieldContext_ClubEvent_location(ctx, field)
+			case "rsvps":
+				return ec.fieldContext_ClubEvent_rsvps(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ClubEvent", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cancelRsvp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_submitFeedback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_submitFeedback,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SubmitFeedback(ctx, fc.Args["eventID"].(string), fc.Args["rating"].(int), fc.Args["comment"].(*string))
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_submitFeedback(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_submitFeedback_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -292,9 +1656,9 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 			return ec.resolvers.Query().Me(ctx)
 		},
 		nil,
-		ec.marshalNUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser,
+		ec.marshalOUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -306,12 +1670,12 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "email":
-				return ec.fieldContext_User_email(ctx, field)
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
-			case "app":
-				return ec.fieldContext_User_app(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -319,30 +1683,122 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_events(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_hackathonTeams(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_events,
+		ec.fieldContext_Query_hackathonTeams,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Events(ctx)
+			return ec.resolvers.Query().HackathonTeams(ctx)
 		},
 		nil,
-		ec.marshalNString2ᚕstringᚄ,
+		ec.marshalNHackathonTeam2ᚕᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeamᚄ,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_events(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_hackathonTeams(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_HackathonTeam_id(ctx, field)
+			case "teamName":
+				return ec.fieldContext_HackathonTeam_teamName(ctx, field)
+			case "projectName":
+				return ec.fieldContext_HackathonTeam_projectName(ctx, field)
+			case "projectDescription":
+				return ec.fieldContext_HackathonTeam_projectDescription(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_HackathonTeam_projectURL(ctx, field)
+			case "submitted":
+				return ec.fieldContext_HackathonTeam_submitted(ctx, field)
+			case "members":
+				return ec.fieldContext_HackathonTeam_members(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HackathonTeam", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_hackathonStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_hackathonStats,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().HackathonStats(ctx)
+		},
+		nil,
+		ec.marshalNHackathonStats2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonStats,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_hackathonStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "totalParticipants":
+				return ec.fieldContext_HackathonStats_totalParticipants(ctx, field)
+			case "totalTeams":
+				return ec.fieldContext_HackathonStats_totalTeams(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HackathonStats", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_clubEvents(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_clubEvents,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ClubEvents(ctx)
+		},
+		nil,
+		ec.marshalNClubEvent2ᚕᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEventᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_clubEvents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ClubEvent_id(ctx, field)
+			case "title":
+				return ec.fieldContext_ClubEvent_title(ctx, field)
+			case "date":
+				return ec.fieldContext_ClubEvent_date(ctx, field)
+			case "location":
+				return ec.fieldContext_ClubEvent_location(ctx, field)
+			case "rsvps":
+				return ec.fieldContext_ClubEvent_rsvps(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ClubEvent", field.Name)
 		},
 	}
 	return fc, nil
@@ -456,12 +1912,70 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+func (ec *executionContext) _TeamMember_id(ctx context.Context, field graphql.CollectedField, obj *TeamMember) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_User_email,
+		ec.fieldContext_TeamMember_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TeamMember_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TeamMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TeamMember_name(ctx context.Context, field graphql.CollectedField, obj *TeamMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TeamMember_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TeamMember_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TeamMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TeamMember_email(ctx context.Context, field graphql.CollectedField, obj *TeamMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TeamMember_email,
 		func(ctx context.Context) (any, error) {
 			return obj.Email, nil
 		},
@@ -472,14 +1986,43 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 	)
 }
 
-func (ec *executionContext) fieldContext_User_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_TeamMember_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TeamMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -514,14 +2057,14 @@ func (ec *executionContext) fieldContext_User_name(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_app(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_User_app,
+		ec.fieldContext_User_email,
 		func(ctx context.Context) (any, error) {
-			return obj.App, nil
+			return obj.Email, nil
 		},
 		nil,
 		ec.marshalNString2string,
@@ -530,7 +2073,7 @@ func (ec *executionContext) _User_app(ctx context.Context, field graphql.Collect
 	)
 }
 
-func (ec *executionContext) fieldContext_User_app(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -1997,6 +3540,241 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** object.gotpl ****************************
 
+var clubEventImplementors = []string{"ClubEvent"}
+
+func (ec *executionContext) _ClubEvent(ctx context.Context, sel ast.SelectionSet, obj *ClubEvent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, clubEventImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ClubEvent")
+		case "id":
+			out.Values[i] = ec._ClubEvent_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._ClubEvent_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "date":
+			out.Values[i] = ec._ClubEvent_date(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "location":
+			out.Values[i] = ec._ClubEvent_location(ctx, field, obj)
+		case "rsvps":
+			out.Values[i] = ec._ClubEvent_rsvps(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var hackathonStatsImplementors = []string{"HackathonStats"}
+
+func (ec *executionContext) _HackathonStats(ctx context.Context, sel ast.SelectionSet, obj *HackathonStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, hackathonStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("HackathonStats")
+		case "totalParticipants":
+			out.Values[i] = ec._HackathonStats_totalParticipants(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalTeams":
+			out.Values[i] = ec._HackathonStats_totalTeams(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var hackathonTeamImplementors = []string{"HackathonTeam"}
+
+func (ec *executionContext) _HackathonTeam(ctx context.Context, sel ast.SelectionSet, obj *HackathonTeam) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, hackathonTeamImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("HackathonTeam")
+		case "id":
+			out.Values[i] = ec._HackathonTeam_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "teamName":
+			out.Values[i] = ec._HackathonTeam_teamName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "projectName":
+			out.Values[i] = ec._HackathonTeam_projectName(ctx, field, obj)
+		case "projectDescription":
+			out.Values[i] = ec._HackathonTeam_projectDescription(ctx, field, obj)
+		case "projectURL":
+			out.Values[i] = ec._HackathonTeam_projectURL(ctx, field, obj)
+		case "submitted":
+			out.Values[i] = ec._HackathonTeam_submitted(ctx, field, obj)
+		case "members":
+			out.Values[i] = ec._HackathonTeam_members(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "registerForHackathon":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_registerForHackathon(ctx, field)
+			})
+		case "createTeam":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createTeam(ctx, field)
+			})
+		case "joinTeam":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_joinTeam(ctx, field)
+			})
+		case "updateTeam":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateTeam(ctx, field)
+			})
+		case "submitProject":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_submitProject(ctx, field)
+			})
+		case "joinClub":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_joinClub(ctx, field)
+			})
+		case "rsvpEvent":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_rsvpEvent(ctx, field)
+			})
+		case "cancelRsvp":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_cancelRsvp(ctx, field)
+			})
+		case "submitFeedback":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_submitFeedback(ctx, field)
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -2019,13 +3797,32 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		case "me":
 			field := field
 
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
 				res = ec._Query_me(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "hackathonTeams":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_hackathonTeams(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -2038,7 +3835,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "events":
+		case "hackathonStats":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -2047,7 +3844,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_events(ctx, field)
+				res = ec._Query_hackathonStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "clubEvents":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_clubEvents(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -2091,6 +3910,55 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var teamMemberImplementors = []string{"TeamMember"}
+
+func (ec *executionContext) _TeamMember(ctx context.Context, sel ast.SelectionSet, obj *TeamMember) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, teamMemberImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TeamMember")
+		case "id":
+			out.Values[i] = ec._TeamMember_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._TeamMember_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._TeamMember_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var userImplementors = []string{"User"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *User) graphql.Marshaler {
@@ -2102,8 +3970,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("User")
-		case "email":
-			out.Values[i] = ec._User_email(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -2112,8 +3980,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "app":
-			out.Values[i] = ec._User_app(ctx, field, obj)
+		case "email":
+			out.Values[i] = ec._User_email(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -2491,6 +4359,160 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNClubEvent2ᚕᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*ClubEvent) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNClubEvent2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEvent(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNClubEvent2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEvent(ctx context.Context, sel ast.SelectionSet, v *ClubEvent) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ClubEvent(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNHackathonStats2cerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonStats(ctx context.Context, sel ast.SelectionSet, v HackathonStats) graphql.Marshaler {
+	return ec._HackathonStats(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNHackathonStats2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonStats(ctx context.Context, sel ast.SelectionSet, v *HackathonStats) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._HackathonStats(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNHackathonTeam2ᚕᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeamᚄ(ctx context.Context, sel ast.SelectionSet, v []*HackathonTeam) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam(ctx context.Context, sel ast.SelectionSet, v *HackathonTeam) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._HackathonTeam(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2507,26 +4529,40 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
 	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
 
 	for _, e := range ret {
 		if e == graphql.Null {
@@ -2535,10 +4571,6 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
-}
-
-func (ec *executionContext) marshalNUser2cerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser(ctx context.Context, sel ast.SelectionSet, v User) graphql.Marshaler {
-	return ec._User(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
@@ -2834,6 +4866,20 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) marshalOClubEvent2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐClubEvent(ctx context.Context, sel ast.SelectionSet, v *ClubEvent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ClubEvent(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOHackathonTeam2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐHackathonTeam(ctx context.Context, sel ast.SelectionSet, v *HackathonTeam) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._HackathonTeam(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -2850,6 +4896,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOUser2ᚖcerebraᚋappsᚋapiᚋinternalᚋgraphqlᚋgeneratedᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
