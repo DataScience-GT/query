@@ -1,53 +1,184 @@
+enum PortalType {
+  HACKATHON
+  CLUB
+  ADMIN
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  PENDING
+  CANCELLED
+}
+
+enum CheckInStatus {
+  CHECKED_IN
+  NOT_CHECKED_IN
+}
+
 type User {
   id: ID!
-  name: String!
   email: String!
+  name: String
+  createdAt: String!
+  updatedAt: String!
 }
 
-type TeamMember {
+type HackathonRegistration {
   id: ID!
-  name: String!
   email: String!
+  qrCode: String!
+  qrCodeData: String!
+  checkInStatus: CheckInStatus!
+  checkedInAt: String
+  checkedInBy: User
+  registeredAt: String!
 }
 
-type HackathonTeam {
+type HackathonStats {
+  totalRegistrations: Int!
+  totalCheckedIn: Int!
+  pendingCheckIns: Int!
+}
+
+type ClubMembership {
   id: ID!
-  teamName: String!
-  projectName: String
-  projectDescription: String
-  projectURL: String
-  submitted: Boolean
-  members: [User!]!
+  user: User!
+  status: MembershipStatus!
+  memberSince: String!
+  expiresAt: String!
+  lastPaymentDate: String
+  autoRenew: Boolean!
 }
 
 type ClubEvent {
   id: ID!
   title: String!
+  description: String
   date: String!
+  endDate: String
   location: String
+  imageUrl: String
+  capacity: Int
   rsvps: Int!
+  rsvpList: [User!]!
+  hasUserRsvped: Boolean!
+  isFull: Boolean!
+  isPast: Boolean!
+  requiresRsvp: Boolean!
+  createdAt: String!
+  updatedAt: String!
 }
 
-type HackathonStats {
-  totalParticipants: Int!
-  totalTeams: Int!
+type EventRsvp {
+  id: ID!
+  event: ClubEvent!
+  user: User!
+  rsvpedAt: String!
 }
 
-type Mutation {
-  registerForHackathon(name: String!, email: String!): User
-  createTeam(teamName: String!): HackathonTeam
-  joinTeam(teamID: ID!, name: String!, email: String!): HackathonTeam
-  updateTeam(teamID: ID!, projectName: String, projectDescription: String, projectURL: String): HackathonTeam
-  submitProject(teamID: ID!): HackathonTeam
-  joinClub(name: String!, email: String!): User
-  rsvpEvent(eventID: ID!): ClubEvent
-  cancelRsvp(eventID: ID!): ClubEvent
-  submitFeedback(eventID: ID!, rating: Int!, comment: String): Boolean
+type RegistrationResponse {
+  success: Boolean!
+  message: String
+  registration: HackathonRegistration
+}
+
+type MembershipResponse {
+  success: Boolean!
+  message: String
+  membership: ClubMembership
+}
+
+type CheckInResult {
+  success: Boolean!
+  message: String!
+  registration: HackathonRegistration
+}
+
+type RsvpResponse {
+  success: Boolean!
+  message: String
+  rsvp: EventRsvp
+}
+
+input EventFilterInput {
+  upcoming: Boolean
+  past: Boolean
+  userRsvped: Boolean
 }
 
 type Query {
   me: User
-  hackathonTeams: [HackathonTeam!]!
+  
+  checkHackathonRegistration(email: String!): HackathonRegistration
+  myHackathonQRCode: HackathonRegistration
+  hackathonRegistrations(
+    limit: Int
+    offset: Int
+    checkInStatus: CheckInStatus
+    search: String
+  ): [HackathonRegistration!]!
   hackathonStats: HackathonStats!
-  clubEvents: [ClubEvent!]!
+  verifyQRCode(qrCodeData: String!): HackathonRegistration
+  
+  myMembership: ClubMembership
+  checkMembershipByEmail(email: String!): ClubMembership
+  clubEvents(filter: EventFilterInput, limit: Int, offset: Int): [ClubEvent!]!
+  upcomingEvents: [ClubEvent!]!
+  myRsvps: [EventRsvp!]!
+  eventDetails(eventId: ID!): ClubEvent
+  allMemberships(
+    status: MembershipStatus
+    limit: Int
+    offset: Int
+    search: String
+  ): [ClubMembership!]!
+}
+
+type Mutation {
+  registerForHackathon(email: String!): RegistrationResponse!
+  checkInParticipant(qrCodeData: String!): CheckInResult!
+  manualCheckIn(email: String!): CheckInResult!
+  undoCheckIn(registrationId: ID!): CheckInResult!
+  deleteRegistration(registrationId: ID!): Boolean!
+  
+  requestMembership(email: String!, name: String!): MembershipResponse!
+  renewMembership: MembershipResponse!
+  cancelMembership: MembershipResponse!
+  rsvpToEvent(eventId: ID!): RsvpResponse!
+  cancelEventRsvp(eventId: ID!): RsvpResponse!
+  
+  createEvent(
+    title: String!
+    description: String
+    date: String!
+    endDate: String
+    location: String
+    imageUrl: String
+    capacity: Int
+    requiresRsvp: Boolean
+  ): ClubEvent!
+  updateEvent(
+    eventId: ID!
+    title: String
+    description: String
+    date: String
+    endDate: String
+    location: String
+    imageUrl: String
+    capacity: Int
+    requiresRsvp: Boolean
+  ): ClubEvent!
+  deleteEvent(eventId: ID!): Boolean!
+  
+  approveMembership(membershipId: ID!): MembershipResponse!
+  rejectMembership(membershipId: ID!): MembershipResponse!
+  expireMembership(membershipId: ID!): MembershipResponse!
+  extendMembership(membershipId: ID!, expiresAt: String!): MembershipResponse!
+}
+
+type Subscription {
+  hackathonCheckInUpdated: HackathonRegistration!
+  eventRsvpUpdated(eventId: ID!): ClubEvent!
+  newEventCreated: ClubEvent!
 }
