@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ Do NOT use 'export' here — that breaks middleware
-  output: 'standalone',
+  output: 'export',        // <-- static HTML
   reactStrictMode: true,
-}
-
-export default nextConfig
+  images: { unoptimized: true }, // optional if using next/image
+};
