@@ -1,17 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export", // ✅ generate static HTML for Firebase Hosting
-  images: {
-    unoptimized: true, // required for static export
-    // Optional: allow external domains if needed by Supabase or other images
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
-  },
-  reactStrictMode: true, // recommended
-};
+  // ✅ Do NOT use 'export' here — that breaks middleware
+  output: 'standalone',
+  reactStrictMode: true,
+}
 
-module.exports = nextConfig;
+export default nextConfig
