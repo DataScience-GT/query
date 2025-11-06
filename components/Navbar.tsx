@@ -3,6 +3,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import Image from "next/image";
+import { Truculenta } from 'next/font/google';
+
+const truculenta = Truculenta({
+  subsets: ['latin'],
+  weight: ['800'],
+});
 
 const navItems = [
   { name: "About", href: "/#about" },
@@ -127,7 +133,7 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex flex-1 justify-center">
-            <nav className={`font-truculenta flex items-center space-x-10 text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
+            <nav className={`${truculenta.className} flex items-center space-x-10 text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
               {renderNavLinks()}
             </nav>
           </div>
@@ -162,7 +168,7 @@ export default function Navbar() {
           backdropFilter: 'blur(var(--navbar-blur))'
         }}
       >
-        <div className={`font-truculenta space-y-4 text-center text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
+        <div className={`${truculenta.className} space-y-4 text-center text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
           {renderNavLinks(true)}
         </div>
       </div>
