@@ -3,6 +3,10 @@
 /* This must be the first line. It imports all of Tailwind's styles. */
 @import "tailwindcss";
 
+/* Import Truculenta from Google Fonts (used in Navbar). Using a CSS import
+  so client components don't need to import next/font (server-only). */
+@import url('https://fonts.googleapis.com/css2?family=Truculenta:wght@800&display=swap');
+
 /*
   Define all CSS variables in a single :root block for clarity.
 */
@@ -57,4 +61,9 @@
 /* Utility class for the Willy Wonka font */
 .font-willywonka {
   font-family: var(--font-family-willywonka);
+}
+
+/* Utility class for Truculenta font used in the navbar */
+.font-truculenta {
+  font-family: 'Truculenta', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
