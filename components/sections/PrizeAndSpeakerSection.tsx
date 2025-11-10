@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 import Prizes from '../ui/Prizes';
 import Speakers from '../ui/Speaker';
