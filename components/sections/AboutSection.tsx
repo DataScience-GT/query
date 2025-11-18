@@ -1,18 +1,40 @@
 "use client";
 import React from 'react';
+import Image from 'next/image';
 import CandyIcon from '../ui/CandyIcon';
+
 const AboutSection: React.FC = () => {
   return (
-    <section id="about" className="section-anchor scroll-mt-28 min-h-screen bg-sky">
-      <div className="container mx-auto px-4 py-24 max-w-6xl">
+    <section id="about" className="section-anchor scroll-mt-28 min-h-screen bg-sky relative overflow-hidden">
+      {/* Floating cloud decorations */}
+      <div className="absolute top-10 left-10 w-32 h-20 opacity-40 animate-float-slow pointer-events-none">
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
+      </div>
+      <div className="absolute top-32 right-20 w-24 h-16 opacity-50 animate-float pointer-events-none" style={{ animationDelay: '1s' }}>
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
+      </div>
+      <div className="absolute bottom-20 left-1/4 w-40 h-24 opacity-30 animate-float-fast pointer-events-none" style={{ animationDelay: '2s' }}>
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
+      </div>
+      <div className="absolute bottom-40 right-1/3 w-28 h-18 opacity-45 animate-float-slow pointer-events-none" style={{ animationDelay: '3s' }}>
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
+      </div>
+      <div className="absolute top-1/2 left-5 w-20 h-14 opacity-35 animate-float pointer-events-none" style={{ animationDelay: '4s' }}>
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
+      </div>
+      <div className="absolute top-1/3 right-10 w-36 h-22 opacity-40 animate-float-fast pointer-events-none" style={{ animationDelay: '2.5s' }}>
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
+      </div>
+
+      <div className="container mx-auto px-4 py-24 max-w-6xl relative z-10">
         
         <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold text-white mb-8 drop-shadow-lg">
+          <h1 className="text-6xl font-bold text-white mb-8 drop-shadow-lg animate-fade-in-up">
             About
           </h1>
         </div>
 
-        <div className="bg-red-500 rounded-3xl p-8 mb-16 shadow-2xl">
+        <div className="bg-red-500 rounded-3xl p-8 mb-16 shadow-2xl animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <div className="text-white text-lg leading-relaxed space-y-6">
             <p>
               <strong>Hacklytics</strong> is a <strong>36-hour data science hackathon</strong> hosted by <strong>Data Science @ GT</strong>, Georgia Tech's largest data science club. Each year, hackers from across the globe join us in building <strong>impactful, data-driven projects</strong> tackling meaningful challenges.
@@ -24,7 +46,7 @@ const AboutSection: React.FC = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
-          <div>
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <h2 className="text-4xl font-bold text-red-500 mb-6 drop-shadow-md">
               Where and When?
             </h2>
@@ -33,13 +55,19 @@ const AboutSection: React.FC = () => {
                 <strong>Hacklytics 2026</strong> will take place on <strong>Feb. 20-22</strong>, located in Georgia Tech's <strong>Klaus Advanced Computing Building</strong>.
               </p>
             </div>
-            <div className="flex justify-start items-center mt-8">
-              <CandyIcon /><CandyIcon /><CandyIcon /><CandyIcon />
+            <div className="flex justify-start items-center mt-8 gap-2">
+              <div className="animate-spin-slow"><CandyIcon /></div>
+              <div className="animate-spin-slow"><CandyIcon /></div>
+              <div className="animate-spin-slow"><CandyIcon /></div>
+              <div className="animate-spin-slow"><CandyIcon /></div>
             </div>
           </div>
-          <div>
-            <div className="flex justify-end items-center mb-8">
-              <CandyIcon /><CandyIcon /><CandyIcon /><CandyIcon />
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+            <div className="flex justify-end items-center mb-8 gap-2">
+              <div className="animate-spin-slow"><CandyIcon /></div>
+              <div className="animate-spin-slow"><CandyIcon /></div>
+              <div className="animate-spin-slow"><CandyIcon /></div>
+              <div className="animate-spin-slow"><CandyIcon /></div>
             </div>
             <h2 className="text-4xl font-bold text-red-500 mb-6 drop-shadow-md text-right">
               Why Participate?
@@ -53,6 +81,71 @@ const AboutSection: React.FC = () => {
         </div>
 
       </div>
+      
+      <style jsx>{`
+        @keyframes spin-slow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          25% { transform: translateY(-30px) translateX(20px); }
+          50% { transform: translateY(-15px) translateX(-15px); }
+          75% { transform: translateY(-35px) translateX(10px); }
+        }
+
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          33% { transform: translateY(-20px) translateX(25px); }
+          66% { transform: translateY(-40px) translateX(-10px); }
+        }
+
+        @keyframes float-fast {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          20% { transform: translateY(-40px) translateX(-25px); }
+          40% { transform: translateY(-20px) translateX(15px); }
+          60% { transform: translateY(-50px) translateX(5px); }
+          80% { transform: translateY(-10px) translateX(-20px); }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 4s linear infinite;
+          display: inline-block;
+        }
+
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+
+        .animate-float-slow {
+          animation: float-slow 12s ease-in-out infinite;
+        }
+
+        .animate-float-fast {
+          animation: float-fast 6s ease-in-out infinite;
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.8s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </section>
   );
 };
