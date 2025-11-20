@@ -170,39 +170,53 @@ export default function HomePage() {
           />
 
           {/* Hero Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8">
-            <h2 className={`${truculenta.className} text-4xl md:text-6xl font-black leading-none tracking-normal animate-fade-in`}>
-              Hacklytics 2026:
-            </h2>
-            <h1 
-              className="font-willywonka text-8xl md:text-[150px] font-normal text-wonka-yellow my-3 leading-none tracking-normal transition-transform hover:scale-105" 
-              style={{ WebkitTextStroke: "1px #854d0e" }}
-            >
-              Golden Byte
-            </h1>
+          <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8 min-h-[60vh]">
+            {/* Decorative light burst behind title */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-radial-gradient from-white/40 to-transparent opacity-60 blur-3xl -z-10 pointer-events-none animate-pulse-slow"></div>
 
-            {/* Enhanced Dynamic Apply Now! Button */}
+            <div className="-mt-4 md:-mt-8">
+              <h2 className={`${truculenta.className} text-5xl md:text-7xl font-black leading-none tracking-tight text-white drop-shadow-[0_4px_0_rgba(165,32,25,0.4)] animate-fade-in-up mb-8`}>
+                Hacklytics 2026
+              </h2>
+              
+              <div className="relative group">
+                <h1 
+                  className="font-willywonka text-9xl md:text-[170px] font-normal text-wonka-yellow my-2 leading-[0.8] tracking-normal transition-transform duration-500 hover:scale-105 hover:rotate-2 drop-shadow-[0_8px_0_rgba(133,77,14,0.8)] filter" 
+                  style={{ WebkitTextStroke: "3px #854d0e" }}
+                >
+                  Golden Byte
+                </h1>
+              </div>
+            </div>
+
+            {/* Enhanced Dynamic Apply Now! Button - Fun & Playful Version */}
             <Button
               onClick={handleApplyClick}
               disabled={loading}
               size="lg"
-              className={`${truculenta.className} relative bg-wonka-red text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-all duration-500 ease-out hover:scale-[1.35] hover:-translate-y-4 hover:rotate-1 hover:shadow-[0_25px_60px_rgba(220,38,38,0.6)] mt-2 px-8 py-4 text-xl md:px-10 md:py-5 md:text-2xl cursor-pointer flex items-center justify-center gap-3 disabled:opacity-75 disabled:hover:scale-100 disabled:hover:translate-y-0 disabled:hover:rotate-0 button-glow active:scale-110 active:translate-y-0`}
+              className={`${truculenta.className} relative mt-8 bg-wonka-red text-white font-black rounded-[2rem] shadow-[0_8px_0_#991b1b,0_15px_20px_rgba(0,0,0,0.2)] hover:bg-red-600 hover:shadow-[0_4px_0_#991b1b,0_8px_10px_rgba(0,0,0,0.2)] hover:translate-y-1 active:shadow-none active:translate-y-[8px] transition-all duration-200 px-10 py-6 text-2xl md:px-16 md:py-10 md:text-4xl cursor-pointer flex items-center justify-center gap-4 disabled:opacity-75 disabled:hover:translate-y-0 group border-4 border-red-900`}
             >
+              {/* Decorative sparkles inside button */}
+              <span className="absolute top-3 left-4 text-xl animate-spin-slow text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300">✨</span>
+              <span className="absolute bottom-3 right-4 text-xl animate-spin-slow text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animation-delay-500">✨</span>
+
               {loading ? (
                 <>
-                  <div className="h-5 w-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
-                  Hold on tight...
+                  <div className="h-8 w-8 border-[6px] border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="tracking-wider">Making Magic...</span>
                 </>
               ) : (
                 <>
-                  <span className="relative z-10">Apply Now!</span>
-                  <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-600 via-red-500 to-red-600 opacity-0 hover:opacity-20 transition-opacity duration-500"></span>
+                  <span className="relative z-10 drop-shadow-sm tracking-widest">APPLY NOW!</span>
                 </>
               )}
             </Button>
 
-            {/* Golden ticket placeholder */}
-            <div className="mt-4 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto"></div>
+            {/* Golden ticket placeholder - now with float animation */}
+            <div className="mt-12 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto animate-float-slow relative">
+                {/* Optional: Add a glow effect here if the ticket image has transparency */}
+                <div className="absolute inset-0 bg-yellow-400/20 blur-[60px] rounded-full transform scale-75"></div>
+            </div>
           </div>
         </div>
 
