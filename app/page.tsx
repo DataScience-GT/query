@@ -10,17 +10,14 @@ const truculenta = Truculenta({
   weight: ["900"],
 });
 
-const Cloud: React.FC<{ src: string; className?: string; animationDelay?: string; speed?: "slow" | "normal" | "fast" }> = ({ 
+const Cloud: React.FC<{ src: string; className?: string; animationDelay?: string }> = ({ 
   src, 
-  className, 
-  animationDelay = "0s",
-  speed = "normal"
+  className,
+  animationDelay = "0s"
 }) => {
-  const speedClass = speed === "slow" ? "animate-float-slow" : speed === "fast" ? "animate-float-fast" : "animate-float";
-  
   return (
     <div 
-      className={`absolute pointer-events-none ${className} ${speedClass}`}
+      className={`absolute pointer-events-none ${className} animate-drift`}
       style={{ animationDelay }}
     >
       <Image src={src} alt="Decorative cloud" fill className="object-contain" />
@@ -64,28 +61,13 @@ export default function HomePage() {
   return (
     <>
       <style jsx global>{`
-        @keyframes float {
-          0% { transform: translateY(0px) translateX(0px); }
-          25% { transform: translateY(-30px) translateX(20px); }
-          50% { transform: translateY(-15px) translateX(-15px); }
-          75% { transform: translateY(-35px) translateX(10px); }
-          100% { transform: translateY(0px) translateX(0px); }
-        }
-
-        @keyframes float-slow {
-          0% { transform: translateY(0px) translateX(0px); }
-          33% { transform: translateY(-20px) translateX(25px); }
-          66% { transform: translateY(-40px) translateX(-10px); }
-          100% { transform: translateY(0px) translateX(0px); }
-        }
-
-        @keyframes float-fast {
-          0% { transform: translateY(0px) translateX(0px); }
-          20% { transform: translateY(-40px) translateX(-25px); }
-          40% { transform: translateY(-20px) translateX(15px); }
-          60% { transform: translateY(-50px) translateX(5px); }
-          80% { transform: translateY(-10px) translateX(-20px); }
-          100% { transform: translateY(0px) translateX(0px); }
+        @keyframes drift {
+          0%, 100% { 
+            transform: translateX(0px); 
+          }
+          50% { 
+            transform: translateX(30px); 
+          }
         }
 
         @keyframes pulse-glow {
@@ -101,16 +83,8 @@ export default function HomePage() {
           }
         }
 
-        .animate-float {
-          animation: float 8s ease-in-out infinite;
-        }
-
-        .animate-float-slow {
-          animation: float-slow 12s ease-in-out infinite;
-        }
-
-        .animate-float-fast {
-          animation: float-fast 6s ease-in-out infinite;
+        .animate-drift {
+          animation: drift 10s ease-in-out infinite;
         }
 
         .button-glow {
@@ -135,42 +109,38 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <div className="relative w-full bg-sky overflow-hidden py-20 md:py-32">
-          {/* Floating Clouds with omnidirectional movement */}
+          {/* Drifting Clouds - subtle horizontal movement */}
           <Cloud 
             src="/cloud-main/smallCloud.png" 
-            className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40" 
+            className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40"
             animationDelay="0s"
-            speed="normal"
           />
           <Cloud 
             src="/cloud-main/smallCloud.png" 
-            className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40" 
+            className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40"
             animationDelay="2.5s"
-            speed="fast"
           />
           <Cloud 
             src="/cloud-main/midCloud.png" 
-            className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95" 
-            animationDelay="1.8s"
-            speed="slow"
+            className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95"
+            animationDelay="5s"
           />
           <Cloud 
             src="/cloud-main/largecloud.png" 
-            className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80" 
-            animationDelay="3.2s"
-            speed="slow"
+            className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80"
+            animationDelay="7s"
           />
-          {/* Static Bottom Clouds */}
-          <div className="absolute bottom-0 left-0 w-[50%] h-32 -translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
+          {/* Drifting Bottom Clouds */}
+          <div className="absolute bottom-0 left-0 w-[50%] h-32 -translate-x-1/4 opacity-95 md:h-52 pointer-events-none animate-drift" style={{ animationDelay: '1s' }}>
             <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
           </div>
-          <div className="absolute bottom-0 left-0 w-[75%] h-32 -translate-x-[25%] opacity-95 md:h-52 pointer-events-none">
+          <div className="absolute bottom-0 left-0 w-[75%] h-32 -translate-x-[25%] opacity-95 md:h-52 pointer-events-none animate-drift" style={{ animationDelay: '4s' }}>
             <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
           </div>
-          <div className="absolute bottom-0 right-0 w-[50%] h-32 translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
+          <div className="absolute bottom-0 right-0 w-[50%] h-32 translate-x-1/4 opacity-95 md:h-52 pointer-events-none animate-drift" style={{ animationDelay: '6s' }}>
             <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
           </div>
-          <div className="absolute bottom-0 right-0 w-[75%] h-32 translate-x-[25%] opacity-95 md:h-52 pointer-events-none">
+          <div className="absolute bottom-0 right-0 w-[75%] h-32 translate-x-[25%] opacity-95 md:h-52 pointer-events-none animate-drift" style={{ animationDelay: '8s' }}>
             <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
           </div>
 
@@ -190,15 +160,13 @@ export default function HomePage() {
 
           <Cloud 
             src="/cloud-main/dateCloud.png" 
-            className="hidden md:block bottom-[45%] left-[20%] w-64 h-32 opacity-95" 
-            animationDelay="2.7s"
-            speed="slow"
+            className="hidden md:block bottom-[45%] left-[20%] w-64 h-32 opacity-95"
+            animationDelay="3.5s"
           />
           <Cloud 
             src="/cloud-main/DSGTCloud.png" 
-            className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95" 
-            animationDelay="4.1s"
-            speed="normal"
+            className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95"
+            animationDelay="1.5s"
           />
 
           {/* Hero Content */}
