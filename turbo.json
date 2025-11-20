@@ -1,21 +1,70 @@
 {
-  "$schema": "https://turborepo.com/schema.json",
-  "ui": "tui",
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+<<<<<<< HEAD
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+=======
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**",
+        "out/**"
+      ]
+>>>>>>> cd13fe57e0a5d21de3e16d7f5ffb27239644463d
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", ".eslintrc.*", "eslint.config.*"],
+      "outputs": []
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+<<<<<<< HEAD
+    "type-check": {
+      "dependsOn": ["^type-check"]
     },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "clean": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:push": {
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+=======
+    "check-types": {
+      "dependsOn": ["^check-types"],
+      "inputs": ["$TURBO_DEFAULT$", "tsconfig.*"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "vite.config.*",
+        "next.config.*",
+        "tailwind.config.*",
+        "postcss.config.*",
+        "tsconfig.*",
+        "public/**",
+        "src/**",
+        "pages/**",
+        "components/**",
+        "app/**"
+      ]
+>>>>>>> cd13fe57e0a5d21de3e16d7f5ffb27239644463d
     }
   }
 }
