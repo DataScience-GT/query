@@ -238,7 +238,7 @@ export default function HomePage() {
               onClick={handleApplyClick}
               disabled={loading}
               size="lg"
-              className={`${truculenta.className} relative mt-8 bg-wonka-red text-white font-black rounded-[2rem] shadow-[0_8px_0_#991b1b,0_15px_20px_rgba(0,0,0,0.2)] hover:bg-red-600 hover:shadow-[0_4px_0_#991b1b,0_8px_10px_rgba(0,0,0,0.2)] hover:translate-y-1 active:shadow-none active:translate-y-[8px] transition-all duration-200 px-10 py-6 text-2xl md:px-16 md:py-10 md:text-4xl cursor-pointer flex items-center justify-center gap-4 disabled:opacity-75 disabled:hover:translate-y-0 group border-4 border-red-900 rotate-[-2deg] hover:rotate-0`}
+              className={`${truculenta.className} relative mt-8 bg-wonka-red text-white font-black rounded-[2rem] shadow-[0_8px_0_#991b1b,0_15px_20px_rgba(0,0,0,0.2)] hover:bg-red-600 hover:shadow-[0_4px_0_#991b1b,0_8px_10px_rgba(0,0,0,0.2)] hover:translate-y-1 active:shadow-none active:translate-y-[8px] transition-all duration-200 px-10 py-6 text-2xl md:px-16 md:py-10 md:text-4xl cursor-pointer flex items-center justify-center gap-4 disabled:opacity-75 disabled:hover:translate-y-0 group border-4 border-red-900`}
             >
               {/* Decorative sparkles inside button */}
               <span className="absolute top-3 left-4 text-xl animate-spin-slow text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300">✨</span>
