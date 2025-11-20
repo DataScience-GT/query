@@ -33,10 +33,10 @@ const SponsorsSection: React.FC = () => {
           </div>
         </div>
 
-      {/* Bottom clouds - overlapping */}
+      {/* Bottom clouds - overlapping with drift animation */}
       <div className="relative w-full h-52 md:h-64 flex justify-center items-end mt-16">
         {/* Left cloud */}
-        <div className="absolute left-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] -translate-x-1/4">
+        <div className="absolute left-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] -translate-x-1/4 animate-drift" style={{ animationDelay: '0s' }}>
           <Image
             src="/cloud-final/image.png"
             alt="Cloud left"
@@ -47,7 +47,7 @@ const SponsorsSection: React.FC = () => {
         </div>
 
         {/* Center cloud */}
-        <div className="absolute bottom-0 z-20 w-full h-full md:w-[800px]">
+        <div className="absolute bottom-0 z-20 w-full h-full md:w-[800px] animate-drift" style={{ animationDelay: '3.5s' }}>
           <Image
             src="/cloud-final/image.png"
             alt="Cloud center"
@@ -58,7 +58,7 @@ const SponsorsSection: React.FC = () => {
         </div>
 
         {/* Right cloud */}
-        <div className="absolute right-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] translate-x-1/4">
+        <div className="absolute right-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] translate-x-1/4 animate-drift" style={{ animationDelay: '7s' }}>
           <Image
             src="/cloud-final/image.png"
             alt="Cloud right"
@@ -101,6 +101,21 @@ const SponsorsSection: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes drift {
+          0%, 100% { 
+            transform: translateX(0px); 
+          }
+          50% { 
+            transform: translateX(30px); 
+          }
+        }
+
+        .animate-drift {
+          animation: drift 10s ease-in-out infinite;
+        }
+      `}</style>
     </section>
   );
 };

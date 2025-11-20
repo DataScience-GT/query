@@ -54,23 +54,23 @@ export default function FAQ() {
       id="faqs"
       className="section-anchor scroll-mt-28 min-h-screen bg-[#A4C7FF] py-20 relative overflow-hidden"
     >
-      {/* Floating cloud decorations */}
-      <div className="absolute top-10 left-10 w-32 h-20 opacity-40 animate-float-slow pointer-events-none">
+      {/* Drifting cloud decorations */}
+      <div className="absolute top-10 left-10 w-32 h-20 opacity-40 animate-drift pointer-events-none" style={{ animationDelay: '0s' }}>
         <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
-      <div className="absolute top-32 right-20 w-24 h-16 opacity-50 animate-float pointer-events-none" style={{ animationDelay: '1s' }}>
+      <div className="absolute top-32 right-20 w-24 h-16 opacity-50 animate-drift pointer-events-none" style={{ animationDelay: '1s' }}>
         <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
-      <div className="absolute bottom-20 left-1/4 w-40 h-24 opacity-30 animate-float-fast pointer-events-none" style={{ animationDelay: '2s' }}>
+      <div className="absolute bottom-20 left-1/4 w-40 h-24 opacity-30 animate-drift pointer-events-none" style={{ animationDelay: '2s' }}>
         <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
-      <div className="absolute bottom-40 right-1/3 w-28 h-18 opacity-45 animate-float-slow pointer-events-none" style={{ animationDelay: '3s' }}>
+      <div className="absolute bottom-40 right-1/3 w-28 h-18 opacity-45 animate-drift pointer-events-none" style={{ animationDelay: '3s' }}>
         <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
-      <div className="absolute top-1/2 left-5 w-20 h-14 opacity-35 animate-float pointer-events-none" style={{ animationDelay: '4s' }}>
+      <div className="absolute top-1/2 left-5 w-20 h-14 opacity-35 animate-drift pointer-events-none" style={{ animationDelay: '4s' }}>
         <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
-      <div className="absolute top-1/3 right-10 w-36 h-22 opacity-40 animate-float-fast pointer-events-none" style={{ animationDelay: '2.5s' }}>
+      <div className="absolute top-1/3 right-10 w-36 h-22 opacity-40 animate-drift pointer-events-none" style={{ animationDelay: '2.5s' }}>
         <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
 
@@ -101,25 +101,13 @@ export default function FAQ() {
       </div>
 
       <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          25% { transform: translateY(-30px) translateX(20px); }
-          50% { transform: translateY(-15px) translateX(-15px); }
-          75% { transform: translateY(-35px) translateX(10px); }
-        }
-
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          33% { transform: translateY(-20px) translateX(25px); }
-          66% { transform: translateY(-40px) translateX(-10px); }
-        }
-
-        @keyframes float-fast {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          20% { transform: translateY(-40px) translateX(-25px); }
-          40% { transform: translateY(-20px) translateX(15px); }
-          60% { transform: translateY(-50px) translateX(5px); }
-          80% { transform: translateY(-10px) translateX(-20px); }
+        @keyframes drift {
+          0%, 100% { 
+            transform: translateX(0px); 
+          }
+          50% { 
+            transform: translateX(30px); 
+          }
         }
 
         @keyframes fade-in-up {
@@ -133,16 +121,8 @@ export default function FAQ() {
           }
         }
 
-        .animate-float {
-          animation: float 8s ease-in-out infinite;
-        }
-
-        .animate-float-slow {
-          animation: float-slow 12s ease-in-out infinite;
-        }
-
-        .animate-float-fast {
-          animation: float-fast 6s ease-in-out infinite;
+        .animate-drift {
+          animation: drift 10s ease-in-out infinite;
         }
 
         .animate-fade-in-up {
