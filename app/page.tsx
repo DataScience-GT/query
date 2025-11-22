@@ -65,27 +65,21 @@ export default function HomePage() {
     <>
       <style jsx global>{`
         @keyframes float {
-          0% { transform: translateY(0px) translateX(0px); }
-          25% { transform: translateY(-30px) translateX(20px); }
-          50% { transform: translateY(-15px) translateX(-15px); }
-          75% { transform: translateY(-35px) translateX(10px); }
-          100% { transform: translateY(0px) translateX(0px); }
+          0% { transform: translateX(0px); }
+          50% { transform: translateX(20px); }
+          100% { transform: translateX(0px); }
         }
 
         @keyframes float-slow {
-          0% { transform: translateY(0px) translateX(0px); }
-          33% { transform: translateY(-20px) translateX(25px); }
-          66% { transform: translateY(-40px) translateX(-10px); }
-          100% { transform: translateY(0px) translateX(0px); }
+          0% { transform: translateX(0px); }
+          50% { transform: translateX(-20px); }
+          100% { transform: translateX(0px); }
         }
 
         @keyframes float-fast {
-          0% { transform: translateY(0px) translateX(0px); }
-          20% { transform: translateY(-40px) translateX(-25px); }
-          40% { transform: translateY(-20px) translateX(15px); }
-          60% { transform: translateY(-50px) translateX(5px); }
-          80% { transform: translateY(-10px) translateX(-20px); }
-          100% { transform: translateY(0px) translateX(0px); }
+          0% { transform: translateX(0px); }
+          50% { transform: translateX(15px); }
+          100% { transform: translateX(0px); }
         }
 
         @keyframes pulse-glow {
