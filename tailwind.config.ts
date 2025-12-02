@@ -17,7 +17,7 @@ const config: Config = {
       colors: {
         // Your custom light blue background color
         sky: '#A4C7FF', 
-        'wonka-yellow': '#fde047',
+        'wonka-yellow': '#FFBC0A',
         'wonka-red': '#ef4444',
       },
       fontFamily: {
