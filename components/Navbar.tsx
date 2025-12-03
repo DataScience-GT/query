@@ -48,9 +48,19 @@ export default function Navbar() {
     };
 
     window.addEventListener('scroll', handleScrollEvent);
+    window.addEventListener('mousemove', (e) => {
+      if (e.clientY < 50) {
+        setNavVisible(true);
+      }
+    });
     
     return () => {
       window.removeEventListener('scroll', handleScrollEvent);
+      window.removeEventListener('mousemove', (e) => {
+        if (e.clientY < 50) {
+          setNavVisible(true);
+        }
+      });
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
       }
@@ -103,12 +113,36 @@ export default function Navbar() {
       
       const className = isMobile
         ? "block py-3 hover:text-wonka-red transition-colors"
-        : "hover:text-wonka-red transition-colors";
+        : "relative group px-2 py-1";
 
       if (isScrollLink) {
-        return <a key={item.name} href={item.href} onClick={(e) => handleScroll(e, item.href)} className={className}>{item.name}</a>;
+        return (
+          <a 
+            key={item.name} 
+            href={item.href} 
+            onClick={(e) => handleScroll(e, item.href)} 
+            className={className}
+          >
+            {item.name}
+            {!isMobile && (
+              <span className="absolute -bottom-1 left-0 w-0 h-1 bg-wonka-red transition-all duration-300 group-hover:w-full rounded-full"></span>
+            )}
+          </a>
+        );
       } else {
-        return <Link key={item.name} href={item.href} onClick={() => setOpen(false)} className={className}>{item.name}</Link>;
+        return (
+          <Link 
+            key={item.name} 
+            href={item.href} 
+            onClick={() => setOpen(false)} 
+            className={className}
+          >
+            {item.name}
+            {!isMobile && (
+              <span className="absolute -bottom-1 left-0 w-0 h-1 bg-wonka-red transition-all duration-300 group-hover:w-full rounded-full"></span>
+            )}
+          </Link>
+        );
       }
     });
   };
