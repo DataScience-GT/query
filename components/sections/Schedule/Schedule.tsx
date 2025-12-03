@@ -1,66 +1,228 @@
 "use client";
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { scheduleData, categories } from './data';
-import DayButtons from '../../ui/DayButtons';
-import EventList from '../../ui/EventList';
-import CategoryFilter from '../../ui/CategoryFilter';
+import { Truculenta } from 'next/font/google';
+
+const truculenta = Truculenta({
+  subsets: ['latin'],
+  weight: ['400', '700', '900'],
+});
+
+const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }> = ({ src, delay, className }) => (
+  <div 
+    className={`absolute pointer-events-none animate-float ${className}`} 
+    style={{ animationDelay: delay }}
+  >
+    <Image src={src} alt="Candy" width={50} height={50} className="object-contain drop-shadow-md" />
+  </div>
+);
 
 export default function Schedule() {
-  const [selectedDay, setSelectedDay] = useState('Sunday');
-  const [selectedCategory, setSelectedCategory] = useState('all'); // start with “all”
+  const [selectedDay, setSelectedDay] = useState('Friday'); // Default to Friday
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // filtering button 
+  const days = ['Friday', 'Saturday', 'Sunday'];
+
   const filtered =
     selectedCategory === 'all'
       ? scheduleData[selectedDay]
-      : scheduleData[selectedDay].filter(
+      : scheduleData[selectedDay]?.filter(
           e => e.category === selectedCategory
-        );
+        ) || [];
 
-  const iconFor = (category: string) =>
-    categories.find(c => c.id === category)?.icon || '/images/icons/general.png';
+  const getCategoryIcon = (categoryId: string) => {
+    const cat = categories.find(c => c.id === categoryId);
+    return cat ? cat.icon : '/small-candy/blue.png';
+  };
 
   return (
     <section
       id="schedule"
-      className="scroll-mt-28 min-h-screen py-16 px-4"
-      style={{ backgroundColor: '#A4C7FF' }}
+      className="section-anchor scroll-mt-28 min-h-screen bg-sky relative overflow-hidden py-20"
     >
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Title centered */}
-        <h1 className="text-5xl font-bold mb-10 text-white text-center">
-          Schedule
-        </h1>
-
-        <DayButtons
-          days={Object.keys(scheduleData)}
-          selectedDay={selectedDay}
-          onSelect={setSelectedDay}
-        />
-
-        {/* Inner container with pink background */}
-        <div
-          className="rounded-2xl overflow-hidden shadow-lg"
-          style={{ backgroundColor: '#FE97B0' }}
-        >
-          {/* Table header */}
-          <div className="py-4 px-4 font-bold text-left grid grid-cols-1 md:grid-cols-3 gap-4 text-white">
-            <div>Time</div>
-            <div>Event</div>
-            <div>Location</div>
-          </div>
-
-          {/* Events */}
-          <EventList events={filtered} iconFor={iconFor} />
-
-          {/* Category Filter */}
-          <CategoryFilter
-            selected={selectedCategory}
-            onSelect={setSelectedCategory}
-            bgColor="#FE97B0"
-          />
-        </div>
+      {/* Background Decorations */}
+      <div className="absolute top-20 left-[-50px] w-48 h-32 opacity-40 animate-drift" style={{ animationDelay: '0s' }}>
+        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain" />
       </div>
+      <div className="absolute bottom-40 right-[-60px] w-40 h-28 opacity-50 animate-drift" style={{ animationDelay: '5s' }}>
+        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain" />
+      </div>
+      
+      <FloatingCandy src="/small-candy/pink.png" delay="0s" className="top-32 right-[10%] rotate-12" />
+      <FloatingCandy src="/small-candy/blue.png" delay="1.5s" className="bottom-20 left-[5%] -rotate-12" />
+      <FloatingCandy src="/small-candy/yellow.png" delay="3s" className="top-1/2 left-[8%] rotate-45" />
+
+      <div className="container mx-auto px-4 relative z-10 max-w-5xl">
+        
+        {/* Header */}
+        <div className="text-center mb-12 relative">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/30 blur-3xl rounded-full -z-10"></div>
+          <h1 
+            className="font-willywonka text-7xl md:text-8xl text-wonka-yellow mb-2 drop-shadow-[0_4px_0_rgba(133,77,14,0.6)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
+            style={{ WebkitTextStroke: "2px #854d0e" }}
+          >
+            Schedule
+          </h1>
+          <div className={`${truculenta.className} text-2xl md:text-3xl text-white font-bold tracking-wide drop-shadow-md animate-fade-in-up`} style={{ animationDelay: '0.2s' }}>
+            The Factory Timeline
+          </div>
+        </div>
+
+        {/* Main Content Card */}
+        <div className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <div className="relative group">
+            {/* Card Shadow Layer */}
+            <div className="absolute inset-0 bg-white/50 rounded-[2.5rem] transform translate-y-3 translate-x-3"></div>
+            
+            {/* Card Body */}
+            <div className="relative bg-white/90 backdrop-blur-md rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden">
+              
+              {/* Day Selection Tabs */}
+              <div className="flex flex-wrap justify-center gap-4 p-6 border-b-4 border-sky-100 bg-sky-50/50">
+                {days.map(day => (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDay(day)}
+                    className={`${truculenta.className} px-8 py-3 rounded-2xl text-xl md:text-2xl font-bold transition-all duration-300 transform hover:scale-105 border-b-4 ${
+                      selectedDay === day
+                        ? 'bg-wonka-red text-white border-red-800 shadow-lg translate-y-[-2px]'
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap justify-center gap-3 p-4 bg-white/50">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors border-2 ${
+                    selectedCategory === 'all'
+                      ? 'bg-sky-500 text-white border-sky-600'
+                      : 'bg-transparent text-gray-500 border-gray-300 hover:border-sky-300'
+                  }`}
+                >
+                  All Events
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold transition-colors border-2 ${
+                      selectedCategory === cat.id
+                        ? 'bg-sky-100 text-sky-700 border-sky-300'
+                        : 'bg-transparent text-gray-500 border-gray-300 hover:border-sky-300'
+                    }`}
+                  >
+                    <span className="w-4 h-4 relative">
+                       <Image src={cat.icon} alt="" fill className="object-contain" />
+                    </span>
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Events List */}
+              <div className="p-4 md:p-8 min-h-[400px]">
+                {filtered.length > 0 ? (
+                  <div className="space-y-4">
+                    {filtered.map((event, i) => (
+                      <div 
+                        key={i} 
+                        className="group relative bg-white rounded-2xl border-2 border-sky-100 p-4 md:p-6 transition-all hover:border-sky-300 hover:shadow-md flex flex-col md:flex-row gap-4 md:items-center"
+                      >
+                        {/* Time Badge */}
+                        <div className="flex-shrink-0">
+                          <div className={`${truculenta.className} bg-sky-100 text-sky-700 px-4 py-2 rounded-xl text-xl font-bold text-center min-w-[100px]`}>
+                            {event.time}
+                          </div>
+                        </div>
+
+                        {/* Event Info */}
+                        <div className="flex-grow">
+                          <h3 className={`${truculenta.className} text-2xl font-bold text-gray-800 mb-1 group-hover:text-sky-600 transition-colors`}>
+                            {event.eventName}
+                          </h3>
+                          <div className="flex items-center gap-2 text-gray-500 font-medium">
+                            <span>📍 {event.location}</span>
+                          </div>
+                        </div>
+
+                        {/* Category Icon */}
+                        <div className="flex-shrink-0 self-start md:self-center">
+                          <div className="w-10 h-10 relative opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all">
+                             <Image 
+                               src={getCategoryIcon(event.category)} 
+                               alt={event.category} 
+                               fill 
+                               className="object-contain"
+                             />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 text-gray-400">
+                    <div className="text-4xl mb-4">😴</div>
+                    <p className="text-xl font-medium">No events scheduled for this category yet!</p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+      
+      <style jsx>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes drift {
+          0%, 100% { transform: translateX(0px) translateY(0px); }
+          50% { transform: translateX(20px) translateY(-10px); }
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(var(--tw-rotate)); }
+          50% { transform: translateY(-20px) rotate(calc(var(--tw-rotate) + 5deg)); }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
+        }
+
+        .animate-drift {
+          animation: drift 10s ease-in-out infinite;
+        }
+
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.8s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </section>
   );
 }
