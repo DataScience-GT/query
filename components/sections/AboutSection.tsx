@@ -17,6 +17,58 @@ const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }
   </div>
 );
 
+// Custom Vector Icons for About Section
+const Icons = {
+  Build: () => (
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+      {/* Monitor Stand */}
+      <path d="M20 85 L80 85 L85 95 L15 95 Z" fill="#9CA3AF" stroke="#4B5563" strokeWidth="3" />
+      <rect x="45" y="65" width="10" height="20" fill="#D1D5DB" stroke="#4B5563" strokeWidth="3" />
+      
+      {/* Monitor Body */}
+      <rect x="10" y="15" width="80" height="50" rx="4" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="4" />
+      
+      {/* Screen Content */}
+      <rect x="18" y="23" width="64" height="34" fill="#EFF6FF" />
+      <rect x="25" y="30" width="20" height="4" rx="1" fill="#3B82F6" />
+      <rect x="25" y="38" width="35" height="4" rx="1" fill="#93C5FD" />
+      <rect x="25" y="46" width="30" height="4" rx="1" fill="#93C5FD" />
+      
+      {/* Floating Code Elements */}
+      <circle cx="70" cy="35" r="6" fill="#FCD34D" stroke="#F59E0B" strokeWidth="2" />
+      <path d="M65 48 L75 48 L70 55 Z" fill="#F87171" stroke="#DC2626" strokeWidth="2" />
+    </svg>
+  ),
+  Community: () => (
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+      {/* Person 1 (Back) */}
+      <circle cx="68" cy="38" r="14" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="3" />
+      <path d="M68 52 C85 52 92 85 92 95 L44 95 C44 85 51 52 68 52" fill="#93C5FD" stroke="#1D4ED8" strokeWidth="3" />
+      
+      {/* Person 2 (Front) */}
+      <circle cx="38" cy="45" r="14" fill="#34D399" stroke="#047857" strokeWidth="3" />
+      <path d="M38 59 C55 59 62 92 62 95 L14 95 C14 92 21 59 38 59" fill="#6EE7B7" stroke="#047857" strokeWidth="3" />
+    </svg>
+  ),
+  Gift: () => (
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+      {/* Box */}
+      <rect x="20" y="45" width="60" height="45" rx="4" fill="#EF4444" stroke="#B91C1C" strokeWidth="4" />
+      
+      {/* Vertical Ribbon */}
+      <rect x="45" y="45" width="10" height="45" fill="#FCD34D" stroke="#D97706" strokeWidth="2" />
+      
+      {/* Lid */}
+      <rect x="15" y="30" width="70" height="15" rx="2" fill="#F87171" stroke="#B91C1C" strokeWidth="4" />
+      <rect x="45" y="30" width="10" height="15" fill="#FCD34D" stroke="#D97706" strokeWidth="2" />
+      
+      {/* Bow */}
+      <path d="M50 30 C50 30 25 5 20 20 C15 30 45 32 50 30" fill="#FCD34D" stroke="#D97706" strokeWidth="2" />
+      <path d="M50 30 C50 30 75 5 80 20 C85 30 55 32 50 30" fill="#FCD34D" stroke="#D97706" strokeWidth="2" />
+    </svg>
+  )
+};
+
 const AboutSection: React.FC = () => {
   return (
     <section id="about" className="section-anchor scroll-mt-28 min-h-screen bg-sky relative overflow-hidden py-20">
@@ -129,15 +181,21 @@ const AboutSection: React.FC = () => {
                   
                   <div className="space-y-3 text-gray-700">
                     <div className="flex items-center gap-3 bg-yellow-50/50 p-2 rounded-lg border border-yellow-100">
-                      <span className="text-xl">🚀</span>
+                      <div className="w-10 h-10 flex-shrink-0">
+                        <Icons.Build />
+                      </div>
                       <p className="font-bold text-sm md:text-base text-gray-800">Build projects that matter</p>
                     </div>
                      <div className="flex items-center gap-3 bg-yellow-50/50 p-2 rounded-lg border border-yellow-100">
-                      <span className="text-xl">🤝</span>
+                      <div className="w-10 h-10 flex-shrink-0">
+                        <Icons.Community />
+                      </div>
                       <p className="font-bold text-sm md:text-base text-gray-800">Connect with hackers</p>
                     </div>
                      <div className="flex items-center gap-3 bg-yellow-50/50 p-2 rounded-lg border border-yellow-100">
-                      <span className="text-xl">🎁</span>
+                      <div className="w-10 h-10 flex-shrink-0">
+                        <Icons.Gift />
+                      </div>
                       <p className="font-bold text-sm md:text-base text-gray-800">Free food, swag, & prizes!</p>
                     </div>
                   </div>
