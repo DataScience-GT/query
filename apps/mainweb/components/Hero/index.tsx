@@ -41,8 +41,8 @@ const Hero = ({ screen_width }: HeroProps) => {
       <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
         {/* Left Content */}
         <div className="flex flex-col justify-center items-start w-full md:w-1/2">
-          <h1 
-            className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-tight mb-4 text-transparent" 
+          <h1
+            className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-tight mb-4 text-transparent"
             style={{ WebkitTextStroke: "1.5px rgb(229,230,219)" }}
           >
             Data Science<br />@ Georgia Tech
@@ -64,12 +64,12 @@ const Hero = ({ screen_width }: HeroProps) => {
 
         {/* Right Logo */}
         <div className="hidden md:flex md:w-2/5 justify-center md:justify-end items-center">
-          <Image 
-            src={herologo} 
-            alt="DSGT logo" 
+          <Image
+            src={herologo}
+            alt="DSGT logo"
             width={240}
             height={240}
-            className="w-40 h-40 md:w-60 md:h-60 object-contain" 
+            className="w-40 h-40 md:w-60 md:h-60 object-contain"
           />
         </div>
       </div>
