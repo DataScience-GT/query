@@ -1,14 +1,21 @@
 {
   "name": "@repo/tailwind-config",
   "version": "0.0.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "exports": {
     ".": "./shared-styles.css",
     "./postcss": "./postcss.config.js"
   },
-  "devDependencies": {
+  "dependencies": {
+    "next": "^16.0.8",
     "postcss": "^8.5.3",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "tailwindcss": "^4.1.5"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^16.0.8",
+    "typescript": "^5.9.3"
   }
 }
