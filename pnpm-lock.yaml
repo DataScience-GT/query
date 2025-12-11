@@ -32,6 +32,9 @@ importers:
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
+      geist:
+        specifier: ^1.5.1
+        version: 1.5.1(next@16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0))
       next:
         specifier: ^16.0.8
         version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
@@ -1633,6 +1636,11 @@ packages:
 
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
+
+  geist@1.5.1:
+    resolution: {integrity: sha512-mAHZxIsL2o3ZITFaBVFBnwyDOw+zNLYum6A6nIjpzCGIO8QtC3V76XF2RnZTyLx1wlDTmMDy8jg3Ib52MIjGvQ==}
+    peerDependencies:
+      next: '>=13.2.0'
 
   generator-function@2.0.1:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
@@ -4517,6 +4525,10 @@ snapshots:
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
+
+  geist@1.5.1(next@16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)):
+    dependencies:
+      next: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
 
   generator-function@2.0.1: {}
 
