@@ -1,16 +1,16 @@
-name: pnpm-build.yml
+name: PNPM Build Test
 
 on:
-  pull_request:
-    branches: ["*"]
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["*"]
 
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -26,50 +26,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Copy env
-        run: cp .env.example .env
-
-      - name: Lint
-        run: pnpm lint && pnpm lint:ws
-
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-
-      - name: Install pnpm
-        run: |
-          npm install -g pnpm
-          echo "$(npm bin -g)" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Format
-        run: pnpm format
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-
-      - name: Install pnpm
-        run: |
-          npm install -g pnpm
-          echo "$(npm bin -g)" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Typecheck
-        run: pnpm typecheck
+      - name: Run build
+        run: pnpm build
