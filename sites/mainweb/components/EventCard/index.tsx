@@ -1,11 +1,11 @@
 // components/EventCard/index.tsx
 "use client";
 
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 import Link from "next/link";
 
 interface EventCardProps {
-  img: string;
+  img: string | StaticImageData;
   heading: string;
   when?: string;
   button_text: string;
