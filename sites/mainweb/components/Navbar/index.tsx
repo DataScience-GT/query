@@ -12,9 +12,10 @@ import Background from "@/components/Background";
 interface NavbarProps {
   screen_width: number;
   page?: string;
+  className?: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
+const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) => {
   const [windowWidth, setWindowWidth] = useState(screen_width);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -26,25 +27,36 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
+
   const homeMenuItems = [
-    { name: "Home", to: "home" },
-    { name: "About", to: "about" },
-    { name: "Bootcamp", to: "bootcamp" },
-    { name: "Hacklytics", to: "hacklytics" },
-    { name: "Projects", to: "projects" },
-    { name: "Get Involved", to: "getinvolved" },
-    { name: "Sign In", to: "https://member.datasciencegt.org", external: true },
+    { name: "Home", to: "home", link: false },
+    { name: "About", to: "about", link: false },
+    { name: "Bootcamp", to: "bootcamp", link: false },
+    { name: "Hacklytics", to: "hacklytics", link: false },
+    { name: "Projects", to: "projects", link: false },
+    { name: "Get Involved", to: "getinvolved", link: false },
+    {
+      name: "Sign In",
+      to: "https://member.datasciencegt.org",
+      external: true,
+      link: false,
+    },
   ];
 
   const otherPageMenuItems = [
     { name: "Home", to: "/", link: true },
     { name: "Team", to: "/team", link: true },
-    { name: "Bootcamp", to: "https://dsgtbootcamp.netlify.app/", external: true },
+    {
+      name: "Bootcamp",
+      to: "https://dsgtbootcamp.netlify.app/",
+      external: true,
+      link: false,
+    },
   ];
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
 
-  const renderMenuItem = (item: typeof menuItems[0]) => {
+  const renderMenuItem = (item: any) => {
     if (item.external) {
       return (
         <a
@@ -88,10 +100,9 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
     );
   };
 
-  // Desktop Navbar
   if (windowWidth >= WIDTH_THRESHOLD) {
     return (
-      <div className="relative w-full h-32 z-30">
+      <div className={`relative w-full h-32 z-30 ${className}`}>
         <Background className="absolute inset-0 z-0" />
         <Image
           src={smallblob}
@@ -125,9 +136,9 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
     );
   }
 
-  // Mobile Navbar
+  // ---------------- MOBILE NAV ----------------
   return (
-    <div className="relative w-full h-32 z-30">
+    <div className={`relative w-full h-32 z-30 ${className}`}>
       <Background className="absolute inset-0 z-0" />
       <Image
         src={smallblob}
