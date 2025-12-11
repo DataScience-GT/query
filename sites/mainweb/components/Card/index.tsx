@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 
 interface CardProps {
-  img?: string;
+  img?: string | StaticImageData; // <-- allow StaticImageData
   heading?: string;
   linkUrl?: string;
   children?: React.ReactNode;
@@ -20,7 +20,7 @@ const Card: React.FC<CardProps> = ({ img, heading, linkUrl, children, className 
       {img && (
         <div className="relative w-full h-40 overflow-hidden border-b border-white/10 flex items-center justify-center bg-black">
           <Image
-            src={img}
+            src={img} // works with both string and StaticImageData
             alt={heading || "Project image"}
             className="object-contain w-4/5 h-full"
             width={400}
