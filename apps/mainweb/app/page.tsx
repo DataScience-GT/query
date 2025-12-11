@@ -79,7 +79,7 @@ const Home = () => {
               projects, bootcamps, and Hacklytics.
             </Mini>
             <Mini>
-              <LearnMore to="about">Meet the Team</LearnMore>
+              <LearnMore to="/team">Meet the Team</LearnMore>
             </Mini>
           </div>
           <div className="md:w-1/2 w-full group">
