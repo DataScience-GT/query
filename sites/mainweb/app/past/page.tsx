@@ -7,8 +7,7 @@ import Footer from "@/components/Footer";
 import Major from "@/components/Text/Major";
 import Mini from "@/components/Text/Mini";
 import Link from "next/link";
-
-const CompletedEventPage = () => {
+const CompletedEventPage: React.FC = () => {
   const [windowWidth, setWindowWidth] = useState<number>(
     typeof window !== "undefined" ? window.innerWidth : 1024
   );
@@ -23,17 +22,14 @@ const CompletedEventPage = () => {
 
   return (
     <div id="completed-event-page" className="relative min-h-screen flex flex-col">
-      {/* Background */}
       <Background className="absolute inset-0 z-0" />
 
-      {/* Navbar */}
       <Navbar
         screen_width={windowWidth}
         className="fixed top-0 left-0 w-full z-30"
         page="other"
       />
 
-      {/* Main Content Area */}
       <main className="relative z-10 flex-grow pt-[80px] flex items-center justify-center p-6">
         <div className="text-center p-10 max-w-3xl rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl space-y-6">
           <Major type="b" className="text-white">
@@ -60,7 +56,6 @@ const CompletedEventPage = () => {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer screen_width={windowWidth} />
     </div>
   );

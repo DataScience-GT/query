@@ -1,24 +1,24 @@
 {
   "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
-    "target": "ESNext",               // modern JS output
-    "module": "ESNext",               // ESM modules
+    "target": "ESNext",
+    "module": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,                    // Next.js handles compilation
+    "noEmit": true,
     "esModuleInterop": true,
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "baseUrl": ".",                    // for absolute imports
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     },
-    "ignoreDeprecations": "6.0"
+    "types": []
   },
   "include": [
     "next-env.d.ts",
@@ -28,7 +28,7 @@
   ],
   "exclude": [
     "node_modules",
-    "dist",      // avoid importing compiled output
-    ".next"      // Next.js build folder
+    "dist",
+    ".next"
   ]
 }
