@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Link as ScrollLink } from "react-scroll";
+import Link from "next/link";
 
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 import smallblob from "@/assets/images/blobs/small-header--export.svg";
@@ -18,13 +19,14 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
   const navbarHeight = 80;
+  const isHomePage = !page || page === "home";
 
   useEffect(() => setWindowWidth(screen_width), [screen_width]);
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
-  const menuItems = [
+  const homeMenuItems = [
     { name: "Home", to: "home" },
     { name: "About", to: "about" },
     { name: "Bootcamp", to: "bootcamp" },
@@ -34,18 +36,43 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
     { name: "Sign In", to: "https://member.datasciencegt.org", external: true },
   ];
 
-  const renderMenuItem = (item: typeof menuItems[0]) =>
-    item.external ? (
-      <a
-        key={item.name}
-        href={item.to}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-lg font-extrabold text-black hover:text-teal-500 transition"
-      >
-        {item.name}
-      </a>
-    ) : (
+  const otherPageMenuItems = [
+    { name: "Home", to: "/", link: true },
+    { name: "Team", to: "/team", link: true },
+    { name: "Bootcamp", to: "https://dsgtbootcamp.netlify.app/", external: true },
+  ];
+
+  const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
+
+  const renderMenuItem = (item: typeof menuItems[0]) => {
+    if (item.external) {
+      return (
+        <a
+          key={item.name}
+          href={item.to}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-lg font-extrabold text-black hover:text-teal-500 transition"
+        >
+          {item.name}
+        </a>
+      );
+    }
+
+    if (item.link) {
+      return (
+        <Link
+          key={item.name}
+          href={item.to}
+          className="text-lg font-extrabold text-black hover:text-teal-500 transition"
+          onClick={() => setMenuOpen(false)}
+        >
+          {item.name}
+        </Link>
+      );
+    }
+
+    return (
       <ScrollLink
         key={item.name}
         to={item.to}
@@ -59,12 +86,12 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
         {item.name}
       </ScrollLink>
     );
+  };
 
   // Desktop Navbar
   if (windowWidth >= WIDTH_THRESHOLD) {
     return (
       <div className="relative w-full h-32 z-30">
-        {/* Background layer */}
         <Background className="absolute inset-0 z-0" />
         <Image
           src={smallblob}
@@ -73,21 +100,24 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
           priority
         />
 
-        {/* Navbar content */}
         <div className="relative z-10 max-w-[1600px] mx-auto h-full flex justify-between items-center px-6">
           <div className="flex items-center gap-4">
-            <ScrollLink
-              to="home"
-              smooth={true}
-              offset={-navbarHeight}
-              duration={500}
-              className="cursor-pointer"
-            >
-              <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
-            </ScrollLink>
-            <h1 className={`text-2xl font-bold text-black"`}>
-              DSGT
-            </h1>
+            {isHomePage ? (
+              <ScrollLink
+                to="home"
+                smooth={true}
+                offset={-navbarHeight}
+                duration={500}
+                className="cursor-pointer"
+              >
+                <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+              </ScrollLink>
+            ) : (
+              <Link href="/" className="cursor-pointer">
+                <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+              </Link>
+            )}
+            <h1 className="text-2xl font-bold text-black">DSGT</h1>
           </div>
           <div className="flex items-center gap-6">{menuItems.map(renderMenuItem)}</div>
         </div>
@@ -98,7 +128,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
   // Mobile Navbar
   return (
     <div className="relative w-full h-32 z-30">
-      {/* Background layer */}
       <Background className="absolute inset-0 z-0" />
       <Image
         src={smallblob}
@@ -107,22 +136,26 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
         priority
       />
 
-      {/* Navbar content */}
       <div className="relative z-10 flex justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
-          <ScrollLink
-            to="home"
-            smooth={true}
-            offset={-navbarHeight}
-            duration={500}
-            className="cursor-pointer"
-          >
-            <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
-          </ScrollLink>
+          {isHomePage ? (
+            <ScrollLink
+              to="home"
+              smooth={true}
+              offset={-navbarHeight}
+              duration={500}
+              className="cursor-pointer"
+            >
+              <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+            </ScrollLink>
+          ) : (
+            <Link href="/" className="cursor-pointer">
+              <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+            </Link>
+          )}
           <h1 className="text-2xl font-bold text-black">DSGT</h1>
         </div>
 
-        {/* Hamburger Button */}
         <button
           className="flex flex-col justify-center items-center w-12 h-12"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -140,7 +173,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page }) => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       <div
         className={`fixed top-0 left-0 w-full h-full bg-black/70 backdrop-blur-sm transition-all ${
           menuOpen ? "h-screen opacity-100" : "h-0 opacity-0 pointer-events-none"
