@@ -14,10 +14,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    }
-  }
+    "target": "ES2022"
+  },
+  "include": [],
+  "exclude": ["node_modules", "dist"]
 }
