@@ -22,7 +22,7 @@ import Dhruv from "@/assets/images/portraits/2024/Dhruv.jpeg";
 import Aditi from "@/assets/images/portraits/2024/Aditi.jpeg";
 import Om from "@/assets/images/portraits/2024/Om.jpeg";
 
-const About = () => {
+const Team = () => {
   const [windowWidth, setWindowWidth] = useState<number>(
     typeof window !== "undefined" ? window.innerWidth : 1024
   );
@@ -44,10 +44,11 @@ const About = () => {
       <Navbar
         screen_width={windowWidth}
         className="fixed top-0 left-0 w-full z-30"
+        page="team"
       />
 
       {/* Main content */}
-      <main className="relative z-10 pt-[80px]"> {/* pt = navbar height */}
+      <main className="relative z-10 pt-[80px]">
         <SmallHero
           title="Meet The Team"
           desc="The people who make DSGT what it is"
@@ -151,4 +152,4 @@ const About = () => {
   );
 };
 
-export default About;
+export default Team;
