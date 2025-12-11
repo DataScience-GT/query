@@ -27,9 +27,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
-  // --------------------------
-  // FIX: add link: false everywhere
-  // --------------------------
 
   const homeMenuItems = [
     { name: "Home", to: "home", link: false },
@@ -103,7 +100,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
     );
   };
 
-  // ---------------- DESKTOP NAV ----------------
   if (windowWidth >= WIDTH_THRESHOLD) {
     return (
       <div className={`relative w-full h-32 z-30 ${className}`}>
