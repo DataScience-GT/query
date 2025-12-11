@@ -1,17 +1,11 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans, GeistMono } from "geist/font"; // combine imports
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// these are already usable
+const geistSansVar = GeistSans.variable;
+const geistMonoVar = GeistMono.variable;
 
 export const metadata: Metadata = {
   title: "DSGT",
@@ -24,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geistSansVar} ${geistMonoVar}`}>
       <body className="antialiased bg-black text-yellow-400">
         {children}
       </body>
