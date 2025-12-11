@@ -25,7 +25,7 @@ importers:
     dependencies:
       next:
         specifier: ^16.0.8
-        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -71,7 +71,7 @@ importers:
     dependencies:
       next:
         specifier: ^16.0.8
-        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
       postcss:
         specifier: ^8.5.3
         version: 8.5.6
@@ -96,7 +96,7 @@ importers:
     dependencies:
       next:
         specifier: ^16.0.8
-        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -115,7 +115,7 @@ importers:
     dependencies:
       next:
         specifier: ^16.0.8
-        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
       react:
         specifier: ^19
         version: 19.2.1
@@ -151,7 +151,7 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  sites/mainweb:
+  sites/portal:
     dependencies:
       '@repo/ui':
         specifier: workspace:*
@@ -185,8 +185,8 @@ importers:
         version: 1.96.0
     devDependencies:
       '@next/bundle-analyzer':
-        specifier: ^15.5.7
-        version: 15.5.7
+        specifier: ^15.5.8
+        version: 15.5.8
       '@next/eslint-plugin-next':
         specifier: ^16.0.8
         version: 16.0.8
@@ -261,7 +261,7 @@ importers:
         version: 2.6.3(eslint@8.57.1)(turbo@2.6.3)
       next:
         specifier: ^16.0.8
-        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -283,7 +283,7 @@ importers:
     dependencies:
       next:
         specifier: ^16.0.8
-        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        version: 16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0)
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -561,8 +561,8 @@ packages:
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
-  '@next/bundle-analyzer@15.5.7':
-    resolution: {integrity: sha512-bKCGI9onUYyLaAQKvJOTeSv1vt3CYtF4Or+CRlCP/1Yu8NR9W4A2kd4qBs2OYFbT+/38fKg8BIPNt7IcMLKZCA==}
+  '@next/bundle-analyzer@15.5.8':
+    resolution: {integrity: sha512-gXhjlIGXx9IIaLCE9Amuuhhiq7vDb+4UjiR4Z6lwn/sIcJ27AXFINLjY5nh+7v4crzRub5yZIu9CzxhOVT06gw==}
 
   '@next/env@16.0.8':
     resolution: {integrity: sha512-xP4WrQZuj9MdmLJy3eWFHepo+R3vznsMSS8Dy3wdA7FKpjCiesQ6DxZvdGziQisj0tEtCgBKJzjcAc4yZOgLEQ==}
@@ -3203,7 +3203,7 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
-  '@next/bundle-analyzer@15.5.7':
+  '@next/bundle-analyzer@15.5.8':
     dependencies:
       webpack-bundle-analyzer: 4.10.1
     transitivePeerDependencies:
@@ -5103,29 +5103,6 @@ snapshots:
   neo-async@2.6.2: {}
 
   netmask@2.0.2: {}
-
-  next@16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
-    dependencies:
-      '@next/env': 16.0.8
-      '@swc/helpers': 0.5.15
-      caniuse-lite: 1.0.30001760
-      postcss: 8.4.31
-      react: 19.2.1
-      react-dom: 19.2.1(react@19.2.1)
-      styled-jsx: 5.1.6(react@19.2.1)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 16.0.8
-      '@next/swc-darwin-x64': 16.0.8
-      '@next/swc-linux-arm64-gnu': 16.0.8
-      '@next/swc-linux-arm64-musl': 16.0.8
-      '@next/swc-linux-x64-gnu': 16.0.8
-      '@next/swc-linux-x64-musl': 16.0.8
-      '@next/swc-win32-arm64-msvc': 16.0.8
-      '@next/swc-win32-x64-msvc': 16.0.8
-      sharp: 0.34.5
-    transitivePeerDependencies:
-      - '@babel/core'
-      - babel-plugin-macros
 
   next@16.0.8(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.96.0):
     dependencies:
