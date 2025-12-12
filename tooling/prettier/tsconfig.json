@@ -1,0 +1,12 @@
+{
+  "extends": "@enigma/tsconfig/base.json",
+  "include": ["."],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "skipLibCheck": true
+  }
+}
