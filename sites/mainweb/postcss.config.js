@@ -1,3 +1,3 @@
-import { postcssConfig } from "@repo/tailwind-config/postcss";
+import { postcssConfig } from "@enigma/tailwind-config/postcss";
 
 export default postcssConfig;

@@ -1,8 +1,13 @@
 {
-  "extends": "@repo/typescript-config/react-library.json",
+  "extends": "@enigma/tsconfig/internal-package.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "lib": ["ES2022", "dom", "dom.iterable"],
+    "jsx": "preserve",
+    "rootDir": "."
   },
-  "include": ["src"],
-  "exclude": ["dist", "build", "node_modules"]
+  "include": [
+    "src",
+    "../../apps/club/src/app/_components/landing/impact-assets/animata"
+  ],
+  "exclude": ["node_modules"]
 }

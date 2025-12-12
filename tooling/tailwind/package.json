@@ -1,5 +1,5 @@
 {
-  "name": "@cebera/tailwind-config",
+  "name": "@enigma/tailwind-config",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,8 @@
     "postcss": "^8.5.3",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "tailwindcss": "^4.1.5"
+    "tailwindcss": "^4.1.5",
+    "@tailwindcss/postcss": "^4.1.18"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^16.0.8",
