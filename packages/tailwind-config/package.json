@@ -1,5 +1,5 @@
 {
-  "name": "@repo/tailwind-config",
+  "name": "@cebera/tailwind-config",
   "version": "0.0.0",
   "private": true,
   "type": "module",
