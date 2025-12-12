@@ -12,7 +12,7 @@
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
+    "@enigma/ui": "workspace:*",
     "@tanstack/react-query": "^5.90.5",
     "chart.js": "^4.5.1",
     "geist": "^1.5.1",
@@ -24,12 +24,12 @@
     "sass": "^1.93.2"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^15.5.8",
+    "@next/bundle-analyzer": "^16.0.8",
     "@next/eslint-plugin-next": "^16.0.8",
-    "@repo/eslint-config": "workspace:*",
-    "@repo/tailwind-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@tailwindcss/postcss": "^4.1.5",
+    "@enigma/eslint-config": "workspace:*",
+    "@enigma/tailwind-config": "workspace:*",
+    "@enigma/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/minimatch": "^6.0.0",
     "@types/node": "^22.19.2",
     "@types/react": "^19.2.7",
