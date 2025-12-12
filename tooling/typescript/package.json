@@ -1,19 +1,8 @@
 {
-  "name": "@cerebra/typescript-config",
-  "version": "0.1.0",
+  "name": "@enigma/tsconfig",
   "private": true,
+  "version": "0.1.0",
   "files": [
-    "base.json",
-    "nextjs.json",
-    "react-library.json"
-  ],
-  "dependencies": {
-    "next": "^16.0.8",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1"
-  },
-  "devDependencies": {
-    "@next/eslint-plugin-next": "^16.0.8",
-    "typescript": "^5.9.3"
-  }
+    "*.json"
+  ]
 }
