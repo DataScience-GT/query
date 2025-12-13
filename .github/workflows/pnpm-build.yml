@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,14 +18,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
+          cache: "pnpm"
 
       - name: Install pnpm
-        run: |
-          npm install -g pnpm
-          echo "$(npm bin -g)" >> $GITHUB_PATH
+        run: npm install -g pnpm
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run build
-        run: pnpm build
+      - name: Build all packages and sites
+        run: pnpm turbo run build
