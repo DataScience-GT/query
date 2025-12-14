@@ -1,0 +1,18 @@
+{
+  "name": "@enigma/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "migrate": "node ./scripts/apply-migrations.cjs",
+    "seed": "node ./scripts/seed.cjs"
+  },
+  "dependencies": {
+    "pg": "^8.11.0",
+    "drizzle-orm": "^0.45.1"
+  }
+}

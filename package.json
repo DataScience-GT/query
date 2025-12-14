@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:portal": "turbo run dev --filter=portal",
+    "dev:mainweb": "turbo run dev --filter=web",
     "build": "turbo run build",
     "start": "turbo run start",
     "clean": "git clean -xdf node_modules",
@@ -25,11 +27,17 @@
     "@enigma/tailwind-config": "workspace:*",
     "@enigma/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
+    "@tanstack/react-query": "^5.90.12",
+    "@trpc/client": "^11.7.2",
+    "@trpc/next": "^11.7.2",
+    "@trpc/react-query": "^11.7.2",
+    "@trpc/server": "^11.7.2",
     "@turbo/gen": "^2.1.3",
     "@types/minimatch": "^6.0.0",
     "prettier": "^3.3.3",
-    "turbo": "^2.1.3",
-    "typescript": "^5.6.3"
+    "turbo": "^2.6.3",
+    "typescript": "^5.6.3",
+    "zod": "^3.23.8"
   },
   "prettier": "@enigma/prettier-config",
   "pnpm": {

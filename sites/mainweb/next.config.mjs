@@ -1,7 +1,8 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    turbo: {}, // enable Turbopack as configured object
+    turbopack: {
+      root: '../../', // Points to enigma root
+    },
   },
 }
 
