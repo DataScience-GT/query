@@ -1,0 +1,36 @@
+{
+  "name": "portal",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@enigma/api": "workspace:*",
+    "@enigma/ui": "workspace:*",
+    "@enigma/db": "workspace:*",
+    "@enigma/auth": "workspace:*",
+    "@tanstack/react-query": "^5.90.12",
+    "next": "^16.0.10",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@enigma/eslint-config": "workspace:*",
+    "@enigma/tailwind-config": "workspace:*",
+    "@enigma/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.19.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.1.1",
+    "eslint": "^9.33.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.5",
+    "typescript": "5.9.3"
+  }
+}
