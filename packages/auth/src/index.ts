@@ -118,4 +118,3 @@ export function clearSessionCookie(res: any) {
   }
 }
 
-export { useSession } from './hooks';
