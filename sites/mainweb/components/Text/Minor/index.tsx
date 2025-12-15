@@ -1,24 +1,26 @@
 import React from "react";
 
 interface MinorProps extends React.HTMLAttributes<HTMLHeadingElement> {
-  type?: "a" | "b";
+  type?: "primary" | "secondary"; // Renamed 'a' and 'b' for clarity
   children: React.ReactNode;
 }
 
-const Minor: React.FC<MinorProps> = ({ type = "a", children, className, ...props }) => {
+const Minor: React.FC<MinorProps> = ({ type = "primary", children, className, ...props }) => {
+  // Matching colors to the Major component
   const typeClasses = {
-    a: "text-[#74b1aa] drop-shadow-sm",
-    b: "text-[#ecae58] drop-shadow-sm",
+    primary: "text-indigo-400 drop-shadow-sm", // Replaces #74b1aa
+    secondary: "text-amber-400 drop-shadow-sm", // Replaces #ecae58
   };
+
+  const defaultClasses = `
+    text-2xl md:text-3xl font-semibold m-0
+    leading-normal
+  `;
 
   return (
     <h2
       {...props}
-      className={`
-        text-2xl md:text-3xl font-semibold m-0
-        ${typeClasses[type]}
-        ${className ?? ""}
-      `}
+      className={`${defaultClasses} ${typeClasses[type]} ${className ?? ""}`}
     >
       {children}
     </h2>
