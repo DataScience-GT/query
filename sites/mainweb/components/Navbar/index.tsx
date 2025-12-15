@@ -15,7 +15,11 @@ interface NavbarProps {
   className?: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) => {
+const Navbar: React.FC<NavbarProps> = ({
+  screen_width,
+  page,
+  className = "",
+}) => {
   const [windowWidth, setWindowWidth] = useState(screen_width);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,10 +27,10 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
   const isHomePage = !page || page === "home";
 
   useEffect(() => setWindowWidth(screen_width), [screen_width]);
+
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
-
 
   const homeMenuItems = [
     { name: "Home", to: "home", link: false },
@@ -45,12 +49,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
 
   const otherPageMenuItems = [
     { name: "Home", to: "/", link: true },
-    {
-      name: "Bootcamp",
-      to: "https://dsgtbootcamp.netlify.app/",
-      external: true,
-      link: false,
-    },
+    { name: "Bootcamp", to: "/bootcamp", link: true },
     {
       name: "Sign In",
       to: "https://member.datasciencegt.org",
@@ -105,6 +104,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
     );
   };
 
+  // ---------------- DESKTOP NAV ----------------
   if (windowWidth >= WIDTH_THRESHOLD) {
     return (
       <div className={`relative w-full h-32 z-30 ${className}`}>
@@ -135,7 +135,10 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
             )}
             <h1 className="text-2xl font-bold text-black">DSGT</h1>
           </div>
-          <div className="flex items-center gap-6">{menuItems.map(renderMenuItem)}</div>
+
+          <div className="flex items-center gap-6">
+            {menuItems.map(renderMenuItem)}
+          </div>
         </div>
       </div>
     );
@@ -191,7 +194,9 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
 
       <div
         className={`fixed top-0 left-0 w-full h-full bg-black/70 backdrop-blur-sm transition-all ${
-          menuOpen ? "h-screen opacity-100" : "h-0 opacity-0 pointer-events-none"
+          menuOpen
+            ? "h-screen opacity-100"
+            : "h-0 opacity-0 pointer-events-none"
         }`}
       >
         <div className="flex flex-col justify-start items-center pt-32 gap-8 h-full w-full">
