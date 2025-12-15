@@ -45,10 +45,15 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
 
   const otherPageMenuItems = [
     { name: "Home", to: "/", link: true },
-    { name: "Team", to: "/team", link: true },
     {
       name: "Bootcamp",
       to: "https://dsgtbootcamp.netlify.app/",
+      external: true,
+      link: false,
+    },
+    {
+      name: "Sign In",
+      to: "https://member.datasciencegt.org",
       external: true,
       link: false,
     },

@@ -3,9 +3,11 @@ import Link from "next/link";
 interface LearnMoreProps {
   to: string;
   children: React.ReactNode;
+  target?: string;
+  rel?: string;
 }
 
-const LearnMore = ({ to, children }: LearnMoreProps) => {
+const LearnMore = ({ to, children, target, rel }: LearnMoreProps) => {
   const isExternal = to.startsWith("http");
 
   const baseClasses =
@@ -14,13 +16,11 @@ const LearnMore = ({ to, children }: LearnMoreProps) => {
     "inline-block pl-1 transition-all duration-300 group-hover:pl-3";
 
   if (isExternal) {
+    const outTarget = target ?? "_blank";
+    const outRel = rel ?? "noopener noreferrer";
+
     return (
-      <a
-        href={to}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`${baseClasses} group`}
-      >
+      <a href={to} target={outTarget} rel={outRel} className={`${baseClasses} group`}>
         {children}
         <span className={arrowClasses}>→</span>
       </a>
@@ -28,7 +28,7 @@ const LearnMore = ({ to, children }: LearnMoreProps) => {
   }
 
   return (
-    <Link href={to} scroll={false} className={`${baseClasses} group`}>
+    <Link href={to} scroll={false} className={`${baseClasses} group`} target={target} rel={rel}>
       {children}
       <span className={arrowClasses}>→</span>
     </Link>
