@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@enigma/db', '@enigma/auth', '@enigma/api', '@enigma/ui'],
+  transpilePackages: ['@query/db', '@query/auth', '@query/api', '@query/ui'],
   experimental: {
     turbopack: {
       root: '../../',
