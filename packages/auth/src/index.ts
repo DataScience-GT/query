@@ -8,9 +8,9 @@ async function tryDb() {
     // dynamic import so packages/db doesn't need to resolve at build time
     // (allows dev without Postgres)
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = await import('@enigma/db');
+    const mod = await import('@query/db');
     // also import schema
-    const schema = await import('@enigma/db/schema');
+    const schema = await import('@query/db/schema');
     return { db: mod.db, users: schema.users, sessions: schema.sessions };
   } catch (err) {
     return null;
@@ -85,7 +85,7 @@ export async function deleteSession(token: string) {
 
 export function getTokenFromRequest(req: Request) {
   const cookies = req.headers.get('cookie') ?? '';
-  const match = /(?:^|; )enigma_session=([^;]+)/.exec(cookies);
+  const match = /(?:^|; )query_session=([^;]+)/.exec(cookies);
   return match?.[1] ?? null;
 }
 
@@ -97,7 +97,7 @@ export async function getSessionFromRequest(req: Request) {
 
 export function setSessionCookie(res: any, token: string) {
   try {
-    res.cookies.set('enigma_session', token, {
+    res.cookies.set('query_session', token, {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24 * 30,
@@ -106,15 +106,15 @@ export function setSessionCookie(res: any, token: string) {
     });
   } catch (err) {
     const prev = res.headers?.get?.('set-cookie') ?? '';
-    res.headers?.set?.('set-cookie', `${prev}; enigma_session=${token}; Path=/; HttpOnly`);
+    res.headers?.set?.('set-cookie', `${prev}; query_session=${token}; Path=/; HttpOnly`);
   }
 }
 
 export function clearSessionCookie(res: any) {
   try {
-    res.cookies.set('enigma_session', '', { path: '/', maxAge: 0 });
+    res.cookies.set('query_session', '', { path: '/', maxAge: 0 });
   } catch (err) {
-    res.headers?.set?.('set-cookie', 'enigma_session=; Path=/; Max-Age=0');
+    res.headers?.set?.('set-cookie', 'query_session=; Path=/; Max-Age=0');
   }
 }
 

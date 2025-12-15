@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
-import { db } from '@enigma/db';
-import { roles, users } from '@enigma/db/schema';
+import { db } from '@query/db';
+import { roles, users } from '@query/db/schema';
 
 export async function requireAdmin(ctx: any) {
   if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
