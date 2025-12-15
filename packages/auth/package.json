@@ -1,5 +1,5 @@
 {
-  "name": "@enigma/auth",
+  "name": "@query/auth",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
   "dependencies": {
     "uuid": "^9.0.0",
     "zod": "^3.23.8",
-    "@enigma/db": "workspace:*",
+    "@query/db": "workspace:*",
     "@tanstack/react-query": "^5.90.12"
   }
 }

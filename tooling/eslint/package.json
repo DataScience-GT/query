@@ -1,5 +1,5 @@
 {
-  "name": "@enigma/eslint-config",
+  "name": "@query/eslint-config",
   "private": true,
   "version": "0.3.0",
   "type": "module",
@@ -26,12 +26,12 @@
     "@typescript-eslint/parser": "^8.26.1"
   },
   "devDependencies": {
-    "@enigma/prettier-config": "workspace:*",
-    "@enigma/tsconfig": "workspace:*",
+    "@query/prettier-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
     "@types/eslint__js": "^8.42.3",
     "eslint": "^9.33.0",
     "prettier": "^3.3.3",
     "typescript": "^5.6.3"
   },
-  "prettier": "@enigma/prettier-config"
+  "prettier": "@query/prettier-config"
 }
