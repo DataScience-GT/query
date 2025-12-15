@@ -5,10 +5,14 @@ interface MiniProps extends React.HTMLAttributes<HTMLParagraphElement> {
 }
 
 const Mini: React.FC<MiniProps> = ({ children, className, ...props }) => {
+  const defaultClasses = `
+    text-gray-300 text-lg md:text-xl font-normal leading-relaxed m-0
+  `;
+
   return (
     <p
       {...props}
-      className={`text-white text-lg md:text-xl font-normal leading-snug m-0 ${className ?? ""}`}
+      className={`${defaultClasses} ${className ?? ""}`}
     >
       {children}
     </p>
