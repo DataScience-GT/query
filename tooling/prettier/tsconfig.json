@@ -1,5 +1,5 @@
 {
-  "extends": "@enigma/tsconfig/base.json",
+  "extends": "@query/tsconfig/base.json",
   "include": ["."],
   "exclude": ["node_modules"],
   "compilerOptions": {
