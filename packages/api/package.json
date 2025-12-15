@@ -1,10 +1,12 @@
 {
-  "name": "@enigma/api",
+  "name": "@query/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/client.ts",
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./trpc-server": "./src/trpc-server.ts",
     "./server": "./src/index.ts",
     "./context": "./src/context.ts",
     "./middleware": "./src/middleware.ts",
@@ -15,17 +17,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@enigma/auth": "workspace:*",
-    "@enigma/db": "workspace:*",
+    "@query/auth": "workspace:*",
+    "@query/db": "workspace:*",
     "@trpc/server": "^11.7.2",
     "@trpc/client": "^11.7.2",
     "@trpc/react-query": "^11.7.2",
     "@trpc/next": "^11.7.2",
     "@tanstack/react-query": "^5.90.12",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "superjson": "^2.2.6"
   },
   "devDependencies": {
-    "@enigma/tsconfig": "workspace:*",
+    "@query/tsconfig": "workspace:*",
     "typescript": "^5.6.3"
   }
 }

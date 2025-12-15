@@ -1,5 +1,5 @@
 {
-  "extends": "@enigma/tsconfig/internal-package.json",
+  "extends": "@query/tsconfig/internal-package.json",
   "compilerOptions": {
     "lib": ["ES2022", "dom", "dom.iterable"],
     "jsx": "preserve",

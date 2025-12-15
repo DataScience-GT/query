@@ -1,5 +1,5 @@
 {
-  "extends": "@enigma/tsconfig/nextjs.json",
+  "extends": "@query/tsconfig/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
