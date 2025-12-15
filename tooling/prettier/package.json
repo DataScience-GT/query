@@ -1,5 +1,5 @@
 {
-  "name": "@enigma/prettier-config",
+  "name": "@query/prettier-config",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -18,8 +18,8 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.3.1"
   },
   "devDependencies": {
-    "@enigma/tsconfig": "workspace:*",
+    "@query/tsconfig": "workspace:*",
     "typescript": "^5.6.3"
   },
-  "prettier": "@enigma/prettier-config"
+  "prettier": "@query/prettier-config"
 }
