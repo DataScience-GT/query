@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSessionFromRequest } from '@enigma/auth';
+import { getSessionFromRequest } from '@query/auth';
 
 export async function GET(req: Request) {
   const session = await getSessionFromRequest(req);

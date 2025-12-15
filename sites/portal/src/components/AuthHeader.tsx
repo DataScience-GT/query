@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { useSession } from "@enigma/auth/hooks";
+import { useSession } from "@query/auth/hooks";
 
 export default function AuthHeader() {
   const { data: user } = useSession();

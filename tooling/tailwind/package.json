@@ -1,5 +1,5 @@
 {
-  "name": "@enigma/tailwind-config",
+  "name": "@query/tailwind-config",
   "version": "0.0.0",
   "private": true,
   "type": "module",

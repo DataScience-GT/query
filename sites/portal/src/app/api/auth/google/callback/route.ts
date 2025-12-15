@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { upsertUserFromGoogle, createSession } from '@enigma/auth';
+import { upsertUserFromGoogle, createSession } from '@query/auth';
 
 async function exchangeCode(code: string, redirectUri: string) {
   const params = new URLSearchParams({
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   const session = await createSession(user.id);
 
   const res = NextResponse.redirect(process.env.NEXT_PUBLIC_APP_URL ?? '/');
-  res.cookies.set('enigma_session', session.token, {
+  res.cookies.set('query_session', session.token, {
     httpOnly: true,
     path: '/',
     maxAge: 60 * 60 * 24 * 30,

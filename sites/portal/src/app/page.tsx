@@ -2,7 +2,7 @@
 
 import { trpc } from '@/utils/trpc';
 import { useEffect, useState } from 'react';
-import { useSession } from '@enigma/auth/hooks';
+import { useSession } from '@query/auth/hooks';
 
 export default function PortalHome() {
   const { data, isLoading } = trpc.portal.getDashboard.useQuery();
