@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import sharedConfig from '@enigma/tailwind-config';
+import sharedConfig from '@query/tailwind-config';
 
 const config: Config = {
   content: [
