@@ -1,5 +1,5 @@
 {
-  "name": "enigma",
+  "name": "query",
   "private": true,
   "version": "1.0.0",
   "packageManager": "pnpm@10.25.0",
@@ -22,10 +22,10 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "@enigma/eslint-config": "workspace:*",
-    "@enigma/prettier-config": "workspace:*",
-    "@enigma/tailwind-config": "workspace:*",
-    "@enigma/tsconfig": "workspace:*",
+    "@query/eslint-config": "workspace:*",
+    "@query/prettier-config": "workspace:*",
+    "@query/tailwind-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
     "@tanstack/react-query": "^5.90.12",
     "@trpc/client": "^11.7.2",
@@ -39,7 +39,7 @@
     "typescript": "^5.6.3",
     "zod": "^3.23.8"
   },
-  "prettier": "@enigma/prettier-config",
+  "prettier": "@query/prettier-config",
   "pnpm": {
     "overrides": {
       "react": "^18.3.1",

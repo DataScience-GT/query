@@ -1,5 +1,5 @@
 import { Providers } from './providers';
-import '@enigma/ui/styles';
+import '@query/ui/styles';
 import './globals.css';
 
 export const metadata = {

@@ -11,19 +11,19 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@enigma/api": "workspace:*",
-    "@enigma/ui": "workspace:*",
-    "@enigma/db": "workspace:*",
-    "@enigma/auth": "workspace:*",
+    "@query/api": "workspace:*",
+    "@query/ui": "workspace:*",
+    "@query/db": "workspace:*",
+    "@query/auth": "workspace:*",
     "@tanstack/react-query": "^5.90.12",
     "next": "^16.0.10",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@enigma/eslint-config": "workspace:*",
-    "@enigma/tailwind-config": "workspace:*",
-    "@enigma/tsconfig": "workspace:*",
+    "@query/eslint-config": "workspace:*",
+    "@query/tailwind-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^22.19.2",
     "@types/react": "^19.2.7",

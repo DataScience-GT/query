@@ -7,7 +7,7 @@ export function middleware(req: NextRequest) {
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
   if (!isProtected) return NextResponse.next();
 
-  const token = req.cookies.get('enigma_session')?.value;
+  const token = req.cookies.get('query_session')?.value;
   if (!token) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
