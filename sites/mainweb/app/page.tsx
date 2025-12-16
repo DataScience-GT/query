@@ -27,7 +27,7 @@ import slide7 from "@/assets/images/slides/slide7.jpg";
 import slide8 from "@/assets/images/slides/slide8.jpg";
 import dlp4 from "@/assets/images/logos/dlp4.png";
 import furnichanter from "@/assets/images/logos/furnichanter.png";
-import birdclef from "@/assets/images/logos/birdclef.png";
+import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import blueconduit from "@/assets/images/logos/blueconduit.png";
 
@@ -49,12 +49,8 @@ const Home = () => {
 
   useEffect(() => {
     handleResize();
-
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, [handleResize]);
 
   const chartOptions = useMemo(() => ({
@@ -82,9 +78,7 @@ const Home = () => {
         position: 'bottom' as const,
         labels: {
           color: '#fff',
-          font: {
-            size: 14,
-          }
+          font: { size: 14 }
         }
       }
     },
@@ -104,8 +98,7 @@ const Home = () => {
             <Mini className="text-gray-300 leading-relaxed">
               As the <strong>largest student-run data science organization at Georgia Tech</strong>,
               we provide technical skill development via club projects, workshops,
-              guest speakers, and more. DSGT is open to all majors and focuses on
-              <strong>projects, bootcamps, and Hacklytics</strong>.
+              guest speakers, and more. DSGT is open to all majors and focuses on <strong>projects, bootcamps, and Golden Byte</strong>.
             </Mini>
             <Mini>
               <LearnMore to="/team">Meet the Team</LearnMore>
@@ -131,7 +124,7 @@ const Home = () => {
 
       <Section id="stats">
         <Major type="b">Who We Are</Major>
-        <Mini className="text-gray-300">In spring 2023, we had <span className="font-extrabold text-blue-400">504 DSGT members</span>. Here's a snapshot of class and major demographics:</Mini>
+        <Mini className="text-gray-300">In <strong>Fall 2025</strong>, we had <span className="font-extrabold text-blue-400">550+ DSGT members</span>. Here's a snapshot of class and major demographics:</Mini>
         <div className="flex flex-wrap justify-center items-stretch gap-8 my-10" role="region" aria-label="DSGT Demographics Charts">
           <div className="flex flex-col items-center w-full max-w-sm p-8 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-300 hover:bg-white/10 hover:shadow-blue-500/20">
             <Minor className="text-lg font-bold text-blue-300 mb-2">CLASS DEMOGRAPHICS</Minor>
@@ -148,7 +141,7 @@ const Home = () => {
           </div>
         </div>
         <div className="text-center mt-8">
-            <Mini className="text-gray-400">Reflecting Georgia Tech's diverse, interdisciplinary focus on data and technology.</Mini>
+          <Mini className="text-gray-400">Reflecting Georgia Tech's diverse, interdisciplinary focus on data and technology.</Mini>
         </div>
       </Section>
 
@@ -181,14 +174,14 @@ const Home = () => {
         </div>
       </Section>
 
-      <Section id="hacklytics">
+      <Section id="golden-byte">
         <div className="flex flex-col md:flex-row items-center gap-12">
           <div className="md:w-1/2 w-full group" role="figure">
             <div className="relative overflow-hidden rounded-2xl shadow-lg transition-transform duration-500 hover:scale-[1.02]">
               <div className="absolute inset-0 bg-gradient-to-tl from-cyan-600/20 to-green-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
               <Image
                 src={slide6}
-                alt="Attendees gathered at the Hacklytics 2024 datathon"
+                alt="Attendees gathered at the Golden Byte 2024 datathon"
                 className="w-full h-96 object-cover relative z-10"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 width={600}
@@ -202,11 +195,9 @@ const Home = () => {
             <Mini className="text-gray-300 leading-relaxed">
               Hacklytics is Georgia Tech's premier <strong>36-hour datathon</strong> brought to you by DSGT.
               Join hundreds of students for a weekend of data science, workshops, and prizes.
-              Theme for 2026: <span className="font-extrabold
-              text-cyan-400">"Jurassic Park"</span> — February 20-22, 2026.
             </Mini>
             <Mini>
-              <LearnMore to="https://hacklytics.io" target="_blank" rel="noopener noreferrer">Register/Learn more about Hacklytics 2026</LearnMore>
+              <LearnMore to="https://hacklytics.io" target="_blank" rel="noopener noreferrer">Register/Learn more about Golden Byte 2026</LearnMore>
             </Mini>
           </div>
         </div>
@@ -214,12 +205,58 @@ const Home = () => {
 
       <Section id="projects">
         <Major type="a">Projects Showcase</Major>
-        <Mini className="text-gray-300 mb-12">
+        <Mini className="text-gray-300 mb-6">
           Our projects give members hands-on experience while exploring the power of
           data science and AI across diverse applications, from deep learning to financial modeling.
         </Mini>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 my-10" role="region" aria-label="DSGT Member Projects">
+
+          {/* === VIEW ALL PAST PROJECTS CARD === */}
+
+
+          {/* === ARC PROJECT CARD === */}
+          <Card
+            img=""
+            linkUrl="https://github.com/datasciencegt/arc"
+            className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
+          >
+            {/* Logo on top */}
+            <div className="w-full flex justify-center mb-4">
+              <div className="p-4 bg-white rounded-xl">
+                <Image
+                  src={arc}
+                  alt="ARC Logo"
+                  className="object-contain w-24 h-24"
+                  width={96}
+                  height={96}
+                />
+              </div>
+            </div>
+
+            {/* Title below image */}
+            <h3 className="text-teal-400 text-lg font-bold text-center mb-2">
+              DS@GT Applied Research Competitions (ARC)
+            </h3>
+
+            {/* Description */}
+            <p className="text-gray-300 text-sm leading-relaxed mb-4">
+              ARC is a student-run research group at Georgia Tech focused on machine learning, information retrieval, and data-driven scientific modeling. Members participate in competitions like CLEF, Kaggle, and TREC, while also publishing research notes. The group is open to all DS@GT members, fostering hands-on experience in competitive research challenges.
+            </p>
+
+            {/* Link */}
+            <a
+              href="https://github.com/datasciencegt/arc"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit the DS@GT ARC GitHub page"
+              className="text-teal-400 mt-auto inline-block font-semibold hover:underline hover:text-teal-300 transition-colors"
+            >
+              Learn More →
+            </a>
+          </Card>
+
+          {/* Other project cards */}
           <Card
             img={dlp4}
             heading="Deep Learning Playground"
@@ -249,18 +286,6 @@ const Home = () => {
             <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
               This innovative project reimagines financial planning as a <strong>conversational experience</strong>. The AI engages users to create personalized financial
               roadmaps using their data and predictive models.
-            </p>
-          </Card>
-
-          <Card
-            img={birdclef}
-            heading="Kaggle CLEF Competitions"
-            className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
-          >
-            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
-              A seminar-style introduction to <strong>data science competitions</strong> like
-              Kaggle and CLEF 2025. Members present, discuss research, and compete in
-              internal challenges to build real-world skills.
             </p>
           </Card>
 
@@ -296,6 +321,26 @@ const Home = () => {
               sports-related data. Past projects include NFL projections, NBA roster
               optimization, and odds analysis using advanced statistics.
             </p>
+          </Card>
+
+           <Card
+            img=""
+            linkUrl="/projects"
+            className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-cyan-500/30 p-6 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10"
+          >
+            <h3 className="text-cyan-400 text-xl font-bold text-center mb-4">
+              View All Past Projects
+            </h3>
+            <p className="text-gray-300 text-sm leading-relaxed mb-4">
+              Explore our complete archive of data science projects spanning machine learning, analytics, and innovative applications across multiple semesters.
+            </p>
+            <a
+              href="/projects"
+              aria-label="See all past projects from DSGT"
+              className="text-cyan-400 mt-auto inline-block font-semibold hover:underline hover:text-cyan-300 transition-colors"
+            >
+              Browse Projects Archive →
+            </a>
           </Card>
 
         </div>
@@ -341,13 +386,13 @@ const Home = () => {
             <div className="w-full max-w-[400px]">
               <EventCard
                 img={slide6}
-                heading="Hacklytics 2026 Datathon"
+                heading="Golden Byte 2026 Datathon"
                 when="Feb 20-22, 2026"
                 button_text="More Details"
-                button_to="#hacklytics"
+                button_to="#golden-byte"
                 className="hover:shadow-green-500/30"
               >
-                Georgia Tech's premier 36-hour datathon. Theme: "Jurassic Park" - A challenging weekend of data fun!
+                Golden Byte is Georgia Tech's premier 36-hour datathon. Theme: "Golden Byte" - A challenging weekend of data fun!
               </EventCard>
             </div>
           </div>
