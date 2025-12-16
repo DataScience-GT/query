@@ -1,1 +1,1 @@
-## uh
+## hi if you want to contribute please make sure turbo build works in the individual folders
