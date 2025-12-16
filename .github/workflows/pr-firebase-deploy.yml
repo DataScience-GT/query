@@ -32,10 +32,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build & Export
-        run: |
-          pnpm build
-          pnpm export
+      - name: Build
+        run: pnpm build
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
