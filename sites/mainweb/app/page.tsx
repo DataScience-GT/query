@@ -99,7 +99,7 @@ const Home = () => {
             <Mini className="text-gray-300 leading-relaxed">
               As the <strong>largest student-run data science organization at Georgia Tech</strong>,
               we provide technical skill development via club projects, workshops,
-              guest speakers, and more. DSGT is open to all majors and focuses on <strong>projects, bootcamps, and Golden Byte</strong>.
+              guest speakers, and more. DSGT is open to all majors and focuses on <strong>projects, bootcamps, and Hacklytics</strong>.
             </Mini>
             <Mini>
               <LearnMore to="/team">Meet the Team</LearnMore>
