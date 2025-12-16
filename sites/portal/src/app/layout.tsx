@@ -1,13 +1,4 @@
 import { Providers } from './providers';
-import '@query/ui/styles';
-import './globals.css';
-
-export const metadata = {
-  title: 'Portal - Enigma',
-  description: 'Portal application',
-};
-
-import AuthHeader from '@/components/AuthHeader';
 
 export default function RootLayout({
   children,
@@ -17,10 +8,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <AuthHeader />
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

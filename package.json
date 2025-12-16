@@ -51,6 +51,7 @@
     }
   },
   "dependencies": {
+    "@tanstack/react-router": "^1.141.2",
     "autoprefixer": "^10.4.22",
     "chart.js": "^4.5.1",
     "postcss": "^8.5.6"
