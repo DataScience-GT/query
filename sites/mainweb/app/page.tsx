@@ -21,7 +21,7 @@ import dynamic from "next/dynamic";
 import { ClassData, MajorData } from "@/assets/Data/demographics";
 
 import slide1 from "@/assets/images/slides/slide1.jpg";
-import slide2 from "@/assets/images/slides/slide2.jpg";
+import squad from "@/assets/images/2025/squad.jpg";
 import slide6 from "@/assets/images/slides/slide6.jpg";
 import slide7 from "@/assets/images/slides/slide7.jpg";
 import slide8 from "@/assets/images/slides/slide8.jpg";
@@ -107,9 +107,8 @@ const Home = () => {
           </div>
           <div className="md:w-1/2 w-full group" role="figure" aria-labelledby="about-image-caption">
             <div className="relative overflow-hidden rounded-2xl shadow-lg transition-transform duration-500 hover:scale-[1.02]">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-cyan-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
               <Image
-                src={slide2}
+                src={squad}
                 alt="The DSGT Executive Team in a group photo"
                 id="about-image-caption"
                 className="w-full h-96 object-cover"
