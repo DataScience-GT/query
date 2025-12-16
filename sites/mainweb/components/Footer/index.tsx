@@ -11,9 +11,10 @@ import footerBlobMobile from "@/assets/images/blobs/footer-mobile2--export.svg";
 
 interface FooterProps {
   screen_width: number;
+  className?: string;
 }
 
-const Footer = ({ screen_width }: FooterProps) => {
+const Footer = ({ screen_width, className = "" }: FooterProps) => {
   const [windowWidth, setWindowWidth] = useState(screen_width || 0);
   const WIDTH_THRESHOLD = 1000;
 
@@ -22,7 +23,7 @@ const Footer = ({ screen_width }: FooterProps) => {
   }, [screen_width]);
 
   return (
-    <div className="relative w-full flex flex-wrap pt-20 min-h-[300px] bg-gray-900 text-white">
+    <div className={`relative w-full flex flex-wrap pt-20 min-h-[300px] bg-gray-900 text-white ${className}`}>
       <Image
         src={windowWidth >= WIDTH_THRESHOLD ? footerBlob : footerBlobMobile}
         alt="footer blob"

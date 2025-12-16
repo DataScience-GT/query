@@ -60,7 +60,7 @@ const Team = () => {
               The executive board is in charge of the functioning of Data Science
               at Georgia Tech - from administering the bootcamp, running projects,
               holding super cool events with companies like Amazon and Accenture as
-              well as our annual data science hackathon, Hacklytics, every year!
+              well as our annual data science datathon, Golden Byte, every year!
             </TeamCard>
 
             <TeamCard name="Shreiyas Saraf" title="Director of External Affairs" img={Shreiyas}>
@@ -70,9 +70,9 @@ const Team = () => {
               the duties of External Affairs.
             </TeamCard>
 
-            <TeamCard name="Emma Lawton" title="Director of Hacklytics" img={Emma}>
-              The Hacklytics team works to organize and conduct DSGT's flagship
-              hackathon every Spring. This is a great way to network with sponsors
+            <TeamCard name="Emma Lawton" title="Director of Golden Byte" img={Emma}>
+              The Golden Byte team works to organize and conduct DSGT's flagship
+              datathon every Spring. This is a great way to network with sponsors
               and develop strong communication and management skills. Plus, you get
               to meet many new people every year!
             </TeamCard>
@@ -87,7 +87,7 @@ const Team = () => {
 
             <TeamCard name="Lavan Vivekanandasarma" title="Director of Technology" img={Lavan}>
               The Technology Team specializes in frontend web-development as well as
-              backend systems. We work on the many websites used by DSGT and Hacklytics,
+              backend systems. We work on the many websites used by DSGT and Golden Byte,
               most notably being this site and the Membership Portal.
             </TeamCard>
 
@@ -110,14 +110,14 @@ const Team = () => {
               The marketing team focuses on social media initiatives, graphic design,
               newsletters, outreach, and more to increase engagement with DSGT both
               on and off campus. Our work consists of creating digital and in-person
-              marketing strategies for both DSGT and Hacklytics!
+              marketing strategies for both DSGT and Golden Byte!
             </TeamCard>
 
             <TeamCard name="Smera Bhatia" title="Co-Director of Marketing" img={Smera}>
               The marketing team focuses on social media initiatives, graphic design,
               newsletters, outreach, and more to increase engagement with DSGT both
               on and off campus. Our work consists of creating digital and in-person
-              marketing strategies for both DSGT and Hacklytics!
+              marketing strategies for both DSGT and Golden Byte!
             </TeamCard>
 
             <TeamCard name="Dhruv Shah" title="Co-Director of Events" img={Dhruv}>
