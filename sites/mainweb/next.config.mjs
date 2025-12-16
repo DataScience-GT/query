@@ -1,10 +1,10 @@
-// next.config.mjs
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  // Remove or comment out experimental.turbopack
-  // experimental: {
-  //   turbopack: true,
-  // },
+  output: 'export',
+
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
