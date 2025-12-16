@@ -30,6 +30,7 @@ import furnichanter from "@/assets/images/logos/furnichanter.png";
 import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import blueconduit from "@/assets/images/logos/blueconduit.png";
+import stock from "@/assets/images/logos/stock.png"
 
 const Pie = dynamic(() => import("react-chartjs-2").then(mod => mod.Pie), {
   ssr: false,
@@ -154,7 +155,7 @@ const Home = () => {
               Learn <strong>Python</strong>, <strong>pandas</strong>, visualization, and machine learning fundamentals through a structured, hands-on project.
             </Mini>
             <Mini>
-              <LearnMore to="https://dsgtbootcamp.netlify.app/" target="_blank" rel="noopener noreferrer">Learn more at our Bootcamp site</LearnMore>
+              <LearnMore to="/bootcamp" rel="noopener noreferrer">Learn more at our Bootcamp site</LearnMore>
             </Mini>
           </div>
           <div className="md:w-1/2 w-full group" role="figure">
@@ -258,15 +259,33 @@ const Home = () => {
 
           {/* Other project cards */}
           <Card
-            img={dlp4}
-            heading="Deep Learning Playground"
             linkUrl="https://datasciencegt-dlp.com/"
             className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
           >
-            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4 mb-4">
-              Deep Learning Playground is a user-friendly web app that provides an
-              interactive and accessible introduction to <strong>Machine Learning</strong> and <strong>Deep Learning</strong> concepts.
+            {/* Logo on top (manual) */}
+            <div className="w-full flex justify-center mb-4">
+              <div className="p-4 bg-white rounded-xl">
+                <Image
+                  src={stock}
+                  alt="Roboinvesting Logo"
+                  className="object-contain w-32 h-32"
+                  width={128}
+                  height={128}
+                />
+              </div>
+            </div>
+
+            {/* Title below image */}
+            <h3 className="text-teal-400 text-lg font-bold text-center mb-3">Roboinvesting</h3>
+
+            <p className="text-gray-300 text-sm leading-relaxed">
+            A <strong>machine learning–driven trading simulation</strong> that analyzes
+            <strong> technical indicators</strong>, <strong>macroeconomic signals</strong>,
+            and <strong>risk metrics</strong> to generate
+            <strong> data-informed trading decisions</strong>. Built for
+            <strong> education</strong> and <strong>real-world financial modeling experience</strong>.
             </p>
+
             <a
               href="https://datasciencegt-dlp.com/"
               target="_blank"
