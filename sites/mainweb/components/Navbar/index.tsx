@@ -48,15 +48,18 @@ const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const otherPageMenuItems = [
-    { name: "Home", to: "/", link: true },
-    { name: "Bootcamp", to: "/bootcamp", link: true },
-    {
-      name: "Sign In",
-      to: "https://member.datasciencegt.org",
-      external: true,
-      link: false,
-    },
+  { name: "Home", to: "/", link: true },
+  { name: "Bootcamp", to: "/bootcamp", link: true },
+  { name: "Team", to: "/team", link: true },
+  { name: "Projects", to: "/projects", link: true },
+  {
+    name: "Sign In",
+    to: "https://member.datasciencegt.org",
+    external: true,
+    link: false,
+  },
   ];
+
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
 
