@@ -1,0 +1,30 @@
+name: Deploy MainWeb to Firebase Hosting (Preview)
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  build_and_preview:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sites/mainweb
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install
+      - run: |
+          pnpm build
+          pnpm export
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT }}
+          projectId: dsgt-website
+          channelId: pr-${{ github.event.pull_request.number }}
