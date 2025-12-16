@@ -39,28 +39,24 @@ const Navbar: React.FC<NavbarProps> = ({
     { name: "Hacklytics", to: "golden-byte", link: false },
     { name: "Projects", to: "projects", link: false },
     { name: "Get Involved", to: "getinvolved", link: false },
-    {
-      name: "Sign In",
-      to: "https://member.datasciencegt.org",
-      external: true,
-      link: false,
-    },
+    { name: "Sign In", to: "/tbd", link: false },
   ];
 
   const otherPageMenuItems = [
     { name: "Home", to: "/", link: true },
     { name: "Bootcamp", to: "/bootcamp", link: true },
-    {
-      name: "Sign In",
-      to: "https://member.datasciencegt.org",
-      external: true,
-      link: false,
-    },
+    { name: "Team", to: "/team", link: true },
+    { name: "Projects", to: "/projects", link: true },
+    { name: "Sign In", to: "/tbd", link: false },
   ];
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
 
-  const renderMenuItem = (item: any) => {
+  const renderMenuItem = (item: any, mobileWhite: boolean = false) => {
+    const baseClass = mobileWhite
+      ? "text-white text-lg font-extrabold hover:text-teal-500 transition cursor-pointer"
+      : "text-lg font-extrabold text-black hover:text-teal-500 transition cursor-pointer";
+
     if (item.external) {
       return (
         <a
@@ -68,7 +64,7 @@ const Navbar: React.FC<NavbarProps> = ({
           href={item.to}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-lg font-extrabold text-black hover:text-teal-500 transition"
+          className={baseClass}
         >
           {item.name}
         </a>
@@ -80,7 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({
         <Link
           key={item.name}
           href={item.to}
-          className="text-lg font-extrabold text-black hover:text-teal-500 transition"
+          className={baseClass}
           onClick={() => setMenuOpen(false)}
         >
           {item.name}
@@ -96,7 +92,7 @@ const Navbar: React.FC<NavbarProps> = ({
         smooth={true}
         offset={-navbarHeight}
         duration={500}
-        className="cursor-pointer text-lg font-extrabold text-black hover:text-teal-500 transition"
+        className={baseClass}
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
@@ -137,7 +133,7 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex items-center gap-6">
-            {menuItems.map(renderMenuItem)}
+            {menuItems.map(item => renderMenuItem(item))}
           </div>
         </div>
       </div>
@@ -172,7 +168,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
             </Link>
           )}
-          <h1 className="text-2xl font-bold text-black">DSGT</h1>
+          <h1 className="text-2xl font-bold text-white">DSGT</h1>
         </div>
 
         <button
@@ -180,12 +176,12 @@ const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setMenuOpen(!menuOpen)}
         >
           <span
-            className={`block w-6 h-0.5 bg-gray-700 mb-1 transition-transform ${
+            className={`block w-6 h-0.5 bg-white mb-1 transition-transform ${
               menuOpen ? "rotate-45 translate-y-1.5" : ""
             }`}
           />
           <span
-            className={`block w-6 h-0.5 bg-gray-700 transition-transform ${
+            className={`block w-6 h-0.5 bg-white transition-transform ${
               menuOpen ? "-rotate-45 -translate-y-1.5" : ""
             }`}
           />
@@ -200,7 +196,7 @@ const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         <div className="flex flex-col justify-start items-center pt-32 gap-8 h-full w-full">
-          {menuItems.map(renderMenuItem)}
+          {menuItems.map(item => renderMenuItem(item, true))}
         </div>
       </div>
     </div>

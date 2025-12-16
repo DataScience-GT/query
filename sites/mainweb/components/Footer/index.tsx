@@ -23,7 +23,9 @@ const Footer = ({ screen_width, className = "" }: FooterProps) => {
   }, [screen_width]);
 
   return (
-    <div className={`relative w-full flex flex-wrap pt-20 min-h-[300px] bg-gray-900 text-white ${className}`}>
+    <div
+      className={`relative w-full flex flex-wrap pt-20 min-h-[300px] bg-gray-900 text-black ${className}`}
+    >
       <Image
         src={windowWidth >= WIDTH_THRESHOLD ? footerBlob : footerBlobMobile}
         alt="footer blob"
@@ -31,46 +33,68 @@ const Footer = ({ screen_width, className = "" }: FooterProps) => {
       />
 
       <div className="relative w-full max-w-[1600px] mx-auto flex flex-wrap justify-around items-start gap-8 px-6">
-        {/* Major */}
         <div className="flex flex-wrap items-center gap-4 p-5">
           <Image src={logo} alt="DSGT Logo" className="h-10 w-auto" />
           <h1 className="text-2xl font-bold">DSGT</h1>
         </div>
 
-        {/* Company Section */}
         <div className="flex flex-col items-start p-5">
-          <h2 className="font-bold text-lg pb-1 text-center">Company</h2>
+          <h2 className="font-bold text-lg pb-1">Company</h2>
           <Link href="/about" className="pl-4 font-medium hover:underline">
             About Us
           </Link>
-          <Link href="mailto:hello@datasciencegt.org" className="pl-4 font-medium hover:underline">
+          <Link
+            href="mailto:hello@datasciencegt.org"
+            className="pl-4 font-medium hover:underline"
+          >
             Contact
           </Link>
         </div>
 
-        {/* Connect with Us */}
         <div className="flex flex-col items-start p-5">
-          <h2 className="font-bold text-lg pb-1 text-center">Connect with Us</h2>
-          <Link href="mailto:hello@datasciencegt.org" className="pl-4 font-medium hover:underline">
+          <h2 className="font-bold text-lg pb-1">Connect with Us</h2>
+          <Link
+            href="mailto:hello@datasciencegt.org"
+            className="pl-4 font-medium hover:underline"
+          >
             Email
           </Link>
-          <a href="https://www.instagram.com/datasciencegt/" target="_blank" className="pl-4 font-medium hover:underline">
+          <a
+            href="https://www.instagram.com/datasciencegt/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pl-4 font-medium hover:underline"
+          >
             Instagram
           </a>
-          <a href="https://www.facebook.com/datasciencegt/" target="_blank" className="pl-4 font-medium hover:underline">
+          <a
+            href="https://www.facebook.com/datasciencegt/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pl-4 font-medium hover:underline"
+          >
             Facebook
           </a>
-          <a href="https://www.linkedin.com/company/dsgt/" target="_blank" className="pl-4 font-medium hover:underline">
+          <a
+            href="https://www.linkedin.com/company/dsgt/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pl-4 font-medium hover:underline"
+          >
             LinkedIn
           </a>
-          <a href="https://github.com/DataScience-GT" target="_blank" className="pl-4 font-medium hover:underline">
+          <a
+            href="https://github.com/DataScience-GT"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pl-4 font-medium hover:underline"
+          >
             Github
           </a>
         </div>
 
-        {/* Footer Note */}
         <div className="flex flex-col items-start p-5 max-w-[300px]">
-          <h2 className="font-bold text-lg text-center">
+          <h2 className="font-bold text-lg">
             Made with 💖 by the DSGT Tech Team.
           </h2>
         </div>
