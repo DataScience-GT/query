@@ -237,7 +237,7 @@ const Home = () => {
 
             {/* Title below image */}
             <h3 className="text-teal-400 text-lg font-bold text-center mb-2">
-              DS@GT Applied Research Competitions (ARC)
+              Applied Research Competitions (ARC)
             </h3>
             <div className="flex justify-center mb-3">
             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
