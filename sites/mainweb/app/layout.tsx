@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { GeistSans, GeistMono } from "geist/font"; // combine imports
 import "./globals.css";
 
-// these are already usable
 const geistSansVar = GeistSans.variable;
 const geistMonoVar = GeistMono.variable;
 
