@@ -36,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({
     { name: "Home", to: "home", link: false },
     { name: "About", to: "about", link: false },
     { name: "Bootcamp", to: "bootcamp", link: false },
-    { name: "Hacklytics", to: "hacklytics", link: false },
+    { name: "Golden Byte", to: "golden-byte", link: false },
     { name: "Projects", to: "projects", link: false },
     { name: "Get Involved", to: "getinvolved", link: false },
     {

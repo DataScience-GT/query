@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${geistSansVar} ${geistMonoVar}`}>
-      <body className="antialiased bg-black text-yellow-400">
+      <body suppressHydrationWarning className="antialiased bg-black text-yellow-400">
         {children}
       </body>
     </html>
