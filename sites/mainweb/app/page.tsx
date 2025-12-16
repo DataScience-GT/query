@@ -99,7 +99,7 @@ const Home = () => {
             <Mini className="text-gray-300 leading-relaxed">
               As the <strong>largest student-run data science organization at Georgia Tech</strong>,
               we provide technical skill development via club projects, workshops,
-              guest speakers, and more. DSGT is open to all majors and focuses on <strong>projects, bootcamps, and Golden Byte</strong>.
+              guest speakers, and more. DSGT is open to all majors and focuses on <strong>projects, bootcamps, and Hacklytics</strong>.
             </Mini>
             <Mini>
               <LearnMore to="/team">Meet the Team</LearnMore>
@@ -237,8 +237,13 @@ const Home = () => {
 
             {/* Title below image */}
             <h3 className="text-teal-400 text-lg font-bold text-center mb-2">
-              DS@GT Applied Research Competitions (ARC)
+              Applied Research Competitions (ARC)
             </h3>
+            <div className="flex justify-center mb-3">
+            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            Actively Recruiting
+            </span>
+            </div>
 
             {/* Description */}
             <p className="text-gray-300 text-sm leading-relaxed mb-4">
@@ -247,7 +252,7 @@ const Home = () => {
 
             {/* Link */}
             <a
-              href="https://github.com/datasciencegt/arc"
+              href="https://dsgt-arc.org/"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Visit the DS@GT ARC GitHub page"
@@ -259,42 +264,63 @@ const Home = () => {
 
           {/* Other project cards */}
           <Card
-            linkUrl="https://datasciencegt-dlp.com/"
+          className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
+        >
+      {/* Logo on top */}
+      <div className="w-full flex justify-center mb-4">
+        <div className="p-4 bg-white rounded-xl">
+          <Image
+            src={stock}
+            alt="Roboinvesting Logo"
+            className="object-contain w-32 h-32"
+            width={128}
+            height={128}
+          />
+        </div>
+      </div>
+
+      {/* Title */}
+      <h3 className="text-teal-400 text-lg font-bold text-center mb-3">Roboinvesting</h3>
+      <div className="flex justify-center mb-3">
+        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          Actively Recruiting
+        </span>
+      </div>
+
+      {/* Description */}
+      <p className="text-gray-300 text-sm leading-relaxed">
+        A <strong>machine learning–driven trading simulation</strong> that analyzes
+        <strong> technical indicators</strong>, <strong>macroeconomic signals</strong>,
+        and <strong>risk metrics</strong> to generate
+        <strong> data-informed trading decisions</strong>. Built for
+        <strong> education</strong> and <strong>real-world financial modeling experience</strong>.
+      </p>
+
+                    {/* Email contact link */}
+                        <a
+                    href="mailto:bjmichaels.25@gmail.com"
+                  aria-label="Contact project via email"
+                  className="text-teal-400 mt-4 inline-block font-semibold hover:underline hover:text-teal-300 transition-colors"
+                  >
+                Get in Contact Now →
+                  </a>
+            </Card>
+
+          <Card
+            img={gtaa}
+            heading="Sports Analytics Project"
             className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
           >
-            {/* Logo on top (manual) */}
-            <div className="w-full flex justify-center mb-4">
-              <div className="p-4 bg-white rounded-xl">
-                <Image
-                  src={stock}
-                  alt="Roboinvesting Logo"
-                  className="object-contain w-32 h-32"
-                  width={128}
-                  height={128}
-                />
-              </div>
+            <div className="flex justify-center mb-3">
+            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
+            Closed
+            </span>
             </div>
-
-            {/* Title below image */}
-            <h3 className="text-teal-400 text-lg font-bold text-center mb-3">Roboinvesting</h3>
-
-            <p className="text-gray-300 text-sm leading-relaxed">
-            A <strong>machine learning–driven trading simulation</strong> that analyzes
-            <strong> technical indicators</strong>, <strong>macroeconomic signals</strong>,
-            and <strong>risk metrics</strong> to generate
-            <strong> data-informed trading decisions</strong>. Built for
-            <strong> education</strong> and <strong>real-world financial modeling experience</strong>.
+            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
+              The <strong>sports analysis</strong> project is a space for students to explore
+              sports-related data. Past projects include NFL projections, NBA roster
+              optimization, and odds analysis using advanced statistics.
             </p>
-
-            <a
-              href="https://datasciencegt-dlp.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Visit the Deep Learning Playground website"
-              className="text-teal-400 mt-auto inline-block font-semibold hover:underline hover:text-teal-300 transition-colors"
-            >
-              Visit Project Site →
-            </a>
           </Card>
 
           <Card
@@ -302,6 +328,11 @@ const Home = () => {
             heading="AI-Driven Investment Platform"
             className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
           >
+             <div className="flex justify-center mb-4">
+              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
+                Past Project
+              </span>
+            </div>
             <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
               This innovative project reimagines financial planning as a <strong>conversational experience</strong>. The AI engages users to create personalized financial
               roadmaps using their data and predictive models.
@@ -314,6 +345,11 @@ const Home = () => {
             linkUrl="https://nucleusfox.github.io/furnichanter.html"
             className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
           >
+              <div className="flex justify-center mb-4">
+              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
+                Past Project
+              </span>
+            </div>
             <p className="text-gray-300 text-sm leading-relaxed line-clamp-4 mb-4">
               Furnichanter combines <strong>computer vision and AI</strong> to allow users to search
               for furniture using images and generate custom pieces from text
@@ -330,17 +366,6 @@ const Home = () => {
             </a>
           </Card>
 
-          <Card
-            img={gtaa}
-            heading="Sports Analytics Project"
-            className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
-          >
-            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
-              The <strong>sports analysis</strong> project is a space for students to explore
-              sports-related data. Past projects include NFL projections, NBA roster
-              optimization, and odds analysis using advanced statistics.
-            </p>
-          </Card>
 
            <Card
             img=""
@@ -379,8 +404,7 @@ const Home = () => {
                 img={slide1}
                 heading="Become a Member"
                 button_text="Sign Up Now"
-                button_to="https://member.datasciencegt.org"
-                target="_blank"
+                button_to="/tbd"
                 rel="noopener noreferrer"
                 className="hover:shadow-blue-500/30"
               >
@@ -393,8 +417,7 @@ const Home = () => {
                 img={slide7}
                 heading="Apply for Leadership"
                 button_text="View Open Roles"
-                button_to="https://member.datasciencegt.org/portal/forms"
-                target="_blank"
+                button_to="/tbd"
                 rel="noopener noreferrer"
                 className="hover:shadow-cyan-500/30"
               >
@@ -405,7 +428,7 @@ const Home = () => {
             <div className="w-full max-w-[400px]">
               <EventCard
                 img={slide6}
-                heading="Golden Byte 2026 Datathon"
+                heading="Hacklytics 2026"
                 when="Feb 20-22, 2026"
                 button_text="More Details"
                 button_to="#golden-byte"
