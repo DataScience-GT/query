@@ -54,12 +54,6 @@ const Hero = ({ screen_width }: HeroProps) => {
           </div>
 
           <Mini>The largest student-run data science organization at Georgia Tech.</Mini>
-
-          <div className="mt-6">
-            <LearnMore to="#about">
-              Learn More <span className="ml-1 transition-all duration-300 group-hover:ml-3">→</span>
-            </LearnMore>
-          </div>
         </div>
 
         {/* Right Logo */}
