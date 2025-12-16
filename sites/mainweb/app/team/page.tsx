@@ -9,18 +9,18 @@ import Section from "@/components/Section";
 import SmallHero from "@/components/SmallHero";
 import TeamCard from "@/components/TeamCard";
 
-import Shreiyas from "@/assets/images/portraits/2022/Shreiyas.png";
-import Archie from "@/assets/images/portraits/2024/Archie.jpg";
-import Emma from "@/assets/images/portraits/2024/Emma.jpeg";
-import Smera from "@/assets/images/portraits/2023/Smera.jpeg";
-import Harsha from "@/assets/images/portraits/2024/Harsha.jpeg";
-import Lavan from "@/assets/images/portraits/2024/Lavan.jpeg";
-import Nikita from "@/assets/images/portraits/2024/Nikita.jpeg";
-import Ryan from "@/assets/images/portraits/2024/Ryan.jpeg";
-import Shreya from "@/assets/images/portraits/2024/Shreya.jpg";
-import Dhruv from "@/assets/images/portraits/2024/Dhruv.jpeg";
-import Aditi from "@/assets/images/portraits/2024/Aditi.jpeg";
-import Om from "@/assets/images/portraits/2024/Om.jpeg";
+import President from "@/assets/images/2025/aditi.jpg";
+import ViceP from "@/assets/images/2025/nitika.jpg";
+import Logistics1 from "@/assets/images/2025/alysha.png";
+import Logistics2 from "@/assets/images/2025/diya.jpeg";
+import Events from "@/assets/images/2025/aryan.jpeg"
+import Marketing from "@/assets/images/2025/smera.png"
+import Tech from "@/assets/images/2025/aamogh.png";
+import Content1 from "@/assets/images/2025/anushka.jpg"
+import Content2 from "@/assets/images/2025/glenne.png"
+import External1 from "@/assets/images/2025/sarvesh.jpg"
+import External2 from "@/assets/images/2025/vidhi.jpeg"
+import Project from "@/assets/images/2025/anika.jpg"
 
 const Team = () => {
   const [windowWidth, setWindowWidth] = useState<number>(
@@ -56,92 +56,61 @@ const Team = () => {
 
         <Section id="teams" makefull>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-5 max-w-7xl mx-auto">
-            <TeamCard name="Archie Goli" title="President" img={Archie}>
-              The executive board is in charge of the functioning of Data Science
-              at Georgia Tech - from administering the bootcamp, running projects,
-              holding super cool events with companies like Amazon and Accenture as
-              well as our annual data science datathon, Golden Byte, every year!
+            <TeamCard name="Aditi Koratpallikar" title="President" img={President}>
+              Aditi oversees all operations of DSGT, ensuring the club runs smoothly across projects, workshops, events, and initiatives like Hacklytics, while leading the executive board and coordinating with faculty and industry partners. This role provides opportunities to develop leadership, organizational, and strategic management skills while shaping the future of data science at Georgia Tech.
             </TeamCard>
 
-            <TeamCard name="Shreiyas Saraf" title="Director of External Affairs" img={Shreiyas}>
-              External Affairs is responsible for communicating with corporations
-              for representation at meetings and sponsorship for large club
-              events. All special events such as the Hackathon also fall within
-              the duties of External Affairs.
+            <TeamCard name="Nitika Agnihotri" title="Vice President" img={ViceP}>
+              Nitika leads <strong>Hacklytics</strong>, DSGT's flagship datathon held every Spring.
+              Her role includes communicating with corporations for sponsorships, organizing special events, and managing the datathon.
+              This position provides opportunities to network with sponsors, develop strong communication and management skills, and meet many new people each year.
             </TeamCard>
 
-            <TeamCard name="Emma Lawton" title="Director of Golden Byte" img={Emma}>
-              The Golden Byte team works to organize and conduct DSGT's flagship
-              datathon every Spring. This is a great way to network with sponsors
-              and develop strong communication and management skills. Plus, you get
-              to meet many new people every year!
+            <TeamCard name="Alysha Irvin" title="Co-Director of Logistics" img={Logistics1}>
+              Alysha Irvin coordinates and manages logistics for DSGT events and Hacklytics, ensuring smooth operations. This role provides her opportunities to collaborate with sponsors, enhance communication skills, and develop strong event management experience.
+
             </TeamCard>
 
-            <TeamCard name="Nikita Agnihotri" title="Director of Logistics" img={Nikita}>
-              The Logistics team coordinates and manages the logistics for DSGT
-              and our annual flagship hackathon held every Spring. Engaging in this
-              event provides an excellent opportunity to collaborate with sponsors,
-              enhance communication and management proficiencies, as well as connect
-              with a diverse range of individuals each year.
+            <TeamCard name="Diya Kaimal" title="Co-Director of Logistics" img={Logistics2}>
+              Diya Kaimal coordinates and manages logistics for DSGT events and Hacklytics, ensuring smooth operations. This role provides her opportunities to collaborate with sponsors, enhance communication skills, and develop strong event management experience.
             </TeamCard>
 
-            <TeamCard name="Lavan Vivekanandasarma" title="Director of Technology" img={Lavan}>
-              The Technology Team specializes in frontend web-development as well as
-              backend systems. We work on the many websites used by DSGT and Golden Byte,
-              most notably being this site and the Membership Portal.
+            <TeamCard name="Aamogh Sawant" title="Director of Technology" img={Tech}>
+              Aamogh Sawant leads the Technology Team, which specializes in frontend web development as well as backend systems. The team works on the many websites used by DSGT, most notably this site and the Membership Portal, ensuring smooth functionality and user experience.
             </TeamCard>
 
-            <TeamCard name="Aditi Koratpallikar" title="Co-Director of Content" img={Aditi}>
-              The content team manages Bootcamp and Udemy courses, teaching core data
-              science skills from start to finish. We offer workshops on beginner-friendly
-              data science and machine learning topics, helping members complete
-              professional projects by the end of Bootcamp.
+            <TeamCard name="Smera Bhatia" title="Director of Marketing" img={Marketing}>
+              Smera Bhatia leads the Marketing Team, which focuses on social media initiatives, graphic design, newsletters, outreach, and more to increase engagement with DSGT both on and off campus. The team creates digital and in-person marketing strategies to promote DSGT and its events effectively.
             </TeamCard>
 
-            <TeamCard name="Ryan Lundqvist" title="Co-Director of Content" img={Ryan}>
-              The content team manages the Bootcamp and Udemy courses, where we teach
-              our members core data science skills on a start-to-finish journey. We
-              provide workshops on beginner-friendly data science and machine learning
-              topics and help members complete a fully polished and professional
-              data science project by the end of Bootcamp.
+            <TeamCard name="Aryan Hazra" title="Director of Events" img={Events}>
+              Aryan Hazra manages event logistics including room bookings, decor, and food arrangements. His responsibilities include handling invoices, grocery and storage locker runs, coordinating volunteers, and liaising with external parties to ensure smooth execution of events. He also organizes booths, workshops, banners, and creates application and RSVP forms.
+
             </TeamCard>
 
-            <TeamCard name="Shreya Dudeja" title="Co-Director of Marketing" img={Shreya}>
-              The marketing team focuses on social media initiatives, graphic design,
-              newsletters, outreach, and more to increase engagement with DSGT both
-              on and off campus. Our work consists of creating digital and in-person
-              marketing strategies for both DSGT and Golden Byte!
+            <TeamCard name="Sarvesh Tiku" title="Co-Director of External Affairs" img={External1}>
+              Sarvesh manages communication and relationships with external organizations and sponsors.
+              He coordinates partnerships, outreach, and engagement for DSGT events and initiatives, helping the club build strong connections with the industry and the community.
             </TeamCard>
 
-            <TeamCard name="Smera Bhatia" title="Co-Director of Marketing" img={Smera}>
-              The marketing team focuses on social media initiatives, graphic design,
-              newsletters, outreach, and more to increase engagement with DSGT both
-              on and off campus. Our work consists of creating digital and in-person
-              marketing strategies for both DSGT and Golden Byte!
+            <TeamCard name="Vidhi Gupta" title="Co-Director of External Affairs" img={External2}>
+              Vidhi focuses on developing and maintaining relationships with external partners and sponsors.
+              She supports outreach efforts, manages communication for club initiatives, and helps ensure strong collaboration with the industry and community.
             </TeamCard>
 
-            <TeamCard name="Dhruv Shah" title="Co-Director of Events" img={Dhruv}>
-              The Directors of Events manage event logistics, including room bookings,
-              decor, and food arrangements. Responsibilities include handling invoices,
-              grocery and storage locker runs, and coordinating volunteers. They also
-              liaise with external parties to ensure smooth execution of events,
-              organize booths, workshops, and banners, and create application and RSVP forms.
+            <TeamCard name="Anushka Jain" title="Co-Director of Content" img={Content1}>
+              Anushka leads the content team in managing Bootcamp and Udemy courses, teaching core data science skills from start to finish.
+              She organizes workshops on beginner-friendly data science and machine learning topics, helping members build professional-quality projects by the end of Bootcamp.
             </TeamCard>
 
-            <TeamCard name="Om Rajpal" title="Co-Director of Events" img={Om}>
-              The Directors of Events manage event logistics, including room bookings,
-              decor, and food arrangements. Responsibilities include handling invoices,
-              grocery and storage locker runs, and coordinating volunteers. They also
-              liaise with external parties to ensure smooth execution of events,
-              organize booths, workshops, and banners, and create application and RSVP forms.
+            <TeamCard name="Glenne Dela Torre" title="Co-Director of Content" img={Content2}>
+              Glenne oversees the Bootcamp and Udemy courses, guiding members through the full learning journey of core data science skills.
+              She conducts workshops on beginner-friendly topics in data science and machine learning, ensuring members complete polished, professional projects by the end of the program.
             </TeamCard>
 
-            <TeamCard name="Harsha Gaddipati" title="Director of Projects" img={Harsha}>
-              The Director of Projects oversees project logistics, regularly meeting
-              with leads for updates and managing the project portal. They set up new
-              projects with professors and industry professionals, ensure around six
-              active projects per semester, and oversee the project application process.
-              Additionally, they maintain the projects spreadsheet.
+            <TeamCard name="Anika V" title="Director of Projects" img={Project}>
+              Anika oversees project logistics, regularly meeting with project leads for updates and managing the project portal.
+              She sets up new projects with professors and industry professionals, ensures about six active projects per semester, manages the project application process, and maintains the projects spreadsheet.
             </TeamCard>
           </div>
         </Section>
