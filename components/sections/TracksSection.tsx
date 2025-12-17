@@ -215,7 +215,7 @@ export default function TracksSection() {
             <div className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(33.33%-2rem)]">
               <TrackCard 
                 title="Pure Imagination"
-                description="The world is your playground. Show us the coolest, most unique project."
+                description="Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project."
                 icon={<Icons.Imagination />}
                 color="bg-purple-400"
                 rotate="md:rotate-2"
