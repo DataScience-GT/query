@@ -38,8 +38,8 @@ jobs:
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          # repoToken is removed to prevent PR comments
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT }}
           projectId: dsgt-website
           channelId: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'live' }}
-          entryPoint: sites/mainweb 
+          entryPoint: sites/mainweb
