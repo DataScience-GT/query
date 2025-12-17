@@ -31,6 +31,7 @@ import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import blueconduit from "@/assets/images/logos/blueconduit.png";
 import stock from "@/assets/images/logos/stock.png"
+import trading from "@/assets/images/logos/trading.png"
 
 const Pie = dynamic(() => import("react-chartjs-2").then(mod => mod.Pie), {
   ssr: false,
@@ -265,39 +266,82 @@ const Home = () => {
           <Card
           className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
         >
-      {/* Logo on top */}
-      <div className="w-full flex justify-center mb-4">
-        <div className="p-4 bg-white rounded-xl">
-          <Image
-            src={stock}
-            alt="Roboinvesting Logo"
-            className="object-contain w-32 h-32"
-            width={128}
-            height={128}
-          />
-        </div>
-      </div>
+          {/* Logo on top */}
+          <div className="w-full flex justify-center mb-4">
+            <div className="p-4 bg-white rounded-xl">
+              <Image
+                src={stock}
+                alt="Roboinvesting Logo"
+                className="object-contain w-32 h-32"
+                width={128}
+                height={128}
+              />
+            </div>
+          </div>
 
-      {/* Title */}
-      <h3 className="text-teal-400 text-lg font-bold text-center mb-3">Roboinvesting</h3>
-      <div className="flex justify-center mb-3">
-        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          Actively Recruiting
-        </span>
-      </div>
+          {/* Title */}
+            <h3 className="text-teal-400 text-lg font-bold text-center mb-3">Roboinvesting</h3>
+            <div className="flex justify-center mb-3">
+              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Actively Recruiting
+              </span>
+            </div>
 
-      {/* Description */}
-      <p className="text-gray-300 text-sm leading-relaxed">
-        A <strong>machine learning–driven trading simulation</strong> that analyzes
-        <strong> technical indicators</strong>, <strong>macroeconomic signals</strong>,
-        and <strong>risk metrics</strong> to generate
-        <strong> data-informed trading decisions</strong>. Built for
-        <strong> education</strong> and <strong>real-world financial modeling experience</strong>.
-      </p>
+            {/* Description */}
+            <p className="text-gray-300 text-sm leading-relaxed">
+              A <strong>machine learning–driven trading simulation</strong> that analyzes
+              <strong> technical indicators</strong>, <strong>macroeconomic signals</strong>,
+              and <strong>risk metrics</strong> to generate
+              <strong> data-informed trading decisions</strong>. Built for
+              <strong> education</strong> and <strong>real-world financial modeling experience</strong>.
+            </p>
+
+                          {/* Email contact link */}
+                              <a
+                          href="mailto:bjmichaels.25@gmail.com"
+                        aria-label="Contact project via email"
+                        className="text-teal-400 mt-4 inline-block font-semibold hover:underline hover:text-teal-300 transition-colors"
+                        >
+                      Get in Contact Now →
+                        </a>
+                  </Card>
+
+                  <Card
+                className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
+              >
+                {/* Logo on top */}
+                <div className="w-full flex justify-center mb-4">
+                  <div className="p-4 bg-white rounded-xl">
+                    <Image
+                      src={trading}
+                      alt="Roboinvesting Logo"
+                      className="object-contain w-32 h-32"
+                      width={130}
+                      height={140}
+                    />
+                  </div>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-teal-400 text-lg font-bold text-center mb-3">Real-Time AI Trading Agent</h3>
+                <div className="flex justify-center mb-3">
+                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    Actively Recruiting
+                  </span>
+                </div>
+
+                {/* Description */}
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  A <strong>machine learning–driven trading simulation</strong> that analyzes
+                  <strong> technical indicators</strong>, <strong>macroeconomic signals</strong>,
+                  and <strong>risk metrics</strong> to generate
+                  <strong> data-informed trading decisions</strong>. Built for
+                  <strong> education</strong> and <strong>real-world financial modeling experience</strong>.
+                </p>
 
                     {/* Email contact link */}
                         <a
-                    href="mailto:bjmichaels.25@gmail.com"
+                    href="mailto:wesleylu@gatech.edu"
                   aria-label="Contact project via email"
                   className="text-teal-400 mt-4 inline-block font-semibold hover:underline hover:text-teal-300 transition-colors"
                   >
@@ -321,50 +365,6 @@ const Home = () => {
               optimization, and odds analysis using advanced statistics.
             </p>
           </Card>
-
-          <Card
-            img={blueconduit}
-            heading="AI-Driven Investment Platform"
-            className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
-          >
-             <div className="flex justify-center mb-4">
-              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
-                Past Project
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">
-              This innovative project reimagines financial planning as a <strong>conversational experience</strong>. The AI engages users to create personalized financial
-              roadmaps using their data and predictive models.
-            </p>
-          </Card>
-
-          <Card
-            img={furnichanter}
-            heading="Furnichanter (AI Interior Design)"
-            linkUrl="https://nucleusfox.github.io/furnichanter.html"
-            className="flex flex-col justify-between h-full hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/5 p-6 rounded-xl"
-          >
-              <div className="flex justify-center mb-4">
-              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
-                Past Project
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4 mb-4">
-              Furnichanter combines <strong>computer vision and AI</strong> to allow users to search
-              for furniture using images and generate custom pieces from text
-              descriptions.
-            </p>
-            <a
-              href="https://nucleusfox.github.io/furnichanter.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Visit the Furnichanter project page"
-              className="text-teal-400 mt-auto inline-block font-semibold hover:underline hover:text-teal-300 transition-colors"
-            >
-              Visit Project Page →
-            </a>
-          </Card>
-
 
            <Card
             img=""
