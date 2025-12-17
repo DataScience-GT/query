@@ -1,20 +1,33 @@
 #!/bin/bash
-
-# A simple script to build a project using pnpm turbo
-# and then start the development server.
-
-# Exit immediately if a command exits with a non-zero status
 set -e
 
 echo "Starting project build with pnpm turbo build..."
-# 1. Execute the build command
 pnpm turbo build
 
-echo "Build complete. Starting development server with pnpm run dev..."
-# 2. Execute the development server command
-# This command is expected to run indefinitely (until manually stopped)
-pnpm run dev
+echo "Build complete."
 
-# The script will only reach this point if the 'pnpm run dev' command
-# exits for some reason (e.g., if it's not a continuous process)
+read -p "Do you want to deploy to Firebase Hosting now? (y/N): " DEPLOY_ANSWER
+
+if [[ "$DEPLOY_ANSWER" =~ ^[Yy]$ ]]; then
+    echo "Deploying to Firebase Hosting..."
+
+    if ! command -v firebase &> /dev/null; then
+        echo "Firebase CLI not found. Installing..."
+        pnpm add -g firebase-tools
+    fi
+
+    if ! firebase login:list | grep -q "Logged in"; then
+        echo "Logging into Firebase..."
+        firebase login
+    fi
+
+    firebase deploy --only hosting --project dsgt-website
+    echo "Deployment complete!"
+else
+    echo "Skipping Firebase deploy."
+fi
+
+echo "Starting development server with pnpm run dev..."
+pnpm run dev
+n
 echo "Development server process has ended."
