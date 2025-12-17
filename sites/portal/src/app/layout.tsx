@@ -1,4 +1,10 @@
+import './globals.css';
 import { Providers } from './providers';
+
+export const metadata = {
+  title: 'Portal',
+  description: 'A modern TRPC + Next.js portal',
+};
 
 export default function RootLayout({
   children,
@@ -7,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-gradient-to-br from-purple-600 via-indigo-500 to-blue-400">
         <Providers>{children}</Providers>
       </body>
     </html>
