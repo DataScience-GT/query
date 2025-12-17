@@ -72,7 +72,7 @@ export default function FAQ() {
     },
     {
       title: "Where and when is it held?",
-      content: "February 21st - February 23rd at the Klaus Advanced Computing Building",
+      content: "February 20st - February 22rd at the Klaus Advanced Computing Building",
       delay: "0.1s"
     },
     {
