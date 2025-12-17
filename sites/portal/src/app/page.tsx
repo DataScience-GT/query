@@ -38,7 +38,7 @@ export default function Home() {
                 <h1 className="text-5xl lg:text-6xl font-bold text-white leading-tight">
                   Query the world of{' '}
                   <span className="text-blue-400">
-                    DSGT possibilities.
+                    DSGT.
                   </span>
                 </h1>
 
