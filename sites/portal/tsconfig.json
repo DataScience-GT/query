@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "jsx": "react-jsx"  // ← Add this line to enable JSX support
+    "jsx": "react-jsx",
+    "lib": ["ES2015", "DOM", "DOM.Iterable"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
