@@ -7,10 +7,20 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@t3-oss/env-nextjs": "^0.13.10",
     "drizzle-orm": "^0.33.0",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.24.0"
+    "@types/pg": "^8.16.0",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.24.0",
+    "pg": "^8.16.3",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "migrate:push": "drizzle-kit push",
+    "migrate:dev": "drizzle-kit dev"
   }
 }

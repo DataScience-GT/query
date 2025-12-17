@@ -135,16 +135,34 @@ importers:
 
   packages/db:
     dependencies:
+      '@t3-oss/env-nextjs':
+        specifier: ^0.13.10
+        version: 0.13.10(typescript@5.9.3)(zod@3.25.76)
       drizzle-orm:
         specifier: ^0.33.0
-        version: 0.33.0(@types/react@18.3.27)(pg@8.16.3)(postgres@3.4.7)(react@18.3.1)
+        version: 0.33.0(@types/pg@8.16.0)(@types/react@18.3.27)(pg@8.16.3)(postgres@3.4.7)(react@18.3.1)
       postgres:
         specifier: ^3.4.4
         version: 3.4.7
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
+      '@types/pg':
+        specifier: ^8.16.0
+        version: 8.16.0
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
       drizzle-kit:
         specifier: ^0.24.0
         version: 0.24.2
+      pg:
+        specifier: ^8.16.3
+        version: 8.16.3
+      typescript:
+        specifier: ^5.2.2
+        version: 5.9.3
 
   packages/ui:
     dependencies:
@@ -1199,6 +1217,40 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
+  '@t3-oss/env-core@0.13.10':
+    resolution: {integrity: sha512-NNFfdlJ+HmPHkLi2HKy7nwuat9SIYOxei9K10lO2YlcSObDILY7mHZNSHsieIM3A0/5OOzw/P/b+yLvPdaG52g==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: '>=5.0.0'
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^3.24.0 || ^4.0.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
+
+  '@t3-oss/env-nextjs@0.13.10':
+    resolution: {integrity: sha512-JfSA2WXOnvcc/uMdp31paMsfbYhhdvLLRxlwvrnlPE9bwM/n0Z+Qb9xRv48nPpvfMhOrkrTYw1I5Yc06WIKBJQ==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: '>=5.0.0'
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^3.24.0 || ^4.0.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
+
   '@tailwindcss/cli@4.1.18':
     resolution: {integrity: sha512-sMZ+lZbDyxwjD2E0L7oRUjJ01Ffjtme5OtjvvnC+cV4CEDcbqzbp25TCpxHj6kWLU9+DlqJOiNgSOgctC2aZmg==}
     hasBin: true
@@ -1411,6 +1463,9 @@ packages:
 
   '@types/node@22.19.2':
     resolution: {integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw==}
+
+  '@types/pg@8.16.0':
+    resolution: {integrity: sha512-RmhMd/wD+CF8Dfo+cVIy3RR5cl8CyfXQ0tGgW6XBL8L4LM/UTEbNXYRbLwU6w+CgrKBNbrQWt4FUtTfaU5jSYQ==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -1863,6 +1918,10 @@ packages:
 
   dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
+
+  dotenv@17.2.3:
+    resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
     engines: {node: '>=12'}
 
   drizzle-kit@0.24.2:
@@ -4232,6 +4291,18 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@t3-oss/env-core@0.13.10(typescript@5.9.3)(zod@3.25.76)':
+    optionalDependencies:
+      typescript: 5.9.3
+      zod: 3.25.76
+
+  '@t3-oss/env-nextjs@0.13.10(typescript@5.9.3)(zod@3.25.76)':
+    dependencies:
+      '@t3-oss/env-core': 0.13.10(typescript@5.9.3)(zod@3.25.76)
+    optionalDependencies:
+      typescript: 5.9.3
+      zod: 3.25.76
+
   '@tailwindcss/cli@4.1.18':
     dependencies:
       '@parcel/watcher': 2.5.1
@@ -4458,6 +4529,12 @@ snapshots:
   '@types/node@22.19.2':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/pg@8.16.0':
+    dependencies:
+      '@types/node': 22.19.2
+      pg-protocol: 1.10.3
+      pg-types: 2.2.0
 
   '@types/prop-types@15.7.15': {}
 
@@ -4976,6 +5053,8 @@ snapshots:
 
   dotenv@16.0.3: {}
 
+  dotenv@17.2.3: {}
+
   drizzle-kit@0.24.2:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
@@ -4985,8 +5064,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.33.0(@types/react@18.3.27)(pg@8.16.3)(postgres@3.4.7)(react@18.3.1):
+  drizzle-orm@0.33.0(@types/pg@8.16.0)(@types/react@18.3.27)(pg@8.16.3)(postgres@3.4.7)(react@18.3.1):
     optionalDependencies:
+      '@types/pg': 8.16.0
       '@types/react': 18.3.27
       pg: 8.16.3
       postgres: 3.4.7
@@ -6209,19 +6289,15 @@ snapshots:
   pg-cloudflare@1.2.7:
     optional: true
 
-  pg-connection-string@2.9.1:
-    optional: true
+  pg-connection-string@2.9.1: {}
 
-  pg-int8@1.0.1:
-    optional: true
+  pg-int8@1.0.1: {}
 
   pg-pool@3.10.1(pg@8.16.3):
     dependencies:
       pg: 8.16.3
-    optional: true
 
-  pg-protocol@1.10.3:
-    optional: true
+  pg-protocol@1.10.3: {}
 
   pg-types@2.2.0:
     dependencies:
@@ -6230,7 +6306,6 @@ snapshots:
       postgres-bytea: 1.0.0
       postgres-date: 1.0.7
       postgres-interval: 1.2.0
-    optional: true
 
   pg@8.16.3:
     dependencies:
@@ -6241,12 +6316,10 @@ snapshots:
       pgpass: 1.0.5
     optionalDependencies:
       pg-cloudflare: 1.2.7
-    optional: true
 
   pgpass@1.0.5:
     dependencies:
       split2: 4.2.0
-    optional: true
 
   picocolors@1.0.1: {}
 
@@ -6272,19 +6345,15 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postgres-array@2.0.0:
-    optional: true
+  postgres-array@2.0.0: {}
 
-  postgres-bytea@1.0.0:
-    optional: true
+  postgres-bytea@1.0.0: {}
 
-  postgres-date@1.0.7:
-    optional: true
+  postgres-date@1.0.7: {}
 
   postgres-interval@1.2.0:
     dependencies:
       xtend: 4.0.2
-    optional: true
 
   postgres@3.4.7: {}
 
@@ -6610,8 +6679,7 @@ snapshots:
 
   source-map@0.6.1: {}
 
-  split2@4.2.0:
-    optional: true
+  split2@4.2.0: {}
 
   stop-iteration-iterator@1.1.0:
     dependencies:
@@ -6981,8 +7049,7 @@ snapshots:
 
   ws@7.5.10: {}
 
-  xtend@4.0.2:
-    optional: true
+  xtend@4.0.2: {}
 
   yn@3.1.1: {}
 
