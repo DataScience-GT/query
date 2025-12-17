@@ -1,12 +1,13 @@
+// sites/portal/app/api/trpc/[trpc]/route.ts
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { appRouter } from '@query/api';
+import { appRouter, createContext } from '@query/api';
 
 const handler = (req: Request) =>
   fetchRequestHandler({
     endpoint: '/api/trpc',
     req,
     router: appRouter,
-    createContext: (opts) => import('@query/api/trpc-server').then(m => m.createTRPCContext({ headers: opts.req.headers, req: opts.req })),
+    createContext,
   });
 
 export { handler as GET, handler as POST };
