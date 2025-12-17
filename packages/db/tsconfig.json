@@ -5,10 +5,10 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "jsx": "react-jsx",               // Enable JSX transform
-    "strict": true,                   // Recommended for type safety
-    "esModuleInterop": true,          // Allows default imports from CommonJS modules
-    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",  // Changed from "node"
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
