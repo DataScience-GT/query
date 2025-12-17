@@ -48,11 +48,6 @@ const Hero = ({ screen_width }: HeroProps) => {
             Data Science<br />@ Georgia Tech
           </h1>
 
-          <div className="w-32 h-[2px] border-b-2 border-[#e5e6db] mb-8 relative">
-            <span className="absolute -left-1 -top-1 w-3 h-3 border-2 rounded-full border-[#e5e6db]"></span>
-            <span className="absolute -right-1 -top-1 w-3 h-3 border-2 rounded-full border-[#e5e6db]"></span>
-          </div>
-
           <Mini>The largest student-run data science organization at Georgia Tech.</Mini>
         </div>
 
