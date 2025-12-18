@@ -7,42 +7,20 @@ import Footer from "@/components/Footer";
 import Major from "@/components/Text/Major";
 import Mini from "@/components/Text/Mini";
 
-const CodeIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 14.25 12l3 5.25m-1.5-8.625 2.25 2.25M17.25 6.75l-4.25 4.25m4.25-4.25 4.25 4.25M7.75 6.75l3 5.25-3 5.25m1.5-8.625-2.25 2.25m-1.5 1.5 4.25 4.25M6.75 17.25l-4.25-4.25m4.25 4.25-4.25 4.25" />
-  </svg>
-);
-
-const BookOpenIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-  </svg>
-);
-
-const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-  </svg>
-);
-
-const LightBulbIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-  </svg>
-);
-
 const AccordionItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-gray-700">
+    <div className="border-b border-white/5 last:border-0">
       <button
-        className="w-full text-left flex justify-between items-center py-3 text-indigo-400 font-semibold hover:text-indigo-300 transition-colors duration-300"
+        className="w-full text-left flex justify-between items-center py-5 group"
         onClick={() => setOpen(!open)}
       >
-        {question}
-        <span className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}>▼</span>
+        <span className="text-gray-200 font-medium group-hover:text-indigo-400 transition-colors">{question}</span>
+        <span className={`text-xs text-gray-500 transition-transform duration-300 ${open ? "rotate-180" : ""}`}>↓</span>
       </button>
-      {open && <div className="text-gray-300 pb-3 transition-opacity duration-300">{answer}</div>}
+      <div className={`overflow-hidden transition-all duration-300 ${open ? "max-h-40 opacity-100 mb-5" : "max-h-0 opacity-0"}`}>
+        <p className="text-gray-400 text-sm leading-relaxed">{answer}</p>
+      </div>
     </div>
   );
 };
@@ -56,156 +34,145 @@ const BootcampPage: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const faq = [
-    { q: "Do I need prior programming experience?", a: "No! The bootcamp is designed for complete beginners." },
-    { q: "How much time should I commit each week?", a: "Plan for 4-6 hours per week: workshops, mentor meetings, and projects." },
-    { q: "What if I miss a workshop?", a: "All workshops are recorded for later viewing." },
-    { q: "How much does the bootcamp cost?", a: "The bootcamp costs $20 as a one-time fee to cover materials. Self-paced online access is free." },
-    { q: "What do I get for completing the bootcamp?", a: "A portfolio of projects, Python and ML skills, and DSGT community access." },
-    { q: "Can I still join DSGT projects after the bootcamp?", a: "Yes! Graduates can lead and contribute to DSGT projects." },
-  ];
-
   return (
-    <div className="relative min-h-screen flex flex-col bg-gray-950 text-gray-300">
-      <Background className="absolute inset-0 z-0 opacity-40" />
-      <Navbar
-        screen_width={windowWidth}
-        className="fixed top-0 left-0 w-full z-30 bg-gray-950/90 backdrop-blur-sm shadow-lg shadow-indigo-900/10"
-        page="other"
-      />
+    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
+      <Background className="fixed inset-0 z-0 opacity-20" />
+      <Navbar screen_width={windowWidth} page="other" className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md" />
 
-      <main className="relative z-10 pt-[120px] pb-32 px-4 sm:px-8 md:px-16 space-y-32">
+      <main className="relative z-10 pt-40 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
 
-        {/* HERO */}
-        <section className="text-center space-y-6">
-          <Major type="b" className="text-white text-5xl sm:text-6xl font-extrabold tracking-tight animate-fadeIn">
-            DSGT Bootcamp
-          </Major>
-          <Major type="b" className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent text-3xl sm:text-4xl font-bold animate-fadeIn delay-100">
-            Learn Data Science from Scratch
-          </Major>
-          <Mini className="text-gray-300 max-w-2xl mx-auto pt-2 text-lg animate-fadeIn delay-200">
-            A beginner-friendly program teaching Python, pandas, machine learning, and more. Build real projects and join Georgia Tech's largest data science community.
-          </Mini>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-            <a href="https://member.datasciencegt.org" target="_blank" rel="noopener noreferrer"
-               className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold rounded-lg shadow-xl transition-transform duration-300 hover:scale-105 hover:shadow-indigo-500/50">
-              Register for Spring 2025 ($20)
-            </a>
-            <a href="#curriculum"
-               className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-xl transition-transform duration-300 hover:scale-105 hover:shadow-gray-500/50">
-              View Curriculum
-            </a>
+        {/* HERO SECTION */}
+        <section className="grid lg:grid-cols-2 gap-12 items-center mb-40">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-mono">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-2 rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+              Spring 2025 Registration Open
+            </div>
+            <h1 className="text-white text-6xl md:text-8xl font-bold tracking-tight leading-[0.9]">
+              DSGT <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500">Bootcamp.</span>
+            </h1>
+            <p className="text-lg text-gray-400 max-w-md leading-relaxed">
+              Bridging the gap between curiosity and engineering. A semester-long, mentor-led program for Georgia Tech students.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <a href="https://member.datasciencegt.org" target="_blank" rel="noopener noreferrer" className="bg-white text-black px-8 py-3 rounded-md font-bold hover:bg-gray-200 transition-all text-sm shadow-lg active:scale-95">
+                Register for $20
+              </a>
+              <a href="#curriculum" className="px-8 py-3 rounded-md font-bold text-gray-300 border border-white/10 hover:bg-white/5 transition-all text-sm active:scale-95">
+                The Curriculum
+              </a>
+            </div>
           </div>
-        </section>
 
-        {/* WHAT IS BOOTCAMP */}
-        <section className="max-w-4xl mx-auto space-y-8 bg-gray-900/60 p-8 rounded-3xl shadow-2xl border border-indigo-700/50">
-          <Major type="b" className="text-indigo-400 text-3xl border-b border-indigo-400/30 pb-3">
-            What is the DSGT Bootcamp?
-          </Major>
-          <Mini className="text-gray-300 leading-relaxed text-lg">
-            The DSGT Bootcamp is a <strong>semester-long program</strong> designed to teach students data science fundamentals...
-          </Mini>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-            <div className="text-center">
-              <div className="text-indigo-400 text-4xl font-bold mb-2">550+</div>
-              <Mini className="text-gray-400">DSGT Members</Mini>
-            </div>
-            <div className="text-center">
-              <div className="text-cyan-400 text-4xl font-bold mb-2">8-10</div>
-              <Mini className="text-gray-400">Weeks of Training</Mini>
-            </div>
-            <div className="text-center">
-              <div className="text-purple-400 text-4xl font-bold mb-2">$20</div>
-              <Mini className="text-gray-400">One-Time Fee (Cost)</Mini>
+          {/* THE CODE ICON / CLASS COMPONENT */}
+          <div className="hidden lg:block relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-lg blur opacity-20"></div>
+            <div className="relative bg-[#0a0a0a] border border-white/10 p-6 rounded-lg font-mono text-sm shadow-2xl">
+              <p className="text-indigo-400">class DSGTBootcamp:</p>
+              <p className="pl-4 text-gray-500">def __init__(self, student):</p>
+              <p className="pl-8 text-gray-300">self.experience = 0</p>
+              <p className="pl-8 text-gray-300">self.goals = ["Python", "Pandas", "ML"]</p>
+              <p className="pl-4 text-gray-500">def graduate(self):</p>
+              <p className="pl-8 text-indigo-400">return "Data Scientist"</p>
             </div>
           </div>
         </section>
 
-        {/* WHY JOIN */}
-        <section className="max-w-6xl mx-auto space-y-12">
-          <Major type="b" className="text-white text-4xl text-center font-bold">Why Join the Bootcamp?</Major>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* METRICS BAR */}
+        <section className="grid md:grid-cols-3 gap-1 border-y border-white/5 mb-40">
+          {[
+            { label: "Community", val: "550+", sub: "Active DSGT Members" },
+            { label: "Duration", val: "10 Weeks", sub: "Intensive Workshops" },
+            { label: "Pricing", val: "$20", sub: "One-time materials fee" }
+          ].map((stat, i) => (
+            <div key={i} className="py-12 md:px-8 first:pl-0">
+              <p className="text-xs font-mono uppercase tracking-widest text-indigo-500 mb-2">{stat.label}</p>
+              <p className="text-4xl text-white font-bold mb-1">{stat.val}</p>
+              <p className="text-sm text-gray-500">{stat.sub}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* BENTO CONTENT BOXES */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-40">
+          <div className="md:col-span-8 bg-[#0a0a0a] border border-white/5 p-10 rounded-2xl">
+            <h2 className="text-white text-2xl font-bold mb-4 italic">The Foundation</h2>
+            <p className="text-gray-400 leading-relaxed max-w-2xl">
+              We realized most students want to learn Data Science but don't know where to start. This is the bridge.
+              A semester-long program that focuses on Python fundamentals, data manipulation, and actual machine learning
+              implementation. No prerequisite classes required.
+            </p>
+          </div>
+          <div className="md:col-span-4 bg-gradient-to-br from-indigo-600 to-indigo-800 p-10 rounded-2xl text-white">
+            <h3 className="font-bold text-xl mb-4 leading-tight">Join Georgia Tech's largest DS community.</h3>
+            <p className="text-indigo-100 text-sm mb-8">Access to DSGT projects, networking events, and career panels.</p>
+            <div className="h-px bg-white/20 w-full mb-8"></div>
+            <p className="text-xs font-mono">EST. 2021</p>
+          </div>
+        </section>
+
+        {/* CURRICULUM SECTION */}
+        <section id="curriculum" className="grid lg:grid-cols-12 gap-16 mb-40">
+          <div className="lg:col-span-4">
+            <h2 className="text-white text-3xl font-bold mb-4 tracking-tight leading-tight">The <br/>Curriculum</h2>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Our curriculum is updated every semester to reflect industry standards.
+              Expect deep-dives into Python, NumPy, Pandas, and Scikit-Learn.
+            </p>
+          </div>
+          <div className="lg:col-span-8 grid sm:grid-cols-2 gap-4">
             {[
-              { icon: <LightBulbIcon className="h-12 w-12 text-yellow-400 mb-4"/>, title: "No Experience Needed", desc: "Start from zero. Our curriculum walks you through every concept step-by-step." },
-              { icon: <UsersIcon className="h-12 w-12 text-indigo-500 mb-4"/>, title: "Personal Mentorship", desc: "Work with experienced mentors who provide guidance and support throughout the program." },
-              { icon: <CodeIcon className="h-12 w-12 text-cyan-500 mb-4"/>, title: "Hands-On Projects", desc: "Build a portfolio-worthy capstone project to demonstrate your skills." },
-              { icon: <BookOpenIcon className="h-12 w-12 text-green-500 mb-4"/>, title: "Industry-Relevant Skills", desc: "Learn tools and techniques used by top tech companies and research labs." },
-              { icon: <UsersIcon className="h-12 w-12 text-purple-500 mb-4"/>, title: "Community & Networking", desc: "Join a community of 550+ students passionate about data science." },
-              { icon: <CodeIcon className="h-12 w-12 text-pink-500 mb-4"/>, title: "Portfolio Projects", desc: "Build real projects you can showcase on your resume and GitHub." },
+              { w: "1-4", t: "Python Basics", d: "Syntax, logic, and functional programming basics." },
+              { w: "5-8", t: "Data Analysis", d: "Cleaning and exploring with Pandas and NumPy." },
+              { w: "9-12", t: "Machine Learning", d: "Supervised learning and model evaluation." },
+              { w: "13-16", t: "Capstone", d: "Final projects presented to the GT community." }
             ].map((item, i) => (
-              <div key={i} className="bg-gray-800/70 p-8 rounded-3xl shadow-xl border border-gray-700 hover:bg-gray-700/80 transition-all duration-500 hover:-translate-y-1 hover:scale-[1.02]">
-                {item.icon}
-                <Major as="h3" compact className="text-white text-xl mb-3">{item.title}</Major>
-                <Mini className="text-gray-300 leading-relaxed">{item.desc}</Mini>
+              <div key={i} className="p-6 bg-[#0a0a0a] border border-white/5 rounded-lg hover:border-indigo-500/30 transition-all group">
+                <p className="text-xs font-mono text-gray-600 mb-2 group-hover:text-indigo-400">Weeks {item.w}</p>
+                <h4 className="text-white font-bold mb-1">{item.t}</h4>
+                <p className="text-xs text-gray-500">{item.d}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* CURRICULUM */}
-        <section id="curriculum" className="max-w-6xl mx-auto space-y-12">
-          <Major type="b" className="text-white text-4xl text-center font-bold">What You'll Learn</Major>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* FAQ SECTION */}
+        <section className="max-w-3xl mb-40">
+          <h2 className="text-white text-2xl font-bold mb-8 italic">Support & FAQ</h2>
+          <div className="border-t border-white/5">
             {[
-              { title: "Python Fundamentals", color: "yellow-500", desc: "Variables, data types, functions, loops, and OOP basics." },
-              { title: "Data Manipulation", color: "blue-500", desc: "Clean, transform, and analyze data using pandas and NumPy." },
-              { title: "Data Visualization", color: "green-500", desc: "Create insightful charts with matplotlib and seaborn." },
-              { title: "Machine Learning", color: "purple-500", desc: "Intro to supervised learning, regression, classification with scikit-learn." },
-            ].map((item, i) => (
-              <div key={i} className="bg-gray-800/70 p-6 rounded-3xl shadow-xl border border-gray-700 hover:bg-gray-700/80 transition duration-300 transform hover:scale-[1.02]">
-                <CodeIcon className={`h-8 w-8 text-${item.color} mb-3`} />
-                <Major as="h3" compact className="text-white text-xl mb-2">{item.title}</Major>
-                <Mini className="text-gray-400 text-sm leading-relaxed">{item.desc}</Mini>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-gray-800/60 p-8 rounded-3xl border border-gray-700">
-            <Major type="b" className="text-cyan-400 text-2xl mb-6">Weekly Topics</Major>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                'Week 1-2: Python Basics & Programming Fundamentals',
-                'Week 3-4: Data Structures & File Handling',
-                'Week 5-6: NumPy Arrays & Mathematical Operations',
-                'Week 7-8: Pandas DataFrames & Data Cleaning',
-                'Week 9-10: Data Visualization & Exploratory Analysis',
-                'Week 11-12: Introduction to Machine Learning',
-                'Week 13-14: Model Building & Evaluation',
-                'Week 15-16: Capstone Project Presentations',
-              ].map((week, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-gray-900/50 rounded-lg transition duration-300 hover:bg-gray-900/70">
-                  <span className="text-indigo-400 font-bold">→</span>
-                  <Mini className="text-gray-300">{week}</Mini>
-                </div>
-              ))}
-            </div>
+              { q: "Prior programming experience?", a: "None. We designed this specifically for beginners." },
+              { q: "Time commitment?", a: "Plan for 4-6 hours per week: workshops and mentor meetings." },
+              { q: "Materials cost?", a: "The $20 fee covers materials and social events. Self-paced access is free." },
+              { q: "Community access?", a: "Graduates get priority access to lead DSGT research and projects." }
+            ].map((item, i) => <AccordionItem key={i} question={item.q} answer={item.a} />)}
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="max-w-4xl mx-auto space-y-8 bg-gray-900/60 p-8 rounded-3xl shadow-2xl border border-gray-700">
-          <Major type="b" className="text-white text-3xl text-center mb-6">Frequently Asked Questions</Major>
-          {faq.map((item, i) => <AccordionItem key={i} question={item.q} answer={item.a} />)}
-        </section>
-
-        {/* FINAL CTA */}
-        <section className="max-w-3xl mx-auto text-center space-y-6 bg-gradient-to-r from-indigo-900/50 to-cyan-900/50 p-12 rounded-3xl border border-indigo-500/50">
-          <Major type="b" className="text-white text-3xl">Ready to Start Your Data Science Journey?</Major>
-          <Mini className="text-gray-300 text-lg leading-relaxed">Join hundreds of Georgia Tech students who have launched their careers through the DSGT Bootcamp.</Mini>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <a href="https://member.datasciencegt.org" target="_blank" rel="noopener noreferrer"
-               className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold rounded-lg shadow-xl transition-transform duration-300 hover:scale-105 hover:shadow-indigo-500/50">
-              Register Now ($20)
-            </a>
-          </div>
+        {/* FINAL CALL TO ACTION */}
+        <section className="border border-indigo-500/30 bg-indigo-500/5 p-12 rounded-2xl text-center relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
+          <h2 className="text-white text-3xl font-bold mb-6 tracking-tight">Start learning this Spring.</h2>
+          <p className="text-gray-400 max-w-sm mx-auto mb-8 text-sm">
+            Join the Spring 2025 cohort and get your certificate in Data Science.
+          </p>
+          <a
+            href="https://member.datasciencegt.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-white text-black px-10 py-4 rounded-md font-bold hover:bg-indigo-50 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all duration-300 active:scale-95"
+          >
+            Apply Now
+          </a>
         </section>
 
       </main>
 
-      <Footer screen_width={windowWidth} className="relative z-10" />
+      <Footer screen_width={windowWidth} className="relative z-10 border-t border-white/5" />
     </div>
   );
 };
