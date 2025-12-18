@@ -4,10 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Link as ScrollLink } from "react-scroll";
 import Link from "next/link";
-
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
-import smallblob from "@/assets/images/blobs/small-header--export.svg";
-import Background from "@/components/Background";
 
 interface NavbarProps {
   screen_width: number;
@@ -15,31 +12,35 @@ interface NavbarProps {
   className?: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({
-  screen_width,
-  page,
-  className = "",
-}) => {
-  const [windowWidth, setWindowWidth] = useState(screen_width);
+const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) => {
+  const [windowWidth, setWindowWidth] = useState(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
   const navbarHeight = 80;
   const isHomePage = !page || page === "home";
 
-  useEffect(() => setWindowWidth(screen_width), [screen_width]);
+  useEffect(() => {
+    setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth >= WIDTH_THRESHOLD) setMenuOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
+    // Prevent scrolling when menu is open
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
   const homeMenuItems = [
-    { name: "Home", to: "home", link: false },
     { name: "About", to: "about", link: false },
     { name: "Bootcamp", to: "bootcamp", link: false },
     { name: "Hacklytics", to: "golden-byte", link: false },
     { name: "Projects", to: "projects", link: false },
     { name: "Get Involved", to: "getinvolved", link: false },
-    { name: "Sign In", to: "/tbd", link: false },
+    { name: "Team", to: "/team", link: true },
   ];
 
   const otherPageMenuItems = [
@@ -47,29 +48,16 @@ const Navbar: React.FC<NavbarProps> = ({
     { name: "Bootcamp", to: "/bootcamp", link: true },
     { name: "Team", to: "/team", link: true },
     { name: "Projects", to: "/projects", link: true },
-    { name: "Sign In", to: "/tbd", link: false },
   ];
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
 
-  const renderMenuItem = (item: any, mobileWhite: boolean = false) => {
-    const baseClass = mobileWhite
-      ? "text-white text-lg font-extrabold hover:text-teal-500 transition cursor-pointer"
-      : "text-lg font-extrabold text-black hover:text-teal-500 transition cursor-pointer";
-
-    if (item.external) {
-      return (
-        <a
-          key={item.name}
-          href={item.to}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={baseClass}
-        >
-          {item.name}
-        </a>
-      );
-    }
+  const renderMenuItem = (item: any, isMobile: boolean = false) => {
+    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${
+      isMobile
+        ? "text-gray-300 hover:text-white text-xl font-bold"
+        : "text-gray-400 hover:text-indigo-400"
+    }`;
 
     if (item.link) {
       return (
@@ -93,6 +81,7 @@ const Navbar: React.FC<NavbarProps> = ({
         offset={-navbarHeight}
         duration={500}
         className={baseClass}
+        activeClass="text-white lg:text-indigo-400"
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
@@ -100,106 +89,82 @@ const Navbar: React.FC<NavbarProps> = ({
     );
   };
 
-  // ---------------- DESKTOP NAV ----------------
-  if (windowWidth >= WIDTH_THRESHOLD) {
-    return (
-      <div className={`relative w-full h-32 z-30 ${className}`}>
-        <Background className="absolute inset-0 z-0" />
-        <Image
-          src={smallblob}
-          alt="background blob"
-          className="absolute inset-0 w-full h-full object-cover -z-10"
-          priority
-        />
-
-        <div className="relative z-10 max-w-[1600px] mx-auto h-full flex justify-between items-center px-6">
-          <div className="flex items-center gap-4">
-            {isHomePage ? (
-              <ScrollLink
-                to="home"
-                smooth={true}
-                offset={-navbarHeight}
-                duration={500}
-                className="cursor-pointer"
-              >
-                <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
-              </ScrollLink>
-            ) : (
-              <Link href="/" className="cursor-pointer">
-                <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
-              </Link>
-            )}
-            <h1 className="text-2xl font-bold text-black">DSGT</h1>
-          </div>
-
-          <div className="flex items-center gap-6">
-            {menuItems.map(item => renderMenuItem(item))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------------- MOBILE NAV ----------------
   return (
-    <div className={`relative w-full h-32 z-30 ${className}`}>
-      <Background className="absolute inset-0 z-0" />
-      <Image
-        src={smallblob}
-        alt="background blob"
-        className="absolute inset-0 w-full h-full object-cover -z-10"
-        priority
-      />
+    <>
+      {/* Main Nav Bar:
+          On mobile, we use a slightly darker, more opaque background
+          to ensure visibility over content.
+      */}
+      <nav className={`fixed top-0 left-0 w-full h-20 z-[130] border-b border-white/10 bg-[#080808] md:bg-[#050505]/80 backdrop-blur-xl transition-all ${className}`}>
+        <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
 
-      <div className="relative z-10 flex justify-between items-center px-4 h-full">
-        <div className="flex items-center gap-2">
-          {isHomePage ? (
-            <ScrollLink
-              to="home"
-              smooth={true}
-              offset={-navbarHeight}
-              duration={500}
-              className="cursor-pointer"
-            >
-              <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
-            </ScrollLink>
-          ) : (
-            <Link href="/" className="cursor-pointer">
-              <Image src={logo} alt="DSGT Logo" className="h-16 w-auto" />
+          {/* Logo Section */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 group" onClick={() => setMenuOpen(false)}>
+              <Image
+                src={logo}
+                alt="DSGT Logo"
+                className="h-8 w-auto transition-transform duration-500 group-hover:rotate-[360deg]"
+                width={32}
+                height={32}
+              />
+              <span className="text-white text-xl font-bold tracking-tighter italic uppercase">DSGT</span>
             </Link>
+          </div>
+
+          {/* Desktop Links */}
+          {windowWidth >= WIDTH_THRESHOLD ? (
+            <div className="flex items-center gap-8">
+              {menuItems.map((item) => renderMenuItem(item))}
+              <a
+                href="https://member.datasciencegt.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-indigo-400 hover:text-white transition-all duration-300"
+              >
+                Portal
+              </a>
+            </div>
+          ) : (
+            /* Mobile Toggle Button - Increased hit box for better UX */
+            <button
+              className="relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle Menu"
+            >
+              <span className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`} />
+              <span className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : "w-5"}`} />
+              <span className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`} />
+            </button>
           )}
-          <h1 className="text-2xl font-bold text-white">DSGT</h1>
         </div>
+      </nav>
 
-        <button
-          className="flex flex-col justify-center items-center w-12 h-12"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <span
-            className={`block w-6 h-0.5 bg-white mb-1 transition-transform ${
-              menuOpen ? "rotate-45 translate-y-1.5" : ""
-            }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-white transition-transform ${
-              menuOpen ? "-rotate-45 -translate-y-1.5" : ""
-            }`}
-          />
-        </button>
-      </div>
-
+      {/* Mobile Menu Overlay:
+          We use pt-20 to ensure the links start below the 80px (h-20) navbar
+          so the navbar remains visible.
+      */}
       <div
-        className={`fixed top-0 left-0 w-full h-full bg-black/70 backdrop-blur-sm transition-all ${
-          menuOpen
-            ? "h-screen opacity-100"
-            : "h-0 opacity-0 pointer-events-none"
+        className={`fixed inset-0 bg-[#080808] z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
+          menuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="flex flex-col justify-start items-center pt-32 gap-8 h-full w-full">
-          {menuItems.map(item => renderMenuItem(item, true))}
+        {/* Subtle grid pattern for better aesthetic on the full-screen mobile menu */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
+
+        <div className="flex flex-col items-center gap-8 text-center relative z-10">
+          {menuItems.map((item) => renderMenuItem(item, true))}
+          <a
+            href="https://member.datasciencegt.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+          >
+            Portal
+          </a>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
