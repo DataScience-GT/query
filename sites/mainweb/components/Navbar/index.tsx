@@ -95,7 +95,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
           On mobile, we use a slightly darker, more opaque background
           to ensure visibility over content.
       */}
-      <nav className={`fixed top-0 left-0 w-full h-20 z-[130] border-b border-white/10 bg-[#080808] md:bg-[#050505]/80 backdrop-blur-xl transition-all ${className}`}>
+      <nav className={`fixed top-0 left-0 w-full h-20 z-130 border-b border-white/10 bg-[#080808] md:bg-[#050505]/80 backdrop-blur-xl transition-all ${className}`}>
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
 
           {/* Logo Section */}
@@ -126,7 +126,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
               </a>
             </div>
           ) : (
-            /* Mobile Toggle Button - Increased hit box for better UX */
             <button
               className="relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -140,10 +139,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay:
-          We use pt-20 to ensure the links start below the 80px (h-20) navbar
-          so the navbar remains visible.
-      */}
       <div
         className={`fixed inset-0 bg-[#080808] z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
           menuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"

@@ -21,14 +21,15 @@ import squad from "@/assets/images/2025/squad.jpg";
 import slide6 from "@/assets/images/slides/slide6.jpg";
 import slide7 from "@/assets/images/slides/slide7.jpg";
 import slide8 from "@/assets/images/slides/slide8.jpg";
+import slide9 from "@/assets/images/slides/slide9.jpg";
 import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
-import stock from "@/assets/images/logos/stock.png"
-import trading from "@/assets/images/logos/trading.png"
+import stock from "@/assets/images/logos/stock.png";
+import trading from "@/assets/images/logos/trading.png";
 
 const Pie = dynamic(() => import("react-chartjs-2").then(mod => mod.Pie), {
   ssr: false,
-  loading: () => <div className="h-80 w-80 flex items-center justify-center text-gray-400 font-mono text-xs uppercase tracking-widest">Initializing Analytics...</div>
+  loading: () => <div className="h-64 w-64 flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">Initializing Analytics...</div>
 });
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -48,9 +49,10 @@ const Home = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, [handleResize]);
 
+  // Base chart options
   const chartOptions = useMemo(() => ({
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: true, // Keep circular on all devices
     plugins: {
       tooltip: {
         callbacks: {
@@ -73,16 +75,13 @@ const Home = () => {
         position: 'bottom' as const,
         labels: {
           color: '#94a3b8',
-          font: { family: 'monospace', size: 11 },
-          padding: 15,
-          boxWidth: 12
+          font: { family: 'monospace', size: windowWidth < 640 ? 10 : 11 },
+          padding: windowWidth < 640 ? 10 : 15,
+          boxWidth: windowWidth < 640 ? 8 : 12,
         }
       }
     },
-    layout: {
-      padding: { bottom: 10 }
-    }
-  }), []);
+  }), [windowWidth]);
 
   return (
     <div id="home-page" className="relative bg-[#050505] text-gray-400 selection:bg-indigo-500/30 overflow-x-hidden">
@@ -109,24 +108,30 @@ const Home = () => {
         </div>
       </Section>
 
-      {/* STATS SECTION */}
+      {/* STATS SECTION - RESPONSIVE FIX */}
       <Section id="stats" className="py-32 border-y border-white/5 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight italic leading-none">Our Ecosystem.</h2>
+            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight italic leading-none">Our Club.</h2>
             <p className="font-mono text-xs text-indigo-500 uppercase tracking-[0.3em]">Fall 2025: 550+ Active Members</p>
           </div>
           <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-stretch">
-            <div className="bg-[#0a0a0a] border border-white/5 p-8 sm:p-10 rounded-3xl flex flex-col items-center min-h-[500px] hover:border-indigo-500/30 transition-colors">
+            {/* Class Distribution */}
+            <div className="bg-[#0a0a0a] border border-white/5 p-6 sm:p-10 rounded-3xl flex flex-col items-center hover:border-indigo-500/30 transition-colors">
               <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center">Class Year Distribution</p>
-              <div className="flex-grow w-full relative flex items-center justify-center">
-                <div className="w-full h-full max-h-[350px]"><Pie data={ClassData} options={chartOptions} /></div>
+              <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+                <div className="w-full h-full max-w-[320px] aspect-square">
+                  <Pie data={ClassData} options={chartOptions} />
+                </div>
               </div>
             </div>
-            <div className="bg-[#0a0a0a] border border-white/5 p-8 sm:p-10 rounded-3xl flex flex-col items-center min-h-[500px] hover:border-indigo-500/30 transition-colors">
+            {/* Major Split */}
+            <div className="bg-[#0a0a0a] border border-white/5 p-6 sm:p-10 rounded-3xl flex flex-col items-center hover:border-indigo-500/30 transition-colors">
               <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center">Academic Major Split</p>
-              <div className="flex-grow w-full relative flex items-center justify-center">
-                <div className="w-full h-full max-h-[350px]"><Pie data={MajorData} options={chartOptions} /></div>
+              <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+                <div className="w-full h-full max-w-[320px] aspect-square">
+                  <Pie data={MajorData} options={chartOptions} />
+                </div>
               </div>
             </div>
           </div>
@@ -137,15 +142,15 @@ const Home = () => {
       <Section id="bootcamp" className="py-32">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
           <div className="order-2 lg:order-1 relative">
-            <Image src={slide8} alt="Bootcamp Session" className="rounded-xl border border-white/10 shadow-xl" width={600} height={400} />
+            <Image src={slide9} alt="Bootcamp Session" className="rounded-xl border border-white/10 shadow-xl" width={600} height={400} />
           </div>
           <div className="space-y-8 order-1 lg:order-2">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none">Bootcamp.</h2>
             <p className="text-gray-300 leading-relaxed">
-              Teaching core skills from <strong>data cleaning</strong> to <strong>model building</strong>. Learn <strong>Python</strong> and <strong>pandas</strong> through hands-on project work and mentorship.
+              Teaching core skills from <strong>data cleaning</strong> to <strong>model building</strong>. Learn <strong>Python</strong> and <strong>pandas</strong> through hands-on project work.
             </p>
             <Link href="/bootcamp" className="inline-block bg-white text-black px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-indigo-400 hover:text-white transition-all shadow-lg shadow-white/5">
-              Go to Bootcamp Site
+              More on Bootcamp
             </Link>
           </div>
         </div>
@@ -157,7 +162,7 @@ const Home = () => {
           <div className="space-y-8">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none">Hacklytics.</h2>
             <p className="text-gray-300 leading-relaxed">
-              Georgia Tech's premier <strong>36-hour datathon</strong>. Join hundreds of students for a weekend of data science challenges, technical workshops, and high-stakes prizes.
+              Georgia Tech's premier <strong>36-hour datathon</strong>. Join hundreds of students for a weekend of data science challenges and workshops.
             </p>
             <a href="https://hacklytics.io" target="_blank" className="inline-block border border-white/20 text-white px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all">
               Register for 2026
@@ -186,8 +191,8 @@ const Home = () => {
               </div>
               <h3 className="text-white text-xl font-bold text-center mb-2">ARC Research</h3>
               <div className="flex justify-center mb-4"><span className="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-tighter">Active</span></div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">ML competition group focusing on Kaggle, CLEF, and TREC research tracks.</p>
-              <a href="https://dsgt-arc.org/" target="_blank" className="text-indigo-400 font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors">Documentation →</a>
+              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">ML competition group focusing on Kaggle and TREC research tracks.</p>
+              <a href="https://dsgt-arc.org/" target="_blank" className="text-indigo-400 font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors">More Info →</a>
             </Card>
 
             <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-indigo-500/40 transition-all group">
@@ -198,7 +203,7 @@ const Home = () => {
               </div>
               <h3 className="text-white text-xl font-bold text-center mb-2">Roboinvesting</h3>
               <div className="flex justify-center mb-4"><span className="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-tighter">Active</span></div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">ML-driven trading simulations analyzing technical and macroeconomic indicators.</p>
+              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">ML-driven trading simulations analyzing technical indicators.</p>
               <a href="mailto:bjmichaels.25@gmail.com" className="text-indigo-400 font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors">Contact Lead →</a>
             </Card>
 
@@ -210,7 +215,7 @@ const Home = () => {
               </div>
               <h3 className="text-white text-xl font-bold text-center mb-2">AI Trading Agent</h3>
               <div className="flex justify-center mb-4"><span className="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-tighter">Active</span></div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">Developing conversational AI tools for real-time portfolio management and sentiment analysis.</p>
+              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">Conversational AI tools for real-time portfolio management.</p>
               <a href="mailto:wesleylu@gatech.edu" className="text-indigo-400 font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors">Contact Lead →</a>
             </Card>
 
@@ -218,13 +223,13 @@ const Home = () => {
               <div className="w-full flex justify-center mb-6"><Image src={gtaa} alt="Sports" width={100} height={100} className="w-24 h-24 object-contain group-hover:scale-105 transition-transform" /></div>
               <h3 className="text-white text-xl font-bold text-center mb-2">Sports Analytics</h3>
               <div className="flex justify-center mb-4"><span className="px-2 py-0.5 text-[10px] font-mono rounded bg-red-500/10 text-red-400 border border-red-500/20 uppercase tracking-tighter">Closed</span></div>
-              <p className="text-sm text-gray-500 text-center leading-relaxed">Deep dives into NFL projections and NBA roster optimization using advanced stats.</p>
+              <p className="text-sm text-gray-500 text-center leading-relaxed">NFL projections and NBA roster optimization using advanced stats.</p>
             </Card>
 
             <Link href="/projects" className="bg-indigo-600 p-8 rounded-xl flex flex-col justify-between hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/10">
               <div className="space-y-4">
                 <h3 className="text-white text-2xl font-bold tracking-tight italic">Past Archive.</h3>
-                <p className="text-indigo-100 text-sm font-medium leading-relaxed">Explore five years of machine learning and data engineering projects built by DSGT members.</p>
+                <p className="text-indigo-100 text-sm font-medium leading-relaxed">Explore five years of machine learning projects built by DSGT members.</p>
               </div>
               <span className="text-white font-mono text-[10px] uppercase tracking-[0.2em] pt-4">Browse Past Projects →</span>
             </Link>
@@ -242,7 +247,7 @@ const Home = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { t: "Member", d: "Join the mailing list for weekly updates.", i: slide1, l: "https://member.datasciencegt.org/" },
-              { t: "Leadership", d: "Join the executive board and lead teams.", i: slide7, l: "/tbd" },
+              { t: "Leadership", d: "Join the executive board and lead teams.", i: slide7, l: "/team" },
               { t: "Hacklytics", d: "Attend our 36-hour flagship datathon.", i: slide6, l: "https://hacklytics.io/" }
             ].map((event, i) => (
               <div key={i} className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-indigo-500/30 transition-all shadow-2xl">
