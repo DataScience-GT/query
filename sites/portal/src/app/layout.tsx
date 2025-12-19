@@ -1,10 +1,8 @@
-import './globals.css';
 import { Providers } from './providers';
+import './globals.css';
 
-export const metadata = {
-  title: 'Portal',
-  description: 'A modern TRPC + Next.js portal',
-};
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function RootLayout({
   children,
@@ -13,7 +11,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gradient-to-br from-purple-600 via-indigo-500 to-blue-400">
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>
