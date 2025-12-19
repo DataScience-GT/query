@@ -1,4 +1,3 @@
-// packages/api/src/index.ts
-export { appRouter, createContext } from './root';
-export type { AppRouter, Context } from './root';
-export { trpc, createTRPCRouter, publicProcedure } from './trpc';
+export { appRouter, type AppRouter } from "./root";
+export { createContext, type Context } from "./context";
+export { createTRPCRouter, publicProcedure, protectedProcedure } from "./trpc";
