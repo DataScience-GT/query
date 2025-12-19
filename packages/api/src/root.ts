@@ -1,18 +1,10 @@
-import { createTRPCRouter } from './trpc';
-import { helloRouter } from './routers/hello';
+import { createTRPCRouter } from "./trpc";
+import { helloRouter } from "./routers/hello";
+import { userRouter } from "./routers/user";
 
-// Context type
-export type Context = {};
-
-// Context creator
-export const createContext = async (): Promise<Context> => {
-  return {};
-};
-
-// Root app router
 export const appRouter = createTRPCRouter({
   hello: helloRouter,
+  user: userRouter,
 });
 
-// Export API type
 export type AppRouter = typeof appRouter;
