@@ -1,20 +1,70 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { trpc } from '../lib/trpc';
-import Link from "next/link";
+import { useSession, signIn } from 'next-auth/react';
+import { trpc } from '@/lib/trpc';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const { mutate, data, isPending } = trpc.hello.sayHello.useMutation();
-  const [logs, setLogs] = useState<string[]>(["Initializing terminal...", "Waiting for user input..."]);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
-  const handleClick = () => {
-    setLogs(prev => [...prev.slice(-4), "> Executing: sayHello.mutate()"]);
-    mutate(undefined, {
-      onSuccess: () => setLogs(prev => [...prev.slice(-4), "> Success: Response received"]),
-      onError: () => setLogs(prev => [...prev.slice(-4), "> Error: Connection failed"])
+  // Terminal logs initialized with system startup messages
+  const [logs, setLogs] = useState<string[]>([
+    "Initializing terminal...",
+    "System check: OK",
+    "Loading background modules..."
+  ]);
+
+  // tRPC Mutation
+  const { mutate: sayHello, isPending: helloLoading } =
+    trpc.hello.sayHello.useMutation({
+      onSuccess: (res) => {
+        setLogs(prev => [...prev.slice(-4), `> Response: ${res.message}`]);
+      },
+      onError: () => {
+        setLogs(prev => [...prev.slice(-4), "> Error: Connection failed"]);
+      }
     });
+
+  // Handle mounting and initial silent background status check
+  useEffect(() => {
+    setMounted(true);
+
+    // Simulating background system discovery
+    const timeout = setTimeout(() => {
+        setLogs(prev => [...prev.slice(-4), "> Network: Established", "> Session: Awaiting user..."]);
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // SILENT BACKGROUND REDIRECT
+  // Instead of a loading screen, we watch for 'authenticated' status in the background
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      setLogs(prev => [...prev.slice(-4), "> Auth success. Handshaking...", "> Redirecting to secure node..."]);
+      const redirectTimeout = setTimeout(() => router.push('/dashboard'), 1200);
+      return () => clearTimeout(redirectTimeout);
+    }
+  }, [status, session, router]);
+
+  const handleTestEndpoint = () => {
+    setLogs(prev => [...prev.slice(-4), "> Executing: public.sayHello()"]);
+    sayHello();
   };
+
+  const handleSignIn = () => {
+    setLogs(prev => [...prev.slice(-4), "> Initializing OAuth Handshake..."]);
+    signIn('google', { callbackUrl: '/dashboard' });
+  };
+
+  // If not mounted, return an empty shell to prevent hydration flicker
+  // but keep the background color so it feels like it's loading "in the dark"
+  if (!mounted) return <div className="min-h-screen bg-[#050505]" />;
+
+  const isRedirecting = status === 'authenticated';
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30 overflow-hidden flex items-center justify-center">
@@ -44,7 +94,7 @@ export default function Home() {
 
             <div className="max-w-md space-y-4">
                <p className="text-sm text-gray-500 leading-relaxed border-l-2 border-indigo-500/20 pl-4 italic font-medium">
-                The collective intelligence of Georgia Tech's largest data science community. Authenticate below.
+                The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
                </p>
 
                {/* TERMINAL OUTPUT BOX */}
@@ -55,12 +105,8 @@ export default function Home() {
                       {log}
                     </p>
                   ))}
-                  {isPending && <p className="text-indigo-400 animate-pulse">{'>'} Awaiting server response...</p>}
-                  {data && (
-                    <div className="mt-4 p-3 rounded bg-indigo-500/5 border border-indigo-500/20 animate-in fade-in zoom-in-95 duration-300">
-                      <p className="text-[9px] uppercase tracking-widest text-indigo-500/50 mb-1">Incoming Stream</p>
-                      <p className="text-indigo-200 text-xs">"{data.message}"</p>
-                    </div>
+                  {(helloLoading || isRedirecting || status === 'loading') && (
+                    <p className="text-indigo-400 animate-pulse">{'>'} {status === 'loading' ? 'Syncing session...' : 'Processing request...'}</p>
                   )}
                </div>
             </div>
@@ -68,11 +114,19 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <button
-              onClick={handleClick}
-              disabled={isPending}
+              onClick={handleSignIn}
+              disabled={helloLoading || isRedirecting || status === 'loading'}
               className="w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-indigo-400 transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(255,255,255,0.05)]"
             >
-              {isPending ? 'Executing...' : 'Execute Query'}
+              {isRedirecting ? 'Success' : 'Sign In With Google'}
+            </button>
+
+            <button
+              onClick={handleTestEndpoint}
+              disabled={helloLoading || isRedirecting || status === 'loading'}
+              className="w-full sm:w-auto px-8 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all active:scale-95 disabled:opacity-30"
+            >
+              Test Endpoint
             </button>
           </div>
         </div>
@@ -82,34 +136,38 @@ export default function Home() {
           <div className="absolute w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full animate-pulse" />
 
           <div className="relative group">
-            {/* Rotating border effect */}
             <div className="absolute -inset-4 border border-white/5 rounded-full animate-[spin_20s_linear_infinite]" />
             <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_35s_linear_infinite_reverse] opacity-50" />
 
             <div className="relative z-10 p-8">
               <img
                 src="/images/dsgt/apple-touch-icon.png"
-                alt="DSGT Core"
+                alt="DSGT Logo"
                 className="w-72 h-72 object-contain drop-shadow-[0_0_50px_rgba(99,102,241,0.3)] transition-all duration-700 group-hover:scale-105"
               />
             </div>
 
-            {/* Visual HUD Metadata */}
             <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
-               <p className="text-[10px] font-mono text-indigo-500/50 uppercase tracking-[0.5em] animate-pulse">Core Operational</p>
+               <p className="text-[10px] font-mono text-indigo-500/50 uppercase tracking-[0.5em] animate-pulse">
+                {isRedirecting ? "Authentication Verified" : status === 'loading' ? "Synchronizing..." : "Core Operational"}
+               </p>
                <div className="flex justify-center gap-6 text-[8px] font-mono text-gray-700">
-                  <span className="flex items-center gap-1"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> LATENCY: 24MS</span>
-                  <span className="flex items-center gap-1"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> ENCRYPT: AES-256</span>
-                  <span className="flex items-center gap-1"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> LOAD: 0.04%</span>
+                  <span className="flex items-center gap-1">
+                    <div className={`w-1 h-1 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-indigo-500'}`} />
+                    STATUS: {status.toUpperCase()}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-1 h-1 bg-indigo-500 rounded-full" />
+                    REGION: ATL-08
+                  </span>
                </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* FOOTER BAR */}
       <footer className="absolute bottom-8 left-12 right-12 flex justify-between items-center opacity-20 pointer-events-none">
-        <div className="text-[9px] font-mono uppercase tracking-[0.4em]">Internal Terminal // Query Engine</div>
+        <div className="text-[9px] font-mono uppercase tracking-[0.4em]">Internal Terminal // Auth Gateway</div>
         <div className="text-[9px] font-mono uppercase tracking-[0.4em]">Access Node: 0812-ATL</div>
       </footer>
     </div>
