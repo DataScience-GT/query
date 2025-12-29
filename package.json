@@ -2,7 +2,7 @@
   "name": "query",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "pnpm@10.25.0",
+  "packageManager": "pnpm@10.26.1",
   "engines": {
     "node": ">=20.16.0",
     "pnpm": ">=9"
