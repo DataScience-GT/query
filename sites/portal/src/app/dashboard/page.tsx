@@ -65,18 +65,68 @@ export default function Dashboard() {
             </div>
 
             <div className="flex gap-4 border-b border-white/5 mb-6">
-              <button onClick={() => setEditTab('basic')} className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${editTab === 'basic' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}>Basic_Identity (Public)</button>
               <button
-                onClick={() => memberStatus?.isMember && setEditTab('member')}
-                className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${!memberStatus?.isMember ? 'opacity-20 cursor-not-allowed' : ''} ${editTab === 'member' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}
+                onClick={() => setEditTab('basic')}
+                className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${editTab === 'basic' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}
               >
-                Member_Dossier {!memberStatus?.isMember && '🔒'}
+                Basic_Identity
+              </button>
+              <button
+                onClick={() => setEditTab('member')}
+                className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${!memberStatus?.isMember ? 'opacity-40' : ''} ${editTab === 'member' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}
+              >
+                Advanced_Logs {!memberStatus?.isMember && '(Members Only)'}
               </button>
             </div>
 
-            {editTab === 'basic' && userData && <ProfileForm user={userData as any} />}
+            {editTab === 'basic' && userData && (
+              <div className="space-y-6">
+                <ProfileForm user={userData as any} />
+
+                {/* Guest Profile Editor for interests/skills */}
+                {!memberStatus?.isMember && (
+                  <div className="border-t border-white/10 pt-6 mt-6">
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 mb-4">
+                      <p className="text-amber-500 text-[10px] uppercase tracking-widest mb-2">💡 Limited Profile Access</p>
+                      <p className="text-gray-400 text-xs">
+                        As a guest, you can edit basic info. To unlock advanced member features (academic info, detailed portfolio), please register as a member.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          router.push('/member/register');
+                        }}
+                        className="mt-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[9px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+                      >
+                        Register_As_Member →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {editTab === 'member' && (
-              memberStatus?.isMember ? <MemberForm member={memberData as any} /> : <p className="text-center py-10 text-[10px] uppercase text-amber-500">Membership_Required_For_Advanced_Logs</p>
+              memberStatus?.isMember ? (
+                <MemberForm member={memberData as any} />
+              ) : (
+                <div className="text-center py-12 space-y-4">
+                  <div className="text-6xl mb-4">🔒</div>
+                  <p className="text-amber-500 text-xs uppercase tracking-widest">Members_Only_Section</p>
+                  <p className="text-gray-500 text-[10px] max-w-md mx-auto">
+                    Advanced member logs include academic records, detailed skill tracking, and official membership credentials. Register to unlock full access.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      router.push('/member/register');
+                    }}
+                    className="mt-6 px-6 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+                  >
+                    Complete_Registration →
+                  </button>
+                </div>
+              )
             )}
           </div>
         </div>
@@ -132,7 +182,7 @@ export default function Dashboard() {
                     <p className="text-xs text-white leading-relaxed italic font-mono min-h-[40px]">
                       "{userData?.bio || "No public bio transmission found."}"
                     </p>
-                    <button onClick={() => setIsEditing(true)} className="text-[#00A8A8] text-[9px] uppercase tracking-widest hover:underline pt-2">Modify_Identity →</button>
+                    <button onClick={() => { setEditTab('basic'); setIsEditing(true); }} className="text-[#00A8A8] text-[9px] uppercase tracking-widest hover:underline pt-2">Modify_Identity →</button>
                   </div>
                 </div>
 
@@ -142,9 +192,9 @@ export default function Dashboard() {
                     <div className="space-y-4">
                       <p className="text-[9px] text-gray-600 uppercase tracking-widest font-mono italic">/Academic_Logs</p>
                       <div className="text-[10px] font-mono space-y-2">
-                        <p><span className="text-gray-700">INSTITUTION:</span> {memberData?.school}</p>
-                        <p><span className="text-gray-700">PROGRAM:</span> {memberData?.major}</p>
-                        <p><span className="text-gray-700">CYCLE_END:</span> {memberData?.graduationYear}</p>
+                        <p><span className="text-gray-700">INSTITUTION:</span> {memberData?.school || 'N/A'}</p>
+                        <p><span className="text-gray-700">PROGRAM:</span> {memberData?.major || 'N/A'}</p>
+                        <p><span className="text-gray-700">CYCLE_END:</span> {memberData?.graduationYear || 'N/A'}</p>
                       </div>
                     </div>
                     <div>
@@ -152,13 +202,31 @@ export default function Dashboard() {
                       <div className="flex flex-wrap gap-3 mt-3">
                         {memberData?.githubUrl && <a href={memberData.githubUrl} target="_blank" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">GITHUB</a>}
                         {memberData?.linkedinUrl && <a href={memberData.linkedinUrl} target="_blank" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">LINKEDIN</a>}
+                        {memberData?.portfolioUrl && <a href={memberData.portfolioUrl} target="_blank" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">PORTFOLIO</a>}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-[9px] text-gray-600 uppercase tracking-widest font-mono italic mb-3">/Skills_&_Interests</p>
+                      <div className="flex flex-wrap gap-2">
+                        {memberData?.skills?.map((skill: string, i: number) => (
+                          <span key={i} className="px-2 py-1 bg-[#00A8A8]/10 border border-[#00A8A8]/30 text-[#00A8A8] text-[9px] uppercase">{skill}</span>
+                        ))}
+                        {memberData?.interests?.map((interest: string, i: number) => (
+                          <span key={i} className="px-2 py-1 bg-white/5 border border-white/10 text-white text-[9px] uppercase">{interest}</span>
+                        ))}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-10 border border-white/5 bg-white/[0.01] rounded-xl text-center">
+                  <div className="p-10 border border-white/5 bg-white/[0.01] rounded-xl text-center space-y-4">
                     <p className="text-gray-700 font-mono text-[9px] uppercase tracking-[0.4em]">Advanced_Dossier_Encrypted</p>
                     <p className="text-[8px] text-gray-800 mt-2 uppercase">Complete Membership Registration to Unlock Verified Logs</p>
+                    <button
+                      onClick={() => router.push('/member/register')}
+                      className="mt-4 px-6 py-2 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+                    >
+                      Register_Member →
+                    </button>
                   </div>
                 )}
               </div>
@@ -175,9 +243,23 @@ export default function Dashboard() {
                 ) : (
                   <div className="py-12 border border-amber-500/20 bg-amber-500/5 rounded-xl text-center space-y-4">
                     <p className="text-amber-500 font-mono text-xs uppercase tracking-widest">ERR: Unregistered_Node</p>
+                    <p className="text-gray-500 text-[10px] max-w-md mx-auto">Club operations require active membership. Register to access events, check-ins, and member benefits.</p>
                     <button onClick={() => router.push('/member/register')} className="px-8 py-2 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">Register_Member</button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* --- HACKLYTICS MODE --- */}
+            {mode === 'HACKLYTICS' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                <div className="text-center py-10 space-y-4">
+                  <p className="text-amber-500 font-mono text-[10px] tracking-widest">Hackathon_Portal_Active</p>
+                  <p className="text-gray-500 text-xs max-w-md mx-auto">Browse hackathons, register for events, and submit projects. All users (members and guests) can participate.</p>
+                  <button onClick={() => router.push('/hackathons')} className="px-8 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">
+                    View_Hackathons →
+                  </button>
+                </div>
               </div>
             )}
           </div>
