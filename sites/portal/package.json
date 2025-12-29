@@ -1,41 +1,38 @@
 {
   "name": "portal",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3002",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "lint": "next lint"
   },
   "dependencies": {
+    "next": "15.5.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+
     "@query/api": "workspace:*",
-    "@query/ui": "workspace:*",
-    "@query/db": "workspace:*",
     "@query/auth": "workspace:*",
+    "@query/db": "workspace:*",
+
     "@tanstack/react-query": "^5.90.12",
+
     "@trpc/client": "^11.7.2",
     "@trpc/react-query": "^11.7.2",
-    "@trpc/server": "^11.7.2",
+    "@trpc/server": "^11.8.0",
     "@trpc/next": "^11.7.2",
-    "superjson": "^2.2.6",
-    "next": "^16.0.10",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+
+    "next-auth": "^5.0.0-beta.25",
+    "superjson": "^2.2.1",
+    "three": "^0.128.0"
   },
   "devDependencies": {
-    "@query/eslint-config": "workspace:*",
-    "@query/tailwind-config": "workspace:*",
-    "@query/tsconfig": "workspace:*",
-    "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^22.19.2",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.1.1",
-    "eslint": "^9.33.0",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.5",
-    "typescript": "5.9.3"
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.128.0",
+    "typescript": "^5.6.3"
   }
 }

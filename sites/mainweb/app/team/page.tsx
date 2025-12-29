@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
 import Background from "@/components/Background";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -9,6 +8,7 @@ import Section from "@/components/Section";
 import SmallHero from "@/components/SmallHero";
 import TeamCard from "@/components/TeamCard";
 
+// Asset imports
 import President from "@/assets/images/2025/aditi.jpg";
 import ViceP from "@/assets/images/2025/nitika.jpg";
 import Logistics1 from "@/assets/images/2025/alysha.png";
@@ -29,93 +29,93 @@ const Team = () => {
 
   useEffect(() => {
     document.body.style.overflow = "auto";
-
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
-    <div id="about-page" className="relative min-h-screen">
-      {/* Background */}
-      <Background className="absolute inset-0 z-0" />
+    <div id="team-page" className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
+      {/* Background with low opacity to match other pages */}
+      <Background className="fixed inset-0 z-0 opacity-20" />
 
-      {/* Navbar - fixed at top, smooth scroll */}
+      {/* Navbar fixed with glassmorphism */}
       <Navbar
         screen_width={windowWidth}
-        className="fixed top-0 left-0 w-full z-30"
+        className="fixed top-0 left-0 w-full z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
         page="team"
       />
 
-      {/* Main content */}
-      <main className="relative z-10 pt-[80px]">
-        <SmallHero
-          title="Meet The Team"
-          desc="The people who make DSGT what it is"
-        />
+      <main className="relative z-10 pt-40 pb-32">
+        {/* Simplified Header Section */}
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-20 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#74b1aa] text-[10px] font-mono uppercase tracking-[0.2em]">
+            Executive Board 2024-2025
+          </div>
+          <h1 className="text-white text-6xl md:text-7xl font-bold tracking-tight leading-none italic">
+            Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500 not-italic">Team.</span>
+          </h1>
+          <p className="text-lg text-gray-400 max-w-2xl leading-relaxed">
+            The engineers, designers, and organizers behind the largest student-run data science organization at Georgia Tech.
+          </p>
+        </div>
 
-        <Section id="teams" makefull>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-5 max-w-7xl mx-auto">
+        {/* Team Grid Section */}
+        <Section id="teams" className="px-6 lg:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+
             <TeamCard name="Aditi Koratpallikar" title="President" img={President}>
-              Aditi oversees all operations of DSGT, ensuring the club runs smoothly across projects, workshops, events, and initiatives like Hacklytics, while leading the executive board and coordinating with faculty and industry partners. This role provides opportunities to develop leadership, organizational, and strategic management skills while shaping the future of data science at Georgia Tech.
+              Aditi oversees all operations of DSGT, leading the executive board and coordinating with faculty and industry partners to shape the future of data science at GT.
             </TeamCard>
 
             <TeamCard name="Nitika Agnihotri" title="Vice President" img={ViceP}>
-              Nitika leads <strong>Hacklytics</strong>, DSGT's flagship datathon held every Spring.
-              Her role includes communicating with corporations for sponsorships, organizing special events, and managing the datathon.
-              This position provides opportunities to network with sponsors, develop strong communication and management skills, and meet many new people each year.
+              Nitika leads <strong>Hacklytics</strong>, DSGT's flagship datathon. She manages corporate sponsorships, event organization, and networking initiatives.
             </TeamCard>
 
             <TeamCard name="Alysha Irvin" title="Co-Director of Logistics" img={Logistics1}>
-              Alysha Irvin coordinates and manages logistics for DSGT events and Hacklytics, ensuring smooth operations. This role provides her opportunities to collaborate with sponsors, enhance communication skills, and develop strong event management experience.
-
+              Alysha coordinates logistics for club events and Hacklytics, managing smooth operations and collaborating with external sponsors.
             </TeamCard>
 
             <TeamCard name="Diya Kaimal" title="Co-Director of Logistics" img={Logistics2}>
-              Diya Kaimal coordinates and manages logistics for DSGT events and Hacklytics, ensuring smooth operations. This role provides her opportunities to collaborate with sponsors, enhance communication skills, and develop strong event management experience.
+              Diya focuses on event management and logistics operations, ensuring a seamless experience for members and corporate partners.
             </TeamCard>
 
             <TeamCard name="Aamogh Sawant" title="Director of Technology" img={Tech}>
-              Aamogh Sawant leads the Technology Team, which specializes in frontend web development as well as backend systems. The team works on the many websites used by DSGT, most notably this site and the Membership Portal, ensuring smooth functionality and user experience.
+              Aamogh leads the Tech Team, managing frontend and backend systems for DSGT's digital infrastructure, including the Membership Portal.
             </TeamCard>
 
             <TeamCard name="Smera Bhatia" title="Director of Marketing" img={Marketing}>
-              Smera Bhatia leads the Marketing Team, which focuses on social media initiatives, graphic design, newsletters, outreach, and more to increase engagement with DSGT both on and off campus. The team creates digital and in-person marketing strategies to promote DSGT and its events effectively.
+              Smera directs social media, graphic design, and outreach strategies to increase engagement with DSGT both on and off campus.
             </TeamCard>
 
             <TeamCard name="Aryan Hazra" title="Director of Events" img={Events}>
-              Aryan Hazra manages event logistics including room bookings, decor, and food arrangements. His responsibilities include handling invoices, grocery and storage locker runs, coordinating volunteers, and liaising with external parties to ensure smooth execution of events. He also organizes booths, workshops, banners, and creates application and RSVP forms.
-
+              Aryan manages room bookings, catering, and volunteer coordination, ensuring technical workshops and socials execute perfectly.
             </TeamCard>
 
             <TeamCard name="Sarvesh Tiku" title="Co-Director of External Affairs" img={External1}>
-              Sarvesh manages communication and relationships with external organizations and sponsors.
-              He coordinates partnerships, outreach, and engagement for DSGT events and initiatives, helping the club build strong connections with the industry and the community.
+              Sarvesh manages relationships with external organizations, coordinating outreach and industrial engagement for DSGT initiatives.
             </TeamCard>
 
             <TeamCard name="Vidhi Gupta" title="Co-Director of External Affairs" img={External2}>
-              Vidhi focuses on developing and maintaining relationships with external partners and sponsors.
-              She supports outreach efforts, manages communication for club initiatives, and helps ensure strong collaboration with the industry and community.
+              Vidhi develops strategic partnerships and manages sponsor communications to support club initiatives and industry collaboration.
             </TeamCard>
 
             <TeamCard name="Anushka Jain" title="Co-Director of Content" img={Content1}>
-              Anushka leads the content team in managing Bootcamp and Udemy courses, teaching core data science skills from start to finish.
-              She organizes workshops on beginner-friendly data science and machine learning topics, helping members build professional-quality projects by the end of Bootcamp.
+              Anushka leads the Content team in managing Bootcamp and Udemy courses, helping members build professional ML projects.
             </TeamCard>
 
             <TeamCard name="Glenne Dela Torre" title="Co-Director of Content" img={Content2}>
-              Glenne oversees the Bootcamp and Udemy courses, guiding members through the full learning journey of core data science skills.
-              She conducts workshops on beginner-friendly topics in data science and machine learning, ensuring members complete polished, professional projects by the end of the program.
+              Glenne oversees Bootcamp workshops, ensuring members learn core data science skills and complete polished, industry-ready projects.
             </TeamCard>
 
             <TeamCard name="Anika V" title="Director of Projects" img={Project}>
-              Anika oversees project logistics, regularly meeting with project leads for updates and managing the project portal.
-              She sets up new projects with professors and industry professionals, ensures about six active projects per semester, manages the project application process, and maintains the projects spreadsheet.
+              Anika oversees project logistics, managing the project portal and setting up research opportunities with professors and industry pros.
             </TeamCard>
+
           </div>
         </Section>
 
-        <Footer screen_width={windowWidth} />
+        <Footer screen_width={windowWidth} className="mt-32 border-t border-white/5" />
       </main>
     </div>
   );
