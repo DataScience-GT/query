@@ -1,9 +1,9 @@
+// src/components/Hero.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Mini from "../Text/Mini";
-import LearnMore from "../LearnMore/LearnMore";
 
 import hero3 from "@/assets/images/blobs/hero3--export.svg";
 import hero2mobile from "@/assets/images/blobs/hero2-mobile--export.svg";
@@ -22,44 +22,51 @@ const Hero = ({ screen_width }: HeroProps) => {
   }, [screen_width]);
 
   return (
-    <section
-      id="hero"
-      className="relative w-full h-screen flex items-center justify-center px-8 bg-gray-800 text-white overflow-hidden"
-    >
-      {/* Background Blob */}
-      <div className="absolute inset-0 -z-10">
+    <section id="hero" className="relative w-full h-screen flex items-center justify-center px-8 overflow-hidden bg-[#050505]">
+      {/* Background Blob - Kept your logic */}
+      <div className="absolute inset-0 z-0">
         <Image
           src={windowWidth >= WIDTH_THRESHOLD ? hero3 : hero2mobile}
-          alt="blob"
+          alt="background"
           fill
-          className="object-cover object-right"
+          className="object-cover object-right opacity-40"
           priority
         />
       </div>
 
-      {/* Content Container */}
-      <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
         {/* Left Content */}
-        <div className="flex flex-col justify-center items-start w-full md:w-1/2">
+        <div className="flex flex-col justify-center items-start w-full md:w-3/5 space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#00A8A8] text-[10px] font-mono uppercase tracking-[0.2em]">
+            Georgia Institute of Technology
+          </div>
           <h1
-            className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-tight mb-4 text-transparent"
-            style={{ WebkitTextStroke: "1.5px rgb(229,230,219)" }}
+            className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-transparent"
+            style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.8)" }}
           >
-            Data Science<br />@ Georgia Tech
+            Data Science<br />
+            <span className="text-white" style={{ WebkitTextStroke: "0" }}>@ GT</span>
           </h1>
 
-          <Mini>The largest student-run data science organization at Georgia Tech.</Mini>
+          <div className="max-w-md">
+            <Mini className="text-gray-400 text-lg leading-relaxed">
+              The largest student-run data science organization at Georgia Tech. We bridge the gap between classroom theory and production engineering.
+            </Mini>
+          </div>
         </div>
 
         {/* Right Logo */}
-        <div className="hidden md:flex md:w-2/5 justify-center md:justify-end items-center">
-          <Image
-            src={herologo}
-            alt="DSGT logo"
-            width={240}
-            height={240}
-            className="w-40 h-40 md:w-60 md:h-60 object-contain"
-          />
+        <div className="hidden md:flex md:w-1/3 justify-center md:justify-end">
+          <div className="relative group">
+            <div className="absolute -inset-4 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all duration-700"></div>
+            <Image
+              src={herologo}
+              alt="DSGT logo"
+              width={300}
+              height={300}
+              className="relative w-48 h-48 md:w-72 md:h-72 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            />
+          </div>
         </div>
       </div>
     </section>
