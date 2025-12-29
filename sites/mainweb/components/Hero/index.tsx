@@ -37,7 +37,7 @@ const Hero = ({ screen_width }: HeroProps) => {
       <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
         {/* Left Content */}
         <div className="flex flex-col justify-center items-start w-full md:w-3/5 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono uppercase tracking-[0.2em]">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#00A8A8] text-[10px] font-mono uppercase tracking-[0.2em]">
             Georgia Institute of Technology
           </div>
           <h1

@@ -56,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
     const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${
       isMobile
         ? "text-gray-300 hover:text-white text-xl font-bold"
-        : "text-gray-400 hover:text-indigo-400"
+        : "text-gray-400 hover:text-[#00A8A8]"
     }`;
 
     if (item.link) {
@@ -81,7 +81,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
         offset={-navbarHeight}
         duration={500}
         className={baseClass}
-        activeClass="text-white lg:text-indigo-400"
+        activeClass="text-white lg:text-[#00A8A8]"
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
@@ -120,7 +120,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
                 href="https://member.datasciencegt.org/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-indigo-400 hover:text-white transition-all duration-300"
+                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all duration-300"
               >
                 Portal
               </a>

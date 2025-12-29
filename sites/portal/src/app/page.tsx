@@ -17,6 +17,16 @@ export default function Home() {
     "Loading background modules..."
   ]);
 
+  // Check admin status
+  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
+    enabled: !!session,
+  });
+
+  // Check member status
+  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, {
+    enabled: !!session,
+  });
+
   // tRPC Mutation
   const { mutate: sayHello, isPending: helloLoading } =
     trpc.hello.sayHello.useMutation({
@@ -40,8 +50,26 @@ export default function Home() {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Add logs when admin/member status is checked
+  useEffect(() => {
+    if (adminStatus) {
+      const roleLog = adminStatus.isAdmin
+        ? `> Admin Access: ${adminStatus.role?.toUpperCase()}`
+        : "> Access Level: Standard User";
+      setLogs(prev => [...prev.slice(-4), roleLog]);
+    }
+  }, [adminStatus]);
+
+  useEffect(() => {
+    if (memberStatus) {
+      const memberLog = memberStatus.isMember
+        ? `> Membership: ${memberStatus.memberType?.toUpperCase()} (${memberStatus.daysRemaining} days remaining)`
+        : "> Membership: Not Active";
+      setLogs(prev => [...prev.slice(-4), memberLog]);
+    }
+  }, [memberStatus]);
+
   // SILENT BACKGROUND REDIRECT
-  // Instead of a loading screen, we watch for 'authenticated' status in the background
   useEffect(() => {
     if (status === 'authenticated' && session) {
       setLogs(prev => [...prev.slice(-4), "> Auth success. Handshaking...", "> Redirecting to secure node..."]);
@@ -60,8 +88,6 @@ export default function Home() {
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  // If not mounted, return an empty shell to prevent hydration flicker
-  // but keep the background color so it feels like it's loading "in the dark"
   if (!mounted) return <div className="min-h-screen bg-[#050505]" />;
 
   const isRedirecting = status === 'authenticated';

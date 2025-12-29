@@ -9,6 +9,13 @@ const nextConfig = {
   transpilePackages: ['@query/db', '@query/auth', '@query/api', '@query/ui'],
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  reactStrictMode: true,
+  images: {
+    domains: ['lh3.googleusercontent.com'],
+  },
+  webpack: (config) => {
+    return config;
+  },
 };
 
 export default nextConfig;
