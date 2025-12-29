@@ -49,7 +49,7 @@ const Team = () => {
       <main className="relative z-10 pt-40 pb-32">
         {/* Simplified Header Section */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-20 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono uppercase tracking-[0.2em]">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#74b1aa] text-[10px] font-mono uppercase tracking-[0.2em]">
             Executive Board 2024-2025
           </div>
           <h1 className="text-white text-6xl md:text-7xl font-bold tracking-tight leading-none italic">

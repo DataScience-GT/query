@@ -5,8 +5,6 @@ import Link from "next/link";
 import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import Major from "@/components/Text/Major";
-import Mini from "@/components/Text/Mini";
 
 interface Project {
   name: string;
@@ -65,8 +63,8 @@ const ProjectsPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
-      <Background className="fixed inset-0 z-0 opacity-20" />
+    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-400/30 overflow-x-hidden">
+      <Background className="fixed inset-0 z-0 opacity-[0.05]" />
 
       <Navbar
         screen_width={windowWidth}
@@ -77,19 +75,19 @@ const ProjectsPage: React.FC = () => {
       <main className="relative z-10 pt-44 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
 
         {/* BREADCRUMB NAVIGATION */}
-        <nav className="flex items-center gap-2 mb-8 text-[10px] font-mono tracking-widest uppercase">
-          <Link href="/" className="hover:text-indigo-400 transition-colors">Home</Link>
-          <span className="text-gray-700">/</span>
-          <span className="text-gray-200">Archive</span>
+        <nav className="flex items-center gap-2 mb-8 text-[10px] font-mono tracking-[0.3em] uppercase">
+          <Link href="/" className="hover:text-[#00A8A8] transition-colors">Home</Link>
+          <span className="text-gray-800">/</span>
+          <span className="text-gray-200 italic">Project_Archive</span>
         </nav>
 
-        {/* HERO SECTION - Fixed the Tag Mismatch */}
+        {/* HERO SECTION */}
         <section className="max-w-3xl mb-24 space-y-6">
-          <h1 className="text-white text-6xl md:text-7xl font-bold tracking-tight leading-none">
+          <h1 className="text-white text-6xl md:text-8xl font-black tracking-tighter leading-none uppercase italic">
             Project <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500 font-black italic">Archive.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#006e6e] not-italic">Archive.</span>
           </h1>
-          <p className="text-lg text-gray-400 leading-relaxed max-w-xl font-medium">
+          <p className="text-lg text-gray-400 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
             A technical directory of past engineering ventures led by DSGT members. Organized by domain expertise and technical stack.
           </p>
         </section>
@@ -97,31 +95,34 @@ const ProjectsPage: React.FC = () => {
         {/* ORGANIZED CATEGORIES */}
         <div className="space-y-32">
           {categories.map((cat) => (
-            <section key={cat} id={cat.replace(/\s+/g, '-').toLowerCase()} className="scroll-mt-32">
+            <section key={cat} id={cat.replace(/\s+/g, '-').toLowerCase()} className="scroll-mt-32 relative">
               <div className="flex items-center gap-4 mb-12">
-                <h2 className="text-white text-2xl font-bold tracking-tight shrink-0 italic">{cat}</h2>
-                <div className="h-px bg-white/5 w-full"></div>
+                <h2 className="text-white text-2xl font-black tracking-tight shrink-0 italic uppercase">{cat}</h2>
+                <div className="h-px bg-gradient-to-r from-[#00A8A8]/20 to-transparent w-full"></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {projects
                   .filter((p) => p.category === cat)
                   .map((project, i) => (
-                    <div key={i} className="group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-indigo-500/30 transition-all duration-300">
-                      <div className="flex justify-between items-start mb-6">
-                        <h3 className="text-white text-xl font-bold group-hover:text-indigo-400 transition-colors">
+                    <div key={i} className="group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/30 transition-all duration-500 shadow-2xl relative overflow-hidden">
+                      {/* Subtle background glow on hover */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A8A8]/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      <div className="flex justify-between items-start mb-6 relative z-10">
+                        <h3 className="text-white text-xl font-bold group-hover:text-[#00A8A8] transition-colors uppercase tracking-tight italic">
                           {project.name}
                         </h3>
-                        <span className="text-[10px] font-mono text-gray-600">Lead: {project.lead}</span>
+                        <span className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">Lead // {project.lead.split(' ').pop()?.toUpperCase()}</span>
                       </div>
 
-                      <p className="text-sm text-gray-400 leading-relaxed mb-8">
+                      <p className="text-sm text-gray-400 leading-relaxed mb-8 italic relative z-10">
                         {project.description}
                       </p>
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 relative z-10">
                         {project.tech.map((t, index) => (
-                          <span key={index} className="text-[10px] font-mono text-gray-500 bg-white/5 border border-white/5 px-2 py-1 rounded">
+                          <span key={index} className="text-[9px] font-mono text-[#00A8A8]/70 bg-[#00A8A8]/5 border border-[#00A8A8]/10 px-2 py-1 rounded-sm uppercase tracking-tighter">
                             {t}
                           </span>
                         ))}
@@ -135,19 +136,19 @@ const ProjectsPage: React.FC = () => {
 
         {/* NAVIGATION FOOTER */}
         <section className="mt-40 border-t border-white/5 pt-20 text-center">
-          <h2 className="text-white text-2xl font-bold mb-8 italic italic-title">Back to the present?</h2>
-          <div className="flex justify-center gap-12">
-            <Link href="/" className="text-[10px] font-mono text-gray-500 hover:text-indigo-400 transition-colors uppercase tracking-[0.2em] flex items-center gap-2">
-              <span className="text-lg">←</span> Return Home
+          <h2 className="text-white text-2xl font-black mb-12 italic uppercase tracking-tighter">Back to the present?</h2>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-12">
+            <Link href="/" className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center gap-4 group">
+              <span className="text-lg group-hover:-translate-x-2 transition-transform">←</span> Return_Home
             </Link>
-            <Link href="/bootcamp" className="text-[10px] font-mono text-gray-500 hover:text-indigo-400 transition-colors uppercase tracking-[0.2em] flex items-center gap-2">
-              Join Bootcamp <span className="text-lg">→</span>
+            <Link href="/bootcamp" className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center gap-4 group">
+              Join_Bootcamp <span className="text-lg group-hover:translate-x-2 transition-transform">→</span>
             </Link>
           </div>
         </section>
       </main>
 
-      <Footer screen_width={windowWidth} className="relative z-10 border-t border-white/5" />
+      <Footer screen_width={windowWidth} className="relative z-10 border-t border-white/5 opacity-40" />
     </div>
   );
 };
