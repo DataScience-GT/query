@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import type { Context } from "./context";
+import { rateLimit, sanitizeInput } from "./middleware/security";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -17,16 +18,37 @@ const t = initTRPC.context<Context>().create({
   },
 });
 
-// Base router and procedure
 export const createTRPCRouter = t.router;
-export const publicProcedure = t.procedure;
 
-// Middleware to check if user is authenticated
-const isAuthed = t.middleware(({ ctx, next }) => {
+// Public procedure with rate limiting
+export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const identifier = ctx.userId || `anon-${ctx.session?.user?.id || 'unknown'}`;
+
+  // 100 requests per 15 minutes for public endpoints
+  if (!rateLimit(identifier, 100, 15 * 60 * 1000)) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Too many requests. Please try again later.",
+    });
+  }
+
+  return next();
+});
+
+// Authentication middleware
+const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.session?.user || !ctx.userId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "You must be logged in to access this resource",
+      message: "Authentication required",
+    });
+  }
+
+  // 200 requests per 15 minutes for authenticated users
+  if (!rateLimit(`auth-${ctx.userId}`, 200, 15 * 60 * 1000)) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Too many requests. Please try again later.",
     });
   }
 
@@ -34,10 +56,19 @@ const isAuthed = t.middleware(({ ctx, next }) => {
     ctx: {
       ...ctx,
       session: { ...ctx.session, user: ctx.session.user },
-      userId: ctx.userId, // Now guaranteed to be string, not string | undefined
+      userId: ctx.userId,
     },
   });
 });
 
-// Protected procedure - requires authentication
-export const protectedProcedure = t.procedure.use(isAuthed);
+// Input sanitization middleware - Applied at the input parsing level
+const sanitizeInputs = t.middleware(async ({ next, input }) => {
+  // Sanitize the parsed input
+  const sanitized = sanitizeInput(input);
+  return next({ ctx: { sanitizedInput: sanitized } });
+});
+
+// Protected procedure with input sanitization
+export const protectedProcedure = t.procedure
+  .use(isAuthed)
+  .use(sanitizeInputs);
