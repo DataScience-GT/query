@@ -9,22 +9,19 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "15.5.9",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-
     "@query/api": "workspace:*",
     "@query/auth": "workspace:*",
     "@query/db": "workspace:*",
-
     "@tanstack/react-query": "^5.90.12",
-
     "@trpc/client": "^11.7.2",
+    "@trpc/next": "^11.7.2",
     "@trpc/react-query": "^11.7.2",
     "@trpc/server": "^11.8.0",
-    "@trpc/next": "^11.7.2",
-
+    "minimatch": "^10.1.1",
+    "next": "15.5.9",
     "next-auth": "^5.0.0-beta.25",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "superjson": "^2.2.1",
     "three": "^0.128.0"
   },
