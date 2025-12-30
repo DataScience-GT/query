@@ -8,5 +8,8 @@
   "exports": {
     "./*": "./*",
     ".": "./base.json"
+  },
+  "dependencies": {
+    "minimatch": "^10.1.1"
   }
 }
