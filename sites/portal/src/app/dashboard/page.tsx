@@ -28,7 +28,7 @@ export default function Dashboard() {
     firstName: '',
     lastName: '',
     phoneNumber: '',
-    school: 'Georgia Institute of Technology', // Defaulted as requested
+    school: 'Georgia Institute of Technology',
     major: '',
     graduationYear: new Date().getFullYear() + 4,
     skills: [] as string[],
@@ -55,18 +55,13 @@ export default function Dashboard() {
     if (status === 'unauthenticated') router.push('/');
   }, [status, router]);
 
-  // Club Auto-Redirect Logic
-  useEffect(() => {
-    if (mode === 'CLUB' && memberStatus?.isMember) {
-      router.push('/club');
-    }
-  }, [mode, memberStatus, router]);
+  // REMOVED: Club Auto-Redirect Logic
 
   const registerMutation = trpc.member.register.useMutation({
     onSuccess: () => {
       utils.member.me.invalidate();
       utils.member.checkStatus.invalidate();
-      router.push('/club'); // Go straight to club page after successful reg
+      router.push('/club');
     },
     onError: (error) => {
       setError(error.message);
@@ -252,9 +247,21 @@ export default function Dashboard() {
             {mode === 'CLUB' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                 {memberStatus?.isMember ? (
-                  <div className="py-20 text-center">
-                    <p className="text-[#00A8A8] font-mono text-[10px] tracking-widest animate-pulse">ESTABLISHING_SECURE_LINK...</p>
-                    <p className="text-gray-600 text-[9px] mt-2 uppercase">Redirecting to Club Terminal</p>
+                  <div className="py-20 text-center space-y-8">
+                    <div>
+                      <div className="inline-block mb-4">
+                        <div className="h-16 w-16 border-2 border-[#00A8A8] border-t-transparent rounded-full animate-spin mx-auto" />
+                      </div>
+                      <p className="text-[#00A8A8] font-mono text-[10px] tracking-widest">ACCESS_GRANTED</p>
+                      <p className="text-gray-600 text-[9px] mt-2 uppercase">Club Membership Verified</p>
+                    </div>
+                    <button
+                      onClick={() => router.push('/club')}
+                      className="px-12 py-4 bg-[#00A8A8] text-black font-bold uppercase text-[11px] tracking-widest hover:bg-[#00A8A8]/80 transition-all inline-flex items-center gap-3 group"
+                    >
+                      Enter_Club_Terminal
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </button>
                   </div>
                 ) : (
                   <div>
@@ -454,24 +461,22 @@ export default function Dashboard() {
                           </button>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    )}</div>
                 )}
               </div>
             )}
-
-            {/* --- HACKLYTICS MODE --- */}
-            {mode === 'HACKLYTICS' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                <div className="text-center py-20">
-                  <p className="text-amber-500 font-mono text-sm uppercase tracking-widest mb-4">Hackathon_System_Coming_Soon</p>
-                  <p className="text-gray-600 text-xs">Browse hackathons, register, form teams, and submit projects.</p>
-                </div>
-              </div>
-            )}
+        {/* --- HACKLYTICS MODE --- */}
+        {mode === 'HACKLYTICS' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            <div className="text-center py-20">
+              <p className="text-amber-500 font-mono text-sm uppercase tracking-widest mb-4">Hackathon_System_Coming_Soon</p>
+              <p className="text-gray-600 text-xs">Browse hackathons, register, form teams, and submit projects.</p>
+            </div>
           </div>
-        </div>
-      </main>
+        )}
+      </div>
     </div>
-  );
+  </main>
+</div>
+);
 }
