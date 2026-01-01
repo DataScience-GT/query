@@ -70,16 +70,15 @@ jobs:
     - name: Install Dependencies
       run: pnpm install
 
-    - name: Configure CodeQL Custom Queries
-      id: query-config
+    - name: Setup CodeQL Custom Queries
       run: |
-        echo "Creating advanced CodeQL configuration for Next.js/tRPC..."
-        
-        # Create custom queries directory
-        mkdir -p .github/codeql/custom-queries
-        
-        # Create qlpack.yml for custom queries
-        cat > .github/codeql/custom-queries/qlpack.yml << 'QLPACKEOF'
+        # Only create files if they don't exist
+        if [ ! -d ".github/codeql/custom-queries" ]; then
+          echo "Creating CodeQL custom queries..."
+          mkdir -p .github/codeql/custom-queries
+          
+          # Create qlpack.yml for custom queries
+          cat > .github/codeql/custom-queries/qlpack.yml << 'QLPACKEOF'
 name: custom/security-queries
 version: 1.0.0
 dependencies:
