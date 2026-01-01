@@ -37,14 +37,21 @@ export function sanitizeInput(input: any): any {
   }
 
   if (typeof input === 'string') {
-    return input
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+\s*=/gi, '')
-      .replace(/data:text\/html/gi, '')
-      .replace(/<iframe/gi, '')
-      .replace(/<embed/gi, '')
-      .replace(/<object/gi, '')
+    let sanitized = String(input);
+    let previous: string;
+    do {
+      previous = sanitized;
+      sanitized = sanitized
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .replace(/data:text\/html/gi, '')
+        .replace(/<iframe/gi, '')
+        .replace(/<embed/gi, '')
+        .replace(/<object/gi, '');
+    } while (sanitized !== previous);
+
+    return sanitized
       .trim()
       .slice(0, 10000);
   }
