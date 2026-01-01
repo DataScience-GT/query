@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-
+import sanitizeHtml from "sanitize-html";
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 setInterval(() => {
@@ -37,19 +37,7 @@ export function sanitizeInput(input: any): any {
   }
 
   if (typeof input === 'string') {
-    let sanitized = String(input);
-    let previous: string;
-    do {
-      previous = sanitized;
-      sanitized = sanitized
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .replace(/data:text\/html/gi, '')
-        .replace(/<iframe/gi, '')
-        .replace(/<embed/gi, '')
-        .replace(/<object/gi, '');
-    } while (sanitized !== previous);
+    let sanitized = sanitizeHtml(String(input));
 
     return sanitized
       .trim()
