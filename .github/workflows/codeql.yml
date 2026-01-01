@@ -70,54 +70,21 @@ jobs:
     - name: Install Dependencies
       run: pnpm install
 
-    - name: Configure CodeQL Query Packs
+    - name: Configure CodeQL Custom Queries
       id: query-config
       run: |
         echo "Creating advanced CodeQL configuration for Next.js/tRPC..."
-        cat > codeql-config.yml << 'EOF'
-        name: "Next.js tRPC Security Configuration"
-        
-        disable-default-queries: false
-        
-        queries:
-          - uses: security-extended
-          - uses: security-and-quality
-        
-        query-filters:
-          - exclude:
-              id: js/unused-local-variable
-          - exclude:
-              tags: documentation
-        
-        paths-ignore:
-          - node_modules
-          - .next
-          - out
-          - dist
-          - build
-          - coverage
-          - public
-          - '**/*.test.ts'
-          - '**/*.test.tsx'
-          - '**/*.spec.ts'
-          - '**/*.spec.tsx'
-          - '**/test/**'
-          - '**/tests/**'
-          - '**/__tests__/**'
-          - '**/__mocks__/**'
-        
-        paths:
-          - src
-          - app
-          - pages
-          - server
-          - lib
-          - utils
-          - api
-        EOF
         
         # Create custom queries directory
         mkdir -p .github/codeql/custom-queries
+        
+        # Create qlpack.yml for custom queries
+        cat > .github/codeql/custom-queries/qlpack.yml << 'QLPACKEOF'
+name: custom/security-queries
+version: 1.0.0
+dependencies:
+  codeql/javascript-all: "*"
+QLPACKEOF
         
         # tRPC Input Validation Query
         cat > .github/codeql/custom-queries/trpc-input-validation.ql << 'TRPCEOF'
@@ -281,6 +248,50 @@ jobs:
         select returnNode, "Potential exposure of sensitive data in server-side props"
         NEXTEOF
         
+        # Create CodeQL configuration file
+        cat > codeql-config.yml << 'CONFIGEOF'
+name: "Next.js tRPC Security Configuration"
+
+disable-default-queries: false
+
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+  - uses: ./.github/codeql/custom-queries
+
+query-filters:
+  - exclude:
+      id: js/unused-local-variable
+  - exclude:
+      tags: documentation
+
+paths-ignore:
+  - node_modules
+  - .next
+  - out
+  - dist
+  - build
+  - coverage
+  - public
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/__tests__/**'
+  - '**/__mocks__/**'
+
+paths:
+  - src
+  - app
+  - pages
+  - server
+  - lib
+  - utils
+  - api
+CONFIGEOF
+        
         # Authentication & Authorization Checks
         cat > .github/codeql/custom-queries/missing-auth.ql << 'AUTHEOF'
         /**
@@ -388,11 +399,10 @@ jobs:
       with:
         languages: javascript-typescript
         build-mode: none
-        queries: +security-extended,+security-and-quality,+.github/codeql/custom-queries
         config-file: ./codeql-config.yml
         db-location: '${{ runner.temp }}/codeql_databases'
         setup-python-dependencies: false
-        tools: latest
+        tools: linked
         ram: 8192
         threads: 0
 
