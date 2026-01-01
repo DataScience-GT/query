@@ -57,9 +57,9 @@ jobs:
         persist-credentials: false
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@v3
+      uses: pnpm/action-setup@v4
       with:
-        version: 8
+        version: latest
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -387,7 +387,7 @@ jobs:
         ENVEOF
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: javascript-typescript
         build-mode: none
@@ -400,7 +400,7 @@ jobs:
         threads: 0
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:typescript"
         output: sarif-results
@@ -409,7 +409,7 @@ jobs:
         add-snippets: true
 
     - name: Upload SARIF Results
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: sarif-results/javascript-typescript.sarif
