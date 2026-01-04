@@ -15,13 +15,32 @@ type DashboardMode = 'CLUB' | 'HACKLYTICS' | 'PROFILE';
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const utils = trpc.useUtils();
 
   // --- STATE ---
-  const [hasEntered, setHasEntered] = useState(false);
   const [mode, setMode] = useState<DashboardMode>('CLUB');
   const [isEditing, setIsEditing] = useState(false);
   const [editTab, setEditTab] = useState<'basic' | 'member'>('basic');
-  const [isCheckingIn, setIsCheckingIn] = useState(false);
+
+  // Registration form state
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    school: 'Georgia Institute of Technology',
+    major: '',
+    graduationYear: new Date().getFullYear() + 4,
+    skills: [] as string[],
+    interests: [] as string[],
+    linkedinUrl: '',
+    githubUrl: '',
+    portfolioUrl: '',
+  });
+  const [skillInput, setSkillInput] = useState('');
+  const [interestInput, setInterestInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // --- DATA ---
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
@@ -29,15 +48,73 @@ export default function Dashboard() {
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
 
+  // --- EFFECTS ---
+
+  // Auth Guard
+  useEffect(() => {
+    if (status === 'unauthenticated') router.push('/');
+  }, [status, router]);
+
+  // REMOVED: Club Auto-Redirect Logic
+
+  const registerMutation = trpc.member.register.useMutation({
+    onSuccess: () => {
+      utils.member.me.invalidate();
+      utils.member.checkStatus.invalidate();
+      router.push('/club');
+    },
+    onError: (error) => {
+      setError(error.message);
+      setIsSubmitting(false);
+    },
+  });
+
   const accessLevel = useMemo(() => {
     if (adminStatus?.isAdmin) return `ADMIN_${adminStatus.role?.toUpperCase()}`;
     if (memberStatus?.isMember) return `MEMBER_${memberStatus.memberType?.toUpperCase()}`;
     return 'GUEST_NODE';
   }, [adminStatus, memberStatus]);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/');
-  }, [status, router]);
+  const handleAddSkill = () => {
+    if (skillInput.trim() && formData.skills.length < 20) {
+      setFormData({ ...formData, skills: [...formData.skills, skillInput.trim()] });
+      setSkillInput('');
+    }
+  };
+
+  const handleRemoveSkill = (index: number) => {
+    setFormData({ ...formData, skills: formData.skills.filter((_, i) => i !== index) });
+  };
+
+  const handleAddInterest = () => {
+    if (interestInput.trim() && formData.interests.length < 20) {
+      setFormData({ ...formData, interests: [...formData.interests, interestInput.trim()] });
+      setInterestInput('');
+    }
+  };
+
+  const handleRemoveInterest = (index: number) => {
+    setFormData({ ...formData, interests: formData.interests.filter((_, i) => i !== index) });
+  };
+
+  const handleSubmit = () => {
+    setIsSubmitting(true);
+    setError(null);
+
+    registerMutation.mutate({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phoneNumber: formData.phoneNumber || undefined,
+      school: formData.school || undefined,
+      major: formData.major || undefined,
+      graduationYear: formData.graduationYear || undefined,
+      skills: formData.skills.length > 0 ? formData.skills : undefined,
+      interests: formData.interests.length > 0 ? formData.interests : undefined,
+      linkedinUrl: formData.linkedinUrl || undefined,
+      githubUrl: formData.githubUrl || undefined,
+      portfolioUrl: formData.portfolioUrl || undefined,
+    });
+  };
 
   if (status === 'loading') return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
@@ -46,6 +123,9 @@ export default function Dashboard() {
   );
 
   if (!session) return null;
+
+  const totalSteps = 3;
+  const progress = (step / totalSteps) * 100;
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
@@ -65,68 +145,18 @@ export default function Dashboard() {
             </div>
 
             <div className="flex gap-4 border-b border-white/5 mb-6">
+              <button onClick={() => setEditTab('basic')} className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${editTab === 'basic' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}>Basic_Identity</button>
               <button
-                onClick={() => setEditTab('basic')}
-                className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${editTab === 'basic' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}
+                onClick={() => memberStatus?.isMember && setEditTab('member')}
+                className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${!memberStatus?.isMember ? 'opacity-20 cursor-not-allowed' : ''} ${editTab === 'member' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}
               >
-                Basic_Identity
-              </button>
-              <button
-                onClick={() => setEditTab('member')}
-                className={`pb-2 text-[10px] uppercase tracking-widest transition-all ${!memberStatus?.isMember ? 'opacity-40' : ''} ${editTab === 'member' ? 'text-[#00A8A8] border-b border-[#00A8A8]' : 'text-gray-600'}`}
-              >
-                Advanced_Logs {!memberStatus?.isMember && '(Members Only)'}
+                Member_Dossier {!memberStatus?.isMember && '🔒'}
               </button>
             </div>
 
-            {editTab === 'basic' && userData && (
-              <div className="space-y-6">
-                <ProfileForm user={userData as any} />
-
-                {/* Guest Profile Editor for interests/skills */}
-                {!memberStatus?.isMember && (
-                  <div className="border-t border-white/10 pt-6 mt-6">
-                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 mb-4">
-                      <p className="text-amber-500 text-[10px] uppercase tracking-widest mb-2">💡 Limited Profile Access</p>
-                      <p className="text-gray-400 text-xs">
-                        As a guest, you can edit basic info. To unlock advanced member features (academic info, detailed portfolio), please register as a member.
-                      </p>
-                      <button
-                        onClick={() => {
-                          setIsEditing(false);
-                          router.push('/member/register');
-                        }}
-                        className="mt-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[9px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
-                      >
-                        Register_As_Member →
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
+            {editTab === 'basic' && userData && <ProfileForm user={userData as any} />}
             {editTab === 'member' && (
-              memberStatus?.isMember ? (
-                <MemberForm member={memberData as any} />
-              ) : (
-                <div className="text-center py-12 space-y-4">
-                  <div className="text-6xl mb-4">🔒</div>
-                  <p className="text-amber-500 text-xs uppercase tracking-widest">Members_Only_Section</p>
-                  <p className="text-gray-500 text-[10px] max-w-md mx-auto">
-                    Advanced member logs include academic records, detailed skill tracking, and official membership credentials. Register to unlock full access.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      router.push('/member/register');
-                    }}
-                    className="mt-6 px-6 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
-                  >
-                    Complete_Registration →
-                  </button>
-                </div>
-              )
+              memberStatus?.isMember ? <MemberForm member={memberData as any} /> : <p className="text-center py-10 text-[10px] uppercase text-amber-500">Membership_Required_For_Advanced_Logs</p>
             )}
           </div>
         </div>
@@ -170,23 +200,21 @@ export default function Dashboard() {
               <div className={`h-2 w-2 rounded-full animate-pulse ${mode === 'CLUB' ? 'bg-[#00A8A8]' : mode === 'PROFILE' ? 'bg-white' : 'bg-amber-500'}`} />
             </div>
 
-            {/* --- PROFILE MODE (Tiered Guest/Member View) --- */}
+            {/* --- PROFILE MODE --- */}
             {mode === 'PROFILE' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                 <div className="grid md:grid-cols-2 gap-6">
                   <MembershipCard memberStatus={memberStatus as any} memberData={memberData} />
 
-                  {/* Public Bio Section (For Everyone) */}
                   <div className="bg-black/40 border border-white/5 p-6 rounded-xl space-y-4">
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest">Public_Data_Node</p>
                     <p className="text-xs text-white leading-relaxed italic font-mono min-h-[40px]">
                       "{userData?.bio || "No public bio transmission found."}"
                     </p>
-                    <button onClick={() => { setEditTab('basic'); setIsEditing(true); }} className="text-[#00A8A8] text-[9px] uppercase tracking-widest hover:underline pt-2">Modify_Identity →</button>
+                    <button onClick={() => setIsEditing(true)} className="text-[#00A8A8] text-[9px] uppercase tracking-widest hover:underline pt-2">Modify_Identity →</button>
                   </div>
                 </div>
 
-                {/* Advanced Section: Only for Members */}
                 {memberStatus?.isMember ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-white/5 pt-8 animate-in fade-in">
                     <div className="space-y-4">
@@ -200,33 +228,16 @@ export default function Dashboard() {
                     <div>
                       <p className="text-[9px] text-gray-600 uppercase tracking-widest font-mono italic">/Neural_Links</p>
                       <div className="flex flex-wrap gap-3 mt-3">
-                        {memberData?.githubUrl && <a href={memberData.githubUrl} target="_blank" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">GITHUB</a>}
-                        {memberData?.linkedinUrl && <a href={memberData.linkedinUrl} target="_blank" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">LINKEDIN</a>}
-                        {memberData?.portfolioUrl && <a href={memberData.portfolioUrl} target="_blank" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">PORTFOLIO</a>}
-                      </div>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-[9px] text-gray-600 uppercase tracking-widest font-mono italic mb-3">/Skills_&_Interests</p>
-                      <div className="flex flex-wrap gap-2">
-                        {memberData?.skills?.map((skill: string, i: number) => (
-                          <span key={i} className="px-2 py-1 bg-[#00A8A8]/10 border border-[#00A8A8]/30 text-[#00A8A8] text-[9px] uppercase">{skill}</span>
-                        ))}
-                        {memberData?.interests?.map((interest: string, i: number) => (
-                          <span key={i} className="px-2 py-1 bg-white/5 border border-white/10 text-white text-[9px] uppercase">{interest}</span>
-                        ))}
+                        {memberData?.githubUrl && <a href={memberData.githubUrl} target="_blank" rel="noopener noreferrer" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">GITHUB</a>}
+                        {memberData?.linkedinUrl && <a href={memberData.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">LINKEDIN</a>}
+                        {memberData?.portfolioUrl && <a href={memberData.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-white border border-white/10 px-3 py-1 text-[9px] hover:bg-white hover:text-black transition-all">PORTFOLIO</a>}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-10 border border-white/5 bg-white/[0.01] rounded-xl text-center space-y-4">
+                  <div className="p-10 border border-white/5 bg-white/[0.01] rounded-xl text-center">
                     <p className="text-gray-700 font-mono text-[9px] uppercase tracking-[0.4em]">Advanced_Dossier_Encrypted</p>
-                    <p className="text-[8px] text-gray-800 mt-2 uppercase">Complete Membership Registration to Unlock Verified Logs</p>
-                    <button
-                      onClick={() => router.push('/member/register')}
-                      className="mt-4 px-6 py-2 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
-                    >
-                      Register_Member →
-                    </button>
+                    <p className="text-[8px] text-gray-800 mt-2 uppercase">Complete Club Registration to Unlock Verified Logs</p>
                   </div>
                 )}
               </div>
@@ -236,35 +247,236 @@ export default function Dashboard() {
             {mode === 'CLUB' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                 {memberStatus?.isMember ? (
-                  <div className="space-y-6 text-center py-10">
-                    <p className="text-[#00A8A8] font-mono text-[10px] tracking-widest animate-pulse">SYSTEMS_NOMINAL</p>
-                    <button onClick={() => setIsCheckingIn(true)} className="px-10 py-4 bg-white text-black font-black text-[11px] uppercase tracking-widest italic">Execute_Handshake</button>
+                  <div className="py-20 text-center space-y-8">
+                    <div>
+                      <div className="inline-block mb-4">
+                        <div className="h-16 w-16 border-2 border-[#00A8A8] border-t-transparent rounded-full animate-spin mx-auto" />
+                      </div>
+                      <p className="text-[#00A8A8] font-mono text-[10px] tracking-widest">ACCESS_GRANTED</p>
+                      <p className="text-gray-600 text-[9px] mt-2 uppercase">Club Membership Verified</p>
+                    </div>
+                    <button
+                      onClick={() => router.push('/club')}
+                      className="px-12 py-4 bg-[#00A8A8] text-black font-bold uppercase text-[11px] tracking-widest hover:bg-[#00A8A8]/80 transition-all inline-flex items-center gap-3 group"
+                    >
+                      Enter_Club_Terminal
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </button>
                   </div>
                 ) : (
-                  <div className="py-12 border border-amber-500/20 bg-amber-500/5 rounded-xl text-center space-y-4">
-                    <p className="text-amber-500 font-mono text-xs uppercase tracking-widest">ERR: Unregistered_Node</p>
-                    <p className="text-gray-500 text-[10px] max-w-md mx-auto">Club operations require active membership. Register to access events, check-ins, and member benefits.</p>
-                    <button onClick={() => router.push('/member/register')} className="px-8 py-2 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">Register_Member</button>
-                  </div>
+                  <div>
+                    <div className="mb-8">
+                      <div className="bg-black/40 border border-white/10 rounded-full h-2 overflow-hidden">
+                        <div className="h-full bg-[#00A8A8] transition-all duration-300" style={{ width: `${progress}%` }} />
+                      </div>
+                      <p className="text-[9px] font-mono text-gray-600 uppercase tracking-widest mt-2">
+                        Registration_Step_{step}_of_{totalSteps}
+                      </p>
+                    </div>
+
+                    {error && (
+                      <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                        <p className="text-red-500 text-[10px] uppercase tracking-widest">{error}</p>
+                      </div>
+                    )}
+
+                    {step === 1 && (
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">Personal_Information</h3>
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">First_Name *</label>
+                            <input
+                              type="text"
+                              value={formData.firstName}
+                              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Last_Name *</label>
+                            <input
+                              type="text"
+                              value={formData.lastName}
+                              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Phone_Number</label>
+                          <input
+                            type="tel"
+                            value={formData.phoneNumber}
+                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                            placeholder="+1234567890"
+                            className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                          />
+                        </div>
+                        <div className="flex justify-end pt-4">
+                          <button
+                            onClick={() => setStep(2)}
+                            disabled={!formData.firstName || !formData.lastName}
+                            className="px-8 py-3 bg-[#00A8A8] text-black font-bold uppercase text-[10px] tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next_Step →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {step === 2 && (
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">Academic_Profile</h3>
+                        <div className="space-y-2">
+                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Institution</label>
+                          <input
+                            type="text"
+                            value={formData.school}
+                            onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                            placeholder="e.g., Georgia Tech"
+                            className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Major/Program</label>
+                          <input
+                            type="text"
+                            value={formData.major}
+                            onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                            placeholder="e.g., Computer Science"
+                            className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Graduation_Year</label>
+                          <input
+                            type="number"
+                            value={formData.graduationYear}
+                            onChange={(e) => setFormData({ ...formData, graduationYear: parseInt(e.target.value) })}
+                            min={2024}
+                            max={2035}
+                            className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                          />
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                          <button onClick={() => setStep(1)} className="px-8 py-3 border border-white/10 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:bg-white/5">← Previous</button>
+                          <button onClick={() => setStep(3)} className="flex-1 px-8 py-3 bg-[#00A8A8] text-black font-bold uppercase text-[10px] tracking-widest">Next_Step →</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {step === 3 && (
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">Skills_&_Network</h3>
+                        <div className="space-y-2">
+                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Technical_Skills</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={skillInput}
+                              onChange={(e) => setSkillInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                              placeholder="e.g., Python, React"
+                              className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+                              maxLength={50}
+                            />
+                            <button onClick={handleAddSkill} className="px-6 py-3 bg-white/5 border border-white/10 text-white text-[10px] uppercase tracking-widest hover:bg-white/10">Add</button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {formData.skills.map((skill, i) => (
+                              <span key={i} className="px-3 py-1 bg-[#00A8A8]/10 border border-[#00A8A8]/30 text-[#00A8A8] text-[9px] uppercase flex items-center gap-2">
+                                {skill}
+                                <button onClick={() => handleRemoveSkill(i)} className="hover:text-white">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Interests</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={interestInput}
+                              onChange={(e) => setInterestInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
+                              placeholder="e.g., AI, Blockchain"
+                              className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+                              maxLength={50}
+                            />
+                            <button onClick={handleAddInterest} className="px-6 py-3 bg-white/5 border border-white/10 text-white text-[10px] uppercase tracking-widest hover:bg-white/10">Add</button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {formData.interests.map((interest, i) => (
+                              <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 text-white text-[9px] uppercase flex items-center gap-2">
+                                {interest}
+                                <button onClick={() => handleRemoveInterest(i)} className="hover:text-[#00A8A8]">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t border-white/5">
+                          <div className="space-y-2">
+                            <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">LinkedIn_URL</label>
+                            <input
+                              type="url"
+                              value={formData.linkedinUrl}
+                              onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+                              placeholder="https://linkedin.com/in/username"
+                              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">GitHub_URL</label>
+                            <input
+                              type="url"
+                              value={formData.githubUrl}
+                              onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                              placeholder="https://github.com/username"
+                              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono">Portfolio_URL</label>
+                            <input
+                              type="url"
+                              value={formData.portfolioUrl}
+                              onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
+                              placeholder="https://yourportfolio.com"
+                              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-6">
+                          <button onClick={() => setStep(2)} className="px-8 py-3 border border-white/10 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:bg-white/5">← Previous</button>
+                          <button
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                            className="flex-1 px-8 py-3 bg-[#00A8A8] text-black font-bold uppercase text-[10px] tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSubmitting ? 'Registering...' : 'Complete_Registration'}
+                          </button>
+                        </div>
+                      </div>
+                    )}</div>
                 )}
               </div>
             )}
-
-            {/* --- HACKLYTICS MODE --- */}
-            {mode === 'HACKLYTICS' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                <div className="text-center py-10 space-y-4">
-                  <p className="text-amber-500 font-mono text-[10px] tracking-widest">Hackathon_Portal_Active</p>
-                  <p className="text-gray-500 text-xs max-w-md mx-auto">Browse hackathons, register for events, and submit projects. All users (members and guests) can participate.</p>
-                  <button onClick={() => router.push('/hackathons')} className="px-8 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">
-                    View_Hackathons →
-                  </button>
-                </div>
-              </div>
-            )}
+        {/* --- HACKLYTICS MODE --- */}
+        {mode === 'HACKLYTICS' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            <div className="text-center py-20">
+              <p className="text-amber-500 font-mono text-sm uppercase tracking-widest mb-4">Hackathon_System_Coming_Soon</p>
+              <p className="text-gray-600 text-xs">Browse hackathons, register, form teams, and submit projects.</p>
+            </div>
           </div>
-        </div>
-      </main>
+        )}
+      </div>
     </div>
-  );
+  </main>
+</div>
+);
 }
