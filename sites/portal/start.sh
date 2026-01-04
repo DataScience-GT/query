@@ -4,9 +4,6 @@
 set -e
 
 echo "Running Turbo Build from root..."
-(cd ../.. && pnpm turbo build)
-(cd ../.. && pnpm turbo build)
-(cd ../.. && pnpm turbo build)
-clear
+(cd ../.. && pnpm turbo run build --concurrency=2)
 echo "Starting development server..."
 pnpm run dev

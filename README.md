@@ -1,1 +1,3 @@
-## hi if you want to contribute please make sure turbo build works in the individual folders
+# query
+
+The central monorepo for club operations and digital infrastructure.
