@@ -20,17 +20,11 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   callbacks: {
-    async session({ session, token }) {
-      if (token?.sub && session.user) {
-        session.user.id = token.sub;
+    async session({ session, user }) {
+      if (user && session.user) {
+        session.user.id = user.id;
       }
       return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
     },
     async redirect({ url, baseUrl }) {
       if (url === baseUrl || url === `${baseUrl}/`) {
@@ -44,8 +38,9 @@ export const authConfig: NextAuthConfig = {
     },
   },
   session: {
-    strategy: "jwt", // Changed from "database" to "jwt" for better compatibility
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: "database",
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
   debug: process.env.NODE_ENV === "development",
 };
