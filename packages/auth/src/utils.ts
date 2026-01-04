@@ -1,29 +1,22 @@
 import { auth } from "./auth";
 
-/**
- * Get the current session server-side
- */
 export async function getSession() {
   return await auth();
 }
 
-/**
- * Require authentication - throws if not authenticated
- */
 export async function requireAuth() {
   const session = await getSession();
-  if (!session?.user) {
+  if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
-  // TypeScript now knows session.user exists
   return session;
 }
 
-/**
- * Get current user ID
- */
-export async function getCurrentUserId() {
+export async function getCurrentUserId(): Promise<string> {
   const session = await requireAuth();
-  // Using non-null assertion since requireAuth guarantees session.user exists
-  return session.user!.id;
+  const userId = session.user?.id;
+  if (!userId) {
+    throw new Error("User ID not found in session");
+  }
+  return userId;
 }
