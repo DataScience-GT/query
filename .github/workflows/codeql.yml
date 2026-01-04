@@ -1,0 +1,541 @@
+name: "CodeQL Advanced Security Analysis"
+
+on:
+  push:
+    branches: [ "main", "develop", "release/**" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  schedule:
+    # Run at 2 AM UTC every day for continuous monitoring
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      scan_level:
+        description: 'Security scan level'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - aggressive
+          - maximum
+
+# Prevent multiple scans running simultaneously
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze TypeScript/Next.js/tRPC
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@v2
+      with:
+        egress-policy: audit
+        disable-sudo: true
+        disable-file-monitoring: false
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: pnpm
+
+    - name: Install Dependencies
+      run: pnpm install
+
+    - name: Setup CodeQL Custom Queries
+      run: |
+        # Only create files if they don't exist
+        if [ ! -d ".github/codeql/custom-queries" ]; then
+          echo "Creating CodeQL custom queries..."
+          mkdir -p .github/codeql/custom-queries
+          
+          # Create qlpack.yml for custom queries
+          cat > .github/codeql/custom-queries/qlpack.yml << 'QLPACKEOF'
+name: custom/security-queries
+version: 1.0.0
+dependencies:
+  codeql/javascript-all: "*"
+QLPACKEOF
+        
+        # tRPC Input Validation Query
+        cat > .github/codeql/custom-queries/trpc-input-validation.ql << 'TRPCEOF'
+        /**
+         * @name tRPC Missing Input Validation
+         * @description Detects tRPC procedures without proper input validation using Zod
+         * @kind problem
+         * @problem.severity error
+         * @security-severity 8.5
+         * @precision high
+         * @id custom/trpc-input-validation
+         * @tags security
+         *       trpc
+         *       input-validation
+         */
+        
+        import javascript
+        
+        from DataFlow::CallNode procedureCall
+        where 
+          procedureCall.getCalleeName().regexpMatch(".*(query|mutation)") and
+          procedureCall.getReceiver().toString().matches("%router%") and
+          not exists(DataFlow::MethodCallNode inputCall |
+            inputCall.getMethodName() = "input" and
+            inputCall.flowsTo(procedureCall)
+          )
+        select procedureCall, "tRPC procedure without input validation schema"
+        TRPCEOF
+        
+        # SQL Injection Detection for Prisma/TypeORM
+        cat > .github/codeql/custom-queries/sql-injection.ql << 'SQLEOF'
+        /**
+         * @name SQL Injection via Raw Queries
+         * @description Detects potential SQL injection in raw database queries
+         * @kind path-problem
+         * @problem.severity error
+         * @security-severity 9.8
+         * @precision high
+         * @id custom/sql-injection
+         * @tags security
+         *       external/cwe/cwe-089
+         */
+        
+        import javascript
+        import DataFlow::PathGraph
+        
+        class SqlInjectionConfig extends TaintTracking::Configuration {
+          SqlInjectionConfig() { this = "SqlInjectionConfig" }
+        
+          override predicate isSource(DataFlow::Node source) {
+            source instanceof RemoteFlowSource
+          }
+        
+          override predicate isSink(DataFlow::Node sink) {
+            exists(DataFlow::MethodCallNode call |
+              call.getMethodName().regexpMatch("(\\$queryRaw|\\$executeRaw|query|raw)") and
+              sink = call.getArgument(0)
+            )
+          }
+        }
+        
+        from SqlInjectionConfig config, DataFlow::PathNode source, DataFlow::PathNode sink
+        where config.hasFlowPath(source, sink)
+        select sink.getNode(), source, sink, 
+          "Potential SQL injection from $@", source.getNode(), "user input"
+        SQLEOF
+        
+        # NoSQL Injection Detection
+        cat > .github/codeql/custom-queries/nosql-injection.ql << 'NOSQLEOF'
+        /**
+         * @name NoSQL Injection Detection
+         * @description Detects potential NoSQL injection in MongoDB queries
+         * @kind path-problem
+         * @problem.severity error
+         * @security-severity 9.8
+         * @precision high
+         * @id custom/nosql-injection
+         * @tags security
+         *       external/cwe/cwe-943
+         */
+        
+        import javascript
+        import DataFlow::PathGraph
+        
+        class NoSqlInjectionConfig extends TaintTracking::Configuration {
+          NoSqlInjectionConfig() { this = "NoSqlInjectionConfig" }
+        
+          override predicate isSource(DataFlow::Node source) {
+            source instanceof RemoteFlowSource
+          }
+        
+          override predicate isSink(DataFlow::Node sink) {
+            exists(DataFlow::MethodCallNode call |
+              call.getMethodName().regexpMatch("(find|findOne|findMany|update|delete|aggregate)") and
+              sink = call.getArgument(0)
+            )
+          }
+        }
+        
+        from NoSqlInjectionConfig config, DataFlow::PathNode source, DataFlow::PathNode sink
+        where config.hasFlowPath(source, sink)
+        select sink.getNode(), source, sink,
+          "Potential NoSQL injection from $@", source.getNode(), "user input"
+        NOSQLEOF
+        
+        # API Over-fetching Detection
+        cat > .github/codeql/custom-queries/api-overfetching.ql << 'APIEOF'
+        /**
+         * @name Database Query Over-fetching
+         * @description Detects database queries without pagination or field selection
+         * @kind problem
+         * @problem.severity warning
+         * @security-severity 6.0
+         * @precision medium
+         * @id custom/api-overfetching
+         * @tags security
+         *       performance
+         *       database
+         */
+        
+        import javascript
+        
+        from DataFlow::MethodCallNode call
+        where 
+          call.getMethodName().regexpMatch("(findMany|findAll)") and
+          not exists(DataFlow::Node arg | 
+            arg = call.getArgument(0) and
+            arg.asExpr().(ObjectExpr).getAProperty().getName().matches("take")
+          ) and
+          not exists(DataFlow::Node arg |
+            arg = call.getArgument(0) and
+            arg.asExpr().(ObjectExpr).getAProperty().getName().matches("select")
+          )
+        select call, "Database query without pagination (take/skip) or field selection (select)"
+        APIEOF
+        
+        # Next.js Server-Side Security
+        cat > .github/codeql/custom-queries/nextjs-server-security.ql << 'NEXTEOF'
+        /**
+         * @name Next.js Exposed Server-Side Data
+         * @description Detects sensitive data potentially exposed to client
+         * @kind problem
+         * @problem.severity error
+         * @security-severity 7.5
+         * @precision medium
+         * @id custom/nextjs-server-security
+         * @tags security
+         *       nextjs
+         *       data-exposure
+         */
+        
+        import javascript
+        
+        from DataFlow::Node returnNode
+        where
+          exists(Function f |
+            f.getName().regexpMatch("(getServerSideProps|getStaticProps)") and
+            returnNode.asExpr().getEnclosingFunction() = f
+          ) and
+          returnNode.toString().regexpMatch(".*(password|secret|token|key|credential).*")
+        select returnNode, "Potential exposure of sensitive data in server-side props"
+        NEXTEOF
+        
+        # Create CodeQL configuration file
+        cat > codeql-config.yml << 'CONFIGEOF'
+name: "Next.js tRPC Security Configuration"
+
+disable-default-queries: false
+
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+  - uses: ./.github/codeql/custom-queries
+
+query-filters:
+  - exclude:
+      id: js/unused-local-variable
+  - exclude:
+      tags: documentation
+
+paths-ignore:
+  - node_modules
+  - .next
+  - out
+  - dist
+  - build
+  - coverage
+  - public
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/__tests__/**'
+  - '**/__mocks__/**'
+
+paths:
+  - src
+  - app
+  - pages
+  - server
+  - lib
+  - utils
+  - api
+CONFIGEOF
+        
+        # Authentication & Authorization Checks
+        cat > .github/codeql/custom-queries/missing-auth.ql << 'AUTHEOF'
+        /**
+         * @name Missing Authentication Check
+         * @description Detects API routes or tRPC procedures without authentication
+         * @kind problem
+         * @problem.severity error
+         * @security-severity 8.0
+         * @precision medium
+         * @id custom/missing-auth
+         * @tags security
+         *       authentication
+         *       authorization
+         */
+        
+        import javascript
+        
+        from DataFlow::FunctionNode handler
+        where
+          (
+            // Next.js API routes
+            exists(ExportAssignment exp |
+              exp.getExpression() = handler.asExpr()
+            ) or
+            // tRPC procedures
+            exists(DataFlow::MethodCallNode call |
+              call.getMethodName().regexpMatch("(query|mutation)") and
+              handler = call.getArgument(0)
+            )
+          ) and
+          not exists(DataFlow::Node authCheck |
+            authCheck.toString().regexpMatch(".*(auth|session|token|user).*") and
+            authCheck.asExpr().getEnclosingFunction() = handler.getFunction()
+          )
+        select handler, "Handler without apparent authentication check"
+        AUTHEOF
+        
+        # XSS Detection
+        cat > .github/codeql/custom-queries/xss-detection.ql << 'XSSEOF'
+        /**
+         * @name Cross-Site Scripting (XSS) Vulnerability
+         * @description Detects potential XSS vulnerabilities in React components
+         * @kind path-problem
+         * @problem.severity error
+         * @security-severity 9.0
+         * @precision high
+         * @id custom/xss-detection
+         * @tags security
+         *       external/cwe/cwe-079
+         */
+        
+        import javascript
+        import DataFlow::PathGraph
+        
+        class XssConfig extends TaintTracking::Configuration {
+          XssConfig() { this = "XssConfig" }
+        
+          override predicate isSource(DataFlow::Node source) {
+            source instanceof RemoteFlowSource
+          }
+        
+          override predicate isSink(DataFlow::Node sink) {
+            exists(JSXElement jsx |
+              sink.asExpr() = jsx.getAttributeByName("dangerouslySetInnerHTML").getValue()
+            )
+          }
+        }
+        
+        from XssConfig config, DataFlow::PathNode source, DataFlow::PathNode sink
+        where config.hasFlowPath(source, sink)
+        select sink.getNode(), source, sink,
+          "Potential XSS vulnerability from $@", source.getNode(), "user input"
+        XSSEOF
+        
+        # Environment Variable Exposure
+        cat > .github/codeql/custom-queries/env-exposure.ql << 'ENVEOF'
+        /**
+         * @name Environment Variable Client Exposure
+         * @description Detects server-side environment variables exposed to client
+         * @kind problem
+         * @problem.severity error
+         * @security-severity 8.0
+         * @precision high
+         * @id custom/env-exposure
+         * @tags security
+         *       configuration
+         */
+        
+        import javascript
+        
+        from DataFlow::PropRead envAccess
+        where
+          envAccess.getBase().toString().matches("%process.env%") and
+          not envAccess.getPropertyName().matches("NEXT_PUBLIC_%") and
+          exists(File f |
+            f = envAccess.getFile() and
+            not f.getRelativePath().matches("%/server/%") and
+            not f.getRelativePath().matches("%/api/%")
+          )
+        select envAccess, "Server-side environment variable potentially exposed to client"
+        ENVEOF
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: javascript-typescript
+        build-mode: none
+        config-file: ./codeql-config.yml
+        db-location: '${{ runner.temp }}/codeql_databases'
+        setup-python-dependencies: false
+        tools: linked
+        ram: 8192
+        threads: 0
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:typescript"
+        output: sarif-results
+        upload: true
+        checkout_path: ${{ github.workspace }}
+        add-snippets: true
+
+    - name: Upload SARIF Results
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: sarif-results/javascript-typescript.sarif
+        category: typescript
+        wait-for-processing: true
+
+    - name: Generate Security Report
+      if: always()
+      run: |
+        echo "## Security Analysis Report" > security-report.md
+        echo "**Language:** TypeScript (Next.js/tRPC)" >> security-report.md
+        echo "**Timestamp:** $(date -u)" >> security-report.md
+        echo "" >> security-report.md
+        
+        if [ -d "sarif-results" ]; then
+          echo "### Analysis Complete" >> security-report.md
+          echo "Results have been uploaded to GitHub Security tab." >> security-report.md
+          
+          if command -v jq &> /dev/null && [ -f "sarif-results/javascript-typescript.sarif" ]; then
+            CRITICAL=$(jq '[.runs[].results[] | select(.level=="error")] | length' sarif-results/javascript-typescript.sarif 2>/dev/null || echo "0")
+            WARNING=$(jq '[.runs[].results[] | select(.level=="warning")] | length' sarif-results/javascript-typescript.sarif 2>/dev/null || echo "0")
+            NOTE=$(jq '[.runs[].results[] | select(.level=="note")] | length' sarif-results/javascript-typescript.sarif 2>/dev/null || echo "0")
+            echo "" >> security-report.md
+            echo "**Findings Summary:**" >> security-report.md
+            echo "- Critical Issues: $CRITICAL" >> security-report.md
+            echo "- Warnings: $WARNING" >> security-report.md
+            echo "- Notes: $NOTE" >> security-report.md
+            
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "" >> security-report.md
+              echo "**Action Required:** Critical security issues detected. Review immediately." >> security-report.md
+            fi
+          fi
+        fi
+
+    - name: Comment PR with Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('security-report.md')) {
+            const report = fs.readFileSync('security-report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+          }
+
+    - name: Check for Critical Vulnerabilities
+      if: always()
+      run: |
+        if [ -d "sarif-results" ] && command -v jq &> /dev/null && [ -f "sarif-results/javascript-typescript.sarif" ]; then
+          CRITICAL=$(jq '[.runs[].results[] | select(.level=="error")] | length' sarif-results/javascript-typescript.sarif 2>/dev/null || echo "0")
+          
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::Found $CRITICAL critical security issues!"
+            echo "Please review the Security tab for details."
+            echo ""
+            echo "Critical issues found in:"
+            jq -r '.runs[].results[] | select(.level=="error") | "- \(.ruleId): \(.message.text)"' sarif-results/javascript-typescript.sarif 2>/dev/null || true
+            exit 1
+          else
+            echo "::notice::No critical security issues found."
+          fi
+        fi
+
+  dependency-review:
+    name: Dependency Security Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+        deny-licenses: GPL-3.0, AGPL-3.0
+        comment-summary-in-pr: always
+        vulnerability-check: true
+        license-check: true
+
+  security-summary:
+    name: Security Analysis Summary
+    needs: [analyze, dependency-review]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    permissions:
+      security-events: read
+      contents: read
+    
+    steps:
+    - name: Generate Summary
+      run: |
+        echo "# Security Analysis Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Analysis Results" >> $GITHUB_STEP_SUMMARY
+        echo "- CodeQL Analysis: ${{ needs.analyze.result }}" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "- Dependency Review: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Checks Performed" >> $GITHUB_STEP_SUMMARY
+        echo "- SQL Injection (Prisma raw queries)" >> $GITHUB_STEP_SUMMARY
+        echo "- NoSQL Injection (MongoDB queries)" >> $GITHUB_STEP_SUMMARY
+        echo "- tRPC input validation" >> $GITHUB_STEP_SUMMARY
+        echo "- Database over-fetching" >> $GITHUB_STEP_SUMMARY
+        echo "- XSS vulnerabilities" >> $GITHUB_STEP_SUMMARY
+        echo "- Authentication checks" >> $GITHUB_STEP_SUMMARY
+        echo "- Environment variable exposure" >> $GITHUB_STEP_SUMMARY
+        echo "- Next.js server-side data leaks" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "View detailed results in the [Security tab](https://github.com/${{ github.repository }}/security/code-scanning)" >> $GITHUB_STEP_SUMMARY
