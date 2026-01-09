@@ -91,10 +91,6 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
 
   return (
     <>
-      {/* Main Nav Bar:
-          On mobile, we use a slightly darker, more opaque background
-          to ensure visibility over content.
-      */}
       <nav className={`fixed top-0 left-0 w-full h-20 z-130 border-b border-white/10 bg-[#080808] md:bg-[#050505]/80 backdrop-blur-xl transition-all ${className}`}>
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
 
@@ -117,8 +113,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
             <div className="flex items-center gap-8">
               {menuItems.map((item) => renderMenuItem(item))}
               <a
-                href="https://member.datasciencegt.org/"
-                target="_blank"
+                href="/tbd"
                 rel="noopener noreferrer"
                 className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all duration-300"
               >
@@ -150,8 +145,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
         <div className="flex flex-col items-center gap-8 text-center relative z-10">
           {menuItems.map((item) => renderMenuItem(item, true))}
           <a
-            href="https://member.datasciencegt.org/"
-            target="_blank"
+            href="/team"
             rel="noopener noreferrer"
             className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
           >
