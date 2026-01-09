@@ -1,7 +1,3 @@
-/**
- * INPUT EITHER THE NUMBER OF DATA OR THE PERCENTAGE (IF PERCENTAGE, MUST ADD UP TO 100 OTHERWISE IT WILL DISPLAY AS 'X (Y%)' THINKING IT IS NUMBER)
- */
-
 export const ClassData = {
     labels: [
         "1st year",
@@ -33,7 +29,7 @@ export const MajorData = {
         "Computer Science",
         "Industrial Engineering",
         "Other Engineering",
-        "Anaytics",
+        "Analytics",
         "Mathematics",
         "Business Administration",
         "Other",
@@ -41,7 +37,7 @@ export const MajorData = {
     datasets: [
         {
             label: "Major Demographics",
-            data: [62.6, 9.86, 8.25, 8.65, 3.02, 2.41, 5.21],
+            data: [60.1, 17.9, 11.1, 3.13, 3.42, 2, 1.1],
             backgroundColor: [
                 "#88CDC5",
                 "#3D7990",
