@@ -9,26 +9,23 @@ const truculenta = Truculenta({
   weight: ['400', '700', '900'],
 });
 
-// Sponsor Data with Website Links
 const SPONSORS = {
+  gold: [
+    { name: 'Intuit', src: '/sponsors/gold_intuit.jpg', website: 'https://www.intuit.com' },
+    { name: 'Databricks', src: '/sponsors/gold_databricks.png', website: 'https://www.databricks.com' },
+  ],
   silver: [
-    {
-      name: 'Sphinx AI',
-      src: '/sponsors/Silver_SphinxAI.svg',
-      website: 'https://sphinx.ai' // Replace with actual URL
-    },
+    { name: 'Sphinx AI', src: '/sponsors/Silver_SphinxAI.svg', website: 'https://sphinx.ai' },
+    { name: 'Growth Factor', src: '/sponsors/silver_growthfactor.svg', website: 'https://www.growthfactor.ai/' },
+    { name: 'Assurant', src: '/sponsors/silver_assurant.png', website: 'https://www.assurant.com' },
+  ],
+  bronze: [
+    { name: 'Figma', src: '/sponsors/bronze_figma.svg', website: 'https://www.figma.com' },
+    { name: 'D.E. Shaw', src: '/sponsors/bronze_deshaw.png', website: 'https://www.deshaw.com' },
   ],
   mini: [
-    {
-      name: 'SafetyKit',
-      src: '/sponsors/MiniTier_SafetyKit.svg',
-      website: 'https://safetykit.io' // Replace with actual URL
-    },
-    {
-      name: 'Tractian',
-      src: '/sponsors/MiniTier_Tractian.svg',
-      website: 'https://tractian.com' // Replace with actual URL
-    },
+    { name: 'SafetyKit', src: '/sponsors/MiniTier_SafetyKit.svg', website: 'https://www.safetykit.com/' },
+    { name: 'Tractian', src: '/sponsors/MiniTier_Tractian.svg', website: 'https://tractian.com' },
   ]
 };
 
@@ -42,6 +39,14 @@ const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }
 );
 
 const SponsorsSection: React.FC = () => {
+  // Helper to force specific logos to black via CSS filters
+  const getLogoStyles = (name: string) => {
+    if (name === 'Assurant' || name === 'D.E. Shaw') {
+      return "brightness-0";
+    }
+    return "";
+  };
+
   return (
     <section
       id="sponsors"
@@ -98,44 +103,34 @@ const SponsorsSection: React.FC = () => {
         {/* LOGO GRID SECTION */}
         <div className="relative flex flex-col items-center max-w-6xl w-full px-4 z-20 mb-16 space-y-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
 
-            {/* Silver Sponsors */}
-            <div className="flex flex-wrap justify-center gap-8">
-              {SPONSORS.silver.map((s) => (
-                <a
-                  key={s.name}
-                  href={s.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group bg-white/80 backdrop-blur-md p-8 rounded-2xl border-4 border-yellow-500/30 shadow-xl hover:border-wonka-red hover:scale-105 transition-all duration-300 w-80 h-44 flex items-center justify-center overflow-hidden"
-                >
-                  <Image
-                    src={s.src}
-                    alt={s.name}
-                    width={240}
-                    height={120}
-                    className="object-contain max-h-full transition-transform group-hover:scale-110"
-                  />
+            {/* Gold Tier */}
+            <div className="flex flex-wrap justify-center gap-10">
+              {SPONSORS.gold.map((s) => (
+                <a key={s.name} href={s.website} target="_blank" rel="noopener noreferrer"
+                   className="group bg-white/80 backdrop-blur-md p-10 rounded-3xl border-4 border-yellow-400 shadow-xl hover:border-wonka-red hover:scale-105 transition-all duration-300 w-96 h-52 flex items-center justify-center overflow-hidden">
+                  <Image src={s.src} alt={s.name} width={300} height={150} className={`object-contain max-h-full transition-transform group-hover:scale-110 ${getLogoStyles(s.name)}`} />
                 </a>
               ))}
             </div>
 
-            {/* Mini Sponsors */}
-            <div className="flex flex-wrap justify-center gap-6">
-              {SPONSORS.mini.map((s) => (
-                <a
-                  key={s.name}
-                  href={s.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group bg-white/60 backdrop-blur-sm p-6 rounded-xl border-2 border-stone-300 shadow-md hover:border-wonka-red hover:shadow-lg hover:scale-105 transition-all duration-300 w-60 h-32 flex items-center justify-center"
+            {/* Silver Tier */}
+            <div className="flex flex-wrap justify-center gap-8">
+              {SPONSORS.silver.map((s) => (
+                <a key={s.name} href={s.website} target="_blank" rel="noopener noreferrer"
+                   className="group bg-white/70 backdrop-blur-md p-8 rounded-2xl border-4 border-yellow-500/20 shadow-lg hover:border-wonka-red hover:scale-105 transition-all duration-300 w-80 h-44 flex items-center justify-center overflow-hidden"
                 >
-                  <Image
-                    src={s.src}
-                    alt={s.name}
-                    width={180}
-                    height={90}
-                    className="object-contain max-h-full"
-                  />
+                  <Image src={s.src} alt={s.name} width={240} height={120} className={`object-contain max-h-full transition-transform group-hover:scale-110 ${getLogoStyles(s.name)}`} />
+                </a>
+              ))}
+            </div>
+
+            {/* Bronze & Mini Tier Combined */}
+            <div className="flex flex-wrap justify-center gap-6">
+              {[...SPONSORS.bronze, ...SPONSORS.mini].map((s) => (
+                <a key={s.name} href={s.website} target="_blank" rel="noopener noreferrer"
+                   className="group bg-white/60 backdrop-blur-sm p-6 rounded-xl border-2 border-stone-300 shadow-md hover:border-wonka-red hover:shadow-lg hover:scale-105 transition-all duration-300 w-60 h-32 flex items-center justify-center"
+                >
+                  <Image src={s.src} alt={s.name} width={180} height={90} className={`object-contain max-h-full ${getLogoStyles(s.name)}`} />
                 </a>
               ))}
             </div>
@@ -164,7 +159,7 @@ const SponsorsSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom clouds and Footer remain exactly the same as your source */}
+      {/* Bottom clouds and Footer */}
       <div className="relative w-full h-40 md:h-48 flex justify-center items-end mt-16">
         <div className="absolute left-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] -translate-x-1/4 animate-drift" style={{ animationDelay: '0s' }}>
           <Image src="/cloud-final/image.png" alt="Cloud left" fill className="object-cover object-bottom opacity-90" priority />
@@ -178,7 +173,7 @@ const SponsorsSection: React.FC = () => {
 
         <div className="absolute bottom-0 left-0 right-0 z-30 w-full bg-gradient-to-t from-white/80 to-transparent pt-12 pb-6 px-6">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className={`flex gap-6 text-stone-600 text-sm md:text-base font-bold tracking-wide uppercase ${truculenta.className}`}>
+            <div className={`flex flex-wrap gap-6 text-stone-600 text-sm md:text-base font-bold tracking-wide uppercase ${truculenta.className}`}>
                 <Link href="mailto:hello@hacklytics.io" className="hover:text-wonka-red transition-colors">Contact Us</Link>
                 <Link href="https://instagram.com/dsgt" className="hover:text-wonka-red transition-colors">Instagram</Link>
                 <Link href="https://linkedin.com/company/dsgt" className="hover:text-wonka-red transition-colors">LinkedIn</Link>
