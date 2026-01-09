@@ -68,8 +68,8 @@ const Team = () => {
               Aditi oversees all operations of DSGT, leading the executive board and coordinating with faculty and industry partners to shape the future of data science at GT.
             </TeamCard>
 
-            <TeamCard name="Nitika Agnihotri" title="Vice President" img={ViceP}>
-              Nitika leads <strong>Hacklytics</strong>, DSGT's flagship datathon. She manages corporate sponsorships, event organization, and networking initiatives.
+            <TeamCard name="Nikita Agnihotri" title="Vice President" img={ViceP}>
+              Nikita leads <strong>Hacklytics</strong>, DSGT's flagship datathon. She manages corporate sponsorships, event organization, and networking initiatives.
             </TeamCard>
 
             <TeamCard name="Alysha Irvin" title="Co-Director of Logistics" img={Logistics1}>
@@ -90,10 +90,6 @@ const Team = () => {
 
             <TeamCard name="Aryan Hazra" title="Director of Events" img={Events}>
               Aryan manages room bookings, catering, and volunteer coordination, ensuring technical workshops and socials execute perfectly.
-            </TeamCard>
-
-            <TeamCard name="Sarvesh Tiku" title="Co-Director of External Affairs" img={External1}>
-              Sarvesh manages relationships with external organizations, coordinating outreach and industrial engagement for DSGT initiatives.
             </TeamCard>
 
             <TeamCard name="Vidhi Gupta" title="Co-Director of External Affairs" img={External2}>
