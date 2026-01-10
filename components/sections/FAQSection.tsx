@@ -76,12 +76,6 @@ export default function FAQ() {
       delay: "0.1s"
     },
     {
-      title: "How do I get Travel Reimbursements?",
-      content: "More information coming soon!",
-      delay: "0.2s",
-      titleClassName: "text-base"
-    },
-    {
       title: "Can you participate virtually",
       content: "Unfortunately, no, Hacklytics 2026 is only in person this year. Sponsors want to come see you work on your projects in person!",
       delay: "0.3s"
