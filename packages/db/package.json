@@ -10,7 +10,9 @@
   "scripts": {
     "migrate:push": "drizzle-kit push",
     "migrate:generate": "drizzle-kit generate",
-    "studio": "drizzle-kit studio"
+    "studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/reset.ts"
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.10",
@@ -24,6 +26,7 @@
     "@query/tsconfig": "workspace:*",
     "@types/pg": "^8.10.9",
     "drizzle-kit": "^0.28.1",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
