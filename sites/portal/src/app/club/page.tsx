@@ -4,315 +4,247 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Background from '@/components/Background';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
-export default function MemberProfilePage() {
+export default function ClubPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
+  const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
+  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
 
-  // Fetch member data
-  const { data: memberData, isLoading } = trpc.member.me.useQuery(undefined, {
-    enabled: !!session,
-  });
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, {
-    enabled: !!session,
-  });
-
-  const { data: memberHistory } = trpc.member.history.useQuery(undefined, {
-    enabled: !!session,
-  });
-
-  // Redirect if not authenticated
+  // Auth & Member Guard
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/');
-    }
-  }, [status, router]);
-
-  // Redirect if not a member
-  useEffect(() => {
-    if (status === 'authenticated' && memberStatus && !memberStatus.isMember) {
-      router.push('/member/register');
+    } else if (status === 'authenticated' && memberStatus && !memberStatus.isMember) {
+      router.push('/dashboard');
     }
   }, [status, memberStatus, router]);
 
-  if (status === 'loading' || isLoading) {
+  const handleScan = async (detectedCodes: any[]) => {
+    if (detectedCodes && detectedCodes.length > 0) {
+      const scannedData = detectedCodes[0].rawValue;
+      setIsPaused(true);
+
+      try {
+        // TODO: Replace with your actual API endpoint
+        // const response = await fetch(`/api/verify-qr?code=${encodeURIComponent(scannedData)}`);
+        // const result = await response.json();
+
+        // For now, just show the scanned result
+        setScanResult(scannedData);
+        setShowScanner(false);
+
+      } catch (error) {
+        console.error('Error processing QR code:', error);
+        alert('Failed to process QR code. Please try again.');
+      } finally {
+        setIsPaused(false);
+      }
+    }
+  };
+
+  const handleError = (error: any) => {
+    console.error('Scanner error:', error);
+  };
+
+  if (status === 'loading' || !memberStatus) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <div className="text-indigo-500 animate-pulse uppercase tracking-[0.5em] font-mono text-sm">
-          Loading Profile...
-        </div>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
+        Verifying_Access...
       </div>
     );
   }
 
-  if (!session || !memberData) {
-    return null;
-  }
+  if (!session || !memberStatus.isMember) return null;
+
+  const firstName = userData?.name?.split(' ')[0] || 'Member';
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-400">
-      {/* Background Effects */}
-      <div className="absolute inset-0 z-0 opacity-30">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.05)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]" />
-      </div>
+    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
+      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
-      {/* Header */}
-      <header className="relative z-10 border-b border-white/5 bg-black/60 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      {/* QR SCANNER MODAL */}
+      {showScanner && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/95 backdrop-blur-md"
+            onClick={() => {
+              setShowScanner(false);
+              setIsPaused(false);
+            }}
+          />
+          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">QR_Scanner</h3>
+                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">Event_Check_In_System</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowScanner(false);
+                  setIsPaused(false);
+                }}
+                className="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest"
+              >
+                [ Close ]
+              </button>
+            </div>
+
+            {/* Camera Feed */}
+            <div className="relative rounded-xl overflow-hidden border-2 border-[#00A8A8]/30">
+              <Scanner
+                onScan={handleScan}
+                onError={handleError}
+                paused={isPaused}
+                constraints={{
+                  facingMode: 'environment',
+                }}
+                formats={[
+                  'qr_code',
+                  'micro_qr_code',
+                  'rm_qr_code',
+                ]}
+                components={{
+                  torch: true,
+                  finder: true,
+                }}
+                styles={{
+                  container: {
+                    width: '100%',
+                    height: '350px',
+                  },
+                }}
+                scanDelay={2000}
+              />
+            </div>
+
+            <div className="mt-4 bg-[#00A8A8]/10 border border-[#00A8A8]/30 rounded-lg p-4">
+              <p className="text-[9px] text-[#00A8A8] uppercase tracking-widest font-bold mb-2">Instructions:</p>
+              <ul className="text-[8px] text-gray-500 space-y-1 font-mono">
+                <li>• Hold phone steady over QR code</li>
+                <li>• Ensure good lighting conditions</li>
+                <li>• Scan will happen automatically</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SCAN RESULT MODAL */}
+      {scanResult && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/95 backdrop-blur-md"
+            onClick={() => setScanResult(null)}
+          />
+          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
+            <div className="text-center space-y-6">
+              <div className="inline-block p-4 bg-[#00A8A8]/10 rounded-full">
+                <div className="text-5xl">✓</div>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Scan_Success</h3>
+                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">QR_Code_Detected</p>
+              </div>
+
+              <div className="bg-black/60 border border-white/5 rounded-lg p-4">
+                <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-2">Scanned_Data:</p>
+                <p className="text-xs text-white font-mono break-all">{scanResult}</p>
+              </div>
+
+              <button
+                onClick={() => setScanResult(null)}
+                className="w-full px-8 py-3 bg-[#00A8A8] text-black font-bold uppercase text-[10px] tracking-widest hover:bg-[#00A8A8]/80 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MAIN CONTENT */}
+      <main className="relative z-10 max-w-4xl mx-auto px-6 py-20 min-h-screen flex flex-col items-center justify-center">
+        <div className="w-full space-y-12 text-center">
+
+          {/* Welcome Header */}
+          <div className="space-y-4">
+            <div className="inline-block px-4 py-2 border border-[#00A8A8]/20 rounded-full bg-[#00A8A8]/5 mb-4">
+              <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">
+                Member_Access_Granted
+              </p>
+            </div>
+
+            <h1 className="text-6xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-none">
+              Welcome,<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#00A8A8]/50 italic">
+                {firstName}
+              </span>
+            </h1>
+
+            <p className="text-sm text-gray-500 font-mono max-w-md mx-auto">
+              You now have full access to DSGT club operations. Scan QR codes at events to check in and earn points.
+            </p>
+          </div>
+
+          {/* Action Card */}
+          <div className="max-w-md mx-auto bg-black/60 border border-white/5 rounded-2xl p-8 backdrop-blur-md">
+            <div className="mb-6">
+              <div className="w-20 h-20 mx-auto bg-[#00A8A8]/10 rounded-full flex items-center justify-center border border-[#00A8A8]/30 mb-4">
+                <span className="text-4xl">📷</span>
+              </div>
+              <h2 className="text-xl font-black text-white uppercase tracking-tight mb-2">
+                Event_Check_In
+              </h2>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+                Scan QR codes at club events
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowScanner(true)}
+              disabled={showScanner}
+              className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-sm uppercase tracking-widest hover:bg-[#00A8A8]/80 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.2)] relative group"
+            >
+              <span className="flex items-center justify-center gap-3">
+                Scan_QR_Code
+                <span className="text-xl group-hover:scale-110 transition-transform">→</span>
+              </span>
+            </button>
+
+            <div className="mt-6 pt-6 border-t border-white/5 space-y-2">
+              <div className="flex justify-between text-[9px] font-mono">
+                <span className="text-gray-600">EVENTS_ATTENDED:</span>
+                <span className="text-[#00A8A8]">0</span>
+              </div>
+              <div className="flex justify-between text-[9px] font-mono">
+                <span className="text-gray-600">POINTS_EARNED:</span>
+                <span className="text-[#00A8A8]">0</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
             <button
               onClick={() => router.push('/dashboard')}
-              className="text-gray-500 hover:text-white transition-colors font-mono text-xs uppercase tracking-widest"
+              className="px-6 py-4 border border-white/10 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
             >
               ← Dashboard
             </button>
-            <div className="h-4 w-px bg-white/10" />
-            <h1 className="text-2xl font-black text-white uppercase tracking-tighter italic">
-              Member Profile
-            </h1>
-          </div>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="px-6 py-2 border border-indigo-500/30 text-indigo-400 font-mono text-xs uppercase tracking-widest hover:bg-indigo-500/10 transition-all rounded-sm"
-          >
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="relative z-10 max-w-6xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Left Column - Member Card */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-black/60 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <img
-                  src={session.user?.image || ''}
-                  alt={memberData.firstName}
-                  className="w-24 h-24 rounded-full border-2 border-indigo-500/30 grayscale"
-                />
-                <div>
-                  <h2 className="text-xl font-bold text-white uppercase tracking-tight">
-                    {memberData.firstName} {memberData.lastName}
-                  </h2>
-                  <p className="text-xs text-gray-600 uppercase tracking-widest font-mono mt-1">
-                    {memberStatus?.memberType} Member
-                  </p>
-                </div>
-
-                {/* Member Status Badge */}
-                {memberStatus?.isActive ? (
-                  <div className="w-full p-3 bg-emerald-500/10 border border-emerald-500/30 rounded text-center">
-                    <p className="text-emerald-500 font-mono text-xs uppercase tracking-widest">
-                      ✓ Active
-                    </p>
-                    <p className="text-gray-500 text-[10px] mt-1">
-                      {memberStatus.daysRemaining} days remaining
-                    </p>
-                  </div>
-                ) : (
-                  <div className="w-full p-3 bg-amber-500/10 border border-amber-500/30 rounded text-center">
-                    <p className="text-amber-500 font-mono text-xs uppercase tracking-widest">
-                      ⚠ Expired
-                    </p>
-                    <button
-                      onClick={() => router.push('/member/renew')}
-                      className="w-full mt-2 py-2 bg-amber-600 text-white font-bold text-[10px] uppercase tracking-widest rounded hover:bg-amber-500 transition-all"
-                    >
-                      Renew Membership
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-white/5 space-y-3 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 uppercase tracking-widest">Member Since</span>
-                  <span className="text-white">{new Date(memberData.joinedAt).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 uppercase tracking-widest">Renewals</span>
-                  <span className="text-white">{memberStatus?.renewalCount || 0}</span>
-                </div>
-                {memberData.school && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 uppercase tracking-widest">School</span>
-                    <span className="text-white text-right">{memberData.school}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Details */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* Personal Information */}
-            <div className="bg-black/60 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-3">
-                <span className="text-indigo-500">01.</span> Personal Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">First Name</label>
-                  <p className="text-white mt-1">{memberData.firstName}</p>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Last Name</label>
-                  <p className="text-white mt-1">{memberData.lastName}</p>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Email</label>
-                  <p className="text-white mt-1">{session.user?.email}</p>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Phone</label>
-                  <p className="text-white mt-1">{memberData.phoneNumber || 'Not provided'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Academic Information */}
-            <div className="bg-black/60 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-3">
-                <span className="text-indigo-500">02.</span> Academic Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">School</label>
-                  <p className="text-white mt-1">{memberData.school || 'Not provided'}</p>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Major</label>
-                  <p className="text-white mt-1">{memberData.major || 'Not provided'}</p>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">Graduation Year</label>
-                  <p className="text-white mt-1">{memberData.graduationYear || 'Not provided'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Skills & Interests */}
-            <div className="bg-black/60 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-3">
-                <span className="text-indigo-500">03.</span> Skills & Interests
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2 block">Skills</label>
-                  <div className="flex flex-wrap gap-2">
-                    {memberData.skills && memberData.skills.length > 0 ? (
-                      memberData.skills.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-mono rounded-sm"
-                        >
-                          {skill}
-                        </span>
-                      ))
-                    ) : (
-                      <p className="text-gray-600 text-sm italic">No skills listed</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-gray-600 uppercase tracking-widest font-mono mb-2 block">Interests</label>
-                  <div className="flex flex-wrap gap-2">
-                    {memberData.interests && memberData.interests.length > 0 ? (
-                      memberData.interests.map((interest, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono rounded-sm"
-                        >
-                          {interest}
-                        </span>
-                      ))
-                    ) : (
-                      <p className="text-gray-600 text-sm italic">No interests listed</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Social Links */}
-            <div className="bg-black/60 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-3">
-                <span className="text-indigo-500">04.</span> Social Links
-              </h3>
-              <div className="space-y-3">
-                {memberData.linkedinUrl && (
-                  <a
-                    href={memberData.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-sm text-gray-400 hover:text-indigo-400 transition-colors"
-                  >
-                    <span className="font-mono uppercase tracking-widest text-xs">LinkedIn</span>
-                    <span className="text-gray-700">→</span>
-                  </a>
-                )}
-                {memberData.githubUrl && (
-                  <a
-                    href={memberData.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-sm text-gray-400 hover:text-indigo-400 transition-colors"
-                  >
-                    <span className="font-mono uppercase tracking-widest text-xs">GitHub</span>
-                    <span className="text-gray-700">→</span>
-                  </a>
-                )}
-                {memberData.portfolioUrl && (
-                  <a
-                    href={memberData.portfolioUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-sm text-gray-400 hover:text-indigo-400 transition-colors"
-                  >
-                    <span className="font-mono uppercase tracking-widest text-xs">Portfolio</span>
-                    <span className="text-gray-700">→</span>
-                  </a>
-                )}
-                {!memberData.linkedinUrl && !memberData.githubUrl && !memberData.portfolioUrl && (
-                  <p className="text-gray-600 text-sm italic">No social links provided</p>
-                )}
-              </div>
-            </div>
-
-            {/* Membership History */}
-            {memberHistory && memberHistory.length > 0 && (
-              <div className="bg-black/60 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
-                <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-3">
-                  <span className="text-indigo-500">05.</span> Membership History
-                </h3>
-                <div className="space-y-3">
-                  {memberHistory.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="flex items-center justify-between p-3 bg-white/5 rounded border border-white/5"
-                    >
-                      <div>
-                        <p className="text-white text-sm font-mono uppercase tracking-widest">
-                          {entry.action}
-                        </p>
-                        <p className="text-gray-600 text-xs mt-1">
-                          {entry.startDate ? new Date(entry.startDate).toLocaleDateString() : 'N/A'} - {entry.endDate ? new Date(entry.endDate).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <button
+              onClick={() => router.push('/club/events')}
+              className="px-6 py-4 border border-white/10 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all opacity-50 cursor-not-allowed"
+            >
+              View Events
+            </button>
           </div>
         </div>
       </main>
