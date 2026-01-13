@@ -12,6 +12,5 @@ export {
 } from "./schemas/hackathons";
 export {
   events,
-  eventRSVPs,
   eventCheckIns
 } from "./schemas/events";
