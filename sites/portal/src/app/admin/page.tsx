@@ -26,7 +26,6 @@ export default function AdminPage() {
     description: '',
     location: '',
     eventDate: '',
-    pointsValue: 10,
     maxCheckIns: '',
   });
 
@@ -47,7 +46,6 @@ export default function AdminPage() {
         description: '',
         location: '',
         eventDate: '',
-        pointsValue: 10,
         maxCheckIns: '',
       });
       setShowCreateEvent(false);
@@ -68,6 +66,14 @@ export default function AdminPage() {
       utils.events.listAll.invalidate();
       setShowQRCode(null);
       setSelectedEvent(null);
+    },
+  });
+
+  const regenerateQRMutation = trpc.events.regenerateQR.useMutation({
+    onSuccess: (updatedEvent) => {
+      utils.events.listAll.invalidate();
+      generateQRCode(updatedEvent.qrCode);
+      setSelectedEvent(updatedEvent);
     },
   });
 
@@ -103,7 +109,6 @@ export default function AdminPage() {
       description: eventForm.description || undefined,
       location: eventForm.location || undefined,
       eventDate: new Date(eventForm.eventDate),
-      pointsValue: eventForm.pointsValue,
       maxCheckIns: eventForm.maxCheckIns ? parseInt(eventForm.maxCheckIns) : undefined,
     });
   };
@@ -208,33 +213,17 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono block mb-2">
-                    Points Value
-                  </label>
-                  <input
-                    type="number"
-                    value={eventForm.pointsValue}
-                    onChange={(e) => setEventForm({ ...eventForm, pointsValue: parseInt(e.target.value) })}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-red-500 focus:outline-none transition-all"
-                    min="1"
-                    max="100"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono block mb-2">
-                    Max Check-ins (Optional)
-                  </label>
-                  <input
-                    type="number"
-                    value={eventForm.maxCheckIns}
-                    onChange={(e) => setEventForm({ ...eventForm, maxCheckIns: e.target.value })}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-red-500 focus:outline-none transition-all"
-                    placeholder="Unlimited"
-                  />
-                </div>
+              <div>
+                <label className="text-[9px] text-gray-500 uppercase tracking-widest font-mono block mb-2">
+                  Max Check-ins (Optional)
+                </label>
+                <input
+                  type="number"
+                  value={eventForm.maxCheckIns}
+                  onChange={(e) => setEventForm({ ...eventForm, maxCheckIns: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-red-500 focus:outline-none transition-all"
+                  placeholder="Unlimited"
+                />
               </div>
 
               <button
@@ -291,10 +280,6 @@ export default function AdminPage() {
                   <span className="text-white">{selectedEvent.title}</span>
                 </div>
                 <div className="flex justify-between text-[9px] font-mono">
-                  <span className="text-gray-600">POINTS:</span>
-                  <span className="text-red-500">+{selectedEvent.pointsValue}</span>
-                </div>
-                <div className="flex justify-between text-[9px] font-mono">
                   <span className="text-gray-600">CHECK-INS:</span>
                   <span className="text-white">
                     {selectedEvent.currentCheckIns} {selectedEvent.maxCheckIns ? `/ ${selectedEvent.maxCheckIns}` : ''}
@@ -325,6 +310,18 @@ export default function AdminPage() {
                   Copy Code
                 </button>
               </div>
+
+              <button
+                onClick={() => {
+                  if (confirm('Generate a new QR code? The old one will stop working.')) {
+                    regenerateQRMutation.mutate({ eventId: selectedEvent.id });
+                  }
+                }}
+                disabled={regenerateQRMutation.isPending}
+                className="w-full px-6 py-3 bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[10px] uppercase tracking-widest hover:bg-red-500/20 transition-all disabled:opacity-50"
+              >
+                {regenerateQRMutation.isPending ? 'Regenerating...' : '🔄 Regenerate QR Code'}
+              </button>
             </div>
           </div>
         </div>
@@ -440,9 +437,8 @@ export default function AdminPage() {
                         )}
 
                         <div className="flex flex-wrap gap-4 text-[9px] font-mono text-gray-600">
-                          {event.location && <span> {event.location}</span>}
-                          <span>{new Date(event.eventDate).toLocaleString()}</span>
-                          <span className="text-red-500">+{event.pointsValue} pts</span>
+                          {event.location && <span>📍 {event.location}</span>}
+                          <span>📅 {new Date(event.eventDate).toLocaleString()}</span>
                           <span>
                             👥 {event.currentCheckIns} check-ins
                             {event.maxCheckIns && ` / ${event.maxCheckIns}`}
