@@ -10,12 +10,55 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 export default function ClubPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const utils = trpc.useUtils();
+
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
+  const { data: myStats } = trpc.events.myStats.useQuery(undefined, { enabled: !!session });
+  const { data: myEvents } = trpc.events.myEvents.useQuery(undefined, { enabled: !!session });
 
   const [showScanner, setShowScanner] = useState(false);
-  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<{
+    success: boolean;
+    message: string;
+    eventTitle?: string;
+  } | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [scannedCodes, setScannedCodes] = useState<Set<string>>(new Set());
+
+  // Check-in mutation
+  const checkInMutation = trpc.events.checkIn.useMutation({
+    onSuccess: async (data) => {
+      setScanResult({
+        success: true,
+        message: 'Check-in successful!',
+        eventTitle: data.eventTitle,
+      });
+      setShowScanner(false);
+      setIsProcessing(false);
+
+      // Optimistically update stats before refetch
+      utils.events.myStats.setData(undefined, (old) => {
+        if (!old) return { totalEvents: 1 };
+        return {
+          totalEvents: old.totalEvents + 1,
+        };
+      });
+
+      // Background refresh
+      utils.events.myEvents.invalidate();
+      utils.events.myStats.invalidate();
+    },
+    onError: (error) => {
+      setScanResult({
+        success: false,
+        message: error.message || 'Check-in failed',
+      });
+      setShowScanner(false);
+      setIsProcessing(false);
+    },
+  });
 
   // Auth & Member Guard
   useEffect(() => {
@@ -26,26 +69,29 @@ export default function ClubPage() {
     }
   }, [status, memberStatus, router]);
 
+  // Reset scanned codes when scanner closes
+  useEffect(() => {
+    if (!showScanner) {
+      setScannedCodes(new Set());
+    }
+  }, [showScanner]);
+
   const handleScan = async (detectedCodes: any[]) => {
-    if (detectedCodes && detectedCodes.length > 0) {
-      const scannedData = detectedCodes[0].rawValue;
-      setIsPaused(true);
+    if (isProcessing || !detectedCodes || detectedCodes.length === 0) return;
 
-      try {
-        // TODO: Replace with your actual API endpoint
-        // const response = await fetch(`/api/verify-qr?code=${encodeURIComponent(scannedData)}`);
-        // const result = await response.json();
+    const scannedData = detectedCodes[0].rawValue;
 
-        // For now, just show the scanned result
-        setScanResult(scannedData);
-        setShowScanner(false);
+    // Prevent scanning the same code multiple times
+    if (scannedCodes.has(scannedData)) return;
 
-      } catch (error) {
-        console.error('Error processing QR code:', error);
-        alert('Failed to process QR code. Please try again.');
-      } finally {
-        setIsPaused(false);
-      }
+    setScannedCodes(prev => new Set(prev).add(scannedData));
+    setIsPaused(true);
+    setIsProcessing(true);
+
+    try {
+      await checkInMutation.mutateAsync({ qrCode: scannedData });
+    } catch (error) {
+      console.error('Check-in error:', error);
     }
   };
 
@@ -75,8 +121,10 @@ export default function ClubPage() {
           <div
             className="absolute inset-0 bg-black/95 backdrop-blur-md"
             onClick={() => {
-              setShowScanner(false);
-              setIsPaused(false);
+              if (!isProcessing) {
+                setShowScanner(false);
+                setIsPaused(false);
+              }
             }}
           />
           <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
@@ -87,10 +135,13 @@ export default function ClubPage() {
               </div>
               <button
                 onClick={() => {
-                  setShowScanner(false);
-                  setIsPaused(false);
+                  if (!isProcessing) {
+                    setShowScanner(false);
+                    setIsPaused(false);
+                  }
                 }}
-                className="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest"
+                disabled={isProcessing}
+                className="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
               >
                 [ Close ]
               </button>
@@ -98,18 +149,24 @@ export default function ClubPage() {
 
             {/* Camera Feed */}
             <div className="relative rounded-xl overflow-hidden border-2 border-[#00A8A8]/30">
+              {isProcessing && (
+                <div className="absolute inset-0 bg-black/80 z-10 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-[#00A8A8] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-[10px] text-[#00A8A8] uppercase tracking-widest font-mono">
+                      Verifying...
+                    </p>
+                  </div>
+                </div>
+              )}
               <Scanner
                 onScan={handleScan}
                 onError={handleError}
-                paused={isPaused}
+                paused={isPaused || isProcessing}
                 constraints={{
                   facingMode: 'environment',
                 }}
-                formats={[
-                  'qr_code',
-                  'micro_qr_code',
-                  'rm_qr_code',
-                ]}
+                formats={['qr_code']}
                 components={{
                   torch: true,
                   finder: true,
@@ -120,7 +177,7 @@ export default function ClubPage() {
                     height: '350px',
                   },
                 }}
-                scanDelay={2000}
+                scanDelay={500}
               />
             </div>
 
@@ -129,7 +186,7 @@ export default function ClubPage() {
               <ul className="text-[8px] text-gray-500 space-y-1 font-mono">
                 <li>• Hold phone steady over QR code</li>
                 <li>• Ensure good lighting conditions</li>
-                <li>• Scan will happen automatically</li>
+                <li>• Scan happens automatically</li>
               </ul>
             </div>
           </div>
@@ -145,23 +202,50 @@ export default function ClubPage() {
           />
           <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
             <div className="text-center space-y-6">
-              <div className="inline-block p-4 bg-[#00A8A8]/10 rounded-full">
-                <div className="text-5xl">✓</div>
+              <div className={`inline-block p-4 rounded-full ${
+                scanResult.success
+                  ? 'bg-[#00A8A8]/10'
+                  : 'bg-red-500/10'
+              }`}>
+                <div className="text-5xl">
+                  {scanResult.success ? '✓' : '✗'}
+                </div>
               </div>
 
               <div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Scan_Success</h3>
-                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">QR_Code_Detected</p>
+                <h3 className={`text-2xl font-black uppercase tracking-tighter mb-2 ${
+                  scanResult.success ? 'text-white' : 'text-red-400'
+                }`}>
+                  {scanResult.success ? 'Check_In_Success' : 'Check_In_Failed'}
+                </h3>
+                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">
+                  {scanResult.success ? 'Event_Verified' : 'Error_Occurred'}
+                </p>
               </div>
 
-              <div className="bg-black/60 border border-white/5 rounded-lg p-4">
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-2">Scanned_Data:</p>
-                <p className="text-xs text-white font-mono break-all">{scanResult}</p>
-              </div>
+              {scanResult.success && scanResult.eventTitle && (
+                <div className="space-y-3">
+                  <div className="bg-black/60 border border-white/5 rounded-lg p-4">
+                    <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-2">Event:</p>
+                    <p className="text-lg text-white font-bold">{scanResult.eventTitle}</p>
+                  </div>
+                </div>
+              )}
+
+              {!scanResult.success && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                  <p className="text-[9px] text-red-400 uppercase tracking-widest mb-2">Error:</p>
+                  <p className="text-sm text-red-300">{scanResult.message}</p>
+                </div>
+              )}
 
               <button
                 onClick={() => setScanResult(null)}
-                className="w-full px-8 py-3 bg-[#00A8A8] text-black font-bold uppercase text-[10px] tracking-widest hover:bg-[#00A8A8]/80 transition-all"
+                className={`w-full px-8 py-3 font-bold uppercase text-[10px] tracking-widest transition-all ${
+                  scanResult.success
+                    ? 'bg-[#00A8A8] text-black hover:bg-[#00A8A8]/80'
+                    : 'bg-red-500 text-white hover:bg-red-500/80'
+                }`}
               >
                 Close
               </button>
@@ -222,14 +306,43 @@ export default function ClubPage() {
             <div className="mt-6 pt-6 border-t border-white/5 space-y-2">
               <div className="flex justify-between text-[9px] font-mono">
                 <span className="text-gray-600">EVENTS_ATTENDED:</span>
-                <span className="text-[#00A8A8]">0</span>
-              </div>
-              <div className="flex justify-between text-[9px] font-mono">
-                <span className="text-gray-600">POINTS_EARNED:</span>
-                <span className="text-[#00A8A8]">0</span>
+                <span className="text-[#00A8A8]">{myStats?.totalEvents ?? 0}</span>
               </div>
             </div>
           </div>
+
+          {/* Recent Events */}
+          {myEvents && myEvents.length > 0 && (
+            <div className="max-w-md mx-auto">
+              <h3 className="text-sm font-black text-white uppercase tracking-tight mb-4 text-left">
+                Recent_Events
+              </h3>
+              <div className="space-y-2">
+                {myEvents.slice(0, 3).map((checkIn) => (
+                  <div
+                    key={checkIn.id}
+                    className="bg-black/40 border border-white/5 rounded-lg p-4 text-left hover:border-[#00A8A8]/30 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-sm font-bold text-white">{checkIn.event.title}</h4>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] text-gray-500 uppercase tracking-widest">
+                        {new Date(checkIn.checkedInAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                      {checkIn.event.location && (
+                        <p className="text-[8px] text-gray-600">📍 {checkIn.event.location}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
