@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { events, eventCheckIns, members, admins } from "@query/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -33,12 +33,11 @@ export const eventRouter = createTRPCRouter({
         description: z.string().max(1000).optional(),
         location: z.string().max(200).optional(),
         eventDate: z.date(),
-        pointsValue: z.number().int().min(1).max(100).default(10),
         maxCheckIns: z.number().int().positive().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const qrCode = randomUUID(); // Generate unique QR code
+      const qrCode = randomUUID();
 
       const [newEvent] = await ctx.db
         .insert(events)
@@ -50,6 +49,31 @@ export const eventRouter = createTRPCRouter({
         .returning();
 
       return newEvent;
+    }),
+
+  // ADMIN: Regenerate QR code for an event
+  regenerateQR: isAdmin
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const newQrCode = randomUUID();
+
+      const [updatedEvent] = await ctx.db
+        .update(events)
+        .set({
+          qrCode: newQrCode,
+          updatedAt: new Date(),
+        })
+        .where(eq(events.id, input.eventId))
+        .returning();
+
+      if (!updatedEvent) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        });
+      }
+
+      return updatedEvent;
     }),
 
   // ADMIN: List all events
@@ -138,78 +162,87 @@ export const eventRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // MEMBER: Check in to event via QR code
+  // MEMBER: Check in to event via QR code (OPTIMIZED - Single Query)
   checkIn: protectedProcedure
-    .input(z.object({ qrCode: z.string() }))
+    .input(z.object({ qrCode: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const event = await ctx.db.query.events.findFirst({
-        where: eq(events.qrCode, input.qrCode),
+      // Single transaction with all checks and inserts
+      return await ctx.db.transaction(async (tx) => {
+        // 1. Get event and validate in one query
+        const event = await tx.query.events.findFirst({
+          where: eq(events.qrCode, input.qrCode),
+        });
+
+        if (!event) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Invalid QR code",
+          });
+        }
+
+        if (!event.checkInEnabled) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Check-in not enabled for this event",
+          });
+        }
+
+        // 2. Check max capacity
+        if (event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Event is full",
+          });
+        }
+
+        // 3. Get member and check for existing check-in in parallel
+        const [member, existingCheckIn] = await Promise.all([
+          tx.query.members.findFirst({
+            where: eq(members.userId, ctx.userId!),
+          }),
+          tx.query.eventCheckIns.findFirst({
+            where: and(
+              eq(eventCheckIns.eventId, event.id),
+              eq(eventCheckIns.userId, ctx.userId!)
+            ),
+          }),
+        ]);
+
+        if (!member) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Must be a member to check in",
+          });
+        }
+
+        if (existingCheckIn) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Already checked in",
+          });
+        }
+
+        // 4. Create check-in and update counter
+        await Promise.all([
+          tx.insert(eventCheckIns).values({
+            eventId: event.id,
+            userId: ctx.userId!,
+            memberId: member.id,
+            checkInMethod: "qr_code",
+          }),
+          tx
+            .update(events)
+            .set({
+              currentCheckIns: sql`${events.currentCheckIns} + 1`,
+            })
+            .where(eq(events.id, event.id)),
+        ]);
+
+        return {
+          success: true,
+          eventTitle: event.title,
+        };
       });
-
-      if (!event || !event.checkInEnabled) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Invalid or inactive event code",
-        });
-      }
-
-      // Check if max capacity reached
-      if (event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Event check-in limit reached",
-        });
-      }
-
-      const member = await ctx.db.query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
-      });
-
-      if (!member) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Must be a club member to check in",
-        });
-      }
-
-      // Prevent duplicate check-ins
-      const existing = await ctx.db.query.eventCheckIns.findFirst({
-        where: and(
-          eq(eventCheckIns.eventId, event.id),
-          eq(eventCheckIns.userId, ctx.userId!)
-        ),
-      });
-
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You have already checked in to this event",
-        });
-      }
-
-      // Create check-in and increment counter
-      await ctx.db.transaction(async (tx) => {
-        await tx.insert(eventCheckIns).values({
-          eventId: event.id,
-          userId: ctx.userId!,
-          memberId: member.id,
-          checkInMethod: "qr_code",
-          pointsEarned: event.pointsValue,
-        });
-
-        await tx
-          .update(events)
-          .set({
-            currentCheckIns: sql`${events.currentCheckIns} + 1`,
-          })
-          .where(eq(events.id, event.id));
-      });
-
-      return {
-        success: true,
-        eventTitle: event.title,
-        pointsEarned: event.pointsValue,
-      };
     }),
 
   // MEMBER: Get my attended events
@@ -224,28 +257,27 @@ export const eventRouter = createTRPCRouter({
             description: true,
             location: true,
             eventDate: true,
-            pointsValue: true,
           },
         },
       },
       orderBy: (eventCheckIns, { desc }) => [desc(eventCheckIns.checkedInAt)],
+      limit: 50,
     });
 
     return checkIns;
   }),
 
-  // MEMBER: Get my stats
+  // MEMBER: Get my stats (OPTIMIZED - Single Aggregation Query)
   myStats: protectedProcedure.query(async ({ ctx }) => {
-    const checkIns = await ctx.db.query.eventCheckIns.findMany({
-      where: eq(eventCheckIns.userId, ctx.userId!),
-    });
-
-    const totalEvents = checkIns.length;
-    const totalPoints = checkIns.reduce((sum, c) => sum + (c.pointsEarned || 0), 0);
+    const result = await ctx.db
+      .select({
+        totalEvents: sql<number>`count(*)::int`,
+      })
+      .from(eventCheckIns)
+      .where(eq(eventCheckIns.userId, ctx.userId!));
 
     return {
-      totalEvents,
-      totalPoints,
+      totalEvents: result[0]?.totalEvents ?? 0,
     };
   }),
 });
