@@ -6,6 +6,8 @@ export const authConfig: NextAuthConfig = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Allows Google login to "claim" the pre-seeded user record via email match
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           prompt: "consent",
@@ -22,6 +24,7 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async session({ session, user }) {
       if (user && session.user) {
+        // Ensures the ID generated during seeding is the ID used in the session
         session.user.id = user.id;
       }
       return session;
@@ -30,7 +33,6 @@ export const authConfig: NextAuthConfig = {
       if (url === baseUrl || url === `${baseUrl}/`) {
         return `${baseUrl}/dashboard`;
       }
-
       if (url.startsWith(baseUrl)) {
         return url;
       }
