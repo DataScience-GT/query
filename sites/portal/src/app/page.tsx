@@ -84,7 +84,7 @@ export default function Home() {
   };
 
   const handleSignIn = () => {
-    setLogs(prev => [...prev.slice(-4), "> Initializing OAuth Handshake..."]);
+    setLogs(prev => [...prev.slice(-4), "> Initializing OAuth..."]);
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
@@ -146,7 +146,7 @@ export default function Home() {
               disabled={helloLoading || isRedirecting || status === 'loading'}
               className="w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
             >
-              {isRedirecting ? 'Verified' : 'Sign In With Google'}
+              {isRedirecting ? 'Verified' : 'Sign In'}
             </button>
 
             <button
@@ -154,7 +154,7 @@ export default function Home() {
               disabled={helloLoading || isRedirecting || status === 'loading'}
               className="w-full sm:w-auto px-8 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all active:scale-95 disabled:opacity-30"
             >
-              Test Endpoint
+              Click me!
             </button>
           </div>
         </div>
