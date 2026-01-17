@@ -10,6 +10,9 @@
     "./server": "./src/index.ts",
     "./context": "./src/context.ts",
     "./middleware": "./src/middleware.ts",
+    "./middleware/cache": "./src/middleware/cache.ts",
+    "./middleware/http-security": "./src/middleware/http-security.ts",
+    "./middleware/security": "./src/middleware/security.ts",
     "./trpc": "./src/trpc.ts"
   },
   "scripts": {
@@ -25,6 +28,7 @@
     "@trpc/react-query": "^11.7.2",
     "@trpc/server": "^11.7.2",
     "minimatch": "^10.1.1",
+    "sanitize-html": "^2.17.0",
     "superjson": "^2.2.6",
     "zod": "^3.23.8"
   },
