@@ -4,7 +4,8 @@ import { userRouter } from "./routers/user";
 import { adminRouter } from "./routers/admin";
 import { memberRouter } from "./routers/member";
 import { hackathonRouter } from "./routers/hackathon";
-import { eventRouter } from "./routers/events"; // Add this
+import { eventRouter } from "./routers/events";
+import { judgeRouter } from "./routers/judge";
 
 export const appRouter = createTRPCRouter({
   hello: helloRouter,
@@ -12,7 +13,8 @@ export const appRouter = createTRPCRouter({
   admin: adminRouter,
   member: memberRouter,
   hackathon: hackathonRouter,
-  events: eventRouter, // Add this
+  events: eventRouter,
+  judge: judgeRouter,
 });
 
 export type AppRouter = typeof appRouter;

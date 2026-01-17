@@ -21,7 +21,7 @@ import Content2 from "@/assets/images/2025/glenne.png"
 import External1 from "@/assets/images/2025/sarvesh.jpg"
 import External2 from "@/assets/images/2025/vidhi.jpeg"
 import Project from "@/assets/images/2025/anika.jpg"
-import Advisor from "@/assets/image/2025/jake.png"
+import Advisor from "@/assets/images/2025/jake.png"
 
 const Team = () => {
   const [windowWidth, setWindowWidth] = useState<number>(
@@ -109,7 +109,7 @@ const Team = () => {
               Anika oversees project logistics, managing the project portal and setting up research opportunities with professors and industry pros.
             </TeamCard>
 
-            <TeamCard name="Jake" title="Director of Projects" img={Project}>
+            <TeamCard name="Jake" title="Club Advisor" img={Advisor}>
               Jake is our club advisor and leads IDEAS
             </TeamCard>
 
