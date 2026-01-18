@@ -12,6 +12,7 @@ import {
   admins,
 } from "@query/db";
 import { eq, and, asc, desc, sql } from "drizzle-orm";
+import { CacheKeys } from "../middleware/cache";
 
 // Middleware to check if user is a judge
 const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
@@ -54,6 +55,15 @@ const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
 export const judgeRouter = createTRPCRouter({
   // Check if current user is a judge
   isJudge: protectedProcedure.query(async ({ ctx }) => {
+    // Check cache first
+    const cacheKey = CacheKeys.judge(ctx.userId!);
+    const cached = ctx.cache.get<{
+      isJudge: boolean;
+      judgeId: string | null;
+      name: string | null;
+    }>(cacheKey);
+    if (cached) return cached;
+
     const judge = await ctx.db.query.judges.findFirst({
       where: and(
         eq(judges.userId, ctx.userId!),
@@ -61,11 +71,16 @@ export const judgeRouter = createTRPCRouter({
       ),
     });
 
-    return {
+    const result = {
       isJudge: !!judge,
       judgeId: judge?.id || null,
       name: judge?.name || null,
     };
+
+    // Cache for 60 seconds
+    ctx.cache.set(cacheKey, result, 60);
+
+    return result;
   }),
 
   // Get hackathons assigned to current judge
