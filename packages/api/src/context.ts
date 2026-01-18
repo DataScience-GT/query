@@ -6,7 +6,16 @@ import { cache } from "./middleware/cache";
 export async function createContext(
   opts?: FetchCreateContextFnOptions & { clientIp?: string }
 ) {
-  const session = await auth();
+  let session = null;
+
+  // Only attempt auth if database is available
+  if (db) {
+    try {
+      session = await auth();
+    } catch (error) {
+      console.warn("Failed to fetch auth session:", error);
+    }
+  }
 
   return {
     db,
