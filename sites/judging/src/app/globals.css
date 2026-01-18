@@ -8,8 +8,8 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: #0a0a0a;
-  color: #fff;
+  background: #050505;
+  color: #9ca3af;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -30,14 +30,19 @@ input[type="range"]::-webkit-slider-thumb {
   height: 24px;
   width: 24px;
   border-radius: 50%;
-  background: #fff;
+  background: #00A8A8;
   cursor: pointer;
   margin-top: -10px;
+  box-shadow: 0 0 15px rgba(0, 168, 168, 0.5);
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
   width: 100%;
   height: 4px;
-  background: #333;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
+}
+
+::selection {
+  background: rgba(0, 168, 168, 0.3);
 }
