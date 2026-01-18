@@ -27,6 +27,11 @@ export default function Home() {
     enabled: !!session,
   });
 
+  // Check judge status
+  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
+    enabled: !!session,
+  });
+
   // tRPC Mutation
   const { mutate: sayHello, isPending: helloLoading } =
     trpc.hello.sayHello.useMutation({
@@ -44,7 +49,7 @@ export default function Home() {
 
     // Simulating background system discovery
     const timeout = setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Network: Established", "> Session: Awaiting user..."]);
+      setLogs(prev => [...prev.slice(-4), "> Network: Established", "> Session: Awaiting user..."]);
     }, 800);
 
     return () => clearTimeout(timeout);
@@ -68,6 +73,12 @@ export default function Home() {
       setLogs(prev => [...prev.slice(-4), memberLog]);
     }
   }, [memberStatus]);
+
+  useEffect(() => {
+    if (judgeStatus?.isJudge) {
+      setLogs(prev => [...prev.slice(-4), "> Role Detected: JUDGE"]);
+    }
+  }, [judgeStatus]);
 
   // SILENT BACKGROUND REDIRECT
   useEffect(() => {
@@ -107,8 +118,8 @@ export default function Home() {
         <div className="space-y-12">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-               <div className="h-px w-12 bg-[#00A8A8]/30" />
-               <span className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em]">Query Engine // V.1</span>
+              <div className="h-px w-12 bg-[#00A8A8]/30" />
+              <span className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em]">Query Engine // V.1</span>
             </div>
 
             <h1 className="text-7xl lg:text-9xl font-black text-white leading-[0.8] tracking-tighter uppercase">
@@ -119,24 +130,24 @@ export default function Home() {
             </h1>
 
             <div className="max-w-md space-y-4">
-               <p className="text-sm text-gray-500 leading-relaxed border-l-2 border-[#00A8A8]/20 pl-4 italic font-medium">
+              <p className="text-sm text-gray-500 leading-relaxed border-l-2 border-[#00A8A8]/20 pl-4 italic font-medium">
                 The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
-               </p>
+              </p>
 
-               {/* TERMINAL OUTPUT BOX */}
-               <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 rounded-lg font-mono text-[11px] leading-relaxed shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  {logs.map((log, i) => (
-                    <p key={i} className={i === logs.length - 1 ? "text-[#00A8A8]" : "text-gray-600"}>
-                      {log}
-                    </p>
-                  ))}
-                  {(helloLoading || isRedirecting || status === 'loading') && (
-                    <p className="text-[#00A8A8] animate-pulse">
-                        {'>'} {status === 'loading' ? 'Syncing_Identity...' : 'Processing request...'}
-                    </p>
-                  )}
-               </div>
+              {/* TERMINAL OUTPUT BOX */}
+              <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 rounded-lg font-mono text-[11px] leading-relaxed shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                {logs.map((log, i) => (
+                  <p key={i} className={i === logs.length - 1 ? "text-[#00A8A8]" : "text-gray-600"}>
+                    {log}
+                  </p>
+                ))}
+                {(helloLoading || isRedirecting || status === 'loading') && (
+                  <p className="text-[#00A8A8] animate-pulse">
+                    {'>'} {status === 'loading' ? 'Syncing_Identity...' : 'Processing request...'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -179,19 +190,19 @@ export default function Home() {
             </div>
 
             <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
-               <p className="text-[10px] font-mono text-[#00A8A8]/50 uppercase tracking-[0.5em] animate-pulse">
+              <p className="text-[10px] font-mono text-[#00A8A8]/50 uppercase tracking-[0.5em] animate-pulse">
                 {isRedirecting ? "Handshake Verified" : status === 'loading' ? "Synchronizing..." : "Core Operational"}
-               </p>
-               <div className="flex justify-center gap-6 text-[8px] font-mono text-gray-700">
-                  <span className="flex items-center gap-1">
-                    <div className={`w-1 h-1 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
-                    STATUS: {status.toUpperCase()}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-1 h-1 bg-[#00A8A8] rounded-full" />
-                    REGION: ATL-08
-                  </span>
-               </div>
+              </p>
+              <div className="flex justify-center gap-6 text-[8px] font-mono text-gray-700">
+                <span className="flex items-center gap-1">
+                  <div className={`w-1 h-1 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
+                  STATUS: {status.toUpperCase()}
+                </span>
+                <span className="flex items-center gap-1">
+                  <div className="w-1 h-1 bg-[#00A8A8] rounded-full" />
+                  REGION: ATL-08
+                </span>
+              </div>
             </div>
           </div>
         </div>
