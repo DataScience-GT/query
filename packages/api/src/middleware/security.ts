@@ -10,6 +10,27 @@ interface RateLimitRecord {
 
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
+interface IPRecord {
+  requests: number;
+  firstRequest: number;
+  suspiciousActivity: number;
+  isBlocked: boolean;
+  blockedUntil: number;
+}
+
+const ipTrackingStore = new Map<string, IPRecord>();
+
+// DDoS Protection Constants
+const DDOS_CONFIG = {
+  maxRequestsPerMinute: 120, // Max requests per minute per IP
+  suspiciousThreshold: 100, // Requests that trigger suspicious flag
+  blockDurationMs: 5 * 60 * 1000, // 5 minutes block for suspicious IPs
+  burstThreshold: 30, // Max requests in 5 seconds
+  burstWindowMs: 5 * 1000, // 5 second burst window
+  cleanupIntervalMs: 60 * 1000, // Cleanup every minute
+};
+
+// Cleanup expired records
 setInterval(() => {
   const now = Date.now();
   for (const [key, value] of rateLimitStore.entries()) {
@@ -17,7 +38,20 @@ setInterval(() => {
       rateLimitStore.delete(key);
     }
   }
-}, 5 * 60 * 1000);
+  // Cleanup IP tracking records older than 5 minutes
+  for (const [ip, record] of ipTrackingStore.entries()) {
+    if (now - record.firstRequest > 5 * 60 * 1000 && !record.isBlocked) {
+      ipTrackingStore.delete(ip);
+    }
+    // Unblock IPs after block duration
+    if (record.isBlocked && now > record.blockedUntil) {
+      record.isBlocked = false;
+      record.requests = 0;
+      record.suspiciousActivity = 0;
+      record.firstRequest = now;
+    }
+  }
+}, DDOS_CONFIG.cleanupIntervalMs);
 
 export function rateLimit(
   identifier: string,
@@ -236,4 +270,116 @@ export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
 export function getRecentSecurityEvents(minutes: number = 60): SecurityEvent[] {
   const cutoff = Date.now() - minutes * 60 * 1000;
   return securityLog.filter(e => e.timestamp > cutoff);
+}
+
+export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+
+  // Get or create IP record
+  let record = ipTrackingStore.get(clientIp);
+  if (!record) {
+    record = {
+      requests: 0,
+      firstRequest: now,
+      suspiciousActivity: 0,
+      isBlocked: false,
+      blockedUntil: 0,
+    };
+    ipTrackingStore.set(clientIp, record);
+  }
+
+  // Check if IP is blocked
+  if (record.isBlocked && now < record.blockedUntil) {
+    logSecurityEvent({
+      type: 'rate_limit',
+      identifier: clientIp,
+      details: `Blocked IP attempted access`,
+    });
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((record.blockedUntil - now) / 1000),
+    };
+  }
+
+  // Reset counter if window expired
+  const elapsed = now - record.firstRequest;
+  if (elapsed > 60 * 1000) {
+    record.requests = 0;
+    record.firstRequest = now;
+  }
+
+  // Increment request counter
+  record.requests++;
+
+  // Check for burst (too many requests in short window)
+  if (elapsed < DDOS_CONFIG.burstWindowMs && record.requests > DDOS_CONFIG.burstThreshold) {
+    record.suspiciousActivity++;
+    record.isBlocked = true;
+    record.blockedUntil = now + DDOS_CONFIG.blockDurationMs;
+
+    logSecurityEvent({
+      type: 'rate_limit',
+      identifier: clientIp,
+      details: `Burst attack detected: ${record.requests} requests in ${elapsed}ms`,
+    });
+
+    return {
+      allowed: false,
+      retryAfter: Math.ceil(DDOS_CONFIG.blockDurationMs / 1000),
+    };
+  }
+
+  // Check for sustained attack
+  if (record.requests > DDOS_CONFIG.maxRequestsPerMinute) {
+    record.suspiciousActivity++;
+    record.isBlocked = true;
+    record.blockedUntil = now + DDOS_CONFIG.blockDurationMs;
+
+    logSecurityEvent({
+      type: 'rate_limit',
+      identifier: clientIp,
+      details: `Sustained attack: ${record.requests} requests/minute`,
+    });
+
+    return {
+      allowed: false,
+      retryAfter: Math.ceil(DDOS_CONFIG.blockDurationMs / 1000),
+    };
+  }
+
+  // Mark as suspicious if approaching limits
+  if (record.requests > DDOS_CONFIG.suspiciousThreshold) {
+    record.suspiciousActivity++;
+  }
+
+  return { allowed: true };
+}
+
+export function validateRequestSize(payload: unknown, maxSizeBytes: number = 1024 * 100): boolean {
+  try {
+    const jsonString = JSON.stringify(payload);
+    return new TextEncoder().encode(jsonString).length <= maxSizeBytes;
+  } catch {
+    return false;
+  }
+}
+
+export function getDdosStats(): {
+  totalTrackedIPs: number;
+  blockedIPs: number;
+  suspiciousIPs: number;
+} {
+  let blockedCount = 0;
+  let suspiciousCount = 0;
+
+  for (const record of ipTrackingStore.values()) {
+    if (record.isBlocked) blockedCount++;
+    if (record.suspiciousActivity > 0) suspiciousCount++;
+  }
+
+  return {
+    totalTrackedIPs: ipTrackingStore.size,
+    blockedIPs: blockedCount,
+    suspiciousIPs: suspiciousCount,
+  };
 }

@@ -7,8 +7,29 @@ import {
   hackathonTeams,
   hackathonProjects,
   members,
+  admins,
 } from "@query/db";
 import { eq, and, gte, sql } from "drizzle-orm";
+import { CacheKeys } from "../middleware/cache";
+
+// Admin check middleware for hackathon management
+const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
+  const admin = await ctx.db.query.admins.findFirst({
+    where: and(
+      eq(admins.userId, ctx.userId!),
+      eq(admins.isActive, true)
+    ),
+  });
+
+  if (!admin) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required to manage hackathons",
+    });
+  }
+
+  return next({ ctx: { ...ctx, admin } });
+});
 
 export const hackathonRouter = createTRPCRouter({
   list: publicProcedure
@@ -21,6 +42,13 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      // Generate cache key based on input parameters
+      const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
+
+      // Check cache first
+      const cached = ctx.cache.get<typeof allHackathons>(cacheKey);
+      if (cached) return cached;
+
       const now = new Date();
 
       const allHackathons = await ctx.db.query.hackathons.findMany({
@@ -34,12 +62,20 @@ export const hackathonRouter = createTRPCRouter({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
       });
 
+      // Cache for 60 seconds (hackathon lists don't change often)
+      ctx.cache.set(cacheKey, allHackathons, 60);
+
       return allHackathons;
     }),
 
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      // Check cache first
+      const cacheKey = CacheKeys.hackathon(input.id);
+      const cached = ctx.cache.get<typeof hackathon>(cacheKey);
+      if (cached) return cached;
+
       const hackathon = await ctx.db.query.hackathons.findFirst({
         where: eq(hackathons.id, input.id),
       });
@@ -51,10 +87,13 @@ export const hackathonRouter = createTRPCRouter({
         });
       }
 
+      // Cache for 120 seconds
+      ctx.cache.set(cacheKey, hackathon, 120);
+
       return hackathon;
     }),
 
-  create: protectedProcedure
+  create: isAdmin
     .input(
       z.object({
         name: z.string().min(1).max(200),
@@ -89,10 +128,13 @@ export const hackathonRouter = createTRPCRouter({
         })
         .returning();
 
+      // Invalidate hackathon list cache
+      ctx.cache.deletePattern('hackathons:*');
+
       return newHackathon;
     }),
 
-  update: protectedProcedure
+  update: isAdmin
     .input(
       z.object({
         id: z.string().uuid("Invalid hackathon ID"),
@@ -140,6 +182,10 @@ export const hackathonRouter = createTRPCRouter({
         })
         .where(eq(hackathons.id, id))
         .returning();
+
+      // Invalidate hackathon caches
+      ctx.cache.delete(CacheKeys.hackathon(id));
+      ctx.cache.deletePattern('hackathons:*');
 
       return updatedHackathon;
     }),

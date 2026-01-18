@@ -18,7 +18,7 @@ export default function AdminResultsPage() {
   });
 
   // Get hackathons (using the hackathon router)
-  const { data: hackathons } = trpc.hackathon.list.useQuery(undefined, {
+  const { data: hackathons } = trpc.hackathon.list.useQuery({}, {
     enabled: !!session && !!adminStatus?.isAdmin,
   });
 
@@ -47,8 +47,8 @@ export default function AdminResultsPage() {
 
   if (!mounted || status === 'loading' || adminLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
+        Syncing_Identity...
       </div>
     );
   }
@@ -57,47 +57,59 @@ export default function AdminResultsPage() {
 
   if (!adminStatus?.isAdmin) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Admin Access Required</h1>
-          <p className="text-gray-500 mb-4">You don't have permission to view this page.</p>
-          <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="text-sm text-gray-600 underline"
-          >
-            Sign Out
-          </button>
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
+          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
         </div>
+        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Admin_Access_Required</h1>
+        <p className="text-gray-500 font-mono text-sm mb-8">You don't have permission to view this page.</p>
+        <button
+          onClick={() => signOut({ callbackUrl: '/' })}
+          className="px-8 py-3 border border-red-500/20 text-red-500 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-red-500/10 transition-all"
+        >
+          Terminate_Session
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#050505] selection:bg-[#00A8A8]/30">
+      {/* Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.03)_0%,transparent_70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]" />
+      </div>
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-900">Judging Results</h1>
+      <header className="sticky top-0 z-40 bg-[#050505]/90 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-px w-8 bg-[#00A8A8]/30" />
+            <h1 className="text-lg font-black text-white uppercase tracking-tight">Judging_Results</h1>
+          </div>
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="text-sm text-gray-500 hover:text-gray-900"
+            className="text-[10px] text-gray-500 font-mono uppercase tracking-[0.3em] hover:text-[#00A8A8] transition-colors"
           >
-            Sign Out
+            Terminate_Session
           </button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto px-6 py-8 relative z-10">
         {/* Hackathon Selector */}
         {hackathons && hackathons.length > 1 && (
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Hackathon
+          <div className="mb-8">
+            <label className="block text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-3">
+              Select_Hackathon
             </label>
             <select
               value={selectedHackathon || ''}
               onChange={(e) => setSelectedHackathon(e.target.value)}
-              className="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2"
+              className="w-full max-w-xs bg-black/60 border border-white/10 rounded px-4 py-3 text-white font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none"
             >
               {hackathons.map((h) => (
                 <option key={h.id} value={h.id}>
@@ -110,103 +122,113 @@ export default function AdminResultsPage() {
 
         {/* Tie Warning */}
         {rankings?.hasTies && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-yellow-800 mb-2">Ties Detected</h3>
-            <ul className="text-sm text-yellow-700">
-              {rankings.ties.map((tie, i) => (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-5 mb-8">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+              <h3 className="font-bold text-yellow-500 uppercase text-sm tracking-wide">Ties_Detected</h3>
+            </div>
+            <ul className="text-sm text-yellow-500/80 font-mono space-y-1">
+              {rankings.ties.map((tie: { score: number; projects: string[] }, i: number) => (
                 <li key={i}>
-                  Score {tie.score}: {tie.projects.join(', ')}
+                  &gt; Score {tie.score}: {tie.projects.join(', ')}
                 </li>
               ))}
             </ul>
-            <p className="text-sm text-yellow-600 mt-2">
-              Manual tiebreaker needed for these projects.
+            <p className="text-[10px] text-yellow-500/60 mt-3 font-mono uppercase tracking-widest">
+              Manual_Tiebreaker_Required
             </p>
           </div>
         )}
 
         {/* Rankings Table */}
         {rankingsLoading ? (
-          <p className="text-gray-500 text-center py-12">Loading results...</p>
+          <div className="text-center py-20">
+            <p className="text-[#00A8A8] font-mono animate-pulse uppercase tracking-[0.5em]">Loading_Results...</p>
+          </div>
         ) : rankings?.rankings.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">No projects or votes yet.</p>
+          <div className="text-center py-20">
+            <p className="text-gray-500 font-mono uppercase tracking-widest">No projects or votes yet.</p>
+          </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="border-b border-white/5">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Rank</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Table</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Project</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-600">Total</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-600">Avg</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-600">Votes</th>
+                  <th className="text-left px-5 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">Rank</th>
+                  <th className="text-left px-5 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">Table</th>
+                  <th className="text-left px-5 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">Project</th>
+                  <th className="text-right px-5 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">Total</th>
+                  <th className="text-right px-5 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">Avg</th>
+                  <th className="text-right px-5 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">Votes</th>
                 </tr>
               </thead>
               <tbody>
-                {rankings?.rankings.map((r, idx) => {
+                {rankings?.rankings.map((r: { project: { id: string; name: string; tableNumber: string; teamMembers?: string }; totalScore: number; avgScore: number; voteCount: number; votes: { judgeName: string; score: number; comment?: string }[] }, idx: number) => {
                   const isExpanded = expandedProject === r.project.id;
-                  const isTied = rankings.ties.some((t) =>
+                  const isTied = rankings.ties.some((t: { projects: string[] }) =>
                     t.projects.includes(r.project.name)
                   );
 
                   return (
                     <React.Fragment key={r.project.id}>
                       <tr
-                        className={`border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                          isTied ? 'bg-yellow-50' : ''
+                        className={`border-b border-white/5 cursor-pointer transition-colors ${
+                          isTied ? 'bg-yellow-500/5' : 'hover:bg-white/5'
                         }`}
                         onClick={() =>
                           setExpandedProject(isExpanded ? null : r.project.id)
                         }
                       >
-                        <td className="px-4 py-3">
-                          <span className={`font-bold ${idx < 3 ? 'text-gray-900' : 'text-gray-500'}`}>
+                        <td className="px-5 py-4">
+                          <span className={`font-black text-lg ${
+                            idx === 0 ? 'text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]' :
+                            idx < 3 ? 'text-white' : 'text-gray-500'
+                          }`}>
                             #{idx + 1}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{r.project.tableNumber}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4 text-gray-400 font-mono">{r.project.tableNumber}</td>
+                        <td className="px-5 py-4">
                           <div>
-                            <p className="font-medium text-gray-900">{r.project.name}</p>
+                            <p className="font-bold text-white">{r.project.name}</p>
                             {r.project.teamMembers && (
-                              <p className="text-sm text-gray-500">{r.project.teamMembers}</p>
+                              <p className="text-sm text-gray-500 font-mono">{r.project.teamMembers}</p>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right font-bold text-gray-900">
-                          {r.totalScore}
+                        <td className="px-5 py-4 text-right">
+                          <span className="font-black text-xl text-[#00A8A8]">{r.totalScore}</span>
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-600">{r.avgScore}</td>
-                        <td className="px-4 py-3 text-right text-gray-500">{r.voteCount}</td>
+                        <td className="px-5 py-4 text-right text-gray-400 font-mono">{r.avgScore}</td>
+                        <td className="px-5 py-4 text-right text-gray-500 font-mono">{r.voteCount}</td>
                       </tr>
 
                       {/* Expanded row with individual votes */}
                       {isExpanded && (
-                        <tr className="bg-gray-50">
-                          <td colSpan={6} className="px-4 py-4">
-                            <div className="text-sm">
-                              <p className="font-medium text-gray-700 mb-2">Individual Votes:</p>
+                        <tr className="bg-black/40">
+                          <td colSpan={6} className="px-5 py-5">
+                            <div>
+                              <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-4">Individual_Votes</p>
                               {r.votes.length === 0 ? (
-                                <p className="text-gray-500">No votes yet</p>
+                                <p className="text-gray-600 font-mono text-sm">No votes yet</p>
                               ) : (
-                                <div className="space-y-2">
-                                  {r.votes.map((v, vi) => (
+                                <div className="space-y-3">
+                                  {r.votes.map((v: { judgeName: string; score: number; comment?: string }, vi: number) => (
                                     <div
                                       key={vi}
-                                      className="flex items-start gap-4 bg-white p-3 rounded border border-gray-200"
+                                      className="flex items-start gap-4 bg-black/40 border border-white/5 p-4 rounded-lg"
                                     >
                                       <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-medium text-gray-900">
+                                        <div className="flex items-center gap-3">
+                                          <span className="font-bold text-white">
                                             {v.judgeName}
                                           </span>
-                                          <span className="text-lg font-bold text-gray-900">
+                                          <span className="text-2xl font-black text-[#00A8A8]">
                                             {v.score}
                                           </span>
                                         </div>
                                         {v.comment && (
-                                          <p className="text-gray-600 mt-1">{v.comment}</p>
+                                          <p className="text-gray-400 text-sm font-mono mt-2 italic">"{v.comment}"</p>
                                         )}
                                       </div>
                                     </div>
@@ -227,20 +249,22 @@ export default function AdminResultsPage() {
 
         {/* Summary Stats */}
         {rankings && rankings.rankings.length > 0 && (
-          <div className="mt-6 grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{rankings.rankings.length}</p>
-              <p className="text-sm text-gray-500">Projects</p>
+          <div className="mt-8 grid grid-cols-3 gap-4">
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 text-center">
+              <p className="text-3xl font-black text-white">{rankings.rankings.length}</p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mt-2">Projects</p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">
-                {rankings.rankings.reduce((sum, r) => sum + r.voteCount, 0)}
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 text-center">
+              <p className="text-3xl font-black text-[#00A8A8]">
+                {rankings.rankings.reduce((sum: number, r: { voteCount: number }) => sum + r.voteCount, 0)}
               </p>
-              <p className="text-sm text-gray-500">Total Votes</p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mt-2">Total_Votes</p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-600">{rankings.ties.length}</p>
-              <p className="text-sm text-gray-500">Ties</p>
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 text-center">
+              <p className={`text-3xl font-black ${rankings.ties.length > 0 ? 'text-yellow-500' : 'text-gray-600'}`}>
+                {rankings.ties.length}
+              </p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mt-2">Ties</p>
             </div>
           </div>
         )}

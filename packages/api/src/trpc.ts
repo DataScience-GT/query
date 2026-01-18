@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import type { Context } from "./context";
-import { rateLimit, RATE_LIMITS, sanitizeInput, logSecurityEvent } from "./middleware/security";
+import { rateLimit, RATE_LIMITS, sanitizeInput, logSecurityEvent, ddosProtection, validateRequestSize } from "./middleware/security";
 import { CacheKeys } from "./middleware/cache";
 
 const t = initTRPC.context<Context>().create({
@@ -21,6 +21,16 @@ const t = initTRPC.context<Context>().create({
 export const createTRPCRouter = t.router;
 
 export const publicProcedure = t.procedure.use(async ({ ctx, next, type }) => {
+  // DDoS Protection - check IP-based limits first
+  const ddosCheck = ddosProtection(ctx.clientIp);
+  if (!ddosCheck.allowed) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Too many requests from your IP. Please try again in ${ddosCheck.retryAfter} seconds.`,
+    });
+  }
+
+  // Token-based rate limiting
   const identifier = ctx.userId || `anon-${ctx.session?.user?.id || 'unknown'}`;
   const config = RATE_LIMITS.public;
   const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
@@ -43,14 +53,20 @@ export const publicProcedure = t.procedure.use(async ({ ctx, next, type }) => {
   return next();
 });
 
-// ============================================
-// AUTHENTICATION MIDDLEWARE
-// ============================================
 const isAuthed = t.middleware(async ({ ctx, next, type }) => {
+  // DDoS Protection - check IP-based limits first
+  const ddosCheck = ddosProtection(ctx.clientIp);
+  if (!ddosCheck.allowed) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Too many requests from your IP. Please try again in ${ddosCheck.retryAfter} seconds.`,
+    });
+  }
+
   if (!ctx.session?.user || !ctx.userId) {
     logSecurityEvent({
       type: 'auth_failure',
-      identifier: 'unknown',
+      identifier: ctx.clientIp,
       details: 'Missing session or userId',
     });
 
@@ -87,10 +103,23 @@ const isAuthed = t.middleware(async ({ ctx, next, type }) => {
   });
 });
 
-// ============================================
-// INPUT SANITIZATION MIDDLEWARE
-// ============================================
-const sanitizeInputs = t.middleware(async ({ next, rawInput, ctx }) => {
+const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
+  // Get raw input for validation
+  const rawInput = await getRawInput();
+
+  // Validate request size (prevent large payload attacks)
+  if (rawInput && !validateRequestSize(rawInput)) {
+    logSecurityEvent({
+      type: 'validation_error',
+      identifier: ctx.userId ?? ctx.clientIp,
+      details: 'Request payload too large',
+    });
+    throw new TRPCError({
+      code: "PAYLOAD_TOO_LARGE",
+      message: "Request payload is too large",
+    });
+  }
+
   // Validate the raw input - this throws if invalid patterns are detected
   // We don't modify the input, just validate it for security issues
   sanitizeInput(rawInput);
@@ -109,9 +138,6 @@ const sanitizeInputs = t.middleware(async ({ next, rawInput, ctx }) => {
   return result;
 });
 
-// ============================================
-// CACHE INVALIDATION MIDDLEWARE (for mutations)
-// ============================================
 const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
   // Execute the procedure first
   const result = await next();
@@ -128,18 +154,11 @@ const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path 
   return result;
 });
 
-
-// ============================================
-// PROTECTED PROCEDURE (Authenticated + Sanitized + Cached)
-// ============================================
 export const protectedProcedure = t.procedure
   .use(isAuthed)
   .use(sanitizeInputs)
   .use(cacheInvalidationMiddleware);
 
-// ============================================
-// JUDGE PROCEDURE (Higher rate limits for judging)
-// ============================================
 export const judgeProcedure = t.procedure
   .use(async ({ ctx, next, type }) => {
     if (!ctx.session?.user || !ctx.userId) {
@@ -172,9 +191,6 @@ export const judgeProcedure = t.procedure
   .use(sanitizeInputs)
   .use(cacheInvalidationMiddleware);
 
-// ============================================
-// ADMIN PROCEDURE (Admin-level rate limits)
-// ============================================
 export const adminProcedure = t.procedure
   .use(async ({ ctx, next, type }) => {
     if (!ctx.session?.user || !ctx.userId) {
