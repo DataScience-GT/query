@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 
 // Admin middleware
 const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db.query.admins.findFirst({
+  const admin = await ctx.db!.query.admins.findFirst({
     where: and(
       eq(admins.userId, ctx.userId!),
       eq(admins.isActive, true)
@@ -39,7 +39,7 @@ export const eventRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const qrCode = randomUUID();
 
-      const [newEvent] = await ctx.db
+      const [newEvent] = await ctx.db!
         .insert(events)
         .values({
           ...input,
@@ -57,7 +57,7 @@ export const eventRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const newQrCode = randomUUID();
 
-      const [updatedEvent] = await ctx.db
+      const [updatedEvent] = await ctx.db!
         .update(events)
         .set({
           qrCode: newQrCode,
@@ -78,7 +78,7 @@ export const eventRouter = createTRPCRouter({
 
   // ADMIN: List all events
   listAll: isAdmin.query(async ({ ctx }) => {
-    const allEvents = await ctx.db.query.events.findMany({
+    const allEvents = await ctx.db!.query.events.findMany({
       orderBy: (events, { desc }) => [desc(events.eventDate)],
       with: {
         createdBy: {
@@ -98,7 +98,7 @@ export const eventRouter = createTRPCRouter({
   getById: isAdmin
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const event = await ctx.db.query.events.findFirst({
+      const event = await ctx.db!.query.events.findFirst({
         where: eq(events.id, input.id),
         with: {
           checkIns: {
@@ -142,7 +142,7 @@ export const eventRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [updatedEvent] = await ctx.db
+      const [updatedEvent] = await ctx.db!
         .update(events)
         .set({
           checkInEnabled: input.enabled,
@@ -158,7 +158,7 @@ export const eventRouter = createTRPCRouter({
   delete: isAdmin
     .input(z.object({ eventId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(events).where(eq(events.id, input.eventId));
+      await ctx.db!.delete(events).where(eq(events.id, input.eventId));
       return { success: true };
     }),
 
@@ -167,7 +167,7 @@ export const eventRouter = createTRPCRouter({
     .input(z.object({ qrCode: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       // Single transaction with all checks and inserts
-      return await ctx.db.transaction(async (tx) => {
+      return await ctx.db!.transaction(async (tx) => {
         // 1. Get event and validate in one query
         const event = await tx.query.events.findFirst({
           where: eq(events.qrCode, input.qrCode),
@@ -247,7 +247,7 @@ export const eventRouter = createTRPCRouter({
 
   // MEMBER: Get my attended events
   myEvents: protectedProcedure.query(async ({ ctx }) => {
-    const checkIns = await ctx.db.query.eventCheckIns.findMany({
+    const checkIns = await ctx.db!.query.eventCheckIns.findMany({
       where: eq(eventCheckIns.userId, ctx.userId!),
       with: {
         event: {
@@ -269,7 +269,7 @@ export const eventRouter = createTRPCRouter({
 
   // MEMBER: Get my stats (OPTIMIZED - Single Aggregation Query)
   myStats: protectedProcedure.query(async ({ ctx }) => {
-    const result = await ctx.db
+    const result = await ctx.db!
       .select({
         totalEvents: sql<number>`count(*)::int`,
       })
