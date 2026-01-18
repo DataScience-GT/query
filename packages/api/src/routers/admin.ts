@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 
 const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db.query.admins.findFirst({
+  const admin = await ctx.db!.query.admins.findFirst({
     where: and(
       eq(admins.userId, ctx.userId!),
       eq(admins.isActive, true)
@@ -44,7 +44,7 @@ export const adminRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const admin = await ctx.db.query.admins.findFirst({
+    const admin = await ctx.db!.query.admins.findFirst({
       where: and(
         eq(admins.userId, ctx.userId!),
         eq(admins.isActive, true)
@@ -64,7 +64,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
-    const allAdmins = await ctx.db.query.admins.findMany({
+    const allAdmins = await ctx.db!.query.admins.findMany({
       with: {
         user: {
           columns: {
@@ -91,7 +91,7 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = await ctx.db.query.users.findFirst({
+      const user = await ctx.db!.query.users.findFirst({
         where: eq(users.id, input.userId),
       });
 
@@ -102,7 +102,7 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      const existingAdmin = await ctx.db.query.admins.findFirst({
+      const existingAdmin = await ctx.db!.query.admins.findFirst({
         where: eq(admins.userId, input.userId),
       });
 
@@ -113,7 +113,7 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(admins)
         .values({
           userId: input.userId,
@@ -144,7 +144,7 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const targetAdmin = await ctx.db.query.admins.findFirst({
+      const targetAdmin = await ctx.db!.query.admins.findFirst({
         where: eq(admins.id, input.adminId),
       });
 
@@ -161,7 +161,7 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db
+      const result = await ctx.db!
         .update(admins)
         .set({
           role: input.role,
@@ -187,7 +187,7 @@ export const adminRouter = createTRPCRouter({
   remove: isSuperAdmin
     .input(z.object({ adminId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const targetAdmin = await ctx.db.query.admins.findFirst({
+      const targetAdmin = await ctx.db!.query.admins.findFirst({
         where: eq(admins.id, input.adminId),
       });
 
@@ -205,7 +205,7 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.delete(admins).where(eq(admins.id, input.adminId));
+      await ctx.db!.delete(admins).where(eq(admins.id, input.adminId));
 
       return { success: true };
     }),
