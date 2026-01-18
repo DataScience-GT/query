@@ -1,0 +1,39 @@
+{
+  "name": "judging",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@query/api": "workspace:*",
+    "@query/auth": "workspace:*",
+    "@query/db": "workspace:*",
+    "@tanstack/react-query": "^5.90.12",
+    "@trpc/client": "^11.7.2",
+    "@trpc/next": "^11.7.2",
+    "@trpc/react-query": "^11.7.2",
+    "@trpc/server": "^11.8.0",
+    "@yudiel/react-qr-scanner": "^2.5.0",
+    "minimatch": "^10.1.1",
+    "next": "15.5.9",
+    "next-auth": "^5.0.0-beta.25",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sanitize-html": "^2.17.0",
+    "superjson": "^2.2.1",
+    "three": "^0.128.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.128.0",
+    "typescript": "^5.6.3"
+  }
+}

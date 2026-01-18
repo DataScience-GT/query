@@ -104,6 +104,9 @@ importers:
       minimatch:
         specifier: ^10.1.1
         version: 10.1.1
+      sanitize-html:
+        specifier: ^2.17.0
+        version: 2.17.0
       superjson:
         specifier: ^2.2.6
         version: 2.2.6
@@ -228,6 +231,82 @@ importers:
       tailwindcss:
         specifier: ^4.1.5
         version: 4.1.18
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  sites/judging:
+    dependencies:
+      '@query/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@query/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@query/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@tanstack/react-query':
+        specifier: ^5.90.12
+        version: 5.90.12(react@18.3.1)
+      '@trpc/client':
+        specifier: ^11.7.2
+        version: 11.7.2(@trpc/server@11.8.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/next':
+        specifier: ^11.7.2
+        version: 11.7.2(@tanstack/react-query@5.90.12(react@18.3.1))(@trpc/client@11.7.2(@trpc/server@11.8.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/react-query@11.7.2(@tanstack/react-query@5.90.12(react@18.3.1))(@trpc/client@11.7.2(@trpc/server@11.8.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.0(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(@trpc/server@11.8.0(typescript@5.9.3))(next@15.5.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.96.0))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      '@trpc/react-query':
+        specifier: ^11.7.2
+        version: 11.7.2(@tanstack/react-query@5.90.12(react@18.3.1))(@trpc/client@11.7.2(@trpc/server@11.8.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.0(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      '@trpc/server':
+        specifier: ^11.8.0
+        version: 11.8.0(typescript@5.9.3)
+      '@yudiel/react-qr-scanner':
+        specifier: ^2.5.0
+        version: 2.5.0(@types/emscripten@1.41.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      minimatch:
+        specifier: ^10.1.1
+        version: 10.1.1
+      next:
+        specifier: 15.5.9
+        version: 15.5.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.96.0)
+      next-auth:
+        specifier: ^5.0.0-beta.25
+        version: 5.0.0-beta.30(next@15.5.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.96.0))(react@18.3.1)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      sanitize-html:
+        specifier: ^2.17.0
+        version: 2.17.0
+      superjson:
+        specifier: ^2.2.1
+        version: 2.2.6
+      three:
+        specifier: ^0.128.0
+        version: 0.128.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.19.2
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
+      '@types/react':
+        specifier: ^18.3.1
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.27)
+      '@types/three':
+        specifier: ^0.128.0
+        version: 0.128.0
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
