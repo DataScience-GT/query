@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory } from "@query/db";
 import { eq, and } from "drizzle-orm";
+import { CacheKeys } from "../middleware/cache";
 
 // Validation schemas
 const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
@@ -287,12 +288,24 @@ export const memberRouter = createTRPCRouter({
   }),
 
   checkStatus: protectedProcedure.query(async ({ ctx }) => {
+    // Check cache first (short TTL since membership status is important)
+    const cacheKey = `member:status:${ctx.userId}`;
+    const cached = ctx.cache.get<{
+      isMember: boolean;
+      isActive: boolean | null;
+      expiresAt: Date | null;
+      daysRemaining: number | null;
+      memberType: string | null;
+      renewalCount: number;
+    }>(cacheKey);
+    if (cached) return cached;
+
     const member = await ctx.db.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
     if (!member) {
-      return {
+      const result = {
         isMember: false,
         isActive: false,
         expiresAt: null,
@@ -300,6 +313,8 @@ export const memberRouter = createTRPCRouter({
         memberType: null,
         renewalCount: 0,
       };
+      ctx.cache.set(cacheKey, result, 30);
+      return result;
     }
 
     const now = new Date();
@@ -311,7 +326,7 @@ export const memberRouter = createTRPCRouter({
       daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     }
 
-    return {
+    const result = {
       isMember: true,
       isActive,
       memberType: member.memberType,
@@ -319,5 +334,10 @@ export const memberRouter = createTRPCRouter({
       daysRemaining,
       renewalCount: member.renewalCount,
     };
+
+    // Cache for 30 seconds
+    ctx.cache.set(cacheKey, result, 30);
+
+    return result;
   }),
 });
