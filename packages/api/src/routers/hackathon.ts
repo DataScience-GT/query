@@ -14,7 +14,7 @@ import { CacheKeys } from "../middleware/cache";
 
 // Admin check middleware for hackathon management
 const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db.query.admins.findFirst({
+  const admin = await ctx.db!.query.admins.findFirst({
     where: and(
       eq(admins.userId, ctx.userId!),
       eq(admins.isActive, true)
@@ -51,7 +51,7 @@ export const hackathonRouter = createTRPCRouter({
 
       const now = new Date();
 
-      const allHackathons = await ctx.db.query.hackathons.findMany({
+      const allHackathons = await ctx.db!.query.hackathons.findMany({
         where: and(
           eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
@@ -76,7 +76,7 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof hackathon>(cacheKey);
       if (cached) return cached;
 
-      const hackathon = await ctx.db.query.hackathons.findFirst({
+      const hackathon = await ctx.db!.query.hackathons.findFirst({
         where: eq(hackathons.id, input.id),
       });
 
@@ -120,7 +120,7 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [newHackathon] = await ctx.db
+      const [newHackathon] = await ctx.db!
         .insert(hackathons)
         .values({
           ...input,
@@ -163,7 +163,7 @@ export const hackathonRouter = createTRPCRouter({
       const { id, ...updateData } = input;
 
       // Verify hackathon exists
-      const existing = await ctx.db.query.hackathons.findFirst({
+      const existing = await ctx.db!.query.hackathons.findFirst({
         where: eq(hackathons.id, id),
       });
 
@@ -174,7 +174,7 @@ export const hackathonRouter = createTRPCRouter({
         });
       }
 
-      const [updatedHackathon] = await ctx.db
+      const [updatedHackathon] = await ctx.db!
         .update(hackathons)
         .set({
           ...updateData,
@@ -202,7 +202,7 @@ export const hackathonRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Use transaction to prevent race conditions
-      return await ctx.db.transaction(async (tx) => {
+      return await ctx.db!.transaction(async (tx) => {
         const hackathon = await tx.query.hackathons.findFirst({
           where: eq(hackathons.id, input.hackathonId),
         });
@@ -272,7 +272,7 @@ export const hackathonRouter = createTRPCRouter({
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
-    const registrations = await ctx.db.query.hackathonParticipants.findMany({
+    const registrations = await ctx.db!.query.hackathonParticipants.findMany({
       where: eq(hackathonParticipants.userId, ctx.userId!),
       with: {
         hackathon: true,
@@ -287,7 +287,7 @@ export const hackathonRouter = createTRPCRouter({
   participants: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const participants = await ctx.db.query.hackathonParticipants.findMany({
+      const participants = await ctx.db!.query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
         with: {
           user: {
@@ -314,7 +314,7 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await ctx.db.transaction(async (tx) => {
+      return await ctx.db!.transaction(async (tx) => {
         const participant = await tx.query.hackathonParticipants.findFirst({
           where: and(
             eq(hackathonParticipants.hackathonId, input.hackathonId),
@@ -367,7 +367,7 @@ export const hackathonRouter = createTRPCRouter({
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const projects = await ctx.db.query.hackathonProjects.findMany({
+      const projects = await ctx.db!.query.hackathonProjects.findMany({
         where: eq(hackathonProjects.hackathonId, input.hackathonId),
         with: {
           team: {
