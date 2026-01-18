@@ -30,9 +30,6 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url === baseUrl || url === `${baseUrl}/`) {
-        return `${baseUrl}/dashboard`;
-      }
       if (url.startsWith(baseUrl)) {
         return url;
       }
