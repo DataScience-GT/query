@@ -91,7 +91,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 w-full h-20 z-130 border-b border-white/10 bg-[#080808] md:bg-[#050505]/80 backdrop-blur-xl transition-all ${className}`}>
+      <nav className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-all ${className}`}>
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
 
           {/* Logo Section */}
@@ -135,7 +135,7 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
       </nav>
 
       <div
-        className={`fixed inset-0 bg-[#080808] z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
+        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
           menuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
