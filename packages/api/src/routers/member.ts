@@ -12,7 +12,7 @@ const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number
 
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    const member = await ctx.db.query.members.findFirst({
+    const member = await ctx.db!.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
@@ -36,7 +36,7 @@ export const memberRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const existingMember = await ctx.db.query.members.findFirst({
+      const existingMember = await ctx.db!.query.members.findFirst({
         where: eq(members.userId, ctx.userId!),
       });
 
@@ -51,7 +51,7 @@ export const memberRouter = createTRPCRouter({
       const membershipEndDate = new Date();
       membershipEndDate.setFullYear(membershipEndDate.getFullYear() + 1);
 
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(members)
         .values({
           userId: ctx.userId!,
@@ -81,7 +81,7 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.insert(membershipHistory).values({
+      await ctx.db!.insert(membershipHistory).values({
         memberId: newMember.id,
         action: "joined",
         startDate: membershipStartDate,
@@ -92,7 +92,7 @@ export const memberRouter = createTRPCRouter({
     }),
 
   renew: protectedProcedure.mutation(async ({ ctx }) => {
-    const member = await ctx.db.query.members.findFirst({
+    const member = await ctx.db!.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
@@ -106,7 +106,7 @@ export const memberRouter = createTRPCRouter({
     const newEndDate = new Date(member.membershipEndDate || new Date());
     newEndDate.setFullYear(newEndDate.getFullYear() + 1);
 
-    const result = await ctx.db
+    const result = await ctx.db!
       .update(members)
       .set({
         memberType: "continuous",
@@ -127,7 +127,7 @@ export const memberRouter = createTRPCRouter({
       });
     }
 
-    await ctx.db.insert(membershipHistory).values({
+    await ctx.db!.insert(membershipHistory).values({
       memberId: member.id,
       action: "renewed",
       startDate: member.membershipEndDate || new Date(),
@@ -154,7 +154,7 @@ export const memberRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await ctx.db.query.members.findFirst({
+      const member = await ctx.db!.query.members.findFirst({
         where: eq(members.userId, ctx.userId!),
       });
 
@@ -165,7 +165,7 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db
+      const result = await ctx.db!
         .update(members)
         .set({
           ...input,
@@ -195,7 +195,7 @@ export const memberRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const allMembers = await ctx.db.query.members.findMany({
+      const allMembers = await ctx.db!.query.members.findMany({
         where: and(
           eq(members.isActive, true),
           input.memberType ? eq(members.memberType, input.memberType) : undefined
@@ -231,7 +231,7 @@ export const memberRouter = createTRPCRouter({
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const member = await ctx.db.query.members.findFirst({
+      const member = await ctx.db!.query.members.findFirst({
         where: eq(members.id, input.id),
         with: {
           user: {
@@ -267,7 +267,7 @@ export const memberRouter = createTRPCRouter({
     }),
 
   history: protectedProcedure.query(async ({ ctx }) => {
-    const member = await ctx.db.query.members.findFirst({
+    const member = await ctx.db!.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
@@ -278,7 +278,7 @@ export const memberRouter = createTRPCRouter({
       });
     }
 
-    const history = await ctx.db.query.membershipHistory.findMany({
+    const history = await ctx.db!.query.membershipHistory.findMany({
       where: eq(membershipHistory.memberId, member.id),
       orderBy: (membershipHistory, { desc }) => [desc(membershipHistory.createdAt)],
       limit: 50,
@@ -300,7 +300,7 @@ export const memberRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const member = await ctx.db.query.members.findFirst({
+    const member = await ctx.db!.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
