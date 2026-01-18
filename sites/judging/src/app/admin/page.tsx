@@ -163,7 +163,7 @@ export default function AdminResultsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rankings?.rankings.map((r: { project: { id: string; name: string; tableNumber: string; teamMembers?: string }; totalScore: number; avgScore: number; voteCount: number; votes: { judgeName: string; score: number; comment?: string }[] }, idx: number) => {
+                {rankings?.rankings.map((r, idx) => {
                   const isExpanded = expandedProject === r.project.id;
                   const isTied = rankings.ties.some((t: { projects: string[] }) =>
                     t.projects.includes(r.project.name)
@@ -172,18 +172,16 @@ export default function AdminResultsPage() {
                   return (
                     <React.Fragment key={r.project.id}>
                       <tr
-                        className={`border-b border-white/5 cursor-pointer transition-colors ${
-                          isTied ? 'bg-yellow-500/5' : 'hover:bg-white/5'
-                        }`}
+                        className={`border-b border-white/5 cursor-pointer transition-colors ${isTied ? 'bg-yellow-500/5' : 'hover:bg-white/5'
+                          }`}
                         onClick={() =>
                           setExpandedProject(isExpanded ? null : r.project.id)
                         }
                       >
                         <td className="px-5 py-4">
-                          <span className={`font-black text-lg ${
-                            idx === 0 ? 'text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]' :
+                          <span className={`font-black text-lg ${idx === 0 ? 'text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]' :
                             idx < 3 ? 'text-white' : 'text-gray-500'
-                          }`}>
+                            }`}>
                             #{idx + 1}
                           </span>
                         </td>
@@ -213,7 +211,7 @@ export default function AdminResultsPage() {
                                 <p className="text-gray-600 font-mono text-sm">No votes yet</p>
                               ) : (
                                 <div className="space-y-3">
-                                  {r.votes.map((v: { judgeName: string; score: number; comment?: string }, vi: number) => (
+                                  {r.votes.map((v: { judgeName: string; score: number; comment: string | null }, vi: number) => (
                                     <div
                                       key={vi}
                                       className="flex items-start gap-4 bg-black/40 border border-white/5 p-4 rounded-lg"
@@ -246,7 +244,6 @@ export default function AdminResultsPage() {
             </table>
           </div>
         )}
-
         {/* Summary Stats */}
         {rankings && rankings.rankings.length > 0 && (
           <div className="mt-8 grid grid-cols-3 gap-4">
