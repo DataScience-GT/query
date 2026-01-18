@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "dsgt-website"
+  },
+  "targets": {
+    "dsgt-website": {
+      "hosting": {
+        "judging": ["dsgt-judging"],
+        "portal": ["dsgt-portal"],
+        "mainweb": ["dsgt-website"]
+      }
+    }
+  }
+}
