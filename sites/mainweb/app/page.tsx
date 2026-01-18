@@ -111,14 +111,14 @@ const Home = () => {
       </Section>
 
       {/* STATS SECTION */}
-      <Section id="stats" className="py-32 border-y border-white/5 bg-white/[0.01] relative z-10">
+      <Section id="stats" className="py-32 border-y border-white/5 glass-section relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="text-center mb-20 space-y-4">
             <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight italic leading-none uppercase">Our Club.</h2>
             <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.4em]">550+ Verified Members</p>
           </div>
           <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-stretch">
-            <div className="bg-[#0a0a0a] border border-white/5 p-6 sm:p-10 rounded-3xl flex flex-col items-center hover:border-[#00A8A8]/30 transition-colors group shadow-2xl">
+            <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
               <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">Class Year Distribution</p>
               <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
                 <div className="w-full h-full max-w-[320px] aspect-square">
@@ -126,7 +126,7 @@ const Home = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-[#0a0a0a] border border-white/5 p-6 sm:p-10 rounded-3xl flex flex-col items-center hover:border-[#00A8A8]/30 transition-colors group shadow-2xl">
+            <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
               <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">Academic Major Split</p>
               <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
                 <div className="w-full h-full max-w-[320px] aspect-square">
