@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { admins, users } from "@query/db";
 import { eq, and } from "drizzle-orm";
+import { CacheKeys } from "../middleware/cache";
 
 const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
   const admin = await ctx.db.query.admins.findFirst({
@@ -34,6 +35,15 @@ const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
+    // Check cache first
+    const cacheKey = CacheKeys.admin(ctx.userId!);
+    const cached = ctx.cache.get<{
+      isAdmin: boolean;
+      role: string | null;
+      permissions: string[];
+    }>(cacheKey);
+    if (cached) return cached;
+
     const admin = await ctx.db.query.admins.findFirst({
       where: and(
         eq(admins.userId, ctx.userId!),
@@ -41,11 +51,16 @@ export const adminRouter = createTRPCRouter({
       ),
     });
 
-    return {
+    const result = {
       isAdmin: !!admin,
       role: admin?.role || null,
       permissions: admin?.permissions || [],
     };
+
+    // Cache for 60 seconds
+    ctx.cache.set(cacheKey, result, 60);
+
+    return result;
   }),
 
   list: isAdmin.query(async ({ ctx }) => {

@@ -76,6 +76,10 @@ export const userRouter = createTRPCRouter({
         },
       });
 
+      // Invalidate user cache
+      ctx.cache.deletePattern(`user:${ctx.userId}*`);
+      ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
+
       return { success: true, user: updatedUser };
     }),
 });
