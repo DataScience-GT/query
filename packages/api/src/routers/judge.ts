@@ -16,7 +16,7 @@ import { CacheKeys } from "../middleware/cache";
 
 // Middleware to check if user is a judge
 const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
-  const judge = await ctx.db.query.judges.findFirst({
+  const judge = await ctx.db!.query.judges.findFirst({
     where: and(
       eq(judges.userId, ctx.userId!),
       eq(judges.isActive, true)
@@ -35,7 +35,7 @@ const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
 
 // Middleware to check if user is admin (for judge management)
 const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db.query.admins.findFirst({
+  const admin = await ctx.db!.query.admins.findFirst({
     where: and(
       eq(admins.userId, ctx.userId!),
       eq(admins.isActive, true)
@@ -64,7 +64,7 @@ export const judgeRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const judge = await ctx.db.query.judges.findFirst({
+    const judge = await ctx.db!.query.judges.findFirst({
       where: and(
         eq(judges.userId, ctx.userId!),
         eq(judges.isActive, true)
@@ -85,7 +85,7 @@ export const judgeRouter = createTRPCRouter({
 
   // Get hackathons assigned to current judge
   getMyAssignments: isJudge.query(async ({ ctx }) => {
-    const assignments = await ctx.db.query.judgeAssignments.findMany({
+    const assignments = await ctx.db!.query.judgeAssignments.findMany({
       where: eq(judgeAssignments.judgeId, ctx.judge.id),
       with: {
         hackathon: true,
@@ -101,7 +101,7 @@ export const judgeRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       // Get the next uncompleted item in the queue
-      const nextInQueue = await ctx.db.query.judgeQueue.findFirst({
+      const nextInQueue = await ctx.db!.query.judgeQueue.findFirst({
         where: and(
           eq(judgeQueue.judgeId, ctx.judge.id),
           eq(judgeQueue.hackathonId, input.hackathonId),
@@ -118,7 +118,7 @@ export const judgeRouter = createTRPCRouter({
       }
 
       // Count remaining
-      const remainingCount = await ctx.db
+      const remainingCount = await ctx.db!
         .select({ count: sql<number>`count(*)` })
         .from(judgeQueue)
         .where(
@@ -141,13 +141,13 @@ export const judgeRouter = createTRPCRouter({
   getProjects: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const projects = await ctx.db.query.judgingProjects.findMany({
+      const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
       // Get this judge's votes
-      const myVotes = await ctx.db.query.judgeVotes.findMany({
+      const myVotes = await ctx.db!.query.judgeVotes.findMany({
         where: eq(judgeVotes.judgeId, ctx.judge.id),
       });
 
@@ -164,7 +164,7 @@ export const judgeRouter = createTRPCRouter({
   getMaps: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const maps = await ctx.db.query.hackathonMaps.findMany({
+      const maps = await ctx.db!.query.hackathonMaps.findMany({
         where: eq(hackathonMaps.hackathonId, input.hackathonId),
         orderBy: [asc(hackathonMaps.order)],
       });
@@ -183,7 +183,7 @@ export const judgeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Check if vote already exists
-      const existing = await ctx.db.query.judgeVotes.findFirst({
+      const existing = await ctx.db!.query.judgeVotes.findFirst({
         where: and(
           eq(judgeVotes.judgeId, ctx.judge.id),
           eq(judgeVotes.projectId, input.projectId)
@@ -192,7 +192,7 @@ export const judgeRouter = createTRPCRouter({
 
       if (existing) {
         // Update existing vote
-        const result = await ctx.db
+        const result = await ctx.db!
           .update(judgeVotes)
           .set({
             score: input.score,
@@ -206,7 +206,7 @@ export const judgeRouter = createTRPCRouter({
       }
 
       // Create new vote
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(judgeVotes)
         .values({
           judgeId: ctx.judge.id,
@@ -231,7 +231,7 @@ export const judgeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Submit the vote
-      const existing = await ctx.db.query.judgeVotes.findFirst({
+      const existing = await ctx.db!.query.judgeVotes.findFirst({
         where: and(
           eq(judgeVotes.judgeId, ctx.judge.id),
           eq(judgeVotes.projectId, input.projectId)
@@ -239,7 +239,7 @@ export const judgeRouter = createTRPCRouter({
       });
 
       if (existing) {
-        await ctx.db
+        await ctx.db!
           .update(judgeVotes)
           .set({
             score: input.score,
@@ -248,7 +248,7 @@ export const judgeRouter = createTRPCRouter({
           })
           .where(eq(judgeVotes.id, existing.id));
       } else {
-        await ctx.db.insert(judgeVotes).values({
+        await ctx.db!.insert(judgeVotes).values({
           judgeId: ctx.judge.id,
           projectId: input.projectId,
           score: input.score,
@@ -257,7 +257,7 @@ export const judgeRouter = createTRPCRouter({
       }
 
       // Mark queue item as completed
-      await ctx.db
+      await ctx.db!
         .update(judgeQueue)
         .set({
           isCompleted: true,
@@ -266,7 +266,7 @@ export const judgeRouter = createTRPCRouter({
         .where(eq(judgeQueue.id, input.queueId));
 
       // Get next in queue
-      const queueItem = await ctx.db.query.judgeQueue.findFirst({
+      const queueItem = await ctx.db!.query.judgeQueue.findFirst({
         where: eq(judgeQueue.id, input.queueId),
       });
 
@@ -274,7 +274,7 @@ export const judgeRouter = createTRPCRouter({
         return { done: true, nextProject: null };
       }
 
-      const nextInQueue = await ctx.db.query.judgeQueue.findFirst({
+      const nextInQueue = await ctx.db!.query.judgeQueue.findFirst({
         where: and(
           eq(judgeQueue.judgeId, ctx.judge.id),
           eq(judgeQueue.hackathonId, queueItem.hackathonId),
@@ -301,7 +301,7 @@ export const judgeRouter = createTRPCRouter({
   getProgress: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const total = await ctx.db
+      const total = await ctx.db!
         .select({ count: sql<number>`count(*)` })
         .from(judgeQueue)
         .where(
@@ -311,7 +311,7 @@ export const judgeRouter = createTRPCRouter({
           )
         );
 
-      const completed = await ctx.db
+      const completed = await ctx.db!
         .select({ count: sql<number>`count(*)` })
         .from(judgeQueue)
         .where(
@@ -338,7 +338,7 @@ export const judgeRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       // Get all projects with their votes
-      const projects = await ctx.db.query.judgingProjects.findMany({
+      const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
           votes: {
@@ -413,7 +413,7 @@ export const judgeRouter = createTRPCRouter({
 
   // List all judges
   list: isAdmin.query(async ({ ctx }) => {
-    const allJudges = await ctx.db.query.judges.findMany({
+    const allJudges = await ctx.db!.query.judges.findMany({
       with: {
         user: {
           columns: {
@@ -449,7 +449,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = await ctx.db.query.users.findFirst({
+      const user = await ctx.db!.query.users.findFirst({
         where: eq(users.id, input.userId),
       });
 
@@ -460,7 +460,7 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      const existing = await ctx.db.query.judges.findFirst({
+      const existing = await ctx.db!.query.judges.findFirst({
         where: eq(judges.userId, input.userId),
       });
 
@@ -471,7 +471,7 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(judges)
         .values({
           userId: input.userId,
@@ -492,7 +492,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.db.query.judgeAssignments.findFirst({
+      const existing = await ctx.db!.query.judgeAssignments.findFirst({
         where: and(
           eq(judgeAssignments.judgeId, input.judgeId),
           eq(judgeAssignments.hackathonId, input.hackathonId)
@@ -506,7 +506,7 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(judgeAssignments)
         .values({
           judgeId: input.judgeId,
@@ -516,13 +516,13 @@ export const judgeRouter = createTRPCRouter({
         .returning();
 
       // Create queue entries for all projects
-      const projects = await ctx.db.query.judgingProjects.findMany({
+      const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
       if (projects.length > 0) {
-        await ctx.db.insert(judgeQueue).values(
+        await ctx.db!.insert(judgeQueue).values(
           projects.map((p, idx) => ({
             judgeId: input.judgeId,
             hackathonId: input.hackathonId,
@@ -549,7 +549,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(judgingProjects)
         .values(input)
         .returning();
@@ -573,7 +573,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(judgingProjects)
         .values(
           input.projects.map((p) => ({
@@ -597,7 +597,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.db
+      const result = await ctx.db!
         .insert(hackathonMaps)
         .values(input)
         .returning();
@@ -616,7 +616,7 @@ export const judgeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Delete existing queue
-      await ctx.db
+      await ctx.db!
         .delete(judgeQueue)
         .where(
           and(
@@ -626,7 +626,7 @@ export const judgeRouter = createTRPCRouter({
         );
 
       // Get all projects
-      let projects = await ctx.db.query.judgingProjects.findMany({
+      let projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
@@ -638,7 +638,7 @@ export const judgeRouter = createTRPCRouter({
 
       // Create queue entries
       if (projects.length > 0) {
-        await ctx.db.insert(judgeQueue).values(
+        await ctx.db!.insert(judgeQueue).values(
           projects.map((p, idx) => ({
             judgeId: input.judgeId,
             hackathonId: input.hackathonId,
@@ -655,7 +655,7 @@ export const judgeRouter = createTRPCRouter({
   remove: isAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(judges).where(eq(judges.id, input.judgeId));
+      await ctx.db!.delete(judges).where(eq(judges.id, input.judgeId));
       return { success: true };
     }),
 
@@ -663,7 +663,7 @@ export const judgeRouter = createTRPCRouter({
   getAllVotes: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const projects = await ctx.db.query.judgingProjects.findMany({
+      const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
           votes: {

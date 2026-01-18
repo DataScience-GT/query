@@ -163,7 +163,7 @@ function simpleHash(str: string): string {
 /**
  * Apply all headers to a Response object
  */
-export function applySecurityHeaders(
+export async function applySecurityHeaders(
     response: Response,
     options?: {
         cacheable?: boolean;
@@ -175,7 +175,7 @@ export function applySecurityHeaders(
             retryAfter?: number;
         };
     }
-): Response {
+): Promise<Response> {
     const headers = new Headers(response.headers);
 
     // Apply security headers
@@ -208,7 +208,10 @@ export function applySecurityHeaders(
         });
     }
 
-    return new Response(response.body, {
+    // Clone and read the body to avoid "body already consumed" errors
+    const body = await response.clone().arrayBuffer();
+
+    return new Response(body, {
         status: response.status,
         statusText: response.statusText,
         headers,

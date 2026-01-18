@@ -1,13 +1,22 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schemas";
-import * as dotenv from "dotenv";
-import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+// DATABASE_URL should be set via Next.js env loading or Firebase Functions config
+const DATABASE_URL = process.env.DATABASE_URL;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
 
-export const db = drizzle(pool, { schema });
+// Create database connection only if DATABASE_URL is provided
+let db: DrizzleDB | null = null;
+
+if (DATABASE_URL) {
+  const pool = new Pool({
+    connectionString: DATABASE_URL,
+  });
+  db = drizzle(pool, { schema });
+} else {
+  console.warn("DATABASE_URL not set - database operations will fail");
+}
+
+export { db };
