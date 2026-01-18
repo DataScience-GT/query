@@ -27,7 +27,7 @@ const Card: React.FC<CardProps> = ({ img, imgClassName = "", heading, linkUrl, c
 
   return (
     <div
-      className={`bg-[#111] text-white rounded-xl shadow-lg overflow-hidden flex flex-col justify-between transition-transform duration-300 hover:-translate-y-1 ${className}`}
+      className={`glass-card text-white rounded-xl shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 ${className}`}
     >
       {/* Image */}
       {img && (
