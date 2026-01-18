@@ -244,7 +244,6 @@ export default function AdminResultsPage() {
             </table>
           </div>
         )}
-
         {/* Summary Stats */}
         {rankings && rankings.rankings.length > 0 && (
           <div className="mt-8 grid grid-cols-3 gap-4">
