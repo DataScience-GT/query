@@ -1,0 +1,255 @@
+﻿docker : #0 building with "desktop-linux" instance using docker driver
+At line:1 char:1
++ docker build --no-cache -t portal-cloudrun-test -f sites\portal\Docke ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (#0 building wit...g docker driver:Strin 
+   g) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.44kB done
+#1 DONE 0.0s
+
+#2 [auth] library/node:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:20-alpine
+#3 DONE 1.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 1.17kB done
+#4 DONE 0.0s
+
+#5 [base 1/3] FROM docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555
+b6bade25ebda2b22b6081d2f60fd7d5d430e9c
+#5 resolve docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25
+ebda2b22b6081d2f60fd7d5d430e9c 0.0s done
+#5 CACHED
+
+#6 [runner 2/8] WORKDIR /app
+#6 CACHED
+
+#7 [internal] load build context
+#7 transferring context: 10.76kB 0.1s done
+#7 DONE 0.1s
+
+#8 [base 2/3] RUN apk add --no-cache libc6-compat
+#8 ...
+
+#9 [runner 3/8] RUN addgroup --system --gid 1001 nodejs
+#9 DONE 0.4s
+
+#10 [runner 4/8] RUN adduser --system --uid 1001 nextjs
+#10 DONE 0.5s
+
+#8 [base 2/3] RUN apk add --no-cache libc6-compat
+#8 1.138 (1/3) Installing musl-obstack (1.2.3-r2)
+#8 1.160 (2/3) Installing libucontext (1.3.3-r0)
+#8 1.180 (3/3) Installing gcompat (1.1.0-r4)
+#8 1.204 OK: 11.0 MiB in 21 packages
+#8 DONE 1.3s
+
+#11 [base 3/3] RUN corepack enable && corepack prepare pnpm@latest --activate
+#11 0.921 Preparing pnpm@latest for immediate activation...
+#11 DONE 2.8s
+
+#12 [builder  1/14] WORKDIR /app
+#12 DONE 0.0s
+
+#13 [builder  2/14] COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+#13 DONE 0.1s
+
+#14 [builder  3/14] COPY packages/api/package.json ./packages/api/
+#14 DONE 0.0s
+
+#15 [builder  4/14] COPY packages/auth/package.json ./packages/auth/
+#15 DONE 0.0s
+
+#16 [builder  5/14] COPY packages/db/package.json ./packages/db/
+#16 DONE 0.0s
+
+#17 [builder  6/14] COPY packages/ui/package.json ./packages/ui/
+#17 DONE 0.0s
+
+#18 [builder  7/14] COPY sites/portal/package.json ./sites/portal/
+#18 DONE 0.0s
+
+#19 [builder  8/14] RUN echo "shamefully-hoist=true" > .npmrc
+#19 DONE 0.3s
+
+#20 [builder  9/14] RUN pnpm install --frozen-lockfile
+#20 0.518 ! Corepack is about to download 
+https://registry.npmjs.org/pnpm/-/pnpm-10.26.1.tgz
+#20 3.439 Scope: all 6 workspace projects
+#20 3.607 Lockfile is up to date, resolution step is skipped
+#20 3.984 Progress: resolved 1, reused 0, downloaded 0, added 0
+#20 4.326 Packages: +645
+#20 4.326 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#20 4.989 Progress: resolved 645, reused 0, downloaded 0, added 0
+#20 6.017 Progress: resolved 645, reused 0, downloaded 13, added 1
+#20 7.023 Progress: resolved 645, reused 0, downloaded 64, added 38
+#20 8.072 Progress: resolved 645, reused 0, downloaded 103, added 95
+#20 8.301 
+#20 8.301    Γò¡ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò«
+#20 8.301    Γöé                                               Γöé
+#20 8.301    Γöé     Update available! 10.26.1 ΓåÆ 10.28.1.      Γöé
+#20 8.301    Γöé     Changelog: https://pnpm.io/v/10.28.1      Γöé
+#20 8.301    Γöé   To update, run: corepack use pnpm@10.28.1   Γöé
+#20 8.301    Γöé                                               Γöé
+#20 8.301    Γò░ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+#20 8.301 
+#20 9.137 Progress: resolved 645, reused 0, downloaded 156, added 155
+#20 10.14 Progress: resolved 645, reused 0, downloaded 223, added 223
+#20 11.18 Progress: resolved 645, reused 0, downloaded 275, added 269
+#20 12.20 Progress: resolved 645, reused 0, downloaded 368, added 367
+#20 13.20 Progress: resolved 645, reused 0, downloaded 433, added 421
+#20 14.23 Progress: resolved 645, reused 0, downloaded 487, added 477
+#20 15.24 Progress: resolved 645, reused 0, downloaded 556, added 515
+#20 16.26 Progress: resolved 645, reused 0, downloaded 623, added 561
+#20 17.27 Progress: resolved 645, reused 0, downloaded 639, added 639
+#20 18.27 Progress: resolved 645, reused 0, downloaded 640, added 640
+#20 20.25 Progress: resolved 645, reused 0, downloaded 641, added 640
+#20 21.25 Progress: resolved 645, reused 0, downloaded 642, added 642
+#20 23.21 Progress: resolved 645, reused 0, downloaded 643, added 642
+#20 23.50 Progress: resolved 645, reused 0, downloaded 645, added 645, done
+#20 24.55 
+#20 24.55 dependencies:
+#20 24.55 + @tanstack/react-router 1.141.2
+#20 24.55 + autoprefixer 10.4.22
+#20 24.55 + chart.js 4.5.1
+#20 24.55 + minimatch 10.1.1
+#20 24.55 + postcss 8.5.6
+#20 24.55 
+#20 24.55 devDependencies:
+#20 24.55 + @query/eslint-config 0.0.0 <- tooling/eslint
+#20 24.55 + @query/prettier-config 0.0.0 <- tooling/prettier
+#20 24.55 + @query/tailwind-config 0.0.0 <- tooling/tailwind
+#20 24.55 + @query/tsconfig 0.0.0 <- tooling/typescript
+#20 24.55 + @tailwindcss/postcss 4.1.18
+#20 24.55 + @tanstack/react-query 5.90.12
+#20 24.55 + @trpc/client 11.7.2
+#20 24.55 + @trpc/react-query 11.7.2
+#20 24.55 + @trpc/server 11.8.0
+#20 24.55 + @turbo/gen 2.6.3
+#20 24.55 + prettier 3.7.4
+#20 24.55 + tsx 4.21.0
+#20 24.55 + turbo 2.6.3
+#20 24.55 + typescript 5.9.3
+#20 24.55 + zod 3.25.76
+#20 24.55 
+#20 24.91 Γò¡ Warning ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò«
+#20 24.91 Γöé                                                                        
+      Γöé
+#20 24.91 Γöé   Ignored build scripts: @parcel/watcher@2.5.1, core-js-pure@3.47.0,   
+      Γöé
+#20 24.91 Γöé   esbuild@0.18.20, esbuild@0.19.12, esbuild@0.27.2, sharp@0.34.5.      
+      Γöé
+#20 24.91 Γöé   Run "pnpm approve-builds" to pick which dependencies should be 
+allowed     Γöé
+#20 24.91 Γöé   to run scripts.                                                      
+      Γöé
+#20 24.91 Γöé                                                                        
+      Γöé
+#20 24.91 Γò░ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+#20 25.00 Done in 22.4s using pnpm v10.26.1
+#20 DONE 26.1s
+
+#21 [builder 10/14] COPY packages ./packages
+#21 DONE 0.6s
+
+#22 [builder 11/14] COPY sites/portal ./sites/portal
+#22 DONE 0.1s
+
+#23 [builder 12/14] COPY tooling ./tooling
+#23 DONE 0.1s
+
+#24 [builder 13/14] WORKDIR /app/sites/portal
+#24 DONE 0.0s
+
+#25 [builder 14/14] RUN pnpm run build
+#25 0.866 
+#25 0.866 > portal@1.0.0 build /app/sites/portal
+#25 0.866 > next build
+#25 0.866 
+#25 1.998    Γû▓ Next.js 15.5.9
+#25 1.999 
+#25 2.046    Creating an optimized production build ...
+#25 20.38  Γ£ô Compiled successfully in 17.8s
+#25 20.39    Linting and checking validity of types ...
+#25 30.75    Collecting page data ...
+#25 31.85 DATABASE_URL not set - database operations will fail
+#25 31.85 Auth adapter: No database connection, using JWT sessions
+#25 33.52    Generating static pages (0/2) ...
+#25 34.07  Γ£ô Generating static pages (2/2)
+#25 34.73    Finalizing page optimization ...
+#25 34.73    Collecting build traces ...
+#25 72.02 
+#25 72.02 Route (app)                                  Size  First Load JS
+#25 72.02 Γöî ╞Æ /                                     2.68 kB         133 kB
+#25 72.02 Γö£ ╞Æ /_not-found                             126 B         102 kB
+#25 72.02 Γö£ ╞Æ /admin                                12.4 kB         143 kB
+#25 72.02 Γö£ ╞Æ /admin-judging                         2.7 kB         133 kB
+#25 72.02 Γö£ ╞Æ /api/auth/[...nextauth]                 126 B         102 kB
+#25 72.02 Γö£ ╞Æ /club                                 58.3 kB         188 kB
+#25 72.02 Γö£ ╞Æ /dashboard                            7.59 kB         141 kB
+#25 72.02 Γöö ╞Æ /judge                                2.61 kB         133 kB
+#25 72.02 + First Load JS shared by all              102 kB
+#25 72.02   Γö£ chunks/129-c7294427343a534d.js          46 kB
+#25 72.02   Γö£ chunks/46c30521-588d767ddb3bc0c5.js   54.2 kB
+#25 72.02   Γöö other shared chunks (total)           1.92 kB
+#25 72.02 
+#25 72.02 Route (pages)                                Size  First Load JS
+#25 72.02 ΓöÇ ╞Æ /api/trpc/[trpc]                          0 B        82.6 kB
+#25 72.02 + First Load JS shared by all             82.6 kB
+#25 72.02   Γö£ chunks/framework-1c02a2e60068b586.js  44.8 kB
+#25 72.02   Γö£ chunks/main-805d7d6950565494.js       35.9 kB
+#25 72.02   Γöö other shared chunks (total)           1.89 kB
+#25 72.02 
+#25 72.02 ╞Æ  (Dynamic)  server-rendered on demand
+#25 72.02 
+#25 DONE 72.2s
+
+#26 [runner 5/8] COPY --from=builder --chown=nextjs:nodejs 
+/app/sites/portal/.next/standalone ./
+#26 DONE 0.5s
+
+#27 [runner 6/8] COPY --from=builder --chown=nextjs:nodejs 
+/app/sites/portal/.next/static ./sites/portal/.next/static
+#27 DONE 0.1s
+
+#28 [runner 7/8] COPY --from=builder --chown=nextjs:nodejs /app/sites/portal/public 
+./sites/portal/public
+#28 DONE 0.1s
+
+#29 [runner 8/8] COPY --from=builder --chown=nextjs:nodejs /app/node_modules 
+./node_modules
+#29 DONE 5.6s
+
+#30 exporting to image
+#30 exporting layers
+#30 exporting layers 38.4s done
+#30 exporting manifest 
+sha256:433c993b850f9ef6436eac5516bfd741a1fb03e9f93cc6de050b900ba320e22e 0.0s done
+#30 exporting config 
+sha256:bb12a7b126c0aeadbc1a8ea0e57bcd397e592d2cf62d7fa6ecba895503fd9a71 0.0s done
+#30 exporting attestation manifest 
+sha256:dd3d9ccf3de234845f7401950055f046e1e4fb9b1b9182cc9207bbc373012dc6 0.1s done
+#30 exporting manifest list 
+sha256:abfba44ba59b9ff8de8142407fdfc28d3501820c729a2c2b5b820cffebc70169
+#30 exporting manifest list 
+sha256:abfba44ba59b9ff8de8142407fdfc28d3501820c729a2c2b5b820cffebc70169 0.0s done
+#30 naming to docker.io/library/portal-cloudrun-test:latest done
+#30 unpacking to docker.io/library/portal-cloudrun-test:latest
+#30 unpacking to docker.io/library/portal-cloudrun-test:latest 14.3s done
+#30 DONE 52.9s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/5gq0
+ri535tmli6x7bv2frf8hj

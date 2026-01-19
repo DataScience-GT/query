@@ -20,6 +20,23 @@ const t = initTRPC.context<Context>().create({
 
 export const createTRPCRouter = t.router;
 
+// Middleware that ensures database is available and narrows the type
+const requiresDb = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.db) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Database unavailable",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      db: ctx.db,
+    },
+  });
+});
+
 export const publicProcedure = t.procedure.use(async ({ ctx, next, type }) => {
   // DDoS Protection - check IP-based limits first
   const ddosCheck = ddosProtection(ctx.clientIp);
@@ -155,11 +172,13 @@ const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path 
 });
 
 export const protectedProcedure = t.procedure
+  .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
   .use(cacheInvalidationMiddleware);
 
 export const judgeProcedure = t.procedure
+  .use(requiresDb)
   .use(async ({ ctx, next, type }) => {
     if (!ctx.session?.user || !ctx.userId) {
       throw new TRPCError({
@@ -192,6 +211,7 @@ export const judgeProcedure = t.procedure
   .use(cacheInvalidationMiddleware);
 
 export const adminProcedure = t.procedure
+  .use(requiresDb)
   .use(async ({ ctx, next, type }) => {
     if (!ctx.session?.user || !ctx.userId) {
       throw new TRPCError({
