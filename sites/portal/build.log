@@ -1,0 +1,25 @@
+
+> portal@1.0.0 build C:\Users\bootcamp\Desktop\passion\query\sites\portal
+> next build
+
+   ▲ Next.js 15.5.9
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 4.2s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/api/trpc/[trpc]/route.ts:9:40
+Type error: Argument of type '{ req: Request; }' is not assignable to parameter of type 'FetchCreateContextFnOptions & { clientIp?: string | undefined; req?: Request | undefined; }'.
+  Type '{ req: Request; }' is missing the following properties from type 'FetchCreateContextFnOptions': resHeaders, info
+
+[0m [90m  7 |[39m     req[33m,[39m
+ [90m  8 |[39m     router[33m:[39m appRouter[33m,[39m
+[31m[1m>[22m[39m[90m  9 |[39m     createContext[33m:[39m () [33m=>[39m createContext({ req })[33m,[39m
+ [90m    |[39m                                        [31m[1m^[22m[39m
+ [90m 10 |[39m     onError[33m:[39m ({ error[33m,[39m path }) [33m=>[39m {
+ [90m 11 |[39m       console[33m.[39merror([32m`[TRPC Error] ${path}:`[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+ [90m 12 |[39m     }[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.
