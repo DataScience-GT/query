@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    const user = await ctx.db.query.users.findFirst({
+    const user = await ctx.db!.query.users.findFirst({
       where: eq(users.id, ctx.userId!),
       with: {
         profile: true,
@@ -40,7 +40,7 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Update user name/image if provided
       if (input.name !== undefined || input.image !== undefined) {
-        await ctx.db
+        await ctx.db!
           .update(users)
           .set({
             name: input.name,
@@ -49,12 +49,12 @@ export const userRouter = createTRPCRouter({
           .where(eq(users.id, ctx.userId!));
       }
       if (input.bio !== undefined) {
-        const existingProfile = await ctx.db.query.userProfiles.findFirst({
+        const existingProfile = await ctx.db!.query.userProfiles.findFirst({
           where: eq(userProfiles.userId, ctx.userId!),
         });
 
         if (existingProfile) {
-          await ctx.db
+          await ctx.db!
             .update(userProfiles)
             .set({
               bio: input.bio,
@@ -62,14 +62,14 @@ export const userRouter = createTRPCRouter({
             })
             .where(eq(userProfiles.userId, ctx.userId!));
         } else {
-          await ctx.db.insert(userProfiles).values({
+          await ctx.db!.insert(userProfiles).values({
             userId: ctx.userId!,
             bio: input.bio,
           });
         }
       }
 
-      const updatedUser = await ctx.db.query.users.findFirst({
+      const updatedUser = await ctx.db!.query.users.findFirst({
         where: eq(users.id, ctx.userId!),
         with: {
           profile: true,
