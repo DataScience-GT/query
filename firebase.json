@@ -1,0 +1,24 @@
+{
+    "hosting": [
+        {
+            "site": "dsgt-portal",
+            "public": "sites/portal/public",
+            "cleanUrls": true,
+            "rewrites": [
+                {
+                    "source": "**",
+                    "run": {
+                        "serviceId": "portal",
+                        "region": "us-central1"
+                    }
+                }
+            ]
+        },
+        {
+            "site": "dsgt-website",
+            "public": "sites/mainweb/out",
+            "cleanUrls": true,
+            "trailingSlash": true
+        }
+    ]
+}
