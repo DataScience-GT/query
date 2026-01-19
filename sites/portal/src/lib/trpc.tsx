@@ -9,6 +9,12 @@ import superjson from "superjson";
 
 export const trpc = createTRPCReact<AppRouter>();
 
+function getBaseUrl() {
+  if (typeof window !== "undefined") return "";
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}
+
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -22,11 +28,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: "/api/trpc",
+          url: `${getBaseUrl()}/api/trpc`,
           transformer: superjson,
           headers() {
             return {
-              // Cookies are automatically sent by the browser
+              'x-trpc-source': 'react',
             };
           },
         }),
