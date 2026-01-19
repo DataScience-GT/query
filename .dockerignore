@@ -1,0 +1,71 @@
+# =========================================
+# Docker Build Context Ignore File
+# =========================================
+# This file is at the project root because Docker builds
+# use the root as the build context
+
+# Git
+.git
+.github
+.gitignore
+
+# All node_modules (will be installed fresh in Docker)
+node_modules
+**/node_modules
+
+# Build outputs (rebuilt in Docker)
+.next
+**/.next
+**/dist
+**/.turbo
+.turbo
+
+# Environment files (injected at runtime)
+.env
+.env.*
+!.env.example
+sites/**/.env*
+
+# Logs and temp files
+*.log
+.cache
+**/.cache
+
+# Firebase (not needed for Cloud Run)
+firebase-functions
+.firebase
+.firebaserc
+firebase.json
+
+# IDE
+.vscode
+.idea
+**/.vscode
+**/.idea
+
+# Testing and coverage
+coverage
+.nyc_output
+**/coverage
+
+# OS files
+.DS_Store
+Thumbs.db
+**/.DS_Store
+**/Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Lock files are needed for reproducible builds
+# !pnpm-lock.yaml
+
+# Other sites we don't need (still copied for workspace resolution, but not used)
+# sites/mainweb
+
+# Build artifacts
+build_*.log
+build_*.txt
+firebase_logs.txt
+nul
