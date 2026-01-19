@@ -84,10 +84,19 @@ export default function Home() {
   useEffect(() => {
     if (status === 'authenticated' && session) {
       setLogs(prev => [...prev.slice(-4), "> Auth success. Handshaking...", "> Redirecting to secure node..."]);
-      const redirectTimeout = setTimeout(() => router.push('/dashboard'), 1200);
+
+      const redirectTimeout = setTimeout(() => {
+        // Redirection Logic
+        if (judgeStatus?.isJudge || adminStatus?.isAdmin) {
+          router.push('/judge');
+        } else {
+          router.push('/dashboard');
+        }
+      }, 1200);
+
       return () => clearTimeout(redirectTimeout);
     }
-  }, [status, session, router]);
+  }, [status, session, router, judgeStatus, adminStatus]);
 
   const handleTestEndpoint = () => {
     setLogs(prev => [...prev.slice(-4), "> Executing: public.sayHello()"]);
