@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build:*)",
+      "Bash(pnpm deploy:firebase:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase functions:log:*)"
+    ]
+  }
+}
