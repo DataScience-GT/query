@@ -1,7 +1,21 @@
-import { auth } from "@query/auth";
 import { db } from "@query/db";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { cache } from "./middleware/cache";
+
+// Lazy import auth to avoid module resolution issues in standalone builds
+let authModule: { auth: () => Promise<any> } | null = null;
+
+async function getAuth() {
+  if (authModule === null) {
+    try {
+      authModule = await import("@query/auth");
+    } catch (error) {
+      console.warn("Auth module not available:", error);
+      authModule = { auth: async () => null };
+    }
+  }
+  return authModule.auth;
+}
 
 export async function createContext(
   opts?: FetchCreateContextFnOptions & { clientIp?: string; req?: Request }
@@ -14,8 +28,7 @@ export async function createContext(
   // Only attempt auth if database is available
   if (db) {
     try {
-      // Pass the request to auth() if available, which helps in some Next.js environments
-      // casting simplified as usually auth() picks up headers context automatically in Server Components/Actions
+      const auth = await getAuth();
       session = await auth();
     } catch (error) {
       console.warn("Failed to fetch auth session:", error);
