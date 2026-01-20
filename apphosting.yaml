@@ -14,6 +14,8 @@ env:
     secret: DATABASE_URL
   - variable: AUTH_SECRET
     secret: AUTH_SECRET
+  - variable: NEXTAUTH_SECRET
+    secret: AUTH_SECRET
   - variable: GOOGLE_CLIENT_ID
     secret: AUTH_GOOGLE_ID
   - variable: GOOGLE_CLIENT_SECRET
