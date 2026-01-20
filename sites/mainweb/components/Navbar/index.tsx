@@ -12,7 +12,7 @@ interface NavbarProps {
   className?: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) => {
+export default function Navbar({ screen_width, page, className = "" }: NavbarProps) {
   const [windowWidth, setWindowWidth] = useState(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -155,6 +155,4 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
       </div>
     </>
   );
-};
-
-export default Navbar;
+}
