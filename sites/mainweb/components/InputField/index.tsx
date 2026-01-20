@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { ChangeEvent } from "react";
 
 interface InputFieldProps {
   width?: string | number;
@@ -10,14 +10,14 @@ interface InputFieldProps {
   validIndication?: boolean;
   type?: "text" | "email" | "password" | "submit" | "textarea";
   required?: boolean;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onChange?: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   pattern?: string;
   originalValue?: string;
   onClick?: () => void;
   helperText?: string;
 }
 
-const InputField: React.FC<InputFieldProps> = ({
+export default function InputField({
   width = "300px",
   placeholder = "",
   name,
@@ -99,6 +99,4 @@ const InputField: React.FC<InputFieldProps> = ({
       </label>
     </div>
   );
-};
-
-export default InputField;
+}: InputFieldProps) {
