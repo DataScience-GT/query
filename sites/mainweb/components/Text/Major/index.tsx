@@ -1,20 +1,20 @@
-import React from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
-interface MajorProps extends React.HTMLAttributes<HTMLElement> {
-  type?: "primary" | "secondary" | "a" | "b"; // support legacy 'a'|'b'
+interface MajorProps extends HTMLAttributes<HTMLElement> {
+  type?: "primary" | "secondary" | "a" | "b";
   as?: keyof JSX.IntrinsicElements;
-  compact?: boolean; // small, non-uppercase style for inline/card headings
-  children: React.ReactNode;
+  compact?: boolean;
+  children: ReactNode;
 }
 
-const Major: React.FC<MajorProps> = ({
+export default function Major({
   type = "primary",
   as = "h1",
   compact = false,
   children,
   className,
   ...props
-}) => {
+}: MajorProps) {
   // Support legacy values 'a'|'b' for backwards compatibility
   const resolvedType = type === "a" ? "primary" : type === "b" ? "secondary" : type;
 
@@ -35,6 +35,4 @@ const Major: React.FC<MajorProps> = ({
       {children}
     </Tag>
   );
-};
-
-export default Major;
+}
