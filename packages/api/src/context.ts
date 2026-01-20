@@ -22,8 +22,8 @@ export async function createContext(
 ) {
   let session = null;
 
-  // Extract request from opts if available (priority to explicit req)
-  const req = opts?.req || opts?.req;
+  // Extract request from opts if available
+  const req = opts?.req;
 
   // Only attempt auth if database is available
   if (db) {
