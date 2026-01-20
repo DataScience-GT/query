@@ -55,7 +55,7 @@
   "prettier": "@query/prettier-config",
   "pnpm": {
     "overrides": {
-      "next-auth>next": "$next"
+      "next-auth>next": "15.5.9"
     }
   }
 }
