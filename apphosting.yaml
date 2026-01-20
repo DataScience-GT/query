@@ -18,5 +18,7 @@ env:
     secret: AUTH_GOOGLE_ID
   - variable: GOOGLE_CLIENT_SECRET
     secret: AUTH_GOOGLE_SECRET
+  - variable: AUTH_URL
+    value: https://query--dsgt-website.us-east4.hosted.app
   - variable: NODE_ENV
     value: production
