@@ -51,3 +51,4 @@ migrations/
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea
+.claude/settings.local.json
