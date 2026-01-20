@@ -1,8 +1,8 @@
 # Monorepo - app is in sites/portal
-# Build from root for pnpm workspace resolution
+# Use npm for CI stability
 
 scripts:
-  buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter portal build
+  buildCommand: npm install && npm run build --workspace=sites/portal
   runCommand: node sites/portal/.next/standalone/sites/portal/server.js
 
 runConfig:
