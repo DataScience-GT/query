@@ -30,7 +30,7 @@ export default function InputField({
   originalValue,
   onClick,
   helperText,
-}) => {
+}: InputFieldProps) {
   const id = name || placeholder.replaceAll(" ", "");
 
   if (type === "submit") {
@@ -99,4 +99,4 @@ export default function InputField({
       </label>
     </div>
   );
-}: InputFieldProps) {
+}

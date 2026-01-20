@@ -244,8 +244,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0
       '@types/react':
-        specifier: ^18.3.11
-        version: 18.3.27
+        specifier: ^19.0.0
+        version: 19.2.9
       eslint:
         specifier: ^9.33.0
         version: 9.39.2(jiti@2.6.1)
@@ -5268,7 +5268,7 @@ snapshots:
 
   '@types/react-scroll@1.8.10':
     dependencies:
-      '@types/react': 18.3.27
+      '@types/react': 19.2.9
 
   '@types/react@18.3.27':
     dependencies:
