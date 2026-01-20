@@ -2,7 +2,7 @@
 rootDirectory: sites/portal
 
 scripts:
-  runCommand: cd sites/portal && npx next start -p 8080
+  runCommand: npx next start -p 8080
 
 runConfig:
   runtime: nodejs20
