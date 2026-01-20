@@ -1,11 +1,11 @@
-import React from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
-interface MinorProps extends React.HTMLAttributes<HTMLHeadingElement> {
-  type?: "primary" | "secondary"; // Renamed 'a' and 'b' for clarity
-  children: React.ReactNode;
+interface MinorProps extends HTMLAttributes<HTMLHeadingElement> {
+  type?: "primary" | "secondary";
+  children: ReactNode;
 }
 
-const Minor: React.FC<MinorProps> = ({ type = "primary", children, className, ...props }) => {
+export default function Minor({ type = "primary", children, className, ...props }: MinorProps) {
   // Matching colors to the Major component
   const typeClasses = {
     primary: "text-indigo-400 drop-shadow-sm", // Replaces #74b1aa
@@ -25,6 +25,4 @@ const Minor: React.FC<MinorProps> = ({ type = "primary", children, className, ..
       {children}
     </h2>
   );
-};
-
-export default Minor;
+}
