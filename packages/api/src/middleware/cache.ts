@@ -67,11 +67,13 @@ export class CacheService {
     }
 
     /**
-     * Delete all keys matching a pattern
+     * Delete all keys matching a pattern (glob-style with * wildcard)
      */
     deletePattern(pattern: string): number {
         let count = 0;
-        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        // Escape regex special chars, then convert * to .*
+        const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`^${escaped.replace(/\*/g, '.*')}$`);
 
         for (const key of this.cache.keys()) {
             if (regex.test(key)) {
