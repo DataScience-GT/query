@@ -1,0 +1,33 @@
+# Monorepo - app is in sites/portal
+
+scripts:
+  buildCommand: pnpm --filter portal build && mkdir -p sites/portal/.next/standalone/sites/portal/.next && cp -r sites/portal/.next/static sites/portal/.next/standalone/sites/portal/.next/static && (cp -r sites/portal/public sites/portal/.next/standalone/sites/portal/public || true)
+  runCommand: node sites/portal/.next/standalone/sites/portal/server.js
+
+runConfig:
+  runtime: nodejs20
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 1024
+  minInstances: 0
+  maxInstances: 10
+
+env:
+  - variable: PORT
+    value: "8080"
+  - variable: HOSTNAME
+    value: "0.0.0.0"
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+  - variable: AUTH_SECRET
+    secret: AUTH_SECRET
+  - variable: NEXTAUTH_SECRET
+    secret: AUTH_SECRET
+  - variable: GOOGLE_CLIENT_ID
+    secret: AUTH_GOOGLE_ID
+  - variable: GOOGLE_CLIENT_SECRET
+    secret: AUTH_GOOGLE_SECRET
+  - variable: AUTH_URL
+    value: https://query--dsgt-website.us-east4.hosted.app
+  - variable: NODE_ENV
+    value: production
