@@ -1,4 +1,4 @@
-# App is in sites/portal within the monorepo
+# Monorepo - app is in sites/portal
 rootDirectory: sites/portal
 
 runConfig:
