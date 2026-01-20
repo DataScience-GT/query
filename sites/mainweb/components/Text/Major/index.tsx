@@ -1,4 +1,4 @@
-import { ReactNode, HTMLAttributes } from "react";
+import { ReactNode, HTMLAttributes, JSX } from "react";
 
 interface MajorProps extends HTMLAttributes<HTMLElement> {
   type?: "primary" | "secondary" | "a" | "b";
