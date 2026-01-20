@@ -1,8 +1,7 @@
 # Monorepo - app is in sites/portal
-# Use npm for CI stability
 
 scripts:
-  buildCommand: npm install && npm run build --workspace=sites/portal
+  buildCommand: pnpm --filter portal build
   runCommand: node sites/portal/.next/standalone/sites/portal/server.js
 
 runConfig:
