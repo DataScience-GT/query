@@ -4,7 +4,7 @@ import React from "react";
 
 interface BackgroundProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-const Background: React.FC<BackgroundProps> = (props) => {
+export default function Background(props: BackgroundProps) {
   return (
     <div
       {...props}
@@ -19,6 +19,4 @@ const Background: React.FC<BackgroundProps> = (props) => {
       <div className="absolute w-full h-full"></div>
     </div>
   );
-};
-
-export default Background;
+}
