@@ -1,7 +1,7 @@
 # Monorepo - app is in sites/portal
 
 scripts:
-  buildCommand: pnpm --filter portal build
+  buildCommand: pnpm --filter portal build && mkdir -p sites/portal/.next/standalone/sites/portal/.next && cp -r sites/portal/.next/static sites/portal/.next/standalone/sites/portal/.next/static && (cp -r sites/portal/public sites/portal/.next/standalone/sites/portal/public || true)
   runCommand: node sites/portal/.next/standalone/sites/portal/server.js
 
 runConfig:
