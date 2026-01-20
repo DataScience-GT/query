@@ -1,0 +1,22 @@
+# App is in sites/portal within the monorepo
+rootDirectory: sites/portal
+
+runConfig:
+  runtime: nodejs20
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 10
+
+env:
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+  - variable: AUTH_SECRET
+    secret: AUTH_SECRET
+  - variable: GOOGLE_CLIENT_ID
+    secret: AUTH_GOOGLE_ID
+  - variable: GOOGLE_CLIENT_SECRET
+    secret: AUTH_GOOGLE_SECRET
+  - variable: NODE_ENV
+    value: production
