@@ -8,7 +8,7 @@ import Major from "@/components/Text/Major";
 import Mini from "@/components/Text/Mini";
 import Link from "next/link";
 
-const CompletedEventPage: React.FC = () => {
+export default function CompletedEventPage() {
   const [windowWidth, setWindowWidth] = useState<number>(
     typeof window !== "undefined" ? window.innerWidth : 1024
   );
@@ -79,6 +79,4 @@ const CompletedEventPage: React.FC = () => {
       <Footer screen_width={windowWidth} className="relative z-10 border-t border-white/5" />
     </div>
   );
-};
-
-export default CompletedEventPage;
+}
