@@ -14,6 +14,16 @@ import {
 import { eq, and, asc, desc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 
+// Fisher-Yates shuffle for unbiased randomization
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 // Middleware to check if user is a judge
 const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
   const judge = await ctx.db!.query.judges.findFirst({
@@ -631,9 +641,9 @@ export const judgeRouter = createTRPCRouter({
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      // Optionally shuffle
+      // Optionally shuffle using Fisher-Yates algorithm
       if (input.shuffle) {
-        projects = projects.sort(() => Math.random() - 0.5);
+        projects = shuffleArray(projects);
       }
 
       // Create queue entries
