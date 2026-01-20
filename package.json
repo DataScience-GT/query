@@ -52,10 +52,5 @@
     "typescript": "^5.6.3",
     "zod": "^3.23.8"
   },
-  "prettier": "@query/prettier-config",
-  "pnpm": {
-    "overrides": {
-      "next-auth>next": "15.5.9"
-    }
-  }
+  "prettier": "@query/prettier-config"
 }
