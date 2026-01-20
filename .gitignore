@@ -18,6 +18,7 @@ build
 # Misc
 .DS_Store
 *.pem
+nul
 
 # Debug
 npm-debug.log*
@@ -50,3 +51,4 @@ migrations/
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea
+.claude/settings.local.json
