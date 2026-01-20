@@ -52,7 +52,7 @@ const projects: Project[] = [
   },
 ];
 
-const ProjectsPage: React.FC = () => {
+export default function ProjectsPage() {
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== "undefined" ? window.innerWidth : 1024);
   const categories: Project["category"][] = ["Deep Learning", "Finance", "Sports", "General DS"];
 
@@ -151,6 +151,4 @@ const ProjectsPage: React.FC = () => {
       <Footer screen_width={windowWidth} className="relative z-10 border-t border-white/5 opacity-40" />
     </div>
   );
-};
-
-export default ProjectsPage;
+}
