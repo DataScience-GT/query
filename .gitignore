@@ -18,6 +18,7 @@ build
 # Misc
 .DS_Store
 *.pem
+nul
 
 # Debug
 npm-debug.log*
