@@ -9,6 +9,8 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       // Allows Google login to "claim" the pre-seeded user record via email match
       allowDangerousEmailAccountLinking: true,
+      // Disable all checks for Firebase proxy (cookies don't transfer)
+      checks: [],
       authorization: {
         params: {
           prompt: "consent",
@@ -31,10 +33,14 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(baseUrl)) {
-        return url;
+      // Handle callback URLs - allow /dashboard, /judge, etc.
+      if (url.includes('/dashboard') || url.includes('/judge') || url.includes('/admin') || url.includes('/club')) {
+        // Extract the path and append to baseUrl
+        const path = new URL(url, baseUrl).pathname;
+        return `${baseUrl}${path}`;
       }
-      return baseUrl;
+      // Default to dashboard after sign-in
+      return `${baseUrl}/dashboard`;
     },
   },
   session: {
