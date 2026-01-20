@@ -2,13 +2,13 @@
 rootDirectory: sites/portal
 
 scripts:
-  runCommand: npm run start
+  runCommand: cd sites/portal && npx next start -p 8080
 
 runConfig:
   runtime: nodejs20
   concurrency: 80
   cpu: 1
-  memoryMiB: 512
+  memoryMiB: 1024
   minInstances: 0
   maxInstances: 10
 
