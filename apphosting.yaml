@@ -1,6 +1,9 @@
 # Monorepo - app is in sites/portal
 rootDirectory: sites/portal
 
+scripts:
+  runCommand: npm run start
+
 runConfig:
   runtime: nodejs20
   concurrency: 80
