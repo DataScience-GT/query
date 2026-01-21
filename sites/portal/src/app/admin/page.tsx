@@ -9,6 +9,18 @@ import QRCode from 'qrcode';
 
 type AdminView = 'events' | 'members' | 'admins';
 
+type Event = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  eventDate: Date;
+  qrCode: string;
+  checkInEnabled: boolean;
+  currentCheckIns: number;
+  maxCheckIns: number | null;
+};
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -18,7 +30,7 @@ export default function AdminPage() {
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Event form state
   const [eventForm, setEventForm] = useState({

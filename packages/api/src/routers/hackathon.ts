@@ -7,29 +7,10 @@ import {
   hackathonTeams,
   hackathonProjects,
   members,
-  admins,
 } from "@query/db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
-
-// Admin check middleware for hackathon management
-const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db!.query.admins.findFirst({
-    where: and(
-      eq(admins.userId, ctx.userId!),
-      eq(admins.isActive, true)
-    ),
-  });
-
-  if (!admin) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required to manage hackathons",
-    });
-  }
-
-  return next({ ctx: { ...ctx, admin } });
-});
+import { isAdmin } from "../middleware/procedures";
 
 export const hackathonRouter = createTRPCRouter({
   list: publicProcedure
