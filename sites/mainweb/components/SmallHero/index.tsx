@@ -1,4 +1,4 @@
-import React, { ReactNode, HTMLAttributes } from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
 interface SmallHeroProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
@@ -7,12 +7,12 @@ interface SmallHeroProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-const SmallHero: React.FC<SmallHeroProps> = ({
+export default function SmallHero({
   title,
   desc,
   description,
   ...rest
-}) => {
+}: SmallHeroProps) {
   const text = desc || description;
 
   return (
@@ -44,6 +44,4 @@ const SmallHero: React.FC<SmallHeroProps> = ({
       </div>
     </div>
   );
-};
-
-export default SmallHero;
+}
