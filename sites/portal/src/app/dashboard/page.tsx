@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Background from '@/components/Background';
 import Link from 'next/link';
+import LinkStripeAccount from '@/components/LinkStripeAccount';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -144,10 +145,7 @@ export default function Dashboard() {
                         </div>
                       </Link>
                     ) : (
-                      <div className="p-6 rounded-xl border border-white/5 bg-white/[0.02] opacity-40">
-                        <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black mb-2">Member_Access</p>
-                        <p className="text-[11px] font-mono text-gray-800 font-bold uppercase">○ Offline</p>
-                      </div>
+                      <LinkStripeAccount />
                     )}
 
                     <div className="p-6 rounded-xl border border-white/5 bg-white/[0.02] opacity-40">
