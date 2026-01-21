@@ -165,7 +165,7 @@ export default function JudgePage() {
             </p>
           </div>
           <p className="text-gray-600 text-[10px] font-mono mt-4 uppercase tracking-widest">
-            {progress?.completed}/{progress?.total} Evaluated
+            {((progress?.completed || 0) + 1)}/{progress?.total}
           </p>
         </div>
 
@@ -190,8 +190,8 @@ export default function JudgePage() {
                 key={n}
                 onClick={() => setScore(n)}
                 className={`py-3 rounded font-mono font-bold text-sm transition-all ${score === n
-                    ? 'bg-[#00A8A8] text-white shadow-[0_0_20px_rgba(0,168,168,0.4)]'
-                    : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 active:scale-95'
+                  ? 'bg-[#00A8A8] text-white shadow-[0_0_20px_rgba(0,168,168,0.4)]'
+                  : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 active:scale-95'
                   }`}
               >
                 {n}
