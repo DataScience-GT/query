@@ -9,63 +9,24 @@ import {
   judgeQueue,
   hackathonMaps,
   users,
-  admins,
 } from "@query/db";
 import { eq, and, asc, desc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
+import { isAdmin, isJudge } from "../middleware/procedures";
 
-// Fisher-Yates shuffle for unbiased randomization
 function shuffleArray<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+    const temp = result[i]!;
+    result[i] = result[j]!;
+    result[j] = temp;
   }
   return result;
 }
 
-// Middleware to check if user is a judge
-const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
-  const judge = await ctx.db!.query.judges.findFirst({
-    where: and(
-      eq(judges.userId, ctx.userId!),
-      eq(judges.isActive, true)
-    ),
-  });
-
-  if (!judge) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Judge access required",
-    });
-  }
-
-  return next({ ctx: { ...ctx, judge } });
-});
-
-// Middleware to check if user is admin (for judge management)
-const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db!.query.admins.findFirst({
-    where: and(
-      eq(admins.userId, ctx.userId!),
-      eq(admins.isActive, true)
-    ),
-  });
-
-  if (!admin) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-
-  return next({ ctx: { ...ctx, admin } });
-});
-
 export const judgeRouter = createTRPCRouter({
-  // Check if current user is a judge
   isJudge: protectedProcedure.query(async ({ ctx }) => {
-    // Check cache first
     const cacheKey = CacheKeys.judge(ctx.userId!);
     const cached = ctx.cache.get<{
       isJudge: boolean;
@@ -86,14 +47,11 @@ export const judgeRouter = createTRPCRouter({
       judgeId: judge?.id || null,
       name: judge?.name || null,
     };
-
-    // Cache for 60 seconds
     ctx.cache.set(cacheKey, result, 60);
 
     return result;
   }),
 
-  // Get hackathons assigned to current judge
   getMyAssignments: isJudge.query(async ({ ctx }) => {
     const assignments = await ctx.db!.query.judgeAssignments.findMany({
       where: eq(judgeAssignments.judgeId, ctx.judge.id),
@@ -106,11 +64,9 @@ export const judgeRouter = createTRPCRouter({
     return assignments;
   }),
 
-  // Get the next table to visit for a hackathon
   getNextTable: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      // Get the next uncompleted item in the queue
       const nextInQueue = await ctx.db!.query.judgeQueue.findFirst({
         where: and(
           eq(judgeQueue.judgeId, ctx.judge.id),
@@ -127,7 +83,6 @@ export const judgeRouter = createTRPCRouter({
         return { done: true, project: null, remaining: 0 };
       }
 
-      // Count remaining
       const remainingCount = await ctx.db!
         .select({ count: sql<number>`count(*)` })
         .from(judgeQueue)
@@ -147,7 +102,6 @@ export const judgeRouter = createTRPCRouter({
       };
     }),
 
-  // Get all projects for a hackathon (for judges to see full list)
   getProjects: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -156,7 +110,6 @@ export const judgeRouter = createTRPCRouter({
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      // Get this judge's votes
       const myVotes = await ctx.db!.query.judgeVotes.findMany({
         where: eq(judgeVotes.judgeId, ctx.judge.id),
       });
@@ -170,7 +123,6 @@ export const judgeRouter = createTRPCRouter({
       }));
     }),
 
-  // Get map images for a hackathon
   getMaps: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -182,7 +134,6 @@ export const judgeRouter = createTRPCRouter({
       return maps;
     }),
 
-  // Submit a vote for a project
   submitVote: isJudge
     .input(
       z.object({
@@ -192,7 +143,6 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if vote already exists
       const existing = await ctx.db!.query.judgeVotes.findFirst({
         where: and(
           eq(judgeVotes.judgeId, ctx.judge.id),
@@ -201,7 +151,6 @@ export const judgeRouter = createTRPCRouter({
       });
 
       if (existing) {
-        // Update existing vote
         const result = await ctx.db!
           .update(judgeVotes)
           .set({
@@ -215,7 +164,6 @@ export const judgeRouter = createTRPCRouter({
         return result[0];
       }
 
-      // Create new vote
       const result = await ctx.db!
         .insert(judgeVotes)
         .values({
@@ -229,7 +177,6 @@ export const judgeRouter = createTRPCRouter({
       return result[0];
     }),
 
-  // Mark a queue item as completed and move to next
   completeAndNext: isJudge
     .input(
       z.object({
@@ -240,7 +187,6 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Submit the vote
       const existing = await ctx.db!.query.judgeVotes.findFirst({
         where: and(
           eq(judgeVotes.judgeId, ctx.judge.id),
@@ -266,7 +212,6 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      // Mark queue item as completed
       await ctx.db!
         .update(judgeQueue)
         .set({
@@ -275,7 +220,6 @@ export const judgeRouter = createTRPCRouter({
         })
         .where(eq(judgeQueue.id, input.queueId));
 
-      // Get next in queue
       const queueItem = await ctx.db!.query.judgeQueue.findFirst({
         where: eq(judgeQueue.id, input.queueId),
       });
@@ -307,7 +251,6 @@ export const judgeRouter = createTRPCRouter({
       };
     }),
 
-  // Get judge progress for a hackathon
   getProgress: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -341,13 +284,9 @@ export const judgeRouter = createTRPCRouter({
       };
     }),
 
-  // === Admin operations ===
-
-  // Get rankings for a hackathon (with tie detection)
   getRankings: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      // Get all projects with their votes
       const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
@@ -365,7 +304,6 @@ export const judgeRouter = createTRPCRouter({
         },
       });
 
-      // Calculate scores and detect ties
       const rankings = projects.map((project) => {
         const totalScore = project.votes.reduce((sum, v) => sum + v.score, 0);
         const voteCount = project.votes.length;
@@ -389,10 +327,8 @@ export const judgeRouter = createTRPCRouter({
         };
       });
 
-      // Sort by total score descending
       rankings.sort((a, b) => b.totalScore - a.totalScore);
 
-      // Detect ties
       const ties: { score: number; projects: string[] }[] = [];
       const scoreGroups = new Map<number, typeof rankings>();
 
@@ -421,7 +357,6 @@ export const judgeRouter = createTRPCRouter({
       };
     }),
 
-  // List all judges
   list: isAdmin.query(async ({ ctx }) => {
     const allJudges = await ctx.db!.query.judges.findMany({
       with: {
@@ -450,7 +385,6 @@ export const judgeRouter = createTRPCRouter({
     return allJudges;
   }),
 
-  // Create a new judge
   create: isAdmin
     .input(
       z.object({
@@ -492,7 +426,6 @@ export const judgeRouter = createTRPCRouter({
       return result[0];
     }),
 
-  // Assign judge to hackathon
   assignToHackathon: isAdmin
     .input(
       z.object({
@@ -525,7 +458,6 @@ export const judgeRouter = createTRPCRouter({
         })
         .returning();
 
-      // Create queue entries for all projects
       const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
@@ -545,7 +477,6 @@ export const judgeRouter = createTRPCRouter({
       return result[0];
     }),
 
-  // Create a project (for seeding)
   createProject: isAdmin
     .input(
       z.object({
@@ -567,7 +498,6 @@ export const judgeRouter = createTRPCRouter({
       return result[0];
     }),
 
-  // Bulk create projects (for seeding)
   bulkCreateProjects: isAdmin
     .input(
       z.object({
@@ -596,7 +526,6 @@ export const judgeRouter = createTRPCRouter({
       return result;
     }),
 
-  // Add a map image
   addMap: isAdmin
     .input(
       z.object({
@@ -615,7 +544,6 @@ export const judgeRouter = createTRPCRouter({
       return result[0];
     }),
 
-  // Initialize queue for a judge (if they join late or queue needs reset)
   initializeQueue: isAdmin
     .input(
       z.object({
@@ -625,7 +553,6 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Delete existing queue
       await ctx.db!
         .delete(judgeQueue)
         .where(
@@ -635,18 +562,15 @@ export const judgeRouter = createTRPCRouter({
           )
         );
 
-      // Get all projects
       let projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      // Optionally shuffle using Fisher-Yates algorithm
       if (input.shuffle) {
         projects = shuffleArray(projects);
       }
 
-      // Create queue entries
       if (projects.length > 0) {
         await ctx.db!.insert(judgeQueue).values(
           projects.map((p, idx) => ({
@@ -661,7 +585,6 @@ export const judgeRouter = createTRPCRouter({
       return { success: true, projectCount: projects.length };
     }),
 
-  // Delete a judge
   remove: isAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -669,7 +592,6 @@ export const judgeRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // Get all votes for a hackathon (for admin review)
   getAllVotes: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
