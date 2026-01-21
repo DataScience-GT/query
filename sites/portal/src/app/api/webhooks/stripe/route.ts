@@ -5,15 +5,9 @@ import { eq } from "drizzle-orm";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-let stripe: Stripe;
-function getStripe() {
-  if (!stripe) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2025-12-15.clover",
-    });
-  }
-  return stripe;
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-12-15.clover",
+});
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -26,7 +20,7 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
