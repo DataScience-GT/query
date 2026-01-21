@@ -1,18 +1,18 @@
 "use client";
 
-import React from "react";
+import { ChangeEvent } from "react";
 
 interface InlineRadioInputProps {
   color: string;
   label: string;
   value: string;
   name: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   checked?: boolean;
 }
 
-const InlineRadioInput: React.FC<InlineRadioInputProps> = ({
+export default function InlineRadioInput({
   color,
   label,
   value,
@@ -20,7 +20,7 @@ const InlineRadioInput: React.FC<InlineRadioInputProps> = ({
   onChange,
   type = "radio",
   checked = false,
-}) => {
+}: InlineRadioInputProps) {
   const id = `${label.replaceAll(" ", "-")}-${name.replaceAll(" ", "-")}`;
 
   return (
@@ -47,6 +47,4 @@ const InlineRadioInput: React.FC<InlineRadioInputProps> = ({
       </label>
     </div>
   );
-};
-
-export default InlineRadioInput;
+}
