@@ -1,7 +1,6 @@
-import React from 'react';
 import Background from '../components/Background';
 
-export default function Custom404() {
+export default function NotFound() {
     return (
         <div className="relative min-h-screen flex items-center justify-center bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
             <Background className="fixed inset-0 z-0 opacity-20" />
