@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, HTMLAttributes } from "react";
+import { ReactNode, HTMLAttributes } from "react";
 import Image, { StaticImageData } from "next/image";
 
 interface TeamCardProps extends HTMLAttributes<HTMLDivElement> {
@@ -11,14 +11,14 @@ interface TeamCardProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-const TeamCard: React.FC<TeamCardProps> = ({
+export default function TeamCard({
   img,
   name,
   title,
   zoom,
   children,
   ...rest
-}) => {
+}: TeamCardProps) {
   return (
     <div
       {...rest}
@@ -81,6 +81,4 @@ const TeamCard: React.FC<TeamCardProps> = ({
       </div>
     </div>
   );
-};
-
-export default TeamCard;
+}

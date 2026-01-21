@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState, ReactNode } from "react";
 import Image, { StaticImageData } from "next/image";
 
 interface CardProps {
-  img?: string | StaticImageData; // <-- allow StaticImageData
-  imgClassName?: string; // optional class to customize image styling (e.g. filters)
+  img?: string | StaticImageData;
+  imgClassName?: string;
   heading?: string;
   linkUrl?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 
-const Card: React.FC<CardProps> = ({ img, imgClassName = "", heading, linkUrl, children, className = "" }) => {
+export default function Card({ img, imgClassName = "", heading, linkUrl, children, className = "" }: CardProps) {
   const [imgError, setImgError] = useState(false);
 
   // Compute initials from heading to use in the fallback placeholder
@@ -89,6 +89,4 @@ const Card: React.FC<CardProps> = ({ img, imgClassName = "", heading, linkUrl, c
       </div>
     </div>
   );
-};
-
-export default Card;
+}

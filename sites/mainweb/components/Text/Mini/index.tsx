@@ -1,10 +1,10 @@
-import React from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
-interface MiniProps extends React.HTMLAttributes<HTMLParagraphElement> {
-  children: React.ReactNode;
+interface MiniProps extends HTMLAttributes<HTMLParagraphElement> {
+  children: ReactNode;
 }
 
-const Mini: React.FC<MiniProps> = ({ children, className, ...props }) => {
+export default function Mini({ children, className, ...props }: MiniProps) {
   const defaultClasses = `
     text-gray-300 text-lg md:text-xl font-normal leading-relaxed m-0
   `;
@@ -17,6 +17,4 @@ const Mini: React.FC<MiniProps> = ({ children, className, ...props }) => {
       {children}
     </p>
   );
-};
-
-export default Mini;
+}
