@@ -57,7 +57,6 @@ export default function JudgePage() {
     });
   };
 
-  // Loading states
   if (!mounted || status === 'loading' || checkingJudge) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
@@ -68,7 +67,6 @@ export default function JudgePage() {
 
   if (!session) return null;
 
-  // Not a judge
   if (!judgeStatus?.isJudge) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
@@ -89,7 +87,6 @@ export default function JudgePage() {
     );
   }
 
-  // No hackathon
   if (!hackathonId) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
@@ -113,7 +110,6 @@ export default function JudgePage() {
   const project = nextTable?.project;
   const isDone = nextTable?.done;
 
-  // All done
   if (isDone) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
@@ -137,7 +133,6 @@ export default function JudgePage() {
     );
   }
 
-  // Loading next
   if (loadingNext || !project) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
@@ -148,13 +143,11 @@ export default function JudgePage() {
 
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col selection:bg-[#00A8A8]/30">
-      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.03)_0%,transparent_70%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
 
-      {/* Progress bar */}
       <div className="h-1 bg-white/5 relative z-10">
         <div
           className="h-full bg-gradient-to-r from-[#00A8A8] to-[#005a5a] transition-all duration-500 shadow-[0_0_10px_rgba(0,168,168,0.5)]"
@@ -162,9 +155,7 @@ export default function JudgePage() {
         />
       </div>
 
-      {/* Content */}
       <main className="flex-1 flex flex-col px-5 py-6 max-w-lg mx-auto w-full relative z-10">
-        {/* Table number display */}
         <div className="text-center py-8">
           <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-4">Current_Table</p>
           <div className="relative inline-block">
@@ -178,7 +169,6 @@ export default function JudgePage() {
           </p>
         </div>
 
-        {/* Project info card */}
         <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 mb-5 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
           <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-2">Project_Name</p>
@@ -188,24 +178,21 @@ export default function JudgePage() {
           )}
         </div>
 
-        {/* Score selector */}
         <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 mb-5">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Score_Value</span>
             <span className="text-4xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">{score}</span>
           </div>
 
-          {/* Score buttons */}
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <button
                 key={n}
                 onClick={() => setScore(n)}
-                className={`py-3 rounded font-mono font-bold text-sm transition-all ${
-                  score === n
+                className={`py-3 rounded font-mono font-bold text-sm transition-all ${score === n
                     ? 'bg-[#00A8A8] text-white shadow-[0_0_20px_rgba(0,168,168,0.4)]'
                     : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 active:scale-95'
-                }`}
+                  }`}
               >
                 {n}
               </button>
@@ -213,7 +200,6 @@ export default function JudgePage() {
           </div>
         </div>
 
-        {/* Comment */}
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -221,7 +207,6 @@ export default function JudgePage() {
           className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-4 text-white placeholder-gray-600 resize-none mb-5 min-h-[80px] font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none transition-colors"
         />
 
-        {/* Submit button */}
         <button
           onClick={handleSubmit}
           disabled={submit.isPending}
@@ -230,7 +215,6 @@ export default function JudgePage() {
           {submit.isPending ? 'Processing...' : 'Submit_&_Next'}
         </button>
 
-        {/* Sign out link */}
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="text-gray-600 text-[10px] font-mono py-4 uppercase tracking-[0.3em] hover:text-[#00A8A8] transition-colors"
