@@ -76,7 +76,7 @@ export default function ClubPage() {
     }
   }, [showScanner]);
 
-  const handleScan = async (detectedCodes: any[]) => {
+  const handleScan = async (detectedCodes: { rawValue: string }[]) => {
     if (isProcessing || !detectedCodes || detectedCodes.length === 0) return;
 
     const scannedData = detectedCodes[0].rawValue;
@@ -95,7 +95,7 @@ export default function ClubPage() {
     }
   };
 
-  const handleError = (error: any) => {
+  const handleError = (error: unknown) => {
     console.error('Scanner error:', error);
   };
 

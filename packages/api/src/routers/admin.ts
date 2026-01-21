@@ -4,34 +4,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { admins, users } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
-
-const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db!.query.admins.findFirst({
-    where: and(
-      eq(admins.userId, ctx.userId!),
-      eq(admins.isActive, true)
-    ),
-  });
-
-  if (!admin) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-
-  return next({ ctx: { ...ctx, admin } });
-});
-
-const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
-  if (ctx.admin.role !== "super_admin") {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Super admin access required",
-    });
-  }
-  return next({ ctx });
-});
+import { isAdmin, isSuperAdmin } from "../middleware/procedures";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
@@ -127,7 +100,7 @@ export const adminRouter = createTRPCRouter({
       if (!newAdmin) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "cannot create",
+          message: "Failed to create admin",
         });
       }
 
@@ -157,7 +130,7 @@ export const adminRouter = createTRPCRouter({
       if (targetAdmin.userId === ctx.userId && input.isActive === false) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "why?",
+          message: "Cannot deactivate your own admin account",
         });
       }
 
@@ -177,7 +150,7 @@ export const adminRouter = createTRPCRouter({
       if (!updatedAdmin) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "couldnt update",
+          message: "Failed to update admin",
         });
       }
 
@@ -194,14 +167,14 @@ export const adminRouter = createTRPCRouter({
       if (!targetAdmin) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "not located",
+          message: "Admin not found",
         });
       }
 
       if (targetAdmin.userId === ctx.userId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "why are you trying to do this",
+          message: "Cannot remove your own admin account",
         });
       }
 
