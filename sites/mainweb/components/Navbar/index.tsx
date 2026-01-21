@@ -12,7 +12,7 @@ interface NavbarProps {
   className?: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) => {
+export default function Navbar({ screen_width, page, className = "" }: NavbarProps) {
   const [windowWidth, setWindowWidth] = useState(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,7 +52,9 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
 
-  const renderMenuItem = (item: any, isMobile: boolean = false) => {
+  type MenuItem = { name: string; to: string; link: boolean };
+
+  const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
     const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${
       isMobile
         ? "text-gray-300 hover:text-white text-xl font-bold"
@@ -155,6 +157,4 @@ const Navbar: React.FC<NavbarProps> = ({ screen_width, page, className = "" }) =
       </div>
     </>
   );
-};
-
-export default Navbar;
+}
