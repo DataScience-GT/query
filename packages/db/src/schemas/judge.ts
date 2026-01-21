@@ -11,6 +11,7 @@ export const judges = pgTable("judge", {
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name"),
+  specialty: text("specialty"), // e.g., "AI/ML", "Web Development", "Mobile", "Data Science"
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

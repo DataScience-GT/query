@@ -2,8 +2,18 @@ import { db } from "@query/db";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { cache } from "./middleware/cache";
 
+type Session = {
+  user?: {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+  expires?: string;
+} | null;
+
 // Lazy import auth to avoid module resolution issues in standalone builds
-let authModule: { auth: () => Promise<any> } | null = null;
+let authModule: { auth: () => Promise<Session> } | null = null;
 
 async function getAuth() {
   if (authModule === null) {
