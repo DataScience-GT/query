@@ -14,12 +14,10 @@ export default function Dashboard() {
   const router = useRouter();
   const [mode, setMode] = useState<'PROFILE'>('PROFILE');
 
-  // --- DATA QUERIES ---
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
 
-  // --- AUTH GUARD ---
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/');
   }, [status, router]);
@@ -38,7 +36,6 @@ export default function Dashboard() {
 
       <main className="relative z-10 max-w-6xl mx-auto grid lg:grid-cols-12 gap-8 py-20 px-6">
 
-        {/* --- SIDEBAR --- */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-black/60 border border-white/5 rounded-xl p-6 font-mono text-[11px] space-y-6 backdrop-blur-md">
             <div className="flex items-center gap-4 border-b border-white/5 pb-6">
@@ -50,7 +47,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-white font-bold uppercase tracking-tight text-sm">{userData?.name || 'GUEST'}</p>
                 <p className="text-gray-500 text-[9px] uppercase tracking-widest italic font-bold">
-                   {adminStatus?.isAdmin ? 'ADMIN_NODE' : memberStatus?.isMember ? 'MEMBER_NODE' : 'GUEST_NODE'}
+                  {adminStatus?.isAdmin ? 'ADMIN_NODE' : memberStatus?.isMember ? 'MEMBER_NODE' : 'GUEST_NODE'}
                 </p>
               </div>
             </div>
@@ -82,7 +79,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* --- MAIN DISPLAY --- */}
         <div className="lg:col-span-8 space-y-6">
           <div className="p-8 rounded-xl border border-white/10 bg-black/40 backdrop-blur-md">
 
@@ -109,7 +105,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* --- STATUS TILES --- */}
               <div className="grid grid-cols-1 gap-4">
 
                 {adminStatus?.isAdmin ? (
