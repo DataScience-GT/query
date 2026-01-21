@@ -5,7 +5,6 @@ import { members, membershipHistory } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 
-// Validation schemas
 const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
 const urlSchema = z.string().url().max(500).optional();
 const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number").optional();
@@ -288,7 +287,6 @@ export const memberRouter = createTRPCRouter({
   }),
 
   checkStatus: protectedProcedure.query(async ({ ctx }) => {
-    // Check cache first (short TTL since membership status is important)
     const cacheKey = `member:status:${ctx.userId}`;
     const cached = ctx.cache.get<{
       isMember: boolean;
@@ -335,7 +333,6 @@ export const memberRouter = createTRPCRouter({
       renewalCount: member.renewalCount,
     };
 
-    // Cache for 30 seconds
     ctx.cache.set(cacheKey, result, 30);
 
     return result;
