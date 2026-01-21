@@ -8,7 +8,6 @@ import { isAdmin, isSuperAdmin } from "../middleware/procedures";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
-    // Check cache first
     const cacheKey = CacheKeys.admin(ctx.userId!);
     const cached = ctx.cache.get<{
       isAdmin: boolean;
@@ -30,7 +29,6 @@ export const adminRouter = createTRPCRouter({
       permissions: admin?.permissions || [],
     };
 
-    // Cache for 60 seconds
     ctx.cache.set(cacheKey, result, 60);
 
     return result;

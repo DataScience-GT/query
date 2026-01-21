@@ -23,7 +23,6 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      // Generate cache key based on input parameters
       const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
 
       // Check cache first
@@ -43,7 +42,6 @@ export const hackathonRouter = createTRPCRouter({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
       });
 
-      // Cache for 60 seconds (hackathon lists don't change often)
       ctx.cache.set(cacheKey, allHackathons, 60);
 
       return allHackathons;
@@ -68,7 +66,6 @@ export const hackathonRouter = createTRPCRouter({
         });
       }
 
-      // Cache for 120 seconds
       ctx.cache.set(cacheKey, hackathon, 120);
 
       return hackathon;
@@ -109,7 +106,6 @@ export const hackathonRouter = createTRPCRouter({
         })
         .returning();
 
-      // Invalidate hackathon list cache
       ctx.cache.deletePattern('hackathons:*');
 
       return newHackathon;
@@ -143,7 +139,6 @@ export const hackathonRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;
 
-      // Verify hackathon exists
       const existing = await ctx.db!.query.hackathons.findFirst({
         where: eq(hackathons.id, id),
       });
@@ -164,7 +159,6 @@ export const hackathonRouter = createTRPCRouter({
         .where(eq(hackathons.id, id))
         .returning();
 
-      // Invalidate hackathon caches
       ctx.cache.delete(CacheKeys.hackathon(id));
       ctx.cache.deletePattern('hackathons:*');
 
@@ -182,7 +176,6 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Use transaction to prevent race conditions
       return await ctx.db!.transaction(async (tx) => {
         const hackathon = await tx.query.hackathons.findFirst({
           where: eq(hackathons.id, input.hackathonId),
