@@ -33,6 +33,7 @@ yarn-error.log*
 .env.production
 
 # Vercel
+.reset.ts
 .vercel
 
 # Turbo
