@@ -33,19 +33,19 @@ export default function NotFound() {
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
-            <Link
+            <a
               href="/"
-              className="px-10 py-4 bg-white text-black font-bold rounded-md transition-all duration-300 hover:bg-gray-200 active:scale-95 text-xs uppercase tracking-widest"
+              className="px-10 py-4 bg-white text-black font-bold rounded-md transition-all duration-300 hover:bg-gray-200 active:scale-95 text-xs uppercase tracking-widest inline-block"
             >
               Back to Home
-            </Link>
+            </a>
 
-            <Link
+            <a
               href="/projects"
-              className="px-10 py-4 border border-white/10 text-gray-300 font-bold rounded-md transition-all duration-300 hover:bg-white/5 active:scale-95 text-xs uppercase tracking-widest"
+              className="px-10 py-4 border border-white/10 text-gray-300 font-bold rounded-md transition-all duration-300 hover:bg-white/5 active:scale-95 text-xs uppercase tracking-widest inline-block"
             >
               View Projects
-            </Link>
+            </a>
           </div>
         </div>
       </main>
