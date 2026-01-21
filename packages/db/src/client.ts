@@ -19,7 +19,7 @@ if (DATABASE_URL) {
     allowExitOnIdle: true,
     connectionTimeoutMillis: 5000, // 5s timeout
     idleTimeoutMillis: 2000, // 2s idle timeout
-    max: 10,
+    max: 1, // Minimize connections to prevent resource exhaustion/crashes
   });
 
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
