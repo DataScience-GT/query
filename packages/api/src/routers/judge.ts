@@ -314,6 +314,7 @@ export const judgeRouter = createTRPCRouter({
             id: project.id,
             name: project.name,
             tableNumber: project.tableNumber,
+            category: project.category,
             teamMembers: project.teamMembers,
           },
           totalScore,
@@ -507,6 +508,7 @@ export const judgeRouter = createTRPCRouter({
             name: z.string().min(1).max(255),
             description: z.string().max(1000).optional(),
             tableNumber: z.number().min(1),
+            category: z.string().max(100).optional(),
             teamMembers: z.string().max(500).optional(),
           })
         ),
