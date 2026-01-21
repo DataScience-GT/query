@@ -28,7 +28,7 @@ async function getAuth() {
 }
 
 export async function createContext(
-  opts?: FetchCreateContextFnOptions & { clientIp?: string; req?: Request }
+  opts?: Partial<FetchCreateContextFnOptions> & { clientIp?: string; req?: Request }
 ) {
   let session = null;
 
