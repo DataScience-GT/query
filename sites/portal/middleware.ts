@@ -10,7 +10,7 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get('query_session')?.value;
   if (!token) {
     const url = req.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = '/';
     return NextResponse.redirect(url);
   }
   return NextResponse.next();
