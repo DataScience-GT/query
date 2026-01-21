@@ -1,0 +1,183 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { stripePayments, userAccountLinks, members } from "@query/db";
+import { eq, and, isNull } from "drizzle-orm";
+
+export const stripeRouter = createTRPCRouter({
+  /**
+   * Check if the current user has an unlinked Stripe payment
+   * that matches their email (auto-link scenario)
+   */
+  checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.db!.query.users.findFirst({
+      where: eq((await import("@query/db")).users.id, ctx.userId!),
+    });
+
+    if (!user?.email) {
+      return { hasPendingPayment: false };
+    }
+
+    // Check for unlinked payment with matching email
+    const pendingPayment = await ctx.db!.query.stripePayments.findFirst({
+      where: and(
+        eq(stripePayments.customerEmail, user.email),
+        isNull(stripePayments.linkedUserId),
+        eq(stripePayments.paymentStatus, "paid")
+      ),
+    });
+
+    return {
+      hasPendingPayment: !!pendingPayment,
+      paymentId: pendingPayment?.id,
+    };
+  }),
+
+  /**
+   * Link a Stripe payment to the current user's account
+   * by providing the name and email used during Stripe checkout
+   */
+  linkAccount: protectedProcedure
+    .input(
+      z.object({
+        firstName: z.string().min(1).max(100),
+        lastName: z.string().min(1).max(100),
+        email: z.string().email().max(255),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Find unlinked payment with matching email
+      const payment = await ctx.db!.query.stripePayments.findFirst({
+        where: and(
+          eq(stripePayments.customerEmail, input.email.toLowerCase()),
+          isNull(stripePayments.linkedUserId),
+          eq(stripePayments.paymentStatus, "paid")
+        ),
+      });
+
+      if (!payment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No payment found with that email. Please check the email you used during checkout.",
+        });
+      }
+
+      // Check if this payment is already linked
+      const existingLink = await ctx.db!.query.userAccountLinks.findFirst({
+        where: eq(userAccountLinks.stripePaymentId, payment.id),
+      });
+
+      if (existingLink) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This payment has already been linked to an account.",
+        });
+      }
+
+      // Check if user already has a link
+      const userExistingLink = await ctx.db!.query.userAccountLinks.findFirst({
+        where: eq(userAccountLinks.userId, ctx.userId!),
+      });
+
+      if (userExistingLink) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Your account is already linked to a payment.",
+        });
+      }
+
+      // Create the link
+      await ctx.db!.insert(userAccountLinks).values({
+        userId: ctx.userId!,
+        stripePaymentId: payment.id,
+        providedFirstName: input.firstName,
+        providedLastName: input.lastName,
+        providedEmail: input.email.toLowerCase(),
+      });
+
+      // Update the payment record
+      await ctx.db!
+        .update(stripePayments)
+        .set({
+          linkedUserId: ctx.userId!,
+          linkedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(stripePayments.id, payment.id));
+
+      // Create or update membership
+      await createOrUpdateMembership(
+        ctx.db!,
+        ctx.userId!,
+        input.firstName,
+        input.lastName
+      );
+
+      return { success: true, message: "Account linked successfully! You are now a member." };
+    }),
+
+  /**
+   * Get the current user's linked payment status
+   */
+  getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
+    const link = await ctx.db!.query.userAccountLinks.findFirst({
+      where: eq(userAccountLinks.userId, ctx.userId!),
+      with: {
+        stripePayment: true,
+      },
+    });
+
+    if (!link) {
+      return null;
+    }
+
+    return {
+      linkedAt: link.createdAt,
+      stripeEmail: link.stripePayment.customerEmail,
+      paymentDate: link.stripePayment.createdAt,
+    };
+  }),
+});
+
+async function createOrUpdateMembership(
+  db: NonNullable<typeof import("@query/db").db>,
+  userId: string,
+  firstName: string,
+  lastName: string
+) {
+  // Check if member already exists
+  const existingMember = await db.query.members.findFirst({
+    where: eq(members.userId, userId),
+  });
+
+  const now = new Date();
+  const oneYearFromNow = new Date(now);
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+  if (existingMember) {
+    // Renew membership
+    await db
+      .update(members)
+      .set({
+        isActive: true,
+        membershipStartDate: now,
+        membershipEndDate: oneYearFromNow,
+        renewalCount: existingMember.renewalCount + 1,
+        memberType: "continuous",
+        updatedAt: now,
+      })
+      .where(eq(members.id, existingMember.id));
+  } else {
+    // Create new membership
+    await db.insert(members).values({
+      userId,
+      firstName,
+      lastName,
+      memberType: "new",
+      isActive: true,
+      membershipStartDate: now,
+      membershipEndDate: oneYearFromNow,
+      renewalCount: 0,
+    });
+  }
+}
