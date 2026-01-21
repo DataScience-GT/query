@@ -9,58 +9,22 @@ import {
   judgeQueue,
   hackathonMaps,
   users,
-  admins,
 } from "@query/db";
 import { eq, and, asc, desc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
+import { isAdmin, isJudge } from "../middleware/procedures";
 
 // Fisher-Yates shuffle for unbiased randomization
 function shuffleArray<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+    const temp = result[i]!;
+    result[i] = result[j]!;
+    result[j] = temp;
   }
   return result;
 }
-
-// Middleware to check if user is a judge
-const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
-  const judge = await ctx.db!.query.judges.findFirst({
-    where: and(
-      eq(judges.userId, ctx.userId!),
-      eq(judges.isActive, true)
-    ),
-  });
-
-  if (!judge) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Judge access required",
-    });
-  }
-
-  return next({ ctx: { ...ctx, judge } });
-});
-
-// Middleware to check if user is admin (for judge management)
-const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db!.query.admins.findFirst({
-    where: and(
-      eq(admins.userId, ctx.userId!),
-      eq(admins.isActive, true)
-    ),
-  });
-
-  if (!admin) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-
-  return next({ ctx: { ...ctx, admin } });
-});
 
 export const judgeRouter = createTRPCRouter({
   // Check if current user is a judge
