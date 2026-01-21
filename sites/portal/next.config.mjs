@@ -18,9 +18,7 @@ const nextConfig = {
   images: {
     domains: ['lh3.googleusercontent.com'],
   },
-  webpack: (config) => {
-    return config;
-  },
+  turbopack: {},
 };
 
 export default nextConfig;

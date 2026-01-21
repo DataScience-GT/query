@@ -18,10 +18,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${geistSansVar} ${geistMonoVar}`}>
-      {/* FIX: Removed text-yellow-400.
-          Changed to text-gray-400 to match your site's gray/teal theme.
-          This prevents icons and images from inheriting an unwanted tint.
-      */}
       <body suppressHydrationWarning className="antialiased bg-[#050505] text-gray-400">
         {children}
       </body>
