@@ -17,9 +17,9 @@ if (DATABASE_URL) {
   const conn = globalForDb.conn ?? new Pool({
     connectionString: DATABASE_URL,
     allowExitOnIdle: true,
-    connectionTimeoutMillis: 5000, // 5s timeout
-    idleTimeoutMillis: 2000, // 2s idle timeout
-    max: 1, // Minimize connections to prevent resource exhaustion/crashes
+    connectionTimeoutMillis: 10000, // 10s timeout
+    idleTimeoutMillis: 10000, // 10s idle timeout
+    max: 10, // Increased from 1 to 10 to prevent starvation in dev/HMR
   });
 
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
