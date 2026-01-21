@@ -5,8 +5,6 @@ import { eq } from "drizzle-orm";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
 // Non-lazy initialization as requested, but robust check for missing key during build
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
