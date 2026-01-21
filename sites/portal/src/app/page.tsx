@@ -78,7 +78,7 @@ export default function Home() {
 
       const redirectTimeout = setTimeout(() => {
         // Redirection Logic
-        if (judgeStatus?.isJudge || adminStatus?.isAdmin) {
+        if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
           router.push('/judge');
         } else {
           router.push('/dashboard');
