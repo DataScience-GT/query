@@ -193,7 +193,6 @@ export default function Home() {
               <img
                 src="/images/dsgt/apple-touch-icon.png"
                 alt="DSGT Logo"
-                /* REMOVED grayscale AND group-hover:grayscale-0 */
                 className="w-72 h-72 object-contain drop-shadow-[0_0_50px_rgba(0,168,168,0.3)] transition-all duration-700 group-hover:scale-105"
               />
             </div>
