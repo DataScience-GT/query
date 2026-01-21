@@ -50,7 +50,7 @@ export async function createContext(
     session,
     userId: session?.user?.id,
     cache,
-    clientIp: opts?.clientIp || 'unknown',
+    clientIp: opts?.clientIp || req?.headers.get("x-forwarded-for")?.split(",")[0] || 'unknown',
     req
   };
 }
