@@ -84,7 +84,6 @@ const Home = () => {
 
   return (
     <div id="home-page" className="relative bg-[#050505] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      {/* FIX: Reduced Background opacity to prevent monotone overlay feel */}
       <Background className="fixed inset-0 z-0 opacity-[0.05]" />
 
       <Navbar screen_width={windowWidth} page="home" className="fixed top-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md" />
@@ -104,7 +103,6 @@ const Home = () => {
           </div>
           <div className="relative group">
             <div className="absolute -inset-1 bg-[#00A8A8]/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
-            {/* FIX: Removed grayscale by default to restore image color */}
             <Image src={squad} alt="DSGT Executive Board" className="relative rounded-xl border border-white/10 shadow-2xl transition-all duration-700" width={800} height={450} priority />
           </div>
         </div>
@@ -169,7 +167,7 @@ const Home = () => {
             </a>
           </div>
           <div className="relative">
-             <Image src={slide6} alt="Hacklytics Event" className="rounded-xl border border-white/10 shadow-xl transition-all duration-700" width={600} height={400} />
+            <Image src={slide6} alt="Hacklytics Event" className="rounded-xl border border-white/10 shadow-xl transition-all duration-700" width={600} height={400} />
           </div>
         </div>
       </Section>
