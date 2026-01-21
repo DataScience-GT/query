@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Background from '@/components/Background';
 import Link from 'next/link';
 import LinkStripeAccount from '@/components/LinkStripeAccount';
+import ProfileForm from '@/components/profile/ProfileForm';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -57,7 +58,7 @@ export default function Dashboard() {
                 onClick={() => setMode('PROFILE')}
                 className="w-full px-4 py-3 border border-white/20 text-white bg-white/5 text-left text-[9px] font-bold tracking-widest hover:bg-white/10 transition-all"
               >
-                {">"} VIEW_DOSSIER
+                {"VIEW_DOSSIER"}
               </button>
 
               {adminStatus?.isAdmin && (
@@ -65,7 +66,7 @@ export default function Dashboard() {
                   onClick={() => router.push('/admin')}
                   className="w-full px-4 py-3 border border-red-500/20 bg-red-500/5 text-red-500 text-left transition-all text-[9px] font-bold tracking-widest hover:bg-red-500/10 hover:border-red-500"
                 >
-                  {">"} ADMIN_CONTROL_PANEL
+                  {"ADMIN_CONTROL_PANEL"}
                 </button>
               )}
             </nav>
@@ -73,7 +74,7 @@ export default function Dashboard() {
 
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full py-4 border border-red-500/10 text-red-500/40 hover:bg-red-900/20 hover:text-red-500 transition-all font-mono text-[9px] uppercase tracking-[0.3em]"
+            className="w-full py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 hover:border-red-500/40 transition-all font-mono text-[9px] uppercase tracking-[0.3em]"
           >
             Terminate_Session
           </button>
@@ -90,19 +91,15 @@ export default function Dashboard() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
 
               {/* Identity Metadata Box */}
-              <div className="bg-black/40 border border-white/5 p-8 rounded-xl space-y-6">
-                <div>
-                  <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-2">Identity_Metadata</p>
-                  <p className="text-2xl font-bold text-white tracking-tight">{userData?.name || 'UNKNOWN'}</p>
-                  <p className="text-[10px] text-gray-600 font-mono mt-1">{userData?.email}</p>
-                </div>
-
-                <div className="border-t border-white/5 pt-6">
-                  <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-3">Public_Bio</p>
-                  <p className="text-xs text-white leading-relaxed italic font-mono">
-                    "{userData?.bio || "No public bio transmission found."}"
-                  </p>
-                </div>
+              {/* Profile Editor */}
+              <div className="bg-black/40 border border-white/5 p-8 rounded-xl">
+                <ProfileForm user={{
+                  id: userData?.id || '',
+                  name: userData?.name,
+                  email: userData?.email || '',
+                  image: userData?.image,
+                  bio: userData?.bio
+                }} />
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -115,7 +112,7 @@ export default function Dashboard() {
                         Admin_Access
                       </p>
                       <p className="text-[11px] font-mono font-bold text-white uppercase tracking-wider">
-                        ● ONLINE_PRIVILEGED_SESSION
+                        ONLINE_PRIVILEGED_SESSION
                       </p>
                       <p className="text-[8px] text-green-500/60 mt-2 uppercase font-mono group-hover:text-green-400">
                         Click_to_Enter_Control_Panel
@@ -132,7 +129,7 @@ export default function Dashboard() {
                             Member_Access
                           </p>
                           <p className="text-[11px] font-mono font-bold text-white">
-                            ● ONLINE
+                            ONLINE
                           </p>
                           <p className="text-[8px] text-green-500/60 mt-2 uppercase font-mono group-hover:text-green-400">
                             Click_to_Enter_Terminal
@@ -143,9 +140,9 @@ export default function Dashboard() {
                       <LinkStripeAccount />
                     )}
 
-                    <div className="p-6 rounded-xl border border-white/5 bg-white/[0.02] opacity-40">
-                      <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black mb-2">Hacklytics</p>
-                      <p className="text-[11px] font-mono text-gray-800 font-bold uppercase">○ Restricted</p>
+                    <div className="p-6 rounded-xl border border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 transition-all cursor-not-allowed">
+                      <p className="text-[10px] text-yellow-500 uppercase tracking-widest font-black mb-2">Hacklytics</p>
+                      <p className="text-[11px] font-mono text-yellow-400 font-bold uppercase">Work in Progress</p>
                     </div>
                   </div>
                 )}
