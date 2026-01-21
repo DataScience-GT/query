@@ -1,28 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { events, eventCheckIns, members, admins } from "@query/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { events, eventCheckIns, members } from "@query/db";
+import { eq, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
-
-// Admin middleware
-const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const admin = await ctx.db!.query.admins.findFirst({
-    where: and(
-      eq(admins.userId, ctx.userId!),
-      eq(admins.isActive, true)
-    ),
-  });
-
-  if (!admin) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-
-  return next({ ctx: { ...ctx, admin } });
-});
+import { isAdmin } from "../middleware/procedures";
 
 export const eventRouter = createTRPCRouter({
   // ADMIN: Create event
