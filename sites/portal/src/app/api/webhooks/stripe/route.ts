@@ -5,9 +5,14 @@ import { eq } from "drizzle-orm";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-12-15.clover",
-});
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// Non-lazy initialization as requested, but robust check for missing key during build
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-12-15.clover",
+  })
+  : null;
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -15,6 +20,12 @@ export async function POST(req: NextRequest) {
 
   if (!signature) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  }
+
+  // Runtime check for missing configuration
+  if (!stripe) {
+    console.error("Stripe not initialized. Missing STRIPE_SECRET_KEY.");
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
   let event: Stripe.Event;
