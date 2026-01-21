@@ -1,3 +1,5 @@
+"use client";
+
 // src/app/not-found.tsx
 import Link from "next/link";
 import Background from "@/components/Background";
