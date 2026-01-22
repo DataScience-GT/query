@@ -67,39 +67,47 @@ export const judgeRouter = createTRPCRouter({
   getNextTable: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const nextInQueue = await ctx.db!.query.judgeQueue.findFirst({
-        where: and(
-          eq(judgeQueue.judgeId, ctx.judge.id),
-          eq(judgeQueue.hackathonId, input.hackathonId),
-          eq(judgeQueue.isCompleted, false)
-        ),
-        with: {
-          project: true,
-        },
-        orderBy: [asc(judgeQueue.order)],
-      });
-
-      if (!nextInQueue) {
-        return { done: true, project: null, remaining: 0 };
-      }
-
-      const remainingCount = await ctx.db!
-        .select({ count: sql<number>`count(*)` })
-        .from(judgeQueue)
-        .where(
-          and(
+      try {
+        const nextInQueue = await ctx.db!.query.judgeQueue.findFirst({
+          where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
             eq(judgeQueue.hackathonId, input.hackathonId),
             eq(judgeQueue.isCompleted, false)
-          )
-        );
+          ),
+          with: {
+            project: true,
+          },
+          orderBy: [asc(judgeQueue.order)],
+        });
 
-      return {
-        done: false,
-        project: nextInQueue.project,
-        queueId: nextInQueue.id,
-        remaining: Number(remainingCount[0]?.count || 0),
-      };
+        if (!nextInQueue) {
+          return { done: true, project: null, remaining: 0 };
+        }
+
+        const remainingCount = await ctx.db!
+          .select({ count: sql<number>`count(*)` })
+          .from(judgeQueue)
+          .where(
+            and(
+              eq(judgeQueue.judgeId, ctx.judge.id),
+              eq(judgeQueue.hackathonId, input.hackathonId),
+              eq(judgeQueue.isCompleted, false)
+            )
+          );
+
+        return {
+          done: false,
+          project: nextInQueue.project,
+          queueId: nextInQueue.id,
+          remaining: Number(remainingCount[0]?.count || 0),
+        };
+      } catch (error) {
+        console.error("[getNextTable] Error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to fetch next project",
+        });
+      }
     }),
 
   getProjects: isJudge
@@ -254,34 +262,43 @@ export const judgeRouter = createTRPCRouter({
   getProgress: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const total = await ctx.db!
-        .select({ count: sql<number>`count(*)` })
-        .from(judgeQueue)
-        .where(
-          and(
-            eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, input.hackathonId)
-          )
-        );
+      try {
+        const totalResult = await ctx.db!
+          .select({ count: sql<number>`count(*)` })
+          .from(judgeQueue)
+          .where(
+            and(
+              eq(judgeQueue.judgeId, ctx.judge.id),
+              eq(judgeQueue.hackathonId, input.hackathonId)
+            )
+          );
 
-      const completed = await ctx.db!
-        .select({ count: sql<number>`count(*)` })
-        .from(judgeQueue)
-        .where(
-          and(
-            eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, input.hackathonId),
-            eq(judgeQueue.isCompleted, true)
-          )
-        );
+        const completedResult = await ctx.db!
+          .select({ count: sql<number>`count(*)` })
+          .from(judgeQueue)
+          .where(
+            and(
+              eq(judgeQueue.judgeId, ctx.judge.id),
+              eq(judgeQueue.hackathonId, input.hackathonId),
+              eq(judgeQueue.isCompleted, true)
+            )
+          );
 
-      return {
-        total: Number(total[0]?.count || 0),
-        completed: Number(completed[0]?.count || 0),
-        percentage: total[0]?.count
-          ? Math.round((Number(completed[0]?.count || 0) / Number(total[0].count)) * 100)
-          : 0,
-      };
+        const total = Number(totalResult[0]?.count || 0);
+        const completed = Number(completedResult[0]?.count || 0);
+
+        return {
+          total,
+          completed,
+          percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+        };
+      } catch (error) {
+        console.error("[getProgress] Error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to fetch progress",
+        });
+      }
     }),
 
   getRankings: isAdmin
@@ -314,6 +331,7 @@ export const judgeRouter = createTRPCRouter({
             id: project.id,
             name: project.name,
             tableNumber: project.tableNumber,
+            category: project.category,
             teamMembers: project.teamMembers,
           },
           totalScore,
@@ -507,6 +525,7 @@ export const judgeRouter = createTRPCRouter({
             name: z.string().min(1).max(255),
             description: z.string().max(1000).optional(),
             tableNumber: z.number().min(1),
+            category: z.string().max(100).optional(),
             teamMembers: z.string().max(500).optional(),
           })
         ),
