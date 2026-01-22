@@ -9,7 +9,7 @@ import Background from '@/components/Background';
 import Link from 'next/link';
 import LinkStripeAccount from '@/components/LinkStripeAccount';
 import ProfileForm from '@/components/profile/ProfileForm';
-import { GlassCard } from '@mawtech/glass-ui';
+import { LiquidGlass } from '@/components/LiquidGlass';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -40,7 +40,7 @@ export default function Dashboard() {
 
         {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-black/60 backdrop-blur-md border border-white/5 p-6 rounded-lg shadow-2xl relative overflow-hidden">
+          <LiquidGlass className="p-6 relative overflow-visible">
 
             {/* User Profile Header */}
             <div className="flex items-center gap-5 border-b border-white/5 pb-8 mb-8">
@@ -101,12 +101,12 @@ export default function Dashboard() {
                 Terminate Session
               </button>
             </div>
-          </div>
+          </LiquidGlass>
         </div>
 
         {/* MAIN CONTENT */}
         <div className="lg:col-span-8 flex flex-col">
-          <div className="bg-black/60 backdrop-blur-md border border-white/5 p-8 rounded-lg shadow-2xl min-h-[600px] flex flex-col relative overflow-hidden">
+          <LiquidGlass className="p-8 min-h-[600px] flex flex-col relative overflow-hidden">
 
             {/* Decorative Top Line */}
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
@@ -237,9 +237,9 @@ export default function Dashboard() {
               )}
 
             </div>
-          </div>
+          </LiquidGlass>
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
