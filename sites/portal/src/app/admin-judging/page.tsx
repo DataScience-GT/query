@@ -96,7 +96,7 @@ export default function AdminResultsPage() {
 
       {/* Header Section */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-        <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 mb-12 relative overflow-hidden">
+        <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 mb-12 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -116,7 +116,7 @@ export default function AdminResultsPage() {
             <div className="flex gap-4">
               <button
                 onClick={() => router.push('/admin')}
-                className="px-6 py-4 bg-white/[0.03] border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-lg font-mono"
+                className="px-6 py-4 bg-black/40 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-lg font-mono"
               >
                 &lt; Admin_Control
               </button>
@@ -177,7 +177,7 @@ export default function AdminResultsPage() {
 
         {/* Tie Warning */}
         {rankings?.hasTies && (
-          <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-yellow-500/30 rounded-2xl p-8 mb-12 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
+          <div className="bg-black/60 backdrop-blur-md border border-yellow-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
               <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Collision_Detected</h3>
@@ -215,16 +215,16 @@ export default function AdminResultsPage() {
           </div>
 
           {rankingsLoading ? (
-            <div className="bg-[#0A0A0A]/60 border border-white/5 rounded-2xl p-24 text-center backdrop-blur-md">
+            <div className="bg-black/40 border border-white/5 rounded-lg p-24 text-center backdrop-blur-md">
               <p className="text-[#00A8A8] font-mono animate-pulse uppercase tracking-[0.5em] text-xs">Awaiting_Data_Packet...</p>
             </div>
           ) : filteredRankings.length === 0 ? (
-            <div className="bg-[#0A0A0A]/60 border border-white/5 rounded-2xl p-24 text-center backdrop-blur-md">
+            <div className="bg-black/40 border border-white/5 rounded-lg p-24 text-center backdrop-blur-md">
               <p className="text-gray-500 font-mono uppercase tracking-widest text-xs mb-2">0_Records_Found</p>
               <p className="text-gray-700 text-[10px] uppercase font-mono">No submissions detected for the specified search parameters.</p>
             </div>
           ) : (
-            <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -247,7 +247,7 @@ export default function AdminResultsPage() {
                       return (
                         <React.Fragment key={r.project.id}>
                           <tr
-                            className={`group cursor-pointer transition-all duration-300 ${isTied ? 'bg-yellow-500/[0.03]' : 'hover:bg-white/[0.03]'
+                            className={`group cursor-pointer transition-all duration-300 ${isTied ? 'bg-yellow-500/[0.03]' : 'hover:bg-black/40'
                               } ${isExpanded ? 'bg-white/[0.05]' : ''}`}
                             onClick={() =>
                               setExpandedProject(isExpanded ? null : r.project.id)
@@ -301,7 +301,7 @@ export default function AdminResultsPage() {
                                       {r.votes.map((v: { judgeName: string; score: number; comment: string | null }, vi: number) => (
                                         <div
                                           key={vi}
-                                          className="relative bg-[#0A0A0A]/60 border border-white/5 p-6 rounded-xl hover:border-[#00A8A8]/20 transition-all group/vote"
+                                          className="relative bg-black/40 border border-white/5 p-6 rounded-xl hover:border-[#00A8A8]/20 transition-all group/vote"
                                         >
                                           <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-3">
@@ -338,17 +338,17 @@ export default function AdminResultsPage() {
         {/* Global Stats */}
         {rankings && rankings.rankings.length > 0 && (
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-white group-hover:text-[#00A8A8] transition-colors tabular-nums">{rankings.rankings.length}</p>
               <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Projects_Logged</p>
             </div>
-            <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-[#00A8A8] tabular-nums">
                 {rankings.rankings.reduce((sum: number, r: { voteCount: number }) => sum + r.voteCount, 0)}
               </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Balls_Aggregated</p>
             </div>
-            <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 text-center group hover:border-yellow-500/20 transition-all">
+            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 text-center group hover:border-yellow-500/20 transition-all">
               <p className={`text-4xl font-black tabular-nums ${rankings.ties.length > 0 ? 'text-yellow-500 animate-pulse' : 'text-gray-600'}`}>
                 {rankings.ties.length}
               </p>
