@@ -386,7 +386,7 @@ export default function ClubPage() {
             </button>
           </div>
         </div>
-      </main >
-    </div >
+      </main>
+    </div>
   );
 }
