@@ -63,7 +63,7 @@ export default function AdminResultsPage() {
   if (!mounted || status === 'loading' || adminLoading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Syncing_Identity...
+        Syncing Identity...
       </div>
     );
   }
@@ -79,13 +79,13 @@ export default function AdminResultsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h1 className="relative z-10 text-3xl font-black text-white uppercase tracking-tighter mb-4 italic">Security_Breach</h1>
+        <h1 className="relative z-10 text-3xl font-black text-white uppercase tracking-tighter mb-4 italic">Security Breach</h1>
         <p className="relative z-10 text-gray-500 font-mono text-sm mb-12 uppercase tracking-widest">Unauthorized access to voting protocols detected.</p>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="relative z-10 px-10 py-4 bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs uppercase tracking-[0.3em] hover:bg-red-500/20 transition-all rounded shadow-[0_0_20px_rgba(239,68,68,0.1)]"
         >
-          TERMINATE_SESSION
+          TERMINATE SESSION
         </button>
       </div>
     );
@@ -104,13 +104,13 @@ export default function AdminResultsPage() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-2 w-2 rounded-full bg-[#00A8A8] animate-pulse" />
-                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Judging_Analysis_Node</span>
+                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Judging Analysis Node</span>
               </div>
               <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2">
-                Voting_<span className="text-[#00A8A8] italic">Results</span>
+                Voting <span className="text-[#00A8A8] italic">Results</span>
               </h1>
               <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                Data_Evaluation_Layer // {selectedHackathon ? 'SYNC_ACTIVE' : 'IDLE'}
+                Data Evaluation Layer // {selectedHackathon ? 'SYNC ACTIVE' : 'IDLE'}
               </p>
             </div>
 
@@ -119,13 +119,13 @@ export default function AdminResultsPage() {
                 onClick={() => router.push('/admin')}
                 className="px-8 py-5 bg-black/40 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl font-mono"
               >
-                &lt; Admin_Control
+                &lt; Admin Control
               </button>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="px-8 py-5 border border-red-500/20 text-red-500/60 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
               >
-                SIGNOUT_TERMINAL
+                SIGNOUT TERMINAL
               </button>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function AdminResultsPage() {
           {/* Hackathon Selector */}
           {hackathons && hackathons.length > 0 && (
             <div className="flex flex-col">
-              <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Select_Target_Event</label>
+              <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Select Target Event</label>
               <div className="flex flex-wrap gap-3">
                 {hackathons.map((h) => (
                   <button
@@ -157,7 +157,7 @@ export default function AdminResultsPage() {
           {/* Category Filter */}
           {categories.length > 1 && (
             <div className="flex flex-col">
-              <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Filter_By_Category</label>
+              <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Filter By Category</label>
               <div className="flex flex-wrap gap-3">
                 {categories.map((cat) => (
                   <button
@@ -181,12 +181,12 @@ export default function AdminResultsPage() {
           <LiquidGlass className="border border-yellow-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
-              <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Collision_Detected</h3>
+              <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Collision Detected</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rankings.ties.map((tie: { score: number; projects: string[] }, i: number) => (
                 <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl font-mono">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-black">Score_Value: {tie.score}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-black">Score Value: {tie.score}</p>
                   <div className="space-y-1">
                     {tie.projects.map((p, pi) => (
                       <p key={pi} className="text-white text-sm">&gt; {p}</p>
@@ -196,7 +196,7 @@ export default function AdminResultsPage() {
               ))}
             </div>
             <p className="text-[10px] text-yellow-500/40 mt-6 font-mono uppercase tracking-[0.4em] text-center border-t border-white/5 pt-4">
-              Manual_Tiebreaker_Protocol_Recommended
+              Manual Tiebreaker Protocol Recommended
             </p>
           </LiquidGlass>
         )}
@@ -205,9 +205,9 @@ export default function AdminResultsPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-end mb-4">
             <div>
-              <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Metrics_Log</p>
+              <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Metrics Log</p>
               <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                Evaluated_Rankings
+                Evaluated Rankings
               </h2>
             </div>
             <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-lg text-[10px] font-mono uppercase tracking-widest text-[#00A8A8]">
@@ -217,11 +217,11 @@ export default function AdminResultsPage() {
 
           {rankingsLoading ? (
             <div className="bg-black/40 border border-white/5 rounded-lg p-24 text-center backdrop-blur-md">
-              <p className="text-[#00A8A8] font-mono animate-pulse uppercase tracking-[0.5em] text-xs">Awaiting_Data_Packet...</p>
+              <p className="text-[#00A8A8] font-mono animate-pulse uppercase tracking-[0.5em] text-xs">Awaiting Data Packet...</p>
             </div>
           ) : filteredRankings.length === 0 ? (
             <div className="bg-black/40 border border-white/5 rounded-lg p-24 text-center backdrop-blur-md">
-              <p className="text-gray-500 font-mono uppercase tracking-widest text-xs mb-2">0_Records_Found</p>
+              <p className="text-gray-500 font-mono uppercase tracking-widest text-xs mb-2">0 Records Found</p>
               <p className="text-gray-700 text-[10px] uppercase font-mono">No submissions detected for the specified search parameters.</p>
             </div>
           ) : (
@@ -263,7 +263,7 @@ export default function AdminResultsPage() {
                             </td>
                             <td className="px-8 py-8">
                               <div className="space-y-1">
-                                <p className="text-sm font-mono text-gray-500 uppercase tracking-widest font-bold">Node_{r.project.tableNumber}</p>
+                                <p className="text-sm font-mono text-gray-500 uppercase tracking-widest font-bold">Node {r.project.tableNumber}</p>
                                 <p className="text-xs text-gray-700 font-mono">ID: {r.project.id.slice(-6).toUpperCase()}</p>
                               </div>
                             </td>
@@ -294,9 +294,9 @@ export default function AdminResultsPage() {
                             <tr>
                               <td colSpan={6} className="px-8 py-8 bg-black/40 border-t border-white/5">
                                 <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                                  <p className="text-xs text-gray-600 uppercase tracking-[0.4em] font-mono mb-6">Vote_Audit_Log</p>
+                                  <p className="text-xs text-gray-600 uppercase tracking-[0.4em] font-mono mb-6">Vote Audit Log</p>
                                   {r.votes.length === 0 ? (
-                                    <p className="text-gray-600 font-mono text-sm uppercase">&gt; 0_records_found_for_this_node</p>
+                                    <p className="text-gray-600 font-mono text-sm uppercase">&gt; 0 records found for this node</p>
                                   ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       {r.votes.map((v: { judgeName: string; score: number; comment: string | null }, vi: number) => (
@@ -341,19 +341,19 @@ export default function AdminResultsPage() {
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             <LiquidGlass className="rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-white group-hover:text-[#00A8A8] transition-colors tabular-nums">{rankings.rankings.length}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Projects_Logged</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Projects Logged</p>
             </LiquidGlass>
             <LiquidGlass className="rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-[#00A8A8] tabular-nums">
                 {rankings.rankings.reduce((sum: number, r: { voteCount: number }) => sum + r.voteCount, 0)}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Balls_Aggregated</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Balls Aggregated</p>
             </LiquidGlass>
             <LiquidGlass className="rounded-lg p-8 text-center group hover:border-yellow-500/20 transition-all">
               <p className={`text-4xl font-black tabular-nums ${rankings.ties.length > 0 ? 'text-yellow-500 animate-pulse' : 'text-gray-600'}`}>
                 {rankings.ties.length}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Active_Collisions</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Active Collisions</p>
             </LiquidGlass>
           </div>
         )}
