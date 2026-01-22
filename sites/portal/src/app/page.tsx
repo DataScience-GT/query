@@ -10,29 +10,24 @@ export default function Home() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
-  // Terminal logs initialized with system startup messages
   const [logs, setLogs] = useState<string[]>([
     "Initializing terminal...",
     "System check: OK",
     "Loading background modules..."
   ]);
 
-  // Check admin status
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
     enabled: !!session,
   });
 
-  // Check member status
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, {
     enabled: !!session,
   });
 
-  // Check judge status
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
     enabled: !!session,
   });
 
-  // tRPC Mutation
   const { mutate: sayHello, isPending: helloLoading } =
     trpc.hello.sayHello.useMutation({
       onSuccess: (res) => {
@@ -43,11 +38,9 @@ export default function Home() {
       }
     });
 
-  // Handle mounting and initial silent background status check
   useEffect(() => {
     setMounted(true);
 
-    // Simulating background system discovery
     const timeout = setTimeout(() => {
       setLogs(prev => [...prev.slice(-4), "> Network: Established", "> Session: Awaiting user..."]);
     }, 800);
@@ -55,7 +48,6 @@ export default function Home() {
     return () => clearTimeout(timeout);
   }, []);
 
-  // Add logs when admin/member status is checked
   useEffect(() => {
     if (adminStatus) {
       const roleLog = adminStatus.isAdmin
@@ -80,14 +72,13 @@ export default function Home() {
     }
   }, [judgeStatus]);
 
-  // SILENT BACKGROUND REDIRECT
   useEffect(() => {
     if (status === 'authenticated' && session) {
       setLogs(prev => [...prev.slice(-4), "> Auth success. Handshaking...", "> Redirecting to secure node..."]);
 
       const redirectTimeout = setTimeout(() => {
         // Redirection Logic
-        if (judgeStatus?.isJudge || adminStatus?.isAdmin) {
+        if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
           router.push('/judge');
         } else {
           router.push('/dashboard');
@@ -115,7 +106,6 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-hidden flex items-center justify-center">
 
-      {/* BACKGROUND EFFECTS */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.05)_0%,transparent_70%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
@@ -123,7 +113,6 @@ export default function Home() {
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 w-full grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
 
-        {/* LEFT SIDE: COMMAND & CONTROL */}
         <div className="space-y-12">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -143,7 +132,6 @@ export default function Home() {
                 The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
               </p>
 
-              {/* TERMINAL OUTPUT BOX */}
               <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 rounded-lg font-mono text-[11px] leading-relaxed shadow-2xl relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 {logs.map((log, i) => (
@@ -179,13 +167,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: THE CORE */}
         <div className="hidden lg:flex flex-col items-center justify-center relative">
-          {/* Pulsing Core Glow */}
           <div className="absolute w-[500px] h-[500px] bg-[#00A8A8]/10 blur-[120px] rounded-full animate-pulse" />
 
           <div className="relative group">
-            {/* Rotating Rings */}
             <div className="absolute -inset-4 border border-white/5 rounded-full animate-[spin_20s_linear_infinite]" />
             <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_35s_linear_infinite_reverse] opacity-50" />
 
@@ -193,7 +178,6 @@ export default function Home() {
               <img
                 src="/images/dsgt/apple-touch-icon.png"
                 alt="DSGT Logo"
-                /* REMOVED grayscale AND group-hover:grayscale-0 */
                 className="w-72 h-72 object-contain drop-shadow-[0_0_50px_rgba(0,168,168,0.3)] transition-all duration-700 group-hover:scale-105"
               />
             </div>

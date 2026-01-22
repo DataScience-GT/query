@@ -7,7 +7,6 @@ import { randomUUID } from "crypto";
 import { isAdmin } from "../middleware/procedures";
 
 export const eventRouter = createTRPCRouter({
-  // ADMIN: Create event
   create: isAdmin
     .input(
       z.object({
@@ -33,7 +32,6 @@ export const eventRouter = createTRPCRouter({
       return newEvent;
     }),
 
-  // ADMIN: Regenerate QR code for an event
   regenerateQR: isAdmin
     .input(z.object({ eventId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -58,7 +56,6 @@ export const eventRouter = createTRPCRouter({
       return updatedEvent;
     }),
 
-  // ADMIN: List all events
   listAll: isAdmin.query(async ({ ctx }) => {
     const allEvents = await ctx.db!.query.events.findMany({
       orderBy: (events, { desc }) => [desc(events.eventDate)],
@@ -76,7 +73,6 @@ export const eventRouter = createTRPCRouter({
     return allEvents;
   }),
 
-  // ADMIN: Get event with check-ins
   getById: isAdmin
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -115,7 +111,6 @@ export const eventRouter = createTRPCRouter({
       return event;
     }),
 
-  // ADMIN: Toggle check-in enabled
   toggleCheckIn: isAdmin
     .input(
       z.object({
@@ -136,7 +131,6 @@ export const eventRouter = createTRPCRouter({
       return updatedEvent;
     }),
 
-  // ADMIN: Delete event
   delete: isAdmin
     .input(z.object({ eventId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -144,13 +138,10 @@ export const eventRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // MEMBER: Check in to event via QR code (OPTIMIZED - Single Query)
   checkIn: protectedProcedure
     .input(z.object({ qrCode: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      // Single transaction with all checks and inserts
       return await ctx.db!.transaction(async (tx) => {
-        // 1. Get event and validate in one query
         const event = await tx.query.events.findFirst({
           where: eq(events.qrCode, input.qrCode),
         });
@@ -169,7 +160,6 @@ export const eventRouter = createTRPCRouter({
           });
         }
 
-        // 2. Check max capacity
         if (event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -177,7 +167,6 @@ export const eventRouter = createTRPCRouter({
           });
         }
 
-        // 3. Get member and check for existing check-in in parallel
         const [member, existingCheckIn] = await Promise.all([
           tx.query.members.findFirst({
             where: eq(members.userId, ctx.userId!),
@@ -204,7 +193,6 @@ export const eventRouter = createTRPCRouter({
           });
         }
 
-        // 4. Create check-in and update counter
         await Promise.all([
           tx.insert(eventCheckIns).values({
             eventId: event.id,
@@ -227,7 +215,6 @@ export const eventRouter = createTRPCRouter({
       });
     }),
 
-  // MEMBER: Get my attended events
   myEvents: protectedProcedure.query(async ({ ctx }) => {
     const checkIns = await ctx.db!.query.eventCheckIns.findMany({
       where: eq(eventCheckIns.userId, ctx.userId!),
@@ -249,7 +236,6 @@ export const eventRouter = createTRPCRouter({
     return checkIns;
   }),
 
-  // MEMBER: Get my stats (OPTIMIZED - Single Aggregation Query)
   myStats: protectedProcedure.query(async ({ ctx }) => {
     const result = await ctx.db!
       .select({

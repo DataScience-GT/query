@@ -11,6 +11,7 @@ coverage
 out/
 build
 dist/
+seed-super.ts
 
 # Production
 build
@@ -32,6 +33,7 @@ yarn-error.log*
 .env.production
 
 # Vercel
+.reset.ts
 .vercel
 
 # Turbo

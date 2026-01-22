@@ -38,7 +38,6 @@ export const userRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Update user name/image if provided
       if (input.name !== undefined || input.image !== undefined) {
         await ctx.db!
           .update(users)
@@ -76,7 +75,6 @@ export const userRouter = createTRPCRouter({
         },
       });
 
-      // Invalidate user cache
       ctx.cache.deletePattern(`user:${ctx.userId}*`);
       ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
 
