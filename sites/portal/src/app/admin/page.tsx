@@ -246,7 +246,7 @@ export default function AdminPage() {
                 {createEventMutation.isPending ? 'Processing...' : 'INITIALIZE_EVENT'}
               </button>
             </div>
-          </GlassCard>
+          </div>
         </div>
       )}
 
@@ -335,7 +335,7 @@ export default function AdminPage() {
                 {regenerateQRMutation.isPending ? 'RENEWING...' : 'REBOOT_QR_SYSTEM'}
               </button>
             </div>
-          </GlassCard>
+          </div>
         </div>
       )}
 
@@ -375,7 +375,7 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        </GlassCard>
+        </div>
 
         {/* Navigation Tabs */}
         <div className="flex gap-4 mb-12 bg-white/[0.02] p-2 rounded-xl border border-white/5 inline-flex">
