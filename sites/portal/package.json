@@ -12,6 +12,7 @@
     "@query/api": "workspace:*",
     "@query/auth": "workspace:*",
     "@query/db": "workspace:*",
+    "@query/ui": "workspace:*",
     "@tanstack/react-query": "^5.90.12",
     "@trpc/client": "^11.7.2",
     "@trpc/next": "^11.7.2",

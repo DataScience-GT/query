@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
-import { Glass } from '@query/ui/glass';
+import { Glass } from '@query/ui';
 
 interface LinkStripeAccountProps {
   onSuccess?: () => void;
