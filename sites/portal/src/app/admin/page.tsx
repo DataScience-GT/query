@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import Background from '@/components/Background';
 import QRCode from 'qrcode';
 import Link from 'next/link';
+import { GlassCard } from '@mawtech/glass-ui';
 
 type AdminView = 'events' | 'members' | 'admins';
 
@@ -153,7 +154,7 @@ export default function AdminPage() {
             className="absolute inset-0 bg-black/95 backdrop-blur-md"
             onClick={() => setShowCreateEvent(false)}
           />
-          <div className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+          <GlassCard className="relative w-full max-w-2xl !bg-[#0A0A0A] p-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
               <div>
                 <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
@@ -246,7 +247,7 @@ export default function AdminPage() {
                 {createEventMutation.isPending ? 'Processing...' : 'INITIALIZE_EVENT'}
               </button>
             </div>
-          </div>
+          </GlassCard>
         </div>
       )}
 
@@ -257,7 +258,7 @@ export default function AdminPage() {
             className="absolute inset-0 bg-black/95 backdrop-blur-md"
             onClick={() => setShowQRCode(null)}
           />
-          <div className="relative w-full max-w-md bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300">
+          <GlassCard className="relative w-full max-w-md !bg-[#0A0A0A] p-8">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
               <div>
                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">
@@ -335,14 +336,14 @@ export default function AdminPage() {
                 {regenerateQRMutation.isPending ? 'RENEWING...' : 'REBOOT_QR_SYSTEM'}
               </button>
             </div>
-          </div>
+          </GlassCard>
         </div>
       )}
 
       {/* MAIN CONTENT */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
         {/* Header Section */}
-        <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 mb-12 relative overflow-hidden">
+        <GlassCard className="p-8 mb-12 relative overflow-hidden !bg-[#0A0A0A]/80">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -375,7 +376,7 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        </div>
+        </GlassCard>
 
         {/* Navigation Tabs */}
         <div className="flex gap-4 mb-12 bg-white/[0.02] p-2 rounded-xl border border-white/5 inline-flex">
@@ -427,7 +428,7 @@ export default function AdminPage() {
             </div>
 
             {!events || events.length === 0 ? (
-              <div className="bg-[#0A0A0A]/60 border border-white/5 rounded-2xl p-24 text-center backdrop-blur-md relative overflow-hidden group">
+              <GlassCard className="p-24 text-center !bg-[#0A0A0A]/60">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
                 <div className="relative z-10">
                   <div className="text-6xl mb-6 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -440,13 +441,13 @@ export default function AdminPage() {
                     Initialize a new event sequence to begin QR-based identity verification protocols.
                   </p>
                 </div>
-              </div>
+              </GlassCard>
             ) : (
               <div className="grid gap-6">
                 {events.map((event) => (
-                  <div
+                  <GlassCard
                     key={event.id}
-                    className="relative bg-[#0A0A0A]/80 border border-white/5 rounded-2xl p-8 backdrop-blur-xl hover:border-[#00A8A8]/30 transition-all duration-300 group overflow-hidden"
+                    className="p-8 hover:!border-[#00A8A8]/30 transition-all duration-300 group !bg-[#0A0A0A]/80"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
                       <div className="flex-1">
@@ -521,7 +522,7 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </GlassCard>
                 ))}
               </div>
             )}
