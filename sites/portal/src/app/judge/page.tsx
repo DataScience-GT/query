@@ -70,12 +70,12 @@ export default function JudgePage() {
 
   if (!judgeStatus?.isJudge) {
     return (
-      <GlassCard className="min-h-screen flex flex-col items-center justify-center px-6 text-center !bg-[#050505] !border-0">
-        <GlassCard className="w-16 h-16 rounded-full flex items-center justify-center mb-6 !bg-red-500/10 !border-red-500/30">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-red-500/10 border border-red-500/30">
           <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </GlassCard>
+        </div>
         <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Access Denied</h1>
         <p className="text-gray-500 font-mono text-sm mb-8">You're not registered as a judge.</p>
         <button
@@ -84,18 +84,18 @@ export default function JudgePage() {
         >
           Terminate Session
         </button>
-      </GlassCard>
+      </div>
     );
   }
 
   if (!hackathonId) {
     return (
-      <GlassCard className="min-h-screen flex flex-col items-center justify-center px-6 text-center !bg-[#050505] !border-0">
-        <GlassCard className="w-16 h-16 rounded-full flex items-center justify-center mb-6 !bg-yellow-500/10 !border-yellow-500/30">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-yellow-500/10 border border-yellow-500/30">
           <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </GlassCard>
+        </div>
         <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Awaiting Assignment</h1>
         <p className="text-gray-500 font-mono text-sm mb-8">Please wait for event assignment.</p>
         <button
@@ -104,7 +104,7 @@ export default function JudgePage() {
         >
           Terminate Session
         </button>
-      </GlassCard>
+      </div>
     );
   }
 
@@ -113,7 +113,7 @@ export default function JudgePage() {
 
   if (isDone) {
     return (
-      <GlassCard className="min-h-screen flex flex-col items-center justify-center px-6 text-center !bg-[#050505] !border-0">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
         <div className="w-20 h-20 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(0,168,168,0.2)]">
           <svg className="w-10 h-10 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -130,7 +130,7 @@ export default function JudgePage() {
         >
           Exit Terminal
         </button>
-      </GlassCard>
+      </div>
     );
   }
 
@@ -170,16 +170,16 @@ export default function JudgePage() {
           </p>
         </div>
 
-        <GlassCard className="p-5 mb-5 relative overflow-hidden group">
+        <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 mb-5 rounded-lg shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
           <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-2">Project Name</p>
           <h2 className="text-lg font-bold text-white mb-1">{project.name}</h2>
           {project.teamMembers && (
             <p className="text-gray-500 text-sm font-mono">{project.teamMembers}</p>
           )}
-        </GlassCard>
+        </div>
 
-        <GlassCard className="p-5 mb-5">
+        <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 mb-5 rounded-lg shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Score Value</span>
             <span className="text-4xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">{score}</span>
@@ -199,7 +199,7 @@ export default function JudgePage() {
               </button>
             ))}
           </div>
-        </GlassCard>
+        </div>
 
         <textarea
           value={comment}
