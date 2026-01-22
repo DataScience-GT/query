@@ -104,7 +104,7 @@ export default function ClubPage() {
   if (status === 'loading' || !memberStatus) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Verifying_Access...
+        Verifying Access...
       </div>
     );
   }
@@ -132,8 +132,8 @@ export default function ClubPage() {
           <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">QR_Scanner</h3>
-                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">Event_Check_In_System</p>
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">QR Scanner</h3>
+                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">Event Check-In System</p>
               </div>
               <button
                 onClick={() => {
@@ -222,17 +222,17 @@ export default function ClubPage() {
               <div>
                 <h3 className={`text-3xl font-black uppercase tracking-tighter mb-2 ${scanResult.success ? 'text-white' : 'text-red-400'
                   }`}>
-                  {scanResult.success ? 'Check_In_Success' : 'Check_In_Failed'}
+                  {scanResult.success ? 'Check-In Success' : 'Check-In Failed'}
                 </h3>
                 <p className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.3em]">
-                  {scanResult.success ? 'Identity_Verified' : 'Access_Denied'}
+                  {scanResult.success ? 'Identity Verified' : 'Access Denied'}
                 </p>
               </div>
 
               {scanResult.success && scanResult.eventTitle && (
                 <div className="space-y-3">
                   <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] mb-3 font-mono">Event_Payload:</p>
+                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] mb-3 font-mono">Event Payload:</p>
                     <p className="text-xl text-white font-black uppercase italic tracking-tight">{scanResult.eventTitle}</p>
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export default function ClubPage() {
 
               {!scanResult.success && (
                 <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
-                  <p className="text-[9px] text-red-500 uppercase tracking-[0.4em] mb-3 font-mono">Error_Code:</p>
+                  <p className="text-[9px] text-red-500 uppercase tracking-[0.4em] mb-3 font-mono">Error Code:</p>
                   <p className="text-sm text-red-300 font-mono italic"> &gt; "{scanResult.message}"</p>
                 </div>
               )}
@@ -252,7 +252,7 @@ export default function ClubPage() {
                   : 'bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20'
                   }`}
               >
-                TERMINATE_OVERLAY
+                TERMINATE OVERLAY
               </button>
             </div>
           </div>
@@ -267,7 +267,7 @@ export default function ClubPage() {
           <div className="space-y-6">
             <div className="inline-block px-5 py-2 border border-[#00A8A8]/20 rounded-full bg-[#00A8A8]/5 mb-6">
               <p className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.5em] font-black">
-                System_Access_Granted
+                System Access Granted
               </p>
             </div>
 
@@ -293,10 +293,10 @@ export default function ClubPage() {
                 </svg>
               </div>
               <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">
-                Event_Sync
+                Event Sync
               </h2>
               <p className="text-[10px] text-gray-600 uppercase tracking-[0.5em] font-mono">
-                Initiate_Visual_Check_In
+                Initiate Visual Check-In
               </p>
             </div>
 
@@ -305,11 +305,11 @@ export default function ClubPage() {
               disabled={showScanner}
               className="w-full px-8 py-8 bg-[#00A8A8] text-black font-black text-xl uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_50px_rgba(0,168,168,0.4)] hover:shadow-[0_0_80px_rgba(0,168,168,0.6)] rounded-2xl animate-pulse hover:animate-none"
             >
-              SCAN_DATA_NODE
+              SCAN DATA NODE
             </button>
 
             <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
-              <span className="text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">LOGGED_SESSIONS:</span>
+              <span className="text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">LOGGED SESSIONS:</span>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#00A8A8] animate-pulse" />
                 <span className="text-xl font-black text-white tabular-nums">{myStats?.totalEvents ?? 0}</span>
@@ -322,7 +322,7 @@ export default function ClubPage() {
             <div className="max-w-md mx-auto space-y-6">
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.5em] font-mono">
-                  Activity_Log
+                  Activity Log
                 </h3>
                 <div className="h-[1px] flex-1 mx-6 bg-white/5" />
               </div>
@@ -376,13 +376,13 @@ export default function ClubPage() {
               onClick={() => router.push('/dashboard')}
               className="flex-1 px-8 py-5 border border-white/10 text-gray-400 font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all rounded-xl font-mono"
             >
-              &lt; Return_To_Nexus
+              &lt; Return To Nexus
             </button>
             <button
               onClick={() => router.push('/club/events')}
               className="flex-1 px-8 py-5 border border-white/10 text-gray-600 font-bold text-sm uppercase tracking-widest transition-all rounded-xl opacity-50 cursor-not-allowed font-mono"
             >
-              Event_Directory
+              Event Directory
             </button>
           </div>
         </div>
