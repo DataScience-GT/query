@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Background from '@/components/Background';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { GlassCard } from '@mawtech/glass-ui';
 
 export default function ClubPage() {
   const { data: session, status } = useSession();
@@ -282,7 +283,7 @@ export default function ClubPage() {
           </div>
 
           {/* Action Card */}
-          <div className="max-w-md mx-auto bg-[#0A0A0A]/80 border border-white/5 rounded-3xl p-10 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] group hover:border-[#00A8A8]/20 transition-all duration-500">
+          <GlassCard className="max-w-md mx-auto p-10 !bg-[#0A0A0A]/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group hover:border-[#00A8A8]/20 transition-all duration-500">
             <div className="mb-8">
               <div className="w-24 h-24 mx-auto bg-[#00A8A8]/5 rounded-full flex items-center justify-center border border-[#00A8A8]/20 mb-6 group-hover:scale-110 group-hover:bg-[#00A8A8]/10 transition-all duration-500 shadow-[0_0_30px_rgba(0,168,168,0.05)]">
                 <svg className="w-10 h-10 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,7 +314,7 @@ export default function ClubPage() {
                 <span className="text-xl font-black text-white tabular-nums">{myStats?.totalEvents ?? 0}</span>
               </div>
             </div>
-          </div>
+          </GlassCard>
 
           {/* Recent Events */}
           {myEvents && myEvents.length > 0 && (
@@ -327,9 +328,9 @@ export default function ClubPage() {
 
               <div className="space-y-3">
                 {myEvents.slice(0, 3).map((checkIn) => (
-                  <div
+                  <GlassCard
                     key={checkIn.id}
-                    className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left hover:border-[#00A8A8]/30 hover:bg-white/[0.04] transition-all duration-300 group/item"
+                    className="p-6 text-left hover:border-[#00A8A8]/30 hover:bg-white/[0.04] transition-all duration-300 group/item !bg-white/[0.02]"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="text-lg font-black text-white uppercase italic tracking-tight group-hover/item:text-[#00A8A8] transition-colors">{checkIn.event.title}</h4>
@@ -362,7 +363,7 @@ export default function ClubPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </GlassCard>
                 ))}
               </div>
             </div>
