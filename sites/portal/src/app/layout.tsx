@@ -1,5 +1,6 @@
 import { Providers } from './providers';
 import './globals.css';
+import '@mawtech/glass-ui/styles.css';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
