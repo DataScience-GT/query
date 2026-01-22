@@ -9,6 +9,7 @@ import Background from '@/components/Background';
 import Link from 'next/link';
 import LinkStripeAccount from '@/components/LinkStripeAccount';
 import ProfileForm from '@/components/profile/ProfileForm';
+import { Glass } from '@query/ui/glass';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -25,7 +26,7 @@ export default function Dashboard() {
 
   if (status === 'loading') return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-      Syncing_Identity...
+      Syncing Identity...
     </div>
   );
 
@@ -39,7 +40,7 @@ export default function Dashboard() {
 
         {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6 overflow-hidden relative">
+          <Glass className="p-6 relative overflow-hidden">
 
             {/* User Profile Header */}
             <div className="flex items-center gap-5 border-b border-white/5 pb-8 mb-8">
@@ -86,7 +87,7 @@ export default function Dashboard() {
                     : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
                   }`}
               >
-                <span>VIEW_DOSSIER</span>
+                <span>VIEW DOSSIER</span>
                 <span className={`h-1.5 w-1.5 rounded-full transition-all ${mode === 'PROFILE' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
               </button>
             </nav>
@@ -97,24 +98,24 @@ export default function Dashboard() {
                 className="w-full py-3 px-4 rounded-lg bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-mono text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 group"
               >
                 <span className="w-1.5 h-1.5 bg-red-500/40 rounded-full group-hover:bg-red-500 transition-colors"></span>
-                Terminate_Session
+                Terminate Session
               </button>
             </div>
-          </div>
+          </Glass>
         </div>
 
         {/* MAIN CONTENT */}
         <div className="lg:col-span-8 flex flex-col">
-          <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 min-h-[600px] flex flex-col relative overflow-hidden">
+          <Glass className="p-8 min-h-[600px] flex flex-col relative overflow-hidden">
 
             {/* Decorative Top Line */}
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
 
             <div className="flex justify-between items-end mb-12 relative z-10">
               <div>
-                <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">System_View</p>
+                <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">System View</p>
                 <h2 className="text-3xl md:text-4xl font-black text-white italic uppercase tracking-tighter">
-                  {mode === 'PROFILE' ? 'Identity_Dossier' : 'Central_Operations'}
+                  {mode === 'PROFILE' ? 'Identity Dossier' : 'Central Operations'}
                 </h2>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/5">
@@ -145,33 +146,33 @@ export default function Dashboard() {
                   {adminStatus?.isAdmin ? (
                     /* ADMIN VIEW */
                     <Link href="/admin" className="block group">
-                      <div className="relative p-8 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 hover:border-[#00A8A8]/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px]">
+                      <Glass className="relative p-8 hover:!border-[#00A8A8]/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] !bg-gradient-to-br from-white/[0.03] to-transparent">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                           <svg className="w-24 h-24 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" /></svg>
                         </div>
 
                         <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-[#00A8A8]">
-                          Node_Access_Level_5
+                          Node Access Level 5
                         </p>
                         <h3 className="text-3xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors">
-                          Admin_Control_Panel
+                          Admin Control Panel
                         </h3>
                         <p className="text-base text-gray-500 font-mono">
                           Manage hackathons, view judge queues, and configure system parameters.
                         </p>
 
                         <div className="mt-8 flex items-center gap-2 text-[10px] font-mono text-[#00A8A8] opacity-60 group-hover:opacity-100 transition-opacity">
-                          <span>INITIATE_SESSION</span>
+                          <span>INITIATE SESSION</span>
                           <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                         </div>
-                      </div>
+                      </Glass>
                     </Link>
                   ) : (
                     /* MEMBER VIEW */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {memberStatus?.isMember ? (
                         <Link href="/club" className="block group h-full">
-                          <div className="relative h-full p-8 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-green-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]">
+                          <Glass className="relative h-full p-8 hover:!border-green-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] !bg-[#0A0A0A]">
 
                             {/* Background Gradients */}
                             <div className="absolute inset-0 bg-gradient-to-br from-green-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -185,23 +186,23 @@ export default function Dashboard() {
                               <div className="flex items-center gap-2 mb-3">
                                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                                 <p className="text-xs uppercase tracking-[0.2em] font-bold text-green-500">
-                                  Access_Granted
+                                  Access Granted
                                 </p>
                               </div>
 
                               <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-green-400 transition-colors">
-                                Member_Terminal
+                                Member Terminal
                               </h3>
                               <p className="text-sm text-gray-500 font-mono mb-8 group-hover:text-gray-400 transition-colors">
                                 &gt; Initialize connection to club resources, voting protocols, and event registries.
                               </p>
 
                               <div className="inline-flex items-center gap-3 text-xs font-mono text-white bg-green-500/10 border border-green-500/20 px-4 py-2.5 rounded group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-all">
-                                <span className="group-hover:text-green-300 transition-colors">ENTER_SYSTEM</span>
+                                <span className="group-hover:text-green-300 transition-colors">ENTER SYSTEM</span>
                                 <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                               </div>
                             </div>
-                          </div>
+                          </Glass>
                         </Link>
                       ) : (
                         <div className="h-full">
@@ -209,13 +210,13 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      <div className="relative h-full p-8 rounded-xl bg-gradient-to-br from-yellow-500/[0.05] to-transparent border border-yellow-500/10 hover:border-yellow-500/20 transition-all duration-300 flex flex-col">
+                      <Glass className="relative h-full p-8 !bg-gradient-to-br from-yellow-500/[0.05] to-transparent !border-yellow-500/10 hover:!border-yellow-500/20 transition-all duration-300 flex flex-col">
                         <div className="absolute top-0 right-0 p-4 opacity-5">
                           <svg className="w-20 h-20 text-yellow-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
                         </div>
 
                         <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-yellow-600">
-                          Hacklytics_Node
+                          Hacklytics Node
                         </p>
                         <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2">
                           Hacklytics
@@ -228,7 +229,7 @@ export default function Dashboard() {
                           <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></div>
                           <span className="text-[10px] font-mono text-yellow-500 font-bold uppercase tracking-wider">Work in Progress</span>
                         </div>
-                      </div>
+                      </Glass>
                     </div>
                   )}
 
@@ -236,7 +237,7 @@ export default function Dashboard() {
               )}
 
             </div>
-          </div>
+          </Glass>
         </div>
       </main>
     </div>
