@@ -1,15 +1,25 @@
 {
   "extends": "@query/tsconfig/internal-package.json",
   "compilerOptions": {
-    "lib": ["ES2022", "dom", "dom.iterable"],
-    "jsx": "preserve",
-    "rootDir": ".",
-    "types": ["react"],
-    "skipLibCheck": true
+    "lib": [
+      "ES2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "jsx": "react-jsx",
+    "rootDir": "src",
+    "types": [
+      "react"
+    ],
+    "skipLibCheck": true,
+    "emitDeclarationOnly": false,
+    "module": "ESNext",
+    "outDir": "dist"
   },
   "include": [
-    "src",
-    "../../apps/club/src/app/_components/landing/impact-assets/animata"
+    "src"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

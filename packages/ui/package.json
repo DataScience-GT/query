@@ -1,13 +1,21 @@
 {
   "name": "@query/ui",
   "version": "0.0.0",
+  "type": "module",
   "sideEffects": [
     "**/*.css"
   ],
   "files": [
     "dist"
   ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
     "./styles": "./src/styles.css",
     "./styles.css": "./src/styles.css",
     "./*": "./dist/*.js"
