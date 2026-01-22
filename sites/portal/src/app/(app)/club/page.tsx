@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Background from '@/components/Background';
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { Scanner } from '@yudiel/react-qr-scanner';
+
 import { LiquidGlass } from '@/components/LiquidGlass';
 
 export default function ClubPage() {
@@ -315,77 +315,77 @@ export default function ClubPage() {
                 <span className="text-xl font-black text-white tabular-nums">{myStats?.totalEvents ?? 0}</span>
               </div>
             </div>
-        </div>
+          </LiquidGlass>
 
-        {/* Recent Events */}
-        {myEvents && myEvents.length > 0 && (
-          <div className="max-w-md mx-auto space-y-6">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.5em] font-mono">
-                Activity_Log
-              </h3>
-              <div className="h-[1px] flex-1 mx-6 bg-white/5" />
-            </div>
+          {/* Recent Events */}
+          {myEvents && myEvents.length > 0 && (
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.5em] font-mono">
+                  Activity_Log
+                </h3>
+                <div className="h-[1px] flex-1 mx-6 bg-white/5" />
+              </div>
 
-            <div className="space-y-3">
-              {myEvents.slice(0, 3).map((checkIn) => (
-                <LiquidGlass
-                  key={checkIn.id}
-                  className="p-6 text-left rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group/item"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black text-white uppercase italic tracking-tight group-hover/item:text-[#00A8A8] transition-colors">{checkIn.event.title}</h4>
-                    <div className="p-2 rounded-lg bg-[#00A8A8]/10 text-[#00A8A8]">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+              <div className="space-y-3">
+                {myEvents.slice(0, 3).map((checkIn) => (
+                  <LiquidGlass
+                    key={checkIn.id}
+                    className="p-6 text-left rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group/item"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="text-lg font-black text-white uppercase italic tracking-tight group-hover/item:text-[#00A8A8] transition-colors">{checkIn.event.title}</h4>
+                      <div className="p-2 rounded-lg bg-[#00A8A8]/10 text-[#00A8A8]">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3 h-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-[9px] text-gray-600 font-mono uppercase tracking-widest font-black">
-                        {new Date(checkIn.checkedInAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                    {checkIn.event.location && (
+                    <div className="flex justify-between items-center border-t border-white/5 pt-4">
                       <div className="flex items-center gap-2">
                         <svg className="w-3 h-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <p className="text-[9px] text-gray-600 font-mono uppercase tracking-widest">{checkIn.event.location}</p>
+                        <p className="text-[9px] text-gray-600 font-mono uppercase tracking-widest font-black">
+                          {new Date(checkIn.checkedInAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                </LiquidGlass>
-              ))}
+                      {checkIn.event.location && (
+                        <div className="flex items-center gap-2">
+                          <svg className="w-3 h-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <p className="text-[9px] text-gray-600 font-mono uppercase tracking-widest">{checkIn.event.location}</p>
+                        </div>
+                      )}
+                    </div>
+                  </LiquidGlass>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Quick Actions */}
-        <div className="flex flex-col md:flex-row gap-6 max-w-lg mx-auto">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex-1 px-8 py-5 border border-white/10 text-gray-400 font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all rounded-xl font-mono"
-          >
-            &lt; Return_To_Nexus
-          </button>
-          <button
-            onClick={() => router.push('/club/events')}
-            className="flex-1 px-8 py-5 border border-white/10 text-gray-600 font-bold text-sm uppercase tracking-widest transition-all rounded-xl opacity-50 cursor-not-allowed font-mono"
-          >
-            Event_Directory
-          </button>
+          {/* Quick Actions */}
+          <div className="flex flex-col md:flex-row gap-6 max-w-lg mx-auto">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex-1 px-8 py-5 border border-white/10 text-gray-400 font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all rounded-xl font-mono"
+            >
+              &lt; Return_To_Nexus
+            </button>
+            <button
+              onClick={() => router.push('/club/events')}
+              className="flex-1 px-8 py-5 border border-white/10 text-gray-600 font-bold text-sm uppercase tracking-widest transition-all rounded-xl opacity-50 cursor-not-allowed font-mono"
+            >
+              Event_Directory
+            </button>
+          </div>
         </div>
-    </div>
       </main >
     </div >
   );
