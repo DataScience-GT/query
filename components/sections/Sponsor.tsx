@@ -20,12 +20,17 @@ const SPONSORS = {
     { name: 'Assurant', src: '/sponsors/silver_assurant.png', website: 'https://www.assurant.com' },
   ],
   bronze: [
+    { name: 'Scale', src: '/sponsors/bronze_scale.png', website: 'https://scale.com/' },
     { name: 'Figma', src: '/sponsors/bronze_figma.svg', website: 'https://www.figma.com' },
     { name: 'D.E. Shaw', src: '/sponsors/bronze_deshaw.png', website: 'https://www.deshaw.com' },
+    { name: 'AT&T', src: '/sponsors/bronze_att.png', website: 'https://www.att.com/' },
   ],
   mini: [
+    { name: 'NLP Logix', src: '/sponsors/MiniTier_NLP.jpg', website: 'https://nlplogix.com/' },
+    { name: 'Cox', src: '/sponsors/MiniTier_Cox.png', website: 'https://www.coxautoinc.com/' },
     { name: 'SafetyKit', src: '/sponsors/MiniTier_SafetyKit.svg', website: 'https://www.safetykit.com/' },
     { name: 'Tractian', src: '/sponsors/MiniTier_Tractian.svg', website: 'https://tractian.com' },
+    { name: 'Create-X', src: '/sponsors/MiniTier_X.png', website: 'https://create-x.gatech.edu/' },
   ]
 };
 
