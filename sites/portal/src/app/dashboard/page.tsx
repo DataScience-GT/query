@@ -40,7 +40,7 @@ export default function Dashboard() {
 
         {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-4">
-          <GlassCard className="p-6 relative overflow-hidden">
+          <div className="bg-black/60 backdrop-blur-md border border-white/5 p-6 rounded-lg shadow-2xl relative overflow-hidden">
 
             {/* User Profile Header */}
             <div className="flex items-center gap-5 border-b border-white/5 pb-8 mb-8">
@@ -101,12 +101,12 @@ export default function Dashboard() {
                 Terminate Session
               </button>
             </div>
-          </GlassCard>
+          </div>
         </div>
 
         {/* MAIN CONTENT */}
         <div className="lg:col-span-8 flex flex-col">
-          <GlassCard className="p-8 min-h-[600px] flex flex-col relative overflow-hidden">
+          <div className="bg-black/60 backdrop-blur-md border border-white/5 p-8 rounded-lg shadow-2xl min-h-[600px] flex flex-col relative overflow-hidden">
 
             {/* Decorative Top Line */}
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
@@ -146,7 +146,7 @@ export default function Dashboard() {
                   {adminStatus?.isAdmin ? (
                     /* ADMIN VIEW */
                     <Link href="/admin" className="block group">
-                      <GlassCard className="relative p-8 hover:!border-[#00A8A8]/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] !bg-gradient-to-br from-white/[0.03] to-transparent">
+                      <div className="relative p-8 bg-black/40 border border-white/5 hover:border-[#00A8A8]/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                           <svg className="w-24 h-24 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" /></svg>
                         </div>
@@ -165,14 +165,14 @@ export default function Dashboard() {
                           <span>INITIATE SESSION</span>
                           <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                         </div>
-                      </GlassCard>
+                      </div>
                     </Link>
                   ) : (
                     /* MEMBER VIEW */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {memberStatus?.isMember ? (
                         <Link href="/club" className="block group h-full">
-                          <GlassCard className="relative h-full p-8 hover:!border-green-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] !bg-[#0A0A0A]">
+                          <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-green-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] rounded-lg">
 
                             {/* Background Gradients */}
                             <div className="absolute inset-0 bg-gradient-to-br from-green-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -202,7 +202,7 @@ export default function Dashboard() {
                                 <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                               </div>
                             </div>
-                          </GlassCard>
+                          </div>
                         </Link>
                       ) : (
                         <div className="h-full">
@@ -210,7 +210,7 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      <GlassCard className="relative h-full p-8 !bg-gradient-to-br from-yellow-500/[0.05] to-transparent !border-yellow-500/10 hover:!border-yellow-500/20 transition-all duration-300 flex flex-col">
+                      <div className="relative h-full p-8 bg-black/40 border border-yellow-500/10 hover:border-yellow-500/20 transition-all duration-300 flex flex-col rounded-lg">
                         <div className="absolute top-0 right-0 p-4 opacity-5">
                           <svg className="w-20 h-20 text-yellow-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
                         </div>
@@ -229,7 +229,7 @@ export default function Dashboard() {
                           <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></div>
                           <span className="text-[10px] font-mono text-yellow-500 font-bold uppercase tracking-wider">Work in Progress</span>
                         </div>
-                      </GlassCard>
+                      </div>
                     </div>
                   )}
 
@@ -237,7 +237,7 @@ export default function Dashboard() {
               )}
 
             </div>
-          </GlassCard>
+          </div>
         </div>
       </main>
     </div>
