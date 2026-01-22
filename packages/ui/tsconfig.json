@@ -6,7 +6,7 @@
       "dom",
       "dom.iterable"
     ],
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "rootDir": "src",
     "types": [
       "react"
