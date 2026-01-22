@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { GlassCard } from '@mawtech/glass-ui';
+import { LiquidGlass } from '@/components/LiquidGlass';
 
 export default function JudgePage() {
   const { data: session, status } = useSession();
@@ -170,16 +170,16 @@ export default function JudgePage() {
           </p>
         </div>
 
-        <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 mb-5 rounded-lg shadow-2xl relative overflow-hidden group">
+        <LiquidGlass className="p-5 mb-5 rounded-lg shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
           <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-2">Project Name</p>
           <h2 className="text-lg font-bold text-white mb-1">{project.name}</h2>
           {project.teamMembers && (
             <p className="text-gray-500 text-sm font-mono">{project.teamMembers}</p>
           )}
-        </div>
+        </LiquidGlass>
 
-        <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 mb-5 rounded-lg shadow-2xl">
+        <LiquidGlass className="p-5 mb-5 rounded-lg shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Score Value</span>
             <span className="text-4xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">{score}</span>
@@ -199,7 +199,7 @@ export default function JudgePage() {
               </button>
             ))}
           </div>
-        </div>
+        </LiquidGlass>
 
         <textarea
           value={comment}

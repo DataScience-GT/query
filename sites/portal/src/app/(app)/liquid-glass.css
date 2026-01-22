@@ -1,0 +1,185 @@
+/* thelearningcompany styles - ios-inspired minimal design */
+
+/* css variables - dark theme (default) */
+:root {
+  --bg-primary: #000000;
+  --bg-secondary: #0d0d0d;
+  --bg-tertiary: #171717;
+  --bg-hover: #1f1f1f;
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --border: #262626;
+  --border-hover: #404040;
+  --accent: #34d399;
+  --accent-hover: #10b981;
+  --accent-glow: rgba(52, 211, 153, 0.3);
+  --accent-dim: rgba(52, 211, 153, 0.15);
+  --danger: #ef4444;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --transition: 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-fast: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-slow: 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-theme: 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* light theme - ios glossy style */
+[data-theme="light"] {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f2;
+  --bg-hover: #e8e8ed;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-muted: #86868b;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-glow: rgba(16, 185, 129, 0.2);
+  --accent-dim: rgba(16, 185, 129, 0.12);
+  --danger: #ff3b30;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+}
+
+/* reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Background gradient for liquid glass effect */
+.glass-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 100% 80% at 10% 20%, rgba(52, 211, 153, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 90% 30%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 90%, rgba(52, 211, 153, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 30% 70%, rgba(168, 85, 247, 0.12) 0%, transparent 50%);
+  pointer-events: none;
+  animation: glassBgShift 20s ease-in-out infinite alternate;
+  transition: background var(--transition-theme);
+}
+
+@keyframes glassBgShift {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.05) translate(2%, 2%);
+  }
+}
+
+[data-theme="light"] .glass-bg {
+  background:
+    radial-gradient(ellipse 100% 80% at 10% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 90% 30%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 90%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 30% 70%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+}
+
+/* ===== LIQUID GLASS EFFECT ===== */
+
+/* Base liquid glass class */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glossy inner highlight for depth */
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0)
+  );
+  opacity: 0.5;
+}
+
+/* Large liquid glass variant */
+.liquid-glass-lg {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  backdrop-filter: blur(15px) saturate(200%);
+  -webkit-backdrop-filter: blur(15px) saturate(200%);
+  border: 1.5px solid rgba(200, 200, 220, 0.3);
+  border-radius: 24px;
+  box-shadow:
+    0 8px 32px rgba(31, 38, 135, 0.37),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="light"] .liquid-glass-lg {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px solid rgba(180, 180, 210, 0.3);
+  box-shadow:
+    0 8px 32px rgba(31, 38, 135, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+}
+
+/* Hover effect for liquid glass */
+.liquid-glass:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 20px 60px rgba(31, 38, 135, 0.6),
+    0 0 30px rgba(16, 163, 127, 0.2);
+  transform: translateY(-6px);
+  transition: all 0.3s ease;
+}
+
+/* Animation for liquid glass entry */
+@keyframes liquidGlassEntry {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    backdrop-filter: blur(10px);
+  }
+}
+
+.liquid-glass-animate {
+  animation: liquidGlassEntry 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

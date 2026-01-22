@@ -1,4 +1,4 @@
-import '@mawtech/glass-ui/styles.css';
+import './liquid-glass.css';
 
 export default function AppLayout({
     children,
