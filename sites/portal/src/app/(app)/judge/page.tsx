@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
+import { LiquidGlass } from '@/components/LiquidGlass';
 
 export default function JudgePage() {
   const { data: session, status } = useSession();
@@ -60,7 +61,7 @@ export default function JudgePage() {
   if (!mounted || status === 'loading' || checkingJudge) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Syncing_Identity...
+        Syncing Identity...
       </div>
     );
   }
@@ -69,19 +70,19 @@ export default function JudgePage() {
 
   if (!judgeStatus?.isJudge) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-red-500/10 border border-red-500/30">
           <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Access_Denied</h1>
+        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Access Denied</h1>
         <p className="text-gray-500 font-mono text-sm mb-8">You're not registered as a judge.</p>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="px-8 py-3 border border-red-500/20 text-red-500 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-red-500/10 transition-all"
         >
-          Terminate_Session
+          Terminate Session
         </button>
       </div>
     );
@@ -89,19 +90,19 @@ export default function JudgePage() {
 
   if (!hackathonId) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mb-6">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-yellow-500/10 border border-yellow-500/30">
           <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Awaiting_Assignment</h1>
+        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Awaiting Assignment</h1>
         <p className="text-gray-500 font-mono text-sm mb-8">Please wait for event assignment.</p>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="px-8 py-3 border border-white/10 text-gray-400 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-white/5 transition-all"
         >
-          Terminate_Session
+          Terminate Session
         </button>
       </div>
     );
@@ -112,7 +113,7 @@ export default function JudgePage() {
 
   if (isDone) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
         <div className="w-20 h-20 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(0,168,168,0.2)]">
           <svg className="w-10 h-10 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -127,7 +128,7 @@ export default function JudgePage() {
           onClick={() => signOut({ callbackUrl: '/' })}
           className="px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
         >
-          Exit_Terminal
+          Exit Terminal
         </button>
       </div>
     );
@@ -136,7 +137,7 @@ export default function JudgePage() {
   if (loadingNext || !project) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Loading_Project...
+        Loading Project...
       </div>
     );
   }
@@ -157,10 +158,10 @@ export default function JudgePage() {
 
       <main className="flex-1 flex flex-col px-5 py-6 max-w-lg mx-auto w-full relative z-10">
         <div className="text-center py-8">
-          <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-4">Current_Table</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-4">Current Table</p>
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-[#00A8A8]/10 blur-[50px] rounded-full" />
-            <p className="relative text-9xl font-black text-white leading-none tracking-tighter drop-shadow-[0_0_30px_rgba(0,168,168,0.3)]">
+            <p className="relative text-[10rem] font-black text-white leading-none tracking-tighter drop-shadow-[0_0_30px_rgba(0,168,168,0.3)]">
               {project.tableNumber}
             </p>
           </div>
@@ -169,18 +170,18 @@ export default function JudgePage() {
           </p>
         </div>
 
-        <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 mb-5 relative overflow-hidden group">
+        <LiquidGlass className="p-5 mb-5 rounded-lg shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
-          <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-2">Project_Name</p>
+          <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-2">Project Name</p>
           <h2 className="text-lg font-bold text-white mb-1">{project.name}</h2>
           {project.teamMembers && (
             <p className="text-gray-500 text-sm font-mono">{project.teamMembers}</p>
           )}
-        </div>
+        </LiquidGlass>
 
-        <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-5 mb-5">
+        <LiquidGlass className="p-5 mb-5 rounded-lg shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Score_Value</span>
+            <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Score Value</span>
             <span className="text-4xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">{score}</span>
           </div>
 
@@ -189,8 +190,8 @@ export default function JudgePage() {
               <button
                 key={n}
                 onClick={() => setScore(n)}
-                className={`py-3 rounded font-mono font-bold text-sm transition-all ${score === n
-                  ? 'bg-[#00A8A8] text-white shadow-[0_0_20px_rgba(0,168,168,0.4)]'
+                className={`py-5 rounded-lg font-mono font-black text-lg transition-all ${score === n
+                  ? 'bg-[#00A8A8] text-white shadow-[0_0_25px_rgba(0,168,168,0.5)] scale-105'
                   : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 active:scale-95'
                   }`}
               >
@@ -198,28 +199,28 @@ export default function JudgePage() {
               </button>
             ))}
           </div>
-        </div>
+        </LiquidGlass>
 
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Add evaluation notes (optional)..."
-          className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-4 text-white placeholder-gray-600 resize-none mb-5 min-h-[80px] font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none transition-colors"
+          className="w-full bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-4 text-white placeholder-gray-600 resize-none mb-5 min-h-[80px] font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none transition-colors"
         />
 
         <button
           onClick={handleSubmit}
           disabled={submit.isPending}
-          className="mt-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+          className="mt-auto px-12 py-6 bg-white text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_40px_rgba(0,168,168,0.2)]"
         >
-          {submit.isPending ? 'Processing...' : 'Submit_&_Next'}
+          {submit.isPending ? 'Processing...' : 'Submit & Next'}
         </button>
 
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="text-gray-600 text-[10px] font-mono py-4 uppercase tracking-[0.3em] hover:text-[#00A8A8] transition-colors"
         >
-          Terminate_Session
+          Terminate Session
         </button>
       </main>
     </div>
