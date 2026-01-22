@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 import Background from '@/components/Background';
 import QRCode from 'qrcode';
 import Link from 'next/link';
-import { GlassCard } from '@mawtech/glass-ui';
 
 type AdminView = 'events' | 'members' | 'admins';
 
@@ -154,7 +153,7 @@ export default function AdminPage() {
             className="absolute inset-0 bg-black/95 backdrop-blur-md"
             onClick={() => setShowCreateEvent(false)}
           />
-          <GlassCard className="relative w-full max-w-2xl !bg-[#0A0A0A] p-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
               <div>
                 <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
@@ -258,7 +257,7 @@ export default function AdminPage() {
             className="absolute inset-0 bg-black/95 backdrop-blur-md"
             onClick={() => setShowQRCode(null)}
           />
-          <GlassCard className="relative w-full max-w-md !bg-[#0A0A0A] p-8">
+          <div className="relative w-full max-w-md bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
               <div>
                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">
@@ -343,7 +342,7 @@ export default function AdminPage() {
       {/* MAIN CONTENT */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
         {/* Header Section */}
-        <GlassCard className="p-8 mb-12 relative overflow-hidden !bg-[#0A0A0A]/80">
+        <div className="bg-black/60 backdrop-blur-md border border-white/5 p-8 mb-12 rounded-2xl shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -428,7 +427,7 @@ export default function AdminPage() {
             </div>
 
             {!events || events.length === 0 ? (
-              <GlassCard className="p-24 text-center !bg-[#0A0A0A]/60">
+              <div className="bg-black/60 backdrop-blur-md border border-white/5 p-24 rounded-2xl text-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
                 <div className="relative z-10">
                   <div className="text-6xl mb-6 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -441,13 +440,13 @@ export default function AdminPage() {
                     Initialize a new event sequence to begin QR-based identity verification protocols.
                   </p>
                 </div>
-              </GlassCard>
+              </div>
             ) : (
               <div className="grid gap-6">
                 {events.map((event) => (
-                  <GlassCard
+                  <div
                     key={event.id}
-                    className="p-8 hover:!border-[#00A8A8]/30 transition-all duration-300 group !bg-[#0A0A0A]/80"
+                    className="p-8 bg-black/60 border border-white/5 rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
                       <div className="flex-1">
@@ -522,7 +521,7 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </div>
-                  </GlassCard>
+                  </div>
                 ))}
               </div>
             )}
