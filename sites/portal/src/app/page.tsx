@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { Glass } from '@query/ui/glass';
+import { Glass } from '@query/ui';
 
 export default function Home() {
   const { data: session, status } = useSession();
