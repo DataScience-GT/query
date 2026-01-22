@@ -66,38 +66,38 @@ export default function Dashboard() {
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-1">
+            <nav className="space-y-2">
               <button
                 onClick={() => setMode('DASHBOARD')}
-                className={`w-full group flex items-center justify-between px-4 py-3 rounded-lg text-xs font-bold tracking-widest transition-all duration-200 border border-transparent
+                className={`w-full group flex items-center justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
                   ${mode === 'DASHBOARD'
                     ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
                     : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
                   }`}
               >
                 <span>OVERVIEW</span>
-                <span className={`h-1.5 w-1.5 rounded-full transition-all ${mode === 'DASHBOARD' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
+                <span className={`h-2 w-2 rounded-full transition-all ${mode === 'DASHBOARD' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
               </button>
 
               <button
                 onClick={() => setMode('PROFILE')}
-                className={`w-full group flex items-center justify-between px-4 py-3 rounded-lg text-xs font-bold tracking-widest transition-all duration-200 border border-transparent
+                className={`w-full group flex items-center justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
                   ${mode === 'PROFILE'
                     ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
                     : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
                   }`}
               >
                 <span>VIEW DOSSIER</span>
-                <span className={`h-1.5 w-1.5 rounded-full transition-all ${mode === 'PROFILE' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
+                <span className={`h-2 w-2 rounded-full transition-all ${mode === 'PROFILE' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
               </button>
             </nav>
 
             <div className="mt-8 pt-8 border-t border-white/5">
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
-                className="w-full py-3 px-4 rounded-lg bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-mono text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 group"
+                className="w-full py-4 px-6 rounded-xl bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-mono text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
               >
-                <span className="w-1.5 h-1.5 bg-red-500/40 rounded-full group-hover:bg-red-500 transition-colors"></span>
+                <span className="w-2 h-2 bg-red-500/40 rounded-full group-hover:bg-red-500 transition-colors"></span>
                 Terminate Session
               </button>
             </div>
@@ -197,9 +197,9 @@ export default function Dashboard() {
                                 &gt; Initialize connection to club resources, voting protocols, and event registries.
                               </p>
 
-                              <div className="inline-flex items-center gap-3 text-xs font-mono text-white bg-green-500/10 border border-green-500/20 px-4 py-2.5 rounded group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-all">
-                                <span className="group-hover:text-green-300 transition-colors">ENTER SYSTEM</span>
-                                <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                              <div className="inline-flex items-center gap-3 text-sm font-mono text-white bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-lg group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-all">
+                                <span className="group-hover:text-green-300 transition-colors font-bold tracking-wider">ENTER SYSTEM</span>
+                                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                               </div>
                             </div>
                           </div>
