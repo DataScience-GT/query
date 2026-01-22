@@ -9,7 +9,7 @@ import Background from '@/components/Background';
 import Link from 'next/link';
 import LinkStripeAccount from '@/components/LinkStripeAccount';
 import ProfileForm from '@/components/profile/ProfileForm';
-import { Glass } from '@query/ui/glass';
+import { Glass } from '@query/ui';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
