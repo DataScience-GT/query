@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
+import { Glass } from '@query/ui';
 
 interface ProfileFormProps {
   user: {
@@ -65,7 +66,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="space-y-2">
         <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
-          Display_Name
+          Display Name
         </label>
         <input
           type="text"
@@ -81,7 +82,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="space-y-2">
         <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
-          Public_Bio
+          Public Bio
         </label>
         <textarea
           value={formData.bio}
@@ -99,7 +100,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="space-y-2">
         <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
-          Email_Address
+          Email Address
         </label>
         <input
           type="email"
@@ -110,14 +111,14 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         <p className="text-[10px] text-gray-700 uppercase">Cannot be modified</p>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile_Tips</p>
+      <Glass className="bg-white/5 border border-white/10 rounded-lg p-4">
+        <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile Tips</p>
         <ul className="text-xs text-gray-400 space-y-1">
           <li>&gt; Use a clear profile picture for better recognition</li>
           <li>&gt; Keep your bio concise and professional</li>
           <li>&gt; Your email is private and used only for authentication</li>
         </ul>
-      </div>
+      </Glass>
 
       <div className="flex gap-3 pt-4">
         <button
@@ -128,7 +129,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
             : 'hover:bg-[#00A8A8]/80'
             }`}
         >
-          {isSubmitting ? 'Updating...' : 'Save_Changes'}
+          {isSubmitting ? 'Updating...' : 'Save Changes'}
         </button>
       </div>
     </div>
