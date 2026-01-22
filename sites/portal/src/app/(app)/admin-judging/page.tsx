@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import Background from '@/components/Background';
+import { LiquidGlass } from '@/components/LiquidGlass';
 
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
@@ -96,7 +97,7 @@ export default function AdminResultsPage() {
 
       {/* Header Section */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-        <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 mb-12 relative overflow-hidden">
+        <LiquidGlass className="rounded-lg p-8 mb-12 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -128,7 +129,7 @@ export default function AdminResultsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </LiquidGlass>
 
         {/* Filters */}
         <div className="flex flex-col gap-8 mb-12">
@@ -177,7 +178,7 @@ export default function AdminResultsPage() {
 
         {/* Tie Warning */}
         {rankings?.hasTies && (
-          <div className="bg-black/60 backdrop-blur-md border border-yellow-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
+          <LiquidGlass className="border border-yellow-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
               <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Collision_Detected</h3>
@@ -197,7 +198,7 @@ export default function AdminResultsPage() {
             <p className="text-[10px] text-yellow-500/40 mt-6 font-mono uppercase tracking-[0.4em] text-center border-t border-white/5 pt-4">
               Manual_Tiebreaker_Protocol_Recommended
             </p>
-          </div>
+          </LiquidGlass>
         )}
 
         {/* Rankings Table */}
@@ -224,7 +225,7 @@ export default function AdminResultsPage() {
               <p className="text-gray-700 text-[10px] uppercase font-mono">No submissions detected for the specified search parameters.</p>
             </div>
           ) : (
-            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <LiquidGlass className="rounded-lg overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -331,29 +332,29 @@ export default function AdminResultsPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </LiquidGlass>
           )}
         </div>
 
         {/* Global Stats */}
         {rankings && rankings.rankings.length > 0 && (
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
+            <LiquidGlass className="rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-white group-hover:text-[#00A8A8] transition-colors tabular-nums">{rankings.rankings.length}</p>
               <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Projects_Logged</p>
-            </div>
-            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
+            </LiquidGlass>
+            <LiquidGlass className="rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-[#00A8A8] tabular-nums">
                 {rankings.rankings.reduce((sum: number, r: { voteCount: number }) => sum + r.voteCount, 0)}
               </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Balls_Aggregated</p>
-            </div>
-            <div className="bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-8 text-center group hover:border-yellow-500/20 transition-all">
+            </LiquidGlass>
+            <LiquidGlass className="rounded-lg p-8 text-center group hover:border-yellow-500/20 transition-all">
               <p className={`text-4xl font-black tabular-nums ${rankings.ties.length > 0 ? 'text-yellow-500 animate-pulse' : 'text-gray-600'}`}>
                 {rankings.ties.length}
               </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Active_Collisions</p>
-            </div>
+            </LiquidGlass>
           </div>
         )}
       </main>

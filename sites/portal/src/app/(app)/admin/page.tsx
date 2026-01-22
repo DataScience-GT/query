@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import Background from '@/components/Background';
 import QRCode from 'qrcode';
 import Link from 'next/link';
+import { LiquidGlass } from '@/components/LiquidGlass';
 
 type AdminView = 'events' | 'members' | 'admins';
 
@@ -342,7 +343,7 @@ export default function AdminPage() {
       {/* MAIN CONTENT */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
         {/* Header Section */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/5 p-8 mb-12 rounded-2xl shadow-2xl relative overflow-hidden">
+        <LiquidGlass className="p-8 mb-12 rounded-2xl shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -375,7 +376,7 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        </div>
+        </LiquidGlass>
 
         {/* Navigation Tabs */}
         <div className="flex gap-4 mb-12 bg-white/[0.02] p-2 rounded-xl border border-white/5 inline-flex">
@@ -427,7 +428,7 @@ export default function AdminPage() {
             </div>
 
             {!events || events.length === 0 ? (
-              <div className="bg-black/60 backdrop-blur-md border border-white/5 p-24 rounded-2xl text-center">
+              <LiquidGlass className="p-24 rounded-2xl text-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
                 <div className="relative z-10">
                   <div className="text-6xl mb-6 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -440,13 +441,13 @@ export default function AdminPage() {
                     Initialize a new event sequence to begin QR-based identity verification protocols.
                   </p>
                 </div>
-              </div>
+              </LiquidGlass>
             ) : (
               <div className="grid gap-6">
                 {events.map((event) => (
-                  <div
+                  <LiquidGlass
                     key={event.id}
-                    className="p-8 bg-black/60 border border-white/5 rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group"
+                    className="p-8 rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
                       <div className="flex-1">
@@ -523,7 +524,7 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </LiquidGlass>
                 ))}
               </div>
             )}
