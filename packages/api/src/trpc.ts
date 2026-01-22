@@ -20,7 +20,6 @@ const t = initTRPC.context<Context>().create({
 
 export const createTRPCRouter = t.router;
 
-// Middleware that ensures database is available and narrows the type
 const requiresDb = t.middleware(async ({ ctx, next }) => {
   if (!ctx.db) {
     throw new TRPCError({
@@ -47,7 +46,6 @@ export const publicProcedure = t.procedure.use(async ({ ctx, next, type }) => {
     });
   }
 
-  // Token-based rate limiting
   const identifier = ctx.userId || `anon-${ctx.session?.user?.id || 'unknown'}`;
   const config = RATE_LIMITS.public;
   const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
@@ -124,7 +122,6 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
   // Get raw input for validation
   const rawInput = await getRawInput();
 
-  // Validate request size (prevent large payload attacks)
   if (rawInput && !validateRequestSize(rawInput)) {
     logSecurityEvent({
       type: 'validation_error',
@@ -137,11 +134,8 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
     });
   }
 
-  // Validate the raw input - this throws if invalid patterns are detected
-  // We don't modify the input, just validate it for security issues
   sanitizeInput(rawInput);
 
-  // Continue with the original input (Zod validation handles type checking)
   const result = await next();
 
   if (!result.ok) {
@@ -156,14 +150,11 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
 });
 
 const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
-  // Execute the procedure first
   const result = await next();
 
-  // For mutations, invalidate related cache entries
   if (type === 'mutation') {
     const namespace = path.split('.')[0];
     if (namespace) {
-      // Invalidate all query cache for this namespace
       ctx.cache.deletePattern(`query:${namespace}.*`);
     }
   }

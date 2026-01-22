@@ -41,12 +41,15 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
 
   if (success) {
     return (
-      <div className="p-6 rounded-xl border border-green-500 bg-green-500/10">
-        <p className="text-[10px] uppercase tracking-widest font-black mb-2 text-green-400">
-          Account_Linked
+      <div className="h-full p-8 rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/30 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
+          <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <p className="text-xs uppercase tracking-widest font-black mb-2 text-green-400">
+          Access_Granted
         </p>
-        <p className="text-[11px] font-mono text-white">
-          Your account has been linked. You are now a member!
+        <p className="text-sm font-mono text-gray-300">
+          Identity verified. Refreshing protocols...
         </p>
       </div>
     );
@@ -54,102 +57,132 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
 
   if (!isOpen) {
     return (
-      <div className="p-6 rounded-xl border border-white/5 bg-white/[0.02]">
-        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mb-2">
-          Member_Access
-        </p>
-        <p className="text-[11px] font-mono text-gray-600 font-bold uppercase mb-3">
-          ○ Offline
-        </p>
-        <button
-          onClick={() => setIsOpen(true)}
-          className="w-full px-4 py-3 border border-[#00A8A8]/30 bg-[#00A8A8]/10 text-[#00A8A8] text-[9px] font-bold tracking-widest hover:bg-[#00A8A8]/20 transition-all"
-        >
-          Already_Paid? Link_Account →
-        </button>
-        <p className="text-[8px] text-gray-600 mt-2 font-mono">
-          Used a different email for payment? Link it here.
-        </p>
+      <div className="relative h-full p-8 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-red-500/30 transition-all duration-300 flex flex-col group">
+
+        {/* Decorative offline gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+        <div className="relative z-10 flex-1 flex flex-col">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-2 text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">
+                Member_Node
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500/50 animate-pulse" />
+                <h3 className="text-2xl font-bold text-gray-500 uppercase tracking-tight group-hover:text-red-400 transition-colors">
+                  Offline
+                </h3>
+              </div>
+            </div>
+            <div className="opacity-20 group-hover:opacity-100 transition-opacity">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600 font-mono mb-6 leading-relaxed">
+            Payment record verification required for terminal access.
+          </p>
+
+          <div className="mt-auto space-y-3">
+            <button
+              onClick={() => setIsOpen(true)}
+              className="w-full py-4 px-4 bg-white/5 border border-white/10 hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] text-xs font-bold tracking-[0.2em] uppercase transition-all rounded"
+            >
+              Link_Existing_Payment
+            </button>
+            <p className="text-xs text-gray-700 text-center font-mono">
+              Used a different email? Sync it here.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 rounded-xl border border-[#00A8A8]/30 bg-[#00A8A8]/5">
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-[10px] uppercase tracking-widest font-black text-[#00A8A8]">
-          Link_Payment_Account
-        </p>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="text-gray-500 hover:text-white text-[9px] uppercase tracking-widest"
-        >
-          [ Cancel ]
-        </button>
+    <div className="h-full p-8 rounded-xl bg-[#0A0A0A] border border-[#00A8A8]/30 relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+        <svg className="w-32 h-32 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" /></svg>
       </div>
 
-      <p className="text-[9px] text-gray-400 mb-4 font-mono">
-        Enter the name and email you used during Stripe checkout to link your payment.
-      </p>
+      <div className="relative z-10">
+        <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+          <p className="text-xs uppercase tracking-[0.2em] font-black text-[#00A8A8]">
+            Identify_Verification
+          </p>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-gray-600 hover:text-white text-xs uppercase tracking-widest font-mono hover:bg-white/5 px-3 py-1.5 rounded transition-all"
+          >
+            [ ABORT ]
+          </button>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[8px] text-gray-500 uppercase tracking-widest block mb-1">
-              First Name
+        <p className="text-xs text-gray-500 mb-6 font-mono leading-relaxed">
+          Please inputs the credentials used for the transaction to verify database entry.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+                First_Name
+              </label>
+              <input
+                type="text"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#00A8A8] focus:outline-none focus:bg-[#00A8A8]/5 transition-all placeholder:text-gray-800"
+                placeholder="JOHN"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+                Last_Name
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#00A8A8] focus:outline-none focus:bg-[#00A8A8]/5 transition-all placeholder:text-gray-800"
+                placeholder="DOE"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+              Transaction_Email
             </label>
             <input
-              type="text"
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-[11px] focus:border-[#00A8A8] focus:outline-none"
-              placeholder="John"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#00A8A8] focus:outline-none focus:bg-[#00A8A8]/5 transition-all placeholder:text-gray-800"
+              placeholder="ident@example.com"
               required
             />
           </div>
-          <div>
-            <label className="text-[8px] text-gray-500 uppercase tracking-widest block mb-1">
-              Last Name
-            </label>
-            <input
-              type="text"
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-[11px] focus:border-[#00A8A8] focus:outline-none"
-              placeholder="Doe"
-              required
-            />
-          </div>
-        </div>
 
-        <div>
-          <label className="text-[8px] text-gray-500 uppercase tracking-widest block mb-1">
-            Email Used For Payment
-          </label>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-[11px] focus:border-[#00A8A8] focus:outline-none"
-            placeholder="john@school.edu"
-            required
-          />
-        </div>
+          {error && (
+            <div className="bg-red-500/5 border border-red-500/20 rounded p-3 flex items-start gap-2">
+              <span className="text-red-500 text-xs">!</span>
+              <p className="text-[9px] text-red-400 font-mono leading-tight pt-0.5">{error}</p>
+            </div>
+          )}
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-            <p className="text-[9px] text-red-400 font-mono">{error}</p>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={linkMutation.isPending}
-          className="w-full px-4 py-3 bg-[#00A8A8] text-black font-bold text-[10px] uppercase tracking-widest hover:bg-[#00A8A8]/80 transition-all disabled:opacity-50"
-        >
-          {linkMutation.isPending ? 'Linking...' : 'Link_Account'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={linkMutation.isPending}
+            className="w-full mt-2 px-4 py-3 bg-[#00A8A8] text-black font-bold text-xs uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(0,168,168,0.3)]"
+          >
+            {linkMutation.isPending ? 'Verifying...' : 'Authenticate_Payment'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
