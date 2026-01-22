@@ -7,7 +7,14 @@
   "files": [
     "dist"
   ],
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    },
     "./styles": "./src/styles.css",
     "./styles.css": "./src/styles.css",
     "./*": "./dist/*.js"
