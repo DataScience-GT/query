@@ -136,7 +136,7 @@ export default function AdminPage() {
   if (status === 'loading' || adminLoading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Verifying_Clearance...
+        Verifying Clearance...
       </div>
     );
   }
@@ -158,24 +158,24 @@ export default function AdminPage() {
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
               <div>
                 <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                  Create_Event
+                  Create Event
                 </h3>
                 <p className="text-xs font-mono text-[#00A8A8] uppercase tracking-widest">
-                  Configure_QR_Protocols
+                  Configure QR Protocols
                 </p>
               </div>
               <button
                 onClick={() => setShowCreateEvent(false)}
                 className="text-gray-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
               >
-                [ Close_Panel ]
+                [ Close Panel ]
               </button>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-sm text-gray-500 uppercase tracking-widest font-mono block font-bold mb-2">
-                  Event_Title_Identifier
+                  Event Title Identifier
                 </label>
                 <input
                   type="text"
@@ -188,7 +188,7 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                  Data_Description
+                  Data Description
                 </label>
                 <textarea
                   value={eventForm.description}
@@ -202,7 +202,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                    Location_Node
+                    Location Node
                   </label>
                   <input
                     type="text"
@@ -215,7 +215,7 @@ export default function AdminPage() {
 
                 <div className="space-y-2">
                   <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                    Temporal_Stamp
+                    Temporal Stamp
                   </label>
                   <input
                     type="datetime-local"
@@ -228,7 +228,7 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                  CheckIn_Limit
+                  Check-In Limit
                 </label>
                 <input
                   type="number"
@@ -244,7 +244,7 @@ export default function AdminPage() {
                 disabled={!eventForm.title || !eventForm.eventDate || createEventMutation.isPending}
                 className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-base uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.3)] mt-6 rounded-xl"
               >
-                {createEventMutation.isPending ? 'Processing...' : 'INITIALIZE_EVENT'}
+                {createEventMutation.isPending ? 'Processing...' : 'INITIALIZE EVENT'}
               </button>
             </div>
           </div>
@@ -262,7 +262,7 @@ export default function AdminPage() {
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
               <div>
                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">
-                  QR_Protocols
+                  QR Protocols
                 </h3>
                 <p className="text-xs font-mono text-[#00A8A8] uppercase tracking-widest">
                   {selectedEvent.title}
@@ -293,7 +293,7 @@ export default function AdminPage() {
                   <span className="text-white">{selectedEvent.title}</span>
                 </div>
                 <div className="flex justify-between text-xs font-mono">
-                  <span className="text-gray-600 uppercase">SYNC_COUNT:</span>
+                  <span className="text-gray-600 uppercase">SYNC COUNT:</span>
                   <span className="text-white">
                     {selectedEvent.currentCheckIns} {selectedEvent.maxCheckIns ? `/ ${selectedEvent.maxCheckIns}` : ''}
                   </span>
@@ -301,7 +301,7 @@ export default function AdminPage() {
                 <div className="flex justify-between text-xs font-mono">
                   <span className="text-gray-600 uppercase">STATUS:</span>
                   <span className={selectedEvent.checkInEnabled ? 'text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'text-red-500'}>
-                    {selectedEvent.checkInEnabled ? 'LINK_ACTIVE' : 'LINK_TERMINATED'}
+                    {selectedEvent.checkInEnabled ? 'LINK ACTIVE' : 'LINK TERMINATED'}
                   </span>
                 </div>
               </div>
@@ -311,7 +311,7 @@ export default function AdminPage() {
                   onClick={downloadQRCode}
                   className="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all rounded font-mono"
                 >
-                  SAVE_IMG
+                  SAVE IMG
                 </button>
                 <button
                   onClick={() => {
@@ -320,7 +320,7 @@ export default function AdminPage() {
                   }}
                   className="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all rounded font-mono"
                 >
-                  COPY_VAL
+                  COPY VAL
                 </button>
               </div>
 
@@ -333,7 +333,7 @@ export default function AdminPage() {
                 disabled={regenerateQRMutation.isPending}
                 className="w-full px-6 py-3 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-xs uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-50 rounded font-mono"
               >
-                {regenerateQRMutation.isPending ? 'RENEWING...' : 'REBOOT_QR_SYSTEM'}
+                {regenerateQRMutation.isPending ? 'RENEWING...' : 'REBOOT QR SYSTEM'}
               </button>
             </div>
           </div>
@@ -350,13 +350,13 @@ export default function AdminPage() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-2 w-2 rounded-full bg-[#00A8A8] animate-pulse" />
-                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Root_Admin_Session</span>
+                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Root Admin Session</span>
               </div>
               <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2">
-                Admin_<span className="text-[#00A8A8] italic">Terminal</span>
+                Admin <span className="text-[#00A8A8] italic">Terminal</span>
               </h1>
               <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                System_Access_Layer // {adminStatus.role?.replace('_', ' ').toUpperCase()}
+                System Access Layer // {adminStatus.role?.replace('_', ' ').toUpperCase()}
               </p>
             </div>
 
@@ -366,13 +366,13 @@ export default function AdminPage() {
                 className="px-8 py-5 bg-white/[0.03] border border-white/10 text-white font-bold text-sm uppercase tracking-[0.2em] hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl flex items-center gap-4 group"
               >
                 <span className="w-3 h-3 rounded-full bg-[#00A8A8]/50 group-hover:bg-[#00A8A8] transition-colors" />
-                Judging_Portal
+                Judging Portal
               </Link>
               <button
                 onClick={() => router.push('/dashboard')}
                 className="px-8 py-5 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-white/5 transition-all rounded-xl font-mono"
               >
-                &lt; Return_to_Root
+                &lt; Return to Root
               </button>
             </div>
           </div>
@@ -387,7 +387,7 @@ export default function AdminPage() {
               : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
               }`}
           >
-            Event_Core
+            Event Core
           </button>
           <button
             onClick={() => setView('members')}
@@ -396,7 +396,7 @@ export default function AdminPage() {
               : 'text-gray-500'
               }`}
           >
-            Users_Record
+            Users Record
           </button>
           <button
             onClick={() => setView('admins')}
@@ -405,7 +405,7 @@ export default function AdminPage() {
               : 'text-gray-500'
               }`}
           >
-            Admin_Nodes
+            Admin Nodes
           </button>
         </div>
 
@@ -414,16 +414,16 @@ export default function AdminPage() {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
             <div className="flex justify-between items-end mb-4">
               <div>
-                <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Operations_Log</p>
+                <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Operations Log</p>
                 <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                  Active_Events
+                  Active Events
                 </h2>
               </div>
               <button
                 onClick={() => setShowCreateEvent(true)}
                 className="px-8 py-4 bg-[#00A8A8] text-black font-black text-xs uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all rounded-lg shadow-[0_0_20px_rgba(0,168,168,0.2)]"
               >
-                + NEW_EVENT_BUFFER
+                + NEW EVENT BUFFER
               </button>
             </div>
 
@@ -435,7 +435,7 @@ export default function AdminPage() {
                     <svg className="w-24 h-24 mx-auto text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" /></svg>
                   </div>
                   <p className="text-gray-500 font-mono text-xs uppercase tracking-[0.3em] mb-3">
-                    0_Data_Entries_Found
+                    0 Data Entries Found
                   </p>
                   <p className="text-gray-700 text-xs uppercase tracking-widest max-w-md mx-auto leading-relaxed">
                     Initialize a new event sequence to begin QR-based identity verification protocols.
@@ -461,7 +461,7 @@ export default function AdminPage() {
                               : 'bg-red-500/10 text-red-500 border-red-500/20'
                               }`}
                           >
-                            {event.checkInEnabled ? 'SYSTEM_ONLINE' : 'SYSTEM_DISABLED'}
+                            {event.checkInEnabled ? 'SYSTEM ONLINE' : 'SYSTEM DISABLED'}
                           </span>
                         </div>
 
@@ -473,15 +473,15 @@ export default function AdminPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="space-y-1">
-                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Location_Node</p>
-                            <p className="text-sm text-gray-300 uppercase font-mono">{event.location || 'Remote_Access'}</p>
+                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Location Node</p>
+                            <p className="text-sm text-gray-300 uppercase font-mono">{event.location || 'Remote Access'}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Temporal_Stamp</p>
+                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Temporal Stamp</p>
                             <p className="text-sm text-gray-300 uppercase font-mono">{new Date(event.eventDate).toLocaleString()}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Sync_Metrics</p>
+                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Sync Metrics</p>
                             <p className="text-sm text-gray-300 uppercase font-mono">
                               {event.currentCheckIns} {event.maxCheckIns ? `/ ${event.maxCheckIns}` : 'Unlimited'} Records
                             </p>
@@ -497,7 +497,7 @@ export default function AdminPage() {
                           }}
                           className="w-full px-8 py-5 bg-[#00A8A8]/10 border border-[#00A8A8]/20 text-[#00A8A8] font-black text-sm uppercase tracking-widest hover:bg-[#00A8A8]/20 transition-all rounded-xl shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]"
                         >
-                          ACCESS_QR
+                          ACCESS QR
                         </button>
                         <button
                           onClick={() =>
@@ -510,7 +510,7 @@ export default function AdminPage() {
                             ? 'border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20'
                             : 'border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
                         >
-                          {event.checkInEnabled ? 'TERMINATE_LINK' : 'INITIALIZE_LINK'}
+                          {event.checkInEnabled ? 'TERMINATE LINK' : 'INITIALIZE LINK'}
                         </button>
                         <button
                           onClick={() => {
@@ -520,7 +520,7 @@ export default function AdminPage() {
                           }}
                           className="w-full px-8 py-5 border border-red-500/20 text-red-500/60 font-black text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
                         >
-                          SYSTEM_PURGE
+                          SYSTEM PURGE
                         </button>
                       </div>
                     </div>
