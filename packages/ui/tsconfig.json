@@ -11,7 +11,10 @@
     "types": [
       "react"
     ],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "emitDeclarationOnly": false,
+    "module": "ESNext",
+    "outDir": "dist"
   },
   "include": [
     "src"
