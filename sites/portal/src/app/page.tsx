@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { Glass } from '@query/ui';
+import { GlassCard } from '@mawtech/glass-ui';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -133,7 +133,7 @@ export default function Home() {
                 The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
               </p>
 
-              <Glass className="p-5" intensity="medium">
+              <GlassCard className="p-5">
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 {logs.map((log, i) => (
                   <p key={i} className={i === logs.length - 1 ? "text-[#00A8A8]" : "text-gray-600"}>
@@ -145,7 +145,7 @@ export default function Home() {
                     {'>'} {status === 'loading' ? 'Syncing_Identity...'.replace(/_/g, ' ') : 'Processing request...'}
                   </p>
                 )}
-              </Glass>
+              </GlassCard>
             </div>
           </div>
 
