@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
-import { Glass } from '@query/ui';
+import { GlassCard } from '@mawtech/glass-ui';
 
 interface LinkStripeAccountProps {
   onSuccess?: () => void;
@@ -42,7 +42,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
 
   if (success) {
     return (
-      <Glass className="h-full p-8 flex flex-col items-center justify-center text-center !bg-green-500/10 !border-green-500/30">
+      <GlassCard className="h-full p-8 flex flex-col items-center justify-center text-center !bg-green-500/10 !border-green-500/30">
         <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
           <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
         </div>
@@ -52,13 +52,13 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
         <p className="text-sm font-mono text-gray-300">
           Identity verified. Refreshing protocols...
         </p>
-      </Glass>
+      </GlassCard>
     );
   }
 
   if (!isOpen) {
     return (
-      <Glass className="relative h-full p-8 hover:!border-red-500/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
+      <GlassCard className="relative h-full p-8 hover:!border-red-500/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
 
         {/* Decorative offline gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -97,12 +97,12 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
             </p>
           </div>
         </div>
-      </Glass>
+      </GlassCard>
     );
   }
 
   return (
-    <Glass className="h-full p-8 border-[#00A8A8]/30 relative overflow-hidden !bg-[#0A0A0A]">
+    <GlassCard className="h-full p-8 border-[#00A8A8]/30 relative overflow-hidden !bg-[#0A0A0A]">
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
         <svg className="w-32 h-32 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" /></svg>
       </div>
@@ -184,6 +184,6 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
           </button>
         </form>
       </div>
-    </Glass>
+    </GlassCard>
   );
 }
