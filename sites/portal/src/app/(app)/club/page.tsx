@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import Background from '@/components/Background';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
+import { LiquidGlass } from '@/components/LiquidGlass';
+
 export default function ClubPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -282,7 +284,7 @@ export default function ClubPage() {
           </div>
 
           {/* Action Card */}
-          <div className="max-w-md mx-auto bg-[#0A0A0A]/80 border border-white/5 rounded-3xl p-10 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] group hover:border-[#00A8A8]/20 transition-all duration-500">
+          <LiquidGlass className="p-10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] group hover:border-[#00A8A8]/20 transition-all duration-500 max-w-md mx-auto">
             <div className="mb-8">
               <div className="w-24 h-24 mx-auto bg-[#00A8A8]/5 rounded-full flex items-center justify-center border border-[#00A8A8]/20 mb-6 group-hover:scale-110 group-hover:bg-[#00A8A8]/10 transition-all duration-500 shadow-[0_0_30px_rgba(0,168,168,0.05)]">
                 <svg className="w-10 h-10 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +303,7 @@ export default function ClubPage() {
             <button
               onClick={() => setShowScanner(true)}
               disabled={showScanner}
-              className="w-full px-8 py-6 bg-[#00A8A8] text-black font-black text-xs uppercase tracking-[0.4em] hover:bg-white hover:text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_30px_rgba(0,168,168,0.2)] rounded-xl"
+              className="w-full px-8 py-8 bg-[#00A8A8] text-black font-black text-xl uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_50px_rgba(0,168,168,0.4)] hover:shadow-[0_0_80px_rgba(0,168,168,0.6)] rounded-2xl animate-pulse hover:animate-none"
             >
               SCAN_DATA_NODE
             </button>
@@ -313,7 +315,7 @@ export default function ClubPage() {
                 <span className="text-xl font-black text-white tabular-nums">{myStats?.totalEvents ?? 0}</span>
               </div>
             </div>
-          </div>
+          </LiquidGlass>
 
           {/* Recent Events */}
           {myEvents && myEvents.length > 0 && (
@@ -327,9 +329,9 @@ export default function ClubPage() {
 
               <div className="space-y-3">
                 {myEvents.slice(0, 3).map((checkIn) => (
-                  <div
+                  <LiquidGlass
                     key={checkIn.id}
-                    className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left hover:border-[#00A8A8]/30 hover:bg-white/[0.04] transition-all duration-300 group/item"
+                    className="p-6 text-left rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group/item"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="text-lg font-black text-white uppercase italic tracking-tight group-hover/item:text-[#00A8A8] transition-colors">{checkIn.event.title}</h4>
@@ -362,29 +364,29 @@ export default function ClubPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </LiquidGlass>
                 ))}
               </div>
             </div>
           )}
 
           {/* Quick Actions */}
-          <div className="flex flex-col md:flex-row gap-4 max-w-md mx-auto">
+          <div className="flex flex-col md:flex-row gap-6 max-w-lg mx-auto">
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex-1 px-8 py-4 border border-white/10 text-gray-500 font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/5 hover:text-white transition-all rounded-xl"
+              className="flex-1 px-8 py-5 border border-white/10 text-gray-400 font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all rounded-xl font-mono"
             >
               &lt; Return_To_Nexus
             </button>
             <button
               onClick={() => router.push('/club/events')}
-              className="flex-1 px-8 py-4 border border-white/10 text-gray-700 font-black text-[10px] uppercase tracking-[0.4em] transition-all rounded-xl opacity-50 cursor-not-allowed"
+              className="flex-1 px-8 py-5 border border-white/10 text-gray-600 font-bold text-sm uppercase tracking-widest transition-all rounded-xl opacity-50 cursor-not-allowed font-mono"
             >
               Event_Directory
             </button>
           </div>
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
