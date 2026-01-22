@@ -7,14 +7,25 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
 
-// Create database connection only if DATABASE_URL is provided
+const globalForDb = globalThis as unknown as {
+  conn: Pool | undefined;
+};
+
 let db: DrizzleDB | null = null;
 
 if (DATABASE_URL) {
-  const pool = new Pool({
+  const conn = globalForDb.conn ?? new Pool({
     connectionString: DATABASE_URL,
+    allowExitOnIdle: true,
+    connectionTimeoutMillis: 10000, // 10s timeout
+    idleTimeoutMillis: 10000, // 10s idle timeout
+    max: 10, // Increased from 1 to 10 to prevent starvation in dev/HMR
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined,
   });
-  db = drizzle(pool, { schema });
+
+  if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
+
+  db = drizzle(conn, { schema });
 } else {
   console.warn("DATABASE_URL not set - database operations will fail");
 }
