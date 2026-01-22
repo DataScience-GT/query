@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
+import { Glass } from '@query/ui/glass';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -51,7 +52,7 @@ export default function Home() {
   useEffect(() => {
     if (adminStatus) {
       const roleLog = adminStatus.isAdmin
-        ? `> Admin Access: ${adminStatus.role?.toUpperCase()}`
+        ? `> Admin Access: ${adminStatus.role?.toUpperCase().replace(/_/g, ' ')}`
         : "> Access Level: Standard User";
       setLogs(prev => [...prev.slice(-4), roleLog]);
     }
@@ -60,7 +61,7 @@ export default function Home() {
   useEffect(() => {
     if (memberStatus) {
       const memberLog = memberStatus.isMember
-        ? `> Membership: ${memberStatus.memberType?.toUpperCase()} (${memberStatus.daysRemaining} days remaining)`
+        ? `> Membership: ${memberStatus.memberType?.toUpperCase().replace(/_/g, ' ')} (${memberStatus.daysRemaining} days remaining)`
         : "> Membership: Not Active";
       setLogs(prev => [...prev.slice(-4), memberLog]);
     }
@@ -132,19 +133,19 @@ export default function Home() {
                 The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
               </p>
 
-              <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 rounded-lg font-mono text-[11px] leading-relaxed shadow-2xl relative overflow-hidden group">
+              <Glass className="p-5" intensity="medium">
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 {logs.map((log, i) => (
                   <p key={i} className={i === logs.length - 1 ? "text-[#00A8A8]" : "text-gray-600"}>
-                    {log}
+                    {log.replace(/_/g, ' ')}
                   </p>
                 ))}
                 {(helloLoading || isRedirecting || status === 'loading') && (
                   <p className="text-[#00A8A8] animate-pulse">
-                    {'>'} {status === 'loading' ? 'Syncing_Identity...' : 'Processing request...'}
+                    {'>'} {status === 'loading' ? 'Syncing_Identity...'.replace(/_/g, ' ') : 'Processing request...'}
                   </p>
                 )}
-              </div>
+              </Glass>
             </div>
           </div>
 
