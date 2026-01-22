@@ -20,6 +20,7 @@ if (DATABASE_URL) {
     connectionTimeoutMillis: 10000, // 10s timeout
     idleTimeoutMillis: 10000, // 10s idle timeout
     max: 10, // Increased from 1 to 10 to prevent starvation in dev/HMR
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined,
   });
 
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
