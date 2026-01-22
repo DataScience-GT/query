@@ -116,13 +116,13 @@ export default function AdminResultsPage() {
             <div className="flex gap-4">
               <button
                 onClick={() => router.push('/admin')}
-                className="px-6 py-4 bg-black/40 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-lg font-mono"
+                className="px-8 py-5 bg-black/40 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl font-mono"
               >
                 &lt; Admin_Control
               </button>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
-                className="px-6 py-4 border border-white/10 text-gray-500 font-bold text-xs uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all rounded-lg font-mono"
+                className="px-8 py-5 border border-red-500/20 text-red-500/60 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
               >
                 SIGNOUT_TERMINAL
               </button>
@@ -141,7 +141,7 @@ export default function AdminResultsPage() {
                   <button
                     key={h.id}
                     onClick={() => setSelectedHackathon(h.id)}
-                    className={`px-6 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all duration-300 border ${selectedHackathon === h.id
+                    className={`px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-300 border ${selectedHackathon === h.id
                       ? 'bg-[#00A8A8]/10 border-[#00A8A8]/50 text-white shadow-[0_0_20px_rgba(0,168,168,0.1)]'
                       : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
                       }`}
@@ -229,12 +229,12 @@ export default function AdminResultsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.02]">
-                      <th className="px-8 py-6 text-xs font-mono text-gray-500 uppercase tracking-[0.3em]">Pos</th>
-                      <th className="px-8 py-6 text-xs font-mono text-gray-500 uppercase tracking-[0.3em]">Node</th>
-                      <th className="px-8 py-6 text-xs font-mono text-gray-500 uppercase tracking-[0.3em]">Identifier</th>
-                      <th className="px-8 py-6 text-xs font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Sum</th>
-                      <th className="px-8 py-6 text-xs font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Avg</th>
-                      <th className="px-8 py-6 text-xs font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Count</th>
+                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em]">Pos</th>
+                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em]">Node</th>
+                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em]">Identifier</th>
+                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Sum</th>
+                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Avg</th>
+                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Count</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -262,8 +262,8 @@ export default function AdminResultsPage() {
                             </td>
                             <td className="px-8 py-8">
                               <div className="space-y-1">
-                                <p className="text-xs font-mono text-gray-500 uppercase tracking-widest font-bold">Node_{r.project.tableNumber}</p>
-                                <p className="text-[10px] text-gray-700 font-mono">ID: {r.project.id.slice(-6).toUpperCase()}</p>
+                                <p className="text-sm font-mono text-gray-500 uppercase tracking-widest font-bold">Node_{r.project.tableNumber}</p>
+                                <p className="text-xs text-gray-700 font-mono">ID: {r.project.id.slice(-6).toUpperCase()}</p>
                               </div>
                             </td>
                             <td className="px-8 py-8">
@@ -284,8 +284,8 @@ export default function AdminResultsPage() {
                             <td className="px-8 py-8 text-right">
                               <span className="text-3xl font-black text-[#00A8A8] tabular-nums">{r.totalScore}</span>
                             </td>
-                            <td className="px-8 py-8 text-right text-gray-400 font-mono tabular-nums">{r.avgScore}</td>
-                            <td className="px-8 py-8 text-right text-gray-600 font-mono tabular-nums">{r.voteCount}</td>
+                            <td className="px-8 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>
+                            <td className="px-8 py-8 text-right text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</td>
                           </tr>
 
                           {/* Expanded row with individual votes */}
