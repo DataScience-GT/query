@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { Glass } from '@query/ui';
+import { GlassCard } from '@mawtech/glass-ui';
 
 interface ProfileFormProps {
   user: {
@@ -111,14 +111,14 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         <p className="text-[10px] text-gray-700 uppercase">Cannot be modified</p>
       </div>
 
-      <Glass className="bg-white/5 border border-white/10 rounded-lg p-4">
+      <GlassCard className="bg-white/5 border border-white/10 rounded-lg p-4">
         <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile Tips</p>
         <ul className="text-xs text-gray-400 space-y-1">
           <li>&gt; Use a clear profile picture for better recognition</li>
           <li>&gt; Keep your bio concise and professional</li>
           <li>&gt; Your email is private and used only for authentication</li>
         </ul>
-      </Glass>
+      </GlassCard>
 
       <div className="flex gap-3 pt-4">
         <button
