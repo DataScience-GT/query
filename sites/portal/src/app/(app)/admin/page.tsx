@@ -165,22 +165,22 @@ export default function AdminPage() {
               </div>
               <button
                 onClick={() => setShowCreateEvent(false)}
-                className="text-gray-500 hover:text-white transition-colors text-xs uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
+                className="text-gray-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
               >
-                [ Close ]
+                [ Close_Panel ]
               </button>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
+                <label className="text-sm text-gray-500 uppercase tracking-widest font-mono block font-bold mb-2">
                   Event_Title_Identifier
                 </label>
                 <input
                   type="text"
                   value={eventForm.title}
                   onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-white text-base focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
                   placeholder="e.g., Weekly_Workshop_01"
                 />
               </div>
@@ -241,7 +241,7 @@ export default function AdminPage() {
               <button
                 onClick={handleCreateEvent}
                 disabled={!eventForm.title || !eventForm.eventDate || createEventMutation.isPending}
-                className="w-full px-8 py-4 bg-[#00A8A8] text-black font-black text-sm uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,168,168,0.2)] mt-4"
+                className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-base uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.3)] mt-6 rounded-xl"
               >
                 {createEventMutation.isPending ? 'Processing...' : 'INITIALIZE_EVENT'}
               </button>
@@ -362,14 +362,14 @@ export default function AdminPage() {
             <div className="flex gap-4">
               <Link
                 href="/admin-judging"
-                className="px-6 py-4 bg-white/[0.03] border border-white/10 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-lg flex items-center gap-3 group"
+                className="px-8 py-5 bg-white/[0.03] border border-white/10 text-white font-bold text-sm uppercase tracking-[0.2em] hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl flex items-center gap-4 group"
               >
-                <span className="w-2 h-2 rounded-full bg-[#00A8A8]/50 group-hover:bg-[#00A8A8] transition-colors" />
+                <span className="w-3 h-3 rounded-full bg-[#00A8A8]/50 group-hover:bg-[#00A8A8] transition-colors" />
                 Judging_Portal
               </Link>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="px-6 py-4 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/5 transition-all rounded-lg font-mono"
+                className="px-8 py-5 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-white/5 transition-all rounded-xl font-mono"
               >
                 &lt; Return_to_Root
               </button>
@@ -381,7 +381,7 @@ export default function AdminPage() {
         <div className="flex gap-4 mb-12 bg-white/[0.02] p-2 rounded-xl border border-white/5 inline-flex">
           <button
             onClick={() => setView('events')}
-            className={`px-8 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all duration-300 ${view === 'events'
+            className={`px-10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-300 ${view === 'events'
               ? 'bg-white/5 text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-white/10'
               : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
               }`}
@@ -390,7 +390,7 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => setView('members')}
-            className={`px-8 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all opacity-30 cursor-not-allowed ${view === 'members'
+            className={`px-10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all opacity-30 cursor-not-allowed ${view === 'members'
               ? 'bg-white/5 text-white'
               : 'text-gray-500'
               }`}
@@ -399,7 +399,7 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => setView('admins')}
-            className={`px-8 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all opacity-30 cursor-not-allowed ${view === 'admins'
+            className={`px-10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all opacity-30 cursor-not-allowed ${view === 'admins'
               ? 'bg-white/5 text-white'
               : 'text-gray-500'
               }`}
@@ -465,7 +465,7 @@ export default function AdminPage() {
                         </div>
 
                         {event.description && (
-                          <p className="text-gray-500 text-base mb-6 font-mono leading-relaxed max-w-2xl">
+                          <p className="text-gray-400 text-lg mb-8 font-mono leading-relaxed max-w-2xl">
                             &gt; {event.description}
                           </p>
                         )}
@@ -488,13 +488,13 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap lg:flex-col gap-3 min-w-[200px]">
+                      <div className="flex flex-col gap-4 min-w-[240px]">
                         <button
                           onClick={() => {
                             generateQRCode(event.qrCode);
                             setSelectedEvent(event);
                           }}
-                          className="flex-1 px-6 py-3 bg-[#00A8A8]/10 border border-[#00A8A8]/20 text-[#00A8A8] font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8]/20 transition-all rounded shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]"
+                          className="w-full px-8 py-5 bg-[#00A8A8]/10 border border-[#00A8A8]/20 text-[#00A8A8] font-black text-sm uppercase tracking-widest hover:bg-[#00A8A8]/20 transition-all rounded-xl shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]"
                         >
                           ACCESS_QR
                         </button>
@@ -505,9 +505,11 @@ export default function AdminPage() {
                               enabled: !event.checkInEnabled,
                             })
                           }
-                          className="flex-1 px-6 py-3 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/5 transition-all rounded font-mono"
+                          className={`w-full px-8 py-5 border font-black text-sm uppercase tracking-widest transition-all rounded-xl font-mono ${event.checkInEnabled
+                            ? 'border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                            : 'border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
                         >
-                          {event.checkInEnabled ? 'TERMINATE' : 'INITIALIZE'}
+                          {event.checkInEnabled ? 'TERMINATE_LINK' : 'INITIALIZE_LINK'}
                         </button>
                         <button
                           onClick={() => {
@@ -515,7 +517,7 @@ export default function AdminPage() {
                               deleteEventMutation.mutate({ eventId: event.id });
                             }
                           }}
-                          className="flex-1 px-6 py-3 border border-red-500/20 text-red-500/60 font-bold text-xs uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded font-mono"
+                          className="w-full px-8 py-5 border border-red-500/20 text-red-500/60 font-black text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
                         >
                           SYSTEM_PURGE
                         </button>
