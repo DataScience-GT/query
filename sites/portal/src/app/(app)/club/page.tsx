@@ -302,7 +302,7 @@ export default function ClubPage() {
             <button
               onClick={() => setShowScanner(true)}
               disabled={showScanner}
-              className="w-full px-8 py-6 bg-[#00A8A8] text-black font-black text-xs uppercase tracking-[0.4em] hover:bg-white hover:text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_30px_rgba(0,168,168,0.2)] rounded-xl"
+              className="w-full px-8 py-8 bg-[#00A8A8] text-black font-black text-xl uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_50px_rgba(0,168,168,0.4)] hover:shadow-[0_0_80px_rgba(0,168,168,0.6)] rounded-2xl animate-pulse hover:animate-none"
             >
               SCAN_DATA_NODE
             </button>
@@ -370,16 +370,16 @@ export default function ClubPage() {
           )}
 
           {/* Quick Actions */}
-          <div className="flex flex-col md:flex-row gap-4 max-w-md mx-auto">
+          <div className="flex flex-col md:flex-row gap-6 max-w-lg mx-auto">
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex-1 px-8 py-4 border border-white/10 text-gray-500 font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/5 hover:text-white transition-all rounded-xl"
+              className="flex-1 px-8 py-5 border border-white/10 text-gray-400 font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all rounded-xl font-mono"
             >
               &lt; Return_To_Nexus
             </button>
             <button
               onClick={() => router.push('/club/events')}
-              className="flex-1 px-8 py-4 border border-white/10 text-gray-700 font-black text-[10px] uppercase tracking-[0.4em] transition-all rounded-xl opacity-50 cursor-not-allowed"
+              className="flex-1 px-8 py-5 border border-white/10 text-gray-600 font-bold text-sm uppercase tracking-widest transition-all rounded-xl opacity-50 cursor-not-allowed font-mono"
             >
               Event_Directory
             </button>

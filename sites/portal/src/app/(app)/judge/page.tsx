@@ -161,7 +161,7 @@ export default function JudgePage() {
           <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-4">Current Table</p>
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-[#00A8A8]/10 blur-[50px] rounded-full" />
-            <p className="relative text-9xl font-black text-white leading-none tracking-tighter drop-shadow-[0_0_30px_rgba(0,168,168,0.3)]">
+            <p className="relative text-[10rem] font-black text-white leading-none tracking-tighter drop-shadow-[0_0_30px_rgba(0,168,168,0.3)]">
               {project.tableNumber}
             </p>
           </div>
@@ -190,8 +190,8 @@ export default function JudgePage() {
               <button
                 key={n}
                 onClick={() => setScore(n)}
-                className={`py-3 rounded font-mono font-bold text-sm transition-all ${score === n
-                  ? 'bg-[#00A8A8] text-white shadow-[0_0_20px_rgba(0,168,168,0.4)]'
+                className={`py-5 rounded-lg font-mono font-black text-lg transition-all ${score === n
+                  ? 'bg-[#00A8A8] text-white shadow-[0_0_25px_rgba(0,168,168,0.5)] scale-105'
                   : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 active:scale-95'
                   }`}
               >
@@ -211,7 +211,7 @@ export default function JudgePage() {
         <button
           onClick={handleSubmit}
           disabled={submit.isPending}
-          className="mt-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+          className="mt-auto px-12 py-6 bg-white text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_40px_rgba(0,168,168,0.2)]"
         >
           {submit.isPending ? 'Processing...' : 'Submit & Next'}
         </button>
