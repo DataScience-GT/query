@@ -18,7 +18,6 @@ export const stripeRouter = createTRPCRouter({
       return { hasPendingPayment: false };
     }
 
-    // Check for unlinked payment with matching email
     const pendingPayment = await ctx.db!.query.stripePayments.findFirst({
       where: and(
         eq(stripePayments.customerEmail, user.email),
@@ -46,7 +45,6 @@ export const stripeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Find unlinked payment with matching email
       const payment = await ctx.db!.query.stripePayments.findFirst({
         where: and(
           eq(stripePayments.customerEmail, input.email.toLowerCase()),
@@ -62,7 +60,6 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Check if this payment is already linked
       const existingLink = await ctx.db!.query.userAccountLinks.findFirst({
         where: eq(userAccountLinks.stripePaymentId, payment.id),
       });
@@ -74,7 +71,6 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Check if user already has a link
       const userExistingLink = await ctx.db!.query.userAccountLinks.findFirst({
         where: eq(userAccountLinks.userId, ctx.userId!),
       });
@@ -86,7 +82,6 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Create the link
       await ctx.db!.insert(userAccountLinks).values({
         userId: ctx.userId!,
         stripePaymentId: payment.id,
@@ -95,7 +90,6 @@ export const stripeRouter = createTRPCRouter({
         providedEmail: input.email.toLowerCase(),
       });
 
-      // Update the payment record
       await ctx.db!
         .update(stripePayments)
         .set({
@@ -105,7 +99,6 @@ export const stripeRouter = createTRPCRouter({
         })
         .where(eq(stripePayments.id, payment.id));
 
-      // Create or update membership
       await createOrUpdateMembership(
         ctx.db!,
         ctx.userId!,
@@ -145,7 +138,6 @@ async function createOrUpdateMembership(
   firstName: string,
   lastName: string
 ) {
-  // Check if member already exists
   const existingMember = await db.query.members.findFirst({
     where: eq(members.userId, userId),
   });
@@ -155,7 +147,6 @@ async function createOrUpdateMembership(
   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
   if (existingMember) {
-    // Renew membership
     await db
       .update(members)
       .set({
@@ -168,7 +159,6 @@ async function createOrUpdateMembership(
       })
       .where(eq(members.id, existingMember.id));
   } else {
-    // Create new membership
     await db.insert(members).values({
       userId,
       firstName,
