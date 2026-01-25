@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { stripePayments, userAccountLinks, members } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
+import { logSecurityEvent } from "../middleware/security";
 
 export const stripeRouter = createTRPCRouter({
   /**
@@ -65,6 +66,11 @@ export const stripeRouter = createTRPCRouter({
       });
 
       if (existingLink) {
+        logSecurityEvent({
+          type: 'validation_error',
+          identifier: ctx.userId ?? 'unknown',
+          details: `Attempted to link already linked payment ${payment.id}`,
+        });
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "This payment has already been linked to an account.",

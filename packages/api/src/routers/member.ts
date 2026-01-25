@@ -194,6 +194,10 @@ export const memberRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      const cacheKey = `members:list:${input.memberType || 'all'}:${input.limit}:${input.offset}`;
+      const cached = ctx.cache.get<typeof allMembers>(cacheKey);
+      if (cached) return cached;
+
       const allMembers = await ctx.db!.query.members.findMany({
         where: and(
           eq(members.isActive, true),
@@ -223,6 +227,8 @@ export const memberRouter = createTRPCRouter({
           phoneNumber: false,
         },
       });
+
+      ctx.cache.set(cacheKey, allMembers, 60);
 
       return allMembers;
     }),
