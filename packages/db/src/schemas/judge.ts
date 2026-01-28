@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, integer, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonProjects } from "./hackathons";
@@ -15,7 +15,9 @@ export const judges = pgTable("judge", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("judge_user_id_idx").on(table.userId),
+}));
 
 // Judge assignments to specific hackathons
 export const judgeAssignments = pgTable("judge_assignment", {
@@ -28,7 +30,10 @@ export const judgeAssignments = pgTable("judge_assignment", {
     .references(() => hackathons.id, { onDelete: "cascade" }),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
   isLead: boolean("is_lead").notNull().default(false),
-});
+}, (table) => ({
+  judgeIdIdx: index("assignment_judge_id_idx").on(table.judgeId),
+  hackathonIdIdx: index("assignment_hackathon_id_idx").on(table.hackathonId),
+}));
 
 // Projects with table numbers for judging (extends hackathon projects concept)
 export const judgingProjects = pgTable("judging_project", {
@@ -44,7 +49,10 @@ export const judgingProjects = pgTable("judging_project", {
   projectUrl: text("project_url"),
   repoUrl: text("repo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  hackathonIdIdx: index("judging_project_hackathon_id_idx").on(table.hackathonId),
+  tableNumberIdx: index("judging_project_table_idx").on(table.tableNumber),
+}));
 
 // Judge votes/scores for projects
 export const judgeVotes = pgTable("judge_vote", {
@@ -59,7 +67,12 @@ export const judgeVotes = pgTable("judge_vote", {
   comment: text("comment"),
   votedAt: timestamp("voted_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  judgeIdIdx: index("vote_judge_id_idx").on(table.judgeId),
+  projectIdIdx: index("vote_project_id_idx").on(table.projectId),
+  // Compound to enforce one vote per judge per project (app logic does this, index speeds up check)
+  uniqueVoteIdx: index("vote_unique_idx").on(table.judgeId, table.projectId),
+}));
 
 // Map images for hackathon venues
 export const hackathonMaps = pgTable("hackathon_map", {
@@ -71,7 +84,9 @@ export const hackathonMaps = pgTable("hackathon_map", {
   name: text("name"), // e.g., "Floor 1", "Main Hall"
   order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  hackathonIdIdx: index("map_hackathon_id_idx").on(table.hackathonId),
+}));
 
 // Track which tables a judge still needs to visit
 export const judgeQueue = pgTable("judge_queue", {
@@ -88,7 +103,12 @@ export const judgeQueue = pgTable("judge_queue", {
   order: integer("order").notNull(), // order to visit
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
-});
+}, (table) => ({
+  judgeIdIdx: index("queue_judge_id_idx").on(table.judgeId),
+  hackathonIdIdx: index("queue_hackathon_id_idx").on(table.hackathonId),
+  // Critical for "next table" logic
+  todoIdx: index("queue_todo_idx").on(table.judgeId, table.hackathonId, table.isCompleted),
+}));
 
 // Relations
 export const judgesRelations = relations(judges, ({ one, many }) => ({
