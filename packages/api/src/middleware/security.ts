@@ -260,10 +260,65 @@ export type SecurityEvent = {
 const securityLog: SecurityEvent[] = [];
 const MAX_LOG_SIZE = 1000;
 
+import { db, auditLogs } from "@query/db";
+
+const flushQueue: Omit<SecurityEvent, 'timestamp'>[] = [];
+const FLUSH_INTERVAL = 5000;
+const MAX_BATCH_SIZE = 50;
+let flushTimer: NodeJS.Timeout | null = null;
+
+async function flushLogs() {
+  if (flushQueue.length === 0) return;
+
+  const batch = flushQueue.splice(0, MAX_BATCH_SIZE);
+
+  if (!db) {
+    console.warn(`[Security] DB unavailable, dropping ${batch.length} logs`);
+    return;
+  }
+
+  try {
+    const values = batch.map(event => {
+      const safeDetails = event.details ? event.details.replace(/(password|token|secret)=[^&]*/gi, '$1=***') : undefined;
+      const severity = event.type === 'injection_attempt' ? 'critical' :
+        event.type === 'auth_failure' ? 'warn' : 'info';
+
+      return {
+        action: event.type,
+        userId: event.identifier.startsWith('user:') ? event.identifier.split(':')[1] : null,
+        resourceId: event.identifier,
+        metadata: { details: safeDetails },
+        severity,
+      };
+    });
+
+    await db.insert(auditLogs).values(values);
+  } catch (err) {
+    console.error(`[Security] Failed to flush ${batch.length} logs:`, err);
+    // In a real system, might want to re-queue, but for now we drop to avoid endless growth
+  }
+}
+
+// Start flush timer
+if (!flushTimer) {
+  flushTimer = setInterval(() => {
+    void flushLogs();
+  }, FLUSH_INTERVAL);
+}
+
 export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
+  // Keep in-memory for immediate/short-term checks
   securityLog.push({ ...event, timestamp: Date.now() });
   if (securityLog.length > MAX_LOG_SIZE) {
     securityLog.shift();
+  }
+
+  // Queue for DB persistence
+  flushQueue.push(event);
+
+  // Instant flush if critical or queue full
+  if (event.type === 'injection_attempt' || flushQueue.length >= MAX_BATCH_SIZE) {
+    void flushLogs();
   }
 }
 
