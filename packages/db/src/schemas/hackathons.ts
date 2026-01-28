@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, integer, json } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, integer, json, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
@@ -24,7 +24,9 @@ export const hackathons = pgTable("hackathon", {
   isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  statusIdx: index("hackathon_status_idx").on(table.status),
+}));
 
 // Teams for hackathons
 export const hackathonTeams = pgTable("hackathon_team", {
@@ -42,7 +44,10 @@ export const hackathonTeams = pgTable("hackathon_team", {
   isOpen: boolean("is_open").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  hackathonIdIdx: index("team_hackathon_id_idx").on(table.hackathonId),
+  captainIdIdx: index("team_captain_id_idx").on(table.captainId),
+}));
 
 // Individual participants
 export const hackathonParticipants = pgTable("hackathon_participant", {
@@ -77,7 +82,13 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
 
   registeredAt: timestamp("registered_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  hackathonIdIdx: index("participant_hackathon_id_idx").on(table.hackathonId),
+  userIdIdx: index("participant_user_id_idx").on(table.userId),
+  teamIdIdx: index("participant_team_id_idx").on(table.teamId),
+  // Compound for quick check "is this user in this hackathon?"
+  hackathonUserIdx: index("participant_hackathon_user_idx").on(table.hackathonId, table.userId),
+}));
 
 // Project submissions
 export const hackathonProjects = pgTable("hackathon_project", {
@@ -102,7 +113,11 @@ export const hackathonProjects = pgTable("hackathon_project", {
   submittedAt: timestamp("submitted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  hackathonIdIdx: index("project_hackathon_id_idx").on(table.hackathonId),
+  teamIdIdx: index("project_team_id_idx").on(table.teamId),
+  statusIdx: index("project_status_idx").on(table.status),
+}));
 
 // Relations
 export const hackathonsRelations = relations(hackathons, ({ many }) => ({
