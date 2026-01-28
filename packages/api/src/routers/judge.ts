@@ -304,6 +304,10 @@ export const judgeRouter = createTRPCRouter({
   getRankings: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      const cacheKey = `hackathon:${input.hackathonId}:rankings`;
+      const cached = ctx.cache.get<typeof result>(cacheKey);
+      if (cached) return cached;
+
       const projects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
@@ -368,11 +372,15 @@ export const judgeRouter = createTRPCRouter({
         }
       });
 
-      return {
+      const result = {
         rankings,
         ties,
         hasTies: ties.length > 0,
       };
+
+      ctx.cache.set(cacheKey, result, 30); // 30 second cache for live rankings
+
+      return result;
     }),
 
   list: isAdmin.query(async ({ ctx }) => {
