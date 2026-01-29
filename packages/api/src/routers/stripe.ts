@@ -66,6 +66,65 @@ export const stripeRouter = createTRPCRouter({
     }),
 
   /**
+   * Attempt to auto-link a Stripe payment matching the user's email
+   */
+  attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
+    const user = await ctx.db!.query.users.findFirst({
+      where: eq((await import("@query/db")).users.id, ctx.userId!),
+    });
+
+    if (!user?.email) return { success: false };
+
+    const payment = await ctx.db!.query.stripePayments.findFirst({
+      where: and(
+        eq(stripePayments.customerEmail, user.email),
+        isNull(stripePayments.linkedUserId),
+        eq(stripePayments.paymentStatus, "paid")
+      ),
+    });
+
+    if (!payment) return { success: false };
+
+    // Verify not already linked (double check)
+    const existingLink = await ctx.db!.query.userAccountLinks.findFirst({
+      where: eq(userAccountLinks.userId, ctx.userId!),
+    });
+    if (existingLink) return { success: true };
+
+    const names = (user.name || "Member").split(" ");
+    const firstName = names[0] || "Member";
+    const lastName = names.slice(1).join(" ") || "Member";
+
+    await ctx.db!.insert(userAccountLinks).values({
+      userId: ctx.userId!,
+      stripePaymentId: payment.id,
+      providedFirstName: firstName,
+      providedLastName: lastName,
+      providedEmail: user.email,
+    });
+
+    await ctx.db!.update(stripePayments)
+      .set({
+        linkedUserId: ctx.userId!,
+        linkedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(stripePayments.id, payment.id));
+
+    await createOrUpdateMembership(
+      ctx.db!,
+      ctx.userId!,
+      firstName,
+      lastName
+    );
+
+    // Invalidate cache directly
+    ctx.cache.delete(`member:status:${ctx.userId!}`);
+
+    return { success: true };
+  }),
+
+  /**
    * Check if the current user has an unlinked Stripe payment
 
    * that matches their email (auto-link scenario)
@@ -171,6 +230,9 @@ export const stripeRouter = createTRPCRouter({
         input.firstName,
         input.lastName
       );
+
+      // Invalidate membership status cache
+      ctx.cache.delete(`member:status:${ctx.userId!}`);
 
       return { success: true, message: "Account linked successfully! You are now a member." };
     }),
