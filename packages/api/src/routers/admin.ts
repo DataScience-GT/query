@@ -35,6 +35,10 @@ export const adminRouter = createTRPCRouter({
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
+    const cacheKey = `admins:list`;
+    const cached = ctx.cache.get<typeof allAdmins>(cacheKey);
+    if (cached) return cached;
+
     const allAdmins = await ctx.db!.query.admins.findMany({
       with: {
         user: {
@@ -49,6 +53,8 @@ export const adminRouter = createTRPCRouter({
       orderBy: (admins, { desc }) => [desc(admins.createdAt)],
       limit: 100,
     });
+
+    ctx.cache.set(cacheKey, allAdmins, 60);
 
     return allAdmins;
   }),
