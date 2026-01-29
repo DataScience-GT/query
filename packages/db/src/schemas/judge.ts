@@ -3,7 +3,6 @@ import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonProjects } from "./hackathons";
 
-// Judges - users who can judge hackathon projects
 export const judges = pgTable("judge", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id")
@@ -11,7 +10,7 @@ export const judges = pgTable("judge", {
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name"),
-  specialty: text("specialty"), // e.g., "AI/ML", "Web Development", "Mobile", "Data Science"
+  specialty: text("specialty"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -19,7 +18,6 @@ export const judges = pgTable("judge", {
   userIdIdx: index("judge_user_id_idx").on(table.userId),
 }));
 
-// Judge assignments to specific hackathons
 export const judgeAssignments = pgTable("judge_assignment", {
   id: uuid("id").defaultRandom().primaryKey(),
   judgeId: uuid("judge_id")
@@ -34,6 +32,7 @@ export const judgeAssignments = pgTable("judge_assignment", {
   judgeIdIdx: index("assignment_judge_id_idx").on(table.judgeId),
   hackathonIdIdx: index("assignment_hackathon_id_idx").on(table.hackathonId),
 }));
+
 
 // Projects with table numbers for judging (extends hackathon projects concept)
 export const judgingProjects = pgTable("judging_project", {
@@ -81,7 +80,7 @@ export const hackathonMaps = pgTable("hackathon_map", {
     .notNull()
     .references(() => hackathons.id, { onDelete: "cascade" }),
   imageUrl: text("image_url").notNull(),
-  name: text("name"), // e.g., "Floor 1", "Main Hall"
+  name: text("name"),
   order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({

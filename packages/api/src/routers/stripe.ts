@@ -4,10 +4,61 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { stripePayments, userAccountLinks, members } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-12-15.clover",
+});
 
 export const stripeRouter = createTRPCRouter({
   /**
+   * Create a new Stripe Checkout Session for membership
+   */
+  createCheckoutSession: protectedProcedure
+    .input(z.object({ returnUrl: z.string().url() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db!.query.users.findFirst({
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
+      });
+
+      if (!user?.email) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "User must have an email address to checkout.",
+        });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "DSGT Membership",
+                description: "One year membership to Data Science at Georgia Tech",
+                // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
+              },
+              unit_amount: 1500, // $15.00
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${input.returnUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${input.returnUrl}?payment=cancelled`,
+        customer_email: user.email,
+        metadata: {
+          userId: ctx.userId!,
+        },
+      });
+
+      return { url: session.url };
+    }),
+
+  /**
    * Check if the current user has an unlinked Stripe payment
+
    * that matches their email (auto-link scenario)
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
