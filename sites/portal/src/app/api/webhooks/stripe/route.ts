@@ -39,6 +39,12 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
 
     try {
+      // Check for amounts greater than $100 (10000 cents)
+      if (session.amount_total && session.amount_total > 10000) {
+        console.log(`Ignoring payment of ${session.amount_total} cents (>${10000})`);
+        return NextResponse.json({ received: true });
+      }
+
       // Extract customer info
       const rawEmail = session.customer_details?.email || session.customer_email;
       const customerEmail = rawEmail?.toLowerCase(); // Normalize email
