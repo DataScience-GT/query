@@ -14,7 +14,6 @@ export const stripePayments = pgTable("stripe_payment", {
   stripeSessionId: text("stripe_session_id").notNull().unique(),
   stripeCustomerId: text("stripe_customer_id"),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
-
   // Customer info from Stripe
   customerEmail: text("customer_email").notNull(),
   customerName: text("customer_name"),
