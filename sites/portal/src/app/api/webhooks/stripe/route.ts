@@ -40,18 +40,43 @@ export async function POST(req: NextRequest) {
 
     try {
       // Extract customer info
-      const customerEmail = session.customer_details?.email || session.customer_email;
+      const rawEmail = session.customer_details?.email || session.customer_email;
+      const customerEmail = rawEmail?.toLowerCase(); // Normalize email
       const customerName = session.customer_details?.name;
+      const phoneNumber = session.customer_details?.phone;
+      const metadataUserId = session.metadata?.userId;
 
       if (!customerEmail) {
         console.error("No customer email in checkout session");
         return NextResponse.json({ error: "No customer email" }, { status: 400 });
       }
 
-      // Check if user already exists with this email
-      const existingUser = await db?.query.users.findFirst({
-        where: eq(users.email, customerEmail),
+      // Idempotency check: see if we already processed this session
+      const existingPayment = await db?.query.stripePayments.findFirst({
+        where: eq(stripePayments.stripeSessionId, session.id),
       });
+
+      if (existingPayment) {
+        console.log(`Payment already processed: ${session.id}`);
+        return NextResponse.json({ received: true });
+      }
+
+      // Check if user already exists
+      // Priority 1: Check metadata userId (most reliable)
+      let targetUser = null;
+
+      if (metadataUserId) {
+        targetUser = await db?.query.users.findFirst({
+          where: eq(users.id, metadataUserId),
+        });
+      }
+
+      // Priority 2: Fallback to email match
+      if (!targetUser) {
+        targetUser = await db?.query.users.findFirst({
+          where: eq(users.email, customerEmail),
+        });
+      }
 
       // Save payment record
       const [payment] = await db!
@@ -60,23 +85,23 @@ export async function POST(req: NextRequest) {
           stripeSessionId: session.id,
           stripeCustomerId: session.customer as string | null,
           stripePaymentIntentId: session.payment_intent as string | null,
-          customerEmail,
+          customerEmail, // Normalized
           customerName,
           amountTotal: session.amount_total,
           currency: session.currency || "usd",
           paymentStatus: session.payment_status as "paid" | "unpaid" | "no_payment_required",
-          linkedUserId: existingUser?.id || null,
-          linkedAt: existingUser ? new Date() : null,
+          linkedUserId: targetUser?.id || null,
+          linkedAt: targetUser ? new Date() : null,
           metadata: session.metadata ? JSON.stringify(session.metadata) : null,
         })
         .returning();
 
       // If user exists and paid, create/update membership
-      if (existingUser && session.payment_status === "paid") {
-        await createOrUpdateMembership(existingUser.id, customerName, customerEmail);
+      if (targetUser && session.payment_status === "paid") {
+        await createOrUpdateMembership(targetUser.id, customerName, customerEmail, phoneNumber);
       }
 
-      console.log(`Stripe payment recorded: ${payment.id} for ${customerEmail}`);
+      console.log(`Stripe payment recorded: ${payment.id} for ${customerEmail} (Linked to: ${targetUser?.id || 'Unlinked'})`);
     } catch (error) {
       console.error("Error processing checkout session:", error);
       return NextResponse.json({ error: "Processing failed" }, { status: 500 });
@@ -89,7 +114,8 @@ export async function POST(req: NextRequest) {
 async function createOrUpdateMembership(
   userId: string,
   customerName: string | null | undefined,
-  customerEmail: string
+  customerEmail: string,
+  phoneNumber: string | null | undefined
 ) {
   // Check if member already exists
   const existingMember = await db?.query.members.findFirst({
@@ -116,6 +142,7 @@ async function createOrUpdateMembership(
         renewalCount: existingMember.renewalCount + 1,
         memberType: "continuous",
         updatedAt: now,
+        phoneNumber: phoneNumber || existingMember.phoneNumber, // Update phone if provided
       })
       .where(eq(members.id, existingMember.id));
 
@@ -131,6 +158,7 @@ async function createOrUpdateMembership(
       membershipStartDate: now,
       membershipEndDate: oneYearFromNow,
       renewalCount: 0,
+      phoneNumber: phoneNumber || null,
     });
 
     console.log(`New membership created for user ${userId}`);
