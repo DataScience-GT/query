@@ -14,3 +14,4 @@ export {
   events,
   eventCheckIns
 } from "./schemas/events";
+export { auditLogs, securitySeverityEnum } from "./schemas/security";
