@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/LiquidGlass';
 
@@ -17,8 +17,31 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   const utils = trpc.useUtils();
+
+  const autoLinkMutation = trpc.stripe.attemptAutoLink.useMutation({
+    onSuccess: (data) => {
+      setIsChecking(false);
+      if (data.success) {
+        setSuccess(true);
+        utils.member.checkStatus.invalidate();
+        onSuccess?.();
+      }
+    },
+    onError: () => {
+      setIsChecking(false);
+    }
+  });
+
+  useEffect(() => {
+    // Attempt to auto-link on mount
+    autoLinkMutation.mutate();
+  }, []);
+
+
+
 
   const linkMutation = trpc.stripe.linkAccount.useMutation({
     onSuccess: () => {
@@ -67,6 +90,17 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
         </p>
         <p className="text-sm font-mono text-gray-300">
           Identity verified. Refreshing protocols...
+        </p>
+      </LiquidGlass>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <LiquidGlass className="relative h-full p-8 flex flex-col items-center justify-center text-center !bg-[#0A0A0A] border-white/5 animate-pulse">
+        <div className="w-8 h-8 rounded-full border-2 border-[#00A8A8] border-t-transparent animate-spin mb-4" />
+        <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#00A8A8] animate-pulse">
+          Syncing Protocols...
         </p>
       </LiquidGlass>
     );
