@@ -23,6 +23,12 @@ const nextConfig = {
       },
     ],
   },
+  compress: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
   turbopack: {},
 };
 
