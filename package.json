@@ -23,12 +23,14 @@
     "typecheck": "turbo run typecheck"
   },
   "dependencies": {
+    "@query/db": "workspace:*",
     "@tanstack/react-router": "^1.141.2",
     "autoprefixer": "^10.4.22",
     "chart.js": "^4.5.1",
+    "csv-parse": "^6.1.0",
     "minimatch": "^10.1.1",
-    "postcss": "^8.5.6",
     "next": "^16.0.0",
+    "postcss": "^8.5.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

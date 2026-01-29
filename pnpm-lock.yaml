@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@query/db':
+        specifier: workspace:*
+        version: link:packages/db
       '@tanstack/react-router':
         specifier: ^1.141.2
         version: 1.154.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -17,6 +20,9 @@ importers:
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
+      csv-parse:
+        specifier: ^6.1.0
+        version: 6.1.0
       minimatch:
         specifier: ^10.1.1
         version: 10.1.1
@@ -359,9 +365,6 @@ importers:
       '@query/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@query/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.90.12
         version: 5.90.19(react@19.2.3)
@@ -2535,6 +2538,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  csv-parse@6.1.0:
+    resolution: {integrity: sha512-CEE+jwpgLn+MmtCpVcPtiCZpVtB6Z2OKPTr34pycYYoL7sxdOkXDdQ4lRiw6ioC0q6BLqhc6cKweCVvral8yhw==}
 
   damerau-levenshtein@1.0.8:
     resolution: {integrity: sha512-sdQSFB7+llfUcQHUQO3+B8ERRj0Oa4w9POWMI/puGtuf7gFywGmkaLCElnudfTiKZV+NvHqL0ifzdrI8Ro7ESA==}
@@ -6520,6 +6526,8 @@ snapshots:
       which: 2.0.2
 
   csstype@3.2.3: {}
+
+  csv-parse@6.1.0: {}
 
   damerau-levenshtein@1.0.8: {}
 
