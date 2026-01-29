@@ -29,5 +29,13 @@ env:
     secret: AUTH_GOOGLE_SECRET
   - variable: AUTH_URL
     value: https://query--dsgt-website.us-east4.hosted.app
+    # Stripe Configuration
+  - variable: STRIPE_SECRET_KEY
+    # Project Number identifier (safe to commit) used for robust resolution
+    secret: projects/672446353769/secrets/STRIPE_SECRET_KEY
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    secret: projects/672446353769/secrets/NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production

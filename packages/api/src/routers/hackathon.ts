@@ -261,6 +261,10 @@ export const hackathonRouter = createTRPCRouter({
   participants: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      const cacheKey = `hackathon:${input.hackathonId}:participants`;
+      const cached = ctx.cache.get<typeof participants>(cacheKey);
+      if (cached) return cached;
+
       const participants = await ctx.db!.query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
         with: {
@@ -274,6 +278,8 @@ export const hackathonRouter = createTRPCRouter({
           team: true,
         },
       });
+
+      ctx.cache.set(cacheKey, participants, 60);
 
       return participants;
     }),
@@ -341,6 +347,10 @@ export const hackathonRouter = createTRPCRouter({
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      const cacheKey = `hackathon:${input.hackathonId}:projects`;
+      const cached = ctx.cache.get<typeof projects>(cacheKey);
+      if (cached) return cached;
+
       const projects = await ctx.db!.query.hackathonProjects.findMany({
         where: eq(hackathonProjects.hackathonId, input.hackathonId),
         with: {
@@ -362,6 +372,8 @@ export const hackathonRouter = createTRPCRouter({
         },
         orderBy: (hackathonProjects, { desc }) => [desc(hackathonProjects.submittedAt)],
       });
+
+      ctx.cache.set(cacheKey, projects, 120);
 
       return projects;
     }),

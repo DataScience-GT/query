@@ -56,3 +56,4 @@ migrations/
 .claude/settings.local.json
 packages/db/scripts/seed.ts
 packages/db/scripts/seed2.ts
+scripts/seed-stripe.ts

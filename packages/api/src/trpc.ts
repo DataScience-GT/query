@@ -8,11 +8,13 @@ import { CacheKeys } from "./middleware/cache";
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
+    const isDev = process.env.NODE_ENV === 'development';
     return {
       ...shape,
       data: {
         ...shape.data,
         zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+        stack: isDev ? shape.data.stack : undefined, // Mask stack in production
       },
     };
   },
@@ -36,37 +38,83 @@ const requiresDb = t.middleware(async ({ ctx, next }) => {
   });
 });
 
-export const publicProcedure = t.procedure.use(async ({ ctx, next, type }) => {
-  // DDoS Protection - check IP-based limits first
-  const ddosCheck = ddosProtection(ctx.clientIp);
-  if (!ddosCheck.allowed) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: `Too many requests from your IP. Please try again in ${ddosCheck.retryAfter} seconds.`,
-    });
-  }
+const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
+  // Get raw input for validation
+  const rawInput = await getRawInput();
 
-  const identifier = ctx.userId || `anon-${ctx.session?.user?.id || 'unknown'}`;
-  const config = RATE_LIMITS.public;
-  const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
-
-  const result = rateLimit(identifier, config.maxTokens, config.refillRate, tokens);
-
-  if (!result.allowed) {
+  if (rawInput && !validateRequestSize(rawInput)) {
     logSecurityEvent({
-      type: 'rate_limit',
-      identifier,
-      details: `Public ${type} blocked, retry after ${result.retryAfter}s`,
+      type: 'validation_error',
+      identifier: ctx.userId ?? ctx.clientIp,
+      details: 'Request payload too large',
     });
-
     throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: `Too many requests. Please try again in ${result.retryAfter} seconds.`,
+      code: "PAYLOAD_TOO_LARGE",
+      message: "Request payload is too large",
     });
   }
 
-  return next();
+  sanitizeInput(rawInput);
+
+  const result = await next();
+
+  if (!result.ok) {
+    logSecurityEvent({
+      type: 'validation_error',
+      identifier: ctx.userId ?? 'unknown',
+      details: 'Procedure failed',
+    });
+  }
+
+  return result;
 });
+
+const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
+  const result = await next();
+
+  if (type === 'mutation') {
+    const namespace = path.split('.')[0];
+    if (namespace) {
+      ctx.cache.deletePattern(`query:${namespace}.*`);
+    }
+  }
+
+  return result;
+});
+
+export const publicProcedure = t.procedure
+  .use(sanitizeInputs)
+  .use(async ({ ctx, next, type }) => {
+    // DDoS Protection - check IP-based limits first
+    const ddosCheck = ddosProtection(ctx.clientIp);
+    if (!ddosCheck.allowed) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: `Too many requests from your IP. Please try again in ${ddosCheck.retryAfter} seconds.`,
+      });
+    }
+
+    const identifier = ctx.userId || `anon-${ctx.session?.user?.id || 'unknown'}`;
+    const config = RATE_LIMITS.public;
+    const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
+
+    const result = rateLimit(identifier, config.maxTokens, config.refillRate, tokens);
+
+    if (!result.allowed) {
+      logSecurityEvent({
+        type: 'rate_limit',
+        identifier,
+        details: `Public ${type} blocked, retry after ${result.retryAfter}s`,
+      });
+
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: `Too many requests. Please try again in ${result.retryAfter} seconds.`,
+      });
+    }
+
+    return next();
+  });
 
 const isAuthed = t.middleware(async ({ ctx, next, type }) => {
   // DDoS Protection - check IP-based limits first
@@ -116,50 +164,6 @@ const isAuthed = t.middleware(async ({ ctx, next, type }) => {
       userId: ctx.userId,
     },
   });
-});
-
-const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
-  // Get raw input for validation
-  const rawInput = await getRawInput();
-
-  if (rawInput && !validateRequestSize(rawInput)) {
-    logSecurityEvent({
-      type: 'validation_error',
-      identifier: ctx.userId ?? ctx.clientIp,
-      details: 'Request payload too large',
-    });
-    throw new TRPCError({
-      code: "PAYLOAD_TOO_LARGE",
-      message: "Request payload is too large",
-    });
-  }
-
-  sanitizeInput(rawInput);
-
-  const result = await next();
-
-  if (!result.ok) {
-    logSecurityEvent({
-      type: 'validation_error',
-      identifier: ctx.userId ?? 'unknown',
-      details: 'Procedure failed',
-    });
-  }
-
-  return result;
-});
-
-const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
-  const result = await next();
-
-  if (type === 'mutation') {
-    const namespace = path.split('.')[0];
-    if (namespace) {
-      ctx.cache.deletePattern(`query:${namespace}.*`);
-    }
-  }
-
-  return result;
 });
 
 export const protectedProcedure = t.procedure
