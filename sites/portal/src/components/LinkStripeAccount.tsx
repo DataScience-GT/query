@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/LiquidGlass';
 
@@ -17,8 +17,31 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   const utils = trpc.useUtils();
+
+  const autoLinkMutation = trpc.stripe.attemptAutoLink.useMutation({
+    onSuccess: (data) => {
+      setIsChecking(false);
+      if (data.success) {
+        setSuccess(true);
+        utils.member.checkStatus.invalidate();
+        onSuccess?.();
+      }
+    },
+    onError: () => {
+      setIsChecking(false);
+    }
+  });
+
+  useEffect(() => {
+    // Attempt to auto-link on mount
+    autoLinkMutation.mutate();
+  }, []);
+
+
+
 
   const linkMutation = trpc.stripe.linkAccount.useMutation({
     onSuccess: () => {
@@ -33,6 +56,22 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
       setSuccess(false);
     },
   });
+
+  const payMutation = trpc.stripe.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (err) => {
+      setError(err.message);
+    },
+  });
+
+  const handlePay = () => {
+    setError(null);
+    payMutation.mutate({ returnUrl: window.location.href });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,46 +95,68 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
     );
   }
 
+  if (isChecking) {
+    return (
+      <LiquidGlass className="relative h-full p-8 flex flex-col items-center justify-center text-center !bg-[#0A0A0A] border-white/5 animate-pulse">
+        <div className="w-8 h-8 rounded-full border-2 border-[#00A8A8] border-t-transparent animate-spin mb-4" />
+        <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#00A8A8] animate-pulse">
+          Syncing Protocols...
+        </p>
+      </LiquidGlass>
+    );
+  }
+
   if (!isOpen) {
     return (
-      <LiquidGlass className="relative h-full p-8 hover:!border-red-500/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
+      <LiquidGlass className="relative h-full p-8 hover:!border-[#00A8A8]/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
 
         {/* Decorative offline gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
         <div className="relative z-10 flex-1 flex flex-col">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-2 text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">
+              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-2 text-[#00A8A8] drop-shadow-[0_0_5px_rgba(0,168,168,0.5)]">
                 Member Node
               </p>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500/50 animate-pulse" />
-                <h3 className="text-2xl font-bold text-gray-500 uppercase tracking-tight group-hover:text-red-400 transition-colors">
-                  Offline
+                <span className="w-2 h-2 rounded-full bg-[#00A8A8]/50 animate-pulse" />
+                <h3 className="text-2xl font-bold text-gray-500 uppercase tracking-tight group-hover:text-[#00A8A8] transition-colors">
+                  Inactive
                 </h3>
               </div>
             </div>
             <div className="opacity-20 group-hover:opacity-100 transition-opacity">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              <svg className="w-8 h-8 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
             </div>
           </div>
 
           <p className="text-sm text-gray-600 font-mono mb-6 leading-relaxed">
-            Payment record verification required for terminal access.
+            Membership verification required for terminal access. Dues: $15.00/yr.
           </p>
 
           <div className="mt-auto space-y-3">
             <button
+              onClick={handlePay}
+              disabled={payMutation.isPending}
+              className="w-full py-4 px-4 bg-[#00A8A8] text-black hover:bg-[#00A8A8]/90 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)]"
+            >
+              {payMutation.isPending ? 'Initiating...' : 'Initialize Membership'}
+            </button>
+
+            <button
               onClick={() => setIsOpen(true)}
-              className="w-full py-4 px-4 bg-white/5 border border-white/10 hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] text-xs font-bold tracking-[0.2em] uppercase transition-all rounded"
+              className="w-full py-3 px-4 bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded text-gray-400 hover:text-white"
             >
               Link Existing Payment
             </button>
-            <p className="text-xs text-gray-700 text-center font-mono">
-              Used a different email? Sync it here.
-            </p>
           </div>
+
+          {error && (
+            <div className="mt-4 text-[9px] text-red-500 font-mono uppercase tracking-widest text-center">
+              Error initiating protocol: {error}
+            </div>
+          )}
         </div>
       </LiquidGlass>
     );
