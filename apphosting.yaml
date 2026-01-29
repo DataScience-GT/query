@@ -29,5 +29,11 @@ env:
     secret: AUTH_GOOGLE_SECRET
   - variable: AUTH_URL
     value: https://query--dsgt-website.us-east4.hosted.app
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production

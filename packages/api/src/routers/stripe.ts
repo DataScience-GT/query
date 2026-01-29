@@ -6,9 +6,11 @@ import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-12-15.clover",
-});
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-12-15.clover",
+  })
+  : null;
 
 export const stripeRouter = createTRPCRouter({
   /**
@@ -17,6 +19,13 @@ export const stripeRouter = createTRPCRouter({
   createCheckoutSession: protectedProcedure
     .input(z.object({ returnUrl: z.string().url() }))
     .mutation(async ({ ctx, input }) => {
+      if (!stripe) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Stripe is not configured on the server. Missing STRIPE_SECRET_KEY.",
+        });
+      }
+
       const user = await ctx.db!.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
