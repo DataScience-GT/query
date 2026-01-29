@@ -273,7 +273,7 @@ export default function ClubPage() {
 
             <h1 className="text-7xl lg:text-9xl font-black text-white uppercase tracking-tighter leading-[0.85]">
               Welcome,<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] via-[#00A8A8]/80 to-white/20 italic">
+              <span className="text-[#00A8A8] italic">
                 {firstName}
               </span>
             </h1>
