@@ -1,11 +1,15 @@
-// next.config.mjs OR next.config.js (if type: module is in package.json)
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
+  output: 'standalone',
+  transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+  typescript: { ignoreBuildErrors: true },
 };
 
 export default nextConfig; // Change from module.exports

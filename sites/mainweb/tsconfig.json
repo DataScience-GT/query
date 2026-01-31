@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -24,7 +24,10 @@
         "./*"
       ]
     },
-    "types": ["react", "node"],
+    "types": [
+      "react",
+      "node"
+    ],
     "plugins": [
       {
         "name": "next"
