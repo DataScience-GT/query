@@ -117,6 +117,7 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
                 href="/portal"
                 rel="noopener noreferrer"
                 className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all duration-300"
+                onClick={() => setMenuOpen(false)}
               >
                 Portal
               </Link>
@@ -148,6 +149,7 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
             href="/portal"
             rel="noopener noreferrer"
             className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            onClick={() => setMenuOpen(false)}
           >
             Portal
           </Link>
