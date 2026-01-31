@@ -259,12 +259,39 @@ importers:
 
   sites/mainweb:
     dependencies:
+      '@mawtech/glass-ui':
+        specifier: ^0.2.1
+        version: 0.2.1(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@query/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@query/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@query/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@query/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tanstack/react-query':
-        specifier: ^5.90.5
+        specifier: ^5.90.12
         version: 5.90.19(react@19.2.3)
+      '@trpc/client':
+        specifier: ^11.7.2
+        version: 11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/next':
+        specifier: ^11.7.2
+        version: 11.8.1(@tanstack/react-query@5.90.19(react@19.2.3))(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/react-query@11.8.1(@tanstack/react-query@5.90.19(react@19.2.3))(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))(next@16.1.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.97.2))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+      '@trpc/react-query':
+        specifier: ^11.7.2
+        version: 11.8.1(@tanstack/react-query@5.90.19(react@19.2.3))(@trpc/client@11.8.1(@trpc/server@11.8.1(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.8.1(typescript@5.9.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+      '@trpc/server':
+        specifier: ^11.8.0
+        version: 11.8.1(typescript@5.9.3)
+      '@yudiel/react-qr-scanner':
+        specifier: ^2.5.0
+        version: 2.5.1(@types/emscripten@1.41.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
@@ -275,23 +302,41 @@ importers:
         specifier: ^10.1.1
         version: 10.1.1
       next:
-        specifier: ^16.0.8
+        specifier: ^16.1.4
         version: 16.1.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.97.2)
+      next-auth:
+        specifier: ^5.0.0-beta.25
+        version: 5.0.0-beta.30(next@16.1.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.97.2))(react@19.2.3)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       react:
-        specifier: ^19.2.1
+        specifier: ^19.2.3
         version: 19.2.3
       react-chartjs-2:
         specifier: ^5.3.1
         version: 5.3.1(chart.js@4.5.1)(react@19.2.3)
       react-dom:
-        specifier: ^19.2.1
+        specifier: ^19.2.3
         version: 19.2.3(react@19.2.3)
       react-scroll:
         specifier: ^1.9.3
         version: 1.9.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      sanitize-html:
+        specifier: ^2.17.0
+        version: 2.17.0
       sass:
         specifier: ^1.93.2
         version: 1.97.2
+      stripe:
+        specifier: ^20.2.0
+        version: 20.2.0(@types/node@22.19.7)
+      superjson:
+        specifier: ^2.2.1
+        version: 2.2.6
+      three:
+        specifier: ^0.128.0
+        version: 0.128.0
     devDependencies:
       '@next/bundle-analyzer':
         specifier: ^16.0.8
@@ -317,6 +362,9 @@ importers:
       '@types/node':
         specifier: ^22.19.2
         version: 22.19.7
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.9
@@ -326,6 +374,9 @@ importers:
       '@types/react-scroll':
         specifier: ^1.8.10
         version: 1.8.10
+      '@types/three':
+        specifier: ^0.128.0
+        version: 0.128.0
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.23(postcss@8.5.6)
