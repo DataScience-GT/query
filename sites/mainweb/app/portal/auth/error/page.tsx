@@ -56,7 +56,7 @@ function AuthErrorContent() {
 
             <div className="relative z-10 flex gap-4">
                 <Link
-                    href="/"
+                    href="/portal"
                     className="px-10 py-4 bg-white/[0.03] border border-white/10 text-white font-black text-xs uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white/20 transition-all rounded-lg shadow-lg font-mono"
                 >
                     &lt; Return_To_Base
