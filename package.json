@@ -9,7 +9,6 @@
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
-    "dev:portal": "turbo run dev --filter=portal",
     "dev:mainweb": "turbo run dev --filter=web",
     "build:mainweb": "turbo run build --filter=web",
     "build": "turbo run build",
