@@ -244,7 +244,7 @@ const Home = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { t: "Member", d: "Join the mailing list for weekly updates.", i: slide1, l: "https://member.datasciencegt.org/" },
+              { t: "Member", d: "Join the mailing list for weekly updates.", i: slide1, l: "/portal" },
               { t: "Leadership", d: "Join the executive board and lead teams.", i: slide7, l: "/team" },
               { t: "Hacklytics", d: "Attend our 36-hour flagship datathon.", i: slide6, l: "https://hacklytics.io/" }
             ].map((event, i) => (
