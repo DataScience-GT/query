@@ -70,20 +70,29 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   }
 
   if (!timeLeft) {
-    return <span className="text-3xl md:text-5xl">00:00:00:00</span>;
+    return (
+      <div className="flex gap-3 md:gap-4">
+        {["DAYS", "HOURS", "MINUTES", "SECONDS"].map((label, i) => (
+          <div key={i} className="flex flex-col items-center bg-wonka-red rounded-2xl px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_4px_0_#991b1b] border-2 border-red-900">
+            <span className="text-white text-3xl md:text-5xl font-bold">00</span>
+            <span className="text-white text-xs md:text-sm tracking-wider mt-1">{label}</span>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
-    <div className="flex gap-6 md:gap-10">
+    <div className="flex gap-3 md:gap-4">
       {[
-        { label: "Days", value: timeLeft.days },
-        { label: "Hours", value: timeLeft.hours },
-        { label: "Minutes", value: timeLeft.minutes },
-        { label: "Seconds", value: timeLeft.seconds },
+        { label: "DAYS", value: timeLeft.days },
+        { label: "HOURS", value: timeLeft.hours },
+        { label: "MINUTES", value: timeLeft.minutes },
+        { label: "SECONDS", value: timeLeft.seconds },
       ].map((unit, i) => (
-        <div key={i} className="flex flex-col items-center">
-          <span className="text-3xl md:text-5xl">{formatUnit(unit.value)}</span>
-          <span className="text-sm md:text-lg">{unit.label}</span>
+        <div key={i} className="flex flex-col items-center bg-wonka-red rounded-2xl px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_4px_0_#991b1b] border-2 border-red-900">
+          <span className="text-white text-3xl md:text-5xl font-bold">{formatUnit(unit.value)}</span>
+          <span className="text-white text-xs md:text-sm tracking-wider mt-1">{unit.label}</span>
         </div>
       ))}
     </div>
@@ -233,31 +242,10 @@ export default function HomePage() {
               </div>
             </div>
 
-                        {/* Applications Closed Button-style */}
+            {/* Countdown */}
             <div className="mt-8 flex flex-col items-center">
-              <div className={`${truculenta.className} relative bg-wonka-red text-white font-black rounded-[2rem]
-                              shadow-[0_8px_0_#991b1b,0_15px_20px_rgba(0,0,0,0.2)]
-                              px-10 py-6 md:px-16 md:py-10 md:text-4xl flex flex-col items-center justify-center gap-4 border-4 border-red-900 cursor-not-allowed`}>
-
-                {/* Main Title */}
-                <span className="text-center tracking-widest text-2xl md:text-4xl mb-4">
-                  Applications are closed
-                </span>
-
-                {/* Subtext */}
-                <span className="block text-lg md:text-2xl mb-4">Hacklytics happening in</span>
-
-                {/* Countdown */}
-                <Countdown targetDate={new Date("2026-02-20T23:59:59")} />
-
-                {/* Decorative sparkles */}
-                <span className="absolute top-3 left-4 text-xl animate-spin-slow text-yellow-300 opacity-100">✨</span>
-                <span className="absolute bottom-3 right-4 text-xl animate-spin-slow text-yellow-300 opacity-100 animation-delay-500">✨</span>
-              </div>
+              <Countdown targetDate={new Date("2026-02-20T23:59:59")} />
             </div>
-
-
-
 
             {/* Golden ticket placeholder */}
             <div className="mt-12 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto animate-float-slow relative">
