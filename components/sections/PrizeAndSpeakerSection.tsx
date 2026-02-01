@@ -77,8 +77,8 @@ const PrizeTicket: React.FC<{
 
         {/* Prize Image - Overlaying the ticket */}
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="w-28 h-28 md:w-36 md:h-36 relative group-hover:scale-110 transition-transform drop-shadow-2xl">
-            <Image src={image} alt={prize} fill className="object-contain" />
+          <div className="w-28 h-28 md:w-36 md:h-36 relative group-hover:scale-110 transition-transform drop-shadow-2xl bg-white rounded-xl overflow-hidden">
+            <Image src={image} alt={prize} fill className="object-contain p-2" />
           </div>
         </div>
       </div>
