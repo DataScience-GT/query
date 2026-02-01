@@ -173,8 +173,8 @@ const SpeakerCard: React.FC<{ name: string; title: string; company: string; imag
 export default function PrizeAndSpeakerSection() {
   // Main prizes data
   const mainPrizes = [
-    { type: 'silver' as const, rank: '2', prize: 'Apple AirPods Max', image: '/prizes/airpods-max.png' },
-    { type: 'gold' as const, rank: '1', prize: 'Apple MacBook Air M4', image: '/prizes/macbook-air.png' },
+    { type: 'silver' as const, rank: '2', prize: 'Apple AirPods Max', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/airpods-max-select-spacegray-202011?wid=400&hei=400&fmt=png-alpha' },
+    { type: 'gold' as const, rank: '1', prize: 'Apple MacBook Air M4', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-midnight-select-20220606?wid=400&hei=400&fmt=png-alpha' },
     { type: 'bronze' as const, rank: '3', prize: 'Samsung Odyssey G5 Monitor', image: '/prizes/samsung-monitor.png' },
   ];
 
