@@ -55,11 +55,10 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
   type MenuItem = { name: string; to: string; link: boolean };
 
   const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
-    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${
-      isMobile
-        ? "text-gray-300 hover:text-white text-xl font-bold"
-        : "text-gray-400 hover:text-[#00A8A8]"
-    }`;
+    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${isMobile
+      ? "text-gray-300 hover:text-white text-xl font-bold"
+      : "text-gray-400 hover:text-[#00A8A8]"
+      }`;
 
     if (item.link) {
       return (
@@ -114,13 +113,14 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
           {windowWidth >= WIDTH_THRESHOLD ? (
             <div className="flex items-center gap-8">
               {menuItems.map((item) => renderMenuItem(item))}
-              <a
-                href="/tbd"
+              <Link
+                href="/portal"
                 rel="noopener noreferrer"
                 className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all duration-300"
+                onClick={() => setMenuOpen(false)}
               >
                 Portal
-              </a>
+              </Link>
             </div>
           ) : (
             <button
@@ -137,22 +137,22 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
       </nav>
 
       <div
-        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
-          menuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${menuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
+          }`}
       >
         {/* Subtle grid pattern for better aesthetic on the full-screen mobile menu */}
         <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
 
         <div className="flex flex-col items-center gap-8 text-center relative z-10">
           {menuItems.map((item) => renderMenuItem(item, true))}
-          <a
-            href="/team"
+          <Link
+            href="/portal"
             rel="noopener noreferrer"
             className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            onClick={() => setMenuOpen(false)}
           >
             Portal
-          </a>
+          </Link>
         </div>
       </div>
     </>

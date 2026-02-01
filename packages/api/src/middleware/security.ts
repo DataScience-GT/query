@@ -288,7 +288,7 @@ async function flushLogs() {
         userId: event.identifier.startsWith('user:') ? event.identifier.split(':')[1] : null,
         resourceId: event.identifier,
         metadata: { details: safeDetails },
-        severity,
+        severity: severity as any,
       };
     });
 

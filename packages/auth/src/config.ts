@@ -20,9 +20,10 @@ export const authConfig: NextAuthConfig = {
       },
     }),
   ],
+  basePath: "/portal/api/auth",
   pages: {
-    signIn: "/",
-    error: "/auth/error",
+    signIn: "/portal",
+    error: "/portal/auth/error",
   },
   callbacks: {
     async session({ session, user }) {
@@ -33,14 +34,13 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Handle callback URLs - allow /dashboard, /judge, etc.
-      if (url.includes('/dashboard') || url.includes('/judge') || url.includes('/admin') || url.includes('/club')) {
-        // Extract the path and append to baseUrl
-        const path = new URL(url, baseUrl).pathname;
-        return `${baseUrl}${path}`;
+      // Handle callback URLs - allow /portal/*
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      } else if (new URL(url).origin === baseUrl) {
+        return url;
       }
-      // Default to dashboard after sign-in
-      return `${baseUrl}/dashboard`;
+      return baseUrl;
     },
   },
   session: {
