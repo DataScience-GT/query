@@ -62,7 +62,13 @@ export const judgeVotes = pgTable("judge_vote", {
   projectId: uuid("project_id")
     .notNull()
     .references(() => judgingProjects.id, { onDelete: "cascade" }),
-  score: integer("score").notNull(), // e.g., 1-10 or 1-5
+  score: integer("score").notNull(), // Total score (sum of all criteria, 5-50)
+  // Rubric scores (1-10 each)
+  scoreCreativity: integer("score_creativity"), // Creativity & Originality
+  scoreImpact: integer("score_impact"), // Impact & Relevance
+  scoreScope: integer("score_scope"), // Scope & Technical Depth
+  scoreClarity: integer("score_clarity"), // Clarity & Engagement
+  scoreSoundness: integer("score_soundness"), // Soundness & Accuracy
   comment: text("comment"),
   votedAt: timestamp("voted_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
