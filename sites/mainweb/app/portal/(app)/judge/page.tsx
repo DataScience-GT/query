@@ -6,12 +6,56 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
+// Rubric criteria definitions
+const RUBRIC_CRITERIA = [
+  {
+    key: 'creativity',
+    label: 'Creativity & Originality',
+    description: 'Unique approach to data analysis and/or solution development',
+  },
+  {
+    key: 'impact',
+    label: 'Impact & Relevance',
+    description: 'Benefits to society, alignment with competition goals',
+  },
+  {
+    key: 'scope',
+    label: 'Scope & Technical Depth',
+    description: 'Variety of data/tools, appropriate usage in analysis',
+  },
+  {
+    key: 'clarity',
+    label: 'Clarity & Engagement',
+    description: 'Clear description, engaging video pitch presentation',
+  },
+  {
+    key: 'soundness',
+    label: 'Soundness & Accuracy',
+    description: 'Consistent techniques, logical conclusions from analysis',
+  },
+] as const;
+
+type RubricScores = {
+  creativity: number;
+  impact: number;
+  scope: number;
+  clarity: number;
+  soundness: number;
+};
+
 export default function JudgePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [score, setScore] = useState(5);
+  const [scores, setScores] = useState<RubricScores>({
+    creativity: 5,
+    impact: 5,
+    scope: 5,
+    clarity: 5,
+    soundness: 5,
+  });
   const [comment, setComment] = useState('');
+  const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
 
   const { data: judgeStatus, isLoading: checkingJudge } = trpc.judge.isJudge.useQuery(undefined, {
     enabled: !!session,
@@ -35,8 +79,9 @@ export default function JudgePage() {
 
   const submit = trpc.judge.completeAndNext.useMutation({
     onSuccess: () => {
-      setScore(5);
+      setScores({ creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5 });
       setComment('');
+      setExpandedCriteria(null);
       refetch();
       refetchProgress();
     },
@@ -48,14 +93,24 @@ export default function JudgePage() {
     if (status === 'unauthenticated') router.push('/portal');
   }, [status, router]);
 
+  const totalScore = scores.creativity + scores.impact + scores.scope + scores.clarity + scores.soundness;
+
   const handleSubmit = () => {
     if (!nextTable?.queueId || !nextTable?.project) return;
     submit.mutate({
       queueId: nextTable.queueId,
       projectId: nextTable.project.id,
-      score,
+      scoreCreativity: scores.creativity,
+      scoreImpact: scores.impact,
+      scoreScope: scores.scope,
+      scoreClarity: scores.clarity,
+      scoreSoundness: scores.soundness,
       comment: comment || undefined,
     });
+  };
+
+  const updateScore = (key: keyof RubricScores, value: number) => {
+    setScores(prev => ({ ...prev, [key]: value }));
   };
 
   if (!mounted || status === 'loading' || checkingJudge) {
@@ -156,64 +211,107 @@ export default function JudgePage() {
         />
       </div>
 
-      <main className="flex-1 flex flex-col px-5 py-6 max-w-lg mx-auto w-full relative z-10">
-        <div className="text-center py-8">
-          <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-4">Current Table</p>
+      <main className="flex-1 flex flex-col px-4 py-5 max-w-lg mx-auto w-full relative z-10">
+        {/* Table Number Header */}
+        <div className="text-center py-4">
+          <p className="text-[9px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-2">Table</p>
           <div className="relative inline-block">
-            <div className="absolute inset-0 bg-[#00A8A8]/10 blur-[50px] rounded-full" />
-            <p className="relative text-[10rem] font-black text-white leading-none tracking-tighter drop-shadow-[0_0_30px_rgba(0,168,168,0.3)]">
+            <div className="absolute inset-0 bg-[#00A8A8]/10 blur-[30px] rounded-full" />
+            <p className="relative text-7xl font-black text-white leading-none tracking-tighter drop-shadow-[0_0_20px_rgba(0,168,168,0.3)]">
               {project.tableNumber}
             </p>
           </div>
-          <p className="text-gray-600 text-[10px] font-mono mt-4 uppercase tracking-widest">
+          <p className="text-gray-600 text-[10px] font-mono mt-2 uppercase tracking-widest">
             {((progress?.completed || 0) + 1)}/{progress?.total}
           </p>
         </div>
 
-        <LiquidGlass className="p-5 mb-5 rounded-lg shadow-2xl relative overflow-hidden group">
+        {/* Project Info */}
+        <LiquidGlass className="p-4 mb-4 rounded-lg shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
-          <p className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-2">Project Name</p>
-          <h2 className="text-lg font-bold text-white mb-1">{project.name}</h2>
+          <p className="text-[8px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-1">Project</p>
+          <h2 className="text-base font-bold text-white mb-1">{project.name}</h2>
           {project.teamMembers && (
-            <p className="text-gray-500 text-sm font-mono">{project.teamMembers}</p>
+            <p className="text-gray-500 text-xs font-mono">{project.teamMembers}</p>
           )}
         </LiquidGlass>
 
-        <LiquidGlass className="p-5 mb-5 rounded-lg shadow-2xl">
+        {/* Rubric Sliders */}
+        <LiquidGlass className="p-4 mb-4 rounded-lg shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Score Value</span>
-            <span className="text-4xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">{score}</span>
+            <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Rubric Scoring</span>
+            <span className="text-2xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">
+              {totalScore}<span className="text-sm text-gray-500 font-normal">/50</span>
+            </span>
           </div>
 
-          <div className="grid grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <button
-                key={n}
-                onClick={() => setScore(n)}
-                className={`py-5 rounded-lg font-mono font-black text-lg transition-all ${score === n
-                  ? 'bg-[#00A8A8] text-white shadow-[0_0_25px_rgba(0,168,168,0.5)] scale-105'
-                  : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 active:scale-95'
-                  }`}
-              >
-                {n}
-              </button>
+          <div className="space-y-4">
+            {RUBRIC_CRITERIA.map((criterion) => (
+              <div key={criterion.key} className="space-y-2">
+                <button
+                  onClick={() => setExpandedCriteria(expandedCriteria === criterion.key ? null : criterion.key)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <span className="text-xs font-semibold text-white">{criterion.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-black text-[#00A8A8] min-w-[2rem] text-right">
+                      {scores[criterion.key]}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-500 transition-transform ${expandedCriteria === criterion.key ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+
+                {expandedCriteria === criterion.key && (
+                  <p className="text-[10px] text-gray-400 font-mono pl-1 pb-1">{criterion.description}</p>
+                )}
+
+                {/* Slider */}
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={scores[criterion.key]}
+                    onChange={(e) => updateScore(criterion.key, parseInt(e.target.value))}
+                    className="w-full h-12 appearance-none bg-transparent cursor-pointer touch-pan-y"
+                    style={{
+                      background: `linear-gradient(to right, #00A8A8 0%, #00A8A8 ${(scores[criterion.key] - 1) * 11.11}%, rgba(255,255,255,0.1) ${(scores[criterion.key] - 1) * 11.11}%, rgba(255,255,255,0.1) 100%)`,
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <div className="flex justify-between text-[8px] text-gray-600 font-mono px-1 -mt-1">
+                    <span>1</span>
+                    <span>5</span>
+                    <span>10</span>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </LiquidGlass>
 
+        {/* Comment */}
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Add evaluation notes (optional)..."
-          className="w-full bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-4 text-white placeholder-gray-600 resize-none mb-5 min-h-[80px] font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none transition-colors"
+          placeholder="Additional notes (optional)..."
+          className="w-full bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-3 text-white placeholder-gray-600 resize-none mb-4 min-h-[60px] font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none transition-colors"
         />
 
+        {/* Submit Button */}
         <button
           onClick={handleSubmit}
           disabled={submit.isPending}
-          className="mt-auto px-12 py-6 bg-white text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_40px_rgba(0,168,168,0.2)]"
+          className="mt-auto px-10 py-5 bg-white text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_40px_rgba(0,168,168,0.2)]"
         >
-          {submit.isPending ? 'Processing...' : 'Submit & Next'}
+          {submit.isPending ? 'Submitting...' : 'Submit & Next'}
         </button>
 
         <button
@@ -223,6 +321,40 @@ export default function JudgePage() {
           Terminate Session
         </button>
       </main>
+
+      {/* Custom slider styles */}
+      <style jsx global>{`
+        input[type="range"] {
+          -webkit-appearance: none;
+          appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 28px;
+          height: 28px;
+          background: white;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 2px 8px rgba(0,0,0,0.3);
+          border: 3px solid #00A8A8;
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 28px;
+          height: 28px;
+          background: white;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 2px 8px rgba(0,0,0,0.3);
+          border: 3px solid #00A8A8;
+        }
+        input[type="range"]:active::-webkit-slider-thumb {
+          transform: scale(1.1);
+        }
+        input[type="range"]:active::-moz-range-thumb {
+          transform: scale(1.1);
+        }
+      `}</style>
     </div>
   );
 }
