@@ -90,7 +90,7 @@ export default function JudgePage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.push('/portal');
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
   const totalScore = scores.creativity + scores.impact + scores.scope + scores.clarity + scores.soundness;
@@ -134,7 +134,7 @@ export default function JudgePage() {
         <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Access Denied</h1>
         <p className="text-gray-500 font-mono text-sm mb-8">You're not registered as a judge.</p>
         <button
-          onClick={() => signOut({ callbackUrl: '/portal' })}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="px-8 py-3 border border-red-500/20 text-red-500 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-red-500/10 transition-all"
         >
           Terminate Session
@@ -154,7 +154,7 @@ export default function JudgePage() {
         <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Awaiting Assignment</h1>
         <p className="text-gray-500 font-mono text-sm mb-8">Please wait for event assignment.</p>
         <button
-          onClick={() => signOut({ callbackUrl: '/portal' })}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="px-8 py-3 border border-white/10 text-gray-400 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-white/5 transition-all"
         >
           Terminate Session
@@ -180,7 +180,7 @@ export default function JudgePage() {
         </h1>
         <p className="text-gray-500 font-mono text-sm mb-10">All projects evaluated. Thank you for judging.</p>
         <button
-          onClick={() => signOut({ callbackUrl: '/portal' })}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
         >
           Exit Terminal
@@ -315,7 +315,7 @@ export default function JudgePage() {
         </button>
 
         <button
-          onClick={() => signOut({ callbackUrl: '/portal' })}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="text-gray-600 text-[10px] font-mono py-4 uppercase tracking-[0.3em] hover:text-[#00A8A8] transition-colors"
         >
           Terminate Session

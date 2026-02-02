@@ -114,7 +114,7 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
             <div className="flex items-center gap-8">
               {menuItems.map((item) => renderMenuItem(item))}
               <Link
-                href="/portal"
+                href="/login"
                 rel="noopener noreferrer"
                 className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all duration-300"
                 onClick={() => setMenuOpen(false)}
@@ -146,7 +146,7 @@ export default function Navbar({ screen_width, page, className = "" }: NavbarPro
         <div className="flex flex-col items-center gap-8 text-center relative z-10">
           {menuItems.map((item) => renderMenuItem(item, true))}
           <Link
-            href="/portal"
+            href="/login"
             rel="noopener noreferrer"
             className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
             onClick={() => setMenuOpen(false)}
