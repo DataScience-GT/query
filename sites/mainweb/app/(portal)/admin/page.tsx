@@ -94,9 +94,9 @@ export default function AdminPage() {
   // Auth & Admin Guard
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/portal');
+      router.push('/login');
     } else if (status === 'authenticated' && !adminLoading && !adminStatus?.isAdmin) {
-      router.push('/portal/dashboard');
+      router.push('/dashboard');
     }
   }, [status, adminStatus, adminLoading, router]);
 
@@ -363,14 +363,14 @@ export default function AdminPage() {
 
             <div className="flex gap-4">
               <Link
-                href="/portal/admin-judging"
+                href="/admin-judging"
                 className="px-8 py-5 bg-white/[0.03] border border-white/10 text-white font-bold text-sm uppercase tracking-[0.2em] hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl flex items-center gap-4 group"
               >
                 <span className="w-3 h-3 rounded-full bg-[#00A8A8]/50 group-hover:bg-[#00A8A8] transition-colors" />
                 Judging Portal
               </Link>
               <button
-                onClick={() => router.push('/portal/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="px-8 py-5 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-white/5 transition-all rounded-xl font-mono"
               >
                 &lt; Return to Root
