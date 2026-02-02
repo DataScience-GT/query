@@ -146,11 +146,16 @@ export const judgeRouter = createTRPCRouter({
     .input(
       z.object({
         projectId: z.string().uuid(),
-        score: z.number().min(1).max(10),
+        scoreCreativity: z.number().min(1).max(10),
+        scoreImpact: z.number().min(1).max(10),
+        scoreScope: z.number().min(1).max(10),
+        scoreClarity: z.number().min(1).max(10),
+        scoreSoundness: z.number().min(1).max(10),
         comment: z.string().max(1000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const totalScore = input.scoreCreativity + input.scoreImpact + input.scoreScope + input.scoreClarity + input.scoreSoundness;
       const existing = await ctx.db!.query.judgeVotes.findFirst({
         where: and(
           eq(judgeVotes.judgeId, ctx.judge.id),
@@ -162,7 +167,12 @@ export const judgeRouter = createTRPCRouter({
         const result = await ctx.db!
           .update(judgeVotes)
           .set({
-            score: input.score,
+            score: totalScore,
+            scoreCreativity: input.scoreCreativity,
+            scoreImpact: input.scoreImpact,
+            scoreScope: input.scoreScope,
+            scoreClarity: input.scoreClarity,
+            scoreSoundness: input.scoreSoundness,
             comment: input.comment,
             updatedAt: new Date(),
           })
@@ -177,7 +187,12 @@ export const judgeRouter = createTRPCRouter({
         .values({
           judgeId: ctx.judge.id,
           projectId: input.projectId,
-          score: input.score,
+          score: totalScore,
+          scoreCreativity: input.scoreCreativity,
+          scoreImpact: input.scoreImpact,
+          scoreScope: input.scoreScope,
+          scoreClarity: input.scoreClarity,
+          scoreSoundness: input.scoreSoundness,
           comment: input.comment,
         })
         .returning();
@@ -190,11 +205,16 @@ export const judgeRouter = createTRPCRouter({
       z.object({
         queueId: z.string().uuid(),
         projectId: z.string().uuid(),
-        score: z.number().min(1).max(10),
+        scoreCreativity: z.number().min(1).max(10),
+        scoreImpact: z.number().min(1).max(10),
+        scoreScope: z.number().min(1).max(10),
+        scoreClarity: z.number().min(1).max(10),
+        scoreSoundness: z.number().min(1).max(10),
         comment: z.string().max(1000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const totalScore = input.scoreCreativity + input.scoreImpact + input.scoreScope + input.scoreClarity + input.scoreSoundness;
       const existing = await ctx.db!.query.judgeVotes.findFirst({
         where: and(
           eq(judgeVotes.judgeId, ctx.judge.id),
@@ -206,7 +226,12 @@ export const judgeRouter = createTRPCRouter({
         await ctx.db!
           .update(judgeVotes)
           .set({
-            score: input.score,
+            score: totalScore,
+            scoreCreativity: input.scoreCreativity,
+            scoreImpact: input.scoreImpact,
+            scoreScope: input.scoreScope,
+            scoreClarity: input.scoreClarity,
+            scoreSoundness: input.scoreSoundness,
             comment: input.comment,
             updatedAt: new Date(),
           })
@@ -215,7 +240,12 @@ export const judgeRouter = createTRPCRouter({
         await ctx.db!.insert(judgeVotes).values({
           judgeId: ctx.judge.id,
           projectId: input.projectId,
-          score: input.score,
+          score: totalScore,
+          scoreCreativity: input.scoreCreativity,
+          scoreImpact: input.scoreImpact,
+          scoreScope: input.scoreScope,
+          scoreClarity: input.scoreClarity,
+          scoreSoundness: input.scoreSoundness,
           comment: input.comment,
         });
       }
