@@ -21,7 +21,7 @@ export default function Dashboard() {
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.push('/portal');
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
   if (status === 'loading') return (
@@ -94,7 +94,7 @@ export default function Dashboard() {
 
             <div className="mt-8 pt-8 border-t border-white/5">
               <button
-                onClick={() => signOut({ callbackUrl: '/portal' })}
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="w-full py-4 px-6 rounded-xl bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-mono text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
               >
                 <span className="w-2 h-2 bg-red-500/40 rounded-full group-hover:bg-red-500 transition-colors"></span>
@@ -145,7 +145,7 @@ export default function Dashboard() {
 
                   {adminStatus?.isAdmin ? (
                     /* ADMIN VIEW */
-                    <Link href="/portal/admin" className="block group">
+                    <Link href="/admin" className="block group">
                       <div className="relative p-8 bg-black/40 border border-white/5 hover:border-[#00A8A8]/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                           <svg className="w-24 h-24 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" /></svg>
@@ -171,7 +171,7 @@ export default function Dashboard() {
                     /* MEMBER VIEW */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {memberStatus?.isMember ? (
-                        <Link href="/portal/club" className="block group h-full">
+                        <Link href="/club" className="block group h-full">
                           <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-green-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] rounded-lg">
 
                             {/* Background Gradients */}
