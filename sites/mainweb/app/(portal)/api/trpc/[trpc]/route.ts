@@ -3,7 +3,7 @@ import { appRouter, createContext } from "@query/api";
 
 const handler = (req: Request) =>
   fetchRequestHandler({
-    endpoint: "/portal/api/trpc",
+    endpoint: "/api/trpc",
     req,
     router: appRouter,
     createContext: (opts) => createContext({ ...opts, req }),

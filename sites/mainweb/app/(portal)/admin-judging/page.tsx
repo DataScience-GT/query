@@ -37,7 +37,7 @@ export default function AdminResultsPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/portal');
+      router.push('/login');
     }
   }, [status, router]);
 
@@ -82,7 +82,7 @@ export default function AdminResultsPage() {
         <h1 className="relative z-10 text-3xl font-black text-white uppercase tracking-tighter mb-4 italic">Security Breach</h1>
         <p className="relative z-10 text-gray-500 font-mono text-sm mb-12 uppercase tracking-widest">Unauthorized access to voting protocols detected.</p>
         <button
-          onClick={() => signOut({ callbackUrl: '/portal' })}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="relative z-10 px-10 py-4 bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs uppercase tracking-[0.3em] hover:bg-red-500/20 transition-all rounded shadow-[0_0_20px_rgba(239,68,68,0.1)]"
         >
           TERMINATE SESSION
@@ -116,13 +116,13 @@ export default function AdminResultsPage() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => router.push('/portal/admin')}
+                onClick={() => router.push('/admin')}
                 className="px-8 py-5 bg-black/40 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl font-mono"
               >
                 &lt; Admin Control
               </button>
               <button
-                onClick={() => signOut({ callbackUrl: '/portal' })}
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="px-8 py-5 border border-red-500/20 text-red-500/60 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
               >
                 SIGNOUT TERMINAL
