@@ -20,10 +20,10 @@ export const authConfig: NextAuthConfig = {
       },
     }),
   ],
-  basePath: "/portal/api/auth",
+  basePath: "/api/auth",
   pages: {
-    signIn: "/portal",
-    error: "/portal/auth/error",
+    signIn: "/login",
+    error: "/auth/error",
   },
   callbacks: {
     async session({ session, user }) {
@@ -34,7 +34,7 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Handle callback URLs - allow /portal/*
+      // Handle callback URLs
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       } else if (new URL(url).origin === baseUrl) {
