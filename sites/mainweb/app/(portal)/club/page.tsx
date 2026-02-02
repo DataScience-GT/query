@@ -65,9 +65,9 @@ export default function ClubPage() {
   // Auth & Member Guard
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/portal');
+      router.push('/login');
     } else if (status === 'authenticated' && memberStatus && !memberStatus.isMember) {
-      router.push('/portal/dashboard');
+      router.push('/dashboard');
     }
   }, [status, memberStatus, router]);
 
@@ -374,13 +374,13 @@ export default function ClubPage() {
           {/* Quick Actions */}
           <div className="flex flex-col md:flex-row gap-6 max-w-lg mx-auto">
             <button
-              onClick={() => router.push('/portal/dashboard')}
+              onClick={() => router.push('/dashboard')}
               className="flex-1 px-8 py-5 border border-white/10 text-gray-400 font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all rounded-xl font-mono"
             >
               &lt; Return To Nexus
             </button>
             <button
-              onClick={() => router.push('/portal/club/events')}
+              onClick={() => router.push('/club/events')}
               className="flex-1 px-8 py-5 border border-white/10 text-gray-600 font-bold text-sm uppercase tracking-widest transition-all rounded-xl opacity-50 cursor-not-allowed font-mono"
             >
               Event Directory
