@@ -28,7 +28,9 @@ env:
   - variable: GOOGLE_CLIENT_SECRET
     secret: AUTH_GOOGLE_SECRET
   - variable: AUTH_URL
-    value: https://query--dsgt-website.us-east4.hosted.app
+    value: https://datasciencegt.org
+  - variable: NEXTAUTH_URL
+    value: https://datasciencegt.org
     # Stripe Configuration
   - variable: STRIPE_SECRET_KEY
     # Project Number identifier (safe to commit) used for robust resolution
