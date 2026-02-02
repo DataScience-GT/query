@@ -22,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: '/portal/api/trpc',
+          url: '/api/trpc',
           transformer: superjson,
           headers() {
             return {
@@ -35,7 +35,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SessionProvider basePath="/portal/api/auth">
+    <SessionProvider basePath="/api/auth">
       <QueryClientProvider client={queryClient}>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           {children}
