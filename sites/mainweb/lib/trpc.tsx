@@ -30,7 +30,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: `${getBaseUrl()}/portal/api/trpc`,
+          url: `${getBaseUrl()}/api/trpc`,
           transformer: superjson,
           headers() {
             return {

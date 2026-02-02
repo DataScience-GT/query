@@ -77,11 +77,10 @@ export default function Home() {
       setLogs(prev => [...prev.slice(-4), "> Auth success. Handshaking...", "> Redirecting to secure node..."]);
 
       const redirectTimeout = setTimeout(() => {
-        // Redirection Logic
         if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
-          router.push('/portal/judge');
+          router.push('/judge');
         } else {
-          router.push('/portal/dashboard');
+          router.push('/dashboard');
         }
       }, 1200);
 
@@ -96,7 +95,7 @@ export default function Home() {
 
   const handleSignIn = () => {
     setLogs(prev => [...prev.slice(-4), "> Initializing OAuth..."]);
-    signIn('google', { callbackUrl: '/portal/dashboard' });
+    signIn('google', { callbackUrl: '/dashboard' });
   };
 
   if (!mounted) return <div className="min-h-screen bg-[#050505]" />;
