@@ -11,7 +11,7 @@ import TeamCard from "@/components/TeamCard";
 // Asset imports
 import President from "@/assets/images/2025/aditi.jpg";
 import ViceP from "@/assets/images/2025/nitika.jpg";
-import Logistics1 from "@/assets/images/2025/alysha.png";
+import Logistics1 from "@/assets/images/2025/alysha.jpg";
 import Logistics2 from "@/assets/images/2025/diya.jpeg";
 import Events from "@/assets/images/2025/aryan.jpeg"
 import Marketing from "@/assets/images/2025/smera.png"
@@ -51,7 +51,7 @@ const Team = () => {
         {/* Simplified Header Section */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-20 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#74b1aa] text-[10px] font-mono uppercase tracking-[0.2em]">
-            Executive Board 2024-2025
+            Executive Board 2025-2026
           </div>
           <h1 className="text-white text-6xl md:text-7xl font-bold tracking-tight leading-none italic">
             Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500 not-italic">Team.</span>
@@ -78,7 +78,7 @@ const Team = () => {
             </TeamCard>
 
             <TeamCard name="Diya Kaimal" title="Co-Director of Logistics" img={Logistics2}>
-              Diya focuses on event management and logistics operations, ensuring a seamless experience for members and corporate partners.
+              Diya focuses on event management, Hacklytics logistic coordination, and logistics operations, ensuring a seamless experience for members and corporate partners.
             </TeamCard>
 
             <TeamCard name="Aamogh Sawant" title="Director of Technology" img={Tech}>
