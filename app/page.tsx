@@ -3,22 +3,23 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
 import { Truculenta } from "next/font/google";
+import { Button } from "@/components/ui/button";
 
 const truculenta = Truculenta({
   subsets: ["latin"],
   weight: ["900"],
 });
 
-const Cloud: React.FC<{ src: string; className?: string; animationDelay?: string; speed?: "slow" | "normal" | "fast" }> = ({
-  src,
-  className,
+const Cloud: React.FC<{ src: string; className?: string; animationDelay?: string; speed?: "slow" | "normal" | "fast" }> = ({ 
+  src, 
+  className, 
   animationDelay = "0s",
   speed = "normal"
 }) => {
   const speedClass = speed === "slow" ? "animate-float-slow" : speed === "fast" ? "animate-float-fast" : "animate-float";
-
+  
   return (
-    <div
+    <div 
       className={`absolute pointer-events-none ${className} ${speedClass}`}
       style={{ animationDelay }}
     >
@@ -27,85 +28,34 @@ const Cloud: React.FC<{ src: string; className?: string; animationDelay?: string
   );
 };
 
-const Candy: React.FC<{ className?: string; direction?: "left" | "right" }> = ({
-  className,
-  direction = "left"
+const Candy: React.FC<{ className?: string; direction?: "left" | "right" }> = ({ 
+  className, 
+  direction = "left" 
 }) => (
   <div className={`absolute ${className} z-30`}>
-    <Image
-      src="/cloud-main/candy/candyEnd.png"
-      alt={`Candy ${direction}`}
-      fill
-      className="object-contain md:scale-150"
+    <Image 
+      src="/cloud-main/candy/candyEnd.png" 
+      alt={`Candy ${direction}`} 
+      fill 
+      className="object-contain md:scale-150" 
     />
   </div>
 );
 
-// Countdown component
-// Countdown component with digital grid
-const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft());
-
-  function getTimeLeft() {
-    const now = new Date().getTime();
-    const distance = targetDate.getTime() - now;
-
-    if (distance <= 0) return null;
-
-    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((distance / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((distance / (1000 * 60)) % 60);
-    const seconds = Math.floor((distance / 1000) % 60);
-
-    return { days, hours, minutes, seconds };
-  }
-
-  useEffect(() => {
-    const interval = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  function formatUnit(unit?: number) {
-    return unit != null ? String(unit).padStart(2, "0") : "00";
-  }
-
-  if (!timeLeft) {
-    return (
-      <div className="flex gap-3 md:gap-4">
-        {["DAYS", "HOURS", "MINUTES", "SECONDS"].map((label, i) => (
-          <div key={i} className="flex flex-col items-center bg-wonka-red rounded-2xl px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_4px_0_#991b1b] border-2 border-red-900">
-            <span className="text-white text-3xl md:text-5xl font-bold">00</span>
-            <span className="text-white text-xs md:text-sm tracking-wider mt-1">{label}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex gap-3 md:gap-4">
-      {[
-        { label: "DAYS", value: timeLeft.days },
-        { label: "HOURS", value: timeLeft.hours },
-        { label: "MINUTES", value: timeLeft.minutes },
-        { label: "SECONDS", value: timeLeft.seconds },
-      ].map((unit, i) => (
-        <div key={i} className="flex flex-col items-center bg-wonka-red rounded-2xl px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_4px_0_#991b1b] border-2 border-red-900">
-          <span className="text-white text-3xl md:text-5xl font-bold">{formatUnit(unit.value)}</span>
-          <span className="text-white text-xs md:text-sm tracking-wider mt-1">{unit.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-
 export default function HomePage() {
+  const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleApplyClick = () => {
+    setLoading(true);
+    setTimeout(() => {
+      window.location.href = "https://form.typeform.com/to/lb2fKhKu";
+    }, 500);
+  };
 
   if (!mounted) {
     return null;
@@ -148,7 +98,7 @@ export default function HomePage() {
         @keyframes shine {
           100% { transform: translateX(100%); }
         }
-
+        
         .animate-shine {
           animation: shine 1.5s ease-in-out infinite;
         }
@@ -191,13 +141,32 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <div className="relative w-full bg-sky overflow-hidden py-20 md:py-32">
-          {/* Clouds */}
-          <Cloud src="/cloud-main/smallCloud.png" className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40" animationDelay="0s" speed="normal" />
-          <Cloud src="/cloud-main/smallCloud.png" className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40" animationDelay="2.5s" speed="fast" />
-          <Cloud src="/cloud-main/midCloud.png" className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95" animationDelay="1.8s" speed="slow" />
-          <Cloud src="/cloud-main/largecloud.png" className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80" animationDelay="3.2s" speed="slow" />
-
-          {/* Bottom Clouds */}
+          {/* Floating Clouds with omnidirectional movement */}
+          <Cloud 
+            src="/cloud-main/smallCloud.png" 
+            className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40" 
+            animationDelay="0s"
+            speed="normal"
+          />
+          <Cloud 
+            src="/cloud-main/smallCloud.png" 
+            className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40" 
+            animationDelay="2.5s"
+            speed="fast"
+          />
+          <Cloud 
+            src="/cloud-main/midCloud.png" 
+            className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95" 
+            animationDelay="1.8s"
+            speed="slow"
+          />
+          <Cloud 
+            src="/cloud-main/largecloud.png" 
+            className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80" 
+            animationDelay="3.2s"
+            speed="slow"
+          />
+          {/* Static Bottom Clouds */}
           <div className="absolute bottom-0 left-0 w-[50%] h-32 -translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
             <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
           </div>
@@ -212,29 +181,45 @@ export default function HomePage() {
           </div>
 
           {/* Static Candies */}
-          <Candy className="bottom-0 left-[2%] w-28 h-28 md:left-[5%] md:w-60 md:h-60" direction="left" />
-          <Candy className="bottom-0 right-[2%] w-28 h-28 md:right-[5%] md:w-60 md:h-60" direction="right" />
+          <Candy 
+            className="bottom-0 left-[2%] w-28 h-28 md:left-[5%] md:w-60 md:h-60" 
+            direction="left"
+          />
+          <Candy 
+            className="bottom-0 right-[2%] w-28 h-28 md:right-[5%] md:w-60 md:h-60" 
+            direction="right"
+          />
 
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-10 md:z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
             <Image src="/dsgt.png" alt="DSGT Footer" fill className="object-contain" />
           </div>
 
-          <Cloud src="/cloud-main/dateCloud.png" className="hidden md:block bottom-[45%] left-[15%] w-64 h-32 opacity-95" animationDelay="2.7s" speed="slow" />
-          <Cloud src="/cloud-main/DSGTCloud.png" className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95" animationDelay="4.1s" speed="normal" />
+          <Cloud 
+            src="/cloud-main/dateCloud.png" 
+            className="hidden md:block bottom-[45%] left-[20%] w-64 h-32 opacity-95" 
+            animationDelay="2.7s"
+            speed="slow"
+          />
+          <Cloud 
+            src="/cloud-main/DSGTCloud.png" 
+            className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95" 
+            animationDelay="4.1s"
+            speed="normal"
+          />
 
           {/* Hero Content */}
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8 min-h-[60vh]">
-            {/* Decorative light burst */}
+            {/* Decorative light burst behind title */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-radial-gradient from-white/40 to-transparent opacity-60 blur-3xl -z-10 pointer-events-none animate-pulse-slow"></div>
 
             <div className="-mt-4 md:-mt-8">
               <h2 className={`${truculenta.className} text-5xl md:text-7xl font-black leading-none tracking-tight text-white drop-shadow-[0_4px_0_rgba(165,32,25,0.4)] animate-fade-in-up mb-8`}>
                 Hacklytics 2026
               </h2>
-
+              
               <div className="relative group">
-                <h1
-                  className="font-willywonka text-9xl md:text-[170px] font-normal text-wonka-yellow my-2 leading-[0.8] tracking-normal transition-transform duration-500 hover:scale-105 hover:rotate-2 drop-shadow-[0_8px_0_rgba(133,77,14,0.8)] filter"
+                <h1 
+                  className="font-willywonka text-9xl md:text-[170px] font-normal text-wonka-yellow my-2 leading-[0.8] tracking-normal transition-transform duration-500 hover:scale-105 hover:rotate-2 drop-shadow-[0_8px_0_rgba(133,77,14,0.8)] filter" 
                   style={{ WebkitTextStroke: "3px #854d0e" }}
                 >
                   Golden Byte
@@ -242,14 +227,33 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Countdown */}
-            <div className="mt-8 flex flex-col items-center">
-              <Countdown targetDate={new Date("2026-02-20T23:59:59")} />
-            </div>
+            {/* Enhanced Dynamic Apply Now! Button - Fun & Playful Version */}
+            <Button
+              onClick={handleApplyClick}
+              disabled={loading}
+              size="lg"
+              className={`${truculenta.className} relative mt-8 bg-wonka-red text-white font-black rounded-[2rem] shadow-[0_8px_0_#991b1b,0_15px_20px_rgba(0,0,0,0.2)] hover:bg-red-600 hover:shadow-[0_4px_0_#991b1b,0_8px_10px_rgba(0,0,0,0.2)] hover:translate-y-1 active:shadow-none active:translate-y-[8px] transition-all duration-200 px-10 py-6 text-2xl md:px-16 md:py-10 md:text-4xl cursor-pointer flex items-center justify-center gap-4 disabled:opacity-75 disabled:hover:translate-y-0 group border-4 border-red-900`}
+            >
+              {/* Decorative sparkles inside button */}
+              <span className="absolute top-3 left-4 text-xl animate-spin-slow text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300">✨</span>
+              <span className="absolute bottom-3 right-4 text-xl animate-spin-slow text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animation-delay-500">✨</span>
 
-            {/* Golden ticket placeholder */}
+              {loading ? (
+                <>
+                  <div className="h-8 w-8 border-[6px] border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="tracking-wider">Making Magic...</span>
+                </>
+              ) : (
+                <>
+                  <span className="relative z-10 drop-shadow-sm tracking-widest">APPLY NOW!</span>
+                </>
+              )}
+            </Button>
+
+            {/* Golden ticket placeholder - now with float animation */}
             <div className="mt-12 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto animate-float-slow relative">
-              <div className="absolute inset-0 bg-yellow-400/20 blur-[60px] rounded-full transform scale-75"></div>
+                {/* Optional: Add a glow effect here if the ticket image has transparency */}
+                <div className="absolute inset-0 bg-yellow-400/20 blur-[60px] rounded-full transform scale-75"></div>
             </div>
           </div>
         </div>
