@@ -114,7 +114,7 @@ const TrackPrizeCard: React.FC<{
     </div>
 
     {/* Description */}
-    <p className="text-gray-600 text-sm text-center mb-6 leading-relaxed">
+    <p className={`text-sm text-center mb-6 leading-relaxed ${color.includes('gradient') ? 'text-pink-600' : color.replace('bg-', 'text-').replace('-500', '-600')}`}>
       {description}
     </p>
 
@@ -186,7 +186,7 @@ export default function PrizeAndSpeakerSection() {
       color: 'bg-emerald-500',
       prizes: [
         { place: '1st Place', name: 'Nespresso Virtuo Next w/ Milk Frother', image: '/prizes/nespresso.png' },
-        { place: '2nd Place', name: 'JBL Clip Speaker', image: '/prizes/jbl-speaker.png' },
+        { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-speaker.png' },
         { place: '3rd Place', name: 'Clay Poker Set', image: '/prizes/poker-set.png' },
       ]
     },
@@ -196,8 +196,8 @@ export default function PrizeAndSpeakerSection() {
       color: 'bg-blue-500',
       prizes: [
         { place: '1st Place', name: 'Apple 40mm Watch SE 3', image: '/prizes/apple-watch.png' },
-        { place: '2nd Place', name: 'JBL Clip Speaker', image: '/prizes/jbl-speaker.png' },
-        { place: '3rd Place', name: 'Pickleball Set', image: '/prizes/pickleball.png' },
+        { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-speaker.png' },
+        { place: '3rd Place', name: 'Pickleball Set + Backpack', image: '/prizes/pickleball.png' },
       ]
     },
     {
@@ -211,6 +211,14 @@ export default function PrizeAndSpeakerSection() {
       ]
     },
     {
+      trackName: 'Pure Imagination',
+      description: 'Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project',
+      color: 'bg-gradient-to-r from-pink-500 to-yellow-500',
+      prizes: [
+        { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.png' },
+      ]
+    },
+    {
       trackName: 'Entertainment',
       description: 'See how AI is transforming movies, gaming, and interactive experiences',
       color: 'bg-purple-500',
@@ -218,14 +226,6 @@ export default function PrizeAndSpeakerSection() {
         { place: '1st Place', name: 'Projector', image: '/prizes/projector.png' },
         { place: '2nd Place', name: 'Karaoke Machine', image: '/prizes/karaoke.png' },
         { place: '3rd Place', name: 'Vinyl Record Turntable', image: '/prizes/turntable.png' },
-      ]
-    },
-    {
-      trackName: 'Pure Imagination',
-      description: 'Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project',
-      color: 'bg-gradient-to-r from-pink-500 to-yellow-500',
-      prizes: [
-        { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.png' },
       ]
     },
   ];
