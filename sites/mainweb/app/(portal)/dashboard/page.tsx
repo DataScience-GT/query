@@ -10,6 +10,7 @@ import Link from 'next/link';
 import LinkStripeAccount from '@/components/portal/LinkStripeAccount';
 import ProfileForm from '@/components/portal/profile/ProfileForm';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { LoadingScreen } from '@/components/portal/LoadingScreen';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -24,11 +25,7 @@ export default function Dashboard() {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
-  if (status === 'loading') return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-      Syncing Identity...
-    </div>
-  );
+  if (status === 'loading') return <LoadingScreen message="Syncing Identity..." />;
 
   if (!session) return null;
 
