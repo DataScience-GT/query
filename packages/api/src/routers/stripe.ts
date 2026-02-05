@@ -48,7 +48,7 @@ export const stripeRouter = createTRPCRouter({
                 description: "One year membership to Data Science at Georgia Tech",
                 // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
               },
-              unit_amount: 1500, // $15.00
+              unit_amount: 2500, // $15.00
             },
             quantity: 1,
           },
