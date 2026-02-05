@@ -5,6 +5,10 @@ import { useSession, signOut } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { LoadingScreen } from '@/components/portal/LoadingScreen';
+import { StatusScreen } from '@/components/portal/StatusScreen';
+import { ProgressBar } from '@/components/portal/ProgressBar';
+import { RubricSlider, RubricSliderStyles } from '@/components/portal/judge/RubricSlider';
 
 // Rubric criteria definitions
 const RUBRIC_CRITERIA = [
@@ -114,52 +118,34 @@ export default function JudgePage() {
   };
 
   if (!mounted || status === 'loading' || checkingJudge) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Syncing Identity...
-      </div>
-    );
+    return <LoadingScreen message="Syncing Identity..." />;
   }
 
   if (!session) return null;
 
   if (!judgeStatus?.isJudge) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-red-500/10 border border-red-500/30">
-          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Access Denied</h1>
-        <p className="text-gray-500 font-mono text-sm mb-8">You're not registered as a judge.</p>
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="px-8 py-3 border border-red-500/20 text-red-500 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-red-500/10 transition-all"
-        >
-          Terminate Session
-        </button>
-      </div>
+      <StatusScreen
+        variant="denied"
+        title="Access Denied"
+        message="You're not registered as a judge."
+        onAction={() => signOut({ callbackUrl: '/login' })}
+        actionLabel="Terminate Session"
+        actionVariant="danger"
+      />
     );
   }
 
   if (!hackathonId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-yellow-500/10 border border-yellow-500/30">
-          <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Awaiting Assignment</h1>
-        <p className="text-gray-500 font-mono text-sm mb-8">Please wait for event assignment.</p>
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="px-8 py-3 border border-white/10 text-gray-400 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-white/5 transition-all"
-        >
-          Terminate Session
-        </button>
-      </div>
+      <StatusScreen
+        variant="waiting"
+        title="Awaiting Assignment"
+        message="Please wait for event assignment."
+        onAction={() => signOut({ callbackUrl: '/login' })}
+        actionLabel="Terminate Session"
+        actionVariant="default"
+      />
     );
   }
 
@@ -168,33 +154,19 @@ export default function JudgePage() {
 
   if (isDone) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#050505] selection:bg-[#00A8A8]/30">
-        <div className="w-20 h-20 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(0,168,168,0.2)]">
-          <svg className="w-10 h-10 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">
-          Mission<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#005a5a] italic">Complete</span>
-        </h1>
-        <p className="text-gray-500 font-mono text-sm mb-10">All projects evaluated. Thank you for judging.</p>
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
-        >
-          Exit Terminal
-        </button>
-      </div>
+      <StatusScreen
+        variant="success"
+        title="Mission Complete"
+        message="All projects evaluated. Thank you for judging."
+        onAction={() => signOut({ callbackUrl: '/login' })}
+        actionLabel="Exit Terminal"
+        actionVariant="primary"
+      />
     );
   }
 
   if (loadingNext || !project) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Loading Project...
-      </div>
-    );
+    return <LoadingScreen message="Loading Project..." />;
   }
 
   return (
@@ -204,12 +176,7 @@ export default function JudgePage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
 
-      <div className="h-1 bg-white/5 relative z-10">
-        <div
-          className="h-full bg-gradient-to-r from-[#00A8A8] to-[#005a5a] transition-all duration-500 shadow-[0_0_10px_rgba(0,168,168,0.5)]"
-          style={{ width: `${progress?.percentage || 0}%` }}
-        />
-      </div>
+      <ProgressBar percentage={progress?.percentage || 0} className="relative z-10" />
 
       <main className="flex-1 flex flex-col px-4 py-5 max-w-lg mx-auto w-full relative z-10">
         {/* Table Number Header */}
@@ -247,52 +214,15 @@ export default function JudgePage() {
 
           <div className="space-y-4">
             {RUBRIC_CRITERIA.map((criterion) => (
-              <div key={criterion.key} className="space-y-2">
-                <button
-                  onClick={() => setExpandedCriteria(expandedCriteria === criterion.key ? null : criterion.key)}
-                  className="w-full flex items-center justify-between text-left"
-                >
-                  <span className="text-xs font-semibold text-white">{criterion.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-black text-[#00A8A8] min-w-[2rem] text-right">
-                      {scores[criterion.key]}
-                    </span>
-                    <svg
-                      className={`w-4 h-4 text-gray-500 transition-transform ${expandedCriteria === criterion.key ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-
-                {expandedCriteria === criterion.key && (
-                  <p className="text-[10px] text-gray-400 font-mono pl-1 pb-1">{criterion.description}</p>
-                )}
-
-                {/* Slider */}
-                <div className="relative">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={scores[criterion.key]}
-                    onChange={(e) => updateScore(criterion.key, parseInt(e.target.value))}
-                    className="w-full h-12 appearance-none bg-transparent cursor-pointer touch-pan-y"
-                    style={{
-                      background: `linear-gradient(to right, #00A8A8 0%, #00A8A8 ${(scores[criterion.key] - 1) * 11.11}%, rgba(255,255,255,0.1) ${(scores[criterion.key] - 1) * 11.11}%, rgba(255,255,255,0.1) 100%)`,
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <div className="flex justify-between text-[8px] text-gray-600 font-mono px-1 -mt-1">
-                    <span>1</span>
-                    <span>5</span>
-                    <span>10</span>
-                  </div>
-                </div>
-              </div>
+              <RubricSlider
+                key={criterion.key}
+                label={criterion.label}
+                description={criterion.description}
+                value={scores[criterion.key]}
+                onChange={(value) => updateScore(criterion.key, value)}
+                isExpanded={expandedCriteria === criterion.key}
+                onToggleExpand={() => setExpandedCriteria(expandedCriteria === criterion.key ? null : criterion.key)}
+              />
             ))}
           </div>
         </LiquidGlass>
@@ -322,39 +252,7 @@ export default function JudgePage() {
         </button>
       </main>
 
-      {/* Custom slider styles */}
-      <style jsx global>{`
-        input[type="range"] {
-          -webkit-appearance: none;
-          appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 28px;
-          height: 28px;
-          background: white;
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 2px 8px rgba(0,0,0,0.3);
-          border: 3px solid #00A8A8;
-        }
-        input[type="range"]::-moz-range-thumb {
-          width: 28px;
-          height: 28px;
-          background: white;
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 2px 8px rgba(0,0,0,0.3);
-          border: 3px solid #00A8A8;
-        }
-        input[type="range"]:active::-webkit-slider-thumb {
-          transform: scale(1.1);
-        }
-        input[type="range"]:active::-moz-range-thumb {
-          transform: scale(1.1);
-        }
-      `}</style>
+      <RubricSliderStyles />
     </div>
   );
 }
