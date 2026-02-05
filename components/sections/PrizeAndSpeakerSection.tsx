@@ -114,7 +114,7 @@ const TrackPrizeCard: React.FC<{
     </div>
 
     {/* Description */}
-    <p className={`text-sm text-center mb-6 leading-relaxed ${color.includes('gradient') ? 'text-pink-600' : color.replace('bg-', 'text-').replace('-500', '-600')}`}>
+    <p className="text-sm text-center mb-6 leading-relaxed text-gray-600">
       {description}
     </p>
 
@@ -185,9 +185,9 @@ export default function PrizeAndSpeakerSection() {
       description: 'Analyze market trends, predict stock movements, and build fintech solutions',
       color: 'bg-emerald-500',
       prizes: [
-        { place: '1st Place', name: 'Nespresso Virtuo Next w/ Milk Frother', image: '/prizes/nespresso.png' },
-        { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-speaker.png' },
-        { place: '3rd Place', name: 'Clay Poker Set', image: '/prizes/poker-set.png' },
+        { place: '1st Place', name: 'Nespresso Virtuo Next w/ Milk Frother', image: '/prizes/nespresso-new.jpg' },
+        { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-flip.jpg' },
+        { place: '3rd Place', name: 'Clay Poker Set', image: '/prizes/poker-set-new.jpg' },
       ]
     },
     {
@@ -196,8 +196,8 @@ export default function PrizeAndSpeakerSection() {
       color: 'bg-blue-500',
       prizes: [
         { place: '1st Place', name: 'Apple 40mm Watch SE 3', image: '/prizes/apple-watch.png' },
-        { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-speaker.png' },
-        { place: '3rd Place', name: 'Pickleball Set + Backpack', image: '/prizes/pickleball.png' },
+        { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-flip.jpg' },
+        { place: '3rd Place', name: 'Pickleball Set + Backpack', image: '/prizes/pickleball-backpack.jpg' },
       ]
     },
     {
@@ -205,17 +205,9 @@ export default function PrizeAndSpeakerSection() {
       description: 'Innovate in bioinformatics, patient care, and personal health technology',
       color: 'bg-red-500',
       prizes: [
-        { place: '1st Place', name: 'Theragun Mini Gen 3', image: '/prizes/theragun.png' },
+        { place: '1st Place', name: 'Theragun Mini Gen 3', image: '/prizes/theragun-mini.jpg' },
         { place: '2nd Place', name: 'Fitbit Inspire 3', image: '/prizes/fitbit.png' },
         { place: '3rd Place', name: 'Owala Waterbottle', image: '/prizes/owala.png' },
-      ]
-    },
-    {
-      trackName: 'Pure Imagination',
-      description: 'Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project',
-      color: 'bg-gradient-to-r from-pink-500 to-yellow-500',
-      prizes: [
-        { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.png' },
       ]
     },
     {
@@ -226,6 +218,14 @@ export default function PrizeAndSpeakerSection() {
         { place: '1st Place', name: 'Projector', image: '/prizes/projector.png' },
         { place: '2nd Place', name: 'Karaoke Machine', image: '/prizes/karaoke.png' },
         { place: '3rd Place', name: 'Vinyl Record Turntable', image: '/prizes/turntable.png' },
+      ]
+    },
+    {
+      trackName: 'Pure Imagination',
+      description: 'Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project',
+      color: 'bg-gradient-to-r from-pink-500 to-yellow-500',
+      prizes: [
+        { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.png' },
       ]
     },
   ];
