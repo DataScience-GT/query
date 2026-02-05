@@ -5,9 +5,10 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Background from '@/components/portal/Background';
-import { Scanner } from '@yudiel/react-qr-scanner';
-
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { LoadingScreen } from '@/components/portal/LoadingScreen';
+import { QRScannerModal } from '@/components/portal/QRScannerModal';
+import { ScanResultModal } from '@/components/portal/ScanResultModal';
 
 export default function ClubPage() {
   const { data: session, status } = useSession();
@@ -103,11 +104,7 @@ export default function ClubPage() {
   };
 
   if (status === 'loading' || !memberStatus) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Verifying Access...
-      </div>
-    );
+    return <LoadingScreen message="Verifying Access..." />;
   }
 
   if (!session || !memberStatus.isMember) return null;
@@ -120,144 +117,26 @@ export default function ClubPage() {
 
       {/* QR SCANNER MODAL */}
       {showScanner && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/95 backdrop-blur-md"
-            onClick={() => {
-              if (!isProcessing) {
-                setShowScanner(false);
-                setIsPaused(false);
-              }
-            }}
-          />
-          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">QR Scanner</h3>
-                <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">Event Check-In System</p>
-              </div>
-              <button
-                onClick={() => {
-                  if (!isProcessing) {
-                    setShowScanner(false);
-                    setIsPaused(false);
-                  }
-                }}
-                disabled={isProcessing}
-                className="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
-              >
-                [ Close ]
-              </button>
-            </div>
-
-            {/* Camera Feed */}
-            <div className="relative rounded-xl overflow-hidden border-2 border-[#00A8A8]/30">
-              {isProcessing && (
-                <div className="absolute inset-0 bg-black/80 z-10 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-[#00A8A8] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-[10px] text-[#00A8A8] uppercase tracking-widest font-mono">
-                      Verifying...
-                    </p>
-                  </div>
-                </div>
-              )}
-              <Scanner
-                onScan={handleScan}
-                onError={handleError}
-                paused={isPaused || isProcessing}
-                constraints={{
-                  facingMode: 'environment',
-                }}
-                formats={['qr_code']}
-                components={{
-                  torch: true,
-                  finder: true,
-                }}
-                styles={{
-                  container: {
-                    width: '100%',
-                    height: '350px',
-                  },
-                }}
-                scanDelay={500}
-              />
-            </div>
-
-            <div className="mt-4 bg-[#00A8A8]/10 border border-[#00A8A8]/30 rounded-lg p-4">
-              <p className="text-[9px] text-[#00A8A8] uppercase tracking-widest font-bold mb-2">Instructions:</p>
-              <ul className="text-[8px] text-gray-500 space-y-1 font-mono">
-                <li>• Hold phone steady over QR code</li>
-                <li>• Ensure good lighting conditions</li>
-                <li>• Scan happens automatically</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <QRScannerModal
+          onClose={() => {
+            setShowScanner(false);
+            setIsPaused(false);
+          }}
+          onScan={handleScan}
+          onError={handleError}
+          isProcessing={isProcessing}
+          isPaused={isPaused}
+        />
       )}
 
       {/* SCAN RESULT MODAL */}
       {scanResult && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/95 backdrop-blur-md"
-            onClick={() => setScanResult(null)}
-          />
-          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.3)] animate-in zoom-in-95 duration-300">
-            <div className="text-center space-y-8">
-              <div className={`inline-block p-6 rounded-full ${scanResult.success
-                ? 'bg-[#00A8A8]/10 border border-[#00A8A8]/20'
-                : 'bg-red-500/10 border border-red-500/20'
-                }`}>
-                {scanResult.success ? (
-                  <svg className="w-12 h-12 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                )}
-              </div>
-
-              <div>
-                <h3 className={`text-3xl font-black uppercase tracking-tighter mb-2 ${scanResult.success ? 'text-white' : 'text-red-400'
-                  }`}>
-                  {scanResult.success ? 'Check-In Success' : 'Check-In Failed'}
-                </h3>
-                <p className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.3em]">
-                  {scanResult.success ? 'Identity Verified' : 'Access Denied'}
-                </p>
-              </div>
-
-              {scanResult.success && scanResult.eventTitle && (
-                <div className="space-y-3">
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                    <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] mb-3 font-mono">Event Payload:</p>
-                    <p className="text-xl text-white font-black uppercase italic tracking-tight">{scanResult.eventTitle}</p>
-                  </div>
-                </div>
-              )}
-
-              {!scanResult.success && (
-                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
-                  <p className="text-[9px] text-red-500 uppercase tracking-[0.4em] mb-3 font-mono">Error Code:</p>
-                  <p className="text-sm text-red-300 font-mono italic"> &gt; "{scanResult.message}"</p>
-                </div>
-              )}
-
-              <button
-                onClick={() => setScanResult(null)}
-                className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-all rounded-lg ${scanResult.success
-                  ? 'bg-[#00A8A8] text-black hover:bg-[#00A8A8]/80 shadow-[0_0_20px_rgba(0,168,168,0.3)]'
-                  : 'bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20'
-                  }`}
-              >
-                TERMINATE OVERLAY
-              </button>
-            </div>
-          </div>
-        </div>
+        <ScanResultModal
+          success={scanResult.success}
+          message={scanResult.message}
+          eventTitle={scanResult.eventTitle}
+          onClose={() => setScanResult(null)}
+        />
       )}
 
       {/* MAIN CONTENT */}
