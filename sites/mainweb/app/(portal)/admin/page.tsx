@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,6 +8,8 @@ import Background from '@/components/portal/Background';
 import QRCode from 'qrcode';
 import Link from 'next/link';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { QRCodeModal } from '@/components/portal/QRCodeModal';
+import { EventFormModal } from '@/components/portal/EventFormModal';
 
 type AdminView = 'events' | 'members' | 'admins';
 
@@ -34,14 +36,7 @@ export default function AdminPage() {
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  // Event form state
-  const [eventForm, setEventForm] = useState({
-    title: '',
-    description: '',
-    location: '',
-    eventDate: '',
-    maxCheckIns: '',
-  });
+
 
   // Queries
   const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {
@@ -55,19 +50,13 @@ export default function AdminPage() {
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
       if (newEvent) {
-        setEventForm({
-          title: '',
-          description: '',
-          location: '',
-          eventDate: '',
-          maxCheckIns: '',
-        });
         setShowCreateEvent(false);
         generateQRCode(newEvent.qrCode);
         setSelectedEvent(newEvent as unknown as Event);
       }
     },
   });
+
 
   const toggleCheckInMutation = trpc.events.toggleCheckIn.useMutation({
     onSuccess: () => {
@@ -104,10 +93,10 @@ export default function AdminPage() {
     try {
       const url = await QRCode.toDataURL(qrCode, {
         width: 400,
-        margin: 2,
+        margin: 3,
         color: {
-          dark: '#00A8A8',
-          light: '#0a0a0a',
+          dark: '#000000',
+          light: '#ffffff',
         },
       });
       setQrCodeDataURL(url);
@@ -117,13 +106,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateEvent = () => {
+  const handleCreateEvent = (formData: { title: string; description: string; location: string; eventDate: string }) => {
     createEventMutation.mutate({
-      title: eventForm.title,
-      description: eventForm.description || undefined,
-      location: eventForm.location || undefined,
-      eventDate: new Date(eventForm.eventDate),
-      maxCheckIns: eventForm.maxCheckIns ? parseInt(eventForm.maxCheckIns) : undefined,
+      title: formData.title,
+      description: formData.description || undefined,
+      location: formData.location || undefined,
+      eventDate: new Date(formData.eventDate),
+      maxCheckIns: undefined, // Always unlimited
     });
   };
 
@@ -150,195 +139,23 @@ export default function AdminPage() {
 
       {/* CREATE EVENT MODAL */}
       {showCreateEvent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/95 backdrop-blur-md"
-            onClick={() => setShowCreateEvent(false)}
-          />
-          <div className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
-              <div>
-                <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                  Create Event
-                </h3>
-                <p className="text-xs font-mono text-[#00A8A8] uppercase tracking-widest">
-                  Configure QR Protocols
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateEvent(false)}
-                className="text-gray-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
-              >
-                [ Close Panel ]
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm text-gray-500 uppercase tracking-widest font-mono block font-bold mb-2">
-                  Event Title Identifier
-                </label>
-                <input
-                  type="text"
-                  value={eventForm.title}
-                  onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-white text-base focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
-                  placeholder="e.g., Weekly_Workshop_01"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                  Data Description
-                </label>
-                <textarea
-                  value={eventForm.description}
-                  onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all resize-none font-mono"
-                  rows={3}
-                  placeholder="System details..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                    Location Node
-                  </label>
-                  <input
-                    type="text"
-                    value={eventForm.location}
-                    onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
-                    placeholder="e.g., Klaus_2443"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                    Temporal Stamp
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={eventForm.eventDate}
-                    onChange={(e) => setEventForm({ ...eventForm, eventDate: e.target.value })}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
-                  Check-In Limit
-                </label>
-                <input
-                  type="number"
-                  value={eventForm.maxCheckIns}
-                  onChange={(e) => setEventForm({ ...eventForm, maxCheckIns: e.target.value })}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
-                  placeholder="Unrestricted"
-                />
-              </div>
-
-              <button
-                onClick={handleCreateEvent}
-                disabled={!eventForm.title || !eventForm.eventDate || createEventMutation.isPending}
-                className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-base uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.3)] mt-6 rounded-xl"
-              >
-                {createEventMutation.isPending ? 'Processing...' : 'INITIALIZE EVENT'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EventFormModal
+          onClose={() => setShowCreateEvent(false)}
+          onSubmit={handleCreateEvent}
+          isSubmitting={createEventMutation.isPending}
+        />
       )}
 
       {/* QR CODE MODAL */}
       {showQRCode && selectedEvent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/95 backdrop-blur-md"
-            onClick={() => setShowQRCode(null)}
-          />
-          <div className="relative w-full max-w-md bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
-              <div>
-                <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">
-                  QR Protocols
-                </h3>
-                <p className="text-xs font-mono text-[#00A8A8] uppercase tracking-widest">
-                  {selectedEvent.title}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowQRCode(null)}
-                className="text-gray-500 hover:text-white transition-colors text-xs uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
-              >
-                [ Close ]
-              </button>
-            </div>
-
-            <div className="space-y-8">
-              <div className="bg-white p-6 rounded-xl shadow-[inset_0_0_20px_rgba(0,0,0,0.1)]">
-                {qrCodeDataURL && (
-                  <img
-                    src={qrCodeDataURL}
-                    alt="Event QR Code"
-                    className="w-full h-auto"
-                  />
-                )}
-              </div>
-
-              <div className="bg-black/40 border border-white/5 rounded-xl p-6 space-y-3">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-gray-600 uppercase">IDENT:</span>
-                  <span className="text-white">{selectedEvent.title}</span>
-                </div>
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-gray-600 uppercase">SYNC COUNT:</span>
-                  <span className="text-white">
-                    {selectedEvent.currentCheckIns} {selectedEvent.maxCheckIns ? `/ ${selectedEvent.maxCheckIns}` : ''}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-gray-600 uppercase">STATUS:</span>
-                  <span className={selectedEvent.checkInEnabled ? 'text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'text-red-500'}>
-                    {selectedEvent.checkInEnabled ? 'LINK ACTIVE' : 'LINK TERMINATED'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={downloadQRCode}
-                  className="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all rounded font-mono"
-                >
-                  SAVE IMG
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(selectedEvent.qrCode);
-                    alert('Access Code copied to buffer.');
-                  }}
-                  className="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all rounded font-mono"
-                >
-                  COPY VAL
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (confirm('Regenerate protocols? Current QR will be deprecated.')) {
-                    regenerateQRMutation.mutate({ eventId: selectedEvent.id });
-                  }
-                }}
-                disabled={regenerateQRMutation.isPending}
-                className="w-full px-6 py-3 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-xs uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-50 rounded font-mono"
-              >
-                {regenerateQRMutation.isPending ? 'RENEWING...' : 'REBOOT QR SYSTEM'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <QRCodeModal
+          event={selectedEvent}
+          qrCodeDataURL={qrCodeDataURL}
+          onClose={() => setShowQRCode(null)}
+          onDownload={downloadQRCode}
+          onRegenerate={() => regenerateQRMutation.mutate({ eventId: selectedEvent.id })}
+          isRegenerating={regenerateQRMutation.isPending}
+        />
       )}
 
       {/* MAIN CONTENT */}
