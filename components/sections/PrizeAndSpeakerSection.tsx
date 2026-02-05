@@ -215,9 +215,9 @@ export default function PrizeAndSpeakerSection() {
       description: 'See how AI is transforming movies, gaming, and interactive experiences',
       color: 'bg-purple-500',
       prizes: [
-        { place: '1st Place', name: 'Projector', image: '/prizes/projector.png' },
-        { place: '2nd Place', name: 'Karaoke Machine', image: '/prizes/karaoke.png' },
-        { place: '3rd Place', name: 'Vinyl Record Turntable', image: '/prizes/turntable.png' },
+        { place: '1st Place', name: 'Projector', image: '/prizes/projector-new.jpg' },
+        { place: '2nd Place', name: 'Karaoke Machine', image: '/prizes/karaoke-new.jpg' },
+        { place: '3rd Place', name: 'Vinyl Record Turntable', image: '/prizes/turntable-new.jpg' },
       ]
     },
     {
