@@ -11,7 +11,7 @@ const truculenta = Truculenta({
 
 const SPONSORS = {
   gold: [
-    { name: 'Intuit', src: '/sponsors/gold_intuit.jpg', website: 'https://www.intuit.com' },
+    { name: 'Intuit', src: '/sponsors/gold_intuit.png', website: 'https://www.intuit.com' },
     { name: 'Databricks', src: '/sponsors/gold_databricks.png', website: 'https://www.databricks.com' },
   ],
   silver: [
@@ -24,9 +24,10 @@ const SPONSORS = {
     { name: 'Figma', src: '/sponsors/bronze_figma.svg', website: 'https://www.figma.com' },
     { name: 'D.E. Shaw', src: '/sponsors/bronze_deshaw.png', website: 'https://www.deshaw.com' },
     { name: 'AT&T', src: '/sponsors/bronze_att.png', website: 'https://www.att.com/' },
+    { name: 'Actian', src: '/sponsors/bronze_actian.png', website: 'https://www.actian.com/'},
   ],
   mini: [
-    { name: 'NLP Logix', src: '/sponsors/MiniTier_NLP.jpg', website: 'https://nlplogix.com/' },
+    { name: 'NLP Logix', src: '/sponsors/MiniTier_NLP.png', website: 'https://nlplogix.com/' },
     { name: 'Cox', src: '/sponsors/MiniTier_Cox.png', website: 'https://www.coxautoinc.com/' },
     { name: 'SafetyKit', src: '/sponsors/MiniTier_SafetyKit.svg', website: 'https://www.safetykit.com/' },
     { name: 'Tractian', src: '/sponsors/MiniTier_Tractian.svg', website: 'https://tractian.com' },
