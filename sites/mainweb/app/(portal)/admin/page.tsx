@@ -4,14 +4,10 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Background from '@/components/portal/Background';
 import QRCode from 'qrcode';
 import Link from 'next/link';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
-
-type AdminView = 'events' | 'members' | 'admins';
 
 type Event = {
   id: string;
@@ -30,15 +26,11 @@ export default function AdminPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
 
-  const [view, setView] = useState<AdminView>('events');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-
-
-  // Queries
   const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {
     enabled: !!session,
   });
@@ -46,7 +38,6 @@ export default function AdminPage() {
     enabled: !!session && adminStatus?.isAdmin,
   });
 
-  // Mutations
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
       if (newEvent) {
@@ -57,11 +48,8 @@ export default function AdminPage() {
     },
   });
 
-
   const toggleCheckInMutation = trpc.events.toggleCheckIn.useMutation({
-    onSuccess: () => {
-      utils.events.listAll.invalidate();
-    },
+    onSuccess: () => utils.events.listAll.invalidate(),
   });
 
   const deleteEventMutation = trpc.events.delete.useMutation({
@@ -80,7 +68,6 @@ export default function AdminPage() {
     },
   });
 
-  // Auth & Admin Guard
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -94,10 +81,7 @@ export default function AdminPage() {
       const url = await QRCode.toDataURL(qrCode, {
         width: 400,
         margin: 3,
-        color: {
-          dark: '#000000',
-          light: '#ffffff',
-        },
+        color: { dark: '#000000', light: '#ffffff' },
       });
       setQrCodeDataURL(url);
       setShowQRCode(qrCode);
@@ -112,7 +96,7 @@ export default function AdminPage() {
       description: formData.description || undefined,
       location: formData.location || undefined,
       eventDate: new Date(formData.eventDate),
-      maxCheckIns: undefined, // Always unlimited
+      maxCheckIns: undefined,
     });
   };
 
@@ -125,8 +109,11 @@ export default function AdminPage() {
 
   if (status === 'loading' || adminLoading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Verifying Clearance...
+      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Verifying access...</p>
+        </div>
       </div>
     );
   }
@@ -134,10 +121,12 @@ export default function AdminPage() {
   if (!session || !adminStatus?.isAdmin) return null;
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+    <div className="relative min-h-screen min-h-[100dvh] bg-black text-gray-400 font-sans overflow-x-hidden">
+      {/* Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-teal-500/5 rounded-full blur-[120px]" />
+      </div>
 
-      {/* CREATE EVENT MODAL */}
       {showCreateEvent && (
         <EventFormModal
           onClose={() => setShowCreateEvent(false)}
@@ -146,7 +135,6 @@ export default function AdminPage() {
         />
       )}
 
-      {/* QR CODE MODAL */}
       {showQRCode && selectedEvent && (
         <QRCodeModal
           event={selectedEvent}
@@ -158,196 +146,134 @@ export default function AdminPage() {
         />
       )}
 
-      {/* MAIN CONTENT */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-        {/* Header Section */}
-        <LiquidGlass className="p-8 mb-12 rounded-2xl shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-2 w-2 rounded-full bg-[#00A8A8] animate-pulse" />
-                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Root Admin Session</span>
-              </div>
-              <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2">
-                Admin <span className="text-[#00A8A8] italic">Terminal</span>
-              </h1>
-              <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                System Access Layer // {adminStatus.role?.replace('_', ' ').toUpperCase()}
-              </p>
+      <main className="relative z-10 max-w-6xl mx-auto py-8 px-4 md:px-6">
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+              <p className="text-xs uppercase tracking-widest text-gray-500 font-medium">Admin Console</p>
             </div>
-
-            <div className="flex gap-4">
-              <Link
-                href="/admin-judging"
-                className="px-8 py-5 bg-white/[0.03] border border-white/10 text-white font-bold text-sm uppercase tracking-[0.2em] hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl flex items-center gap-4 group"
-              >
-                <span className="w-3 h-3 rounded-full bg-[#00A8A8]/50 group-hover:bg-[#00A8A8] transition-colors" />
-                Judging Portal
-              </Link>
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="px-8 py-5 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-white/5 transition-all rounded-xl font-mono"
-              >
-                &lt; Return to Root
-              </button>
-            </div>
+            <h1 className="text-2xl font-bold text-white">
+              Admin <span className="bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">Terminal</span>
+            </h1>
+            <p className="text-gray-500 text-sm">{adminStatus.role?.replace('_', ' ').toUpperCase()}</p>
           </div>
-        </LiquidGlass>
+          <div className="flex gap-3">
+            <Link
+              href="/admin-judging"
+              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-teal-500" />
+              Judging Portal
+            </Link>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-5 py-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
+            >
+              ← Back
+            </button>
+          </div>
+        </header>
 
-        {/* Navigation Tabs */}
-        <div className="flex gap-4 mb-12 bg-white/[0.02] p-2 rounded-xl border border-white/5 inline-flex">
-          <button
-            onClick={() => setView('events')}
-            className={`px-10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-300 ${view === 'events'
-              ? 'bg-white/5 text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-white/10'
-              : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
-              }`}
-          >
-            Event Core
-          </button>
-          <button
-            onClick={() => setView('members')}
-            className={`px-10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all opacity-30 cursor-not-allowed ${view === 'members'
-              ? 'bg-white/5 text-white'
-              : 'text-gray-500'
-              }`}
-          >
-            Users Record
-          </button>
-          <button
-            onClick={() => setView('admins')}
-            className={`px-10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all opacity-30 cursor-not-allowed ${view === 'admins'
-              ? 'bg-white/5 text-white'
-              : 'text-gray-500'
-              }`}
-          >
-            Admin Nodes
-          </button>
-        </div>
-
-        {/* EVENTS VIEW */}
-        {view === 'events' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
-            <div className="flex justify-between items-end mb-4">
-              <div>
-                <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Operations Log</p>
-                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                  Active Events
-                </h2>
-              </div>
-              <button
-                onClick={() => setShowCreateEvent(true)}
-                className="px-8 py-4 bg-[#00A8A8] text-black font-black text-xs uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all rounded-lg shadow-[0_0_20px_rgba(0,168,168,0.2)]"
-              >
-                + NEW EVENT BUFFER
-              </button>
+        {/* Events Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Events</h2>
+              <p className="text-gray-500 text-sm">{events?.length || 0} total events</p>
             </div>
+            <button
+              onClick={() => setShowCreateEvent(true)}
+              className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-teal-500/20"
+            >
+              + New Event
+            </button>
+          </div>
 
-            {!events || events.length === 0 ? (
-              <LiquidGlass className="p-24 rounded-2xl text-center">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
-                <div className="relative z-10">
-                  <div className="text-6xl mb-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <svg className="w-24 h-24 mx-auto text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" /></svg>
-                  </div>
-                  <p className="text-gray-500 font-mono text-xs uppercase tracking-[0.3em] mb-3">
-                    0 Data Entries Found
-                  </p>
-                  <p className="text-gray-700 text-xs uppercase tracking-widest max-w-md mx-auto leading-relaxed">
-                    Initialize a new event sequence to begin QR-based identity verification protocols.
-                  </p>
-                </div>
-              </LiquidGlass>
-            ) : (
-              <div className="grid gap-6">
-                {events.map((event) => (
-                  <LiquidGlass
-                    key={event.id}
-                    className="p-8 rounded-2xl hover:border-[#00A8A8]/30 transition-all duration-300 group"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-4">
-                          <h3 className="text-white font-black text-2xl uppercase italic tracking-tight">
-                            {event.title}
-                          </h3>
-                          <span
-                            className={`px-3 py-1.5 rounded-full text-[9px] uppercase tracking-widest font-bold font-mono border ${event.checkInEnabled
-                              ? 'bg-green-500/10 text-green-500 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]'
-                              : 'bg-red-500/10 text-red-500 border-red-500/20'
-                              }`}
-                          >
-                            {event.checkInEnabled ? 'SYSTEM ONLINE' : 'SYSTEM DISABLED'}
-                          </span>
-                        </div>
-
-                        {event.description && (
-                          <p className="text-gray-400 text-lg mb-8 font-mono leading-relaxed max-w-2xl">
-                            &gt; {event.description}
-                          </p>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="space-y-1">
-                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Location Node</p>
-                            <p className="text-sm text-gray-300 uppercase font-mono">{event.location || 'Remote Access'}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Temporal Stamp</p>
-                            <p className="text-sm text-gray-300 uppercase font-mono">{new Date(event.eventDate).toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-[9px] text-gray-700 uppercase tracking-widest font-black">Sync Metrics</p>
-                            <p className="text-sm text-gray-300 uppercase font-mono">
-                              {event.currentCheckIns} {event.maxCheckIns ? `/ ${event.maxCheckIns}` : 'Unlimited'} Records
-                            </p>
-                          </div>
-                        </div>
+          {!events || events.length === 0 ? (
+            <div className="p-16 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
+                </svg>
+              </div>
+              <h3 className="text-white font-semibold mb-1">No events yet</h3>
+              <p className="text-gray-500 text-sm">Create your first event to get started.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="p-6 bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-2xl transition-all"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-bold text-white">{event.title}</h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-[10px] uppercase tracking-wider font-semibold ${event.checkInEnabled
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            }`}
+                        >
+                          {event.checkInEnabled ? 'Active' : 'Disabled'}
+                        </span>
                       </div>
-
-                      <div className="flex flex-col gap-4 min-w-[240px]">
-                        <button
-                          onClick={() => {
-                            generateQRCode(event.qrCode);
-                            setSelectedEvent(event);
-                          }}
-                          className="w-full px-8 py-5 bg-[#00A8A8]/10 border border-[#00A8A8]/20 text-[#00A8A8] font-black text-sm uppercase tracking-widest hover:bg-[#00A8A8]/20 transition-all rounded-xl shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]"
-                        >
-                          ACCESS QR
-                        </button>
-                        <button
-                          onClick={() =>
-                            toggleCheckInMutation.mutate({
-                              eventId: event.id,
-                              enabled: !event.checkInEnabled,
-                            })
-                          }
-                          className={`w-full px-8 py-5 border font-black text-sm uppercase tracking-widest transition-all rounded-xl font-mono ${event.checkInEnabled
-                            ? 'border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20'
-                            : 'border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
-                        >
-                          {event.checkInEnabled ? 'TERMINATE LINK' : 'INITIALIZE LINK'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Delete this event? This cannot be undone.')) {
-                              deleteEventMutation.mutate({ eventId: event.id });
-                            }
-                          }}
-                          className="w-full px-8 py-5 border border-red-500/20 text-red-500/60 font-black text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
-                        >
-                          SYSTEM PURGE
-                        </button>
+                      {event.description && (
+                        <p className="text-gray-400 text-sm mb-3">{event.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        <span>{event.location || 'No location'}</span>
+                        <span>•</span>
+                        <span>{new Date(event.eventDate).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span className="text-teal-400">{event.currentCheckIns} check-ins</span>
                       </div>
                     </div>
-                  </LiquidGlass>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => {
+                          generateQRCode(event.qrCode);
+                          setSelectedEvent(event);
+                        }}
+                        className="px-4 py-2 bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium rounded-xl hover:bg-teal-500/20 transition-colors"
+                      >
+                        QR Code
+                      </button>
+                      <button
+                        onClick={() =>
+                          toggleCheckInMutation.mutate({
+                            eventId: event.id,
+                            enabled: !event.checkInEnabled,
+                          })
+                        }
+                        className={`px-4 py-2 border text-sm font-medium rounded-xl transition-colors ${event.checkInEnabled
+                            ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
+                            : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
+                          }`}
+                      >
+                        {event.checkInEnabled ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Delete this event?')) {
+                            deleteEventMutation.mutate({ eventId: event.id });
+                          }
+                        }}
+                        className="px-4 py-2 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
