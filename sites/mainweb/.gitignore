@@ -32,3 +32,6 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# ui test pages (no auth required, development only)
+/app/(portal)/ui-test/
