@@ -7,35 +7,34 @@ import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import { StatusScreen } from '@/components/portal/StatusScreen';
-import { ProgressBar } from '@/components/portal/ProgressBar';
-import { RubricSlider, RubricSliderStyles } from '@/components/portal/judge/RubricSlider';
+import { RubricSlider } from '@/components/portal/judge/RubricSlider';
 
 // Rubric criteria definitions
 const RUBRIC_CRITERIA = [
   {
     key: 'creativity',
-    label: 'Creativity & Originality',
-    description: 'Unique approach to data analysis and/or solution development',
+    label: 'Creativity',
+    description: 'Unique approach & originality',
   },
   {
     key: 'impact',
-    label: 'Impact & Relevance',
-    description: 'Benefits to society, alignment with competition goals',
+    label: 'Impact',
+    description: 'Benefits to society',
   },
   {
     key: 'scope',
-    label: 'Scope & Technical Depth',
-    description: 'Variety of data/tools, appropriate usage in analysis',
+    label: 'Technical Depth',
+    description: 'Variety of tools & data',
   },
   {
     key: 'clarity',
-    label: 'Clarity & Engagement',
-    description: 'Clear description, engaging video pitch presentation',
+    label: 'Clarity',
+    description: 'Clear presentation',
   },
   {
     key: 'soundness',
-    label: 'Soundness & Accuracy',
-    description: 'Consistent techniques, logical conclusions from analysis',
+    label: 'Soundness',
+    description: 'Logical conclusions',
   },
 ] as const;
 
@@ -47,10 +46,13 @@ type RubricScores = {
   soundness: number;
 };
 
+type JudgingStep = 'viewing' | 'judging';
+
 export default function JudgePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [step, setStep] = useState<JudgingStep>('viewing');
   const [scores, setScores] = useState<RubricScores>({
     creativity: 5,
     impact: 5,
@@ -59,7 +61,6 @@ export default function JudgePage() {
     soundness: 5,
   });
   const [comment, setComment] = useState('');
-  const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
 
   const { data: judgeStatus, isLoading: checkingJudge } = trpc.judge.isJudge.useQuery(undefined, {
     enabled: !!session,
@@ -85,7 +86,7 @@ export default function JudgePage() {
     onSuccess: () => {
       setScores({ creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5 });
       setComment('');
-      setExpandedCriteria(null);
+      setStep('viewing');
       refetch();
       refetchProgress();
     },
@@ -118,7 +119,7 @@ export default function JudgePage() {
   };
 
   if (!mounted || status === 'loading' || checkingJudge) {
-    return <LoadingScreen message="Syncing Identity..." />;
+    return <LoadingScreen message="Loading..." />;
   }
 
   if (!session) return null;
@@ -127,10 +128,10 @@ export default function JudgePage() {
     return (
       <StatusScreen
         variant="denied"
-        title="Access Denied"
+        title="Not a Judge"
         message="You're not registered as a judge."
         onAction={() => signOut({ callbackUrl: '/login' })}
-        actionLabel="Terminate Session"
+        actionLabel="Sign Out"
         actionVariant="danger"
       />
     );
@@ -140,10 +141,10 @@ export default function JudgePage() {
     return (
       <StatusScreen
         variant="waiting"
-        title="Awaiting Assignment"
+        title="No Assignment"
         message="Please wait for event assignment."
         onAction={() => signOut({ callbackUrl: '/login' })}
-        actionLabel="Terminate Session"
+        actionLabel="Sign Out"
         actionVariant="default"
       />
     );
@@ -156,103 +157,156 @@ export default function JudgePage() {
     return (
       <StatusScreen
         variant="success"
-        title="Mission Complete"
-        message="All projects evaluated. Thank you for judging."
+        title="All Done!"
+        message="You've judged all projects. Thank you!"
         onAction={() => signOut({ callbackUrl: '/login' })}
-        actionLabel="Exit Terminal"
+        actionLabel="Sign Out"
         actionVariant="primary"
       />
     );
   }
 
   if (loadingNext || !project) {
-    return <LoadingScreen message="Loading Project..." />;
+    return <LoadingScreen message="Loading..." />;
   }
 
-  return (
-    <div className="min-h-screen bg-[#050505] flex flex-col selection:bg-[#00A8A8]/30">
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.03)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]" />
-      </div>
+  // Step 1: Viewing - Show table number
+  if (step === 'viewing') {
+    return (
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex flex-col">
+        {/* Progress bar */}
+        <div className="h-1 bg-white/5">
+          <div
+            className="h-full bg-[#00A8A8] transition-all"
+            style={{ width: `${progress?.percentage || 0}%` }}
+          />
+        </div>
 
-      <ProgressBar percentage={progress?.percentage || 0} className="relative z-10" />
+        <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 safe-area-inset">
+          {/* Progress text */}
+          <p className="text-gray-500 text-sm font-mono mb-6">
+            {((progress?.completed || 0) + 1)} of {progress?.total}
+          </p>
 
-      <main className="flex-1 flex flex-col px-4 py-5 max-w-lg mx-auto w-full relative z-10">
-        {/* Table Number Header */}
-        <div className="text-center py-4">
-          <p className="text-[9px] text-gray-500 uppercase tracking-[0.4em] font-mono mb-2">Table</p>
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-[#00A8A8]/10 blur-[30px] rounded-full" />
-            <p className="relative text-7xl font-black text-white leading-none tracking-tighter drop-shadow-[0_0_20px_rgba(0,168,168,0.3)]">
+          {/* Large Table Number */}
+          <div className="text-center mb-8">
+            <p className="text-xs text-gray-500 uppercase tracking-widest font-mono mb-2">Go to Table</p>
+            <p className="text-[140px] font-black text-white leading-none tracking-tighter">
               {project.tableNumber}
             </p>
           </div>
-          <p className="text-gray-600 text-[10px] font-mono mt-2 uppercase tracking-widest">
-            {((progress?.completed || 0) + 1)}/{progress?.total}
-          </p>
+
+          {/* Project Name */}
+          <div className="text-center mb-12">
+            <p className="text-lg font-semibold text-white mb-1">{project.name}</p>
+            {project.teamMembers && (
+              <p className="text-gray-500 text-sm">{project.teamMembers}</p>
+            )}
+          </div>
+
+          {/* Start Button - Big touch target */}
+          <button
+            onClick={() => setStep('judging')}
+            className="w-full max-w-xs px-8 py-5 bg-[#00A8A8] text-black font-black text-lg uppercase tracking-wide rounded-2xl active:scale-[0.98] transition-transform"
+          >
+            Start Judging
+          </button>
+
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="mt-8 text-gray-600 text-xs font-mono py-3 uppercase tracking-widest"
+          >
+            Sign Out
+          </button>
+        </main>
+      </div>
+    );
+  }
+
+  // Step 2: Judging - Scoring interface
+  return (
+    <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex flex-col">
+      {/* Progress bar */}
+      <div className="h-1 bg-white/5 sticky top-0 z-20">
+        <div
+          className="h-full bg-[#00A8A8] transition-all"
+          style={{ width: `${progress?.percentage || 0}%` }}
+        />
+      </div>
+
+      {/* Header - Sticky */}
+      <header className="sticky top-1 z-10 bg-[#050505]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setStep('viewing')}
+            className="flex items-center gap-1 text-gray-400 py-2 pr-4 -ml-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="text-sm">Back</span>
+          </button>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wide">Table</p>
+              <p className="text-2xl font-black text-white leading-none">{project.tableNumber}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wide">Score</p>
+              <p className="text-2xl font-black text-[#00A8A8] leading-none">{totalScore}</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Scrollable Content */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 pb-[env(safe-area-inset-bottom)]">
+        {/* Project Info */}
+        <div className="mb-6">
+          <h1 className="text-lg font-bold text-white">{project.name}</h1>
+          {project.teamMembers && (
+            <p className="text-gray-500 text-sm">{project.teamMembers}</p>
+          )}
         </div>
 
-        {/* Project Info */}
-        <LiquidGlass className="p-4 mb-4 rounded-lg shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
-          <p className="text-[8px] text-gray-500 uppercase tracking-[0.3em] font-mono mb-1">Project</p>
-          <h2 className="text-base font-bold text-white mb-1">{project.name}</h2>
-          {project.teamMembers && (
-            <p className="text-gray-500 text-xs font-mono">{project.teamMembers}</p>
-          )}
-        </LiquidGlass>
-
-        {/* Rubric Sliders */}
-        <LiquidGlass className="p-4 mb-4 rounded-lg shadow-2xl">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-mono">Rubric Scoring</span>
-            <span className="text-2xl font-black text-[#00A8A8] drop-shadow-[0_0_10px_rgba(0,168,168,0.5)]">
-              {totalScore}<span className="text-sm text-gray-500 font-normal">/50</span>
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            {RUBRIC_CRITERIA.map((criterion) => (
-              <RubricSlider
-                key={criterion.key}
-                label={criterion.label}
-                description={criterion.description}
-                value={scores[criterion.key]}
-                onChange={(value) => updateScore(criterion.key, value)}
-                isExpanded={expandedCriteria === criterion.key}
-                onToggleExpand={() => setExpandedCriteria(expandedCriteria === criterion.key ? null : criterion.key)}
-              />
-            ))}
-          </div>
-        </LiquidGlass>
+        {/* Rubric Scoring */}
+        <div className="space-y-6 mb-6">
+          {RUBRIC_CRITERIA.map((criterion) => (
+            <RubricSlider
+              key={criterion.key}
+              label={criterion.label}
+              description={criterion.description}
+              value={scores[criterion.key]}
+              onChange={(value) => updateScore(criterion.key, value)}
+            />
+          ))}
+        </div>
 
         {/* Comment */}
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Additional notes (optional)..."
-          className="w-full bg-black/60 backdrop-blur-md border border-white/5 rounded-lg p-3 text-white placeholder-gray-600 resize-none mb-4 min-h-[60px] font-mono text-sm focus:border-[#00A8A8]/30 focus:outline-none transition-colors"
+          placeholder="Notes (optional)..."
+          className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 resize-none min-h-[80px] text-sm focus:border-[#00A8A8]/50 focus:outline-none mb-6"
         />
 
         {/* Submit Button */}
         <button
           onClick={handleSubmit}
           disabled={submit.isPending}
-          className="mt-auto px-10 py-5 bg-white text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_40px_rgba(0,168,168,0.2)]"
+          className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-lg uppercase tracking-wide rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 mb-4"
         >
           {submit.isPending ? 'Submitting...' : 'Submit & Next'}
         </button>
 
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="text-gray-600 text-[10px] font-mono py-4 uppercase tracking-[0.3em] hover:text-[#00A8A8] transition-colors"
+          className="w-full text-gray-600 text-xs font-mono py-3 uppercase tracking-widest text-center"
         >
-          Terminate Session
+          Sign Out
         </button>
       </main>
-
-      <RubricSliderStyles />
     </div>
   );
 }
