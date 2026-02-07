@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import { StatusScreen } from '@/components/portal/StatusScreen';
-import { RubricSlider } from '@/components/portal/judge/RubricSlider';
+import { RubricSlider, RubricSliderStyles } from '@/components/portal/judge/RubricSlider';
 
 // Rubric criteria definitions
 const RUBRIC_CRITERIA = [
@@ -130,9 +129,6 @@ export default function JudgePage() {
         variant="denied"
         title="Not a Judge"
         message="You're not registered as a judge."
-        onAction={() => signOut({ callbackUrl: '/login' })}
-        actionLabel="Sign Out"
-        actionVariant="danger"
       />
     );
   }
@@ -143,9 +139,6 @@ export default function JudgePage() {
         variant="waiting"
         title="No Assignment"
         message="Please wait for event assignment."
-        onAction={() => signOut({ callbackUrl: '/login' })}
-        actionLabel="Sign Out"
-        actionVariant="default"
       />
     );
   }
@@ -159,9 +152,6 @@ export default function JudgePage() {
         variant="success"
         title="All Done!"
         message="You've judged all projects. Thank you!"
-        onAction={() => signOut({ callbackUrl: '/login' })}
-        actionLabel="Sign Out"
-        actionVariant="primary"
       />
     );
   }
@@ -182,7 +172,7 @@ export default function JudgePage() {
           />
         </div>
 
-        <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 safe-area-inset">
+        <main className="flex-1 flex flex-col items-center justify-center px-6 py-8">
           {/* Progress text */}
           <p className="text-gray-500 text-sm font-mono mb-6">
             {((progress?.completed || 0) + 1)} of {progress?.total}
@@ -210,13 +200,6 @@ export default function JudgePage() {
             className="w-full max-w-xs px-8 py-5 bg-[#00A8A8] text-black font-black text-lg uppercase tracking-wide rounded-2xl active:scale-[0.98] transition-transform"
           >
             Start Judging
-          </button>
-
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="mt-8 text-gray-600 text-xs font-mono py-3 uppercase tracking-widest"
-          >
-            Sign Out
           </button>
         </main>
       </div>
@@ -270,7 +253,7 @@ export default function JudgePage() {
           )}
         </div>
 
-        {/* Rubric Scoring */}
+        {/* Rubric Scoring - Sliders */}
         <div className="space-y-6 mb-6">
           {RUBRIC_CRITERIA.map((criterion) => (
             <RubricSlider
@@ -295,18 +278,13 @@ export default function JudgePage() {
         <button
           onClick={handleSubmit}
           disabled={submit.isPending}
-          className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-lg uppercase tracking-wide rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 mb-4"
+          className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-lg uppercase tracking-wide rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 mb-8"
         >
           {submit.isPending ? 'Submitting...' : 'Submit & Next'}
         </button>
-
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full text-gray-600 text-xs font-mono py-3 uppercase tracking-widest text-center"
-        >
-          Sign Out
-        </button>
       </main>
+
+      <RubricSliderStyles />
     </div>
   );
 }
