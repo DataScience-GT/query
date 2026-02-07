@@ -7,8 +7,6 @@ interface RubricSliderProps {
     description: string;
     value: number;
     onChange: (value: number) => void;
-    isExpanded?: boolean;
-    onToggleExpand?: () => void;
 }
 
 export function RubricSlider({
@@ -18,7 +16,7 @@ export function RubricSlider({
     onChange,
 }: RubricSliderProps) {
     return (
-        <div className="space-y-3">
+        <div className="space-y-2">
             {/* Label and current score */}
             <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0 pr-3">
@@ -30,29 +28,64 @@ export function RubricSlider({
                 </span>
             </div>
 
-            {/* Button-based scoring - much better for mobile */}
-            <div className="flex gap-1">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                    <button
-                        key={num}
-                        onClick={() => onChange(num)}
-                        className={`
-                            flex-1 py-3 rounded-lg font-bold text-sm transition-all active:scale-95
-                            ${value === num
-                                ? 'bg-[#00A8A8] text-black shadow-[0_0_15px_rgba(0,168,168,0.4)]'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10 active:bg-white/15'
-                            }
-                        `}
-                    >
-                        {num}
-                    </button>
-                ))}
+            {/* Slider - Large touch target */}
+            <div className="relative py-2">
+                <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={value}
+                    onChange={(e) => onChange(parseInt(e.target.value))}
+                    className="w-full h-14 appearance-none bg-transparent cursor-pointer touch-pan-y rubric-slider"
+                    style={{
+                        background: `linear-gradient(to right, #00A8A8 0%, #00A8A8 ${(value - 1) * 11.11}%, rgba(255,255,255,0.1) ${(value - 1) * 11.11}%, rgba(255,255,255,0.1) 100%)`,
+                        borderRadius: '12px',
+                    }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 font-mono px-1 mt-1">
+                    <span>1</span>
+                    <span>5</span>
+                    <span>10</span>
+                </div>
             </div>
         </div>
     );
 }
 
-// Keep for backward compatibility but no longer needed
+// Slider styles for the page
 export function RubricSliderStyles() {
-    return null;
+    return (
+        <style jsx global>{`
+      .rubric-slider {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .rubric-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 36px;
+        height: 36px;
+        background: white;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 4px 12px rgba(0,0,0,0.4);
+        border: 4px solid #00A8A8;
+      }
+      .rubric-slider::-moz-range-thumb {
+        width: 36px;
+        height: 36px;
+        background: white;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 4px 12px rgba(0,0,0,0.4);
+        border: 4px solid #00A8A8;
+      }
+      .rubric-slider:active::-webkit-slider-thumb {
+        transform: scale(1.15);
+      }
+      .rubric-slider:active::-moz-range-thumb {
+        transform: scale(1.15);
+      }
+    `}</style>
+    );
 }
