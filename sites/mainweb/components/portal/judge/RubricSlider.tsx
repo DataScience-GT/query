@@ -15,77 +15,83 @@ export function RubricSlider({
     value,
     onChange,
 }: RubricSliderProps) {
+    const getScoreColor = (v: number) => {
+        if (v <= 3) return 'from-red-500 to-orange-500';
+        if (v <= 6) return 'from-yellow-500 to-amber-500';
+        return 'from-emerald-500 to-teal-500';
+    };
+
+    const getScoreLabel = (v: number) => {
+        if (v <= 2) return 'Poor';
+        if (v <= 4) return 'Fair';
+        if (v <= 6) return 'Good';
+        if (v <= 8) return 'Great';
+        return 'Excellent';
+    };
+
     return (
-        <div className="space-y-2">
-            {/* Label and current score */}
-            <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0 pr-3">
-                    <span className="text-sm font-bold text-white block">{label}</span>
-                    <span className="text-[10px] text-gray-500 font-mono block mt-0.5">{description}</span>
+        <div className="group">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex-1 pr-4">
+                    <h3 className="text-base font-semibold text-white tracking-tight">{label}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{description}</p>
                 </div>
-                <span className="text-2xl font-black text-[#00A8A8] tabular-nums min-w-[2.5rem] text-right">
-                    {value}
-                </span>
+                <div className="flex flex-col items-end">
+                    <div className={`text-3xl font-black bg-gradient-to-r ${getScoreColor(value)} bg-clip-text text-transparent tabular-nums`}>
+                        {value}
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                        {getScoreLabel(value)}
+                    </span>
+                </div>
             </div>
 
-            {/* Slider - Large touch target */}
-            <div className="relative py-2">
+            {/* Slider Track */}
+            <div className="relative h-12 flex items-center">
+                <div className="absolute inset-x-0 h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                        className={`h-full bg-gradient-to-r ${getScoreColor(value)} transition-all duration-150 ease-out`}
+                        style={{ width: `${(value - 1) * 11.11}%` }}
+                    />
+                </div>
                 <input
                     type="range"
                     min="1"
                     max="10"
                     value={value}
                     onChange={(e) => onChange(parseInt(e.target.value))}
-                    className="w-full h-14 appearance-none bg-transparent cursor-pointer touch-pan-y rubric-slider"
-                    style={{
-                        background: `linear-gradient(to right, #00A8A8 0%, #00A8A8 ${(value - 1) * 11.11}%, rgba(255,255,255,0.1) ${(value - 1) * 11.11}%, rgba(255,255,255,0.1) 100%)`,
-                        borderRadius: '12px',
-                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                <div className="flex justify-between text-xs text-gray-500 font-mono px-1 mt-1">
-                    <span>1</span>
-                    <span>5</span>
-                    <span>10</span>
+                {/* Thumb indicator */}
+                <div
+                    className="absolute w-6 h-6 bg-white rounded-full shadow-lg shadow-black/30 pointer-events-none transition-all duration-150 ease-out border-2 border-white"
+                    style={{ left: `calc(${(value - 1) * 11.11}% - 12px + ${(value - 1) * 0.24}%)` }}
+                >
+                    <div className={`absolute inset-1 rounded-full bg-gradient-to-br ${getScoreColor(value)}`} />
                 </div>
+            </div>
+
+            {/* Scale markers */}
+            <div className="flex justify-between px-0.5 mt-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                    <button
+                        key={n}
+                        onClick={() => onChange(n)}
+                        className={`w-5 h-5 flex items-center justify-center text-[10px] font-medium rounded transition-all
+                            ${value === n
+                                ? 'text-white bg-white/10'
+                                : 'text-gray-600 hover:text-gray-400'
+                            }`}
+                    >
+                        {n}
+                    </button>
+                ))}
             </div>
         </div>
     );
 }
 
-// Slider styles for the page
 export function RubricSliderStyles() {
-    return (
-        <style jsx global>{`
-      .rubric-slider {
-        -webkit-appearance: none;
-        appearance: none;
-      }
-      .rubric-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 36px;
-        height: 36px;
-        background: white;
-        border-radius: 50%;
-        cursor: pointer;
-        box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 4px 12px rgba(0,0,0,0.4);
-        border: 4px solid #00A8A8;
-      }
-      .rubric-slider::-moz-range-thumb {
-        width: 36px;
-        height: 36px;
-        background: white;
-        border-radius: 50%;
-        cursor: pointer;
-        box-shadow: 0 0 20px rgba(0, 168, 168, 0.5), 0 4px 12px rgba(0,0,0,0.4);
-        border: 4px solid #00A8A8;
-      }
-      .rubric-slider:active::-webkit-slider-thumb {
-        transform: scale(1.15);
-      }
-      .rubric-slider:active::-moz-range-thumb {
-        transform: scale(1.15);
-      }
-    `}</style>
-    );
+    return null;
 }
