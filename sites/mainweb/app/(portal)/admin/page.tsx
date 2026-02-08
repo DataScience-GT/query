@@ -8,6 +8,8 @@ import QRCode from 'qrcode';
 import Link from 'next/link';
 import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
+import Background from '@/components/portal/Background';
+import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 type Event = {
   id: string;
@@ -109,10 +111,11 @@ export default function AdminPage() {
 
   if (status === 'loading' || adminLoading) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">Verifying access...</p>
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <div className="text-center relative z-10">
+          <div className="w-12 h-12 border-4 border-[#00A8A8]/30 border-t-[#00A8A8] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">Verifying access...</p>
         </div>
       </div>
     );
@@ -121,11 +124,8 @@ export default function AdminPage() {
   if (!session || !adminStatus?.isAdmin) return null;
 
   return (
-    <div className="relative min-h-screen min-h-[100dvh] bg-black text-gray-400 font-sans overflow-x-hidden">
-      {/* Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-teal-500/5 rounded-full blur-[120px]" />
-      </div>
+    <div className="relative min-h-screen min-h-[100dvh] bg-[#050505] text-gray-400 font-sans overflow-x-hidden">
+      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
       {showCreateEvent && (
         <EventFormModal
@@ -148,23 +148,23 @@ export default function AdminPage() {
 
       <main className="relative z-10 max-w-6xl mx-auto py-8 px-4 md:px-6">
         {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <LiquidGlass className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#00A8A8] animate-pulse shadow-[0_0_8px_rgba(0,168,168,0.5)]" />
               <p className="text-xs uppercase tracking-widest text-gray-500 font-medium">Admin Console</p>
             </div>
             <h1 className="text-2xl font-bold text-white">
-              Admin <span className="bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">Terminal</span>
+              Admin <span className="bg-gradient-to-r from-[#00A8A8] to-emerald-400 bg-clip-text text-transparent italic">Terminal</span>
             </h1>
-            <p className="text-gray-500 text-sm">{adminStatus.role?.replace('_', ' ').toUpperCase()}</p>
+            <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">{adminStatus.role?.replace('_', ' ').toUpperCase()}</p>
           </div>
           <div className="flex gap-3">
             <Link
               href="/admin-judging"
               className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
             >
-              <span className="w-2 h-2 rounded-full bg-teal-500" />
+              <span className="w-2 h-2 rounded-full bg-[#00A8A8]" />
               Judging Portal
             </Link>
             <button
@@ -174,39 +174,39 @@ export default function AdminPage() {
               ← Back
             </button>
           </div>
-        </header>
+        </LiquidGlass>
 
         {/* Events Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-white">Events</h2>
-              <p className="text-gray-500 text-sm">{events?.length || 0} total events</p>
+              <p className="text-gray-500 text-sm font-mono">{events?.length || 0} total events</p>
             </div>
             <button
               onClick={() => setShowCreateEvent(true)}
-              className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-teal-500/20"
+              className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-[#00A8A8]/20"
             >
               + New Event
             </button>
           </div>
 
           {!events || events.length === 0 ? (
-            <div className="p-16 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <LiquidGlass className="p-16 text-center">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                 <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
                 </svg>
               </div>
               <h3 className="text-white font-semibold mb-1">No events yet</h3>
-              <p className="text-gray-500 text-sm">Create your first event to get started.</p>
-            </div>
+              <p className="text-gray-500 text-sm font-mono">Create your first event to get started.</p>
+            </LiquidGlass>
           ) : (
             <div className="space-y-4">
               {events.map((event) => (
-                <div
+                <LiquidGlass
                   key={event.id}
-                  className="p-6 bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-2xl transition-all"
+                  className="p-6 hover:border-white/20 transition-all"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="flex-1">
@@ -214,8 +214,8 @@ export default function AdminPage() {
                         <h3 className="text-lg font-bold text-white">{event.title}</h3>
                         <span
                           className={`px-2 py-1 rounded-full text-[10px] uppercase tracking-wider font-semibold ${event.checkInEnabled
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
                             }`}
                         >
                           {event.checkInEnabled ? 'Active' : 'Disabled'}
@@ -224,12 +224,12 @@ export default function AdminPage() {
                       {event.description && (
                         <p className="text-gray-400 text-sm mb-3">{event.description}</p>
                       )}
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500 font-mono">
                         <span>{event.location || 'No location'}</span>
                         <span>•</span>
                         <span>{new Date(event.eventDate).toLocaleDateString()}</span>
                         <span>•</span>
-                        <span className="text-teal-400">{event.currentCheckIns} check-ins</span>
+                        <span className="text-[#00A8A8]">{event.currentCheckIns} check-ins</span>
                       </div>
                     </div>
 
@@ -239,7 +239,7 @@ export default function AdminPage() {
                           generateQRCode(event.qrCode);
                           setSelectedEvent(event);
                         }}
-                        className="px-4 py-2 bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium rounded-xl hover:bg-teal-500/20 transition-colors"
+                        className="px-4 py-2 bg-[#00A8A8]/10 border border-[#00A8A8]/20 text-[#00A8A8] text-sm font-medium rounded-xl hover:bg-[#00A8A8]/20 transition-colors"
                       >
                         QR Code
                       </button>
@@ -251,8 +251,8 @@ export default function AdminPage() {
                           })
                         }
                         className={`px-4 py-2 border text-sm font-medium rounded-xl transition-colors ${event.checkInEnabled
-                            ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-                            : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
+                          ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
+                          : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                           }`}
                       >
                         {event.checkInEnabled ? 'Disable' : 'Enable'}
@@ -269,7 +269,7 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </LiquidGlass>
               ))}
             </div>
           )}
