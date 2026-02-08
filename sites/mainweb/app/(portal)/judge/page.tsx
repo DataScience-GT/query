@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { RubricSlider, RubricSliderStyles } from '@/components/portal/judge/RubricSlider';
+import Background from '@/components/portal/Background';
+import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 const RUBRIC_CRITERIA = [
   { key: 'creativity', label: 'Creativity', description: 'Unique approach & originality' },
@@ -153,10 +155,11 @@ export default function JudgePage() {
   // Loading state
   if (!mounted || status === 'loading' || checkingJudge) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">Loading...</p>
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <div className="text-center relative z-10">
+          <div className="w-12 h-12 border-4 border-[#00A8A8]/30 border-t-[#00A8A8] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">Syncing Identity...</p>
         </div>
       </div>
     );
@@ -167,16 +170,17 @@ export default function JudgePage() {
   // Not a judge
   if (!judgeStatus?.isJudge) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center p-6">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <LiquidGlass className="text-center max-w-sm p-8 relative z-10">
+          <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">Access Denied</h1>
-          <p className="text-gray-500">You're not registered as a judge for this event.</p>
-        </div>
+          <h1 className="text-xl font-bold text-white mb-2 uppercase tracking-tight">Access Denied</h1>
+          <p className="text-gray-500 font-mono text-sm">You're not registered as a judge for this event.</p>
+        </LiquidGlass>
       </div>
     );
   }
@@ -184,16 +188,17 @@ export default function JudgePage() {
   // No assignment
   if (!hackathonId) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center p-6">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <LiquidGlass className="text-center max-w-sm p-8 relative z-10">
+          <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">Awaiting Assignment</h1>
-          <p className="text-gray-500">Please wait for event assignment.</p>
-        </div>
+          <h1 className="text-xl font-bold text-white mb-2 uppercase tracking-tight">Awaiting Assignment</h1>
+          <p className="text-gray-500 font-mono text-sm">Please wait for event assignment.</p>
+        </LiquidGlass>
       </div>
     );
   }
@@ -204,16 +209,17 @@ export default function JudgePage() {
   // All done
   if (isDone) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center p-6">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <LiquidGlass className="text-center max-w-sm p-8 relative z-10">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#00A8A8] to-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(0,168,168,0.3)]">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">All Done!</h1>
-          <p className="text-gray-500">You've judged all assigned projects. Thank you!</p>
-        </div>
+          <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-tight">All <span className="text-[#00A8A8] italic">Done!</span></h1>
+          <p className="text-gray-500 font-mono text-sm">You've judged all assigned projects. Thank you!</p>
+        </LiquidGlass>
       </div>
     );
   }
@@ -221,10 +227,11 @@ export default function JudgePage() {
   // Loading project
   if (loadingNext || !project) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">Loading project...</p>
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <div className="text-center relative z-10">
+          <div className="w-12 h-12 border-4 border-[#00A8A8]/30 border-t-[#00A8A8] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">Loading project...</p>
         </div>
       </div>
     );
@@ -286,35 +293,33 @@ export default function JudgePage() {
   // Step 1: Viewing
   if (step === 'viewing') {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-black flex flex-col overflow-hidden">
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-[150px]" />
-        </div>
+      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex flex-col overflow-hidden">
+        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
         <div className="h-1.5 bg-white/5 relative z-10">
-          <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500" style={{ width: `${progress?.percentage || 0}%` }} />
+          <div className="h-full bg-gradient-to-r from-[#00A8A8] to-emerald-500 transition-all duration-500" style={{ width: `${progress?.percentage || 0}%` }} />
         </div>
 
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 relative z-10">
-          <div className="bg-white/5 backdrop-blur-sm px-4 py-2 rounded-full mb-8">
+          <LiquidGlass className="px-4 py-2 rounded-full mb-8">
             <span className="text-sm font-medium text-gray-400">
               <span className="text-white font-bold">{(progress?.completed || 0) + 1}</span> of {progress?.total} projects
             </span>
-          </div>
+          </LiquidGlass>
 
           <div className="text-center mb-8">
             <p className="text-xs text-gray-500 uppercase tracking-[0.5em] font-medium mb-4">Go to Table</p>
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-teal-500/20 to-transparent blur-[80px] scale-150" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#00A8A8]/20 to-transparent blur-[80px] scale-150" />
               <p className="relative text-[160px] font-black text-white leading-none tracking-tight">
                 {project.tableNumber}
               </p>
             </div>
           </div>
 
-          <div className="w-full max-w-sm bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-8 shadow-xl">
+          <LiquidGlass className="w-full max-w-sm p-6 mb-8 shadow-xl">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,168,168,0.3)]">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
@@ -324,11 +329,11 @@ export default function JudgePage() {
                 {project.teamMembers && <p className="text-gray-500 text-sm">{project.teamMembers}</p>}
               </div>
             </div>
-          </div>
+          </LiquidGlass>
 
           <button
             onClick={() => setStep('judging')}
-            className="w-full max-w-sm px-8 py-5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform shadow-xl shadow-teal-500/30"
+            className="w-full max-w-sm px-8 py-5 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform shadow-xl shadow-[#00A8A8]/30"
           >
             Start Judging
           </button>
@@ -339,18 +344,15 @@ export default function JudgePage() {
 
   // Step 2: Judging
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-black flex flex-col">
+    <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex flex-col">
       {showHelp && <HelpModal />}
-
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-teal-500/5 rounded-full blur-[100px]" />
-      </div>
+      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
       <div className="h-1.5 bg-white/5 sticky top-0 z-20">
-        <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500" style={{ width: `${progress?.percentage || 0}%` }} />
+        <div className="h-full bg-gradient-to-r from-[#00A8A8] to-emerald-500 transition-all duration-500" style={{ width: `${progress?.percentage || 0}%` }} />
       </div>
 
-      <header className="sticky top-1.5 z-10 bg-black/80 backdrop-blur-2xl border-b border-white/5 px-4 py-3">
+      <header className="sticky top-1.5 z-10 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/5 px-4 py-3">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <button onClick={() => setStep('viewing')} className="flex items-center gap-2 text-gray-400 hover:text-white py-2 pr-4 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,11 +363,11 @@ export default function JudgePage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowHelp(true)}
-              className="w-9 h-9 rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white flex items-center justify-center text-sm font-bold transition-colors"
+              className="w-9 h-9 rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white flex items-center justify-center text-sm font-bold transition-colors border border-white/10"
             >
               ?
             </button>
-            <div className="bg-white/5 rounded-xl px-3 py-1.5 flex items-center gap-3">
+            <LiquidGlass className="rounded-xl px-3 py-1.5 flex items-center gap-3">
               <div className="text-center">
                 <p className="text-[9px] text-gray-500 uppercase tracking-widest">Table</p>
                 <p className="text-lg font-black text-white leading-tight">{project.tableNumber}</p>
@@ -375,15 +377,15 @@ export default function JudgePage() {
                 <p className="text-[9px] text-gray-500 uppercase tracking-widest">Score</p>
                 <p className={`text-lg font-black leading-tight ${getScoreColor()}`}>{totalScore}</p>
               </div>
-            </div>
+            </LiquidGlass>
           </div>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 py-5 relative z-10">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center gap-3 mb-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shrink-0">
+          <LiquidGlass className="flex items-center gap-3 mb-6 p-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(0,168,168,0.3)]">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
@@ -392,12 +394,12 @@ export default function JudgePage() {
               <h1 className="text-lg font-bold text-white">{project.name}</h1>
               {project.teamMembers && <p className="text-gray-500 text-sm">{project.teamMembers}</p>}
             </div>
-          </div>
+          </LiquidGlass>
 
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-5">
+          <LiquidGlass className="p-5 mb-5">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm font-semibold text-white">Evaluation Rubric</h2>
-              <button onClick={() => setShowHelp(true)} className="text-xs text-teal-400 hover:text-teal-300 font-medium transition-colors">
+              <button onClick={() => setShowHelp(true)} className="text-xs text-[#00A8A8] hover:text-[#00A8A8]/80 font-medium transition-colors">
                 View Guide →
               </button>
             </div>
@@ -412,7 +414,7 @@ export default function JudgePage() {
                 />
               ))}
             </div>
-          </div>
+          </LiquidGlass>
 
           <div className="mb-5">
             <label className="text-sm font-medium text-gray-400 mb-2 block">Notes</label>
@@ -420,14 +422,14 @@ export default function JudgePage() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Optional feedback for this project..."
-              className="w-full bg-white/[0.02] border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 resize-none min-h-[100px] text-sm focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/20 transition-all"
+              className="w-full bg-white/[0.05] border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 resize-none min-h-[100px] text-sm focus:border-[#00A8A8]/50 focus:outline-none focus:ring-1 focus:ring-[#00A8A8]/20 transition-all backdrop-blur-sm"
             />
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={submit.isPending}
-            className="w-full px-8 py-5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 shadow-xl shadow-teal-500/20 mb-8"
+            className="w-full px-8 py-5 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 shadow-xl shadow-[#00A8A8]/20 mb-8"
           >
             {submit.isPending ? (
               <span className="flex items-center justify-center gap-2">
