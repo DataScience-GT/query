@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
+import Background from '@/components/portal/Background';
+import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 export default function Home() {
   const { data: session, status } = useSession();
