@@ -355,10 +355,32 @@ export const judgeRouter = createTRPCRouter({
         },
       });
 
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+
       const rankings = projects.map((project) => {
         const totalScore = project.votes.reduce((sum, v) => sum + v.score, 0);
         const voteCount = project.votes.length;
         const avgScore = voteCount > 0 ? totalScore / voteCount : 0;
+
+        // Per-category averages
+        const sumCat = { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
+        project.votes.forEach((v) => {
+          sumCat.creativity += v.scoreCreativity ?? 0;
+          sumCat.impact += v.scoreImpact ?? 0;
+          sumCat.scope += v.scoreScope ?? 0;
+          sumCat.clarity += v.scoreClarity ?? 0;
+          sumCat.soundness += v.scoreSoundness ?? 0;
+        });
+
+        const categoryAvg = voteCount > 0
+          ? {
+            creativity: round2(sumCat.creativity / voteCount),
+            impact: round2(sumCat.impact / voteCount),
+            scope: round2(sumCat.scope / voteCount),
+            clarity: round2(sumCat.clarity / voteCount),
+            soundness: round2(sumCat.soundness / voteCount),
+          }
+          : { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
 
         return {
           project: {
@@ -370,9 +392,15 @@ export const judgeRouter = createTRPCRouter({
           },
           totalScore,
           voteCount,
-          avgScore: Math.round(avgScore * 100) / 100,
+          avgScore: round2(avgScore),
+          categoryAvg,
           votes: project.votes.map((v) => ({
             score: v.score,
+            scoreCreativity: v.scoreCreativity,
+            scoreImpact: v.scoreImpact,
+            scoreScope: v.scoreScope,
+            scoreClarity: v.scoreClarity,
+            scoreSoundness: v.scoreSoundness,
             comment: v.comment,
             judgeName: v.judge.user?.name || v.judge.name || "Unknown",
           })),
@@ -381,6 +409,7 @@ export const judgeRouter = createTRPCRouter({
 
       rankings.sort((a, b) => b.totalScore - a.totalScore);
 
+      // Overall total-score ties
       const ties: { score: number; projects: string[] }[] = [];
       const scoreGroups = new Map<number, typeof rankings>();
 
@@ -402,10 +431,47 @@ export const judgeRouter = createTRPCRouter({
         }
       });
 
+      // Per-category ties (only among projects with votes)
+      const categoryNames = ["creativity", "impact", "scope", "clarity", "soundness"] as const;
+      const categoryLabels: Record<typeof categoryNames[number], string> = {
+        creativity: "Creativity",
+        impact: "Impact",
+        scope: "Scope",
+        clarity: "Clarity",
+        soundness: "Soundness",
+      };
+
+      const categoryTies: { category: string; avgScore: number; projects: string[] }[] = [];
+
+      for (const cat of categoryNames) {
+        const catGroups = new Map<number, string[]>();
+        rankings.forEach((r) => {
+          if (r.voteCount === 0) return;
+          const avg = r.categoryAvg[cat];
+          const existing = catGroups.get(avg);
+          if (existing) {
+            existing.push(r.project.name);
+          } else {
+            catGroups.set(avg, [r.project.name]);
+          }
+        });
+        catGroups.forEach((group, avg) => {
+          if (group.length > 1) {
+            categoryTies.push({
+              category: categoryLabels[cat],
+              avgScore: avg,
+              projects: group,
+            });
+          }
+        });
+      }
+
       const result = {
         rankings,
         ties,
         hasTies: ties.length > 0,
+        categoryTies,
+        hasCategoryTies: categoryTies.length > 0,
       };
 
       ctx.cache.set(cacheKey, result, 30); // 30 second cache for live rankings
