@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { RubricSlider, RubricSliderStyles } from '@/components/portal/judge/RubricSlider';
+import { ZoneMapModal, ViewMapButton } from '@/components/portal/judge/ZoneMapModal';
 import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
@@ -85,6 +86,7 @@ export default function JudgePage() {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<JudgingStep>('viewing');
   const [showHelp, setShowHelp] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [scores, setScores] = useState<RubricScores>({
     creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5,
   });
@@ -331,6 +333,8 @@ export default function JudgePage() {
             </div>
           </LiquidGlass>
 
+          <ViewMapButton onClick={() => setShowMap(true)} className="w-full max-w-sm mb-4" />
+
           <button
             onClick={() => setStep('judging')}
             className="w-full max-w-sm px-8 py-5 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform shadow-xl shadow-[#00A8A8]/30"
@@ -338,6 +342,8 @@ export default function JudgePage() {
             Start Judging
           </button>
         </main>
+
+        <ZoneMapModal isOpen={showMap} onClose={() => setShowMap(false)} />
       </div>
     );
   }
