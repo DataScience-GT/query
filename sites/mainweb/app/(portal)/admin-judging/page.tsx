@@ -176,17 +176,17 @@ export default function AdminResultsPage() {
           )}
         </div>
 
-        {/* Tie Warning */}
+        {/* Tie Warning — Overall */}
         {rankings?.hasTies && (
-          <LiquidGlass className="border border-yellow-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
+          <LiquidGlass className="border border-yellow-500/30 rounded-lg p-8 mb-6 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
-              <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Collision Detected</h3>
+              <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Overall Score Collision</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rankings.ties.map((tie: { score: number; projects: string[] }, i: number) => (
                 <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl font-mono">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-black">Score Value: {tie.score}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-black">Total Score: {tie.score}</p>
                   <div className="space-y-1">
                     {tie.projects.map((p, pi) => (
                       <p key={pi} className="text-white text-sm">&gt; {p}</p>
@@ -197,6 +197,32 @@ export default function AdminResultsPage() {
             </div>
             <p className="text-[10px] text-yellow-500/40 mt-6 font-mono uppercase tracking-[0.4em] text-center border-t border-white/5 pt-4">
               Manual Tiebreaker Protocol Recommended
+            </p>
+          </LiquidGlass>
+        )}
+
+        {/* Tie Warning — Per-Category */}
+        {rankings?.hasCategoryTies && (
+          <LiquidGlass className="border border-orange-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(249,115,22,0.05)] animate-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
+              <h3 className="text-2xl font-black text-orange-500 uppercase italic tracking-tighter">Category-Level Ties</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {rankings.categoryTies.map((ct: { category: string; avgScore: number; projects: string[] }, i: number) => (
+                <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl font-mono">
+                  <p className="text-[10px] text-orange-400 uppercase tracking-widest mb-1 font-black">{ct.category}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Avg: {ct.avgScore}</p>
+                  <div className="space-y-1">
+                    {ct.projects.map((p, pi) => (
+                      <p key={pi} className="text-white text-sm">&gt; {p}</p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-orange-500/40 mt-6 font-mono uppercase tracking-[0.4em] text-center border-t border-white/5 pt-4">
+              Projects share identical average in one or more rubric categories
             </p>
           </LiquidGlass>
         )}
@@ -230,12 +256,17 @@ export default function AdminResultsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.02]">
-                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em]">Pos</th>
-                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em]">Node</th>
-                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em]">Identifier</th>
-                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Sum</th>
-                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Avg</th>
-                      <th className="px-8 py-6 text-sm font-mono text-gray-500 uppercase tracking-[0.3em] text-right">Count</th>
+                      <th className="px-6 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Pos</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Node</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Identifier</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Sum</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Avg</th>
+                      <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Creativity">CRE</th>
+                      <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Impact">IMP</th>
+                      <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Scope">SCP</th>
+                      <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Clarity">CLR</th>
+                      <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Soundness">SND</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Count</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -282,24 +313,29 @@ export default function AdminResultsPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-8 py-8 text-right">
+                            <td className="px-4 py-8 text-right">
                               <span className="text-3xl font-black text-[#00A8A8] tabular-nums">{r.totalScore}</span>
                             </td>
-                            <td className="px-8 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>
-                            <td className="px-8 py-8 text-right text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</td>
+                            <td className="px-4 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>
+                            <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.creativity ?? '-'}</td>
+                            <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.impact ?? '-'}</td>
+                            <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.scope ?? '-'}</td>
+                            <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.clarity ?? '-'}</td>
+                            <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.soundness ?? '-'}</td>
+                            <td className="px-4 py-8 text-right text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</td>
                           </tr>
 
                           {/* Expanded row with individual votes */}
                           {isExpanded && (
                             <tr>
-                              <td colSpan={6} className="px-8 py-8 bg-black/40 border-t border-white/5">
+                              <td colSpan={11} className="px-8 py-8 bg-black/40 border-t border-white/5">
                                 <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                                   <p className="text-xs text-gray-600 uppercase tracking-[0.4em] font-mono mb-6">Vote Audit Log</p>
                                   {r.votes.length === 0 ? (
                                     <p className="text-gray-600 font-mono text-sm uppercase">&gt; 0 records found for this node</p>
                                   ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {r.votes.map((v: { judgeName: string; score: number; comment: string | null }, vi: number) => (
+                                      {r.votes.map((v: { judgeName: string; score: number; scoreCreativity: number | null; scoreImpact: number | null; scoreScope: number | null; scoreClarity: number | null; scoreSoundness: number | null; comment: string | null }, vi: number) => (
                                         <div
                                           key={vi}
                                           className="relative bg-black/40 border border-white/5 p-6 rounded-xl hover:border-[#00A8A8]/20 transition-all group/vote"
@@ -314,6 +350,21 @@ export default function AdminResultsPage() {
                                             <span className="text-3xl font-black text-[#00A8A8] group-hover/vote:scale-110 transition-transform tabular-nums">
                                               {v.score}
                                             </span>
+                                          </div>
+                                          {/* Per-category breakdown */}
+                                          <div className="grid grid-cols-5 gap-2 mt-3 mb-3">
+                                            {[
+                                              { label: 'CRE', value: v.scoreCreativity },
+                                              { label: 'IMP', value: v.scoreImpact },
+                                              { label: 'SCP', value: v.scoreScope },
+                                              { label: 'CLR', value: v.scoreClarity },
+                                              { label: 'SND', value: v.scoreSoundness },
+                                            ].map((cat) => (
+                                              <div key={cat.label} className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
+                                                <p className="text-[8px] text-gray-600 font-mono uppercase tracking-widest">{cat.label}</p>
+                                                <p className="text-sm font-bold text-white tabular-nums mt-0.5">{cat.value ?? '-'}</p>
+                                              </div>
+                                            ))}
                                           </div>
                                           {v.comment && (
                                             <p className="text-gray-500 text-sm font-mono mt-2 italic leading-relaxed"> &gt; "{v.comment}"</p>
