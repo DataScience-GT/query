@@ -10,6 +10,7 @@ export const scheduleData: DaySchedule = {
   Friday: [
     { time: '5:00 PM', eventName: 'Check In Starts!', location: 'Klaus Atrium', category: 'general' },
     { time: '5:30 PM - 6:30 PM', eventName: 'Workshop', location: 'TBA', category: 'workshop' },
+    { time: '6:30 PM - 7:30 PM', eventName: 'Opening ceremony', location: 'TBA', category: 'general' },
     { time: '7:30 PM - 8:30 PM', eventName: 'Sponsorship Fair', location: 'TBA', category: 'activity' },
     { time: '8:30 PM', eventName: 'Dinner', location: 'TBA', category: 'food' },
     { time: '9:30 PM - 10:30 PM', eventName: 'Workshop', location: 'TBA', category: 'workshop' },
