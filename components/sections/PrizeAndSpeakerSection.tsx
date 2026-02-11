@@ -175,7 +175,7 @@ export default function PrizeAndSpeakerSection() {
   const mainPrizes = [
     { type: 'silver' as const, rank: '2', prize: 'Apple AirPods Max', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/airpods-max-select-spacegray-202011?wid=400&hei=400&fmt=png-alpha' },
     { type: 'gold' as const, rank: '1', prize: 'Apple MacBook Air M4', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-midnight-select-20220606?wid=400&hei=400&fmt=png-alpha' },
-    { type: 'bronze' as const, rank: '3', prize: 'Samsung Odyssey G5 Monitor', image: '/prizes/samsung-monitor.png' },
+    { type: 'bronze' as const, rank: '3', prize: 'Samsung Odyssey G5 Monitor', image: '/prizes/samsung-monitor.jpg' },
   ];
 
   // Track prizes data
@@ -195,7 +195,7 @@ export default function PrizeAndSpeakerSection() {
       description: 'Dive into player performance, game strategy, and the future of sports data',
       color: 'bg-blue-500',
       prizes: [
-        { place: '1st Place', name: 'Apple 40mm Watch SE 3', image: '/prizes/apple-watch.png' },
+        { place: '1st Place', name: 'Apple 40mm Watch SE 3', image: '/prizes/apple-watch.jpg' },
         { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-flip.jpg' },
         { place: '3rd Place', name: 'Pickleball Set + Backpack', image: '/prizes/pickleball-backpack.jpg' },
       ]
@@ -206,8 +206,8 @@ export default function PrizeAndSpeakerSection() {
       color: 'bg-red-500',
       prizes: [
         { place: '1st Place', name: 'Theragun Mini Gen 3', image: '/prizes/theragun-mini.jpg' },
-        { place: '2nd Place', name: 'Fitbit Inspire 3', image: '/prizes/fitbit.png' },
-        { place: '3rd Place', name: 'Owala Waterbottle', image: '/prizes/owala.png' },
+        { place: '2nd Place', name: 'Fitbit Inspire 3', image: '/prizes/fitbit.jpg' },
+        { place: '3rd Place', name: 'Owala Waterbottle', image: '/prizes/owala.jpg' },
       ]
     },
     {
@@ -225,7 +225,7 @@ export default function PrizeAndSpeakerSection() {
       description: 'Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project',
       color: 'bg-gradient-to-r from-pink-500 to-yellow-500',
       prizes: [
-        { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.png' },
+        { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.jpg' },
       ]
     },
   ];
@@ -236,7 +236,7 @@ export default function PrizeAndSpeakerSection() {
       name: 'TBD',
       title: 'Keynote Speaker',
       company: 'Coming Soon',
-      image: '/wonka/wonka.png',
+      image: '/wonka/wonka.jpg',
       color: 'bg-purple-400',
       rotate: '-rotate-2'
     },
@@ -245,7 +245,7 @@ export default function PrizeAndSpeakerSection() {
       name: 'TBD',
       title: 'Guest Speaker',
       company: 'Coming Soon',
-      image: '/wonka/wonka.png',
+      image: '/wonka/wonka.jpg',
       color: 'bg-pink-400',
       rotate: 'rotate-1'
     },
@@ -254,7 +254,7 @@ export default function PrizeAndSpeakerSection() {
       name: 'TBD',
       title: 'Workshop Lead',
       company: 'Coming Soon',
-      image: '/wonka/wonka.png',
+      image: '/wonka/wonka.jpg',
       color: 'bg-emerald-400',
       rotate: '-rotate-1'
     },
@@ -263,7 +263,7 @@ export default function PrizeAndSpeakerSection() {
       name: 'TBD',
       title: 'Guest Speaker',
       company: 'Coming Soon',
-      image: '/wonka/wonka.png',
+      image: '/wonka/wonka.jpg',
       color: 'bg-orange-400',
       rotate: 'rotate-2'
     }
