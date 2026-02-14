@@ -11,6 +11,10 @@ export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const [logs, setLogs] = useState<string[]>([
     "Initializing terminal...",
@@ -29,16 +33,6 @@ export default function Home() {
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
     enabled: !!session,
   });
-
-  const { mutate: sayHello, isPending: helloLoading } =
-    trpc.hello.sayHello.useMutation({
-      onSuccess: (res) => {
-        setLogs(prev => [...prev.slice(-4), `> Response: ${res.message}`]);
-      },
-      onError: () => {
-        setLogs(prev => [...prev.slice(-4), "> Error: Connection failed"]);
-      }
-    });
 
   useEffect(() => {
     setMounted(true);
@@ -90,9 +84,19 @@ export default function Home() {
     }
   }, [status, session, router, judgeStatus, adminStatus]);
 
-  const handleTestEndpoint = () => {
-    setLogs(prev => [...prev.slice(-4), "> Executing: public.sayHello()"]);
-    sayHello();
+  const handleEmailLogin = async () => {
+    if (!email) return;
+    setEmailSending(true);
+    setLogs(prev => [...prev.slice(-4), `> Sending verification link to ${email}...`]);
+    try {
+      await signIn('nodemailer', { email, callbackUrl: '/dashboard', redirect: false });
+      setEmailSent(true);
+      setLogs(prev => [...prev.slice(-4), "> Link sent! Check your inbox."]);
+    } catch {
+      setLogs(prev => [...prev.slice(-4), "> Error: Failed to send link."]);
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const handleSignIn = () => {
@@ -140,9 +144,9 @@ export default function Home() {
                     {log}
                   </p>
                 ))}
-                {(helloLoading || isRedirecting || status === 'loading') && (
+                {(emailSending || isRedirecting || status === 'loading') && (
                   <p className="text-[#00A8A8] animate-pulse">
-                    {'>'} {status === 'loading' ? 'Syncing_Identity...' : 'Processing request...'}
+                    {'>'} {status === 'loading' ? 'Syncing_Identity...' : emailSending ? 'Sending_Verification...' : 'Processing request...'}
                   </p>
                 )}
               </div>
@@ -152,19 +156,44 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <button
               onClick={handleSignIn}
-              disabled={helloLoading || isRedirecting || status === 'loading'}
+              disabled={emailSending || isRedirecting || status === 'loading'}
               className="w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
             >
               {isRedirecting ? 'Verified' : 'Sign In'}
             </button>
 
-            <button
-              onClick={handleTestEndpoint}
-              disabled={helloLoading || isRedirecting || status === 'loading'}
-              className="w-full sm:w-auto px-8 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all active:scale-95 disabled:opacity-30"
-            >
-              Click me!
-            </button>
+            {!showEmailInput ? (
+              <button
+                onClick={() => {
+                  setShowEmailInput(true);
+                  setLogs(prev => [...prev.slice(-4), "> Email auth mode activated."]);
+                }}
+                disabled={emailSending || isRedirecting || status === 'loading'}
+                className="w-full sm:w-auto px-8 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all active:scale-95 disabled:opacity-30"
+              >
+                Email Login
+              </button>
+            ) : (
+              <div className="flex w-full sm:w-auto gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
+                  placeholder="your@email.com"
+                  disabled={emailSending || emailSent}
+                  className="flex-1 sm:w-48 px-4 py-5 bg-black/60 border border-white/10 text-white font-mono text-[11px] rounded-sm focus:border-[#00A8A8]/50 focus:outline-none placeholder:text-gray-600 disabled:opacity-30"
+                  autoFocus
+                />
+                <button
+                  onClick={handleEmailLogin}
+                  disabled={emailSending || emailSent || !email}
+                  className="px-6 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8]/20 hover:border-[#00A8A8]/30 transition-all active:scale-95 disabled:opacity-30"
+                >
+                  {emailSent ? 'Sent ✓' : emailSending ? '...' : 'Send'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
