@@ -41,3 +41,14 @@ env:
     secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production
+    # Email Provider (Magic Link Login via Gmail)
+  - variable: EMAIL_SERVER_HOST
+    value: smtp.gmail.com
+  - variable: EMAIL_SERVER_PORT
+    value: "587"
+  - variable: EMAIL_SERVER_USER
+    value: datascience.gt@gmail.com
+  - variable: EMAIL_SERVER_PASSWORD
+    secret: projects/672446353769/secrets/EMAIL_SERVER_PASSWORD
+  - variable: EMAIL_FROM
+    value: datascience.gt@gmail.com
