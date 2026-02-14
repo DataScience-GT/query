@@ -21,6 +21,12 @@ export default function Dashboard() {
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
 
+  // Auto-link Stripe payment by email on login
+  const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation();
+  useEffect(() => {
+    if (session) attemptAutoLink();
+  }, [session, attemptAutoLink]);
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
