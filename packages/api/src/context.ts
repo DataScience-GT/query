@@ -12,7 +12,6 @@ type Session = {
   expires?: string;
 } | null;
 
-// Lazy import auth to avoid module resolution issues in standalone builds
 let authModule: { auth: () => Promise<Session> } | null = null;
 
 async function getAuth() {
