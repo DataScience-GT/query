@@ -3,42 +3,39 @@ import { db, verificationTokens, users, sessions } from "@query/db";
 import { eq, and } from "drizzle-orm";
 
 /**
- * Custom email verification endpoint that bypasses NextAuth's callback.
+ * Custom email verification endpoint.
+ *
+ * Our sendVerificationRequest stores a separate token that we control.
+ * This endpoint looks up that token directly — no dependency on NextAuth's
+ * internal hashing mechanism.
  */
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
-    const rawToken = searchParams.get("token");
+    const tokenParam = searchParams.get("token");
     const email = searchParams.get("email");
     const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-    // Use NEXTAUTH_URL for redirects (request.url resolves to internal host on Cloud Run)
     const baseUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://datasciencegt.org";
 
-    if (!rawToken || !email) {
+    if (!tokenParam || !email) {
         return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
     }
 
-    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "";
-
     try {
-        // Hash the token the same way @auth/core does (Web Crypto SHA-256)
-        const data = new TextEncoder().encode(`${rawToken}${secret}`);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        const hashedToken = Array.from(new Uint8Array(hashBuffer))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join("");
-
         if (!db) {
             return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
         }
 
-        // Look up and delete the token (one-time use)
+        // Look up the token directly — our sendVerificationRequest stores
+        // the token value as-is (no hashing) with a "custom:" prefix
+        const customTokenValue = `custom:${tokenParam}`;
+
         const result = await db
             .delete(verificationTokens)
             .where(
                 and(
                     eq(verificationTokens.identifier, email),
-                    eq(verificationTokens.token, hashedToken)
+                    eq(verificationTokens.token, customTokenValue)
                 )
             )
             .returning();
