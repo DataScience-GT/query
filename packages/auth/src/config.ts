@@ -96,17 +96,30 @@ export const authConfig: NextAuthConfig = {
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
-        // Extract the raw token from NextAuth's callback URL
         const parsedUrl = new URL(url);
         const host = parsedUrl.host;
-        const token = parsedUrl.searchParams.get("token") || "";
         const callbackUrl = parsedUrl.searchParams.get("callbackUrl") || "/dashboard";
 
-        // Build /verify URL — user clicks a button on this page to complete sign-in.
-        // This prevents email scanners from consuming the one-time token.
-        // The verify page redirects to our custom /api/auth/verify-email endpoint.
+        // Generate our own random token and store it directly in the DB.
+        // This bypasses NextAuth's internal token hashing which causes
+        // Verification_Failed errors in our deployment environment.
+        const { randomBytes } = await import("crypto");
+        const customToken = randomBytes(32).toString("hex");
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Dynamically import DB to store our custom token
+        const { db, verificationTokens } = await import("@query/db");
+        if (db) {
+          await db.insert(verificationTokens).values({
+            identifier,
+            token: `custom:${customToken}`,
+            expires,
+          });
+        }
+
+        // Build /verify URL with our custom token
         const verifyUrl = new URL("/verify", parsedUrl.origin);
-        verifyUrl.searchParams.set("token", token);
+        verifyUrl.searchParams.set("token", customToken);
         verifyUrl.searchParams.set("email", identifier);
         verifyUrl.searchParams.set("callbackUrl", callbackUrl);
         const safeUrl = verifyUrl.toString();
