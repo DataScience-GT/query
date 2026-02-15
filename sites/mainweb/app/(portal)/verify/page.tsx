@@ -8,20 +8,22 @@ function VerifyContent() {
     const searchParams = useSearchParams();
     const [verifying, setVerifying] = useState(false);
 
-    // Build the actual NextAuth callback URL from the search params
-    const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
-    const token = searchParams?.get('token') || '';
+    // The full NextAuth callback URL is base64-encoded in the 'callback' param
+    const encodedCallback = searchParams?.get('callback') || '';
     const email = searchParams?.get('email') || '';
 
+    let callbackUrl = '';
+    try {
+        callbackUrl = atob(encodedCallback);
+    } catch {
+        // invalid base64
+    }
+
     const handleVerify = () => {
+        if (!callbackUrl) return;
         setVerifying(true);
-        // Redirect to the actual NextAuth email callback
-        const params = new URLSearchParams({
-            callbackUrl,
-            token,
-            email,
-        });
-        window.location.href = `/api/auth/callback/nodemailer?${params.toString()}`;
+        // Redirect to the exact original NextAuth callback URL
+        window.location.href = callbackUrl;
     };
 
     return (
@@ -55,16 +57,16 @@ function VerifyContent() {
             <div className="relative z-10">
                 <button
                     onClick={handleVerify}
-                    disabled={verifying || !token}
+                    disabled={verifying || !callbackUrl}
                     className="px-12 py-5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-black text-xs uppercase tracking-[0.3em] hover:from-emerald-500 hover:to-emerald-400 transition-all rounded-lg shadow-[0_0_30px_rgba(16,185,129,0.2)] disabled:opacity-30 active:scale-95"
                 >
                     {verifying ? 'Verifying...' : 'Complete Sign In'}
                 </button>
             </div>
 
-            {!token && (
+            {!callbackUrl && (
                 <p className="relative z-10 mt-8 text-red-500/70 font-mono text-xs">
-                    Error: No verification token found. Please request a new sign-in link.
+                    Error: Invalid or missing verification link. Please request a new sign-in link.
                 </p>
             )}
 

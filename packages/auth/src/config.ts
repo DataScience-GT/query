@@ -96,18 +96,16 @@ export const authConfig: NextAuthConfig = {
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
-        // Parse the NextAuth callback URL to extract token and callbackUrl
         const parsedUrl = new URL(url);
         const host = parsedUrl.host;
-        const token = parsedUrl.searchParams.get("token") || "";
-        const callbackUrl = parsedUrl.searchParams.get("callbackUrl") || "/dashboard";
 
         // Build an intermediate /verify URL that prevents email scanners
-        // from consuming the one-time token via pre-fetch GET requests
+        // from consuming the one-time token via pre-fetch GET requests.
+        // We pass the ENTIRE original callback URL encoded to avoid
+        // dropping any parameters NextAuth needs internally.
         const verifyUrl = new URL("/verify", parsedUrl.origin);
-        verifyUrl.searchParams.set("token", token);
+        verifyUrl.searchParams.set("callback", Buffer.from(url).toString("base64"));
         verifyUrl.searchParams.set("email", identifier);
-        verifyUrl.searchParams.set("callbackUrl", callbackUrl);
         const safeUrl = verifyUrl.toString();
 
         const result = await transport.sendMail({
