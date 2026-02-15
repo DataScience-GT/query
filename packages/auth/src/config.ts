@@ -1,6 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/nodemailer";
+import { db, verificationTokens } from "@query/db";
+import { randomBytes } from "crypto";
 
 function html(params: { url: string; host: string }) {
   const { url, host } = params;
@@ -103,19 +105,20 @@ export const authConfig: NextAuthConfig = {
         // Generate our own random token and store it directly in the DB.
         // This bypasses NextAuth's internal token hashing which causes
         // Verification_Failed errors in our deployment environment.
-        const { randomBytes } = await import("crypto");
         const customToken = randomBytes(32).toString("hex");
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Dynamically import DB to store our custom token
-        const { db, verificationTokens } = await import("@query/db");
-        if (db) {
-          await db.insert(verificationTokens).values({
-            identifier,
-            token: `custom:${customToken}`,
-            expires,
-          });
+        if (!db) {
+          throw new Error("Database not available — cannot store verification token");
         }
+
+        await db.insert(verificationTokens).values({
+          identifier,
+          token: `custom:${customToken}`,
+          expires,
+        });
+
+        console.log(`[sendVerificationRequest] Token stored for ${identifier}`);
 
         // Build /verify URL with our custom token
         const verifyUrl = new URL("/verify", parsedUrl.origin);
