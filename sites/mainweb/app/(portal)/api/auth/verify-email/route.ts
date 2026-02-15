@@ -4,14 +4,6 @@ import { eq, and } from "drizzle-orm";
 
 /**
  * Custom email verification endpoint that bypasses NextAuth's callback.
- *
- * NextAuth's built-in email callback fails silently in this deployment.
- * This endpoint replicates the exact same logic:
- *   1. Hash the raw token with AUTH_SECRET (Web Crypto SHA-256)
- *   2. Look up the hashed token + identifier in the DB
- *   3. Delete the token (one-time use)
- *   4. Create a database session for the user
- *   5. Set the session cookie and redirect to dashboard
  */
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -19,8 +11,11 @@ export async function GET(request: NextRequest) {
     const email = searchParams.get("email");
     const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
+    // Use NEXTAUTH_URL for redirects (request.url resolves to internal host on Cloud Run)
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://datasciencegt.org";
+
     if (!rawToken || !email) {
-        return NextResponse.redirect(new URL("/auth/error?error=Configuration", request.url));
+        return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
     }
 
     const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "";
@@ -33,11 +28,11 @@ export async function GET(request: NextRequest) {
             .map((b) => b.toString(16).padStart(2, "0"))
             .join("");
 
-        // Look up and delete the token (one-time use)
         if (!db) {
-            return NextResponse.redirect(new URL("/auth/error?error=Configuration", request.url));
+            return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
         }
 
+        // Look up and delete the token (one-time use)
         const result = await db
             .delete(verificationTokens)
             .where(
@@ -49,15 +44,14 @@ export async function GET(request: NextRequest) {
             .returning();
 
         if (result.length === 0) {
-            // Token not found — expired, already used, or hash mismatch
-            return NextResponse.redirect(new URL("/auth/error?error=Verification", request.url));
+            return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
         }
 
         const invite = result[0];
 
         // Check expiry
         if (new Date(invite.expires) < new Date()) {
-            return NextResponse.redirect(new URL("/auth/error?error=Verification", request.url));
+            return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
         }
 
         // Find or create user
@@ -68,15 +62,13 @@ export async function GET(request: NextRequest) {
             .then((r) => r[0] ?? null);
 
         if (!user) {
-            // Create new user
             const newId = crypto.randomUUID();
             const inserted = await db
                 .insert(users)
                 .values({ id: newId, email, emailVerified: new Date() })
                 .returning();
-            user = inserted[0];
+            user = inserted[0]!;
         } else if (!user.emailVerified) {
-            // Mark email as verified
             await db
                 .update(users)
                 .set({ emailVerified: new Date() })
@@ -94,19 +86,19 @@ export async function GET(request: NextRequest) {
         });
 
         // Build redirect response with session cookie
-        const redirectUrl = new URL(callbackUrl, request.url);
+        const redirectUrl = callbackUrl.startsWith("http") ? callbackUrl : `${baseUrl}${callbackUrl}`;
         const response = NextResponse.redirect(redirectUrl);
 
         // Set the session cookie (same name NextAuth uses)
-        const isProduction = process.env.NODE_ENV === "production";
-        const cookieName = isProduction
+        const isSecure = baseUrl.startsWith("https");
+        const cookieName = isSecure
             ? "__Secure-authjs.session-token"
             : "authjs.session-token";
 
         response.cookies.set(cookieName, sessionToken, {
             httpOnly: true,
             sameSite: "lax",
-            secure: isProduction,
+            secure: isSecure,
             path: "/",
             expires: sessionExpires,
         });
@@ -114,6 +106,6 @@ export async function GET(request: NextRequest) {
         return response;
     } catch (error) {
         console.error("[verify-email] Error:", error);
-        return NextResponse.redirect(new URL("/auth/error?error=Verification", request.url));
+        return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
     }
 }
