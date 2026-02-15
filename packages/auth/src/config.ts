@@ -96,16 +96,19 @@ export const authConfig: NextAuthConfig = {
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
+        // Extract the raw token from NextAuth's callback URL
         const parsedUrl = new URL(url);
         const host = parsedUrl.host;
+        const token = parsedUrl.searchParams.get("token") || "";
+        const callbackUrl = parsedUrl.searchParams.get("callbackUrl") || "/dashboard";
 
-        // Build an intermediate /verify URL that prevents email scanners
-        // from consuming the one-time token via pre-fetch GET requests.
-        // We pass the ENTIRE original callback URL encoded to avoid
-        // dropping any parameters NextAuth needs internally.
+        // Build /verify URL — user clicks a button on this page to complete sign-in.
+        // This prevents email scanners from consuming the one-time token.
+        // The verify page redirects to our custom /api/auth/verify-email endpoint.
         const verifyUrl = new URL("/verify", parsedUrl.origin);
-        verifyUrl.searchParams.set("callback", Buffer.from(url).toString("base64"));
+        verifyUrl.searchParams.set("token", token);
         verifyUrl.searchParams.set("email", identifier);
+        verifyUrl.searchParams.set("callbackUrl", callbackUrl);
         const safeUrl = verifyUrl.toString();
 
         const result = await transport.sendMail({
