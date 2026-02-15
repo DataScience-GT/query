@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
         // the token value as-is (no hashing) with a "custom:" prefix
         const customTokenValue = `custom:${tokenParam}`;
 
+        console.log(`[verify-email] Looking up token for ${email}`);
+
         const result = await db
             .delete(verificationTokens)
             .where(
@@ -41,6 +43,7 @@ export async function GET(request: NextRequest) {
             .returning();
 
         if (result.length === 0) {
+            console.warn(`[verify-email] No matching token found for ${email} — link may be expired or already used`);
             return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
         }
 
