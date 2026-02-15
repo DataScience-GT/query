@@ -8,22 +8,16 @@ function VerifyContent() {
     const searchParams = useSearchParams();
     const [verifying, setVerifying] = useState(false);
 
-    // The full NextAuth callback URL is base64-encoded in the 'callback' param
-    const encodedCallback = searchParams?.get('callback') || '';
+    const token = searchParams?.get('token') || '';
     const email = searchParams?.get('email') || '';
-
-    let callbackUrl = '';
-    try {
-        callbackUrl = atob(encodedCallback);
-    } catch {
-        // invalid base64
-    }
+    const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
 
     const handleVerify = () => {
-        if (!callbackUrl) return;
+        if (!token) return;
         setVerifying(true);
-        // Redirect to the exact original NextAuth callback URL
-        window.location.href = callbackUrl;
+        // Redirect to our custom verification endpoint
+        const params = new URLSearchParams({ token, email, callbackUrl });
+        window.location.href = `/api/auth/verify-email?${params.toString()}`;
     };
 
     return (
@@ -57,14 +51,14 @@ function VerifyContent() {
             <div className="relative z-10">
                 <button
                     onClick={handleVerify}
-                    disabled={verifying || !callbackUrl}
+                    disabled={verifying || !token}
                     className="px-12 py-5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-black text-xs uppercase tracking-[0.3em] hover:from-emerald-500 hover:to-emerald-400 transition-all rounded-lg shadow-[0_0_30px_rgba(16,185,129,0.2)] disabled:opacity-30 active:scale-95"
                 >
                     {verifying ? 'Verifying...' : 'Complete Sign In'}
                 </button>
             </div>
 
-            {!callbackUrl && (
+            {!token && (
                 <p className="relative z-10 mt-8 text-red-500/70 font-mono text-xs">
                     Error: Invalid or missing verification link. Please request a new sign-in link.
                 </p>
