@@ -95,14 +95,27 @@ export const authConfig: NextAuthConfig = {
         // @ts-ignore
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
-        const { host } = new URL(url);
+
+        // Parse the NextAuth callback URL to extract token and callbackUrl
+        const parsedUrl = new URL(url);
+        const host = parsedUrl.host;
+        const token = parsedUrl.searchParams.get("token") || "";
+        const callbackUrl = parsedUrl.searchParams.get("callbackUrl") || "/dashboard";
+
+        // Build an intermediate /verify URL that prevents email scanners
+        // from consuming the one-time token via pre-fetch GET requests
+        const verifyUrl = new URL("/verify", parsedUrl.origin);
+        verifyUrl.searchParams.set("token", token);
+        verifyUrl.searchParams.set("email", identifier);
+        verifyUrl.searchParams.set("callbackUrl", callbackUrl);
+        const safeUrl = verifyUrl.toString();
 
         const result = await transport.sendMail({
           to: identifier,
           from: provider.from,
           subject: `Sign in to ${host}`,
-          text: `Sign in to ${host}\n${url}\n\n`,
-          html: html({ url, host }),
+          text: `Sign in to ${host}\n${safeUrl}\n\n`,
+          html: html({ url: safeUrl, host }),
         });
 
         const failed = result.rejected.concat(result.pending).filter(Boolean);
