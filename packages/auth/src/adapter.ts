@@ -3,9 +3,7 @@ import { db, users, accounts, sessions, verificationTokens } from "@query/db";
 import { sql } from "drizzle-orm";
 import type { Adapter, VerificationToken } from "next-auth/adapters";
 
-// Only create adapter if database is available and properly initialized
 function createAdapter(): Adapter | undefined {
-  // Check both that db exists and that DATABASE_URL was set
   if (!db || !process.env.DATABASE_URL) {
     console.warn("Auth adapter: No database connection, using JWT sessions");
     return undefined;
@@ -19,21 +17,11 @@ function createAdapter(): Adapter | undefined {
       verificationTokensTable: verificationTokens,
     });
 
-    // Override token methods with raw SQL to avoid Drizzle "boolin" type errors.
-    // The base DrizzleAdapter's generated queries hit a Postgres type mismatch
-    // in our deployment environment.
     return {
       ...baseAdapter,
-      createVerificationToken: async (
-        token: VerificationToken
-      ): Promise<VerificationToken> => {
-        if (!db) throw new Error("Database not available");
-        await db.execute(sql`
-          INSERT INTO "verificationToken" ("identifier", "token", "expires")
-          VALUES (${token.identifier}, ${token.token}, ${token.expires})
-        `);
-        return token;
-      },
+      // createVerificationToken: use DrizzleAdapter's default — it works fine.
+      // Only useVerificationToken needs raw SQL to avoid the Drizzle "boolin"
+      // type error on DELETE queries in our deployment environment.
       useVerificationToken: async (params: {
         identifier: string;
         token: string;
