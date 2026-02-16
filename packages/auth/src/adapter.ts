@@ -17,11 +17,23 @@ function createAdapter(): Adapter | undefined {
       verificationTokensTable: verificationTokens,
     });
 
+    // Override BOTH token methods with raw SQL to avoid Drizzle "boolin"
+    // type errors that affect all verificationToken queries in our
+    // deployment environment when using the pgTable compound primary key.
     return {
       ...baseAdapter,
-      // createVerificationToken: use DrizzleAdapter's default — it works fine.
-      // Only useVerificationToken needs raw SQL to avoid the Drizzle "boolin"
-      // type error on DELETE queries in our deployment environment.
+      createVerificationToken: async (
+        token: VerificationToken
+      ): Promise<VerificationToken> => {
+        if (!db) throw new Error("Database not available");
+        // Convert expires to ISO string for reliable Postgres timestamp handling
+        const expiresISO = token.expires.toISOString();
+        await db.execute(sql`
+          INSERT INTO "verificationToken" ("identifier", "token", "expires")
+          VALUES (${token.identifier}, ${token.token}, ${expiresISO}::timestamp)
+        `);
+        return token;
+      },
       useVerificationToken: async (params: {
         identifier: string;
         token: string;
