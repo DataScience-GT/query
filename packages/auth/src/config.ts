@@ -121,17 +121,23 @@ export const authConfig: NextAuthConfig = {
           "https://datasciencegt.org";
         const host = new URL(baseUrl).host;
 
-        const result = await transport.sendMail({
-          to: identifier,
-          from: provider.from,
-          subject: `${code} — Your sign-in code for ${host}`,
-          text: `Your sign-in code is: ${code}\n\nEnter this code on ${host} to sign in. It expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n`,
-          html: html({ code, host }),
-        });
+        try {
+          const result = await transport.sendMail({
+            to: identifier,
+            from: provider.from,
+            subject: `${code} — Your sign-in code for ${host}`,
+            text: `Your sign-in code is: ${code}\n\nEnter this code on ${host} to sign in. It expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n`,
+            html: html({ code, host }),
+          });
 
-        const failed = result.rejected.concat(result.pending).filter(Boolean);
-        if (failed.length) {
-          throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
+          const failed = result.rejected.concat(result.pending).filter(Boolean);
+          if (failed.length) {
+            console.error(`[sendVerificationRequest] Email(s) could not be sent: ${failed.join(", ")}`);
+            throw new Error(`Email(s) could not be sent`);
+          }
+        } catch (error) {
+          console.error("[sendVerificationRequest] Failed to send email:", error);
+          throw new Error("Failed to send verification email. Please try again later.");
         }
       },
     }),

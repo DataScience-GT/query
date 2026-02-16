@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db, stripePayments, users, members } from "@query/db";
 import { eq } from "drizzle-orm";
+import { cache } from "@query/api";
+
+// Type for the transaction object
+type Tx = Parameters<Parameters<NonNullable<typeof db>["transaction"]>[0]>[0];
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -21,6 +25,11 @@ export async function POST(req: NextRequest) {
 
   if (!stripe) {
     console.error("Stripe not initialized. Missing STRIPE_SECRET_KEY.");
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  }
+
+  if (!db) {
+    console.error("Database not initialized.");
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
@@ -55,56 +64,79 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "No customer email" }, { status: 400 });
       }
 
-      const existingPayment = await db?.query.stripePayments.findFirst({
+      // Check if payment already exists (idempotency)
+      const existingPayment = await db.query.stripePayments.findFirst({
         where: eq(stripePayments.stripeSessionId, session.id),
       });
 
       if (existingPayment) {
         console.log(`Payment already processed: ${session.id}`);
+        // If payment exists, verify membership was created too
+        if (existingPayment.linkedUserId) {
+          try {
+            // Invalidate cache just in case
+            cache.delete(`member:${existingPayment.linkedUserId}`);
+            cache.delete(`member:status:${existingPayment.linkedUserId}`);
+          } catch (e) {
+            console.warn("Failed to invalidate cache", e);
+          }
+        }
         return NextResponse.json({ received: true });
       }
 
       // Check if user already exists
-      // Priority 1: Check metadata userId (most reliable)
+      // Priority 1: Check metadata userId
       let targetUser = null;
 
       if (metadataUserId) {
-        targetUser = await db?.query.users.findFirst({
+        targetUser = await db.query.users.findFirst({
           where: eq(users.id, metadataUserId),
         });
       }
 
       // Priority 2: Fallback to email match
       if (!targetUser) {
-        targetUser = await db?.query.users.findFirst({
+        targetUser = await db.query.users.findFirst({
           where: eq(users.email, customerEmail),
         });
       }
 
-      // Save payment record
-      const [payment] = await db!
-        .insert(stripePayments)
-        .values({
-          stripeSessionId: session.id,
-          stripeCustomerId: session.customer as string | null,
-          stripePaymentIntentId: session.payment_intent as string | null,
-          customerEmail, // Normalized
-          customerName,
-          amountTotal: session.amount_total,
-          currency: session.currency || "usd",
-          paymentStatus: session.payment_status as "paid" | "unpaid" | "no_payment_required",
-          linkedUserId: targetUser?.id || null,
-          linkedAt: targetUser ? new Date() : null,
-          metadata: session.metadata ? JSON.stringify(session.metadata) : null,
-        })
-        .returning();
+      // Execute in transaction
+      await db.transaction(async (tx) => {
+        // Save payment record
+        const [payment] = await tx
+          .insert(stripePayments)
+          .values({
+            stripeSessionId: session.id,
+            stripeCustomerId: session.customer as string | null,
+            stripePaymentIntentId: session.payment_intent as string | null,
+            customerEmail, // Normalized
+            customerName,
+            amountTotal: session.amount_total,
+            currency: session.currency || "usd",
+            paymentStatus: session.payment_status as "paid" | "unpaid" | "no_payment_required",
+            linkedUserId: targetUser?.id || null,
+            linkedAt: targetUser ? new Date() : null,
+            metadata: session.metadata ? JSON.stringify(session.metadata) : null,
+          })
+          .returning();
 
-      // If user exists and paid, create/update membership
-      if (targetUser && session.payment_status === "paid") {
-        await createOrUpdateMembership(targetUser.id, customerName, customerEmail, phoneNumber);
-      }
+        // If user exists and paid, create/update membership
+        if (targetUser && session.payment_status === "paid") {
+          await createOrUpdateMembership(tx, targetUser.id, customerName, customerEmail, phoneNumber);
 
-      console.log(`Stripe payment recorded: ${payment?.id} for ${customerEmail} (Linked to: ${targetUser?.id || 'Unlinked'})`);
+          // Invalidate cache
+          try {
+            cache.delete(`member:${targetUser.id}`);
+            cache.delete(`member:status:${targetUser.id}`);
+          } catch (e) {
+            console.warn("Failed to invalidate cache inside webhook", e);
+          }
+        }
+
+        console.log(`Stripe payment recorded: ${payment?.id} for ${customerEmail} (Linked to: ${targetUser?.id || 'Unlinked'})`);
+      });
+
     } catch (error) {
       console.error("Error processing checkout session:", error);
       return NextResponse.json({ error: "Processing failed" }, { status: 500 });
@@ -114,14 +146,16 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
+
 async function createOrUpdateMembership(
+  tx: Tx,
   userId: string,
   customerName: string | null | undefined,
   customerEmail: string,
   phoneNumber: string | null | undefined
 ) {
   // Check if member already exists
-  const existingMember = await db?.query.members.findFirst({
+  const existingMember = await tx.query.members.findFirst({
     where: eq(members.userId, userId),
   });
 
@@ -136,7 +170,7 @@ async function createOrUpdateMembership(
 
   if (existingMember) {
     // Renew membership
-    await db!
+    await tx
       .update(members)
       .set({
         isActive: true,
@@ -152,7 +186,7 @@ async function createOrUpdateMembership(
     console.log(`Membership renewed for user ${userId}`);
   } else {
     // Create new membership
-    await db!.insert(members).values({
+    await tx.insert(members).values({
       userId,
       firstName,
       lastName,
