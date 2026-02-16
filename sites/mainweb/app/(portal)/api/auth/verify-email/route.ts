@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, users, sessions, accounts, stripePayments, userAccountLinks, members } from "@query/db";
 import { eq, and, isNull, sql } from "drizzle-orm";
+import { rateLimit, cache } from "@query/api";
 
+/**
+ * Code-based email verification endpoint.
+ *
+ * Accepts POST { code, email } — looks up `custom:<code>` in the
+ * verificationToken table, consumes it, creates a session, and
+ * returns the session cookie + redirect URL.
+ */
 /**
  * Code-based email verification endpoint.
  *
@@ -13,6 +21,16 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { code, email } = body as { code?: string; email?: string };
+
+        // 1. Rate Limiting
+        const ip = request.headers.get("x-forwarded-for") || "unknown";
+        const limit = rateLimit(ip, 10, 1); // 10 attempts, refills 1/sec
+        if (!limit.allowed) {
+            return NextResponse.json(
+                { success: false, error: "Too many attempts. Please try again later." },
+                { status: 429 }
+            );
+        }
 
         if (!code || !email) {
             return NextResponse.json(
@@ -32,160 +50,187 @@ export async function POST(request: NextRequest) {
         const customTokenValue = `custom:${code}`;
         console.log(`[verify-email] Verifying code for ${email}`);
 
-        // Consume the token (DELETE + RETURNING)
-        const result = await db.execute(sql`
-            DELETE FROM "verificationToken"
-            WHERE "identifier" = ${email} AND "token" = ${customTokenValue}
-            RETURNING *
-        `);
+        // 2. Transaction for atomic operations
+        const result = await db.transaction(async (tx) => {
+            // Consume the token (DELETE + RETURNING)
+            const tokenResult = await tx.execute(sql`
+                DELETE FROM "verificationToken"
+                WHERE "identifier" = ${email} AND "token" = ${customTokenValue}
+                RETURNING *
+            `);
 
-        if (result.rowCount === 0) {
-            console.warn(`[verify-email] No matching code for ${email}`);
+            if (tokenResult.rowCount === 0) {
+                console.warn(`[verify-email] No matching code for ${email}`);
+                return null;
+            }
+
+            const invite = tokenResult.rows[0] as any;
+
+            // Check expiry
+            if (new Date(invite.expires) < new Date()) {
+                console.warn(`[verify-email] Code expired for ${email}`);
+                return { error: "Code has expired. Please request a new one." };
+            }
+
+            console.log(`[verify-email] Code verified for ${email}`);
+
+            // Find or create user
+            let user = await tx
+                .select()
+                .from(users)
+                .where(eq(users.email, email))
+                .then((r) => r[0] ?? null);
+
+            if (!user) {
+                const newId = crypto.randomUUID();
+                const inserted = await tx
+                    .insert(users)
+                    .values({ id: newId, email, emailVerified: new Date() })
+                    .returning();
+                user = inserted[0]!;
+                console.log(`[verify-email] Created new user ${user.id}`);
+            } else if (!user.emailVerified) {
+                await tx
+                    .update(users)
+                    .set({ emailVerified: new Date() })
+                    .where(eq(users.id, user.id));
+            }
+
+            // Create a database session
+            const sessionToken = crypto.randomUUID();
+            const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+            await tx.insert(sessions).values({
+                sessionToken,
+                userId: user.id,
+                expires: sessionExpires,
+            });
+
+            // --- Auto-link: Create account record for email provider if missing ---
+            const existingAccount = await tx
+                .select()
+                .from(accounts)
+                .where(and(eq(accounts.userId, user.id), eq(accounts.provider, "nodemailer")))
+                .then((res) => res[0]);
+
+            if (!existingAccount) {
+                await tx.insert(accounts).values({
+                    userId: user.id,
+                    type: "email",
+                    provider: "nodemailer",
+                    providerAccountId: email,
+                });
+                console.log(`[verify-email] Created account record for ${email}`);
+            }
+
+            // --- Auto-link: Link Stripe payment if matching email exists ---
+            try {
+                const payment = await tx.query.stripePayments.findFirst({
+                    where: and(
+                        eq(stripePayments.customerEmail, email),
+                        isNull(stripePayments.linkedUserId),
+                        eq(stripePayments.paymentStatus, "paid")
+                    ),
+                });
+
+                if (payment) {
+                    // Check no existing link for this user
+                    const existingLink = await tx.query.userAccountLinks.findFirst({
+                        where: eq(userAccountLinks.userId, user.id),
+                    });
+
+                    if (!existingLink) {
+                        const names = (user.name || "Member").split(" ");
+                        const firstName = names[0] || "Member";
+                        const lastName = names.slice(1).join(" ") || "Member";
+
+                        await tx.insert(userAccountLinks).values({
+                            userId: user.id,
+                            stripePaymentId: payment.id,
+                            providedFirstName: firstName,
+                            providedLastName: lastName,
+                            providedEmail: email,
+                        });
+
+                        await tx
+                            .update(stripePayments)
+                            .set({
+                                linkedUserId: user.id,
+                                linkedAt: new Date(),
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(stripePayments.id, payment.id));
+
+                        // Create/Update membership
+                        const now = new Date();
+                        const oneYearFromNow = new Date(now);
+                        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+                        const existingMember = await tx.query.members.findFirst({
+                            where: eq(members.userId, user.id),
+                        });
+
+                        if (existingMember) {
+                            await tx
+                                .update(members)
+                                .set({
+                                    isActive: true,
+                                    membershipStartDate: now,
+                                    membershipEndDate: oneYearFromNow,
+                                    renewalCount: existingMember.renewalCount + 1,
+                                    memberType: "continuous",
+                                    updatedAt: now,
+                                })
+                                .where(eq(members.id, existingMember.id));
+                        } else {
+                            await tx.insert(members).values({
+                                userId: user.id,
+                                firstName,
+                                lastName,
+                                memberType: "new",
+                                isActive: true,
+                                membershipStartDate: now,
+                                membershipEndDate: oneYearFromNow,
+                                renewalCount: 0,
+                            });
+                        }
+
+                        console.log(`[verify-email] Auto-linked Stripe payment ${payment.id} for ${email}`);
+                    }
+                }
+            } catch (linkError) {
+                console.error("[verify-email] Auto-link error:", linkError);
+                // Don't fail the login if auto-link fails, just log it
+            }
+
+            return {
+                sessionToken,
+                sessionExpires,
+                userId: user.id,
+            };
+        });
+
+        if (!result) {
             return NextResponse.json(
                 { success: false, error: "Invalid or expired code. Please try again." },
                 { status: 401 }
             );
         }
 
-        const invite = result.rows[0] as any;
-        console.log(`[verify-email] Code verified for ${email}`);
-
-        // Check expiry
-        if (new Date(invite.expires) < new Date()) {
-            console.warn(`[verify-email] Code expired for ${email}`);
+        if ('error' in result) {
             return NextResponse.json(
-                { success: false, error: "Code has expired. Please request a new one." },
+                { success: false, error: result.error },
                 { status: 401 }
             );
         }
 
-        // Find or create user
-        let user = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .then((r) => r[0] ?? null);
-
-        if (!user) {
-            const newId = crypto.randomUUID();
-            const inserted = await db
-                .insert(users)
-                .values({ id: newId, email, emailVerified: new Date() })
-                .returning();
-            user = inserted[0]!;
-            console.log(`[verify-email] Created new user ${user.id}`);
-        } else if (!user.emailVerified) {
-            await db
-                .update(users)
-                .set({ emailVerified: new Date() })
-                .where(eq(users.id, user.id));
-        }
-
-        // Create a database session
-        const sessionToken = crypto.randomUUID();
-        const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-        await db.insert(sessions).values({
-            sessionToken,
-            userId: user.id,
-            expires: sessionExpires,
-        });
-
-        // --- Auto-link: Create account record for email provider if missing ---
-        const existingAccount = await db
-            .select()
-            .from(accounts)
-            .where(and(eq(accounts.userId, user.id), eq(accounts.provider, "nodemailer")))
-            .then((res) => res[0]);
-
-        if (!existingAccount) {
-            await db.insert(accounts).values({
-                userId: user.id,
-                type: "email",
-                provider: "nodemailer",
-                providerAccountId: email,
-            });
-            console.log(`[verify-email] Created account record for ${email}`);
-        }
-
-        // --- Auto-link: Link Stripe payment if matching email exists ---
+        // 3. Cache Invalidation
+        // Invalidate any stale member status for this user so the UI updates immediately
         try {
-            const payment = await db.query.stripePayments.findFirst({
-                where: and(
-                    eq(stripePayments.customerEmail, email),
-                    isNull(stripePayments.linkedUserId),
-                    eq(stripePayments.paymentStatus, "paid")
-                ),
-            });
-
-            if (payment) {
-                // Check no existing link for this user
-                const existingLink = await db.query.userAccountLinks.findFirst({
-                    where: eq(userAccountLinks.userId, user.id),
-                });
-
-                if (!existingLink) {
-                    const names = (user.name || "Member").split(" ");
-                    const firstName = names[0] || "Member";
-                    const lastName = names.slice(1).join(" ") || "Member";
-
-                    await db.insert(userAccountLinks).values({
-                        userId: user.id,
-                        stripePaymentId: payment.id,
-                        providedFirstName: firstName,
-                        providedLastName: lastName,
-                        providedEmail: email,
-                    });
-
-                    await db
-                        .update(stripePayments)
-                        .set({
-                            linkedUserId: user.id,
-                            linkedAt: new Date(),
-                            updatedAt: new Date(),
-                        })
-                        .where(eq(stripePayments.id, payment.id));
-
-                    // Create/Update membership
-                    const now = new Date();
-                    const oneYearFromNow = new Date(now);
-                    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-                    const existingMember = await db.query.members.findFirst({
-                        where: eq(members.userId, user.id),
-                    });
-
-                    if (existingMember) {
-                        await db
-                            .update(members)
-                            .set({
-                                isActive: true,
-                                membershipStartDate: now,
-                                membershipEndDate: oneYearFromNow,
-                                renewalCount: existingMember.renewalCount + 1,
-                                memberType: "continuous",
-                                updatedAt: now,
-                            })
-                            .where(eq(members.id, existingMember.id));
-                    } else {
-                        await db.insert(members).values({
-                            userId: user.id,
-                            firstName,
-                            lastName,
-                            memberType: "new",
-                            isActive: true,
-                            membershipStartDate: now,
-                            membershipEndDate: oneYearFromNow,
-                            renewalCount: 0,
-                        });
-                    }
-
-                    console.log(`[verify-email] Auto-linked Stripe payment ${payment.id} for ${email}`);
-                }
-            }
-        } catch (linkError) {
-            console.error("[verify-email] Auto-link error:", linkError);
-            // Don't fail the login if auto-link fails, just log it
+            cache.delete(`member:${result.userId}`);
+            cache.delete(`member:status:${result.userId}`);
+        } catch (e) {
+            console.warn("[verify-email] Failed to invalidate cache", e);
         }
 
         // Build JSON response with Set-Cookie header
@@ -203,12 +248,12 @@ export async function POST(request: NextRequest) {
             redirectUrl: "/dashboard",
         });
 
-        response.cookies.set(cookieName, sessionToken, {
+        response.cookies.set(cookieName, result.sessionToken, {
             httpOnly: true,
             sameSite: "lax",
             secure: isSecure,
             path: "/",
-            expires: sessionExpires,
+            expires: result.sessionExpires,
         });
 
         console.log(`[verify-email] Session created for ${email}`);
