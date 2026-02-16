@@ -91,25 +91,48 @@ export const authConfig: NextAuthConfig = {
         pool: true,
       },
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
-      // Custom email template — we send our branded email but let NextAuth
-      // handle token generation, hashing, and the callback URL.
+      // Custom email template with our own token — links to /verify page
+      // to prevent email-client HEAD prefetch from consuming the token.
       sendVerificationRequest: async ({ identifier, url, provider }) => {
+        // Generate our own token and store it with a "custom:" prefix so our
+        // verify-email route can look it up directly (no NextAuth hashing).
+        const rawToken = crypto.randomUUID();
+        const customToken = `custom:${rawToken}`;
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Dynamic import to avoid circular dependency
+        const { adapter } = await import("./adapter");
+        if (adapter?.createVerificationToken) {
+          await adapter.createVerificationToken({
+            identifier,
+            token: customToken,
+            expires,
+          });
+        }
+
+        // Build URL to our /verify page — the user clicks a button there,
+        // which prevents email-client HEAD prefetch from consuming the token.
+        const baseUrl =
+          process.env.NEXTAUTH_URL ||
+          process.env.AUTH_URL ||
+          "https://datasciencegt.org";
+        const verifyUrl = new URL("/verify", baseUrl);
+        verifyUrl.searchParams.set("token", rawToken);
+        verifyUrl.searchParams.set("email", identifier);
+        verifyUrl.searchParams.set("callbackUrl", "/dashboard");
+
         // @ts-ignore
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
-        const parsedUrl = new URL(url);
-        const host = parsedUrl.host;
-
-        // Use NextAuth's callback URL directly — it includes the hashed token.
-        // No need to generate or store our own token; the adapter handles it.
+        const host = verifyUrl.host;
 
         const result = await transport.sendMail({
           to: identifier,
           from: provider.from,
           subject: `Sign in to ${host}`,
-          text: `Sign in to ${host}\n${url}\n\n`,
-          html: html({ url, host }),
+          text: `Sign in to ${host}\n${verifyUrl.toString()}\n\n`,
+          html: html({ url: verifyUrl.toString(), host }),
         });
 
         const failed = result.rejected.concat(result.pending).filter(Boolean);
