@@ -118,7 +118,7 @@ export const authConfig: NextAuthConfig = {
           expires,
         });
 
-        console.log(`[sendVerificationRequest] Token stored for ${identifier}`);
+        // console.log(`[sendVerificationRequest] Token stored for ${identifier}`);
 
         // Build /verify URL with our custom token
         const verifyUrl = new URL("/verify", parsedUrl.origin);
