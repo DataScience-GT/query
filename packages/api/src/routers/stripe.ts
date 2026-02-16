@@ -37,32 +37,47 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: "DSGT Membership",
-                description: "One year membership to Data Science at Georgia Tech",
-                // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
+      try {
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                product_data: {
+                  name: "DSGT Membership",
+                  description: "One year membership to Data Science at Georgia Tech",
+                  // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
+                },
+                unit_amount: 2500, // $15.00
               },
-              unit_amount: 2500, // $15.00
+              quantity: 1,
             },
-            quantity: 1,
+          ],
+          mode: "payment",
+          success_url: `${input.returnUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${input.returnUrl}?payment=cancelled`,
+          customer_email: user.email,
+          metadata: {
+            userId: ctx.userId!,
           },
-        ],
-        mode: "payment",
-        success_url: `${input.returnUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${input.returnUrl}?payment=cancelled`,
-        customer_email: user.email,
-        metadata: {
-          userId: ctx.userId!,
-        },
-      });
+        });
 
-      return { url: session.url };
+        return { url: session.url };
+      } catch (error: any) {
+        console.error("Stripe Checkout Error:", error);
+        // Check for invalid API key errors specifically if possible, but obscure all
+        if (error.message?.includes("Invalid API Key")) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Payment configuration error. Please contact support.",
+          });
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create checkout session. Please try again later.",
+        });
+      }
     }),
 
   /**
