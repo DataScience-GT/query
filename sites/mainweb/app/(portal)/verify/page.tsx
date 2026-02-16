@@ -81,6 +81,7 @@ function VerifyContent() {
             const res = await fetch('/api/auth/verify-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ code: fullCode, email }),
             });
 
