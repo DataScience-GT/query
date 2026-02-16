@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, users, sessions, accounts, stripePayments, userAccountLinks, members } from "@query/db";
+import { db, users, sessions, accounts, stripePayments, userAccountLinks, members, verificationTokens } from "@query/db";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { rateLimit, cache } from "@query/api";
 
@@ -10,19 +10,13 @@ import { rateLimit, cache } from "@query/api";
  * verificationToken table, consumes it, creates a session, and
  * returns the session cookie + redirect URL.
  */
-/**
- * Code-based email verification endpoint.
- *
- * Accepts POST { code, email } — looks up `custom:<code>` in the
- * verificationToken table, consumes it, creates a session, and
- * returns the session cookie + redirect URL.
- */
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { code, email } = body as { code?: string; email?: string };
 
-        // 1. Rate Limiting
+
         const ip = request.headers.get("x-forwarded-for") || "unknown";
         const limit = rateLimit(ip, 10, 1); // 10 attempts, refills 1/sec
         if (!limit.allowed) {
@@ -50,21 +44,20 @@ export async function POST(request: NextRequest) {
         const customTokenValue = `custom:${code}`;
         console.log(`[verify-email] Verifying code for ${email}`);
 
-        // 2. Transaction for atomic operations
         const result = await db.transaction(async (tx) => {
             // Consume the token (DELETE + RETURNING)
-            const tokenResult = await tx.execute(sql`
-                DELETE FROM "verificationToken"
-                WHERE "identifier" = ${email} AND "token" = ${customTokenValue}
-                RETURNING *
-            `);
+            const [invite] = await tx
+                .delete(verificationTokens)
+                .where(and(
+                    eq(verificationTokens.identifier, email),
+                    eq(verificationTokens.token, customTokenValue)
+                ))
+                .returning();
 
-            if (tokenResult.rowCount === 0) {
+            if (!invite) {
                 console.warn(`[verify-email] No matching code for ${email}`);
                 return null;
             }
-
-            const invite = tokenResult.rows[0] as any;
 
             // Check expiry
             if (new Date(invite.expires) < new Date()) {
@@ -224,8 +217,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 3. Cache Invalidation
-        // Invalidate any stale member status for this user so the UI updates immediately
         try {
             cache.delete(`member:${result.userId}`);
             cache.delete(`member:status:${result.userId}`);
