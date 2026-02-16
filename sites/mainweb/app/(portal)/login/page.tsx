@@ -87,14 +87,14 @@ export default function Home() {
   const handleEmailLogin = async () => {
     if (!email) return;
     setEmailSending(true);
-    setLogs(prev => [...prev.slice(-4), `> Sending verification link to ${email}...`]);
+    setLogs(prev => [...prev.slice(-4), `> Sending verification code to ${email}...`]);
     try {
       await signIn('nodemailer', { email, callbackUrl: '/dashboard', redirect: false });
-      setEmailSent(true);
-      setLogs(prev => [...prev.slice(-4), "> Link sent! Check your inbox."]);
+      setLogs(prev => [...prev.slice(-4), "> Code sent! Redirecting..."]);
+      // Redirect to verify page where user enters the 6-digit code
+      router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch {
-      setLogs(prev => [...prev.slice(-4), "> Error: Failed to send link."]);
-    } finally {
+      setLogs(prev => [...prev.slice(-4), "> Error: Failed to send code."]);
       setEmailSending(false);
     }
   };
