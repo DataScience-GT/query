@@ -1,14 +1,15 @@
 import type { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/nodemailer";
+import { db } from "@query/db";
+import { sql } from "drizzle-orm";
 
-function html(params: { url: string; host: string }) {
-  const { url, host } = params;
+function html(params: { code: string; host: string }) {
+  const { code, host } = params;
 
-  // Liquid Glass Design with Teal/Emerald Gradient
-  const mainColor = "#10b981"; // Emerald-500
-  const backgroundColor = "#0f172a"; // Slate-900
-  const textColor = "#f8fafc"; // Slate-50
+  const mainColor = "#10b981";
+  const backgroundColor = "#0f172a";
+  const textColor = "#f8fafc";
 
   return `
 <body style="background: ${backgroundColor}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0;">
@@ -18,33 +19,35 @@ function html(params: { url: string; host: string }) {
       <td style="background: linear-gradient(90deg, #10b981 0%, #0ea5e9 100%); height: 4px;"></td>
     </tr>
 
-    <!-- Content Area with Glass Effect -->
+    <!-- Content Area -->
     <tr>
-      <td style="padding: 40px 20px; text-align: center; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05);">
+      <td style="padding: 40px 20px; text-align: center; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.05);">
 
-        <!-- Logo / Icon -->
         <div style="margin-bottom: 24px;">
            <h1 style="color: ${textColor}; font-size: 24px; font-weight: 300; letter-spacing: 1px; margin: 0;">DataScience<span style="font-weight: 600; color: ${mainColor};">GT</span></h1>
         </div>
 
-        <h2 style="color: ${textColor}; font-size: 20px; font-weight: 400; margin-bottom: 16px;">Secure Sign In</h2>
+        <h2 style="color: ${textColor}; font-size: 20px; font-weight: 400; margin-bottom: 16px;">Your Verification Code</h2>
 
-        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 32px;">
-          Click the button below to authenticate your access to <strong>${host}</strong>. This link expires in 24 hours.
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+          Enter this code on <strong>${host}</strong> to sign in. It expires in 10 minutes.
         </p>
 
-        <!-- Primary Button -->
-        <table border="0" cellspacing="0" cellpadding="0" style="margin: auto;">
-          <tr>
-            <td align="center" style="border-radius: 8px; background: linear-gradient(135deg, ${mainColor} 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-              <a href="${url}" target="_blank" style="font-size: 16px; font-family: sans-serif; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); display: inline-block; font-weight: 600;">
-                Sign In Now
-              </a>
-            </td>
-          </tr>
-        </table>
+        <!-- Code Display -->
+        <div style="margin: 32px auto; max-width: 320px;">
+          <table border="0" cellspacing="0" cellpadding="0" style="margin: auto;">
+            <tr>
+              ${code
+      .split("")
+      .map(
+        (d) =>
+          `<td style="padding: 0 4px;"><div style="width: 44px; height: 56px; background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 28px; font-weight: 700; color: ${mainColor}; line-height: 56px; text-align: center; font-family: 'Courier New', monospace;">${d}</div></td>`
+      )
+      .join("")}
+            </tr>
+          </table>
+        </div>
 
-        <!-- Security Note -->
         <p style="color: #64748b; font-size: 12px; margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
           If you didn't request this email, you can safely ignore it.
         </p>
@@ -68,9 +71,7 @@ export const authConfig: NextAuthConfig = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Allows Google login to "claim" the pre-seeded user record via email match
       allowDangerousEmailAccountLinking: true,
-      // Disable all checks for Firebase proxy (cookies don't transfer)
       checks: [],
       authorization: {
         params: {
@@ -91,48 +92,41 @@ export const authConfig: NextAuthConfig = {
         pool: true,
       },
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
-      // Custom email template with our own token — links to /verify page
-      // to prevent email-client HEAD prefetch from consuming the token.
+      // 6-digit code flow — no magic link, user types the code.
       sendVerificationRequest: async ({ identifier, url, provider }) => {
-        // Generate our own token and store it with a "custom:" prefix so our
-        // verify-email route can look it up directly (no NextAuth hashing).
-        const rawToken = crypto.randomUUID();
-        const customToken = `custom:${rawToken}`;
-        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        // Generate a 6-digit numeric code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const customToken = `custom:${code}`;
+        const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Dynamic import to avoid circular dependency
-        const { adapter } = await import("./adapter");
-        if (adapter?.createVerificationToken) {
-          await adapter.createVerificationToken({
-            identifier,
-            token: customToken,
-            expires,
-          });
+        // Store code in DB
+        if (db) {
+          const expiresISO = expires.toISOString();
+          await db.execute(sql`
+            INSERT INTO "verificationToken" ("identifier", "token", "expires")
+            VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamp)
+          `);
+          console.log(`[sendVerificationRequest] Stored code for ${identifier}`);
+        } else {
+          console.error(`[sendVerificationRequest] No DB — code NOT stored for ${identifier}`);
         }
-
-        // Build URL to our /verify page — the user clicks a button there,
-        // which prevents email-client HEAD prefetch from consuming the token.
-        const baseUrl =
-          process.env.NEXTAUTH_URL ||
-          process.env.AUTH_URL ||
-          "https://datasciencegt.org";
-        const verifyUrl = new URL("/verify", baseUrl);
-        verifyUrl.searchParams.set("token", rawToken);
-        verifyUrl.searchParams.set("email", identifier);
-        verifyUrl.searchParams.set("callbackUrl", "/dashboard");
 
         // @ts-ignore
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
-        const host = verifyUrl.host;
+        const baseUrl =
+          process.env.NEXTAUTH_URL ||
+          process.env.AUTH_URL ||
+          "https://datasciencegt.org";
+        const host = new URL(baseUrl).host;
 
         const result = await transport.sendMail({
           to: identifier,
           from: provider.from,
-          subject: `Sign in to ${host}`,
-          text: `Sign in to ${host}\n${verifyUrl.toString()}\n\n`,
-          html: html({ url: verifyUrl.toString(), host }),
+          subject: `${code} — Your sign-in code for ${host}`,
+          text: `Your sign-in code is: ${code}\n\nEnter this code on ${host} to sign in. It expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n`,
+          html: html({ code, host }),
         });
 
         const failed = result.rejected.concat(result.pending).filter(Boolean);
@@ -150,13 +144,11 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async session({ session, user }) {
       if (user && session.user) {
-        // Ensures the ID generated during seeding is the ID used in the session
         session.user.id = user.id;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Handle callback URLs
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       } else if (new URL(url).origin === baseUrl) {
