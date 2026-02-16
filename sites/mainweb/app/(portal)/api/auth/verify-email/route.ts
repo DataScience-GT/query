@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, users, sessions } from "@query/db";
-import { eq, sql } from "drizzle-orm";
+import { db, users, sessions, accounts, stripePayments, userAccountLinks, members } from "@query/db";
+import { eq, and, isNull, sql } from "drizzle-orm";
 
 /**
  * Code-based email verification endpoint.
@@ -90,6 +90,103 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             expires: sessionExpires,
         });
+
+        // --- Auto-link: Create account record for email provider if missing ---
+        const existingAccount = await db
+            .select()
+            .from(accounts)
+            .where(and(eq(accounts.userId, user.id), eq(accounts.provider, "nodemailer")))
+            .then((res) => res[0]);
+
+        if (!existingAccount) {
+            await db.insert(accounts).values({
+                userId: user.id,
+                type: "email",
+                provider: "nodemailer",
+                providerAccountId: email,
+            });
+            console.log(`[verify-email] Created account record for ${email}`);
+        }
+
+        // --- Auto-link: Link Stripe payment if matching email exists ---
+        try {
+            const payment = await db.query.stripePayments.findFirst({
+                where: and(
+                    eq(stripePayments.customerEmail, email),
+                    isNull(stripePayments.linkedUserId),
+                    eq(stripePayments.paymentStatus, "paid")
+                ),
+            });
+
+            if (payment) {
+                // Check no existing link for this user
+                const existingLink = await db.query.userAccountLinks.findFirst({
+                    where: eq(userAccountLinks.userId, user.id),
+                });
+
+                if (!existingLink) {
+                    const names = (user.name || "Member").split(" ");
+                    const firstName = names[0] || "Member";
+                    const lastName = names.slice(1).join(" ") || "Member";
+
+                    await db.insert(userAccountLinks).values({
+                        userId: user.id,
+                        stripePaymentId: payment.id,
+                        providedFirstName: firstName,
+                        providedLastName: lastName,
+                        providedEmail: email,
+                    });
+
+                    await db
+                        .update(stripePayments)
+                        .set({
+                            linkedUserId: user.id,
+                            linkedAt: new Date(),
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(stripePayments.id, payment.id));
+
+                    // Create/Update membership
+                    const now = new Date();
+                    const oneYearFromNow = new Date(now);
+                    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+                    const existingMember = await db.query.members.findFirst({
+                        where: eq(members.userId, user.id),
+                    });
+
+                    if (existingMember) {
+                        await db
+                            .update(members)
+                            .set({
+                                isActive: true,
+                                membershipStartDate: now,
+                                membershipEndDate: oneYearFromNow,
+                                renewalCount: existingMember.renewalCount + 1,
+                                memberType: "continuous",
+                                updatedAt: now,
+                            })
+                            .where(eq(members.id, existingMember.id));
+                    } else {
+                        await db.insert(members).values({
+                            userId: user.id,
+                            firstName,
+                            lastName,
+                            memberType: "new",
+                            isActive: true,
+                            membershipStartDate: now,
+                            membershipEndDate: oneYearFromNow,
+                            renewalCount: 0,
+                        });
+                    }
+
+                    console.log(`[verify-email] Auto-linked Stripe payment ${payment.id} for ${email}`);
+                }
+            }
+        } catch (linkError) {
+            console.error("[verify-email] Auto-link error:", linkError);
+            // Don't fail the login if auto-link fails, just log it
+        }
 
         // Build JSON response with Set-Cookie header
         const baseUrl =
