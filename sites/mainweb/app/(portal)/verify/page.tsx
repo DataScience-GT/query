@@ -115,10 +115,10 @@ function VerifyContent() {
 
             <div className="relative z-10 space-y-4 mb-10 max-w-lg">
                 <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
-                    Enter<span className="text-emerald-500">_Code</span>
+                    Enter<span className="text-emerald-500"> Code</span>
                 </h1>
                 <p className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em] mb-4">
-                    Secure_Authentication // Code_Verification
+                    Code Verfication
                 </p>
                 <div className="h-[1px] w-12 bg-emerald-500/30 mx-auto" />
                 <p className="text-gray-400 font-mono text-sm leading-relaxed">
@@ -187,9 +187,7 @@ function VerifyContent() {
             )}
 
             <div className="fixed bottom-12 left-0 w-full text-center">
-                <p className="text-[10px] text-gray-700 font-mono uppercase tracking-[0.5em]">
-                    Query_Security_Protocols_Active
-                </p>
+                <p className="text-[10px] text-gray-700 font-mono uppercase tracking-[0.5em]"> </p>
             </div>
         </div>
     );
@@ -199,7 +197,7 @@ export default function VerifyPage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-emerald-500 uppercase tracking-widest">
-                Loading_Verification...
+                Loading
             </div>
         }>
             <VerifyContent />
