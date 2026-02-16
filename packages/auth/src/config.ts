@@ -1,8 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/nodemailer";
-import { db, verificationTokens } from "@query/db";
-import { randomBytes } from "crypto";
 
 function html(params: { url: string; host: string }) {
   const { url, host } = params;
@@ -93,6 +91,8 @@ export const authConfig: NextAuthConfig = {
         pool: true,
       },
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
+      // Custom email template — we send our branded email but let NextAuth
+      // handle token generation, hashing, and the callback URL.
       sendVerificationRequest: async ({ identifier, url, provider }) => {
         // @ts-ignore
         const { createTransport } = await import("nodemailer");
@@ -100,39 +100,16 @@ export const authConfig: NextAuthConfig = {
 
         const parsedUrl = new URL(url);
         const host = parsedUrl.host;
-        const callbackUrl = parsedUrl.searchParams.get("callbackUrl") || "/dashboard";
 
-        // Generate our own random token and store it directly in the DB.
-        // This bypasses NextAuth's internal token hashing which causes
-        // Verification_Failed errors in our deployment environment.
-        const customToken = randomBytes(32).toString("hex");
-        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-        if (!db) {
-          throw new Error("Database not available — cannot store verification token");
-        }
-
-        await db.insert(verificationTokens).values({
-          identifier,
-          token: `custom:${customToken}`,
-          expires,
-        });
-
-        // console.log(`[sendVerificationRequest] Token stored for ${identifier}`);
-
-        // Build /verify URL with our custom token
-        const verifyUrl = new URL("/verify", parsedUrl.origin);
-        verifyUrl.searchParams.set("token", customToken);
-        verifyUrl.searchParams.set("email", identifier);
-        verifyUrl.searchParams.set("callbackUrl", callbackUrl);
-        const safeUrl = verifyUrl.toString();
+        // Use NextAuth's callback URL directly — it includes the hashed token.
+        // No need to generate or store our own token; the adapter handles it.
 
         const result = await transport.sendMail({
           to: identifier,
           from: provider.from,
           subject: `Sign in to ${host}`,
-          text: `Sign in to ${host}\n${safeUrl}\n\n`,
-          html: html({ url: safeUrl, host }),
+          text: `Sign in to ${host}\n${url}\n\n`,
+          html: html({ url, host }),
         });
 
         const failed = result.rejected.concat(result.pending).filter(Boolean);
