@@ -1,40 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, verificationTokens, users, sessions } from "@query/db";
-import { eq, and, sql } from "drizzle-orm";
+import { db, users, sessions } from "@query/db";
+import { eq, sql } from "drizzle-orm";
 
 /**
- * Custom email verification endpoint.
+ * Code-based email verification endpoint.
  *
- * Our sendVerificationRequest stores a separate token that we control.
- * This endpoint looks up that token directly — no dependency on NextAuth's
- * internal hashing mechanism.
+ * Accepts POST { code, email } — looks up `custom:<code>` in the
+ * verificationToken table, consumes it, creates a session, and
+ * returns the session cookie + redirect URL.
  */
-export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const tokenParam = searchParams.get("token");
-    const email = searchParams.get("email");
-    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://datasciencegt.org";
-
-    if (!tokenParam || !email) {
-        return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
-    }
-
+export async function POST(request: NextRequest) {
     try {
-        if (!db) {
-            console.error("[verify-email] Database connection not available");
-            return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
+        const body = await request.json();
+        const { code, email } = body as { code?: string; email?: string };
+
+        if (!code || !email) {
+            return NextResponse.json(
+                { success: false, error: "Missing code or email." },
+                { status: 400 }
+            );
         }
 
-        // Look up the token directly — our sendVerificationRequest stores
-        // the token value as-is (no hashing) with a "custom:" prefix
-        const customTokenValue = `custom:${tokenParam}`;
+        if (!db) {
+            console.error("[verify-email] Database connection not available");
+            return NextResponse.json(
+                { success: false, error: "Server configuration error." },
+                { status: 500 }
+            );
+        }
 
-        console.log(`[verify-email] Starting verification for ${email}`);
+        const customTokenValue = `custom:${code}`;
+        console.log(`[verify-email] Verifying code for ${email}`);
 
-        // Use raw SQL to avoid potential Drizzle schema/type mismatches (e.g. "boolin" error)
-        // Table name is "verificationToken" (singular) per schema definition
+        // Consume the token (DELETE + RETURNING)
         const result = await db.execute(sql`
             DELETE FROM "verificationToken"
             WHERE "identifier" = ${email} AND "token" = ${customTokenValue}
@@ -42,18 +40,23 @@ export async function GET(request: NextRequest) {
         `);
 
         if (result.rowCount === 0) {
-            console.warn(`[verify-email] No matching token found for ${email} — link may be expired or already used`);
-            return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
+            console.warn(`[verify-email] No matching code for ${email}`);
+            return NextResponse.json(
+                { success: false, error: "Invalid or expired code. Please try again." },
+                { status: 401 }
+            );
         }
 
-        // Force cast to expected type
-        const invite = result.rows[0] as typeof verificationTokens.$inferSelect;
-
-        console.log(`[verify-email] Token found and consumed.`);
+        const invite = result.rows[0] as any;
+        console.log(`[verify-email] Code verified for ${email}`);
 
         // Check expiry
         if (new Date(invite.expires) < new Date()) {
-            return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
+            console.warn(`[verify-email] Code expired for ${email}`);
+            return NextResponse.json(
+                { success: false, error: "Code has expired. Please request a new one." },
+                { status: 401 }
+            );
         }
 
         // Find or create user
@@ -70,6 +73,7 @@ export async function GET(request: NextRequest) {
                 .values({ id: newId, email, emailVerified: new Date() })
                 .returning();
             user = inserted[0]!;
+            console.log(`[verify-email] Created new user ${user.id}`);
         } else if (!user.emailVerified) {
             await db
                 .update(users)
@@ -87,15 +91,20 @@ export async function GET(request: NextRequest) {
             expires: sessionExpires,
         });
 
-        // Build redirect response with session cookie
-        const redirectUrl = callbackUrl.startsWith("http") ? callbackUrl : `${baseUrl}${callbackUrl}`;
-        const response = NextResponse.redirect(redirectUrl);
-
-        // Set the session cookie (same name NextAuth uses)
+        // Build JSON response with Set-Cookie header
+        const baseUrl =
+            process.env.NEXTAUTH_URL ||
+            process.env.AUTH_URL ||
+            "https://datasciencegt.org";
         const isSecure = baseUrl.startsWith("https");
         const cookieName = isSecure
             ? "__Secure-authjs.session-token"
             : "authjs.session-token";
+
+        const response = NextResponse.json({
+            success: true,
+            redirectUrl: "/dashboard",
+        });
 
         response.cookies.set(cookieName, sessionToken, {
             httpOnly: true,
@@ -105,9 +114,13 @@ export async function GET(request: NextRequest) {
             expires: sessionExpires,
         });
 
+        console.log(`[verify-email] Session created for ${email}`);
         return response;
     } catch (error: any) {
         console.error("[verify-email] Error:", error);
-        return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
+        return NextResponse.json(
+            { success: false, error: "Server error. Please try again." },
+            { status: 500 }
+        );
     }
 }
