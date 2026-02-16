@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, verificationTokens, users, sessions } from "@query/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 /**
  * Custom email verification endpoint.
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
 
     try {
         if (!db) {
+            console.error("[verify-email] Database connection not available");
             return NextResponse.redirect(`${baseUrl}/auth/error?error=Configuration`);
         }
 
@@ -30,24 +31,25 @@ export async function GET(request: NextRequest) {
         // the token value as-is (no hashing) with a "custom:" prefix
         const customTokenValue = `custom:${tokenParam}`;
 
-        console.log(`[verify-email] Looking up token for ${email}`);
+        console.log(`[verify-email] Starting verification for ${email}`);
 
-        const result = await db
-            .delete(verificationTokens)
-            .where(
-                and(
-                    eq(verificationTokens.identifier, email),
-                    eq(verificationTokens.token, customTokenValue)
-                )
-            )
-            .returning();
+        // Use raw SQL to avoid potential Drizzle schema/type mismatches (e.g. "boolin" error)
+        // Table name is "verificationToken" (singular) per schema definition
+        const result = await db.execute(sql`
+            DELETE FROM "verificationToken"
+            WHERE "identifier" = ${email} AND "token" = ${customTokenValue}
+            RETURNING *
+        `);
 
-        if (result.length === 0) {
+        if (result.rowCount === 0) {
             console.warn(`[verify-email] No matching token found for ${email} — link may be expired or already used`);
             return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
         }
 
-        const invite = result[0];
+        // Force cast to expected type
+        const invite = result.rows[0] as typeof verificationTokens.$inferSelect;
+
+        console.log(`[verify-email] Token found and consumed.`);
 
         // Check expiry
         if (new Date(invite.expires) < new Date()) {
@@ -104,7 +106,7 @@ export async function GET(request: NextRequest) {
         });
 
         return response;
-    } catch (error) {
+    } catch (error: any) {
         console.error("[verify-email] Error:", error);
         return NextResponse.redirect(`${baseUrl}/auth/error?error=Verification`);
     }
