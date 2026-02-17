@@ -94,7 +94,7 @@ export const publicProcedure = t.procedure
       });
     }
 
-    const identifier = ctx.userId || `anon-${ctx.session?.user?.id || 'unknown'}`;
+    const identifier = ctx.userId || `ip-${ctx.clientIp}`;
     const config = RATE_LIMITS.public;
     const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
 
