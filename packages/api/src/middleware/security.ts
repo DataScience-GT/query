@@ -106,8 +106,8 @@ export function rateLimit(
 
 export const RATE_LIMITS = {
   public: {
-    maxTokens: 30,
-    refillRate: 0.5,
+    maxTokens: 1000,
+    refillRate: 50,
     queryTokens: 1,
     mutationTokens: 3,
   },
