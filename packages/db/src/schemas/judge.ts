@@ -28,6 +28,7 @@ export const judgeAssignments = pgTable("judge_assignment", {
     .references(() => hackathons.id, { onDelete: "cascade" }),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
   isLead: boolean("is_lead").notNull().default(false),
+  track: text("track"), // Optional: if set, judge only sees projects in this track/challenge
 }, (table) => [
   index("assignment_judge_id_idx").on(table.judgeId),
   index("assignment_hackathon_id_idx").on(table.hackathonId),

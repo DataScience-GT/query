@@ -267,6 +267,13 @@ export const hackathonRouter = createTRPCRouter({
 
       const participants = await ctx.db!.query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
+        columns: {
+          id: true,
+          hackathonId: true,
+          userId: true,
+          teamId: true,
+          registrationStatus: true,
+        },
         with: {
           user: {
             columns: {
@@ -357,6 +364,13 @@ export const hackathonRouter = createTRPCRouter({
           team: {
             with: {
               participants: {
+                columns: {
+                  id: true,
+                  hackathonId: true,
+                  userId: true,
+                  teamId: true,
+                  registrationStatus: true,
+                },
                 with: {
                   user: {
                     columns: {

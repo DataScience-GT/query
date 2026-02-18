@@ -227,6 +227,116 @@ export default function AdminResultsPage() {
           </LiquidGlass>
         )}
 
+        {/* Projected Winners Section */}
+        {rankings && rankings.rankings.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-6">
+              Projected <span className="text-[#00A8A8]">Winners</span>
+            </h2>
+
+            {/* Logic Calculation */}
+            {(() => {
+              // 1. Identify Overall Winners (Top 3)
+              // Sort by total score descending
+              const sortedByScore = [...rankings.rankings].sort((a, b) => b.totalScore - a.totalScore);
+              const overallWinners = sortedByScore.slice(0, 3);
+              const overallWinnerIds = new Set(overallWinners.map(r => r.project.id));
+
+              // 2. Identify Track Winners (Top 1 per Track, excluding Overall)
+              // Get all unique tracks
+              const allTracks = Array.from(new Set(rankings.rankings.flatMap(r => r.project.tracks || [])));
+              const trackWinners: Record<string, typeof rankings.rankings[0]> = {};
+              const usedWinnerIds = new Set(overallWinnerIds);
+
+              allTracks.forEach(track => {
+                // Find highest scoring project in this track that hasn't won yet
+                const candidate = sortedByScore.find(r =>
+                  r.project.tracks?.includes(track) && !usedWinnerIds.has(r.project.id)
+                );
+
+                if (candidate) {
+                  trackWinners[track] = candidate;
+                  usedWinnerIds.add(candidate.project.id);
+                }
+              });
+
+              // 3. Identify Challenge (Sponsor) Winners (Top 1 per Challenge, NO exclusions)
+              const allChallenges = Array.from(new Set(rankings.rankings.flatMap(r => r.project.challenges || [])));
+              const challengeWinners: Record<string, typeof rankings.rankings[0]> = {};
+
+              allChallenges.forEach(challenge => {
+                const candidate = sortedByScore.find(r => r.project.challenges?.includes(challenge));
+                if (candidate) {
+                  challengeWinners[challenge] = candidate;
+                }
+              });
+
+              return (
+                <div className="space-y-8">
+                  {/* Overall Winners */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {overallWinners.map((w, i) => (
+                      <LiquidGlass key={w.project.id} className={`p-6 rounded-xl border-t-4 ${i === 0 ? 'border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]' :
+                          i === 1 ? 'border-gray-400' :
+                            'border-orange-700'
+                        }`}>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">
+                          {i === 0 ? 'Grand Prize' : i === 1 ? '2nd Place' : '3rd Place'}
+                        </p>
+                        <h3 className="text-xl font-black text-white uppercase mb-1">{w.project.name}</h3>
+                        <p className="text-3xl font-black text-[#00A8A8] tabular-nums mb-2">{w.totalScore}</p>
+                        <p className="text-xs text-gray-500 font-mono">ID: {w.project.id.slice(-6).toUpperCase()}</p>
+                      </LiquidGlass>
+                    ))}
+                  </div>
+
+                  {/* Track Winners */}
+                  {Object.keys(trackWinners).length > 0 && (
+                    <div>
+                      <h3 className="text-sm text-gray-400 uppercase tracking-widest mb-4 font-mono font-bold pl-2 border-l-2 border-[#00A8A8]">
+                        Track Winners (Excl. Overall)
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(trackWinners).map(([track, w]) => (
+                          <div key={track} className="bg-white/5 border border-white/5 rounded-lg p-5 hover:bg-white/10 transition-colors">
+                            <p className="text-[10px] text-blue-400 uppercase tracking-widest mb-2 font-bold">{track}</p>
+                            <h4 className="text-lg font-bold text-white mb-1 truncate" title={w.project.name}>{w.project.name}</h4>
+                            <p className="text-xl font-bold text-gray-400 tabular-nums">{w.totalScore}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Challenge Winners */}
+                  {Object.keys(challengeWinners).length > 0 && (
+                    <div>
+                      <h3 className="text-sm text-gray-400 uppercase tracking-widest mb-4 font-mono font-bold pl-2 border-l-2 border-purple-500">
+                        Challenge Winners (Sponsors)
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(challengeWinners).map(([challenge, w]) => (
+                          <div key={challenge} className="bg-white/5 border border-white/5 rounded-lg p-5 hover:bg-white/10 transition-colors">
+                            <p className="text-[10px] text-purple-400 uppercase tracking-widest mb-2 font-bold">{challenge}</p>
+                            <h4 className="text-lg font-bold text-white mb-1 truncate" title={w.project.name}>{w.project.name}</h4>
+                            <div className="flex justify-between items-end">
+                              <p className="text-xl font-bold text-gray-400 tabular-nums">{w.totalScore}</p>
+                              {overallWinnerIds.has(w.project.id) && (
+                                <span className="text-[8px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded uppercase font-bold">Also Overall</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Rankings Table Logic... */}
         {/* Rankings Table */}
         <div className="space-y-6">
           <div className="flex justify-between items-end mb-4">
