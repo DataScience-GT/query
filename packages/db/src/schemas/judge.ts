@@ -44,6 +44,9 @@ export const judgingProjects = pgTable("judging_project", {
   description: text("description"),
   tableNumber: integer("table_number").notNull(),
   category: text("category"), // e.g., "AI", "Web3", "Health", "Sustainability"
+  tracks: text("tracks").array(),
+  challenges: text("challenges").array(),
+  isCreateX: boolean("is_create_x").default(false),
   teamMembers: text("team_members"), // comma-separated or JSON string
   projectUrl: text("project_url"),
   repoUrl: text("repo_url"),
