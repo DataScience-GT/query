@@ -7,10 +7,10 @@ export const users = pgTable("user", {
   email: text("email").notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
-}, (table) => ({
-  emailIdx: index("user_email_idx").on(table.email),
-  nameIdx: index("user_name_idx").on(table.name),
-}));
+}, (table) => [
+  index("user_email_idx").on(table.email),
+  index("user_name_idx").on(table.name),
+]);
 
 export const accounts = pgTable(
   "account",
@@ -29,12 +29,12 @@ export const accounts = pgTable(
     id_token: text("id_token"),
     session_state: text("session_state"),
   },
-  (account) => ({
-    compoundKey: primaryKey({
+  (account) => [
+    primaryKey({
       columns: [account.provider, account.providerAccountId],
     }),
-    userIdIdx: index("account_user_id_idx").on(account.userId),
-  })
+    index("account_user_id_idx").on(account.userId),
+  ]
 );
 
 export const sessions = pgTable("session", {
@@ -43,9 +43,9 @@ export const sessions = pgTable("session", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
-}, (table) => ({
-  userIdIdx: index("session_user_id_idx").on(table.userId),
-}));
+}, (table) => [
+  index("session_user_id_idx").on(table.userId),
+]);
 
 export const verificationTokens = pgTable(
   "verificationToken",
@@ -54,7 +54,7 @@ export const verificationTokens = pgTable(
     token: text("token").notNull(),
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  })
+  (vt) => [
+    primaryKey({ columns: [vt.identifier, vt.token] }),
+  ]
 );
