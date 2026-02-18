@@ -13,9 +13,9 @@ export const userProfiles = pgTable("user_profile", {
   location: text("location"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("profile_user_id_idx").on(table.userId),
-}));
+}, (table) => [
+  index("profile_user_id_idx").on(table.userId),
+]);
 
 export const members = pgTable("member", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -44,11 +44,11 @@ export const members = pgTable("member", {
   portfolioUrl: text("portfolio_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("member_user_id_idx").on(table.userId),
+}, (table) => [
+  index("member_user_id_idx").on(table.userId),
   // Optimized for "Active Members" directory listing
-  activeTypeIdx: index("member_active_type_idx").on(table.isActive, table.memberType),
-}));
+  index("member_active_type_idx").on(table.isActive, table.memberType),
+]);
 
 export const membershipHistory = pgTable("membership_history", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -60,9 +60,9 @@ export const membershipHistory = pgTable("membership_history", {
   endDate: timestamp("end_date"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  memberIdIdx: index("history_member_id_idx").on(table.memberId),
-}));
+}, (table) => [
+  index("history_member_id_idx").on(table.memberId),
+]);
 
 export const usersRelations = relations(users, ({ one }) => ({
   profile: one(userProfiles, {
