@@ -609,6 +609,9 @@ export const judgeRouter = createTRPCRouter({
         teamMembers: z.string().max(500).optional(),
         projectUrl: z.string().url().optional(),
         repoUrl: z.string().url().optional(),
+        tracks: z.array(z.string()).optional(),
+        challenges: z.array(z.string()).optional(),
+        isCreateX: z.boolean().default(false),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -631,6 +634,9 @@ export const judgeRouter = createTRPCRouter({
             tableNumber: z.number().min(1),
             category: z.string().max(100).optional(),
             teamMembers: z.string().max(500).optional(),
+            tracks: z.array(z.string()).optional(),
+            challenges: z.array(z.string()).optional(),
+            isCreateX: z.boolean().default(false),
           })
         ),
       })
