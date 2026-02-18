@@ -328,7 +328,9 @@ export default function JudgePage() {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">{project.name}</h2>
-                {project.teamMembers && <p className="text-gray-500 text-sm">{project.teamMembers}</p>}
+                {project.teamMembers && <p className="text-gray-500 text-sm mb-2">{project.teamMembers}</p>}
+
+
               </div>
             </div>
           </LiquidGlass>
@@ -398,7 +400,9 @@ export default function JudgePage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">{project.name}</h1>
-              {project.teamMembers && <p className="text-gray-500 text-sm">{project.teamMembers}</p>}
+              {project.teamMembers && <p className="text-gray-500 text-sm mb-2">{project.teamMembers}</p>}
+
+
             </div>
           </LiquidGlass>
 
