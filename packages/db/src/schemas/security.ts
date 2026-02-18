@@ -11,9 +11,9 @@ export const auditLogs = pgTable("audit_logs", {
     metadata: jsonb("metadata"),
     severity: securitySeverityEnum("severity").default("info").notNull(),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-}, (table) => ({
-    userIdIdx: index("audit_user_id_idx").on(table.userId),
-    actionIdx: index("audit_action_idx").on(table.action),
-    createdAtIdx: index("audit_created_at_idx").on(table.createdAt),
-    severityIdx: index("audit_severity_idx").on(table.severity),
-}));
+}, (table) => [
+    index("audit_user_id_idx").on(table.userId),
+    index("audit_action_idx").on(table.action),
+    index("audit_created_at_idx").on(table.createdAt),
+    index("audit_severity_idx").on(table.severity),
+]);
