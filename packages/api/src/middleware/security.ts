@@ -22,12 +22,12 @@ const ipTrackingStore = new Map<string, IPRecord>();
 
 // DDoS Protection Constants
 const DDOS_CONFIG = {
-  maxRequestsPerMinute: 120, // Max requests per minute per IP
-  suspiciousThreshold: 100, // Requests that trigger suspicious flag
-  blockDurationMs: 5 * 60 * 1000, // 5 minutes block for suspicious IPs
-  burstThreshold: 30, // Max requests in 5 seconds
-  burstWindowMs: 5 * 1000, // 5 second burst window
-  cleanupIntervalMs: 60 * 1000, // Cleanup every minute
+  maxRequestsPerMinute: 3000, // Increased for venue WiFi (100 judges @ 30rpm)
+  suspiciousThreshold: 2000,
+  blockDurationMs: 5 * 60 * 1000,
+  burstThreshold: 500, // Allow 100 concurrent page loads
+  burstWindowMs: 5 * 1000,
+  cleanupIntervalMs: 60 * 1000,
 };
 
 // Cleanup expired records
@@ -106,8 +106,8 @@ export function rateLimit(
 
 export const RATE_LIMITS = {
   public: {
-    maxTokens: 30,
-    refillRate: 0.5,
+    maxTokens: 1000,
+    refillRate: 50,
     queryTokens: 1,
     mutationTokens: 3,
   },
