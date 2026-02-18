@@ -327,6 +327,11 @@ export default function JudgePage() {
                 </svg>
               </div>
               <div>
+                {assignments?.[0]?.track && (
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00A8A8]/20 text-[#00A8A8] border border-[#00A8A8]/30 mb-2 uppercase tracking-wide">
+                    Track: {assignments[0].track}
+                  </div>
+                )}
                 <h2 className="text-lg font-bold text-white">{project.name}</h2>
                 {project.teamMembers && <p className="text-gray-500 text-sm mb-2">{project.teamMembers}</p>}
 
