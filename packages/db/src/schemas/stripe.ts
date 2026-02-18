@@ -33,10 +33,10 @@ export const stripePayments = pgTable("stripe_payment", {
   metadata: text("metadata"), // JSON string for any extra Stripe metadata
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  customerEmailIdx: index("stripe_payment_customer_email_idx").on(table.customerEmail),
-  linkedUserIdIdx: index("stripe_payment_linked_user_id_idx").on(table.linkedUserId),
-}));
+}, (table) => [
+  index("stripe_payment_customer_email_idx").on(table.customerEmail),
+  index("stripe_payment_linked_user_id_idx").on(table.linkedUserId),
+]);
 
 /**
  * Links users who signed in with a different email (e.g., Google)
