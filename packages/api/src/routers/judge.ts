@@ -389,6 +389,9 @@ export const judgeRouter = createTRPCRouter({
             tableNumber: project.tableNumber,
             category: project.category,
             teamMembers: project.teamMembers,
+            tracks: project.tracks,
+            challenges: project.challenges,
+            isCreateX: project.isCreateX,
           },
           totalScore,
           voteCount,
@@ -554,6 +557,7 @@ export const judgeRouter = createTRPCRouter({
         judgeId: z.string().uuid(),
         hackathonId: z.string().uuid(),
         isLead: z.boolean().optional(),
+        track: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -577,17 +581,28 @@ export const judgeRouter = createTRPCRouter({
           judgeId: input.judgeId,
           hackathonId: input.hackathonId,
           isLead: input.isLead || false,
+          track: input.track,
         })
         .returning();
 
-      const projects = await ctx.db!.query.judgingProjects.findMany({
+      // Fetch all projects for this hackathon
+      const allProjects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      if (projects.length > 0) {
+      // Filter based on track if assigned
+      const assignedProjects = input.track
+        ? allProjects.filter((p) => {
+          const inTracks = p.tracks?.includes(input.track!) ?? false;
+          const inChallenges = p.challenges?.includes(input.track!) ?? false;
+          return inTracks || inChallenges;
+        })
+        : allProjects;
+
+      if (assignedProjects.length > 0) {
         await ctx.db!.insert(judgeQueue).values(
-          projects.map((p, idx) => ({
+          assignedProjects.map((p, idx) => ({
             judgeId: input.judgeId,
             hackathonId: input.hackathonId,
             projectId: p.id,
@@ -691,10 +706,28 @@ export const judgeRouter = createTRPCRouter({
           )
         );
 
-      let projects = await ctx.db!.query.judgingProjects.findMany({
+      // Get judge assignment to check for track restriction
+      const assignment = await ctx.db!.query.judgeAssignments.findFirst({
+        where: and(
+          eq(judgeAssignments.judgeId, input.judgeId),
+          eq(judgeAssignments.hackathonId, input.hackathonId)
+        ),
+      });
+
+      // Fetch all projects (or filter in query if possible, but JS filter matches assignToHackathon logic)
+      const allProjects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
+
+      // Filter based on track if assigned
+      let projects = (assignment?.track)
+        ? allProjects.filter((p) => {
+          const inTracks = p.tracks?.includes(assignment.track!) ?? false;
+          const inChallenges = p.challenges?.includes(assignment.track!) ?? false;
+          return inTracks || inChallenges;
+        })
+        : allProjects;
 
       if (input.shuffle) {
         projects = shuffleArray(projects);
