@@ -28,7 +28,7 @@ export const judgeAssignments = pgTable("judge_assignment", {
     .references(() => hackathons.id, { onDelete: "cascade" }),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
   isLead: boolean("is_lead").notNull().default(false),
-  track: text("track"), // Optional: if set, judge only sees projects in this track/challenge
+  track: text("track"),
 }, (table) => [
   index("assignment_judge_id_idx").on(table.judgeId),
   index("assignment_hackathon_id_idx").on(table.hackathonId),
@@ -45,12 +45,12 @@ export const judgingProjects = pgTable("judging_project", {
   description: text("description"),
   tableNumber: integer("table_number").notNull(),
   category: text("category"), // e.g., "AI", "Web3", "Health", "Sustainability"
-  tracks: text("tracks").array(),
-  challenges: text("challenges").array(),
-  isCreateX: boolean("is_create_x").default(false),
   teamMembers: text("team_members"), // comma-separated or JSON string
   projectUrl: text("project_url"),
   repoUrl: text("repo_url"),
+  tracks: text("tracks").array(), // Enum: GEN-AI, SPORTS, FINANCE, HEALTH, CYBER, NONE
+  challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
+  isCreateX: boolean("is_create_x").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("judging_project_hackathon_id_idx").on(table.hackathonId),
@@ -68,6 +68,8 @@ export const judgeVotes = pgTable("judge_vote", {
     .references(() => judgingProjects.id, { onDelete: "cascade" }),
   score: integer("score").notNull(), // Total score (sum of all criteria, 5-50)
   // Rubric scores (1-10 each)
+
+  scoreImagination: integer("score_imagination"), // immagination track
   scoreCreativity: integer("score_creativity"), // Creativity & Originality
   scoreImpact: integer("score_impact"), // Impact & Relevance
   scoreScope: integer("score_scope"), // Scope & Technical Depth
@@ -167,6 +169,7 @@ export const hackathonMapsRelations = relations(hackathonMaps, ({ one }) => ({
     references: [hackathons.id],
   }),
 }));
+
 
 export const judgeQueueRelations = relations(judgeQueue, ({ one }) => ({
   judge: one(judges, {
