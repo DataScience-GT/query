@@ -15,6 +15,7 @@ const RUBRIC_CRITERIA = [
   { key: 'scope', label: 'Technical Depth', description: 'Variety of tools & complexity' },
   { key: 'clarity', label: 'Clarity', description: 'Clear presentation & engagement' },
   { key: 'soundness', label: 'Soundness', description: 'Logical & accurate conclusions' },
+  { key: 'imagination', label: 'Pure Imagination', description: 'Wildly creative & out-of-the-box ideas' },
 ] as const;
 
 const RUBRIC_GUIDE = [
@@ -68,6 +69,16 @@ const RUBRIC_GUIDE = [
       { range: '9-10', desc: 'Excellent. Consistent, correct, well-supported conclusions.' },
     ]
   },
+  {
+    name: 'Pure Imagination',
+    levels: [
+      { range: '1-2', desc: 'Standard. Follows conventional thinking.' },
+      { range: '3-4', desc: 'Some spark. Slight deviation from the norm.' },
+      { range: '5-6', desc: 'Creative. Shows good imagination.' },
+      { range: '7-8', desc: 'Imaginative. Very creative and novel ideas.' },
+      { range: '9-10', desc: 'Pure Imagination. Mind-blowing, boundary-pushing creativity.' },
+    ]
+  },
 ];
 
 type RubricScores = {
@@ -76,6 +87,7 @@ type RubricScores = {
   scope: number;
   clarity: number;
   soundness: number;
+  imagination?: number;
 };
 
 type JudgingStep = 'viewing' | 'judging';
@@ -88,7 +100,7 @@ export default function JudgePage() {
   const [showHelp, setShowHelp] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [scores, setScores] = useState<RubricScores>({
-    creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5,
+    creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5, imagination: 5,
   });
   const [comment, setComment] = useState('');
 
@@ -101,6 +113,8 @@ export default function JudgePage() {
   });
 
   const hackathonId = assignments?.[0]?.hackathon?.id;
+  const assignmentTrack = assignments?.[0]?.track; // "Pure Imagination" or others
+  const isPureImagination = assignmentTrack === 'Pure Imagination';
 
   const { data: nextTable, isLoading: loadingNext, refetch } = trpc.judge.getNextTable.useQuery(
     { hackathonId: hackathonId! },
@@ -114,7 +128,7 @@ export default function JudgePage() {
 
   const submit = trpc.judge.completeAndNext.useMutation({
     onSuccess: () => {
-      setScores({ creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5 });
+      setScores({ creativity: 5, impact: 5, scope: 5, clarity: 5, soundness: 5, imagination: 5 });
       setComment('');
       setStep('viewing');
       refetch();
@@ -128,7 +142,7 @@ export default function JudgePage() {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
-  const totalScore = scores.creativity + scores.impact + scores.scope + scores.clarity + scores.soundness;
+  const totalScore = scores.creativity + scores.impact + scores.scope + scores.clarity + scores.soundness + (isPureImagination ? (scores.imagination || 0) : 0);
 
   const handleSubmit = () => {
     if (!nextTable?.queueId || !nextTable?.project) return;
@@ -140,6 +154,7 @@ export default function JudgePage() {
       scoreScope: scores.scope,
       scoreClarity: scores.clarity,
       scoreSoundness: scores.soundness,
+      scoreImagination: isPureImagination ? scores.imagination : undefined,
       comment: comment || undefined,
     });
   };
@@ -149,10 +164,17 @@ export default function JudgePage() {
   };
 
   const getScoreColor = () => {
-    if (totalScore <= 15) return 'text-red-400';
-    if (totalScore <= 30) return 'text-yellow-400';
+    const max = isPureImagination ? 60 : 50;
+    const pct = totalScore / max;
+    if (pct <= 0.3) return 'text-red-400';
+    if (pct <= 0.6) return 'text-yellow-400';
     return 'text-emerald-400';
   };
+
+  const visibleCriteria = RUBRIC_CRITERIA.filter(c => {
+    if (c.key === 'imagination') return isPureImagination;
+    return true;
+  });
 
   // Loading state
   if (!mounted || status === 'loading' || checkingJudge) {
@@ -261,7 +283,7 @@ export default function JudgePage() {
           </button>
         </div>
         <div className="p-5 space-y-6">
-          {RUBRIC_GUIDE.map((criterion, idx) => (
+          {RUBRIC_GUIDE.filter(g => isPureImagination || g.name !== 'Pure Imagination').map((criterion, idx) => (
             <div key={criterion.name}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-sm font-bold text-white">
@@ -327,9 +349,9 @@ export default function JudgePage() {
                 </svg>
               </div>
               <div>
-                {assignments?.[0]?.track && (
+                {assignmentTrack && (
                   <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00A8A8]/20 text-[#00A8A8] border border-[#00A8A8]/30 mb-2 uppercase tracking-wide">
-                    Track: {assignments[0].track}
+                    Track: {assignmentTrack}
                   </div>
                 )}
                 <h2 className="text-lg font-bold text-white">{project.name}</h2>
@@ -413,19 +435,19 @@ export default function JudgePage() {
 
           <LiquidGlass className="p-5 mb-5">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-semibold text-white">Evaluation Rubric</h2>
+              <h2 className="text-sm font-semibold text-white">Evaluation Rubric {isPureImagination && <span className="text-[#00A8A8]">(+Imagination)</span>}</h2>
               <button onClick={() => setShowHelp(true)} className="text-xs text-[#00A8A8] hover:text-[#00A8A8]/80 font-medium transition-colors">
                 View Guide →
               </button>
             </div>
             <div className="space-y-6">
-              {RUBRIC_CRITERIA.map((c) => (
+              {visibleCriteria.map((c) => (
                 <RubricSlider
                   key={c.key}
                   label={c.label}
                   description={c.description}
-                  value={scores[c.key]}
-                  onChange={(v) => updateScore(c.key, v)}
+                  value={scores[c.key as keyof RubricScores] || 5}
+                  onChange={(v) => updateScore(c.key as keyof RubricScores, v)}
                 />
               ))}
             </div>

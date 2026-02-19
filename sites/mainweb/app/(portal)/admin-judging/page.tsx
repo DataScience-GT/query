@@ -13,6 +13,7 @@ export default function AdminResultsPage() {
   const [mounted, setMounted] = useState(false);
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedTrack, setSelectedTrack] = useState<string>('ALL');
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
 
   // Check if admin
@@ -54,11 +55,39 @@ export default function AdminResultsPage() {
     return ['ALL', ...Array.from(cats)];
   }, [rankings]);
 
-  const filteredRankings = useMemo(() => {
+  const tracks = useMemo(() => {
+    if (!rankings?.rankings) return ['ALL'];
+    const ts = new Set(rankings.rankings.flatMap(r => r.project.tracks || []).filter((t): t is string => !!t));
+    return ['ALL', ...Array.from(ts)];
+  }, [rankings]);
+
+  const processedRankings = useMemo(() => {
     if (!rankings?.rankings) return [];
-    if (selectedCategory === 'ALL') return rankings.rankings;
-    return rankings.rankings.filter(r => r.project.category === selectedCategory);
-  }, [rankings, selectedCategory]);
+
+    let filtered = rankings.rankings;
+
+    if (selectedCategory !== 'ALL') {
+      filtered = filtered.filter(r => r.project.category === selectedCategory);
+    }
+
+    if (selectedTrack !== 'ALL') {
+      filtered = filtered.filter(r => r.project.tracks?.includes(selectedTrack));
+    }
+
+    // Calculate display score based on track
+    return filtered.map(r => {
+      const isPureImagination = selectedTrack === 'Pure Imagination';
+      // If Pure Imagination track is selected, include imagination score in total
+      const imaginationSum = r.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
+      const displayScore = isPureImagination ? r.totalScore + imaginationSum : r.totalScore;
+
+      return {
+        ...r,
+        displayScore,
+        isPureImagination
+      };
+    }).sort((a, b) => b.displayScore - a.displayScore);
+  }, [rankings, selectedCategory, selectedTrack]);
 
   if (!mounted || status === 'loading' || adminLoading) {
     return (
@@ -154,26 +183,49 @@ export default function AdminResultsPage() {
             </div>
           )}
 
-          {/* Category Filter */}
-          {categories.length > 1 && (
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Filter By Category</label>
-              <div className="flex flex-wrap gap-3">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedCategory === cat
-                      ? 'bg-white/10 border-white/20 text-white shadow-lg'
-                      : 'bg-white/[0.02] border-white/5 text-gray-600 hover:text-gray-400 hover:bg-white/5'
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Category Filter */}
+            {categories.length > 1 && (
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Filter By Category</label>
+                <div className="flex flex-wrap gap-3">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedCategory === cat
+                        ? 'bg-white/10 border-white/20 text-white shadow-lg'
+                        : 'bg-white/[0.02] border-white/5 text-gray-600 hover:text-gray-400 hover:bg-white/5'
+                        }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Track Filter */}
+            {tracks.length > 1 && (
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">Filter By Track</label>
+                <div className="flex flex-wrap gap-3">
+                  {tracks.map((track) => (
+                    <button
+                      key={track}
+                      onClick={() => setSelectedTrack(track)}
+                      className={`px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedTrack === track
+                        ? 'bg-[#00A8A8]/20 border-[#00A8A8]/50 text-white shadow-lg'
+                        : 'bg-white/[0.02] border-white/5 text-gray-600 hover:text-gray-400 hover:bg-white/5'
+                        }`}
+                    >
+                      {track}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tie Warning — Overall */}
@@ -201,32 +253,6 @@ export default function AdminResultsPage() {
           </LiquidGlass>
         )}
 
-        {/* Tie Warning — Per-Category */}
-        {rankings?.hasCategoryTies && (
-          <LiquidGlass className="border border-orange-500/30 rounded-lg p-8 mb-12 shadow-[0_0_40px_rgba(249,115,22,0.05)] animate-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
-              <h3 className="text-2xl font-black text-orange-500 uppercase italic tracking-tighter">Category-Level Ties</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rankings.categoryTies.map((ct: { category: string; avgScore: number; projects: string[] }, i: number) => (
-                <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl font-mono">
-                  <p className="text-[10px] text-orange-400 uppercase tracking-widest mb-1 font-black">{ct.category}</p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Avg: {ct.avgScore}</p>
-                  <div className="space-y-1">
-                    {ct.projects.map((p, pi) => (
-                      <p key={pi} className="text-white text-sm">&gt; {p}</p>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-orange-500/40 mt-6 font-mono uppercase tracking-[0.4em] text-center border-t border-white/5 pt-4">
-              Projects share identical average in one or more rubric categories
-            </p>
-          </LiquidGlass>
-        )}
-
         {/* Projected Winners Section */}
         {rankings && rankings.rankings.length > 0 && (
           <div className="mb-12">
@@ -245,29 +271,38 @@ export default function AdminResultsPage() {
               // 2. Identify Track Winners (Top 1 per Track, excluding Overall)
               // Get all unique tracks
               const allTracks = Array.from(new Set(rankings.rankings.flatMap(r => r.project.tracks || [])));
-              const trackWinners: Record<string, typeof rankings.rankings[0]> = {};
+              const trackWinners: Record<string, any> = {};
               const usedWinnerIds = new Set(overallWinnerIds);
 
               allTracks.forEach(track => {
-                // Find highest scoring project in this track that hasn't won yet
-                const candidate = sortedByScore.find(r =>
-                  r.project.tracks?.includes(track) && !usedWinnerIds.has(r.project.id)
-                );
+                // If track is Pure Imagination, sort by Total + Imagination
+                const isPureImagination = track === 'Pure Imagination';
+
+                // Sort projects for this track
+                const projectsInTrack = rankings.rankings.filter(r => r.project.tracks?.includes(track));
+
+                const sortedTrackProjects = projectsInTrack.sort((a, b) => {
+                  if (isPureImagination) {
+                    const scoreA = a.totalScore + a.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
+                    const scoreB = b.totalScore + b.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
+                    return scoreB - scoreA;
+                  }
+                  return b.totalScore - a.totalScore;
+                });
+
+                // Find highest scoring project in this track that hasn't won an overall prize
+                // (Unless Pure Imagination rules are different? Assuming strict exclusion for fairness)
+                const candidate = sortedTrackProjects.find(r => !usedWinnerIds.has(r.project.id));
 
                 if (candidate) {
-                  trackWinners[track] = candidate;
+                  // augment candidate with pure imagination score if needed for display
+                  if (isPureImagination) {
+                    const imagScore = candidate.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
+                    trackWinners[track] = { ...candidate, customScore: candidate.totalScore + imagScore };
+                  } else {
+                    trackWinners[track] = candidate;
+                  }
                   usedWinnerIds.add(candidate.project.id);
-                }
-              });
-
-              // 3. Identify Challenge (Sponsor) Winners (Top 1 per Challenge, NO exclusions)
-              const allChallenges = Array.from(new Set(rankings.rankings.flatMap(r => r.project.challenges || [])));
-              const challengeWinners: Record<string, typeof rankings.rankings[0]> = {};
-
-              allChallenges.forEach(challenge => {
-                const candidate = sortedByScore.find(r => r.project.challenges?.includes(challenge));
-                if (candidate) {
-                  challengeWinners[challenge] = candidate;
                 }
               });
 
@@ -277,8 +312,8 @@ export default function AdminResultsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {overallWinners.map((w, i) => (
                       <LiquidGlass key={w.project.id} className={`p-6 rounded-xl border-t-4 ${i === 0 ? 'border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]' :
-                          i === 1 ? 'border-gray-400' :
-                            'border-orange-700'
+                        i === 1 ? 'border-gray-400' :
+                          'border-orange-700'
                         }`}>
                         <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">
                           {i === 0 ? 'Grand Prize' : i === 1 ? '2nd Place' : '3rd Place'}
@@ -301,29 +336,9 @@ export default function AdminResultsPage() {
                           <div key={track} className="bg-white/5 border border-white/5 rounded-lg p-5 hover:bg-white/10 transition-colors">
                             <p className="text-[10px] text-blue-400 uppercase tracking-widest mb-2 font-bold">{track}</p>
                             <h4 className="text-lg font-bold text-white mb-1 truncate" title={w.project.name}>{w.project.name}</h4>
-                            <p className="text-xl font-bold text-gray-400 tabular-nums">{w.totalScore}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Challenge Winners */}
-                  {Object.keys(challengeWinners).length > 0 && (
-                    <div>
-                      <h3 className="text-sm text-gray-400 uppercase tracking-widest mb-4 font-mono font-bold pl-2 border-l-2 border-purple-500">
-                        Challenge Winners (Sponsors)
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {Object.entries(challengeWinners).map(([challenge, w]) => (
-                          <div key={challenge} className="bg-white/5 border border-white/5 rounded-lg p-5 hover:bg-white/10 transition-colors">
-                            <p className="text-[10px] text-purple-400 uppercase tracking-widest mb-2 font-bold">{challenge}</p>
-                            <h4 className="text-lg font-bold text-white mb-1 truncate" title={w.project.name}>{w.project.name}</h4>
-                            <div className="flex justify-between items-end">
-                              <p className="text-xl font-bold text-gray-400 tabular-nums">{w.totalScore}</p>
-                              {overallWinnerIds.has(w.project.id) && (
-                                <span className="text-[8px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded uppercase font-bold">Also Overall</span>
-                              )}
+                            <div className="flex items-end gap-2">
+                              <p className="text-xl font-bold text-gray-400 tabular-nums">{w.customScore || w.totalScore}</p>
+                              {track === 'Pure Imagination' && <span className="text-[9px] text-[#00A8A8] mb-1 font-mono">(w/ IMG)</span>}
                             </div>
                           </div>
                         ))}
@@ -336,18 +351,17 @@ export default function AdminResultsPage() {
           </div>
         )}
 
-        {/* Rankings Table Logic... */}
         {/* Rankings Table */}
         <div className="space-y-6">
           <div className="flex justify-between items-end mb-4">
             <div>
               <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Metrics Log</p>
               <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                Evaluated Rankings
+                Evaluated Rankings {selectedTrack !== 'ALL' && <span className="text-[#00A8A8]">:: {selectedTrack}</span>}
               </h2>
             </div>
             <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-lg text-[10px] font-mono uppercase tracking-widest text-[#00A8A8]">
-              Displaying: {filteredRankings.length} Nodes
+              Displaying: {processedRankings.length} Nodes
             </div>
           </div>
 
@@ -355,7 +369,7 @@ export default function AdminResultsPage() {
             <div className="bg-black/40 border border-white/5 rounded-lg p-24 text-center backdrop-blur-md">
               <p className="text-[#00A8A8] font-mono animate-pulse uppercase tracking-[0.5em] text-xs">Awaiting Data Packet...</p>
             </div>
-          ) : filteredRankings.length === 0 ? (
+          ) : processedRankings.length === 0 ? (
             <div className="bg-black/40 border border-white/5 rounded-lg p-24 text-center backdrop-blur-md">
               <p className="text-gray-500 font-mono uppercase tracking-widest text-xs mb-2">0 Records Found</p>
               <p className="text-gray-700 text-[10px] uppercase font-mono">No submissions detected for the specified search parameters.</p>
@@ -370,21 +384,28 @@ export default function AdminResultsPage() {
                       <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Node</th>
                       <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Identifier</th>
                       <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Sum</th>
-                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Avg</th>
+                      {!selectedTrack.includes('Pure Imagination') && <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Avg</th>}
+
+                      {/* Rubric Headers */}
                       <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Creativity">CRE</th>
                       <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Impact">IMP</th>
                       <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Scope">SCP</th>
                       <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Clarity">CLR</th>
                       <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Soundness">SND</th>
+
+                      {/* Show IMG column if Pure Imagination or All */}
+                      <th className="px-3 py-6 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] text-center" title="Pure Imagination">IMG</th>
+
                       <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Count</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {filteredRankings.map((r, idx) => {
+                    {processedRankings.map((r, idx) => {
                       const isExpanded = expandedProject === r.project.id;
                       const isTied = rankings?.ties.some((t: { projects: string[] }) =>
                         t.projects.includes(r.project.name)
                       );
+                      const isPureImaginationRow = r.isPureImagination;
 
                       return (
                         <React.Fragment key={r.project.id}>
@@ -412,11 +433,11 @@ export default function AdminResultsPage() {
                               <div>
                                 <div className="flex items-center gap-3 mb-1">
                                   <p className="text-xl font-bold text-white uppercase group-hover:text-[#00A8A8] transition-colors duration-300">{r.project.name}</p>
-                                  {r.project.category && (
-                                    <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-mono text-gray-400 uppercase tracking-widest">
-                                      {r.project.category}
+                                  {r.project.tracks?.map(t => (
+                                    <span key={t} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-mono text-gray-400 uppercase tracking-widest">
+                                      {t}
                                     </span>
-                                  )}
+                                  ))}
                                 </div>
                                 {r.project.teamMembers && (
                                   <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">{r.project.teamMembers}</p>
@@ -424,28 +445,34 @@ export default function AdminResultsPage() {
                               </div>
                             </td>
                             <td className="px-4 py-8 text-right">
-                              <span className="text-3xl font-black text-[#00A8A8] tabular-nums">{r.totalScore}</span>
+                              <span className={`text-3xl font-black tabular-nums ${isPureImaginationRow ? 'text-purple-400' : 'text-[#00A8A8]'}`}>
+                                {r.displayScore}
+                              </span>
+                              {isPureImaginationRow && <p className="text-[9px] text-gray-600 font-mono">INCL. IMG</p>}
                             </td>
-                            <td className="px-4 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>
+                            {!selectedTrack.includes('Pure Imagination') && <td className="px-4 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>}
+
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.creativity ?? '-'}</td>
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.impact ?? '-'}</td>
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.scope ?? '-'}</td>
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.clarity ?? '-'}</td>
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.soundness ?? '-'}</td>
+                            <td className="px-3 py-8 text-center text-[#00A8A8] font-mono tabular-nums text-sm font-bold">{r.categoryAvg?.imagination ?? '-'}</td>
+
                             <td className="px-4 py-8 text-right text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</td>
                           </tr>
 
                           {/* Expanded row with individual votes */}
                           {isExpanded && (
                             <tr>
-                              <td colSpan={11} className="px-8 py-8 bg-black/40 border-t border-white/5">
+                              <td colSpan={13} className="px-8 py-8 bg-black/40 border-t border-white/5">
                                 <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                                   <p className="text-xs text-gray-600 uppercase tracking-[0.4em] font-mono mb-6">Vote Audit Log</p>
                                   {r.votes.length === 0 ? (
                                     <p className="text-gray-600 font-mono text-sm uppercase">&gt; 0 records found for this node</p>
                                   ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {r.votes.map((v: { judgeName: string; score: number; scoreCreativity: number | null; scoreImpact: number | null; scoreScope: number | null; scoreClarity: number | null; scoreSoundness: number | null; comment: string | null }, vi: number) => (
+                                      {r.votes.map((v: any, vi: number) => (
                                         <div
                                           key={vi}
                                           className="relative bg-black/40 border border-white/5 p-6 rounded-xl hover:border-[#00A8A8]/20 transition-all group/vote"
@@ -462,17 +489,18 @@ export default function AdminResultsPage() {
                                             </span>
                                           </div>
                                           {/* Per-category breakdown */}
-                                          <div className="grid grid-cols-5 gap-2 mt-3 mb-3">
+                                          <div className="grid grid-cols-6 gap-2 mt-3 mb-3">
                                             {[
                                               { label: 'CRE', value: v.scoreCreativity },
                                               { label: 'IMP', value: v.scoreImpact },
                                               { label: 'SCP', value: v.scoreScope },
                                               { label: 'CLR', value: v.scoreClarity },
                                               { label: 'SND', value: v.scoreSoundness },
+                                              { label: 'IMG', value: v.scoreImagination, highlight: true },
                                             ].map((cat) => (
-                                              <div key={cat.label} className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
-                                                <p className="text-[8px] text-gray-600 font-mono uppercase tracking-widest">{cat.label}</p>
-                                                <p className="text-sm font-bold text-white tabular-nums mt-0.5">{cat.value ?? '-'}</p>
+                                              <div key={cat.label} className={`rounded-lg px-2 py-1.5 text-center ${cat.highlight ? 'bg-[#00A8A8]/10 border border-[#00A8A8]/20' : 'bg-white/5'}`}>
+                                                <p className={`text-[8px] font-mono uppercase tracking-widest ${cat.highlight ? 'text-[#00A8A8]' : 'text-gray-600'}`}>{cat.label}</p>
+                                                <p className={`text-sm font-bold tabular-nums mt-0.5 ${cat.highlight ? 'text-[#00A8A8]' : 'text-white'}`}>{cat.value ?? '-'}</p>
                                               </div>
                                             ))}
                                           </div>
