@@ -32,6 +32,11 @@ export default function AdminResultsPage() {
     { enabled: !!selectedHackathon }
   );
 
+  // Get judges
+  const { data: judges } = trpc.judge.list.useQuery(undefined, {
+    enabled: !!session && !!adminStatus?.isAdmin,
+  });
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -523,6 +528,82 @@ export default function AdminResultsPage() {
               </div>
             </LiquidGlass>
           )}
+        </div>
+
+        {/* Judge Roster Section */}
+        <div className="mt-16 space-y-6">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Operations Personnel</p>
+              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
+                Judge <span className="text-[#00A8A8]">Roster</span>
+              </h2>
+            </div>
+            <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-lg text-[10px] font-mono uppercase tracking-widest text-[#00A8A8]">
+              Active: {judges?.filter(j => j.isActive).length || 0} Nodes
+            </div>
+          </div>
+
+          <LiquidGlass className="rounded-lg overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                    <th className="px-8 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Judge</th>
+                    <th className="px-8 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Contact</th>
+                    <th className="px-8 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Assigned Tracks</th>
+                    <th className="px-8 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {judges?.map((j) => (
+                    <tr key={j.id} className="hover:bg-black/40 transition-colors duration-300">
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={j.user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(j.name || 'J')}`}
+                            alt={j.name || ''}
+                            className="w-10 h-10 rounded-full border border-white/10 ring-1 ring-[#00A8A8]/20"
+                          />
+                          <div>
+                            <p className="text-sm font-bold text-white uppercase tracking-tight">{j.name}</p>
+                            <p className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">{j.specialty || 'Generalist'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <p className="text-xs text-gray-400 font-mono">{j.user?.email}</p>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex flex-wrap gap-2">
+                          {j.assignments
+                            .filter(a => a.hackathonId === selectedHackathon)
+                            .map((a, i) => (
+                              <span key={i} className="px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">
+                                {a.track || 'Unassigned'}
+                              </span>
+                            ))}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${j.isActive ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                          }`}>
+                          {j.isActive ? 'Active' : 'Offline'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {!judges?.length && (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-12 text-center text-gray-500 font-mono uppercase tracking-widest text-xs">
+                        No judges registered in the central database.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </LiquidGlass>
         </div>
 
         {/* Global Stats */}
