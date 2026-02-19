@@ -10,6 +10,6 @@
     ".": "./base.json"
   },
   "dependencies": {
-    "minimatch": "^10.1.1"
+    "minimatch": "^10.2.1"
   }
 }
