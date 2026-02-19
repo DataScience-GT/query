@@ -59,3 +59,5 @@ migrations/
 packages/db/scripts/seed.ts
 packages/db/scripts/seed2.ts
 scripts/seed-stripe.ts
+packages/db/scripts/seed-judges.ts
+packages/db/scripts/seed-projects.ts
