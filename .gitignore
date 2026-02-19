@@ -61,3 +61,5 @@ packages/db/scripts/seed2.ts
 scripts/seed-stripe.ts
 packages/db/scripts/seed-judges.ts
 packages/db/scripts/seed-projects.ts
+packages/db/final_judge_assignments.csv
+packages/db/scripts/seed-2026.ts

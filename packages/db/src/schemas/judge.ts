@@ -48,7 +48,7 @@ export const judgingProjects = pgTable("judging_project", {
   teamMembers: text("team_members"), // comma-separated or JSON string
   projectUrl: text("project_url"),
   repoUrl: text("repo_url"),
-  tracks: text("tracks").array(), // Enum: GEN-AI, SPORTS, FINANCE, HEALTH, CYBER, NONE
+  tracks: text("tracks").array(), // Enum: Sports, Entertainment, Imagination, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
   challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
   isCreateX: boolean("is_create_x").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
