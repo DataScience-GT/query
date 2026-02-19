@@ -151,6 +151,7 @@ export const judgeRouter = createTRPCRouter({
         scoreScope: z.number().min(1).max(10),
         scoreClarity: z.number().min(1).max(10),
         scoreSoundness: z.number().min(1).max(10),
+        scoreImagination: z.number().min(1).max(10).optional(),
         comment: z.string().max(1000).optional(),
       })
     )
@@ -173,6 +174,7 @@ export const judgeRouter = createTRPCRouter({
             scoreScope: input.scoreScope,
             scoreClarity: input.scoreClarity,
             scoreSoundness: input.scoreSoundness,
+            scoreImagination: input.scoreImagination,
             comment: input.comment,
             updatedAt: new Date(),
           })
@@ -193,6 +195,7 @@ export const judgeRouter = createTRPCRouter({
           scoreScope: input.scoreScope,
           scoreClarity: input.scoreClarity,
           scoreSoundness: input.scoreSoundness,
+          scoreImagination: input.scoreImagination,
           comment: input.comment,
         })
         .returning();
@@ -210,6 +213,7 @@ export const judgeRouter = createTRPCRouter({
         scoreScope: z.number().min(1).max(10),
         scoreClarity: z.number().min(1).max(10),
         scoreSoundness: z.number().min(1).max(10),
+        scoreImagination: z.number().min(1).max(10).optional(),
         comment: z.string().max(1000).optional(),
       })
     )
@@ -232,6 +236,7 @@ export const judgeRouter = createTRPCRouter({
             scoreScope: input.scoreScope,
             scoreClarity: input.scoreClarity,
             scoreSoundness: input.scoreSoundness,
+            scoreImagination: input.scoreImagination,
             comment: input.comment,
             updatedAt: new Date(),
           })
@@ -246,6 +251,7 @@ export const judgeRouter = createTRPCRouter({
           scoreScope: input.scoreScope,
           scoreClarity: input.scoreClarity,
           scoreSoundness: input.scoreSoundness,
+          scoreImagination: input.scoreImagination,
           comment: input.comment,
         });
       }
@@ -363,13 +369,14 @@ export const judgeRouter = createTRPCRouter({
         const avgScore = voteCount > 0 ? totalScore / voteCount : 0;
 
         // Per-category averages
-        const sumCat = { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
+        const sumCat = { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0, imagination: 0 };
         project.votes.forEach((v) => {
           sumCat.creativity += v.scoreCreativity ?? 0;
           sumCat.impact += v.scoreImpact ?? 0;
           sumCat.scope += v.scoreScope ?? 0;
           sumCat.clarity += v.scoreClarity ?? 0;
           sumCat.soundness += v.scoreSoundness ?? 0;
+          sumCat.imagination += v.scoreImagination ?? 0;
         });
 
         const categoryAvg = voteCount > 0
@@ -379,8 +386,9 @@ export const judgeRouter = createTRPCRouter({
             scope: round2(sumCat.scope / voteCount),
             clarity: round2(sumCat.clarity / voteCount),
             soundness: round2(sumCat.soundness / voteCount),
+            imagination: round2(sumCat.imagination / voteCount),
           }
-          : { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
+          : { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0, imagination: 0 };
 
         return {
           project: {
@@ -404,6 +412,7 @@ export const judgeRouter = createTRPCRouter({
             scoreScope: v.scoreScope,
             scoreClarity: v.scoreClarity,
             scoreSoundness: v.scoreSoundness,
+            scoreImagination: v.scoreImagination,
             comment: v.comment,
             judgeName: v.judge.user?.name || v.judge.name || "Unknown",
           })),
