@@ -101,7 +101,7 @@ export const hackathonProjects = pgTable("hackathon_project", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   technologies: text("technologies").array(),
-  tracks: text("tracks").array(), // Enum: GEN-AI, SPORTS, FINANCE, HEALTH, CYBER, NONE
+  tracks: text("tracks").array(), // Enum: Sports, Entertainment, Imagination, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
   challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
   isCreateX: boolean("is_create_x").default(false),
   teamMembers: text("team_members").array(), // Store names/emails if not fully linked
