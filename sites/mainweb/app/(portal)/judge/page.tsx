@@ -336,7 +336,7 @@ export default function JudgePage() {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-b from-[#00A8A8]/20 to-transparent blur-[80px] scale-150" />
               <p className="relative text-[160px] font-black text-white leading-none tracking-tight">
-                {project.tableNumber}
+                {project.zone}{project.tableNumber}
               </p>
             </div>
           </div>
@@ -408,7 +408,7 @@ export default function JudgePage() {
             <LiquidGlass className="rounded-xl px-3 py-1.5 flex items-center gap-3">
               <div className="text-center">
                 <p className="text-[9px] text-gray-500 uppercase tracking-widest">Table</p>
-                <p className="text-lg font-black text-white leading-tight">{project.tableNumber}</p>
+                <p className="text-lg font-black text-white leading-tight">{project.zone}{project.tableNumber}</p>
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
