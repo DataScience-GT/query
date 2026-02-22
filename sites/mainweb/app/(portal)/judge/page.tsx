@@ -203,7 +203,7 @@ export default function JudgePage() {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-white mb-2 uppercase tracking-tight">Access Denied</h1>
-          <p className="text-gray-500 font-mono text-sm">You're not registered as a judge for this event.</p>
+          <p className="text-gray-500 font-mono text-sm">You&apos;re not registered as a judge for this event.</p>
         </LiquidGlass>
       </div>
     );
@@ -242,7 +242,7 @@ export default function JudgePage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-tight">All <span className="text-[#00A8A8] italic">Done!</span></h1>
-          <p className="text-gray-500 font-mono text-sm">You've judged all assigned projects. Thank you!</p>
+          <p className="text-gray-500 font-mono text-sm">You&apos;ve judged all assigned projects. Thank you!</p>
         </LiquidGlass>
       </div>
     );
@@ -423,7 +423,7 @@ export default function JudgePage() {
       <main className="flex-1 overflow-y-auto px-4 py-5 relative z-10">
         <div className="max-w-lg mx-auto">
           <LiquidGlass className="flex items-center gap-3 mb-6 p-4">
-            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#00A8A8] to-emerald-600 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(0,168,168,0.3)]">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(0,168,168,0.3)]">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
@@ -472,7 +472,7 @@ export default function JudgePage() {
           <button
             onClick={handleSubmit}
             disabled={submit.isPending}
-            className="w-full px-8 py-5 bg-linear-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 shadow-xl shadow-[#00A8A8]/20 mb-8"
+            className="w-full px-8 py-5 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-lg rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-50 shadow-xl shadow-[#00A8A8]/20 mb-8"
           >
             {submit.isPending ? (
               <span className="flex items-center justify-center gap-2">
@@ -486,8 +486,6 @@ export default function JudgePage() {
           </button>
         </div>
       </main>
-
-      <RubricSliderStyles />
     </div>
   );
 }
