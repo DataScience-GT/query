@@ -41,6 +41,8 @@ yarn-error.log*
 # Turbo
 .turbo
 
+# ui
+dist/
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
@@ -62,4 +64,9 @@ scripts/seed-stripe.ts
 packages/db/scripts/seed-judges.ts
 packages/db/scripts/seed-projects.ts
 packages/db/final_judge_assignments.csv
+packages/db/scripts/seed-2026.ts
+packages/db/scripts/assign-*.ts
+*.csv
+output.txt
+packages/db/scripts/*.csv
 packages/db/scripts/seed-2026.ts
