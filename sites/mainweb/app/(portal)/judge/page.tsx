@@ -356,8 +356,11 @@ export default function JudgePage() {
                 )}
                 <h2 className="text-lg font-bold text-white">{project.name}</h2>
                 {project.teamMembers && <p className="text-gray-500 text-sm mb-2">{project.teamMembers}</p>}
-
-
+                {project.projectUrl && (
+                  <a href={project.projectUrl} target="_blank" rel="noopener noreferrer" className="text-[#00A8A8] hover:text-[#00A8A8]/80 text-sm font-medium transition-colors underline decoration-[#00A8A8]/30 underline-offset-2">
+                    View on Devpost
+                  </a>
+                )}
               </div>
             </div>
           </LiquidGlass>
@@ -428,8 +431,11 @@ export default function JudgePage() {
             <div>
               <h1 className="text-lg font-bold text-white">{project.name}</h1>
               {project.teamMembers && <p className="text-gray-500 text-sm mb-2">{project.teamMembers}</p>}
-
-
+              {project.projectUrl && (
+                <a href={project.projectUrl} target="_blank" rel="noopener noreferrer" className="text-[#00A8A8] hover:text-[#00A8A8]/80 text-sm font-medium transition-colors underline decoration-[#00A8A8]/30 underline-offset-2">
+                  View on Devpost
+                </a>
+              )}
             </div>
           </LiquidGlass>
 
