@@ -44,6 +44,7 @@ export const judgingProjects = pgTable("judging_project", {
   name: text("name").notNull(),
   description: text("description"),
   tableNumber: integer("table_number").notNull(),
+  zone: text("zone"),
   category: text("category"), // e.g., "AI", "Web3", "Health", "Sustainability"
   teamMembers: text("team_members"), // comma-separated or JSON string
   projectUrl: text("project_url"),
