@@ -148,19 +148,33 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   callbacks: {
+    async signIn({ user }) {
+      if (user?.id && db) {
+        const judge = await db.query.judges.findFirst({
+          where: (j, { eq }) => eq(j.userId, user.id)
+        });
+        if (judge) {
+          // Returning a string redirects to that URL
+          return "/judge";
+        }
+      }
+      return true;
+    },
     async session({ session, user }) {
-      if (user && session.user) {
+      if (user && session.user && db) {
         session.user.id = user.id;
+
+        // Add judge status to session for easier client-side checks
+        const judge = await db.query.judges.findFirst({
+          where: (j, { eq }) => eq(j.userId, user.id)
+        });
+        // @ts-ignore - custom property
+        session.user.isJudge = !!judge;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
-      } else if (new URL(url).origin === baseUrl) {
-        return url;
-      }
-      return baseUrl;
+      return url.startsWith("/") ? `${baseUrl}${url}` : (new URL(url).origin === baseUrl ? url : baseUrl);
     },
   },
   session: {
