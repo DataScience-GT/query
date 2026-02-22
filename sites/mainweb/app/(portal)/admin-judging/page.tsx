@@ -430,7 +430,7 @@ export default function AdminResultsPage() {
                             </td>
                             <td className="px-8 py-8">
                               <div className="space-y-1">
-                                <p className="text-sm font-mono text-gray-500 uppercase tracking-widest font-bold">Node {r.project.tableNumber}</p>
+                                <p className="text-sm font-mono text-gray-500 uppercase tracking-widest font-bold">Node {r.project.zone}{r.project.tableNumber}</p>
                                 <p className="text-xs text-gray-700 font-mono">ID: {r.project.id.slice(-6).toUpperCase()}</p>
                               </div>
                             </td>
