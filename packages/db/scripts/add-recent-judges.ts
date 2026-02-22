@@ -46,7 +46,7 @@ async function main() {
         ["Gopi Anoop", "gopi.anoop@gmail.com", ["ANY"]],
         ["Kashish Mittal", "kashishmittal55@gmail.com", ["ANY"]],
         ["M Waldrop", "mwaldrop@nvidia.com", ["ANY"]],
-        ["SafetyKit Dev", "dev@safetykit.com", ["ANY"]],
+        ["SafetyKit Dev", "dev@safetykit.com", ["SAFETYKIT"]],
         ["Karthik", "karthidec@gmail.com", ["ANY"]],
         ["Kasheef Ali", "kasheefalir@gmail.com", ["ANY"]],
         ["Danniecia Gray", "dannieciagray@gmail.com", ["ANY"]],
@@ -125,7 +125,8 @@ async function main() {
         "nathan@databricks.com",
         "elise.hollowed@databricks.com",
         "tarek.madkour@databricks.com",
-        "pratham.mehta001@gmail.com"
+        "pratham.mehta001@gmail.com",
+        "dev@safetykit.com"
     ];
 
     for (const email of exclusiveEmails) {
