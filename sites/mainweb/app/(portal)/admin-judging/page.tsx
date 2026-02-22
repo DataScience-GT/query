@@ -62,7 +62,12 @@ export default function AdminResultsPage() {
 
   const tracks = useMemo(() => {
     if (!rankings?.rankings) return ['ALL'];
-    const ts = new Set(rankings.rankings.flatMap(r => r.project.tracks || []).filter((t): t is string => !!t));
+    const ts = new Set<string>();
+    rankings.rankings.forEach(r => {
+      r.project.tracks?.forEach(t => ts.add(t));
+      r.project.challenges?.forEach(c => ts.add(c.toUpperCase()));
+      if (r.project.isCreateX) ts.add('CREATE-X');
+    });
     return ['ALL', ...Array.from(ts)];
   }, [rankings]);
 
@@ -76,7 +81,11 @@ export default function AdminResultsPage() {
     }
 
     if (selectedTrack !== 'ALL') {
-      filtered = filtered.filter(r => r.project.tracks?.includes(selectedTrack));
+      filtered = filtered.filter(r =>
+        r.project.tracks?.includes(selectedTrack) ||
+        r.project.challenges?.some(c => c.toUpperCase() === selectedTrack) ||
+        (selectedTrack === 'CREATE-X' && r.project.isCreateX)
+      );
     }
 
     // Calculate display score based on track
@@ -438,11 +447,23 @@ export default function AdminResultsPage() {
                               <div>
                                 <div className="flex items-center gap-3 mb-1">
                                   <p className="text-xl font-bold text-white uppercase group-hover:text-[#00A8A8] transition-colors duration-300">{r.project.name}</p>
-                                  {r.project.tracks?.map(t => (
-                                    <span key={t} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-mono text-gray-400 uppercase tracking-widest">
-                                      {t}
-                                    </span>
-                                  ))}
+                                  <div className="flex flex-wrap gap-1">
+                                    {r.project.tracks?.map(t => (
+                                      <span key={t} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-mono text-gray-400 uppercase tracking-widest">
+                                        {t}
+                                      </span>
+                                    ))}
+                                    {r.project.challenges?.map(c => (
+                                      <span key={c} className="px-2 py-0.5 rounded bg-[#00A8A8]/10 border border-[#00A8A8]/30 text-[8px] font-mono text-[#00A8A8] uppercase tracking-widest">
+                                        {c}
+                                      </span>
+                                    ))}
+                                    {r.project.isCreateX && (
+                                      <span className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-500 uppercase tracking-widest">
+                                        CREATE-X
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 {r.project.teamMembers && (
                                   <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">{r.project.teamMembers}</p>
