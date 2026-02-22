@@ -148,18 +148,6 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   callbacks: {
-    async signIn({ user }) {
-      if (user?.id && db) {
-        const judge = await db.query.judges.findFirst({
-          where: (j, { eq }) => eq(j.userId, user.id)
-        });
-        if (judge) {
-          // Returning a string redirects to that URL
-          return "/judge";
-        }
-      }
-      return true;
-    },
     async session({ session, user }) {
       if (user && session.user && db) {
         session.user.id = user.id;
