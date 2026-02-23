@@ -295,6 +295,70 @@ export const judgeRouter = createTRPCRouter({
       };
     }),
 
+  skipProject: isJudge
+    .input(
+      z.object({
+        queueId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get the queue item to find the hackathon
+      const queueItem = await ctx.db!.query.judgeQueue.findFirst({
+        where: eq(judgeQueue.id, input.queueId),
+      });
+
+      if (!queueItem) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Queue item not found",
+        });
+      }
+
+      // Find the current max order for this judge's queue
+      const maxOrderResult = await ctx.db!
+        .select({ maxOrder: sql<number>`COALESCE(MAX(${judgeQueue.order}), 0)` })
+        .from(judgeQueue)
+        .where(
+          and(
+            eq(judgeQueue.judgeId, ctx.judge.id),
+            eq(judgeQueue.hackathonId, queueItem.hackathonId)
+          )
+        );
+
+      const newOrder = (maxOrderResult[0]?.maxOrder || 0) + 1;
+
+      // Move this item to the end of the queue
+      await ctx.db!
+        .update(judgeQueue)
+        .set({ order: newOrder })
+        .where(eq(judgeQueue.id, input.queueId));
+
+      // Get the next uncompleted item
+      const nextInQueue = await ctx.db!.query.judgeQueue.findFirst({
+        where: and(
+          eq(judgeQueue.judgeId, ctx.judge.id),
+          eq(judgeQueue.hackathonId, queueItem.hackathonId),
+          eq(judgeQueue.isCompleted, false)
+        ),
+        with: {
+          project: true,
+        },
+        orderBy: [asc(judgeQueue.order)],
+      });
+
+      if (!nextInQueue || nextInQueue.id === input.queueId) {
+        // Only this one project left — can't skip the last one
+        return { done: false, skippedToEnd: true, project: queueItem, queueId: input.queueId };
+      }
+
+      return {
+        done: false,
+        skippedToEnd: false,
+        project: nextInQueue.project,
+        queueId: nextInQueue.id,
+      };
+    }),
+
   getProgress: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
