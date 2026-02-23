@@ -363,7 +363,12 @@ export const judgeRouter = createTRPCRouter({
 
       const round2 = (n: number) => Math.round(n * 100) / 100;
 
-      const rankings = projects.map((project) => {
+      // Bayesian average confidence threshold
+      // C=2 means: with 2 judges you get a 50/50 blend of actual vs global avg
+      const C = 2;
+
+      // First pass: compute raw stats for each project
+      const rawRankings = projects.map((project) => {
         const totalScore = project.votes.reduce((sum, v) => sum + v.score, 0);
         const voteCount = project.votes.length;
         const avgScore = voteCount > 0 ? totalScore / voteCount : 0;
@@ -420,18 +425,38 @@ export const judgeRouter = createTRPCRouter({
         };
       });
 
-      rankings.sort((a, b) => b.totalScore - a.totalScore);
+      // Compute global average (across all projects that have at least 1 vote)
+      const votedProjects = rawRankings.filter((r) => r.voteCount > 0);
+      const globalAvg = votedProjects.length > 0
+        ? round2(votedProjects.reduce((sum, r) => sum + r.avgScore, 0) / votedProjects.length)
+        : 0;
 
-      // Overall total-score ties
+      // Second pass: compute Bayesian weighted score and confidence level
+      // weightedScore = (n / (n + C)) * avgScore + (C / (n + C)) * globalAvg
+      const rankings = rawRankings.map((r) => {
+        const n = r.voteCount;
+        const weightedScore = n > 0
+          ? round2((n / (n + C)) * r.avgScore + (C / (n + C)) * globalAvg)
+          : 0;
+        const confidenceLevel: "NONE" | "LOW" | "MEDIUM" | "HIGH" =
+          n === 0 ? "NONE" : n === 1 ? "LOW" : n === 2 ? "MEDIUM" : "HIGH";
+
+        return { ...r, weightedScore, confidenceLevel };
+      });
+
+      // Sort by weighted score (fair ranking)
+      rankings.sort((a, b) => b.weightedScore - a.weightedScore);
+
+      // Weighted-score ties
       const ties: { score: number; projects: string[] }[] = [];
       const scoreGroups = new Map<number, typeof rankings>();
 
       rankings.forEach((r) => {
-        const existing = scoreGroups.get(r.totalScore);
+        const existing = scoreGroups.get(r.weightedScore);
         if (existing) {
           existing.push(r);
         } else {
-          scoreGroups.set(r.totalScore, [r]);
+          scoreGroups.set(r.weightedScore, [r]);
         }
       });
 
@@ -481,6 +506,7 @@ export const judgeRouter = createTRPCRouter({
 
       const result = {
         rankings,
+        globalAvg,
         ties,
         hasTies: ties.length > 0,
         categoryTies,
