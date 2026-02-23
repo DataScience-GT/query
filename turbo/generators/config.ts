@@ -17,6 +17,7 @@ function sanitizeName(value: unknown): string {
 
 }
 
+
 async function latestVersion(pkg: string): Promise<string> {
   const res = await fetch(
     `https://registry.npmjs.org/-/package/${pkg}/dist-tags`,
