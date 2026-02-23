@@ -91,9 +91,14 @@ export default function AdminResultsPage() {
     // Calculate display score based on track
     return filtered.map(r => {
       const isPureImagination = selectedTrack === 'Pure Imagination';
-      // If Pure Imagination track is selected, include imagination score in total
-      const imaginationSum = r.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
-      const displayScore = isPureImagination ? r.totalScore + imaginationSum : r.totalScore;
+      // For Pure Imagination, factor imagination scores into weighted calc
+      const imaginationAvg = r.voteCount > 0
+        ? r.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0) / r.voteCount
+        : 0;
+      // Weighted score already accounts for judge count; add imagination avg for Pure Imagination
+      const displayScore = isPureImagination
+        ? Math.round((r.weightedScore + imaginationAvg) * 100) / 100
+        : r.weightedScore;
 
       return {
         ...r,
@@ -247,12 +252,12 @@ export default function AdminResultsPage() {
           <LiquidGlass className="border border-yellow-500/30 rounded-lg p-8 mb-6 shadow-[0_0_40px_rgba(234,179,8,0.05)] animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
-              <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Overall Score Collision</h3>
+              <h3 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Weighted Score Collision</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rankings.ties.map((tie: { score: number; projects: string[] }, i: number) => (
                 <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl font-mono">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-black">Total Score: {tie.score}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-black">Weighted Score: {tie.score}</p>
                   <div className="space-y-1">
                     {tie.projects.map((p, pi) => (
                       <p key={pi} className="text-white text-sm">&gt; {p}</p>
@@ -276,43 +281,37 @@ export default function AdminResultsPage() {
 
             {/* Logic Calculation */}
             {(() => {
-              // 1. Identify Overall Winners (Top 3)
-              // Sort by total score descending
-              const sortedByScore = [...rankings.rankings].sort((a, b) => b.totalScore - a.totalScore);
+              // 1. Identify Overall Winners (Top 3) by weighted score
+              const sortedByScore = [...rankings.rankings].sort((a, b) => b.weightedScore - a.weightedScore);
               const overallWinners = sortedByScore.slice(0, 3);
               const overallWinnerIds = new Set(overallWinners.map(r => r.project.id));
 
               // 2. Identify Track Winners (Top 1 per Track, excluding Overall)
-              // Get all unique tracks
               const allTracks = Array.from(new Set(rankings.rankings.flatMap(r => r.project.tracks || [])));
               const trackWinners: Record<string, any> = {};
               const usedWinnerIds = new Set(overallWinnerIds);
 
               allTracks.forEach(track => {
-                // If track is Pure Imagination, sort by Total + Imagination
                 const isPureImagination = track === 'Pure Imagination';
-
-                // Sort projects for this track
                 const projectsInTrack = rankings.rankings.filter(r => r.project.tracks?.includes(track));
 
-                const sortedTrackProjects = projectsInTrack.sort((a, b) => {
+                const sortedTrackProjects = [...projectsInTrack].sort((a, b) => {
                   if (isPureImagination) {
-                    const scoreA = a.totalScore + a.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
-                    const scoreB = b.totalScore + b.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
-                    return scoreB - scoreA;
+                    const imgAvgA = a.voteCount > 0 ? a.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0) / a.voteCount : 0;
+                    const imgAvgB = b.voteCount > 0 ? b.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0) / b.voteCount : 0;
+                    return (b.weightedScore + imgAvgB) - (a.weightedScore + imgAvgA);
                   }
-                  return b.totalScore - a.totalScore;
+                  return b.weightedScore - a.weightedScore;
                 });
 
-                // Find highest scoring project in this track that hasn't won an overall prize
-                // (Unless Pure Imagination rules are different? Assuming strict exclusion for fairness)
                 const candidate = sortedTrackProjects.find(r => !usedWinnerIds.has(r.project.id));
 
                 if (candidate) {
-                  // augment candidate with pure imagination score if needed for display
                   if (isPureImagination) {
-                    const imagScore = candidate.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0);
-                    trackWinners[track] = { ...candidate, customScore: candidate.totalScore + imagScore };
+                    const imgAvg = candidate.voteCount > 0
+                      ? candidate.votes.reduce((sum, v) => sum + (v.scoreImagination || 0), 0) / candidate.voteCount
+                      : 0;
+                    trackWinners[track] = { ...candidate, customScore: Math.round((candidate.weightedScore + imgAvg) * 100) / 100 };
                   } else {
                     trackWinners[track] = candidate;
                   }
@@ -320,8 +319,23 @@ export default function AdminResultsPage() {
                 }
               });
 
+              const confidenceBadge = (level: string) => {
+                if (level === 'LOW') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">⚠ LOW</span>;
+                if (level === 'MEDIUM') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">● MED</span>;
+                if (level === 'HIGH') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">◉ HIGH</span>;
+                return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-gray-500/20 text-gray-500 border border-gray-500/30">—</span>;
+              };
+
               return (
                 <div className="space-y-8">
+                  {/* Scoring Method Info */}
+                  <div className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-[#00A8A8]" />
+                    <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                      Bayesian Weighted Ranking // Global Avg: <span className="text-[#00A8A8] font-bold">{rankings.globalAvg}</span> // C=2
+                    </p>
+                  </div>
+
                   {/* Overall Winners */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {overallWinners.map((w, i) => (
@@ -333,8 +347,14 @@ export default function AdminResultsPage() {
                           {i === 0 ? 'Grand Prize' : i === 1 ? '2nd Place' : '3rd Place'}
                         </p>
                         <h3 className="text-xl font-black text-white uppercase mb-1">{w.project.name}</h3>
-                        <p className="text-3xl font-black text-[#00A8A8] tabular-nums mb-2">{w.totalScore}</p>
-                        <p className="text-xs text-gray-500 font-mono">ID: {w.project.id.slice(-6).toUpperCase()}</p>
+                        <div className="flex items-end gap-3 mb-2">
+                          <p className="text-3xl font-black text-[#00A8A8] tabular-nums">{w.weightedScore}</p>
+                          <p className="text-sm text-gray-600 font-mono tabular-nums mb-1">avg {w.avgScore}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-gray-500 font-mono">{w.voteCount} judge{w.voteCount !== 1 ? 's' : ''}</p>
+                          {confidenceBadge(w.confidenceLevel)}
+                        </div>
                       </LiquidGlass>
                     ))}
                   </div>
@@ -351,8 +371,12 @@ export default function AdminResultsPage() {
                             <p className="text-[10px] text-blue-400 uppercase tracking-widest mb-2 font-bold">{track}</p>
                             <h4 className="text-lg font-bold text-white mb-1 truncate" title={w.project.name}>{w.project.name}</h4>
                             <div className="flex items-end gap-2">
-                              <p className="text-xl font-bold text-gray-400 tabular-nums">{w.customScore || w.totalScore}</p>
+                              <p className="text-xl font-bold text-gray-400 tabular-nums">{w.customScore || w.weightedScore}</p>
                               {track === 'Pure Imagination' && <span className="text-[9px] text-[#00A8A8] mb-1 font-mono">(w/ IMG)</span>}
+                            </div>
+                            <div className="flex items-center gap-1 mt-1">
+                              <p className="text-[10px] text-gray-600 font-mono">{w.voteCount}J</p>
+                              {confidenceBadge(w.confidenceLevel)}
                             </div>
                           </div>
                         ))}
@@ -397,8 +421,8 @@ export default function AdminResultsPage() {
                       <th className="px-6 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Pos</th>
                       <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Node</th>
                       <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Identifier</th>
-                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Sum</th>
-                      {!selectedTrack.includes('Pure Imagination') && <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Avg</th>}
+                      <th className="px-4 py-6 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] text-right" title="Bayesian Weighted Score">Weighted</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Avg</th>
 
                       {/* Rubric Headers */}
                       <th className="px-3 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center" title="Creativity">CRE</th>
@@ -410,7 +434,7 @@ export default function AdminResultsPage() {
                       {/* Show IMG column if Pure Imagination or All */}
                       <th className="px-3 py-6 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] text-center" title="Pure Imagination">IMG</th>
 
-                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Count</th>
+                      <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Judges</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -476,7 +500,7 @@ export default function AdminResultsPage() {
                               </span>
                               {isPureImaginationRow && <p className="text-[9px] text-gray-600 font-mono">INCL. IMG</p>}
                             </td>
-                            {!selectedTrack.includes('Pure Imagination') && <td className="px-4 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>}
+                            <td className="px-4 py-8 text-right text-gray-400 font-mono tabular-nums text-lg">{r.avgScore}</td>
 
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.creativity ?? '-'}</td>
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.impact ?? '-'}</td>
@@ -485,7 +509,15 @@ export default function AdminResultsPage() {
                             <td className="px-3 py-8 text-center text-gray-400 font-mono tabular-nums text-sm">{r.categoryAvg?.soundness ?? '-'}</td>
                             <td className="px-3 py-8 text-center text-[#00A8A8] font-mono tabular-nums text-sm font-bold">{r.categoryAvg?.imagination ?? '-'}</td>
 
-                            <td className="px-4 py-8 text-right text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</td>
+                            <td className="px-4 py-8 text-right">
+                              <span className="text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</span>
+                              <div className="mt-1">
+                                {r.confidenceLevel === 'LOW' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">⚠ LOW</span>}
+                                {r.confidenceLevel === 'MEDIUM' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">● MED</span>}
+                                {r.confidenceLevel === 'HIGH' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">◉ HIGH</span>}
+                                {r.confidenceLevel === 'NONE' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-gray-500/20 text-gray-500 border border-gray-500/30">—</span>}
+                              </div>
+                            </td>
                           </tr>
 
                           {/* Expanded row with individual votes */}
@@ -629,7 +661,7 @@ export default function AdminResultsPage() {
 
         {/* Global Stats */}
         {rankings && rankings.rankings.length > 0 && (
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
             <LiquidGlass className="rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
               <p className="text-4xl font-black text-white group-hover:text-[#00A8A8] transition-colors tabular-nums">{rankings.rankings.length}</p>
               <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Projects Logged</p>
@@ -638,7 +670,11 @@ export default function AdminResultsPage() {
               <p className="text-4xl font-black text-[#00A8A8] tabular-nums">
                 {rankings.rankings.reduce((sum: number, r: { voteCount: number }) => sum + r.voteCount, 0)}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Balls Aggregated</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Votes Aggregated</p>
+            </LiquidGlass>
+            <LiquidGlass className="rounded-lg p-8 text-center group hover:border-[#00A8A8]/20 transition-all">
+              <p className="text-4xl font-black text-emerald-400 tabular-nums">{rankings.globalAvg}</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Global Avg Score</p>
             </LiquidGlass>
             <LiquidGlass className="rounded-lg p-8 text-center group hover:border-yellow-500/20 transition-all">
               <p className={`text-4xl font-black tabular-nums ${rankings.ties.length > 0 ? 'text-yellow-500 animate-pulse' : 'text-gray-600'}`}>
