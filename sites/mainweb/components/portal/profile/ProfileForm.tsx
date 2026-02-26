@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import SkillsInterestsInput from './SkillsInterestsInput';
 
 interface ProfileFormProps {
   user: {
@@ -12,6 +13,8 @@ interface ProfileFormProps {
     email: string;
     image?: string | null;
     bio?: string | null;
+    website?: string | null;
+    location?: string | null;
   };
 }
 
@@ -22,7 +25,36 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   const [formData, setFormData] = useState({
     name: user.name || '',
     bio: user.bio || '',
+    website: user.website || '',
+    location: user.location || '',
   });
+
+  const { data: memberStatus } = trpc.member.checkStatus.useQuery();
+  const isMember = memberStatus?.isMember;
+
+  const { data: memberData } = trpc.member.me.useQuery(undefined, {
+    enabled: !!isMember,
+  });
+
+  const [memberForm, setMemberForm] = useState({
+    linkedinUrl: '',
+    githubUrl: '',
+    portfolioUrl: '',
+    skills: [] as string[],
+    interests: [] as string[],
+  });
+
+  useEffect(() => {
+    if (memberData) {
+      setMemberForm({
+        linkedinUrl: memberData.linkedinUrl || '',
+        githubUrl: memberData.githubUrl || '',
+        portfolioUrl: memberData.portfolioUrl || '',
+        skills: memberData.skills || [],
+        interests: memberData.interests || [],
+      });
+    }
+  }, [memberData]);
 
   const [imagePreview, setImagePreview] = useState<string | null>(user.image || null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -43,6 +75,16 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
       setIsSubmitting(false);
     },
+  });
+
+  const updateMember = trpc.member.update.useMutation({
+    onSuccess: () => {
+      utils.member.me.invalidate();
+    },
+    onError: (error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to update member profile' });
+      setIsSubmitting(false);
+    }
   });
 
   const updateProfileImage = trpc.user.updateProfileImage.useMutation({
@@ -119,7 +161,19 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     updateProfile.mutate({
       name: formData.name || undefined,
       bio: formData.bio || undefined,
+      website: formData.website || undefined,
+      location: formData.location || undefined,
     });
+
+    if (isMember) {
+      updateMember.mutate({
+        linkedinUrl: memberForm.linkedinUrl || undefined,
+        githubUrl: memberForm.githubUrl || undefined,
+        portfolioUrl: memberForm.portfolioUrl || undefined,
+        skills: memberForm.skills.length > 0 ? memberForm.skills : undefined,
+        interests: memberForm.interests.length > 0 ? memberForm.interests : undefined,
+      });
+    }
   };
 
   return (
@@ -198,6 +252,34 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="space-y-2">
         <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+          Website
+        </label>
+        <input
+          type="url"
+          value={formData.website}
+          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+          placeholder="https://your-website.com"
+          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          maxLength={500}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+          Location
+        </label>
+        <input
+          type="text"
+          value={formData.location}
+          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+          placeholder="E.g. Atlanta, GA"
+          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          maxLength={200}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
           Email Address
         </label>
         <input
@@ -209,7 +291,85 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         <p className="text-[10px] text-gray-700 uppercase">Cannot be modified</p>
       </div>
 
-      <LiquidGlass className="bg-white/5 border border-white/10 rounded-lg p-4">
+      {isMember && (
+        <div className="pt-6 mt-6 border-t border-white/10 space-y-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Member Details</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+                LinkedIn URL
+              </label>
+              <input
+                type="url"
+                value={memberForm.linkedinUrl}
+                onChange={(e) => setMemberForm({ ...memberForm, linkedinUrl: e.target.value })}
+                placeholder="https://linkedin.com/in/..."
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+                GitHub URL
+              </label>
+              <input
+                type="url"
+                value={memberForm.githubUrl}
+                onChange={(e) => setMemberForm({ ...memberForm, githubUrl: e.target.value })}
+                placeholder="https://github.com/..."
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+                Portfolio URL
+              </label>
+              <input
+                type="url"
+                value={memberForm.portfolioUrl}
+                onChange={(e) => setMemberForm({ ...memberForm, portfolioUrl: e.target.value })}
+                placeholder="https://your-portfolio.com"
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2 mt-4">
+              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+                Core Skills
+              </label>
+              <SkillsInterestsInput
+                items={memberForm.skills}
+                setItems={(skills) => setMemberForm({ ...memberForm, skills })}
+                placeholder="E.g., React, Python, Data Analysis..."
+                maxItems={15}
+                accentColor="blue-500"
+              />
+            </div>
+
+            <div className="space-y-2 mt-4">
+              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+                Interests & Focus Areas
+              </label>
+              <SkillsInterestsInput
+                items={memberForm.interests}
+                setItems={(interests) => setMemberForm({ ...memberForm, interests })}
+                placeholder="E.g., Open Source, Machine Learning..."
+                maxItems={10}
+                accentColor="purple-500"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <LiquidGlass className="bg-white/5 border border-white/10 rounded-lg p-4 mt-6">
         <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile Tips</p>
         <ul className="text-xs text-gray-400 space-y-1">
           <li>&gt; Use a clear profile picture for better recognition</li>

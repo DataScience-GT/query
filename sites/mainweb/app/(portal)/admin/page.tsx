@@ -157,7 +157,7 @@ export default function AdminPage() {
             <h1 className="text-2xl font-bold text-white">
               Admin <span className="bg-gradient-to-r from-[#00A8A8] to-emerald-400 bg-clip-text text-transparent italic">Terminal</span>
             </h1>
-            <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">{adminStatus.role?.replace('_', ' ').toUpperCase()}</p>
+            <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">{adminStatus.role?.replace(/_/g, ' ').toUpperCase()}</p>
           </div>
           <div className="flex gap-3">
             <Link

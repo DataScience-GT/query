@@ -24,6 +24,10 @@ export default function Dashboard() {
 
   const { data: myRegs, isLoading: loadingRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
 
+  const now = new Date();
+  const activeRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(reg.hackathon.endDate) >= now : true) || [];
+  const pastRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(reg.hackathon.endDate) < now : false) || [];
+
   // Auto-link Stripe payment by email on login
   const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation();
   useEffect(() => {
@@ -142,7 +146,9 @@ export default function Dashboard() {
                     name: userData?.name,
                     email: userData?.email || '',
                     image: userData?.image,
-                    bio: userData?.bio
+                    bio: userData?.bio,
+                    website: userData?.website,
+                    location: userData?.location,
                   }} />
                 </div>
               ) : (
@@ -170,6 +176,29 @@ export default function Dashboard() {
 
                           <div className="mt-8 flex items-center gap-2 text-[10px] font-mono text-[#00A8A8] opacity-60 group-hover:opacity-100 transition-opacity">
                             <span>INITIATE SESSION</span>
+                            <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                          </div>
+                        </div>
+                      </Link>
+
+                      <Link href="/admin-hackathons/analytics" className="block group">
+                        <div className="relative p-8 bg-black/40 border border-white/5 hover:border-blue-500/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg">
+                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <svg className="w-24 h-24 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
+                          </div>
+
+                          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-blue-500">
+                            Node Access Level 4
+                          </p>
+                          <h3 className="text-3xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-blue-400 transition-colors">
+                            Admin Analytics Node
+                          </h3>
+                          <p className="text-base text-gray-500 font-mono">
+                            View real-time registration statistics, dietary restrictions, and t-shirt sizes.
+                          </p>
+
+                          <div className="mt-8 flex items-center gap-2 text-[10px] font-mono text-blue-500 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <span>INITIATE TELEMETRY</span>
                             <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                           </div>
                         </div>
@@ -277,13 +306,47 @@ export default function Dashboard() {
                           </div>
                         )}
 
+                        {/* NEW SUBMISSION PORTAL TILE (HIDDEN UNTIL READY)
+                        <Link href="/submit" className="block group h-full">
+                          <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-yellow-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(234,179,8,0.15)] rounded-lg">
+                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-all duration-500" />
+
+                            <div className="absolute top-0 right-0 p-5 opacity-20 group-hover:opacity-40 transition-opacity duration-300 transform group-hover:scale-105 group-hover:-rotate-3">
+                              <svg className="w-24 h-24 text-yellow-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                            </div>
+
+                            <div className="relative z-10">
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                                <p className="text-xs uppercase tracking-[0.2em] font-bold text-yellow-500">
+                                  Action Required
+                                </p>
+                              </div>
+
+                              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-yellow-400 transition-colors">
+                                Submission Portal
+                              </h3>
+                              <p className="text-sm text-gray-500 font-mono mb-8 group-hover:text-gray-400 transition-colors">
+                                &gt; Form your team and submit your final project details to the judging queue.
+                              </p>
+
+                              <div className="inline-flex items-center gap-3 text-sm font-mono text-white bg-yellow-500/10 border border-yellow-500/20 px-6 py-3 rounded-lg group-hover:bg-yellow-500/20 group-hover:border-yellow-500/40 transition-all">
+                                <span className="group-hover:text-yellow-300 transition-colors font-bold tracking-wider">DEPLOY PROJECT</span>
+                                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                        */}
+
                         {/* HACKATHON REGISTRATIONS */}
                         {loadingRegs ? (
                           <div className="relative h-full p-8 bg-black/40 border border-white/5 rounded-lg flex items-center justify-center animate-pulse">
                             <span className="text-gray-500 text-sm font-mono">Loading events...</span>
                           </div>
-                        ) : myRegs && myRegs.length > 0 ? (
-                          myRegs.map((reg) => (
+                        ) : activeRegs.length > 0 ? (
+                          activeRegs.map((reg) => (
                             <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=SCHEDULE`} className="block group h-full">
                               <div className="relative h-full p-8 bg-black/40 border border-[#00A8A8]/10 hover:border-[#00A8A8]/30 transition-all duration-300 flex flex-col rounded-lg hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(0,168,168,0.15)] overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-duration-500" />
@@ -298,9 +361,45 @@ export default function Dashboard() {
                                 <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors truncate relative z-10">
                                   {reg.hackathon.name}
                                 </h3>
-                                <p className="text-sm text-gray-500 font-mono mb-6 flex-1 relative z-10">
-                                  Access your personalized dashboard, team management, and specific event resources.
-                                </p>
+
+                                <div className="space-y-2 mb-6 flex-1 relative z-10 mt-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Status</span>
+                                    <span className={`text-xs font-bold uppercase tracking-widest ${reg.registrationStatus === 'approved' || reg.registrationStatus === 'checked_in' ? 'text-green-500' :
+                                      reg.registrationStatus === 'waitlisted' ? 'text-yellow-500' :
+                                        reg.registrationStatus === 'rejected' ? 'text-red-500' :
+                                          'text-gray-400'
+                                      }`}>
+                                      {reg.registrationStatus.replace(/_/g, ' ')}
+                                    </span>
+                                  </div>
+
+                                  {reg.team ? (
+                                    <>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Team</span>
+                                        <span className="text-xs text-white tracking-widest truncate max-w-[120px]">
+                                          {reg.team.name}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Project</span>
+                                        <span className={`text-xs uppercase tracking-widest ${reg.team.projects && reg.team.projects.length > 0 ? 'text-[#00A8A8] font-bold' : 'text-gray-500'
+                                          }`}>
+                                          {reg.team.projects && reg.team.projects.length > 0 ? reg.team.projects[0]?.status : 'No Project'}
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-2">
+                                      <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Team</span>
+                                      <span className="text-xs text-gray-500 uppercase tracking-widest">
+                                        Solo / Unassigned
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
 
                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded bg-black border border-white/10 self-start group-hover:border-[#00A8A8]/30 transition-colors relative z-10">
                                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400 group-hover:text-white transition-colors">Enter Portal</span>
@@ -334,6 +433,57 @@ export default function Dashboard() {
                           </Link>
                         )}
                       </div>
+
+                      {/* PAST HACKATHONS */}
+                      {!loadingRegs && pastRegs.length > 0 && (
+                        <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                          <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-3">
+                            <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                            Past Events
+                          </h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {pastRegs.map((reg) => (
+                              <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=OVERVIEW`} className="block group h-full">
+                                <div className="relative h-full p-6 bg-black/40 border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col rounded-lg opacity-70 hover:opacity-100">
+                                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                                  </div>
+
+                                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold mb-2 text-gray-500">
+                                    Attended Event
+                                  </p>
+                                  <h3 className="text-xl font-bold text-gray-300 uppercase tracking-tight mb-2 group-hover:text-white transition-colors truncate relative z-10">
+                                    {reg.hackathon.name}
+                                  </h3>
+
+                                  <div className="space-y-2 mb-4 flex-1 relative z-10 mt-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Status</span>
+                                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                                        {reg.registrationStatus.replace(/_/g, ' ')}
+                                      </span>
+                                    </div>
+
+                                    {reg.team ? (
+                                      <div className="flex items-center justify-between mt-1">
+                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Team</span>
+                                        <span className="text-[10px] text-gray-400 tracking-widest truncate max-w-[120px]">
+                                          {reg.team.name}
+                                        </span>
+                                      </div>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-white/5 self-start group-hover:bg-white/5 transition-colors relative z-10">
+                                    <span className="text-[9px] font-mono text-gray-500 group-hover:text-gray-300 font-bold uppercase tracking-wider">View Details</span>
+                                    <svg className="w-3 h-3 text-gray-500 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                  </div>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

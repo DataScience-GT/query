@@ -27,6 +27,8 @@ export const userRouter = createTRPCRouter({
       name: user.name,
       image: user.image,
       bio: user.profile?.bio,
+      website: user.profile?.website,
+      location: user.profile?.location,
     };
   }),
 
@@ -36,6 +38,8 @@ export const userRouter = createTRPCRouter({
         name: z.string().min(1).max(100).optional(),
         image: z.string().url().optional(),
         bio: z.string().max(500).optional(),
+        website: z.string().url().max(500).optional(),
+        location: z.string().max(200).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -48,7 +52,7 @@ export const userRouter = createTRPCRouter({
           })
           .where(eq(users.id, ctx.userId!));
       }
-      if (input.bio !== undefined) {
+      if (input.bio !== undefined || input.website !== undefined || input.location !== undefined) {
         const existingProfile = await ctx.db!.query.userProfiles.findFirst({
           where: eq(userProfiles.userId, ctx.userId!),
         });
@@ -57,7 +61,9 @@ export const userRouter = createTRPCRouter({
           await ctx.db!
             .update(userProfiles)
             .set({
-              bio: input.bio,
+              bio: input.bio !== undefined ? input.bio : existingProfile.bio,
+              website: input.website !== undefined ? input.website : existingProfile.website,
+              location: input.location !== undefined ? input.location : existingProfile.location,
               updatedAt: new Date(),
             })
             .where(eq(userProfiles.userId, ctx.userId!));
@@ -65,6 +71,8 @@ export const userRouter = createTRPCRouter({
           await ctx.db!.insert(userProfiles).values({
             userId: ctx.userId!,
             bio: input.bio,
+            website: input.website,
+            location: input.location,
           });
         }
       }

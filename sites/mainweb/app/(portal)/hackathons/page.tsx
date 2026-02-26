@@ -416,7 +416,7 @@ function ScheduleTab({ hackathonId, isRegistered }: { hackathonId: string; isReg
                                         </span>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-gray-500 mb-2">
-                                        <span className="uppercase tracking-wider px-2 py-0.5 rounded bg-white/[0.03] border border-white/5">{event.type.replace('_', ' ')}</span>
+                                        <span className="uppercase tracking-wider px-2 py-0.5 rounded bg-white/[0.03] border border-white/5">{event.type.replace(/_/g, ' ')}</span>
                                         <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>{event.location}</span>
                                         {event.points > 0 && <span className="text-yellow-500 font-bold">+{event.points} pts</span>}
                                     </div>
@@ -622,7 +622,7 @@ function TeamsTab({
 }) {
     const { data: session } = useSession();
     const userId = session?.user?.id;
-    const { data: teams, isLoading } = trpc.hackathon.listTeams.useQuery({ hackathonId });
+    const { data: teams, isLoading } = trpc.team.list.useQuery({ hackathonId });
     const [showCreate, setShowCreate] = useState(false);
     const [teamName, setTeamName] = useState('');
     const [teamDesc, setTeamDesc] = useState('');
@@ -631,29 +631,29 @@ function TeamsTab({
 
     const utils = trpc.useUtils();
 
-    const createTeam = trpc.hackathon.createTeam.useMutation({
+    const createTeam = trpc.team.createTeam.useMutation({
         onSuccess: () => {
             setShowCreate(false);
             setTeamName('');
             setTeamDesc('');
             setError('');
-            utils.hackathon.listTeams.invalidate({ hackathonId });
+            utils.team.list.invalidate({ hackathonId });
             utils.hackathon.myRegistrations.invalidate();
         },
         onError: (e) => setError(e.message),
     });
 
-    const joinTeam = trpc.hackathon.joinTeam.useMutation({
+    const joinTeam = trpc.team.joinTeam.useMutation({
         onSuccess: () => {
-            utils.hackathon.listTeams.invalidate({ hackathonId });
+            utils.team.list.invalidate({ hackathonId });
             utils.hackathon.myRegistrations.invalidate();
         },
         onError: (e) => setError(e.message),
     });
 
-    const leaveTeam = trpc.hackathon.leaveTeam.useMutation({
+    const leaveTeam = trpc.team.leaveTeam.useMutation({
         onSuccess: () => {
-            utils.hackathon.listTeams.invalidate({ hackathonId });
+            utils.team.list.invalidate({ hackathonId });
             utils.hackathon.myRegistrations.invalidate();
         },
         onError: (e) => setError(e.message),

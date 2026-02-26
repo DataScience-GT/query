@@ -260,7 +260,11 @@ export const hackathonRouter = createTRPCRouter({
       where: eq(hackathonParticipants.userId, ctx.userId!),
       with: {
         hackathon: true,
-        team: true,
+        team: {
+          with: {
+            projects: true,
+          },
+        },
       },
       orderBy: (hackathonParticipants, { desc }) => [desc(hackathonParticipants.registeredAt)],
     });
@@ -301,65 +305,7 @@ export const hackathonRouter = createTRPCRouter({
       return participants;
     }),
 
-  createTeam: protectedProcedure
-    .input(
-      z.object({
-        hackathonId: z.string().uuid("Invalid hackathon ID"),
-        name: z.string().min(1).max(100),
-        description: z.string().max(1000).optional(),
-        maxMembers: z.number().int().min(1).max(10).default(4),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.db!.transaction(async (tx) => {
-        const participant = await tx.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId!)
-          ),
-        });
 
-        if (!participant) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You must be registered for this hackathon to create a team",
-          });
-        }
-
-        if (participant.teamId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You are already part of a team",
-          });
-        }
-
-        const [newTeam] = await tx
-          .insert(hackathonTeams)
-          .values({
-            hackathonId: input.hackathonId,
-            name: input.name,
-            description: input.description,
-            maxMembers: input.maxMembers,
-            currentMembers: 1,
-            captainId: ctx.userId!,
-          })
-          .returning();
-
-        if (!newTeam) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create team",
-          });
-        }
-
-        await tx
-          .update(hackathonParticipants)
-          .set({ teamId: newTeam.id })
-          .where(eq(hackathonParticipants.id, participant.id));
-
-        return newTeam;
-      });
-    }),
 
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
@@ -402,167 +348,11 @@ export const hackathonRouter = createTRPCRouter({
       return projects;
     }),
 
-  listTeams: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
-    .query(async ({ ctx, input }) => {
-      const teams = await ctx.db!.query.hackathonTeams.findMany({
-        where: eq(hackathonTeams.hackathonId, input.hackathonId),
-        with: {
-          captain: {
-            columns: { id: true, name: true, image: true },
-          },
-          participants: {
-            columns: {
-              id: true,
-              userId: true,
-              registrationStatus: true,
-            },
-            with: {
-              user: {
-                columns: { id: true, name: true, image: true },
-              },
-            },
-          },
-        },
-        orderBy: (hackathonTeams, { desc }) => [desc(hackathonTeams.createdAt)],
-      });
-
-      return teams;
-    }),
-
-  joinTeam: protectedProcedure
-    .input(z.object({
-      hackathonId: z.string().uuid("Invalid hackathon ID"),
-      teamId: z.string().uuid("Invalid team ID"),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.db!.transaction(async (tx) => {
-        const participant = await tx.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId!)
-          ),
-        });
-
-        if (!participant) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You must be registered for this hackathon to join a team",
-          });
-        }
-
-        if (participant.teamId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You are already part of a team. Leave your current team first.",
-          });
-        }
 
 
-        const team = await tx.query.hackathonTeams.findFirst({
-          where: and(
-            eq(hackathonTeams.id, input.teamId),
-            eq(hackathonTeams.hackathonId, input.hackathonId),
-          ),
-        });
-
-        if (!team) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
-        }
-
-        if (!team.isOpen) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "This team is not accepting new members" });
-        }
-
-        if (team.currentMembers >= team.maxMembers) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "This team is full" });
-        }
 
 
-        await tx
-          .update(hackathonParticipants)
-          .set({ teamId: team.id })
-          .where(eq(hackathonParticipants.id, participant.id));
 
-        const [updatedTeam] = await tx
-          .update(hackathonTeams)
-          .set({
-            currentMembers: sql`${hackathonTeams.currentMembers} + 1`,
-            isOpen: team.currentMembers + 1 < team.maxMembers,
-            updatedAt: new Date(),
-          })
-          .where(eq(hackathonTeams.id, team.id))
-          .returning();
-
-        return updatedTeam;
-      });
-    }),
-
-  leaveTeam: protectedProcedure
-    .input(z.object({
-      hackathonId: z.string().uuid("Invalid hackathon ID"),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.db!.transaction(async (tx) => {
-        const participant = await tx.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId!)
-          ),
-        });
-
-        if (!participant || !participant.teamId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You are not part of a team",
-          });
-        }
-
-        const team = await tx.query.hackathonTeams.findFirst({
-          where: eq(hackathonTeams.id, participant.teamId),
-        });
-
-        if (!team) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
-        }
-
-
-        await tx
-          .update(hackathonParticipants)
-          .set({ teamId: null })
-          .where(eq(hackathonParticipants.id, participant.id));
-
-        const newCount = team.currentMembers - 1;
-
-        if (newCount <= 0) {
-          await tx.delete(hackathonTeams).where(eq(hackathonTeams.id, team.id));
-          return { deleted: true };
-        }
-
-
-        let newCaptainId = team.captainId;
-        if (team.captainId === ctx.userId) {
-          const nextMember = await tx.query.hackathonParticipants.findFirst({
-            where: and(
-              eq(hackathonParticipants.teamId, team.id),
-            ),
-          });
-          newCaptainId = nextMember?.userId ?? team.captainId;
-        }
-
-        await tx
-          .update(hackathonTeams)
-          .set({
-            currentMembers: newCount,
-            captainId: newCaptainId,
-            isOpen: true,
-            updatedAt: new Date(),
-          })
-          .where(eq(hackathonTeams.id, team.id));
-
-        return { deleted: false };
-      });
-    }),
 
   adminGetAttendees: isAdmin
     .input(z.object({
@@ -591,6 +381,51 @@ export const hackathonRouter = createTRPCRouter({
       });
 
       return attendees;
+    }),
+
+  analytics: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const participants = await ctx.db!.query.hackathonParticipants.findMany({
+        where: eq(hackathonParticipants.hackathonId, input.hackathonId),
+      });
+
+      const stats = {
+        totalRegistrations: participants.length,
+        statusBreakdown: {
+          approved: 0,
+          pending: 0,
+          rejected: 0,
+          waitlisted: 0,
+          checked_in: 0,
+        },
+        shirtSizes: {} as Record<string, number>,
+        dietaryRestrictions: {} as Record<string, number>,
+      };
+
+      participants.forEach((p) => {
+        // Status breakdown
+        if (p.registrationStatus in stats.statusBreakdown) {
+          stats.statusBreakdown[p.registrationStatus as keyof typeof stats.statusBreakdown]++;
+        }
+
+        // Shirt sizes
+        if (p.shirtSize) {
+          stats.shirtSizes[p.shirtSize] = (stats.shirtSizes[p.shirtSize] || 0) + 1;
+        }
+
+        // Dietary restrictions
+        if (p.dietaryRestrictions && p.dietaryRestrictions.length > 0) {
+          p.dietaryRestrictions.forEach((restriction) => {
+            const normalized = restriction.trim();
+            if (normalized) {
+              stats.dietaryRestrictions[normalized] = (stats.dietaryRestrictions[normalized] || 0) + 1;
+            }
+          });
+        }
+      });
+
+      return stats;
     }),
 
   scanParticipantPass: isAdmin
@@ -634,7 +469,7 @@ export const hackathonRouter = createTRPCRouter({
       });
 
       if (existingScan) {
-        throw new TRPCError({ code: "CONFLICT", message: `${participant.user.name} is already checked into ${event.name}.` });
+        throw new TRPCError({ code: "CONFLICT", message: `${participant.user.name || participant.user.email} is already checked into ${event.name}.` });
       }
 
       // 4. Record attendance
@@ -643,7 +478,7 @@ export const hackathonRouter = createTRPCRouter({
         participantId: input.participantId,
       });
 
-      return { success: true, message: `Successfully checked in ${participant.user.name}!` };
+      return { success: true, message: `Successfully checked in ${participant.user.name || participant.user.email}!` };
     }),
 
   getEvents: publicProcedure
