@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, uploadProcedure } from "../trpc";
 import { users, userProfiles } from "@query/db";
 import { eq } from "drizzle-orm";
+import { imageSize } from "image-size";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -79,5 +80,70 @@ export const userRouter = createTRPCRouter({
       ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
 
       return { success: true, user: updatedUser };
+    }),
+
+  updateProfileImage: uploadProcedure
+    .input(
+      z.object({
+        base64Image: z.string()
+          .regex(/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/]+={0,2}$/, "Invalid image format")
+          .max(2 * 1024 * 1024), // Approx 2MB
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const base64Data = input.base64Image.split(",")[1];
+      if (!base64Data) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid base64 payload",
+        });
+      }
+
+      const buffer = Buffer.from(base64Data, "base64");
+
+      try {
+        const dimensions = imageSize(buffer);
+        if (!dimensions.width || !dimensions.height) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid image dimensions. File may be corrupt.",
+          });
+        }
+
+        // Prevent image bombs: 2000x2000 max resolution
+        if (dimensions.width > 2000 || dimensions.height > 2000) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
+          });
+        }
+
+        // Validate image type using image-size instead of manual magic bytes
+        const allowedTypes = ['jpg', 'jpeg', 'png', 'webp'];
+        if (!dimensions.type || !allowedTypes.includes(dimensions.type)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Malicious payload detected: File signature does not match expected image formats.",
+          });
+        }
+      } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not parse image. File may be corrupt or malicious.",
+        });
+      }
+
+      await ctx.db!
+        .update(users)
+        .set({
+          image: input.base64Image,
+        })
+        .where(eq(users.id, ctx.userId!));
+
+      ctx.cache.deletePattern(`user:${ctx.userId}*`);
+      ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
+
+      return { success: true };
     }),
 });
