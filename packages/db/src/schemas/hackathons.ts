@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, integer, json, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, integer, json, index, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
@@ -22,6 +22,7 @@ export const hackathons = pgTable("hackathon", {
   theme: text("theme"),
   websiteUrl: text("website_url"),
   isPublic: boolean("is_public").notNull().default(true),
+  judgingActive: boolean("judging_active").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -101,7 +102,7 @@ export const hackathonProjects = pgTable("hackathon_project", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   technologies: text("technologies").array(),
-  tracks: text("tracks").array(), // Enum: Sports, Entertainment, Imagination, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
+  tracks: text("tracks").array(), // Enum: Sports, Entertainment, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
   challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
   isCreateX: boolean("is_create_x").default(false),
   teamMembers: text("team_members").array(), // Store names/emails if not fully linked
@@ -160,6 +161,62 @@ export const hackathonTeamsRelations = relations(hackathonTeams, ({ one, many })
   }),
   participants: many(hackathonParticipants),
   projects: many(hackathonProjects),
+}));
+
+// Event scheduling for hackathons
+export const hackathonEvents = pgTable("hackathon_event", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  hackathonId: uuid("hackathon_id")
+    .notNull()
+    .references(() => hackathons.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ["workshop", "meal", "ceremony", "activity", "sponsor_session"] }).notNull(),
+  location: text("location").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  points: integer("points").notNull().default(0), // For gamification
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("event_hackathon_id_idx").on(table.hackathonId),
+  index("event_type_idx").on(table.type),
+]);
+
+// QR Check-ins for events
+export const hackathonEventAttendees = pgTable("hackathon_event_attendee", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => hackathonEvents.id, { onDelete: "cascade" }),
+  participantId: uuid("participant_id")
+    .notNull()
+    .references(() => hackathonParticipants.id, { onDelete: "cascade" }),
+  checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+}, (table) => [
+  index("event_attendee_event_id_idx").on(table.eventId),
+  index("event_attendee_participant_id_idx").on(table.participantId),
+  // Prevent duplicate check-ins
+  unique("unique_event_participant").on(table.eventId, table.participantId),
+]);
+
+export const hackathonEventsRelations = relations(hackathonEvents, ({ one, many }) => ({
+  hackathon: one(hackathons, {
+    fields: [hackathonEvents.hackathonId],
+    references: [hackathons.id],
+  }),
+  attendees: many(hackathonEventAttendees),
+}));
+
+export const hackathonEventAttendeesRelations = relations(hackathonEventAttendees, ({ one }) => ({
+  event: one(hackathonEvents, {
+    fields: [hackathonEventAttendees.eventId],
+    references: [hackathonEvents.id],
+  }),
+  participant: one(hackathonParticipants, {
+    fields: [hackathonEventAttendees.participantId],
+    references: [hackathonParticipants.id],
+  }),
 }));
 
 export const hackathonProjectsRelations = relations(hackathonProjects, ({ one }) => ({

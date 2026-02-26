@@ -9,6 +9,7 @@ import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import { QRScannerModal } from '@/components/portal/QRScannerModal';
 import { ScanResultModal } from '@/components/portal/ScanResultModal';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function ClubPage() {
   const { data: session, status } = useSession();
@@ -19,6 +20,10 @@ export default function ClubPage() {
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: myStats } = trpc.events.myStats.useQuery(undefined, { enabled: !!session });
   const { data: myEvents } = trpc.events.myEvents.useQuery(undefined, { enabled: !!session });
+
+  // Fetch active hackathon registration for QR code generation
+  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+  const activeReg = myRegs?.[0]; // Assuming the first one is the active one for the club portal view
 
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<{
@@ -165,28 +170,43 @@ export default function ClubPage() {
 
           {/* Action Card */}
           <LiquidGlass className="p-10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] group hover:border-[#00A8A8]/20 transition-all duration-500 max-w-md mx-auto">
-            <div className="mb-8">
-              <div className="w-24 h-24 mx-auto bg-[#00A8A8]/5 rounded-full flex items-center justify-center border border-[#00A8A8]/20 mb-6 group-hover:scale-110 group-hover:bg-[#00A8A8]/10 transition-all duration-500 shadow-[0_0_30px_rgba(0,168,168,0.05)]">
-                <svg className="w-10 h-10 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h2M4 8h16M4 12h16M4 16h16" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">
-                Event Sync
-              </h2>
-              <p className="text-[10px] text-gray-600 uppercase tracking-[0.5em] font-mono">
-                Initiate Visual Check-In
-              </p>
-            </div>
-
             <button
               onClick={() => setShowScanner(true)}
               disabled={showScanner}
-              className="w-full px-8 py-8 bg-[#00A8A8] text-black font-black text-xl uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_50px_rgba(0,168,168,0.4)] hover:shadow-[0_0_80px_rgba(0,168,168,0.6)] rounded-2xl animate-pulse hover:animate-none"
+              className="w-full px-8 py-4 mb-8 border border-[#00A8A8]/30 text-[#00A8A8] font-black text-sm uppercase tracking-[0.2em] hover:bg-[#00A8A8]/10 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
             >
-              SCAN DATA NODE
+              SCAN ROOM CODE (CAMERA)
             </button>
+
+            <div className="mb-6 relative">
+              <div className="absolute inset-0 bg-white blur-xl opacity-20 rounded-3xl" />
+              {activeReg ? (
+                <div className="relative p-6 bg-white rounded-3xl shadow-[0_0_40px_rgba(0,168,168,0.3)] flex flex-col items-center">
+                  <QRCodeSVG
+                    value={JSON.stringify({ type: 'CHECK_IN', hackathonId: activeReg.hackathonId, participantId: activeReg.id })}
+                    size={220}
+                    level="H"
+                    fgColor="#050505"
+                    bgColor="#ffffff"
+                  />
+                </div>
+              ) : (
+                <div className="relative p-6 bg-white/5 border border-white/10 rounded-3xl h-[268px] flex flex-col items-center justify-center">
+                  <p className="text-xs font-mono text-gray-500 uppercase text-center px-4">Register for an event to generate your check-in pass.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-1 italic">
+                Event Pass
+              </h2>
+              <p className="text-[10px] text-[#00A8A8] uppercase tracking-[0.5em] font-mono">
+                Present to Admin
+              </p>
+            </div>
+
+
 
             <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
               <span className="text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">LOGGED SESSIONS:</span>

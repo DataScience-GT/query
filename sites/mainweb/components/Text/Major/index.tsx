@@ -28,7 +28,7 @@ export default function Major({
     ? `text-lg md:text-xl lg:text-xl font-semibold leading-snug tracking-normal m-0`
     : `uppercase text-4xl md:text-5xl lg:text-6xl font-extrabold text-center leading-tight tracking-wide my-4`;
 
-  const Tag = as as any;
+  const Tag = as as React.ElementType;
 
   return (
     <Tag {...props} className={`${displayClasses} ${typeClasses[resolvedType] ?? ""} ${className ?? ""}`}>
