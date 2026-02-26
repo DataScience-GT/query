@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
         console.log(`[verify-email] Session created for ${email}`);
         return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[verify-email] Error:", error);
         return NextResponse.json(
             { success: false, error: "Server error. Please try again." },

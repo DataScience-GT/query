@@ -161,6 +161,20 @@ export default function AdminPage() {
           </div>
           <div className="flex gap-3">
             <Link
+              href="/admin-hackathons"
+              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-yellow-500" />
+              Hackathons
+            </Link>
+            <Link
+              href="/admin-hackathons/scanner"
+              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              QR Scanner
+            </Link>
+            <Link
               href="/admin-judging"
               className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
             >

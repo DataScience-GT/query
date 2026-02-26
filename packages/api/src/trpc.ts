@@ -69,6 +69,39 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
   return result;
 });
 
+const uploadSanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
+  // Allow up to 2MB for base64 image uploads
+  const rawInput = await getRawInput();
+
+  if (rawInput && !validateRequestSize(rawInput, 2 * 1024 * 1024)) {
+    logSecurityEvent({
+      type: 'validation_error',
+      identifier: ctx.userId ?? ctx.clientIp,
+      details: 'Upload payload too large (max 2MB)',
+    });
+    throw new TRPCError({
+      code: "PAYLOAD_TOO_LARGE",
+      message: "Image payload is too large (>2MB)",
+    });
+  }
+
+  // We intentionally skip the recursive `sanitizeInput` here because it truncates
+  // strings longer than 10,000 characters (base64 strings are much larger).
+  // The zod validator on the procedure will ensure it's a valid data URI structure.
+
+  const result = await next();
+
+  if (!result.ok) {
+    logSecurityEvent({
+      type: 'validation_error',
+      identifier: ctx.userId ?? 'unknown',
+      details: 'Upload Procedure failed',
+    });
+  }
+
+  return result;
+});
+
 const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
   const result = await next();
 
@@ -170,6 +203,12 @@ export const protectedProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
+  .use(cacheInvalidationMiddleware);
+
+export const uploadProcedure = t.procedure
+  .use(requiresDb)
+  .use(isAuthed)
+  .use(uploadSanitizeInputs)
   .use(cacheInvalidationMiddleware);
 
 export const judgeProcedure = t.procedure

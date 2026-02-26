@@ -22,6 +22,8 @@ export default function Dashboard() {
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
 
+  const { data: myRegs, isLoading: loadingRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+
   // Auto-link Stripe payment by email on login
   const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation();
   useEffect(() => {
@@ -275,26 +277,62 @@ export default function Dashboard() {
                           </div>
                         )}
 
-                        <div className="relative h-full p-8 bg-black/40 border border-yellow-500/10 hover:border-yellow-500/20 transition-all duration-300 flex flex-col rounded-lg">
-                          <div className="absolute top-0 right-0 p-4 opacity-5">
-                            <svg className="w-20 h-20 text-yellow-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                        {/* HACKATHON REGISTRATIONS */}
+                        {loadingRegs ? (
+                          <div className="relative h-full p-8 bg-black/40 border border-white/5 rounded-lg flex items-center justify-center animate-pulse">
+                            <span className="text-gray-500 text-sm font-mono">Loading events...</span>
                           </div>
+                        ) : myRegs && myRegs.length > 0 ? (
+                          myRegs.map((reg) => (
+                            <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=SCHEDULE`} className="block group h-full">
+                              <div className="relative h-full p-8 bg-black/40 border border-[#00A8A8]/10 hover:border-[#00A8A8]/30 transition-all duration-300 flex flex-col rounded-lg hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(0,168,168,0.15)] overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-duration-500" />
 
-                          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-yellow-600">
-                            Hacklytics Node
-                          </p>
-                          <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2">
-                            Hacklytics
-                          </h3>
-                          <p className="text-sm text-yellow-500/60 font-mono mb-6 flex-1">
-                            System under construction. Integration pending.
-                          </p>
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                  <svg className="w-16 h-16 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                                </div>
 
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-yellow-500/10 border border-yellow-500/20 self-start">
-                            <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></div>
-                            <span className="text-[10px] font-mono text-yellow-500 font-bold uppercase tracking-wider">Work in Progress</span>
-                          </div>
-                        </div>
+                                <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-[#00A8A8]">
+                                  Registered Event
+                                </p>
+                                <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors truncate relative z-10">
+                                  {reg.hackathon.name}
+                                </h3>
+                                <p className="text-sm text-gray-500 font-mono mb-6 flex-1 relative z-10">
+                                  Access your personalized dashboard, team management, and specific event resources.
+                                </p>
+
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded bg-black border border-white/10 self-start group-hover:border-[#00A8A8]/30 transition-colors relative z-10">
+                                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400 group-hover:text-white transition-colors">Enter Portal</span>
+                                  <svg className="w-3 h-3 text-[#00A8A8] transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                </div>
+                              </div>
+                            </Link>
+                          ))
+                        ) : (
+                          <Link href="/hackathons" className="block group h-full">
+                            <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col rounded-lg">
+                              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg className="w-20 h-20 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                              </div>
+
+                              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-gray-500 group-hover:text-gray-400 transition-colors">
+                                Discover More
+                              </p>
+                              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2">
+                                Browse Events
+                              </h3>
+                              <p className="text-sm text-gray-500 font-mono mb-6 flex-1">
+                                You are not currently registered for any active events. Discover and join upcoming hackathons from the global registry.
+                              </p>
+
+                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-white/10 self-start group-hover:bg-white/5 transition-colors">
+                                <span className="text-[10px] font-mono text-white font-bold uppercase tracking-wider">Explore Directory</span>
+                                <svg className="w-3 h-3 text-gray-400 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                              </div>
+                            </div>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )}

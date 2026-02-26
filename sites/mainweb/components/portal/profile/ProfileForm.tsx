@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
@@ -21,9 +21,12 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
   const [formData, setFormData] = useState({
     name: user.name || '',
-    image: user.image || '',
     bio: user.bio || '',
   });
+
+  const [imagePreview, setImagePreview] = useState<string | null>(user.image || null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -42,13 +45,79 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     },
   });
 
+  const updateProfileImage = trpc.user.updateProfileImage.useMutation({
+    onSuccess: () => {
+      setMessage({ type: 'success', text: 'Profile image updated successfully' });
+      utils.user.me.invalidate();
+      setIsUploadingImage(false);
+      setTimeout(() => setMessage(null), 3000);
+    },
+    onError: (error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile image' });
+      setIsUploadingImage(false);
+    },
+  });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Please select an image file' });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setIsUploadingImage(false);
+          setMessage({ type: 'error', text: 'Failed to process image' });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+        setImagePreview(base64Image);
+
+        updateProfileImage.mutate({ base64Image });
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    // Reset file input so same file can be selected again if needed
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = () => {
     setIsSubmitting(true);
     setMessage(null);
 
     updateProfile.mutate({
       name: formData.name || undefined,
-      image: formData.image || undefined,
       bio: formData.bio || undefined,
     });
   };
@@ -63,6 +132,35 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           <p className="text-xs uppercase tracking-widest">{message.text}</p>
         </div>
       )}
+
+      <div className="flex flex-col items-center space-y-4 mb-6 pt-2">
+        <div
+          className="relative w-32 h-32 rounded-full overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {imagePreview ? (
+            <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
+              <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+          )}
+          <div className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <span className="text-white text-xs font-bold uppercase tracking-widest text-center px-2">
+              {isUploadingImage ? 'Uploading...' : 'Change'}
+            </span>
+          </div>
+        </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleImageChange}
+        />
+      </div>
 
       <div className="space-y-2">
         <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
