@@ -1,12 +1,11 @@
 'use client';
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Background from '@/components/portal/Background';
 
 function VerifyContent() {
     const searchParams = useSearchParams();
-    const router = useRouter();
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [verifying, setVerifying] = useState(false);
     const [error, setError] = useState('');

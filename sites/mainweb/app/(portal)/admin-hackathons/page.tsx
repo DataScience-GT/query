@@ -130,7 +130,7 @@ export default function AdminHackathonsPage() {
                         </LiquidGlass>
                     ) : (
                         <div className="space-y-4">
-                            {hackathons.map((h) => {
+                            {hackathons.map((h: NonNullable<typeof hackathons>[number]) => {
                                 const sm = getStatusMeta(h.status);
                                 return (
                                     <HackathonCard
@@ -138,7 +138,7 @@ export default function AdminHackathonsPage() {
                                         hackathon={h}
                                         statusMeta={sm}
                                         onEdit={() => setEditingId(h.id)}
-                                        onStatusChange={(newStatus) => {
+                                        onStatusChange={(_newStatus) => {
                                             utils.hackathon.listAll.invalidate();
                                         }}
                                     />
