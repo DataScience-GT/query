@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import Background from '@/components/portal/Background';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -14,7 +12,7 @@ export default function Home() {
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [emailSent] = useState(false);
 
   const [logs, setLogs] = useState<string[]>([
     "Initializing terminal...",
@@ -205,6 +203,7 @@ export default function Home() {
             <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_35s_linear_infinite_reverse] opacity-50" />
 
             <div className="relative z-10 p-8">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/dsgt/apple-touch-icon.png"
                 alt="DSGT Logo"
