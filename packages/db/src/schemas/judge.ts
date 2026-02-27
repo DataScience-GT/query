@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonProjects } from "./hackathons";
@@ -44,11 +44,12 @@ export const judgingProjects = pgTable("judging_project", {
   name: text("name").notNull(),
   description: text("description"),
   tableNumber: integer("table_number").notNull(),
+  zone: text("zone"),
   category: text("category"), // e.g., "AI", "Web3", "Health", "Sustainability"
   teamMembers: text("team_members"), // comma-separated or JSON string
   projectUrl: text("project_url"),
   repoUrl: text("repo_url"),
-  tracks: text("tracks").array(), // Enum: GEN-AI, SPORTS, FINANCE, HEALTH, CYBER, NONE
+  tracks: text("tracks").array(), // Enum: Sports, Entertainment, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
   challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
   isCreateX: boolean("is_create_x").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -68,21 +69,20 @@ export const judgeVotes = pgTable("judge_vote", {
     .references(() => judgingProjects.id, { onDelete: "cascade" }),
   score: integer("score").notNull(), // Total score (sum of all criteria, 5-50)
   // Rubric scores (1-10 each)
-
-  scoreImagination: integer("score_imagination"), // immagination track
   scoreCreativity: integer("score_creativity"), // Creativity & Originality
   scoreImpact: integer("score_impact"), // Impact & Relevance
   scoreScope: integer("score_scope"), // Scope & Technical Depth
   scoreClarity: integer("score_clarity"), // Clarity & Engagement
   scoreSoundness: integer("score_soundness"), // Soundness & Accuracy
   comment: text("comment"),
+  durationSeconds: integer("duration_seconds"), // how long the judge spent on this project
   votedAt: timestamp("voted_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("vote_judge_id_idx").on(table.judgeId),
   index("vote_project_id_idx").on(table.projectId),
-  // Compound to enforce one vote per judge per project (app logic does this, index speeds up check)
-  index("vote_unique_idx").on(table.judgeId, table.projectId),
+  // Unique constraint: one vote per judge per project (enforced at DB level)
+  uniqueIndex("vote_unique_idx").on(table.judgeId, table.projectId),
 ]);
 
 // Map images for hackathon venues

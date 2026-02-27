@@ -47,7 +47,7 @@ function createAdapter(): Adapter | undefined {
         if (result.rowCount === 0) {
           return null;
         }
-        const row = result.rows[0] as any;
+        const row = result.rows[0] as { identifier: string; token: string; expires: string | Date };
         return {
           identifier: row.identifier,
           token: row.token,
