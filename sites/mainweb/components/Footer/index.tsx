@@ -10,7 +10,7 @@ interface FooterProps {
   className?: string;
 }
 
-const Footer = ({ screen_width, className = "" }: FooterProps) => {
+const Footer = ({ screen_width: _screen_width, className = "" }: FooterProps) => {
   return (
     <footer
       className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}

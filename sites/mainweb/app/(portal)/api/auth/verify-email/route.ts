@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, users, sessions, accounts, stripePayments, userAccountLinks, members, verificationTokens } from "@query/db";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { rateLimit, cache } from "@query/api";
 
 /**
