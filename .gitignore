@@ -11,7 +11,6 @@ coverage
 out/
 build
 dist/
-seed-super.ts
 
 # Production
 build
@@ -35,7 +34,6 @@ yarn-error.log*
 .env.production
 
 # Vercel
-.reset.ts
 .vercel
 
 # Turbo
@@ -43,6 +41,7 @@ yarn-error.log*
 
 # ui
 dist/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
@@ -58,15 +57,18 @@ migrations/
 !.vscode/extensions.json
 .idea
 .claude/settings.local.json
+
+# Scripts & Data (sensitive/generated)
+seed-super.ts
+.reset.ts
 packages/db/scripts/seed.ts
 packages/db/scripts/seed2.ts
-scripts/seed-stripe.ts
 packages/db/scripts/seed-judges.ts
 packages/db/scripts/seed-projects.ts
-packages/db/final_judge_assignments.csv
 packages/db/scripts/seed-2026.ts
 packages/db/scripts/assign-*.ts
+scripts/seed-stripe.ts
+packages/db/final_judge_assignments.csv
+packages/db/scripts/*.csv
 *.csv
 output.txt
-packages/db/scripts/*.csv
-packages/db/scripts/seed-2026.ts
