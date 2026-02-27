@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
-import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import SkillsInterestsInput from './SkillsInterestsInput';
 
@@ -19,7 +18,6 @@ interface ProfileFormProps {
 }
 
 export default function ProfileForm({ user }: ProfileFormProps) {
-  const router = useRouter();
   const utils = trpc.useUtils();
 
   const [formData, setFormData] = useState({
@@ -193,6 +191,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           onClick={() => fileInputRef.current?.click()}
         >
           {imagePreview ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500">

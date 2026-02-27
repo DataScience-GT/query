@@ -5,7 +5,6 @@ import Background from "@/components/Background";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import Section from "@/components/Section";
-import SmallHero from "@/components/SmallHero";
 import TeamCard from "@/components/TeamCard";
 
 // Asset imports
@@ -18,7 +17,7 @@ import Marketing from "@/assets/images/2025/smera.png"
 import Tech from "@/assets/images/2025/aamogh.png";
 import Content1 from "@/assets/images/2025/anushka.jpg"
 import Content2 from "@/assets/images/2025/glenne.png"
-import External1 from "@/assets/images/2025/sarvesh.jpg"
+
 import External2 from "@/assets/images/2025/vidhi.jpeg"
 import Project from "@/assets/images/2025/anika.jpg"
 import Advisor from "@/assets/images/2025/jake.png"
