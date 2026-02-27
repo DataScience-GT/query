@@ -7,8 +7,10 @@ import {
   hackathonTeams,
   hackathonProjects,
   members,
+  hackathonEvents,
+  hackathonEventAttendees,
 } from "@query/db";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { eq, and, gte, sql, inArray } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
 
@@ -46,6 +48,14 @@ export const hackathonRouter = createTRPCRouter({
 
       return allHackathons;
     }),
+
+  listAll: isAdmin
+    .query(async ({ ctx }) => {
+      return await ctx.db!.query.hackathons.findMany({
+        orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
+      });
+    }),
+
 
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid("Invalid hackathon ID") }))
@@ -250,7 +260,11 @@ export const hackathonRouter = createTRPCRouter({
       where: eq(hackathonParticipants.userId, ctx.userId!),
       with: {
         hackathon: true,
-        team: true,
+        team: {
+          with: {
+            projects: true,
+          },
+        },
       },
       orderBy: (hackathonParticipants, { desc }) => [desc(hackathonParticipants.registeredAt)],
     });
@@ -291,65 +305,7 @@ export const hackathonRouter = createTRPCRouter({
       return participants;
     }),
 
-  createTeam: protectedProcedure
-    .input(
-      z.object({
-        hackathonId: z.string().uuid("Invalid hackathon ID"),
-        name: z.string().min(1).max(100),
-        description: z.string().max(1000).optional(),
-        maxMembers: z.number().int().min(1).max(10).default(4),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.db!.transaction(async (tx) => {
-        const participant = await tx.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId!)
-          ),
-        });
 
-        if (!participant) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You must be registered for this hackathon to create a team",
-          });
-        }
-
-        if (participant.teamId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You are already part of a team",
-          });
-        }
-
-        const [newTeam] = await tx
-          .insert(hackathonTeams)
-          .values({
-            hackathonId: input.hackathonId,
-            name: input.name,
-            description: input.description,
-            maxMembers: input.maxMembers,
-            currentMembers: 1,
-            captainId: ctx.userId!,
-          })
-          .returning();
-
-        if (!newTeam) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create team",
-          });
-        }
-
-        await tx
-          .update(hackathonParticipants)
-          .set({ teamId: newTeam.id })
-          .where(eq(hackathonParticipants.id, participant.id));
-
-        return newTeam;
-      });
-    }),
 
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
@@ -389,6 +345,184 @@ export const hackathonRouter = createTRPCRouter({
 
       ctx.cache.set(cacheKey, projects, 120);
 
+      return projects;
+    }),
+
+
+
+
+
+
+
+  adminGetAttendees: isAdmin
+    .input(z.object({
+      hackathonId: z.string().uuid("Invalid hackathon ID"),
+    }))
+    .query(async ({ ctx, input }) => {
+      const attendees = await ctx.db!.query.hackathonParticipants.findMany({
+        where: eq(hackathonParticipants.hackathonId, input.hackathonId),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            }
+          },
+          team: {
+            columns: {
+              id: true,
+              name: true,
+            }
+          }
+        },
+        orderBy: (participants, { desc }) => [desc(participants.registeredAt)],
+      });
+
+      return attendees;
+    }),
+
+  analytics: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const participants = await ctx.db!.query.hackathonParticipants.findMany({
+        where: eq(hackathonParticipants.hackathonId, input.hackathonId),
+      });
+
+      const stats = {
+        totalRegistrations: participants.length,
+        statusBreakdown: {
+          approved: 0,
+          pending: 0,
+          rejected: 0,
+          waitlisted: 0,
+          checked_in: 0,
+        },
+        shirtSizes: {} as Record<string, number>,
+        dietaryRestrictions: {} as Record<string, number>,
+      };
+
+      participants.forEach((p) => {
+        // Status breakdown
+        if (p.registrationStatus in stats.statusBreakdown) {
+          stats.statusBreakdown[p.registrationStatus as keyof typeof stats.statusBreakdown]++;
+        }
+
+        // Shirt sizes
+        if (p.shirtSize) {
+          stats.shirtSizes[p.shirtSize] = (stats.shirtSizes[p.shirtSize] || 0) + 1;
+        }
+
+        // Dietary restrictions
+        if (p.dietaryRestrictions && p.dietaryRestrictions.length > 0) {
+          p.dietaryRestrictions.forEach((restriction) => {
+            const normalized = restriction.trim();
+            if (normalized) {
+              stats.dietaryRestrictions[normalized] = (stats.dietaryRestrictions[normalized] || 0) + 1;
+            }
+          });
+        }
+      });
+
+      return stats;
+    }),
+
+  scanParticipantPass: isAdmin
+    .input(z.object({
+      hackathonId: z.string().uuid("Invalid hackathon ID"),
+      eventId: z.string().uuid("Invalid event ID"),
+      participantId: z.string().uuid("Invalid participant ID"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // 1. Verify participant exists and belongs to this hackathon
+      const participant = await ctx.db!.query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.id, input.participantId),
+          eq(hackathonParticipants.hackathonId, input.hackathonId)
+        ),
+        with: { user: true }
+      });
+
+      if (!participant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Participant not found or not registered for this hackathon." });
+      }
+
+      // 2. Verify event exists and belongs to this hackathon
+      const event = await ctx.db!.query.hackathonEvents.findFirst({
+        where: and(
+          eq(hackathonEvents.id, input.eventId),
+          eq(hackathonEvents.hackathonId, input.hackathonId)
+        )
+      });
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+      }
+
+      // 3. Check for existing check-in to prevent duplicates
+      const existingScan = await ctx.db!.query.hackathonEventAttendees.findFirst({
+        where: and(
+          eq(hackathonEventAttendees.eventId, input.eventId),
+          eq(hackathonEventAttendees.participantId, input.participantId)
+        )
+      });
+
+      if (existingScan) {
+        throw new TRPCError({ code: "CONFLICT", message: `${participant.user.name || participant.user.email} is already checked into ${event.name}.` });
+      }
+
+      // 4. Record attendance
+      await ctx.db!.insert(hackathonEventAttendees).values({
+        eventId: input.eventId,
+        participantId: input.participantId,
+      });
+
+      return { success: true, message: `Successfully checked in ${participant.user.name || participant.user.email}!` };
+    }),
+
+  getEvents: publicProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.db!.query.hackathonEvents.findMany({
+        where: eq(hackathonEvents.hackathonId, input.hackathonId),
+        orderBy: (events, { asc }) => [asc(events.startTime)],
+      });
+    }),
+
+  myParticipantRecord: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.db!.query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
+          eq(hackathonParticipants.userId, ctx.userId!)
+        ),
+        with: {
+          team: true,
+        }
+      });
+    }),
+
+  getPublicProjects: publicProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const projects = await ctx.db!.query.hackathonProjects.findMany({
+        where: and(
+          eq(hackathonProjects.hackathonId, input.hackathonId),
+          // We only show projects that are submitted, judging, or winner. Drafts stay hidden.
+          inArray(hackathonProjects.status, ["submitted", "judging", "winner"])
+        ),
+        with: {
+          team: {
+            columns: {
+              id: true,
+              name: true,
+            }
+          },
+        },
+        orderBy: (projects, { desc }) => [desc(projects.submittedAt)],
+      });
       return projects;
     }),
 });
