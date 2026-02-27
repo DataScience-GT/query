@@ -234,10 +234,10 @@ function HackathonCard({
                     </div>
 
                     <Link
-                        href={`/admin-hackathons/${hackathon.id}/attendees`}
-                        className="px-4 py-2 border border-white/10 text-gray-400 text-sm font-medium rounded-xl hover:bg-white/5 hover:text-white transition-colors"
+                        href={`/admin-hackathons/${hackathon.id}`}
+                        className="px-4 py-2 bg-white/5 border border-white/10 text-white text-sm font-bold tracking-wider uppercase rounded-xl hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-2"
                     >
-                        Attendees
+                        Dashboard <span className="text-lg leading-none">→</span>
                     </Link>
 
                     <button
