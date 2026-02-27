@@ -29,8 +29,7 @@
     "@trpc/react-query": "^11.7.2",
     "@trpc/server": "^11.7.2",
     "drizzle-orm": "^0.36.4",
-    "image-size": "^2.0.2",
-    "minimatch": "^10.1.1",
+    "minimatch": "^10.2.1",
     "sanitize-html": "^2.17.0",
     "superjson": "^2.2.6",
     "zod": "^3.23.8"
