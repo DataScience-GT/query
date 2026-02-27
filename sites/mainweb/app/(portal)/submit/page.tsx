@@ -3,13 +3,13 @@
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
 
-export default function SubmitPortalPage() {
+function SubmitPortalContent() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -404,5 +404,13 @@ export default function SubmitPortalPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function SubmitPortalPage() {
+    return (
+        <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
+            <SubmitPortalContent />
+        </Suspense>
     );
 }
