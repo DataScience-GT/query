@@ -157,9 +157,23 @@ export default function AdminPage() {
             <h1 className="text-2xl font-bold text-white">
               Admin <span className="bg-gradient-to-r from-[#00A8A8] to-emerald-400 bg-clip-text text-transparent italic">Terminal</span>
             </h1>
-            <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">{adminStatus.role?.replace('_', ' ').toUpperCase()}</p>
+            <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">{adminStatus.role?.replace(/_/g, ' ').toUpperCase()}</p>
           </div>
           <div className="flex gap-3">
+            <Link
+              href="/admin-hackathons"
+              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-yellow-500" />
+              Hackathons
+            </Link>
+            <Link
+              href="/admin-hackathons/scanner"
+              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              QR Scanner
+            </Link>
             <Link
               href="/admin-judging"
               className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
