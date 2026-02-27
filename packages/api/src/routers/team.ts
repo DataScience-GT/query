@@ -42,30 +42,38 @@ export const teamRouter = createTRPCRouter({
                 });
             }
 
-            return await ctx.db!.transaction(async (tx) => {
-                // 3. Create the team
-                const [newTeam] = await tx
-                    .insert(hackathonTeams)
-                    .values({
-                        hackathonId: input.hackathonId,
-                        name: input.name,
-                        description: input.description,
-                        captainId: ctx.userId!,
-                        currentMembers: 1, // The captain is the first member
-                        maxMembers: input.maxMembers,
-                    })
-                    .returning();
+            try {
+                return await ctx.db!.transaction(async (tx) => {
+                    // 3. Create the team
+                    const [newTeam] = await tx
+                        .insert(hackathonTeams)
+                        .values({
+                            hackathonId: input.hackathonId,
+                            name: input.name,
+                            description: input.description,
+                            captainId: ctx.userId!,
+                            currentMembers: 1, // The captain is the first member
+                            maxMembers: input.maxMembers,
+                        })
+                        .returning();
 
-                // 4. Update the participant's team ID
-                if (newTeam) {
-                    await tx
-                        .update(hackathonParticipants)
-                        .set({ teamId: newTeam.id })
-                        .where(eq(hackathonParticipants.id, participant.id));
-                }
+                    // 4. Update the participant's team ID
+                    if (newTeam) {
+                        await tx
+                            .update(hackathonParticipants)
+                            .set({ teamId: newTeam.id })
+                            .where(eq(hackathonParticipants.id, participant.id));
+                    }
 
-                return newTeam;
-            });
+                    return newTeam;
+                });
+            } catch (error: any) {
+                if (error instanceof TRPCError) throw error;
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Failed to create team: ${error.message || "Unknown error"}`,
+                });
+            }
         }),
 
     joinTeam: protectedProcedure
@@ -99,41 +107,49 @@ export const teamRouter = createTRPCRouter({
                 });
             }
 
-            return await ctx.db!.transaction(async (tx) => {
-                // 3. Find the team and check capacity
-                const team = await tx.query.hackathonTeams.findFirst({
-                    where: and(
-                        eq(hackathonTeams.id, input.teamId),
-                        eq(hackathonTeams.hackathonId, input.hackathonId)
-                    ),
+            try {
+                return await ctx.db!.transaction(async (tx) => {
+                    // 3. Find the team and check capacity
+                    const team = await tx.query.hackathonTeams.findFirst({
+                        where: and(
+                            eq(hackathonTeams.id, input.teamId),
+                            eq(hackathonTeams.hackathonId, input.hackathonId)
+                        ),
+                    });
+
+                    if (!team) {
+                        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+                    }
+
+                    if (!team.isOpen) {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "This team is closed." });
+                    }
+
+                    if (team.currentMembers >= team.maxMembers) {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "This team is full." });
+                    }
+
+                    // 4. Join the team
+                    await tx
+                        .update(hackathonParticipants)
+                        .set({ teamId: team.id })
+                        .where(eq(hackathonParticipants.id, participant.id));
+
+                    // 5. Increment team member count
+                    await tx
+                        .update(hackathonTeams)
+                        .set({ currentMembers: team.currentMembers + 1 })
+                        .where(eq(hackathonTeams.id, team.id));
+
+                    return { success: true };
                 });
-
-                if (!team) {
-                    throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
-                }
-
-                if (!team.isOpen) {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "This team is closed." });
-                }
-
-                if (team.currentMembers >= team.maxMembers) {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "This team is full." });
-                }
-
-                // 4. Join the team
-                await tx
-                    .update(hackathonParticipants)
-                    .set({ teamId: team.id })
-                    .where(eq(hackathonParticipants.id, participant.id));
-
-                // 5. Increment team member count
-                await tx
-                    .update(hackathonTeams)
-                    .set({ currentMembers: team.currentMembers + 1 })
-                    .where(eq(hackathonTeams.id, team.id));
-
-                return { success: true };
-            });
+            } catch (error: any) {
+                if (error instanceof TRPCError) throw error;
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Failed to join team: ${error.message || "Unknown error"}`,
+                });
+            }
         }),
 
     leaveTeam: protectedProcedure
@@ -154,45 +170,53 @@ export const teamRouter = createTRPCRouter({
                 throw new TRPCError({ code: "NOT_FOUND", message: "You are not in a team." });
             }
 
-            return await ctx.db!.transaction(async (tx) => {
-                const team = await tx.query.hackathonTeams.findFirst({
-                    where: eq(hackathonTeams.id, participant.teamId!),
-                });
+            try {
+                return await ctx.db!.transaction(async (tx) => {
+                    const team = await tx.query.hackathonTeams.findFirst({
+                        where: eq(hackathonTeams.id, participant.teamId!),
+                    });
 
-                if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+                    if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
 
-                // If captain is the only one left, they can "leave" which deletes the team
-                if (team.captainId === ctx.userId!) {
-                    if (team.currentMembers <= 1) {
-                        // Delete team projects first
-                        await tx.delete(hackathonProjects).where(eq(hackathonProjects.teamId, team.id));
-                        // Delete team
-                        await tx.delete(hackathonTeams).where(eq(hackathonTeams.id, team.id));
-                        // Mark user as solo
-                        await tx.update(hackathonParticipants).set({ teamId: null }).where(eq(hackathonParticipants.id, participant.id));
-                        return { success: true, message: "Team disbanded." };
+                    // If captain is the only one left, they can "leave" which deletes the team
+                    if (team.captainId === ctx.userId!) {
+                        if (team.currentMembers <= 1) {
+                            // Delete team projects first
+                            await tx.delete(hackathonProjects).where(eq(hackathonProjects.teamId, team.id));
+                            // Delete team
+                            await tx.delete(hackathonTeams).where(eq(hackathonTeams.id, team.id));
+                            // Mark user as solo
+                            await tx.update(hackathonParticipants).set({ teamId: null }).where(eq(hackathonParticipants.id, participant.id));
+                            return { success: true, message: "Team disbanded." };
+                        }
+
+                        throw new TRPCError({
+                            code: "FORBIDDEN",
+                            message: "The captain cannot leave a multi-member team. You must disband it or transfer ownership.",
+                        });
                     }
 
-                    throw new TRPCError({
-                        code: "FORBIDDEN",
-                        message: "The captain cannot leave a multi-member team. You must disband it or transfer ownership.",
-                    });
-                }
+                    // 1. Remove user from team
+                    await tx
+                        .update(hackathonParticipants)
+                        .set({ teamId: null })
+                        .where(eq(hackathonParticipants.id, participant.id));
 
-                // 1. Remove user from team
-                await tx
-                    .update(hackathonParticipants)
-                    .set({ teamId: null })
-                    .where(eq(hackathonParticipants.id, participant.id));
+                    // 2. Decrement team member count
+                    await tx
+                        .update(hackathonTeams)
+                        .set({ currentMembers: Math.max(0, team.currentMembers - 1) })
+                        .where(eq(hackathonTeams.id, team.id));
 
-                // 2. Decrement team member count
-                await tx
-                    .update(hackathonTeams)
-                    .set({ currentMembers: Math.max(0, team.currentMembers - 1) })
-                    .where(eq(hackathonTeams.id, team.id));
-
-                return { success: true };
-            });
+                    return { success: true };
+                });
+            } catch (error: any) {
+                if (error instanceof TRPCError) throw error;
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Failed to leave team: ${error.message || "Unknown error"}`,
+                });
+            }
         }),
 
     disbandTeam: protectedProcedure
@@ -215,21 +239,29 @@ export const teamRouter = createTRPCRouter({
                 throw new TRPCError({ code: "FORBIDDEN", message: "Only the captain can disband the team." });
             }
 
-            return await ctx.db!.transaction(async (tx) => {
-                // 1. Remove all members
-                await tx
-                    .update(hackathonParticipants)
-                    .set({ teamId: null })
-                    .where(eq(hackathonParticipants.teamId, team.id));
+            try {
+                return await ctx.db!.transaction(async (tx) => {
+                    // 1. Remove all members
+                    await tx
+                        .update(hackathonParticipants)
+                        .set({ teamId: null })
+                        .where(eq(hackathonParticipants.teamId, team.id));
 
-                // 2. Delete projects
-                await tx.delete(hackathonProjects).where(eq(hackathonProjects.teamId, team.id));
+                    // 2. Delete projects
+                    await tx.delete(hackathonProjects).where(eq(hackathonProjects.teamId, team.id));
 
-                // 3. Delete team
-                await tx.delete(hackathonTeams).where(eq(hackathonTeams.id, team.id));
+                    // 3. Delete team
+                    await tx.delete(hackathonTeams).where(eq(hackathonTeams.id, team.id));
 
-                return { success: true };
-            });
+                    return { success: true };
+                });
+            } catch (error: any) {
+                if (error instanceof TRPCError) throw error;
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Failed to disband team: ${error.message || "Unknown error"}`,
+                });
+            }
         }),
 
     submitProject: protectedProcedure
@@ -276,65 +308,73 @@ export const teamRouter = createTRPCRouter({
                 });
             }
 
-            return await ctx.db!.transaction(async (tx) => {
-                // Check if there is already a project for this team/user
-                let existingProject;
-                if (input.teamId) {
-                    existingProject = await tx.query.hackathonProjects.findFirst({
-                        where: and(
-                            eq(hackathonProjects.hackathonId, input.hackathonId),
-                            eq(hackathonProjects.teamId, input.teamId)
-                        )
-                    });
-                }
+            try {
+                return await ctx.db!.transaction(async (tx) => {
+                    // Check if there is already a project for this team/user
+                    let existingProject;
+                    if (input.teamId) {
+                        existingProject = await tx.query.hackathonProjects.findFirst({
+                            where: and(
+                                eq(hackathonProjects.hackathonId, input.hackathonId),
+                                eq(hackathonProjects.teamId, input.teamId)
+                            )
+                        });
+                    }
 
-                // We clean up empty strings to be null
-                const githubUrl = input.githubUrl === '' ? undefined : input.githubUrl;
-                const demoUrl = input.demoUrl === '' ? undefined : input.demoUrl;
-                const videoUrl = input.videoUrl === '' ? undefined : input.videoUrl;
+                    // We clean up empty strings to be null
+                    const githubUrl = input.githubUrl === '' ? undefined : input.githubUrl;
+                    const demoUrl = input.demoUrl === '' ? undefined : input.demoUrl;
+                    const videoUrl = input.videoUrl === '' ? undefined : input.videoUrl;
 
-                let finalProject;
-                if (existingProject) {
-                    // Update existing
-                    const [updated] = await tx.update(hackathonProjects).set({
-                        name: input.name,
-                        description: input.description,
-                        technologies: input.technologies || [],
-                        tracks: input.tracks || [],
-                        challenges: input.challenges || [],
-                        githubUrl,
-                        demoUrl,
-                        videoUrl,
-                        status: "submitted",
-                        submittedAt: new Date()
-                    }).where(eq(hackathonProjects.id, existingProject.id)).returning();
-                    finalProject = updated;
-                } else {
-                    // Insert new
-                    const [inserted] = await tx.insert(hackathonProjects).values({
-                        hackathonId: input.hackathonId,
-                        teamId: input.teamId,
-                        name: input.name,
-                        description: input.description,
-                        technologies: input.technologies || [],
-                        tracks: input.tracks || [],
-                        challenges: input.challenges || [],
-                        githubUrl,
-                        demoUrl,
-                        videoUrl,
-                        status: "submitted",
-                        submittedAt: new Date()
-                    }).returning();
-                    finalProject = inserted;
-                }
+                    let finalProject;
+                    if (existingProject) {
+                        // Update existing
+                        const [updated] = await tx.update(hackathonProjects).set({
+                            name: input.name,
+                            description: input.description,
+                            technologies: input.technologies || [],
+                            tracks: input.tracks || [],
+                            challenges: input.challenges || [],
+                            githubUrl,
+                            demoUrl,
+                            videoUrl,
+                            status: "submitted",
+                            submittedAt: new Date()
+                        }).where(eq(hackathonProjects.id, existingProject.id)).returning();
+                        finalProject = updated;
+                    } else {
+                        // Insert new
+                        const [inserted] = await tx.insert(hackathonProjects).values({
+                            hackathonId: input.hackathonId,
+                            teamId: input.teamId,
+                            name: input.name,
+                            description: input.description,
+                            technologies: input.technologies || [],
+                            tracks: input.tracks || [],
+                            challenges: input.challenges || [],
+                            githubUrl,
+                            demoUrl,
+                            videoUrl,
+                            status: "submitted",
+                            submittedAt: new Date()
+                        }).returning();
+                        finalProject = inserted;
+                    }
 
-                // Mark the participant as having submitted
-                await tx.update(hackathonParticipants).set({
-                    hasSubmittedProject: true
-                }).where(eq(hackathonParticipants.id, participant.id));
+                    // Mark the participant as having submitted
+                    await tx.update(hackathonParticipants).set({
+                        hasSubmittedProject: true
+                    }).where(eq(hackathonParticipants.id, participant.id));
 
-                return finalProject;
-            });
+                    return finalProject;
+                });
+            } catch (error: any) {
+                if (error instanceof TRPCError) throw error;
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Failed to submit project: ${error.message || "Unknown error"}`,
+                });
+            }
         }),
 
     list: protectedProcedure

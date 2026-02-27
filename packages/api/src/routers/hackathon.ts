@@ -186,73 +186,81 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await ctx.db!.transaction(async (tx) => {
-        const hackathon = await tx.query.hackathons.findFirst({
-          where: eq(hackathons.id, input.hackathonId),
+      try {
+        return await ctx.db!.transaction(async (tx) => {
+          const hackathon = await tx.query.hackathons.findFirst({
+            where: eq(hackathons.id, input.hackathonId),
+          });
+
+          if (!hackathon) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Hackathon not found",
+            });
+          }
+
+          if (hackathon.status !== "open") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Registration is not open for this hackathon",
+            });
+          }
+
+          const existingParticipant = await tx.query.hackathonParticipants.findFirst({
+            where: and(
+              eq(hackathonParticipants.hackathonId, input.hackathonId),
+              eq(hackathonParticipants.userId, ctx.userId!)
+            ),
+          });
+
+          if (existingParticipant) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "You are already registered for this hackathon",
+            });
+          }
+
+          if (hackathon.maxParticipants && hackathon.currentParticipants >= hackathon.maxParticipants) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "This hackathon is full",
+            });
+          }
+
+          const member = await tx.query.members.findFirst({
+            where: eq(members.userId, ctx.userId!),
+          });
+
+          const [participant] = await tx
+            .insert(hackathonParticipants)
+            .values({
+              hackathonId: input.hackathonId,
+              userId: ctx.userId!,
+              memberId: member?.id,
+              shirtSize: input.shirtSize,
+              dietaryRestrictions: input.dietaryRestrictions || [],
+              emergencyContact: input.emergencyContact,
+              emergencyPhone: input.emergencyPhone,
+              registrationStatus: "approved",
+            })
+            .returning();
+
+          await tx
+            .update(hackathons)
+            .set({
+              currentParticipants: sql`${hackathons.currentParticipants} + 1`,
+            })
+            .where(eq(hackathons.id, input.hackathonId));
+
+          return participant;
         });
-
-        if (!hackathon) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Hackathon not found",
-          });
-        }
-
-        if (hackathon.status !== "open") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Registration is not open for this hackathon",
-          });
-        }
-
-        const existingParticipant = await tx.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId!)
-          ),
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Registration failed: ${error.message || "Unknown error"}`,
         });
-
-        if (existingParticipant) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You are already registered for this hackathon",
-          });
-        }
-
-        if (hackathon.maxParticipants && hackathon.currentParticipants >= hackathon.maxParticipants) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This hackathon is full",
-          });
-        }
-
-        const member = await tx.query.members.findFirst({
-          where: eq(members.userId, ctx.userId!),
-        });
-
-        const [participant] = await tx
-          .insert(hackathonParticipants)
-          .values({
-            hackathonId: input.hackathonId,
-            userId: ctx.userId!,
-            memberId: member?.id,
-            shirtSize: input.shirtSize,
-            dietaryRestrictions: input.dietaryRestrictions || [],
-            emergencyContact: input.emergencyContact,
-            emergencyPhone: input.emergencyPhone,
-            registrationStatus: "approved",
-          })
-          .returning();
-
-        await tx
-          .update(hackathons)
-          .set({
-            currentParticipants: sql`${hackathons.currentParticipants} + 1`,
-          })
-          .where(eq(hackathons.id, input.hackathonId));
-
-        return participant;
-      });
+      }
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {

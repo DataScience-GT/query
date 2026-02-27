@@ -692,7 +692,7 @@ function TeamsTab({
 
 
                     <div className="flex flex-wrap gap-3 mb-4">
-                        {myTeam.participants.map((p: { id: string; userId: string; user: { name?: string | null; image?: string | null } }) => (
+                        {(myTeam.participants || []).map((p: { id: string; userId: string; user: { name?: string | null; image?: string | null } }) => (
                             <div key={p.id} className="flex items-center gap-2 px-3 py-2 bg-black/30 border border-white/5 rounded-lg">
                                 {p.user.image ? (
                                     <Image src={p.user.image} alt="" width={24} height={24} className="rounded-full" />
@@ -789,7 +789,7 @@ function TeamsTab({
 
                                         <div className="flex items-center gap-2">
                                             <div className="flex -space-x-2">
-                                                {team.participants.slice(0, 5).map((p: { id: string; user: { name?: string | null; image?: string | null } }) => (
+                                                {(team.participants || []).slice(0, 5).map((p: { id: string; user: { name?: string | null; image?: string | null } }) => (
                                                     p.user.image ? (
                                                         <Image key={p.id} src={p.user.image} alt="" width={28} height={28} className="rounded-full border-2 border-[#0a0a0a]" />
                                                     ) : (
