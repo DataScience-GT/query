@@ -38,6 +38,8 @@ export const stripePayments = pgTable("stripe_payment", {
   index("stripe_payment_linked_user_id_idx").on(table.linkedUserId),
 ]);
 
+
+
 /**
  * Links users who signed in with a different email (e.g., Google)
  * to their Stripe payment record.

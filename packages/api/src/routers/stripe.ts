@@ -64,10 +64,10 @@ export const stripeRouter = createTRPCRouter({
         });
 
         return { url: session.url };
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Stripe Checkout Error:", error);
         // Check for invalid API key errors specifically if possible, but obscure all
-        if (error.message?.includes("Invalid API Key")) {
+        if (error instanceof Error && error.message?.includes("Invalid API Key")) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Payment configuration error. Please contact support.",
@@ -84,59 +84,61 @@ export const stripeRouter = createTRPCRouter({
    * Attempt to auto-link a Stripe payment matching the user's email
    */
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
-    const user = await ctx.db!.query.users.findFirst({
-      where: eq((await import("@query/db")).users.id, ctx.userId!),
+    return await ctx.db!.transaction(async (tx) => {
+      const user = await tx.query.users.findFirst({
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
+      });
+
+      if (!user?.email) return { success: false };
+
+      const payment = await tx.query.stripePayments.findFirst({
+        where: and(
+          eq(stripePayments.customerEmail, user.email),
+          isNull(stripePayments.linkedUserId),
+          eq(stripePayments.paymentStatus, "paid")
+        ),
+      });
+
+      if (!payment) return { success: false };
+
+      // Verify not already linked (double check)
+      const existingLink = await tx.query.userAccountLinks.findFirst({
+        where: eq(userAccountLinks.userId, ctx.userId!),
+      });
+      if (existingLink) return { success: true };
+
+      const names = (user.name || "Member").split(" ");
+      const firstName = names[0] || "Member";
+      const lastName = names.slice(1).join(" ") || "Member";
+
+      await tx.insert(userAccountLinks).values({
+        userId: ctx.userId!,
+        stripePaymentId: payment.id,
+        providedFirstName: firstName,
+        providedLastName: lastName,
+        providedEmail: user.email,
+      });
+
+      await tx.update(stripePayments)
+        .set({
+          linkedUserId: ctx.userId!,
+          linkedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(stripePayments.id, payment.id));
+
+      await createOrUpdateMembership(
+        tx as unknown as NonNullable<typeof import("@query/db").db>,
+        ctx.userId!,
+        firstName,
+        lastName
+      );
+
+      // Invalidate cache directly
+      ctx.cache.delete(`member:status:${ctx.userId!}`);
+
+      return { success: true };
     });
-
-    if (!user?.email) return { success: false };
-
-    const payment = await ctx.db!.query.stripePayments.findFirst({
-      where: and(
-        eq(stripePayments.customerEmail, user.email),
-        isNull(stripePayments.linkedUserId),
-        eq(stripePayments.paymentStatus, "paid")
-      ),
-    });
-
-    if (!payment) return { success: false };
-
-    // Verify not already linked (double check)
-    const existingLink = await ctx.db!.query.userAccountLinks.findFirst({
-      where: eq(userAccountLinks.userId, ctx.userId!),
-    });
-    if (existingLink) return { success: true };
-
-    const names = (user.name || "Member").split(" ");
-    const firstName = names[0] || "Member";
-    const lastName = names.slice(1).join(" ") || "Member";
-
-    await ctx.db!.insert(userAccountLinks).values({
-      userId: ctx.userId!,
-      stripePaymentId: payment.id,
-      providedFirstName: firstName,
-      providedLastName: lastName,
-      providedEmail: user.email,
-    });
-
-    await ctx.db!.update(stripePayments)
-      .set({
-        linkedUserId: ctx.userId!,
-        linkedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(stripePayments.id, payment.id));
-
-    await createOrUpdateMembership(
-      ctx.db!,
-      ctx.userId!,
-      firstName,
-      lastName
-    );
-
-    // Invalidate cache directly
-    ctx.cache.delete(`member:status:${ctx.userId!}`);
-
-    return { success: true };
   }),
 
   /**
@@ -180,76 +182,78 @@ export const stripeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const payment = await ctx.db!.query.stripePayments.findFirst({
-        where: and(
-          eq(stripePayments.customerEmail, input.email.toLowerCase()),
-          isNull(stripePayments.linkedUserId),
-          eq(stripePayments.paymentStatus, "paid")
-        ),
-      });
-
-      if (!payment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No payment found with that email. Please check the email you used during checkout.",
+      return await ctx.db!.transaction(async (tx) => {
+        const payment = await tx.query.stripePayments.findFirst({
+          where: and(
+            eq(stripePayments.customerEmail, input.email.toLowerCase()),
+            isNull(stripePayments.linkedUserId),
+            eq(stripePayments.paymentStatus, "paid")
+          ),
         });
-      }
 
-      const existingLink = await ctx.db!.query.userAccountLinks.findFirst({
-        where: eq(userAccountLinks.stripePaymentId, payment.id),
-      });
+        if (!payment) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "No payment found with that email. Please check the email you used during checkout.",
+          });
+        }
 
-      if (existingLink) {
-        logSecurityEvent({
-          type: 'validation_error',
-          identifier: ctx.userId ?? 'unknown',
-          details: `Attempted to link already linked payment ${payment.id}`,
+        const existingLink = await tx.query.userAccountLinks.findFirst({
+          where: eq(userAccountLinks.stripePaymentId, payment.id),
         });
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This payment has already been linked to an account.",
+
+        if (existingLink) {
+          logSecurityEvent({
+            type: 'validation_error',
+            identifier: ctx.userId ?? 'unknown',
+            details: `Attempted to link already linked payment ${payment.id}`,
+          });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This payment has already been linked to an account.",
+          });
+        }
+
+        const userExistingLink = await tx.query.userAccountLinks.findFirst({
+          where: eq(userAccountLinks.userId, ctx.userId!),
         });
-      }
 
-      const userExistingLink = await ctx.db!.query.userAccountLinks.findFirst({
-        where: eq(userAccountLinks.userId, ctx.userId!),
-      });
+        if (userExistingLink) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Your account is already linked to a payment.",
+          });
+        }
 
-      if (userExistingLink) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Your account is already linked to a payment.",
+        await tx.insert(userAccountLinks).values({
+          userId: ctx.userId!,
+          stripePaymentId: payment.id,
+          providedFirstName: input.firstName,
+          providedLastName: input.lastName,
+          providedEmail: input.email.toLowerCase(),
         });
-      }
 
-      await ctx.db!.insert(userAccountLinks).values({
-        userId: ctx.userId!,
-        stripePaymentId: payment.id,
-        providedFirstName: input.firstName,
-        providedLastName: input.lastName,
-        providedEmail: input.email.toLowerCase(),
+        await tx
+          .update(stripePayments)
+          .set({
+            linkedUserId: ctx.userId!,
+            linkedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(stripePayments.id, payment.id));
+
+        await createOrUpdateMembership(
+          tx as unknown as NonNullable<typeof import("@query/db").db>,
+          ctx.userId!,
+          input.firstName,
+          input.lastName
+        );
+
+        // Invalidate membership status cache
+        ctx.cache.delete(`member:status:${ctx.userId!}`);
+
+        return { success: true, message: "Account linked successfully! You are now a member." };
       });
-
-      await ctx.db!
-        .update(stripePayments)
-        .set({
-          linkedUserId: ctx.userId!,
-          linkedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(stripePayments.id, payment.id));
-
-      await createOrUpdateMembership(
-        ctx.db!,
-        ctx.userId!,
-        input.firstName,
-        input.lastName
-      );
-
-      // Invalidate membership status cache
-      ctx.cache.delete(`member:status:${ctx.userId!}`);
-
-      return { success: true, message: "Account linked successfully! You are now a member." };
     }),
 
   /**
