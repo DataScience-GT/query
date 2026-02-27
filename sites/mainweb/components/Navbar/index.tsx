@@ -12,7 +12,7 @@ interface NavbarProps {
   className?: string;
 }
 
-export default function Navbar({ screen_width, page, className = "" }: NavbarProps) {
+export default function Navbar({ screen_width: _screen_width, page, className = "" }: NavbarProps) {
   const [windowWidth, setWindowWidth] = useState(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);

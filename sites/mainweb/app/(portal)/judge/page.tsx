@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { RubricSlider, RubricSliderStyles } from '@/components/portal/judge/RubricSlider';
+import { RubricSlider } from '@/components/portal/judge/RubricSlider';
 import { ZoneMapModal, ViewMapButton } from '@/components/portal/judge/ZoneMapModal';
 import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';

@@ -16,7 +16,7 @@ export default function MemberForm({ member }: { member: Member | null | undefin
   const [lastName, setLastName] = useState(member?.lastName || '');
   const [phone, setPhone] = useState(member?.phoneNumber || '');
   const [school, setSchool] = useState(member?.school || '');
-  const [major, setMajor] = useState(member?.major || '');
+  const [major, _setMajor] = useState(member?.major || '');
   const [gradYear, setGradYear] = useState(member?.graduationYear?.toString() || '');
   const [skills, setSkills] = useState<string[]>(member?.skills || []);
   const [linkedin, setLinkedin] = useState(member?.linkedinUrl || '');

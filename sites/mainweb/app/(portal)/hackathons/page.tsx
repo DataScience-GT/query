@@ -620,8 +620,6 @@ function TeamsTab({
     isRegistered: boolean;
     myTeamId: string | null;
 }) {
-    const { data: session } = useSession();
-    const userId = session?.user?.id;
     const { data: teams, isLoading } = trpc.team.list.useQuery({ hackathonId });
     const [showCreate, setShowCreate] = useState(false);
     const [teamName, setTeamName] = useState('');
