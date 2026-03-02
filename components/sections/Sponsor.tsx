@@ -17,7 +17,6 @@ const SPONSORS = {
   silver: [
     { name: 'Sphinx AI', src: '/sponsors/Silver_SphinxAI.svg', website: 'https://sphinx.ai' },
     { name: 'Growth Factor', src: '/sponsors/silver_growthfactor.svg', website: 'https://www.growthfactor.ai/' },
-    { name: 'Assurant', src: '/sponsors/silver_assurant.png', website: 'https://www.assurant.com' },
   ],
   bronze: [
     { name: 'Scale', src: '/sponsors/bronze_scale.png', website: 'https://scale.com/' },
