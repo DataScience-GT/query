@@ -7,7 +7,8 @@
       "hosting": {
         "judging": ["dsgt-judging"],
         "portal": ["dsgt-portal"],
-        "mainweb": ["dsgt-website"]
+        "mainweb": ["dsgt-website"],
+        "hacklytics2026": ["hacklytics2026"]
       }
     }
   }
