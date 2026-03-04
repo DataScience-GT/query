@@ -1,0 +1,60 @@
+/* app/globals.css */
+
+/* This must be the first line. It imports all of Tailwind's styles. */
+@import "tailwindcss";
+
+/*
+  Define all CSS variables in a single :root block for clarity.
+*/
+:root {
+  /* Brand Colors */
+  --color-sky: #A4C7FF;
+  --color-wonka-yellow: #FFBC0A;
+;
+  --color-wonka-red: #ef4444;
+
+  /* Custom Fonts */
+  --font-family-willywonka: 'Willywonka', cursive;
+
+  /* Navbar Configuration */
+  --navbar-height: 64px;
+  --navbar-bg-top: #A4C7FF; /* Initial background color at the top of the page */
+  --navbar-bg-scrolled: rgba(164, 199, 255, 0.84); /* Background when scrolled */
+  --navbar-blur: 6px;
+  --navbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.justify-between {
+    justify-content: space-between;
+}
+
+/* Minimal utility classes to match app usage */
+.bg-sky { background-color: var(--color-sky); }
+.text-wonka-yellow { color: var(--color-wonka-yellow); }
+.bg-wonka-red { background-color: var(--color-wonka-red); }
+.text-wonka-red { color: var(--color-wonka-red); }
+
+/* Helper class for smooth navbar transitions */
+.navbar-transition {
+  transition: background-color 220ms ease, box-shadow 220ms ease, backdrop-filter 220ms ease, height 220ms ease;
+}
+
+/* Ensure anchors scroll into view below the sticky navbar */
+.section-anchor {
+  scroll-margin-top: calc(var(--navbar-height) + 12px);
+}
+
+/*
+  This @font-face rule tells the browser where to find the font file
+  when the 'Willywonka' font-family is used.
+*/
+@font-face {
+  font-family: 'Willywonka';
+  src: url('/fonts/Willywonka.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Utility class for the Willy Wonka font */
+.font-willywonka {
+  font-family: var(--font-family-willywonka);
+}
