@@ -83,10 +83,10 @@ const Home = () => {
   }), [windowWidth]);
 
   return (
-    <div id="home-page" className="relative bg-[#050505] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden">
+    <div id="home-page" className="relative bg-[#1A1A1A] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden">
       <Background className="fixed inset-0 z-0 opacity-[0.05]" />
 
-      <Navbar screen_width={windowWidth} page="home" className="fixed top-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md" />
+      <Navbar screen_width={windowWidth} page="home" className="fixed top-0 z-50 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md" />
       <Hero screen_width={windowWidth} />
 
       {/* ABOUT SECTION */}
@@ -162,8 +162,8 @@ const Home = () => {
             <p className="text-gray-300 leading-relaxed italic border-l-2 border-amber-500/20 pl-6">
               Georgia Tech&apos;s premier <span className="text-white">36-hour datathon</span>. Join hundreds of students for a weekend of data science challenges and workshops.
             </p>
-            <a href="https://hacklytics.io" target="_blank" className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">
-              Register for 2026
+            <a href="https://hacklytics-2025.devpost.com/" target="_blank" className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">
+              View Devpost
             </a>
           </div>
           <div className="relative">
@@ -244,9 +244,9 @@ const Home = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { t: "Member", d: "Join the mailing list for weekly updates.", i: slide1, l: "/login" },
-              { t: "Leadership", d: "Join the executive board and lead teams.", i: slide7, l: "/team" },
-              { t: "Hacklytics", d: "Attend our 36-hour flagship datathon.", i: slide6, l: "https://hacklytics.io/" }
+              { t: "Member", d: "Join the mailing list for weekly updates.", i: slide1, l: "/login", a: "Join Here →" },
+              { t: "Leadership", d: "Join the executive board and lead teams.", i: slide7, l: "/team", a: "Meet the Team →" },
+              { t: "Hacklytics", d: "Attend our 36-hour flagship datathon.", i: slide6, l: "https://hacklytics-2025.devpost.com/", a: "View Devpost →" }
             ].map((event, i) => (
               <div key={i} className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl">
                 <div className="h-56 overflow-hidden relative">
@@ -257,9 +257,9 @@ const Home = () => {
                   <h4 className="text-white text-lg font-bold uppercase italic tracking-tight">{event.t}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed italic">{event.d}</p>
                   {event.l.startsWith("http") ? (
-                    <a href={event.l} target="_blank" rel="noopener noreferrer" className="inline-block text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors">Initialize Connection →</a>
+                    <a href={event.l} target="_blank" rel="noopener noreferrer" className="inline-block text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors">{event.a}</a>
                   ) : (
-                    <Link href={event.l} className="inline-block text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors">Request Access →</Link>
+                    <Link href={event.l} className="inline-block text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors">{event.a}</Link>
                   )}
                 </div>
               </div>
