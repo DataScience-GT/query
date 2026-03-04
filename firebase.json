@@ -21,7 +21,7 @@
             "trailingSlash": true
         },
         {
-            "site": "hacklytics2026",
+            "site": "hacklytics-2",
             "public": "sites/hacklytics2026/out",
             "cleanUrls": true
         }
