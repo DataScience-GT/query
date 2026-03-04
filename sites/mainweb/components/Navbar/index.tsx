@@ -105,7 +105,7 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
                 width={32}
                 height={32}
               />
-              <span className="text-white text-xl font-bold tracking-tighter italic uppercase">DSGT</span>
+              <span className="text-white text-xl font-bold tracking-tighter uppercase">DSGT</span>
             </Link>
           </div>
 

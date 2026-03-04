@@ -57,8 +57,8 @@ export default function HackathonsPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [tab, setTab] = useState<'INFO' | 'SCHEDULE' | 'PROJECTS' | 'TEAMS'>('INFO');
 
-    // Lock the page: only admins can view for now
-    const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
+    // Fetch the single active hackathon, assuming the latest or currently open one
+    const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery({ limit: 1 });
 
     useEffect(() => {
         if (authStatus === 'unauthenticated') router.push('/login');
@@ -66,32 +66,30 @@ export default function HackathonsPage() {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const idParam = urlParams.get('id');
         const tabParam = urlParams.get('tab') as 'INFO' | 'SCHEDULE' | 'PROJECTS' | 'TEAMS' | null;
 
-        if (idParam && !selectedId) {
-            setSelectedId(idParam);
-        }
         if (tabParam && ['INFO', 'SCHEDULE', 'PROJECTS', 'TEAMS'].includes(tabParam)) {
             setTab(tabParam);
         }
-    }, [selectedId]);
+    }, []);
 
-    if (authStatus === 'loading' || adminLoading) return <LoadingScreen message="Loading..." />;
+    useEffect(() => {
+        if (hackathons && hackathons.length > 0 && !selectedId) {
+            setSelectedId(hackathons[0].id);
+        }
+    }, [hackathons, selectedId]);
+
+    if (authStatus === 'loading' || isLoading) return <LoadingScreen message="Loading Hackathon Info..." />;
     if (!session) return null;
 
-    if (!adminStatus?.isAdmin) {
+    if (!hackathons || hackathons.length === 0) {
         return (
             <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans flex items-center justify-center p-6 bg-grid-white/[0.02]">
                 <Background className="fixed inset-0 z-0 opacity-[0.03]" />
                 <LiquidGlass className="relative z-10 max-w-lg w-full p-12 text-center flex flex-col items-center">
-                    <div className="w-20 h-20 mb-6 bg-yellow-500/10 border border-yellow-500/20 rounded-full flex items-center justify-center animate-pulse">
-                        <svg className="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    </div>
-                    <p className="text-xs text-yellow-500 font-mono tracking-[0.2em] uppercase mb-2">Restricted Access</p>
-                    <h1 className="text-3xl font-black text-white uppercase tracking-tight mb-4">Under Construction</h1>
+                    <svg className="w-16 h-16 text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                     <p className="text-sm font-mono text-gray-400 mb-8 leading-relaxed">
-                        The Hackathon Event Registry is currently undergoing maintenance and upgrades. Please check back later for exciting new features and events.
+                        There are currently no active hackathons. Check back later!
                     </p>
                     <Link href="/dashboard" className="px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2">
                         <span>Return to Dashboard</span>
@@ -103,92 +101,13 @@ export default function HackathonsPage() {
     }
 
     return selectedId ? (
-        <DetailView hackathonId={selectedId} tab={tab} setTab={setTab} onBack={() => { setSelectedId(null); setTab('INFO'); }} />
-    ) : (
-        <ListView onSelect={(id) => setSelectedId(id)} />
-    );
+        <DetailView hackathonId={selectedId} tab={tab} setTab={setTab} onBack={() => { }} />
+    ) : null;
 }
 
 
 
-function ListView({ onSelect }: { onSelect: (id: string) => void }) {
-    const { data: session } = useSession();
-    const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery({});
-    const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
 
-    if (isLoading) return <LoadingScreen message="Loading Hackathons..." />;
-
-    const isRegistered = (id: string) => myRegs?.some((r) => r.hackathonId === id) ?? false;
-
-    return (
-        <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-            <main className="relative z-10 max-w-5xl mx-auto py-20 px-6">
-                <Link href="/dashboard" className="mb-8 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-mono uppercase tracking-wider group">
-                    <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    Dashboard
-                </Link>
-
-                <div className="mb-12">
-                    <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Event Registry</p>
-                    <h1 className="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter">Hackathons</h1>
-                    <p className="text-gray-500 font-mono text-sm mt-3">Browse events, register, and find teammates.</p>
-                </div>
-
-                {!hackathons || hackathons.length === 0 ? (
-                    <LiquidGlass className="p-12 text-center">
-                        <svg className="w-16 h-16 text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                        <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">No hackathons available</p>
-                    </LiquidGlass>
-                ) : (
-                    <div className="space-y-4">
-                        {hackathons.map((h) => {
-                            const sc = statusColor(h.status);
-                            const reg = isRegistered(h.id);
-                            return (
-                                <button key={h.id} onClick={() => onSelect(h.id)} className="w-full text-left group">
-                                    <LiquidGlass className="p-6 md:p-8 relative overflow-hidden hover:border-[#00A8A8]/20 transition-all duration-300 group-hover:translate-y-[-2px]">
-                                        <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#00A8A8]/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
-                                        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2 mb-3">
-                                                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border ${sc.border}`}>
-                                                        <div className={`h-1.5 w-1.5 rounded-full ${sc.dot} ${h.status === 'open' || h.status === 'in_progress' ? 'animate-pulse' : ''}`} />
-                                                        <span className={`text-[9px] font-mono font-bold uppercase tracking-wider ${sc.text}`}>{statusLabel(h.status)}</span>
-                                                    </div>
-                                                    {reg && (
-                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                                                            <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                                            <span className="text-[9px] font-mono font-bold text-green-400 uppercase tracking-wider">Registered</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors truncate">{h.name}</h2>
-                                                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-gray-500">
-                                                    <span className="flex items-center gap-1.5">
-                                                        <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                                        {formatDateRange(h.startDate, h.endDate)}
-                                                    </span>
-                                                    {h.location && <span className="flex items-center gap-1.5"><svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>{h.location}</span>}
-                                                    {h.maxParticipants && <span className="flex items-center gap-1.5"><svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>{h.currentParticipants}/{h.maxParticipants}</span>}
-                                                </div>
-                                            </div>
-                                            <div className="flex-shrink-0">
-                                                <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center group-hover:border-[#00A8A8]/30 group-hover:bg-[#00A8A8]/10 transition-all">
-                                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-[#00A8A8] transform group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </LiquidGlass>
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-            </main>
-        </div>
-    );
-}
 
 
 
@@ -217,10 +136,10 @@ function DetailView({
         <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
             <Background className="fixed inset-0 z-0 opacity-[0.03]" />
             <main className="relative z-10 max-w-4xl mx-auto py-20 px-6">
-                <button onClick={onBack} className="mb-8 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-mono uppercase tracking-wider group">
+                <Link href="/dashboard" className="mb-8 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-mono uppercase tracking-wider group">
                     <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    All Hackathons
-                </button>
+                    Dashboard
+                </Link>
 
 
                 <LiquidGlass className="p-8 md:p-10 mb-6 relative overflow-hidden">

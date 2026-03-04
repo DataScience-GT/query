@@ -26,7 +26,7 @@ const Footer = ({ screen_width: _screen_width, className = "" }: FooterProps) =>
                 alt="DSGT Logo"
                 className="h-8 w-8 rounded shadow-lg shadow-[#00A8A8]/10 transition-transform group-hover:rotate-12"
               />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase italic">DSGT</span>
+              <span className="text-white text-xl font-bold tracking-tighter uppercase">DSGT</span>
             </div>
             <p className="text-sm text-gray-500 leading-relaxed max-w-[240px]">
               The largest student-run data science organization at Georgia Tech.
