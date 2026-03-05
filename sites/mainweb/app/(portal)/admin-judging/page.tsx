@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import AdminLayout from '@/components/portal/AdminLayout';
 
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
@@ -108,82 +108,19 @@ export default function AdminResultsPage() {
     }).sort((a, b) => b.displayScore - a.displayScore);
   }, [rankings, selectedCategory, selectedTrack]);
 
-  if (!mounted || status === 'loading' || adminLoading) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00A8A8] animate-pulse uppercase tracking-[0.5em]">
-        Syncing Identity...
-      </div>
-    );
-  }
-
-  if (!session) return null;
-
-  if (!adminStatus?.isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
-        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-        <div className="relative z-10 w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
-          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h1 className="relative z-10 text-3xl font-black text-white uppercase tracking-tighter mb-4 italic">Security Breach</h1>
-        <p className="relative z-10 text-gray-500 font-mono text-sm mb-12 uppercase tracking-widest">Unauthorized access to voting protocols detected.</p>
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="relative z-10 px-10 py-4 bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs uppercase tracking-[0.3em] hover:bg-red-500/20 transition-all rounded shadow-[0_0_20px_rgba(239,68,68,0.1)]"
-        >
-          TERMINATE SESSION
-        </button>
-      </div>
-    );
-  }
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
-      {/* Header Section */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-        <LiquidGlass className="rounded-lg p-8 mb-12 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-2 w-2 rounded-full bg-[#00A8A8] animate-pulse" />
-                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Judging Analysis Node</span>
-              </div>
-              <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2">
-                Voting <span className="text-[#00A8A8] italic">Results</span>
-              </h1>
-              <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                Data Evaluation Layer // {selectedHackathon ? 'SYNC ACTIVE' : 'IDLE'}
-              </p>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => router.push('/admin')}
-                className="px-8 py-5 bg-black/40 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl font-mono"
-              >
-                Admin Control
-              </button>
-              <button
-                onClick={() => router.push('/admin-setup')}
-                className="px-8 py-5 bg-black/40 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl font-mono"
-              >
-                Event Builder
-              </button>
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="px-8 py-5 border border-red-500/20 text-red-500/60 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
-              >
-                SIGNOUT TERMINAL
-              </button>
-            </div>
-          </div>
-        </LiquidGlass>
+    <AdminLayout>
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="mb-12">
+          <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2">
+            Voting <span className="text-[#00A8A8] italic">Results</span>
+          </h1>
+          <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
+            Data Evaluation Layer // {selectedHackathon ? 'SYNC ACTIVE' : 'IDLE'}
+          </p>
+        </div>
 
         {/* Judging Control Panel */}
         {selectedHackathon && (
@@ -971,7 +908,7 @@ export default function AdminResultsPage() {
             </div>
           )}
         </>)}
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

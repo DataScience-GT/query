@@ -8,8 +8,8 @@ import QRCode from 'qrcode';
 import Link from 'next/link';
 import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import AdminLayout from '@/components/portal/AdminLayout';
 
 type Event = {
   id: string;
@@ -109,24 +109,8 @@ export default function AdminPage() {
     link.click();
   };
 
-  if (status === 'loading' || adminLoading) {
-    return (
-      <div className="min-h-screen min-h-[100dvh] bg-[#050505] flex items-center justify-center">
-        <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-        <div className="text-center relative z-10">
-          <div className="w-12 h-12 border-4 border-[#00A8A8]/30 border-t-[#00A8A8] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">Verifying access...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!session || !adminStatus?.isAdmin) return null;
-
   return (
-    <div className="relative min-h-screen min-h-[100dvh] bg-[#050505] text-gray-400 font-sans overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
+    <AdminLayout>
       {showCreateEvent && (
         <EventFormModal
           onClose={() => setShowCreateEvent(false)}
@@ -146,49 +130,24 @@ export default function AdminPage() {
         />
       )}
 
-      <main className="relative z-10 max-w-6xl mx-auto py-8 px-4 md:px-6">
-        {/* Header */}
-        <LiquidGlass className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-6">
+      <div className="relative z-10 max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-[#00A8A8] animate-pulse shadow-[0_0_8px_rgba(0,168,168,0.5)]" />
-              <p className="text-xs uppercase tracking-widest text-gray-500 font-medium">Admin Console</p>
-            </div>
-            <h1 className="text-2xl font-bold text-white">
-              Admin <span className="bg-gradient-to-r from-[#00A8A8] to-emerald-400 bg-clip-text text-transparent italic">Terminal</span>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
+              Check-in <span className="text-[#00A8A8] italic">Events</span>
             </h1>
-            <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">{adminStatus.role?.replace(/_/g, ' ').toUpperCase()}</p>
+            <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
+              Manage Hackathon Check-in Locations
+            </p>
           </div>
-          <div className="flex gap-3">
-            <Link
-              href="/admin-hackathons"
-              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-yellow-500" />
-              Hackathons
-            </Link>
-            <Link
-              href="/admin-hackathons/scanner"
-              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
-              QR Scanner
-            </Link>
-            <Link
-              href="/admin-judging"
-              className="px-5 py-3 bg-white/5 border border-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#00A8A8]" />
-              Judging Portal
-            </Link>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-5 py-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
-            >
-              ← Back
-            </button>
-          </div>
-        </LiquidGlass>
+          <Link
+            href="/admin-hackathons/scanner"
+            className="px-6 py-3 bg-white/5 border border-white/10 text-white text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-2 font-mono"
+          >
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+            Open QR Scanner
+          </Link>
+        </div>
 
         {/* Events Section */}
         <div className="space-y-6">
@@ -288,7 +247,7 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

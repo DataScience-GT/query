@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import AdminLayout from '@/components/portal/AdminLayout';
 
 type ParsedJudge = { name: string; email: string; track?: string };
 type ParsedProject = { name: string; teamMembers?: string; mainTrack?: string; extraTracks: string[]; isCreateX: boolean };
@@ -124,23 +124,7 @@ export default function AdminSetupPage() {
         reader.readAsText(file);
     };
 
-    if (!mounted || status === 'loading' || adminLoading) {
-        return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-[#00A8A8] border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
-
-    if (!adminStatus?.isAdmin) {
-        return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-                <LiquidGlass className="p-8 text-center">
-                    <p className="text-red-400 font-bold uppercase tracking-widest text-sm">Access Denied</p>
-                </LiquidGlass>
-            </div>
-        );
-    }
+    if (!mounted) return null;
 
     const steps = [
         { num: 1, label: 'Create Hackathon', done: !!selectedHackathonId },
@@ -150,39 +134,16 @@ export default function AdminSetupPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
-            <main className="relative z-10 max-w-4xl mx-auto px-6 py-16">
-                {/* Header */}
-                <LiquidGlass className="rounded-lg p-8 mb-12 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent" />
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="h-2 w-2 rounded-full bg-[#00A8A8] animate-pulse" />
-                                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Hackathon Setup</span>
-                            </div>
-                            <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
-                                Event <span className="text-[#00A8A8] italic">Builder</span>
-                            </h1>
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => router.push('/admin-judging')}
-                                className="px-6 py-3 bg-black/40 border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all rounded-xl font-mono"
-                            >
-                                Results Dashboard
-                            </button>
-                            <button
-                                onClick={() => signOut({ callbackUrl: '/login' })}
-                                className="px-6 py-3 border border-red-500/20 text-red-500/60 font-bold text-xs uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 transition-all rounded-xl font-mono"
-                            >
-                                Sign Out
-                            </button>
-                        </div>
-                    </div>
-                </LiquidGlass>
+        <AdminLayout>
+            <div className="relative z-10 max-w-4xl mx-auto">
+                <div className="mb-12">
+                    <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
+                        Judging Data <span className="text-[#00A8A8] italic">Import</span>
+                    </h1>
+                    <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
+                        Configure the event and import CSV files
+                    </p>
+                </div>
 
                 {/* Progress Steps */}
                 <div className="flex items-center gap-2 mb-12">
@@ -191,10 +152,10 @@ export default function AdminSetupPage() {
                             <button
                                 onClick={() => setActiveStep(s.num)}
                                 className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all text-xs font-bold uppercase tracking-widest font-mono ${activeStep === s.num
-                                        ? 'bg-[#00A8A8]/10 border-[#00A8A8]/40 text-white'
-                                        : s.done
-                                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                            : 'bg-white/[0.02] border-white/5 text-gray-600'
+                                    ? 'bg-[#00A8A8]/10 border-[#00A8A8]/40 text-white'
+                                    : s.done
+                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                        : 'bg-white/[0.02] border-white/5 text-gray-600'
                                     }`}
                             >
                                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${s.done ? 'bg-emerald-500/20 text-emerald-400' : activeStep === s.num ? 'bg-[#00A8A8]/20 text-[#00A8A8]' : 'bg-white/5 text-gray-600'
@@ -223,8 +184,8 @@ export default function AdminSetupPage() {
                                             key={h.id}
                                             onClick={() => { setSelectedHackathonId(h.id); setActiveStep(2); }}
                                             className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border ${selectedHackathonId === h.id
-                                                    ? 'bg-[#00A8A8]/10 border-[#00A8A8]/50 text-white'
-                                                    : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
+                                                ? 'bg-[#00A8A8]/10 border-[#00A8A8]/50 text-white'
+                                                : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
                                                 }`}
                                         >
                                             {h.name}
@@ -484,7 +445,7 @@ export default function AdminSetupPage() {
                         )}
                     </LiquidGlass>
                 )}
-            </main>
-        </div>
+            </div>
+        </AdminLayout>
     );
 }
