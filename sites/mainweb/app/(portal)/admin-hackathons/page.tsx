@@ -5,8 +5,8 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import AdminLayout from '@/components/portal/AdminLayout';
 
 type HackathonStatus = 'draft' | 'open' | 'closed' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -36,58 +36,27 @@ export default function AdminHackathonsPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
-    const { data: hackathons, isLoading } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session && adminStatus?.isAdmin });
-
-    useEffect(() => {
-        if (status === 'unauthenticated') router.push('/login');
-        else if (status === 'authenticated' && !adminLoading && !adminStatus?.isAdmin) router.push('/dashboard');
-    }, [status, adminStatus, adminLoading, router]);
-
-    if (status === 'loading' || adminLoading) {
-        return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-                <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-                <div className="text-center relative z-10">
-                    <div className="w-12 h-12 border-4 border-[#00A8A8]/30 border-t-[#00A8A8] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-500 text-sm font-mono uppercase tracking-widest">Verifying access...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!session || !adminStatus?.isAdmin) return null;
+    const { data: hackathons, isLoading } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
 
     return (
-        <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans overflow-x-hidden">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
-            <main className="relative z-10 max-w-6xl mx-auto py-8 px-4 md:px-6">
-                <LiquidGlass className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-6">
+        <AdminLayout>
+            <div className="relative z-10 max-w-6xl mx-auto">
+                <div className="flex items-center justify-between mb-8">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="w-2 h-2 rounded-full bg-[#00A8A8] animate-pulse shadow-[0_0_8px_rgba(0,168,168,0.5)]" />
-                            <p className="text-xs uppercase tracking-widest text-gray-500 font-medium">Admin Console</p>
-                        </div>
-                        <h1 className="text-2xl font-bold text-white">
-                            Hackathon <span className="bg-gradient-to-r from-[#00A8A8] to-emerald-400 bg-clip-text text-transparent italic">Manager</span>
+                        <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
+                            Hackathon <span className="text-[#00A8A8] italic">Manager</span>
                         </h1>
+                        <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
+                            Manage your hackathon events
+                        </p>
                     </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setShowCreate(true)}
-                            className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-[#00A8A8]/20"
-                        >
-                            + New Hackathon
-                        </button>
-                        <button
-                            onClick={() => router.push('/admin')}
-                            className="px-5 py-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
-                        >
-                            ← Back
-                        </button>
-                    </div>
-                </LiquidGlass>
+                    <button
+                        onClick={() => setShowCreate(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)]"
+                    >
+                        + New Hackathon
+                    </button>
+                </div>
 
                 {showCreate && (
                     <CreateForm
@@ -147,8 +116,8 @@ export default function AdminHackathonsPage() {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </div>
+        </AdminLayout>
     );
 }
 
