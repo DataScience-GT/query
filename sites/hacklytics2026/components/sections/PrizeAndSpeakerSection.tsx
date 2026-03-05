@@ -20,12 +20,12 @@ const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }
 // Main Prize Ticket Component
 const PrizeTicket: React.FC<{
   type: 'gold' | 'silver' | 'bronze';
-  rank: string;
   prize: string;
   image: string;
   delay: string;
   rotate: string
-}> = ({ type, _rank, prize, image, delay, rotate }) => {
+  [key: string]: unknown;
+}> = ({ type, prize, image, delay, rotate }) => {
   const colors = {
     gold: { bg: '#FCD34D', border: '#B45309', accent: '#F59E0B', text: '#92400E' },
     silver: { bg: '#E5E7EB', border: '#4B5563', accent: '#9CA3AF', text: '#374151' },
