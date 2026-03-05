@@ -25,7 +25,7 @@ const PrizeTicket: React.FC<{
   image: string;
   delay: string;
   rotate: string
-}> = ({ type, rank, prize, image, delay, rotate }) => {
+}> = ({ type, _rank, prize, image, delay, rotate }) => {
   const colors = {
     gold: { bg: '#FCD34D', border: '#B45309', accent: '#F59E0B', text: '#92400E' },
     silver: { bg: '#E5E7EB', border: '#4B5563', accent: '#9CA3AF', text: '#374151' },
