@@ -6,6 +6,9 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import AdminLayout from '@/components/portal/AdminLayout';
+import { SetupWizard } from '@/components/admin/setup/SetupWizard';
+import { CreateHackathonStep } from '@/components/admin/setup/CreateHackathonStep';
+import { ImportJudgesStep, ImportProjectsStep } from '@/components/admin/setup/ImportDataStep';
 
 type ParsedJudge = { name: string; email: string; track?: string };
 type ParsedProject = { name: string; teamMembers?: string; mainTrack?: string; extraTracks: string[]; isCreateX: boolean };
@@ -26,6 +29,8 @@ export default function AdminSetupPage() {
     // Step state
     const [activeStep, setActiveStep] = useState(1);
     const [hackathonName, setHackathonName] = useState('');
+    const [hackathonTracks, setHackathonTracks] = useState('');
+    const [hackathonChallenges, setHackathonChallenges] = useState('');
     const [selectedHackathonId, setSelectedHackathonId] = useState<string | null>(null);
 
     // CSV data
@@ -146,241 +151,74 @@ export default function AdminSetupPage() {
                 </div>
 
                 {/* Progress Steps */}
-                <div className="flex items-center gap-2 mb-12">
-                    {steps.map((s, i) => (
-                        <React.Fragment key={s.num}>
-                            <button
-                                onClick={() => setActiveStep(s.num)}
-                                className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all text-xs font-bold uppercase tracking-widest font-mono ${activeStep === s.num
-                                    ? 'bg-[#00A8A8]/10 border-[#00A8A8]/40 text-white'
-                                    : s.done
-                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                        : 'bg-white/[0.02] border-white/5 text-gray-600'
-                                    }`}
-                            >
-                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${s.done ? 'bg-emerald-500/20 text-emerald-400' : activeStep === s.num ? 'bg-[#00A8A8]/20 text-[#00A8A8]' : 'bg-white/5 text-gray-600'
-                                    }`}>
-                                    {s.done ? '\u2713' : s.num}
-                                </span>
-                                {s.label}
-                            </button>
-                            {i < steps.length - 1 && <div className="w-6 h-px bg-white/10" />}
-                        </React.Fragment>
-                    ))}
-                </div>
+                <SetupWizard activeStep={activeStep} setActiveStep={setActiveStep} steps={steps} />
 
                 {/* Step 1: Create Hackathon */}
                 {activeStep === 1 && (
-                    <LiquidGlass className="rounded-lg p-8">
-                        <h2 className="text-xl font-black text-white uppercase tracking-tight mb-6">Create Hackathon</h2>
+                    <CreateHackathonStep
+                        hackathons={hackathons || []}
+                        selectedHackathonId={selectedHackathonId}
+                        setSelectedHackathonId={setSelectedHackathonId}
+                        setActiveStep={setActiveStep}
+                        hackathonName={hackathonName}
+                        setHackathonName={setHackathonName}
+                        hackathonTracks={hackathonTracks}
+                        setHackathonTracks={setHackathonTracks}
+                        hackathonChallenges={hackathonChallenges}
+                        setHackathonChallenges={setHackathonChallenges}
+                        createHackathonPending={createHackathon.isPending}
+                        onCreateHackathon={() => {
+                            if (!hackathonName.trim()) return;
 
-                        {/* Existing hackathons */}
-                        {hackathons && hackathons.length > 0 && (
-                            <div className="mb-8">
-                                <p className="text-xs text-gray-500 font-mono uppercase tracking-widest mb-3">Or select an existing event:</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {hackathons.map((h) => (
-                                        <button
-                                            key={h.id}
-                                            onClick={() => { setSelectedHackathonId(h.id); setActiveStep(2); }}
-                                            className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border ${selectedHackathonId === h.id
-                                                ? 'bg-[#00A8A8]/10 border-[#00A8A8]/50 text-white'
-                                                : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
-                                                }`}
-                                        >
-                                            {h.name}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="my-6 flex items-center gap-4">
-                                    <div className="flex-1 h-px bg-white/10" />
-                                    <span className="text-xs text-gray-600 font-mono uppercase tracking-widest">or create new</span>
-                                    <div className="flex-1 h-px bg-white/10" />
-                                </div>
-                            </div>
-                        )}
+                            // Parse tracks and challenges
+                            const parsedTracks = hackathonTracks.split(',').map(s => s.trim()).filter(Boolean);
+                            const parsedChallenges = hackathonChallenges.split(',').map(s => s.trim()).filter(Boolean);
 
-                        <div className="space-y-4 max-w-md">
-                            <input
-                                type="text"
-                                placeholder="Event name (e.g. Hacklytics 2026)"
-                                value={hackathonName}
-                                onChange={(e) => setHackathonName(e.target.value)}
-                                className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-xl text-white font-mono placeholder:text-gray-600 focus:outline-none focus:border-[#00A8A8]/40 transition-colors"
-                            />
-                            <button
-                                onClick={() => {
-                                    if (!hackathonName.trim()) return;
-                                    createHackathon.mutate({
-                                        name: hackathonName.trim(),
-                                        startDate: new Date(),
-                                        endDate: new Date(Date.now() + 86400000),
-                                    });
-                                }}
-                                disabled={!hackathonName.trim() || createHackathon.isPending}
-                                className="w-full px-8 py-4 bg-[#00A8A8]/10 border border-[#00A8A8]/40 text-[#00A8A8] font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-[#00A8A8]/20 transition-all disabled:opacity-30 font-mono"
-                            >
-                                {createHackathon.isPending ? 'Creating...' : 'Create Event'}
-                            </button>
-                        </div>
-                    </LiquidGlass>
+                            createHackathon.mutate({
+                                name: hackathonName.trim(),
+                                startDate: new Date(),
+                                endDate: new Date(Date.now() + 86400000),
+                                tracks: parsedTracks.length > 0 ? parsedTracks : undefined,
+                                challenges: parsedChallenges.length > 0 ? parsedChallenges : undefined,
+                            });
+                        }}
+                    />
                 )}
 
                 {/* Step 2: Import Judges */}
                 {activeStep === 2 && (
-                    <LiquidGlass className="rounded-lg p-8">
-                        <h2 className="text-xl font-black text-white uppercase tracking-tight mb-2">Import Judges</h2>
-                        <p className="text-xs text-gray-500 font-mono mb-6">CSV format: name, email, track (optional)</p>
-
-                        <input
-                            ref={judgesFileRef}
-                            type="file"
-                            accept=".csv"
-                            onChange={handleJudgesCSV}
-                            className="hidden"
-                        />
-                        <button
-                            onClick={() => judgesFileRef.current?.click()}
-                            className="w-full px-8 py-6 border-2 border-dashed border-white/10 rounded-2xl text-gray-500 font-mono text-sm hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all mb-6"
-                        >
-                            {judgesData.length > 0 ? `${judgesData.length} judges loaded - click to re-upload` : 'Click to upload judges CSV'}
-                        </button>
-
-                        {/* Preview table */}
-                        {judgesData.length > 0 && (
-                            <>
-                                <div className="overflow-x-auto mb-6">
-                                    <table className="w-full text-xs">
-                                        <thead>
-                                            <tr className="text-gray-600 uppercase tracking-widest">
-                                                <th className="text-left py-2 px-3 font-mono">#</th>
-                                                <th className="text-left py-2 px-3 font-mono">Name</th>
-                                                <th className="text-left py-2 px-3 font-mono">Email</th>
-                                                <th className="text-left py-2 px-3 font-mono">Track</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {judgesData.slice(0, 20).map((j, i) => (
-                                                <tr key={i} className="border-t border-white/5">
-                                                    <td className="py-2 px-3 text-gray-600 font-mono">{i + 1}</td>
-                                                    <td className="py-2 px-3 text-white">{j.name}</td>
-                                                    <td className="py-2 px-3 text-gray-400 font-mono">{j.email}</td>
-                                                    <td className="py-2 px-3 text-[#00A8A8]">{j.track || '-'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {judgesData.length > 20 && (
-                                        <p className="text-xs text-gray-600 font-mono mt-2 text-center">...and {judgesData.length - 20} more</p>
-                                    )}
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        if (!selectedHackathonId) return;
-                                        importJudges.mutate({
-                                            hackathonId: selectedHackathonId,
-                                            judges: judgesData,
-                                        });
-                                    }}
-                                    disabled={importJudges.isPending || !selectedHackathonId}
-                                    className="w-full px-8 py-4 bg-[#00A8A8]/10 border border-[#00A8A8]/40 text-[#00A8A8] font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-[#00A8A8]/20 transition-all disabled:opacity-30 font-mono"
-                                >
-                                    {importJudges.isPending ? `Importing ${judgesData.length} judges...` : `Import ${judgesData.length} Judges`}
-                                </button>
-
-                                {importJudges.data && (
-                                    <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                                        <p className="text-emerald-400 text-xs font-mono">
-                                            Created: {importJudges.data.created} | Skipped: {importJudges.data.skipped}
-                                        </p>
-                                        {importJudges.data.errors.length > 0 && (
-                                            <div className="mt-2">
-                                                {importJudges.data.errors.slice(0, 5).map((err, i) => (
-                                                    <p key={i} className="text-red-400 text-xs font-mono">{err}</p>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </LiquidGlass>
+                    <ImportJudgesStep
+                        selectedHackathonId={selectedHackathonId}
+                        judgesData={judgesData}
+                        handleJudgesCSV={handleJudgesCSV}
+                        importJudgesPending={importJudges.isPending}
+                        importJudgesData={importJudges.data}
+                        onImport={() => {
+                            if (!selectedHackathonId) return;
+                            importJudges.mutate({
+                                hackathonId: selectedHackathonId,
+                                judges: judgesData,
+                            });
+                        }}
+                    />
                 )}
 
                 {/* Step 3: Import Projects */}
                 {activeStep === 3 && (
-                    <LiquidGlass className="rounded-lg p-8">
-                        <h2 className="text-xl font-black text-white uppercase tracking-tight mb-2">Import Projects</h2>
-                        <p className="text-xs text-gray-500 font-mono mb-6">CSV format: name, team_members (pipe-separated), main_track, extra_tracks (pipe-separated), is_create_x</p>
-
-                        <input
-                            ref={projectsFileRef}
-                            type="file"
-                            accept=".csv"
-                            onChange={handleProjectsCSV}
-                            className="hidden"
-                        />
-                        <button
-                            onClick={() => projectsFileRef.current?.click()}
-                            className="w-full px-8 py-6 border-2 border-dashed border-white/10 rounded-2xl text-gray-500 font-mono text-sm hover:border-[#00A8A8]/30 hover:text-[#00A8A8] transition-all mb-6"
-                        >
-                            {projectsData.length > 0 ? `${projectsData.length} projects loaded - click to re-upload` : 'Click to upload projects CSV'}
-                        </button>
-
-                        {/* Preview table */}
-                        {projectsData.length > 0 && (
-                            <>
-                                <div className="overflow-x-auto mb-6">
-                                    <table className="w-full text-xs">
-                                        <thead>
-                                            <tr className="text-gray-600 uppercase tracking-widest">
-                                                <th className="text-left py-2 px-3 font-mono">Table</th>
-                                                <th className="text-left py-2 px-3 font-mono">Name</th>
-                                                <th className="text-left py-2 px-3 font-mono">Team</th>
-                                                <th className="text-left py-2 px-3 font-mono">Track</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {projectsData.slice(0, 20).map((p, i) => (
-                                                <tr key={i} className="border-t border-white/5">
-                                                    <td className="py-2 px-3 text-gray-600 font-mono">{i + 1}</td>
-                                                    <td className="py-2 px-3 text-white">{p.name}</td>
-                                                    <td className="py-2 px-3 text-gray-400 font-mono text-[10px]">{p.teamMembers || '-'}</td>
-                                                    <td className="py-2 px-3 text-[#00A8A8]">{p.mainTrack || '-'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {projectsData.length > 20 && (
-                                        <p className="text-xs text-gray-600 font-mono mt-2 text-center">...and {projectsData.length - 20} more</p>
-                                    )}
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        if (!selectedHackathonId) return;
-                                        importProjects.mutate({
-                                            hackathonId: selectedHackathonId,
-                                            projects: projectsData,
-                                        });
-                                    }}
-                                    disabled={importProjects.isPending || !selectedHackathonId}
-                                    className="w-full px-8 py-4 bg-[#00A8A8]/10 border border-[#00A8A8]/40 text-[#00A8A8] font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-[#00A8A8]/20 transition-all disabled:opacity-30 font-mono"
-                                >
-                                    {importProjects.isPending ? `Importing ${projectsData.length} projects...` : `Import ${projectsData.length} Projects (Auto-Assign Tables)`}
-                                </button>
-
-                                {importProjects.data && (
-                                    <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                                        <p className="text-emerald-400 text-xs font-mono">
-                                            Created: {importProjects.data.created} | Tables: {importProjects.data.startTable} - {importProjects.data.endTable}
-                                        </p>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </LiquidGlass>
+                    <ImportProjectsStep
+                        selectedHackathonId={selectedHackathonId}
+                        projectsData={projectsData}
+                        handleProjectsCSV={handleProjectsCSV}
+                        importProjectsPending={importProjects.isPending}
+                        importProjectsData={importProjects.data}
+                        onImport={() => {
+                            if (!selectedHackathonId) return;
+                            importProjects.mutate({
+                                hackathonId: selectedHackathonId,
+                                projects: projectsData,
+                            });
+                        }}
+                    />
                 )}
 
                 {/* Step 4: Auto-Assign Judges */}
