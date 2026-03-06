@@ -1,0 +1,17 @@
+services:
+  bot:
+    image: hacklytics-bot
+    build:
+      context: .
+    container_name: hacklytics-bot
+    environment:
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      GUILD_ID: ${GUILD_ID}
+      ROLE_ANNOUNCEMENTS_ID: ${ROLE_ANNOUNCEMENTS_ID}
+      ROLE_WORKSHOPS_ID: ${ROLE_WORKSHOPS_ID}
+      ROLE_SPONSORS_ID: ${ROLE_SPONSORS_ID}
+      ROLE_FOOD_ID: ${ROLE_FOOD_ID}
+      NOTION_TOKEN: ${NOTION_TOKEN}
+      NOTION_GUIDE_PAGE_ID: ${NOTION_GUIDE_PAGE_ID}
+    restart: unless-stopped
