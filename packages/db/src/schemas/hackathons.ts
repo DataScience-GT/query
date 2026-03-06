@@ -20,6 +20,8 @@ export const hackathons = pgTable("hackathon", {
   prizes: json("prizes").$type<{ place: string; amount: number; description?: string }[]>(),
   rules: text("rules"),
   theme: text("theme"),
+  tracks: text("tracks").array(),
+  challenges: text("challenges").array(),
   websiteUrl: text("website_url"),
   isPublic: boolean("is_public").notNull().default(true),
   judgingActive: boolean("judging_active").notNull().default(false),
@@ -71,11 +73,37 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   teamId: uuid("team_id")
     .references(() => hackathonTeams.id, { onDelete: "set null" }),
 
-  // Participant details
+  // Personal info
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  age: integer("age"),
+  gender: text("gender"),
+
+  // Academic info
+  school: text("school"),
+  major: text("major"),
+  graduationYear: integer("graduation_year"),
+  levelOfStudy: text("level_of_study", {
+    enum: ["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]
+  }),
+  country: text("country"),
+
+  // Experience
+  hackathonsAttended: integer("hackathons_attended"),
+  resumeUrl: text("resume_url"),
+  linkedinUrl: text("linkedin_url"),
+  githubUrl: text("github_url"),
+  whyAttend: text("why_attend"),
+
+  // Logistics
   shirtSize: text("shirt_size", { enum: ["XS", "S", "M", "L", "XL", "XXL"] }),
   dietaryRestrictions: text("dietary_restrictions").array(),
   emergencyContact: text("emergency_contact"),
   emergencyPhone: text("emergency_phone"),
+
+  // Consent
+  agreeToCodeOfConduct: boolean("agree_to_code_of_conduct").default(false),
 
   // Participation tracking
   checkedInAt: timestamp("checked_in_at"),

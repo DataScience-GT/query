@@ -100,6 +100,8 @@ export const hackathonRouter = createTRPCRouter({
         ).max(20).optional(),
         rules: z.string().max(10000).optional(),
         theme: z.string().max(200).optional(),
+        tracks: z.array(z.string().max(100)).max(50).optional(),
+        challenges: z.array(z.string().max(100)).max(50).optional(),
         websiteUrl: z.string().url().max(500).optional(),
       }).refine(data => data.endDate > data.startDate, {
         message: "End date must be after start date",
@@ -142,6 +144,8 @@ export const hackathonRouter = createTRPCRouter({
         ).max(20).optional(),
         rules: z.string().max(10000).optional(),
         theme: z.string().max(200).optional(),
+        tracks: z.array(z.string().max(100)).max(50).optional(),
+        challenges: z.array(z.string().max(100)).max(50).optional(),
         websiteUrl: z.string().url().max(500).optional(),
         isPublic: z.boolean().optional(),
       })
@@ -179,10 +183,31 @@ export const hackathonRouter = createTRPCRouter({
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
+        // Personal info
+        firstName: z.string().min(1).max(100),
+        lastName: z.string().min(1).max(100),
+        phone: z.string().min(1).max(30),
+        age: z.number().int().min(13).max(120),
+        gender: z.string().max(50).optional(),
+        // Academic info
+        school: z.string().min(1).max(300),
+        major: z.string().min(1).max(300),
+        graduationYear: z.number().int().min(2020).max(2035),
+        levelOfStudy: z.enum(["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]),
+        country: z.string().min(1).max(100),
+        // Experience
+        hackathonsAttended: z.number().int().min(0).max(100).optional(),
+        resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
+        linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
+        githubUrl: z.string().url().max(500).optional().or(z.literal("")),
+        whyAttend: z.string().max(2000).optional(),
+        // Logistics
         shirtSize: z.enum(["XS", "S", "M", "L", "XL", "XXL"]).optional(),
         dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
         emergencyContact: z.string().max(200).optional(),
         emergencyPhone: z.string().max(20).optional(),
+        // Consent
+        agreeToCodeOfConduct: z.boolean().refine(v => v === true, { message: "You must agree to the Code of Conduct" }),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -237,10 +262,31 @@ export const hackathonRouter = createTRPCRouter({
               hackathonId: input.hackathonId,
               userId: ctx.userId!,
               memberId: member?.id,
+              // Personal
+              firstName: input.firstName,
+              lastName: input.lastName,
+              phone: input.phone,
+              age: input.age,
+              gender: input.gender,
+              // Academic
+              school: input.school,
+              major: input.major,
+              graduationYear: input.graduationYear,
+              levelOfStudy: input.levelOfStudy,
+              country: input.country,
+              // Experience
+              hackathonsAttended: input.hackathonsAttended,
+              resumeUrl: input.resumeUrl || undefined,
+              linkedinUrl: input.linkedinUrl || undefined,
+              githubUrl: input.githubUrl || undefined,
+              whyAttend: input.whyAttend,
+              // Logistics
               shirtSize: input.shirtSize,
               dietaryRestrictions: input.dietaryRestrictions || [],
               emergencyContact: input.emergencyContact,
               emergencyPhone: input.emergencyPhone,
+              // Consent
+              agreeToCodeOfConduct: input.agreeToCodeOfConduct,
               registrationStatus: "approved",
             })
             .returning();
