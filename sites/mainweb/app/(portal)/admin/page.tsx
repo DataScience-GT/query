@@ -10,6 +10,7 @@ import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import AdminLayout from '@/components/portal/AdminLayout';
+import { EventHeader } from '@/components/admin/events/EventHeader';
 
 type Event = {
   id: string;
@@ -131,23 +132,7 @@ export default function AdminPage() {
       )}
 
       <div className="relative z-10 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
-              Check-in <span className="text-[#00A8A8] italic">Events</span>
-            </h1>
-            <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-              Manage Hackathon Check-in Locations
-            </p>
-          </div>
-          <Link
-            href="/admin-hackathons/scanner"
-            className="px-6 py-3 bg-white/5 border border-white/10 text-white text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-2 font-mono"
-          >
-            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-            Open QR Scanner
-          </Link>
-        </div>
+        <EventHeader />
 
         {/* Events Section */}
         <div className="space-y-6">

@@ -1110,9 +1110,18 @@ export const judgeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       return await ctx.db!.transaction(async (tx) => {
-        const MAIN_TRACKS = new Set(["Sports", "Entertainment", "Finance", "Healthcare"]);
+        // 1. Get Hackathon for dynamic tracks
+        const hackathon = await tx.query.hackathons.findFirst({
+          where: eq(hackathons.id, input.hackathonId),
+        });
 
-        // 1. Get all judge assignments for this hackathon
+        if (!hackathon) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
+        }
+
+        const MAIN_TRACKS = new Set(hackathon.tracks || []);
+
+        // 2. Get all judge assignments for this hackathon
         const allAssignments = await tx.query.judgeAssignments.findMany({
           where: eq(judgeAssignments.hackathonId, input.hackathonId),
           with: { judge: true },

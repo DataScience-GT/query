@@ -5,8 +5,6 @@ import { admins, users } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
-import { cacheLife } from "next/dist/server/use-cache/cache-life";
-import { cacheTag } from "next/dist/server/use-cache/cache-tag";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
@@ -55,8 +53,6 @@ export const adminRouter = createTRPCRouter({
       orderBy: (admins, { desc }) => [desc(admins.createdAt)],
       limit: 100,
     });
-
-    ctx.cache.set(cacheTag, allAdmins, 60);
 
     ctx.cache.set(cacheKey, allAdmins, 60);
 

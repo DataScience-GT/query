@@ -7,7 +7,7 @@ import { cache } from "@query/api";
 // Type for the transaction object
 type Tx = Parameters<Parameters<NonNullable<typeof db>["transaction"]>[0]>[0];
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  if (!stripe) {
-    console.error("Stripe not initialized. Missing STRIPE_SECRET_KEY.");
+  if (!stripe || !webhookSecret) {
+    console.error("Stripe not initialized. Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET.");
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
