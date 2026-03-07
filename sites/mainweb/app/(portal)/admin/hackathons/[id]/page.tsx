@@ -52,7 +52,7 @@ export default function AdminHackathonUnifiedDashboard() {
             <header className="relative z-10 w-full pt-8 pb-4 px-4 md:px-6 bg-[#050505]/90 backdrop-blur-md border-b border-white/5 sticky top-0 md:static">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <Link href="/admin-hackathons" className="mb-4 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit">
+                        <Link href="/admin/hackathons" className="mb-4 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit">
                             <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                             Back to Hub
                         </Link>

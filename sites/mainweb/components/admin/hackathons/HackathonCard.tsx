@@ -88,7 +88,7 @@ export function HackathonCard({
                     </div>
 
                     <Link
-                        href={`/admin-hackathons/${hackathon.id}`}
+                        href={`/admin/hackathons/${hackathon.id}`}
                         className="px-4 py-2 bg-white/5 border border-white/10 text-white text-sm font-bold tracking-wider uppercase rounded-xl hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-2"
                     >
                         Dashboard <span className="text-lg leading-none">→</span>

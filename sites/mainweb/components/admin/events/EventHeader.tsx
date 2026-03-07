@@ -15,7 +15,7 @@ export function EventHeader() {
                 </p>
             </div>
             <Link
-                href="/admin-hackathons/scanner"
+                href="/admin/hackathons/scanner"
                 className="px-6 py-3 bg-white/5 border border-white/10 text-white text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-2 font-mono"
             >
                 <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
