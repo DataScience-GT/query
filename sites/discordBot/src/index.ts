@@ -13,6 +13,7 @@ import { env } from "./env.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import http from "node:http";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,12 +62,14 @@ class Bot {
 
       try {
         const mod = await import(fileUrl);
-        const command: BotCommand =
-          typeof mod.default === "function" ? new mod.default() : mod.default ?? mod;
+        // Commands use named exports: data, execute, etc.
+        const command = mod as BotCommand;
 
         if (command?.data && typeof command.execute === "function") {
           this.commands.push(command);
           console.log(`  → Loaded /${command.data.name}`);
+        } else {
+          console.warn(`  ⚠ Skipping ${file}: Missing 'data' or 'execute' exports`);
         }
       } catch (err) {
         console.error(`  ✗ Failed to load ${file}:`, err);
@@ -201,7 +204,17 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-bot.start().catch((err) => {
+bot.start().then(() => {
+  // Start dummy HTTP server for Cloud Run health checks
+  const port = process.env.PORT || 8080;
+  const server = http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end("Discord Bot is running");
+  });
+  server.listen(port, () => {
+    console.log(`🌐 Dummy HTTP server listening on port ${port}`);
+  });
+}).catch((err) => {
   console.error("Fatal startup error:", err);
   process.exit(1);
 });
