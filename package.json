@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:mainweb": "turbo run dev --filter=web",
+    "dev:full": "turbo run dev --parallel",
     "build:mainweb": "turbo run build --filter=web",
     "build": "turbo run build",
     "start": "turbo run start",
