@@ -56,7 +56,8 @@ class Bot {
 
     for (const file of files) {
       const filePath = path.join(commandsDir, file);
-      const fileUrl = new URL(`file:///${filePath.replace(/\\/g, "/")}`).href;
+      const { pathToFileURL } = await import("node:url");
+      const fileUrl = pathToFileURL(filePath).href;
 
       try {
         const mod = await import(fileUrl);
