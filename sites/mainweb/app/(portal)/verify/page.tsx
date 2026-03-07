@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Background from '@/components/portal/Background';
+import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 function VerifyContent() {
     const searchParams = useSearchParams();
@@ -106,84 +107,85 @@ function VerifyContent() {
         <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
             <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
-            <div className="relative z-10 w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(16,185,129,0.1)]">
-                <svg className="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-            </div>
+            <LiquidGlass className="relative z-10 w-full max-w-lg p-10 md:p-14 flex flex-col items-center">
+                <div className="w-24 h-24 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(0,168,168,0.1)]">
+                    <svg className="w-12 h-12 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
 
-            <div className="relative z-10 space-y-4 mb-10 max-w-lg">
-                <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
-                    Enter<span className="text-emerald-500"> Code</span>
-                </h1>
-                <p className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em] mb-4">
-                    Code Verfication
-                </p>
-                <div className="h-[1px] w-12 bg-emerald-500/30 mx-auto" />
-                <p className="text-gray-400 font-mono text-sm leading-relaxed">
-                    We sent a 6-digit code to your email.
-                </p>
-                {email && (
-                    <p className="text-emerald-500/70 font-mono text-xs">
-                        {email}
+                <div className="space-y-4 mb-10 text-center flex flex-col items-center">
+                    <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
+                        Enter<span className="text-[#00A8A8]"> Code</span>
+                    </h1>
+                    <p className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em] mb-4">
+                        Code Verification
                     </p>
+                    <div className="h-[1px] w-12 bg-[#00A8A8]/30 mx-auto" />
+                    <p className="text-gray-400 font-mono text-sm leading-relaxed mt-4">
+                        We sent a 6-digit access code to your terminal.
+                    </p>
+                    {email && (
+                        <p className="text-[#00A8A8]/70 font-mono text-xs">
+                            {email}
+                        </p>
+                    )}
+                </div>
+
+                {/* 6-digit code input */}
+                <div className="flex gap-2 sm:gap-3 mb-8" onPaste={handlePaste}>
+                    {code.map((digit, i) => (
+                        <input
+                            key={i}
+                            ref={(el) => { inputRefs.current[i] = el; }}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleChange(i, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(i, e)}
+                            disabled={verifying}
+                            className={`
+                                w-12 h-14 sm:w-14 sm:h-18 text-center text-xl sm:text-2xl font-mono font-black
+                                bg-black/40 border-[1.5px] rounded-xl
+                                text-white focus:outline-none transition-all duration-300
+                                ${error
+                                    ? 'border-red-500/50 focus:border-red-500 focus:bg-red-500/5 text-red-500'
+                                    : digit
+                                        ? 'border-[#00A8A8]/50 text-[#00A8A8] shadow-[0_0_20px_rgba(0,168,168,0.15)] bg-[#00A8A8]/5'
+                                        : 'border-white/10 focus:border-[#00A8A8]/70 focus:bg-[#00A8A8]/5 focus:-translate-y-1 focus:shadow-[0_10px_20px_rgba(0,168,168,0.1)]'
+                                }
+                                ${verifying ? 'opacity-50 cursor-not-allowed' : ''}
+                            `}
+                            autoComplete="one-time-code"
+                        />
+                    ))}
+                </div>
+
+                {/* Error message */}
+                {error && (
+                    <div className="px-4 py-3 border border-red-500/20 bg-red-500/5 rounded-lg mb-6 w-full text-center">
+                        <p className="text-red-500/90 font-mono text-xs font-bold tracking-widest uppercase animate-pulse">
+                            {error}
+                        </p>
+                    </div>
                 )}
-            </div>
 
-            {/* 6-digit code input */}
-            <div className="relative z-10 flex gap-3 mb-8" onPaste={handlePaste}>
-                {code.map((digit, i) => (
-                    <input
-                        key={i}
-                        ref={(el) => { inputRefs.current[i] = el; }}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleChange(i, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(i, e)}
-                        disabled={verifying}
-                        className={`
-                            w-12 h-16 sm:w-14 sm:h-18 text-center text-2xl font-mono font-bold
-                            bg-black/60 border-2 rounded-lg
-                            text-white focus:outline-none transition-all
-                            ${error
-                                ? 'border-red-500/50 focus:border-red-500'
-                                : digit
-                                    ? 'border-emerald-500/50'
-                                    : 'border-white/10 focus:border-emerald-500/70'
-                            }
-                            ${verifying ? 'opacity-50' : ''}
-                            shadow-[0_0_15px_rgba(16,185,129,0.05)]
-                        `}
-                        autoComplete="one-time-code"
-                    />
-                ))}
-            </div>
-
-            {/* Error message */}
-            {error && (
-                <p className="relative z-10 text-red-500/70 font-mono text-xs mb-4 animate-pulse">
-                    {error}
-                </p>
-            )}
-
-            {/* Submit button */}
-            <div className="relative z-10">
+                {/* Submit button */}
                 <button
                     onClick={() => handleSubmit(code.join(''))}
                     disabled={verifying || code.some(d => d === '')}
-                    className="px-12 py-5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-black text-xs uppercase tracking-[0.3em] hover:from-emerald-500 hover:to-emerald-400 transition-all rounded-lg shadow-[0_0_30px_rgba(16,185,129,0.2)] disabled:opacity-30 active:scale-95"
+                    className="w-full sm:w-auto px-12 py-5 bg-[#00A8A8] text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-all duration-300 rounded-xl shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
                 >
-                    {verifying ? 'Verifying...' : 'Verify Code'}
+                    {verifying ? 'VERIFYING...' : 'VERIFY CODE'}
                 </button>
-            </div>
 
-            {!email && (
-                <p className="relative z-10 mt-8 text-red-500/70 font-mono text-xs">
-                    Error: Missing email. Please go back to the login page.
-                </p>
-            )}
+                {!email && (
+                    <p className="mt-8 p-3 w-full text-center border border-red-500/20 bg-red-500/5 text-red-500/90 font-mono text-xs rounded-lg uppercase tracking-widest">
+                        ERROR: EMAIL BINDING LOST.<br /> RETURN TO LOGIN.
+                    </p>
+                )}
+            </LiquidGlass>
 
             <div className="fixed bottom-12 left-0 w-full text-center">
                 <p className="text-[10px] text-gray-700 font-mono uppercase tracking-[0.5em]"> </p>
