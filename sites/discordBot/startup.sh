@@ -9,7 +9,7 @@ cd /home/container
 # Check if node_modules exists, otherwise install
 if [ ! -d "node_modules" ]; then
     echo "node_modules not found. Installing dependencies..."
-    npm install --omit=dev --no-audit --no-fund --quiet
+    npm install --no-audit --no-fund --quiet
 else
     echo "node_modules found. Skipping install."
 fi
@@ -20,4 +20,4 @@ npm run build
 
 # Start the bot
 echo "Starting bot..."
-exec node --max-old-space-size=64 dist/index.js
+exec node dist/index.js
