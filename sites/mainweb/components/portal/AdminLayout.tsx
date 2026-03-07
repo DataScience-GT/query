@@ -10,9 +10,9 @@ import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 const TABS = [
     { label: 'Check-in Console', href: '/admin', id: 'admin', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { label: 'Hackathon Manager', href: '/admin-hackathons', id: 'admin-hackathons', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-    { label: 'Event Builder', href: '/admin-setup', id: 'admin-setup', icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z' },
-    { label: 'Voting Results', href: '/admin-judging', id: 'admin-judging', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+    { label: 'Hackathon Manager', href: '/admin/hackathons', id: 'admin-hackathons', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+    { label: 'Event Builder', href: '/admin/setup', id: 'admin-setup', icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z' },
+    { label: 'Voting Results', href: '/admin/judging', id: 'admin-judging', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
     { label: 'Back to Dashboard', href: '/dashboard', id: 'dashboard', icon: 'M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z' }
 ];
 
@@ -78,10 +78,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         return (
                             <Link key={tab.id} href={tab.href}>
                                 <div className={`flex items-center gap-4 px-5 py-4 rounded-xl transition-all duration-300 group border ${isActive
-                                        ? 'bg-[#00A8A8]/10 border-[#00A8A8]/30 text-white shadow-[0_0_15px_rgba(0,168,168,0.1)] scale-[1.02]'
-                                        : isDashboard
-                                            ? 'bg-white/[0.02] border-white/5 text-gray-400 hover:bg-white/5 hover:text-white mt-12'
-                                            : 'border-transparent text-gray-500 hover:bg-white/[0.03] hover:text-gray-200 hover:border-white/5'
+                                    ? 'bg-[#00A8A8]/10 border-[#00A8A8]/30 text-white shadow-[0_0_15px_rgba(0,168,168,0.1)] scale-[1.02]'
+                                    : isDashboard
+                                        ? 'bg-white/[0.02] border-white/5 text-gray-400 hover:bg-white/5 hover:text-white mt-12'
+                                        : 'border-transparent text-gray-500 hover:bg-white/[0.03] hover:text-gray-200 hover:border-white/5'
                                     }`}>
                                     <svg className={`w-5 h-5 transition-colors ${isActive ? 'text-[#00A8A8]' : 'text-gray-600 group-hover:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isActive ? 2 : 1.5} d={tab.icon} />
