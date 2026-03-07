@@ -84,7 +84,7 @@ export default function AdminAttendeeViewer() {
             <Background className="fixed inset-0 z-0 opacity-[0.03]" />
             <main className="relative z-10 max-w-7xl mx-auto py-20 px-6">
 
-                <Link href="/admin-hackathons" className="mb-8 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-mono uppercase tracking-wider group w-fit">
+                <Link href="/admin/hackathons" className="mb-8 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-mono uppercase tracking-wider group w-fit">
                     <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     Back to Hackathons
                 </Link>

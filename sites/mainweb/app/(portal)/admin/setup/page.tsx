@@ -274,7 +274,7 @@ export default function AdminSetupPage() {
                             <div className="mt-8 text-center">
                                 <p className="text-emerald-400 text-sm font-bold mb-4">Setup complete - all judges assigned.</p>
                                 <button
-                                    onClick={() => router.push('/admin-judging')}
+                                    onClick={() => router.push('/admin/judging')}
                                     className="px-10 py-4 bg-[#00A8A8]/10 border border-[#00A8A8]/40 text-[#00A8A8] font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-[#00A8A8]/20 transition-all font-mono"
                                 >
                                     Go to Results Dashboard
