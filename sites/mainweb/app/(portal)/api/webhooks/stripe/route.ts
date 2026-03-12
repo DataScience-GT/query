@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
       // Check if user already exists
       // Priority 1: Check metadata userId
-      let targetUser = null;
+      let targetUser: { id: string } | null | undefined = null;
 
       if (metadataUserId) {
         targetUser = await db.query.users.findFirst({
