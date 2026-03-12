@@ -221,6 +221,17 @@ export const judgeProcedure = t.procedure
       });
     }
 
+    const judge = await ctx.db.query.judges.findFirst({
+      where: (j, { eq }) => eq(j.userId, ctx.userId!),
+    });
+
+    if (!judge || !judge.isActive) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Judge access required",
+      });
+    }
+
     const config = RATE_LIMITS.judge;
     const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
 
@@ -251,6 +262,17 @@ export const adminProcedure = t.procedure
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Authentication required",
+      });
+    }
+
+    const admin = await ctx.db.query.admins.findFirst({
+      where: (a, { eq }) => eq(a.userId, ctx.userId!),
+    });
+
+    if (!admin || !admin.isActive) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Admin access required",
       });
     }
 
