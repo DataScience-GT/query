@@ -14,7 +14,7 @@
     "incremental": true,
     "disableSourceOfProjectReferenceRedirect": true,
     "tsBuildInfoFile": "${configDir}/.cache/tsbuildinfo.json",
-    "strict": false,
+    "strict": true,
     "noImplicitAny": false,
     "noUncheckedIndexedAccess": false,
     "checkJs": false,

@@ -87,8 +87,12 @@ export default function AdminSetupPage() {
     useEffect(() => setMounted(true), []);
 
     useEffect(() => {
-        if (status === 'unauthenticated') router.push('/login');
-    }, [status, router]);
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated' && !adminLoading && !adminStatus?.isAdmin) {
+            router.push('/dashboard');
+        }
+    }, [status, adminStatus, adminLoading, router]);
 
     // Parse judges CSV: name,email,track
     const handleJudgesCSV = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -325,7 +325,7 @@ export const memberRouter = createTRPCRouter({
     const expiresAt = member.membershipEndDate;
     const isActive = member.isActive && expiresAt && expiresAt > now;
 
-    let daysRemaining = null;
+    let daysRemaining: number | null = null;
     if (expiresAt) {
       daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     }
