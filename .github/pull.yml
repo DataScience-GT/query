@@ -1,0 +1,20 @@
+version: "1"
+rules:
+  - base: main
+    upstream: DataScience-GT:main
+    mergeMethod: hardreset
+    mergeUnstable: true
+    reviewers:
+      - aamoghS
+
+  - base: dev
+    upstream: main
+    assignees:
+      - aamoghS
+    reviewers:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+
+label: ":arrow_heading_down: pull"
+conflictLabel: "merge-conflict"
