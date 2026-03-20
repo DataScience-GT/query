@@ -1,17 +1,10 @@
 version: "1"
 rules:
   - base: main
-    upstream: DataScience-GT:main
-    mergeMethod: hardreset
-    mergeUnstable: true
+    upstream: dev
     reviewers:
       - aamoghS
-
-  - base: dev
-    upstream: main
     assignees:
-      - aamoghS
-    reviewers:
       - aamoghS
     conflictReviewers:
       - aamoghS
