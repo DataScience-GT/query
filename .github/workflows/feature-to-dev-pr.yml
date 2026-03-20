@@ -1,0 +1,31 @@
+name: Auto PR feature to dev
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - dev
+      - 'dependabot/**'
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create or Update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base dev \
+            --head ${{ github.ref_name }} \
+            --title "Feature: ${{ github.ref_name }} to dev" \
+            --body "Automated PR tracking changes from \`${{ github.ref_name }}\` into \`dev\`." \
+            --reviewer aamoghS \
+            --assignee aamoghS \
+            --label ":arrow_heading_down: pull" || true
