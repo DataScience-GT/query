@@ -207,12 +207,12 @@ export default function ClubPage() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 space-y-2">
+            <nav className="flex flex-1 gap-2 overflow-x-auto pb-2 scrollbar-none lg:flex-col lg:pb-0">
               {(Object.keys(tabLabels) as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`group flex w-full items-center justify-between rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 ${
+                  className={`group flex shrink-0 items-center justify-center gap-3 rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 lg:w-full lg:justify-between ${
                     activeTab === tab
                       ? "border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]"
                       : "text-gray-500 hover:bg-white/[0.02] hover:text-white"
