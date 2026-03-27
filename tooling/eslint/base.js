@@ -1,6 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import eslint from "eslint";
+import { dirname } from "node:path";
 import importPlugin from "eslint-plugin-import";
 import turboPlugin from "eslint-plugin-turbo";
 import tsPlugin from "@typescript-eslint/eslint-plugin";

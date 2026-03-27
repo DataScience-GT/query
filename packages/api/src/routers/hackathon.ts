@@ -11,8 +11,8 @@ import {
   hackathonEventAttendees,
 } from "@query/db";
 import { eq, and, gte, sql, inArray } from "drizzle-orm";
-import { CacheKeys } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
+import { CacheKeys } from "../middleware/cache";
 
 export const hackathonRouter = createTRPCRouter({
   list: publicProcedure
