@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import Link from 'next/link';
 import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
