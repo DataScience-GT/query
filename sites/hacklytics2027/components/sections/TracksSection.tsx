@@ -105,8 +105,7 @@ const TrackCard: React.FC<{ title: string; description: string; icon: React.Reac
         {/* Top Decoration */}
         <div className={`absolute top-0 inset-x-0 h-4 bg-${color.replace('bg-', '')}/20`}></div>
         
-        {/* Icon Circle */}
-        <div className={`w-24 h-24 rounded-full ${color.replace('bg-', 'bg-')}/10 flex items-center justify-center mb-6 border-4 border-${color.replace('bg-', '')}/20 group-hover:scale-110 transition-transform duration-500`}>
+        <div className={`w-24 h-24 rounded-full ${color}/10 flex items-center justify-center mb-6 border-4 border-${color.replace('bg-', '')}/20 group-hover:scale-110 transition-transform duration-500`}>
           <span className="w-16 h-16">{icon}</span>
         </div>
         
