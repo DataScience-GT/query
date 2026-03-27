@@ -67,7 +67,13 @@
       "tmp": ">=0.2.3",
       "rollup": ">=4.59.0",
       "immutable": ">=5.1.5",
-      "undici": ">=6.23.0"
+      "undici": ">=6.23.0",
+      "flatted": ">=3.5.2",
+      "picomatch": ">=2.3.2",
+      "handlebars": ">=4.7.9",
+      "brace-expansion": ">=5.0.5",
+      "nodemailer": ">=8.0.4",
+      "ipaddr.js": ">=2.2.1"
     }
   }
 }

@@ -1,5 +1,4 @@
 import { pgTable, text, timestamp, uuid, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
 export const securitySeverityEnum = pgEnum("security_severity", ["info", "warn", "critical"]);
 
