@@ -57,7 +57,7 @@
     "cross-env": "^10.1.0",
     "eslint": "9.17.0",
     "postcss": "^8.5.3",
-    "tailwindcss": "4.1.5",
+    "tailwindcss": "4.0.0",
     "turbo": "2.6.3",
     "typescript": "5.7.2",
     "typescript-eslint": "^8.53.1"
