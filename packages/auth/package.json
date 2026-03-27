@@ -17,7 +17,7 @@
     "drizzle-orm": "0.36.4",
     "minimatch": "10.2.3",
     "next-auth": "5.0.0-beta.25",
-    "nodemailer": "8.0.1"
+    "nodemailer": "8.0.4"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
@@ -25,6 +25,6 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/node": "^20",
-    "typescript": "^5.7.2"
+    "typescript": "^6.0.0"
   }
 }
