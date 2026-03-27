@@ -9,8 +9,6 @@ const nextConfig = {
   output: 'standalone',
   transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
   outputFileTracingRoot: path.join(__dirname, '../../'),
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
       {
