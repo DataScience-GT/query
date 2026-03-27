@@ -76,10 +76,10 @@ export default function Dashboard() {
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-2">
+            <nav className="flex overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-none">
               <button
                 onClick={() => setMode('DASHBOARD')}
-                className={`w-full group flex items-center justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
+                className={`flex-shrink-0 lg:w-full group flex items-center justify-center lg:justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent gap-3
                   ${mode === 'DASHBOARD'
                     ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
                     : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
@@ -91,7 +91,7 @@ export default function Dashboard() {
 
               <button
                 onClick={() => setMode('PROFILE')}
-                className={`w-full group flex items-center justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
+                className={`flex-shrink-0 lg:w-full group flex items-center justify-center lg:justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent gap-3
                   ${mode === 'PROFILE'
                     ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
                     : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
