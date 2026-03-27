@@ -28,7 +28,7 @@
     "@types/pg": "^8.10.9",
     "drizzle-kit": "^0.28.1",
     "tsx": "^4.21.0",
-    "typescript": "^5",
+    "typescript": "^6.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
