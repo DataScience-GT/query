@@ -1,0 +1,69 @@
+﻿
+> query@1.0.0 build C:\Users\bootcamp\Desktop\passion\query
+> turbo run build
+
+node.exe : ΓÇó turbo 2.7.5
+At C:\Users\bootcamp\AppData\Roaming\npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ΓÇó turbo 2.7.5:String) [], Remo 
+   teException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ΓÇó Packages in scope: @query/api, @query/auth, @query/consts, @query/db, @query/discord-bot, @query/eslint-config, @query/prettier-config, @query/tailwind-config, @query/tsconfig, @query/ui, hacklytics2027, web
+ΓÇó Running build in 12 packages
+ΓÇó Remote caching disabled
+@query/discord-bot:build: cache miss, executing 818163c2a9b32a2a
+@query/ui:build:components: cache miss, executing 9880967419dccc2f
+@query/ui:build:styles: cache hit, replaying logs d2874be680fc815e
+@query/ui:build:styles: 
+@query/ui:build:styles: > @query/ui@0.0.0 build:styles C:\Users\bootcamp\Desktop\passion\query\packages\ui
+@query/ui:build:styles: > tailwindcss -i ./src/styles.css -o ./dist/index.css
+@query/ui:build:styles: 
+@query/ui:build:styles: [3m[1m[34mΓëê[39m[22m[23m tailwindcss [34mv4.1.18[39m
+@query/ui:build:styles: 
+@query/ui:build:styles: Done in [34m216ms[39m
+hacklytics2027:build: cache miss, executing 1ee0f3b4653570d2
+@query/ui:build:components: 
+@query/ui:build:components: > @query/ui@0.0.0 build:components C:\Users\bootcamp\Desktop\passion\query\packages\ui
+@query/ui:build:components: > tsc
+@query/ui:build:components: 
+hacklytics2027:build: 
+hacklytics2027:build: > hacklytics2027@0.1.0 build C:\Users\bootcamp\Desktop\passion\query\sites\hacklytics2027
+hacklytics2027:build: > next build
+hacklytics2027:build: 
+@query/discord-bot:build: 
+@query/discord-bot:build: > @query/discord-bot@1.0.0 build C:\Users\bootcamp\Desktop\passion\query\sites\discordBot
+@query/discord-bot:build: > tsc
+@query/discord-bot:build: 
+@query/discord-bot:build: node:internal/modules/cjs/loader:1228
+@query/discord-bot:build:   throw err;
+@query/discord-bot:build:   ^
+@query/discord-bot:build: 
+@query/discord-bot:build: Error: Cannot find module 'C:\Users\bootcamp\Desktop\passion\query\sites\discordBot\node_modules\typescript\bin\tsc'
+@query/discord-bot:build:     at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+@query/discord-bot:build:     at Module._load (node:internal/modules/cjs/loader:1051:27)
+@query/discord-bot:build:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:174:12)
+@query/discord-bot:build:     at node:internal/main/run_main_module:28:49 {
+@query/discord-bot:build:   code: 'MODULE_NOT_FOUND',
+@query/discord-bot:build:   requireStack: []
+@query/discord-bot:build: }
+@query/discord-bot:build: 
+@query/discord-bot:build: Node.js v20.18.0
+@query/discord-bot:build: ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.
+@query/discord-bot:build: ERROR: command finished with error: command 
+(C:\Users\bootcamp\Desktop\passion\query\sites\discordBot) 
+C:\Users\bootcamp\AppData\Local\pnpm\.tools\pnpm\10.28.1\bin\pnpm.CMD run 
+build exited (1)
+@query/discord-bot#build: command 
+(C:\Users\bootcamp\Desktop\passion\query\sites\discordBot) 
+C:\Users\bootcamp\AppData\Local\pnpm\.tools\pnpm\10.28.1\bin\pnpm.CMD run 
+build exited (1)
+
+ Tasks:    1 successful, 4 total
+Cached:    1 cached, 4 total
+  Time:    2.816s 
+Failed:    @query/discord-bot#build
+
+ ERROR  run failed: command  exited (1)
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

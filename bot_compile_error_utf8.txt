@@ -1,0 +1,39 @@
+﻿
+> query@1.0.0 build C:\Users\bootcamp\Desktop\passion\query
+> turbo run build "--filter=@query/discord-bot"
+
+node.exe : ΓÇó turbo 2.7.5
+At C:\Users\bootcamp\AppData\Roaming\npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ΓÇó turbo 2.7.5:String) [], Remo 
+   teException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ΓÇó Packages in scope: @query/discord-bot
+ΓÇó Running build in 1 packages
+ΓÇó Remote caching disabled
+@query/discord-bot:build: cache miss, executing db604092f2f99f4d
+@query/discord-bot:build: 
+@query/discord-bot:build: > @query/discord-bot@1.0.0 build C:\Users\bootcamp\Desktop\passion\query\sites\discordBot
+@query/discord-bot:build: > node ../../node_modules/typescript/lib/tsc.js -p tsconfig.json
+@query/discord-bot:build: 
+@query/discord-bot:build: tsconfig.json(3,5): error TS5011: The common source directory of 'tsconfig.json' is './src'. The 'rootDir' setting must be explicitly set to this or another path to adjust your output's file layout.
+@query/discord-bot:build:   Visit https://aka.ms/ts6 for migration information.
+@query/discord-bot:build: ΓÇëELIFECYCLEΓÇë Command failed with exit code 2.
+@query/discord-bot:build: ERROR: command finished with error: command 
+(C:\Users\bootcamp\Desktop\passion\query\sites\discordBot) 
+C:\Users\bootcamp\AppData\Local\pnpm\.tools\pnpm\10.28.1\bin\pnpm.CMD run 
+build exited (2)
+@query/discord-bot#build: command 
+(C:\Users\bootcamp\Desktop\passion\query\sites\discordBot) 
+C:\Users\bootcamp\AppData\Local\pnpm\.tools\pnpm\10.28.1\bin\pnpm.CMD run 
+build exited (2)
+
+ Tasks:    0 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    8.073s 
+Failed:    @query/discord-bot#build
+
+ ERROR  run failed: command  exited (2)
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 2.
