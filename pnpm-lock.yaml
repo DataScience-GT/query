@@ -285,8 +285,8 @@ importers:
         specifier: 9.17.0
         version: 9.17.0(jiti@2.6.1)
       tailwindcss:
-        specifier: 4.1.5
-        version: 4.1.5
+        specifier: 4.0.0
+        version: 4.0.0
       typescript:
         specifier: 5.7.2
         version: 5.7.2
@@ -374,8 +374,8 @@ importers:
         specifier: 8.5.6
         version: 8.5.6
       tailwindcss:
-        specifier: 4.1.11
-        version: 4.1.11
+        specifier: 4.0.0
+        version: 4.0.0
       typescript:
         specifier: 5.7.2
         version: 5.7.2
@@ -516,8 +516,8 @@ importers:
         specifier: ^8.5.3
         version: 8.5.6
       tailwindcss:
-        specifier: 4.1.5
-        version: 4.1.5
+        specifier: 4.0.0
+        version: 4.0.0
       turbo:
         specifier: 2.6.3
         version: 2.6.3
@@ -617,26 +617,26 @@ importers:
   tooling/tailwind:
     dependencies:
       '@tailwindcss/postcss':
-        specifier: ^4.1.18
-        version: 4.1.18
+        specifier: 4.0.0
+        version: 4.0.0
       minimatch:
         specifier: '>=10.2.3'
         version: 10.2.4
       next:
         specifier: 15.1.0
-        version: 15.1.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.97.2)
+        version: 15.1.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(sass@1.97.2)
       postcss:
-        specifier: ^8.5.3
+        specifier: 8.5.6
         version: 8.5.6
       react:
-        specifier: ^19.0.0
-        version: 19.2.4
+        specifier: 19.0.0
+        version: 19.0.0
       react-dom:
-        specifier: ^19.0.0
-        version: 19.2.4(react@19.2.4)
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
       tailwindcss:
-        specifier: ^4.1.5
-        version: 4.1.18
+        specifier: 4.0.0
+        version: 4.0.0
     devDependencies:
       '@next/eslint-plugin-next':
         specifier: ^15.1.0
@@ -5216,9 +5216,6 @@ packages:
 
   tailwindcss@4.0.0:
     resolution: {integrity: sha512-ULRPI3A+e39T7pSaf1xoi58AqqJxVCLg8F/uM5A3FadUbnyDTgltVnXJvdkTjwCOGA6NazqHVcwPJC5h2vRYVQ==}
-
-  tailwindcss@4.1.11:
-    resolution: {integrity: sha512-2E9TBm6MDD/xKYe+dvJZAmg3yxIEDNRc0jwlNyDg/4Fil2QcSLjFKGVff0lAf1jjeaArlG/M75Ey/EYr/OJtBA==}
 
   tailwindcss@4.1.18:
     resolution: {integrity: sha512-4+Z+0yiYyEtUVCScyfHCxOYP06L5Ne+JiHhY2IjR2KWMIWhJOYZKLSGZaP5HkZ8+bY0cxfzwDE5uOmzFXyIwxw==}
@@ -10341,8 +10338,6 @@ snapshots:
   tailwind-merge@3.4.0: {}
 
   tailwindcss@4.0.0: {}
-
-  tailwindcss@4.1.11: {}
 
   tailwindcss@4.1.18: {}
 
