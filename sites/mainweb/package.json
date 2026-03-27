@@ -26,7 +26,7 @@
     "chart.js": "^4.5.1",
     "geist": "^1.5.1",
     "minimatch": "10.2.1",
-    "next": "15.1.0",
+    "next": "15.2.0",
     "next-auth": "5.0.0-beta.25",
     "qrcode": "1.5.4",
     "qrcode.react": "4.2.0",
@@ -39,8 +39,8 @@
     "superjson": "^2.2.1"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "15.1.0",
-    "@next/eslint-plugin-next": "15.1.0",
+    "@next/bundle-analyzer": "15.2.0",
+    "@next/eslint-plugin-next": "16.0.8",
     "@query/eslint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
@@ -55,11 +55,11 @@
     "@types/three": "^0.128.0",
     "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
-    "eslint": "9.17.0",
+    "eslint": "9.33.0",
     "postcss": "^8.5.3",
     "tailwindcss": "4.0.0",
     "turbo": "2.6.3",
-    "typescript": "5.7.2",
+    "typescript": "^6.0.0",
     "typescript-eslint": "^8.53.1"
   }
 }
