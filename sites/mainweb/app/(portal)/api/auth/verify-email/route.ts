@@ -248,7 +248,8 @@ export async function POST(request: NextRequest) {
             expires: result.sessionExpires,
         });
 
-        console.log(`[verify-email] Session created for ${email}`);
+        const safeEmailForLog = email.replace(/[\r\n]/g, "");
+        console.log(`[verify-email] Session created for ${safeEmailForLog}`);
         return response;
     } catch (error: unknown) {
         console.error("[verify-email] Error:", error);
