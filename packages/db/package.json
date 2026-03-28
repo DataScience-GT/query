@@ -15,13 +15,13 @@
     "db:reset": "tsx scripts/reset.ts"
   },
   "dependencies": {
-    "@t3-oss/env-nextjs": "^0.13.10",
-    "drizzle-orm": "^0.36.4",
-    "minimatch": "^10.2.3",
-    "next-auth": "^5.0.0-beta.25",
-    "pg": "^8.11.3",
-    "postgres": "^3.4.3",
-    "zod": "^3.25.76"
+    "@t3-oss/env-nextjs": "0.13.10",
+    "drizzle-orm": "0.36.4",
+    "minimatch": "10.2.3",
+    "next-auth": "5.0.0-beta.25",
+    "pg": "8.11.3",
+    "postgres": "3.4.3",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",

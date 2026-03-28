@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useParams, useRouter } from 'next/navigation';

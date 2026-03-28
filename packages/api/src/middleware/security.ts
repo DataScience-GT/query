@@ -300,11 +300,9 @@ async function flushLogs() {
 }
 
 // Start flush timer
-if (!flushTimer) {
-  flushTimer = setInterval(() => {
-    void flushLogs();
-  }, FLUSH_INTERVAL);
-}
+setInterval(() => {
+  void flushLogs();
+}, FLUSH_INTERVAL);
 
 export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
   // Keep in-memory for immediate/short-term checks
