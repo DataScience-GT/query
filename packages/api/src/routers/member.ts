@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory } from "@query/db";
 import { eq, and } from "drizzle-orm";
-import { CacheKeys } from "../middleware/cache";
 
 const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
 const urlSchema = z.string().url().max(500).optional();

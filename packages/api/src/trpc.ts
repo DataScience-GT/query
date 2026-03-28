@@ -3,7 +3,6 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import type { Context } from "./context";
 import { rateLimit, RATE_LIMITS, sanitizeInput, logSecurityEvent, ddosProtection, validateRequestSize } from "./middleware/security";
-import { CacheKeys } from "./middleware/cache";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
