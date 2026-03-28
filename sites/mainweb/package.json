@@ -25,8 +25,8 @@
     "@yudiel/react-qr-scanner": "^2.5.0",
     "chart.js": "^4.5.1",
     "geist": "^1.5.1",
-    "minimatch": "10.2.1",
-    "next": "16.2.0",
+    "minimatch": "10.2.3",
+    "next": "16.2.1",
     "next-auth": "5.0.0-beta.25",
     "qrcode": "1.5.4",
     "qrcode.react": "4.2.0",
@@ -39,8 +39,8 @@
     "superjson": "^2.2.1"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "16.2.0",
-    "@next/eslint-plugin-next": "16.2.0",
+    "@next/bundle-analyzer": "16.2.1",
+    "@next/eslint-plugin-next": "16.2.1",
     "@query/eslint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
