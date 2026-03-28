@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
                 return { error: "Code has expired. Please request a new one." };
             }
 
-            console.log(`[verify-email] Code verified for ${email}`);
+            console.log(`[verify-email] Code verified for ${safeEmail}`);
 
             // Find or create user
             let user = await tx
