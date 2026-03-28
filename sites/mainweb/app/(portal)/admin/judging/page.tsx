@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
@@ -21,7 +21,7 @@ export default function AdminResultsPage() {
   const [viewMode, setViewMode] = useState<'results' | 'rooms' | 'judges'>('results');
 
   // Check if admin
-  const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {
+  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
     enabled: !!session,
   });
 
@@ -31,7 +31,7 @@ export default function AdminResultsPage() {
   });
 
   // Get rankings for selected hackathon
-  const { data: rankings, isLoading: rankingsLoading } = trpc.judge.getRankings.useQuery(
+  const { data: rankings } = trpc.judge.getRankings.useQuery(
     { hackathonId: selectedHackathon! },
     { enabled: !!selectedHackathon }
   );

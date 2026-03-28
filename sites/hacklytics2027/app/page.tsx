@@ -63,7 +63,7 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   useEffect(() => {
     const interval = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [getTimeLeft]);
 
   function formatUnit(unit?: number) {
     return unit != null ? String(unit).padStart(2, "0") : "00";

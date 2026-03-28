@@ -6,7 +6,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Background from '@/components/portal/Background';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 const TABS = [
     { label: 'Check-in Console', href: '/admin', id: 'admin', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },

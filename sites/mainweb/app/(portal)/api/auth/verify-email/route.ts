@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
         }
 
         const customTokenValue = `custom:${code}`;
-        console.log(`[verify-email] Verifying code for ${email}`);
+        const safeEmail = email.replace(/[\n\r]/g, "");
+        console.log(`[verify-email] Verifying code for ${safeEmail}`);
 
         const result = await db.transaction(async (tx) => {
             // Consume the token (DELETE + RETURNING)
@@ -55,13 +56,13 @@ export async function POST(request: NextRequest) {
                 .returning();
 
             if (!invite) {
-                console.warn(`[verify-email] No matching code for ${email}`);
+                console.warn(`[verify-email] No matching code for ${safeEmail}`);
                 return null;
             }
 
             // Check expiry
             if (new Date(invite.expires) < new Date()) {
-                console.warn(`[verify-email] Code expired for ${email}`);
+                console.warn(`[verify-email] Code expired for ${safeEmail}`);
                 return { error: "Code has expired. Please request a new one." };
             }
 
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
                     provider: "nodemailer",
                     providerAccountId: email,
                 });
-                console.log(`[verify-email] Created account record for ${email}`);
+                console.log(`[verify-email] Created account record for ${safeEmail}`);
             }
 
             // --- Auto-link: Link Stripe payment if matching email exists ---
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest) {
                             });
                         }
 
-                        console.log(`[verify-email] Auto-linked Stripe payment ${payment.id} for ${email}`);
+                        console.log(`[verify-email] Auto-linked Stripe payment ${payment.id} for ${safeEmail}`);
                     }
                 }
             } catch (linkError) {
