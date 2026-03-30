@@ -265,7 +265,6 @@ import { db, auditLogs } from "@query/db";
 const flushQueue: Omit<SecurityEvent, 'timestamp'>[] = [];
 const FLUSH_INTERVAL = 5000;
 const MAX_BATCH_SIZE = 50;
-let flushTimer: NodeJS.Timeout | null = null;
 
 async function flushLogs() {
   if (flushQueue.length === 0) return;
