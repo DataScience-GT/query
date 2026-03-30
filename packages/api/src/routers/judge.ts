@@ -1146,7 +1146,6 @@ export const judgeRouter = createTRPCRouter({
 
         for (const assignment of allAssignments) {
           const track = assignment.track;
-          const isMainTrack = track ? MAIN_TRACKS.has(track) : false;
           const isSpecialLabel = track ? !MAIN_TRACKS.has(track) : false;
 
           // Find matching projects for this judge's track
