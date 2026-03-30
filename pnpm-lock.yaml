@@ -187,8 +187,8 @@ importers:
         specifier: 16.2.1
         version: 16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       next-auth:
-        specifier: 5.0.0-beta.25
-        version: 5.0.0-beta.25(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0)
+        specifier: 5.0.0-beta.30
+        version: 5.0.0-beta.30(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0)
       nodemailer:
         specifier: '>=8.0.4'
         version: 8.0.4
@@ -217,8 +217,8 @@ importers:
         specifier: '>=10.2.3'
         version: 10.2.4
       next-auth:
-        specifier: 5.0.0-beta.25
-        version: 5.0.0-beta.25(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0)
+        specifier: 5.0.0-beta.30
+        version: 5.0.0-beta.30(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0)
       pg:
         specifier: 8.11.3
         version: 8.11.3
@@ -431,8 +431,8 @@ importers:
         specifier: 16.2.1
         version: 16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       next-auth:
-        specifier: 5.0.0-beta.25
-        version: 5.0.0-beta.25(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0)
+        specifier: 5.0.0-beta.30
+        version: 5.0.0-beta.30(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0)
       qrcode:
         specifier: 1.5.4
         version: 1.5.4
@@ -671,8 +671,8 @@ packages:
       nodemailer:
         optional: true
 
-  '@auth/core@0.37.2':
-    resolution: {integrity: sha512-kUvzyvkcd6h1vpeMAojK2y7+PAV5H+0Cc9+ZlKYDFhDY31AlvsB+GW5vNO4qE3Y07KeQgvNO9U0QUx/fN62kBw==}
+  '@auth/core@0.41.0':
+    resolution: {integrity: sha512-Wd7mHPQ/8zy6Qj7f4T46vg3aoor8fskJm6g2Zyj064oQ3+p0xNZXAV60ww0hY+MbTesfu29kK14Zk5d5JTazXQ==}
     peerDependencies:
       '@simplewebauthn/browser': ^9.0.1
       '@simplewebauthn/server': ^9.0.2
@@ -3823,6 +3823,9 @@ packages:
   jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
+  jose@6.2.2:
+    resolution: {integrity: sha512-d7kPDd34KO/YnzaDOlikGpOurfF0ByC2sEV4cANCtdqLlTfBlw2p14O/5d/zv40gJPbIQxfES3nSx1/oYNyuZQ==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -4193,14 +4196,14 @@ packages:
     resolution: {integrity: sha512-dBpDMdxv9Irdq66304OLfEmQ9tbNRFnFTuZiLo+bD+r332bBmMJ8GBLXklIXXgxd3+v9+KUnZaUR5PJMa75Gsg==}
     engines: {node: '>= 0.4.0'}
 
-  next-auth@5.0.0-beta.25:
-    resolution: {integrity: sha512-2dJJw1sHQl2qxCrRk+KTQbeH+izFbGFPuJj5eGgBZFYyiYYtvlrBeUw1E/OJJxTRjuxbSYGnCTkUIRsIIW0bog==}
+  next-auth@5.0.0-beta.30:
+    resolution: {integrity: sha512-+c51gquM3F6nMVmoAusRJ7RIoY0K4Ts9HCCwyy/BRoe4mp3msZpOzYMyb5LAYc1wSo74PMQkGDcaghIO7W6Xjg==}
     peerDependencies:
       '@simplewebauthn/browser': ^9.0.1
       '@simplewebauthn/server': ^9.0.2
       next: 16.2.1
       nodemailer: '>=8.0.4'
-      react: ^18.2.0 || ^19.0.0-0
+      react: ^18.2.0 || ^19.0.0
     peerDependenciesMeta:
       '@simplewebauthn/browser':
         optional: true
@@ -4489,8 +4492,16 @@ packages:
     peerDependencies:
       preact: '>=10'
 
+  preact-render-to-string@6.5.11:
+    resolution: {integrity: sha512-ubnauqoGczeGISiOh6RjX0/cdaF8v/oDXIjO85XALCQjwQP+SB4RDXXtvZ6yTYSjG+PC1QRP2AhPgCEsM2EvUw==}
+    peerDependencies:
+      preact: '>=10'
+
   preact@10.11.3:
     resolution: {integrity: sha512-eY93IVpod/zG3uMF22Unl8h9KkrcKIRs2EGar8hwLZZDU1lkjph303V9HZBwufh2s736U6VXuhD109LYqPoffg==}
+
+  preact@10.24.3:
+    resolution: {integrity: sha512-Z2dPnBnMUfyQfSQ+GBdsGa16hz35YmLmtTLhM169uW944hYL6xzTYkJjC07j+Wosz733pMWx0fgON3JNw1jJQA==}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -5448,15 +5459,13 @@ snapshots:
     optionalDependencies:
       nodemailer: 8.0.4
 
-  '@auth/core@0.37.2(nodemailer@8.0.4)':
+  '@auth/core@0.41.0(nodemailer@8.0.4)':
     dependencies:
       '@panva/hkdf': 1.2.1
-      '@types/cookie': 0.6.0
-      cookie: 0.7.1
-      jose: 5.10.0
+      jose: 6.2.2
       oauth4webapi: 3.8.5
-      preact: 10.11.3
-      preact-render-to-string: 5.2.3(preact@10.11.3)
+      preact: 10.24.3
+      preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
       nodemailer: 8.0.4
 
@@ -8679,6 +8688,8 @@ snapshots:
 
   jose@5.10.0: {}
 
+  jose@6.2.2: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@4.1.1:
@@ -8960,9 +8971,9 @@ snapshots:
 
   netmask@2.0.2: {}
 
-  next-auth@5.0.0-beta.25(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0):
+  next-auth@5.0.0-beta.30(next@16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.4)(react@19.0.0):
     dependencies:
-      '@auth/core': 0.37.2(nodemailer@8.0.4)
+      '@auth/core': 0.41.0(nodemailer@8.0.4)
       next: 16.2.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react: 19.0.0
     optionalDependencies:
@@ -9279,7 +9290,13 @@ snapshots:
       preact: 10.11.3
       pretty-format: 3.8.0
 
+  preact-render-to-string@6.5.11(preact@10.24.3):
+    dependencies:
+      preact: 10.24.3
+
   preact@10.11.3: {}
+
+  preact@10.24.3: {}
 
   prelude-ls@1.2.1: {}
 
