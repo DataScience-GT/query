@@ -11,7 +11,7 @@ import {
   hackathons,
   users,
 } from "@query/db";
-import { eq, and, asc, desc, sql } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin, isJudge } from "../middleware/procedures";
 
