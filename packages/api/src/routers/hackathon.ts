@@ -4,7 +4,6 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import {
   hackathons,
   hackathonParticipants,
-  hackathonTeams,
   hackathonProjects,
   members,
   hackathonEvents,

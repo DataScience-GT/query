@@ -11,7 +11,7 @@ import {
   hackathons,
   users,
 } from "@query/db";
-import { eq, and, asc, desc, sql } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin, isJudge } from "../middleware/procedures";
 
@@ -1146,7 +1146,6 @@ export const judgeRouter = createTRPCRouter({
 
         for (const assignment of allAssignments) {
           const track = assignment.track;
-          const isMainTrack = track ? MAIN_TRACKS.has(track) : false;
           const isSpecialLabel = track ? !MAIN_TRACKS.has(track) : false;
 
           // Find matching projects for this judge's track
