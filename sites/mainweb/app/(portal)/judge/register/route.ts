@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { hackathonId, isJudge = true } = body;
+  const { hackathonId } = body;
 
   if (!hackathonId) {
     return NextResponse.json({ error: 'Hackathon ID is required' }, { status: 400 });
