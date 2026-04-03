@@ -5,6 +5,7 @@ import {
   hackathons,
   hackathonParticipants,
   hackathonProjects,
+  hackathonTeams,
   members,
   hackathonEvents,
   hackathonEventAttendees,
