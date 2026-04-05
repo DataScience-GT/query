@@ -57,19 +57,21 @@ export const eventRouter = createTRPCRouter({
     }),
 
   listAll: isAdmin.query(async ({ ctx }) => {
+    const cacheKey = `events:list:all`;
+    const cached = ctx.cache.get<typeof allEvents>(cacheKey);
+    if (cached) return cached;
+
     const allEvents = await ctx.db!.query.events.findMany({
       orderBy: (events, { desc }) => [desc(events.eventDate)],
       with: {
         createdBy: {
-          columns: {
-            name: true,
-            email: true,
-          },
+          columns: { name: true, email: true },
         },
       },
       limit: 100,
     });
 
+    ctx.cache.set(cacheKey, allEvents, 30);
     return allEvents;
   }),
 
@@ -216,36 +218,37 @@ export const eventRouter = createTRPCRouter({
     }),
 
   myEvents: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = `events:my:${ctx.userId}`;
+    const cached = ctx.cache.get<typeof checkIns>(cacheKey);
+    if (cached) return cached;
+
     const checkIns = await ctx.db!.query.eventCheckIns.findMany({
       where: eq(eventCheckIns.userId, ctx.userId!),
       with: {
         event: {
-          columns: {
-            id: true,
-            title: true,
-            description: true,
-            location: true,
-            eventDate: true,
-          },
+          columns: { id: true, title: true, description: true, location: true, eventDate: true },
         },
       },
       orderBy: (eventCheckIns, { desc }) => [desc(eventCheckIns.checkedInAt)],
       limit: 50,
     });
 
+    ctx.cache.set(cacheKey, checkIns, 60);
     return checkIns;
   }),
 
   myStats: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = `events:stats:${ctx.userId}`;
+    const cached = ctx.cache.get<{ totalEvents: number }>(cacheKey);
+    if (cached) return cached;
+
     const result = await ctx.db!
-      .select({
-        totalEvents: sql<number>`count(*)::int`,
-      })
+      .select({ totalEvents: sql<number>`count(*)::int` })
       .from(eventCheckIns)
       .where(eq(eventCheckIns.userId, ctx.userId!));
 
-    return {
-      totalEvents: result[0]?.totalEvents ?? 0,
-    };
+    const stats = { totalEvents: result[0]?.totalEvents ?? 0 };
+    ctx.cache.set(cacheKey, stats, 60);
+    return stats;
   }),
 });
