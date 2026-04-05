@@ -148,6 +148,7 @@ export default function HackathonDetailPage() {
                     </div>
                 </LiquidGlass>
 
+                {/* Tabs */}
                 <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none snap-x relative z-10 w-full">
                     {(['INFO', 'SCHEDULE', 'PROJECTS', 'TEAMS'] as const).map((t) => (
                         <button
@@ -164,6 +165,7 @@ export default function HackathonDetailPage() {
                     ))}
                 </div>
 
+                {/* Content */}
                 <div className="relative z-10">
                     {tab === 'INFO' ? (
                         <InfoTab hackathon={hackathon} isRegistered={isRegistered} myReg={myReg} />
