@@ -310,6 +310,10 @@ export const hackathonRouter = createTRPCRouter({
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = `hackathon:registrations:${ctx.userId}`;
+    const cached = ctx.cache.get<typeof registrations>(cacheKey);
+    if (cached) return cached;
+
     const registrations = await ctx.db!.query.hackathonParticipants.findMany({
       where: eq(hackathonParticipants.userId, ctx.userId!),
       with: {
@@ -323,6 +327,7 @@ export const hackathonRouter = createTRPCRouter({
       orderBy: (hackathonParticipants, { desc }) => [desc(hackathonParticipants.registeredAt)],
     });
 
+    ctx.cache.set(cacheKey, registrations, 30);
     return registrations;
   }),
 
