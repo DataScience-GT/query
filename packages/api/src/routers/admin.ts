@@ -8,7 +8,13 @@ import { isAdmin, isSuperAdmin } from "../middleware/procedures";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = CacheKeys.admin(ctx.userId!);
+    if (!ctx.userId) {
+      throw new TRPCError ({
+        code: "BAD_REQUEST",
+        message: "Cannot create an admin",
+      });
+    }
+    const cacheKey = CacheKeys.admin(ctx.userId);
     const cached = ctx.cache.get<{
       isAdmin: boolean;
       role: string | null;
@@ -16,7 +22,13 @@ export const adminRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const admin = await ctx.db!.query.admins.findFirst({
+    if (!ctx.db) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Cannot cache the admin",
+      });
+    }
+    const admin = await ctx.db.query.admins.findFirst({
       where: and(
         eq(admins.userId, ctx.userId!),
         eq(admins.isActive, true)
