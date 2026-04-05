@@ -18,6 +18,8 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [isPaying, setIsPaying] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -57,21 +59,23 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
     },
   });
 
-  // const payMutation = trpc.stripe.createCheckoutSession.useMutation({
-  //   onSuccess: (data) => {
-  //     if (data?.url) {
-  //       window.location.href = data.url;
-  //     }
-  //   },
-  //   onError: (err) => {
-  //     setError(err.message);
-  //   },
-  // });
+  const payMutation = trpc.stripe.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (err) => {
+      setError(err.message);
+      setIsPaying(false);
+    },
+  });
 
-  // const handlePay = () => {
-  //   setError(null);
-  //   payMutation.mutate({ returnUrl: window.location.href });
-  // };
+  const handlePay = () => {
+    setError(null);
+    setIsPaying(true);
+    payMutation.mutate({ returnUrl: window.location.href });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,10 +141,11 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
 
           <div className="mt-auto space-y-3">
             <button
-              onClick={() => window.open('https://linktr.ee/PLACEHOLDER', '_blank')}
-              className="w-full py-4 px-4 bg-[#00A8A8] text-black hover:bg-[#00A8A8]/90 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)]"
+              onClick={handlePay}
+              disabled={payMutation.isPending}
+              className="w-full py-4 px-4 bg-[#00A8A8] text-black hover:bg-[#00A8A8]/90 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Initialize Membership
+              {payMutation.isPending ? 'Processing...' : 'Pay Membership Dues ($15)'}
             </button>
 
             <button
