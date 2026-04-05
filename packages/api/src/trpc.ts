@@ -38,34 +38,24 @@ const requiresDb = t.middleware(async ({ ctx, next }) => {
 });
 
 const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
-  // Get raw input for validation
   const rawInput = await getRawInput();
 
-  if (rawInput && !validateRequestSize(rawInput)) {
-    logSecurityEvent({
-      type: 'validation_error',
-      identifier: ctx.userId ?? ctx.clientIp,
-      details: 'Request payload too large',
-    });
-    throw new TRPCError({
-      code: "PAYLOAD_TOO_LARGE",
-      message: "Request payload is too large",
-    });
+  if (rawInput != null) {
+    if (!validateRequestSize(rawInput)) {
+      logSecurityEvent({
+        type: 'validation_error',
+        identifier: ctx.userId ?? ctx.clientIp,
+        details: 'Request payload too large',
+      });
+      throw new TRPCError({
+        code: "PAYLOAD_TOO_LARGE",
+        message: "Request payload is too large",
+      });
+    }
+    sanitizeInput(rawInput);
   }
 
-  sanitizeInput(rawInput);
-
-  const result = await next();
-
-  if (!result.ok) {
-    logSecurityEvent({
-      type: 'validation_error',
-      identifier: ctx.userId ?? 'unknown',
-      details: 'Procedure failed',
-    });
-  }
-
-  return result;
+  return next();
 });
 
 const uploadSanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
@@ -104,10 +94,11 @@ const uploadSanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => 
 const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
   const result = await next();
 
-  if (type === 'mutation') {
+  // Only invalidate on successful mutations — no-op on failures or queries
+  if (type === 'mutation' && result.ok) {
     const namespace = path.split('.')[0];
     if (namespace) {
-      ctx.cache.deletePattern(`query:${namespace}.*`);
+      ctx.cache.deletePattern(`${namespace}:*`);
     }
   }
 
