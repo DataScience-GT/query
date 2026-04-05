@@ -47,7 +47,7 @@ export default function JudgePage() {
     cancelled: { label: 'Cancelled', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
   };
 
-  const formatDateRange = (start: string, end: string) => {
+  const formatDateRange = (start: Date | string, end: Date | string) => {
     const s = new Date(start);
     const e = new Date(end);
     if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
