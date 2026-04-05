@@ -74,7 +74,9 @@
       "nodemailer": ">=8.0.4",
       "ipaddr.js": ">=2.2.1",
       "typescript": "^6.0.0",
-      "eslint": "9.17.0"
+      "eslint": "9.17.0",
+      "@types/react": "19.0.0",
+      "@types/react-dom": "19.0.0"
     }
   }
 }

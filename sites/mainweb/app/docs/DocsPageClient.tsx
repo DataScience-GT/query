@@ -260,7 +260,7 @@ function SchemaTable({
   );
 }
 
-export default function DocsPage() {
+export default function DocsPageClient() {
   const { status } = useSession();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<DocSection>("overview");

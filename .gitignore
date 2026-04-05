@@ -72,3 +72,8 @@ packages/db/final_judge_assignments.csv
 packages/db/scripts/*.csv
 *.csv
 output.txt
+*.txt
+
+# Scratch / one-off fix scripts
+fix.js
+*.fix.js

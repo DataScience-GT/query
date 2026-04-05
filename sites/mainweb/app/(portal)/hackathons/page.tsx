@@ -108,7 +108,7 @@ export default function HackathonsPage() {
                         const isRegistered = registeredIds.has(h.id);
 
                         return (
-                            <Link key={h.id} href={`/hackathons/${h.id}`} className="group block h-full">
+                            <Link key={h.id} href={`/hackathons/${h.id}/participants`} className="group block h-full">
                                 <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/20">
                                     <div className="relative flex flex-col h-full bg-[#0a0a0a] rounded-2xl p-6 md:p-8 overflow-hidden z-10">
 
@@ -127,7 +127,7 @@ export default function HackathonsPage() {
 
                                             {/* Registration Indicator */}
                                             {isRegistered && (
-                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
                                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                                     <span className="text-[11px] font-semibold uppercase tracking-widest">Registered</span>
                                                 </div>

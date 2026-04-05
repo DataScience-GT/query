@@ -5,6 +5,7 @@ import {
   hackathons,
   hackathonParticipants,
   hackathonProjects,
+  hackathonTeams,
   members,
   hackathonEvents,
   hackathonEventAttendees,
@@ -358,7 +359,33 @@ export const hackathonRouter = createTRPCRouter({
       return participants;
     }),
 
+  getTeams: publicProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const teams = await ctx.db!.query.hackathonTeams.findMany({
+        where: eq(hackathonTeams.hackathonId, input.hackathonId),
+        with: {
+          captain: {
+            columns: { id: true, name: true, image: true },
+          },
+          participants: {
+            columns: {
+              id: true,
+              userId: true,
+              registrationStatus: true,
+            },
+            with: {
+              user: {
+                columns: { id: true, name: true, image: true },
+              },
+            },
+          },
+        },
+        orderBy: (hackathonTeams, { desc }) => [desc(hackathonTeams.createdAt)],
+      });
 
+      return teams;
+    }),
 
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
