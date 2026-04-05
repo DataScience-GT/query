@@ -18,7 +18,6 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const [isPaying, setIsPaying] = useState(false);
 
   const utils = trpc.useUtils();
 
