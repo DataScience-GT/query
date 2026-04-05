@@ -44,7 +44,7 @@ function statusConfig(s: string) {
 
 type TabType = 'INFO' | 'SCHEDULE' | 'PROJECTS' | 'TEAMS';
 
-export default function HackathonDetailPage() {
+export default function ParticipantHackathonPage() {
     const { data: session, status: authStatus } = useSession();
     const router = useRouter();
     const params = useParams();
@@ -69,6 +69,7 @@ export default function HackathonDetailPage() {
     const myReg = myRegs?.find((r) => r.hackathonId === hackathonId);
     const isRegistered = !!myReg;
     const conf = statusConfig(hackathon.status);
+    const myTeamId = myReg?.team?.id ?? null;
 
     return (
         <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
@@ -148,7 +149,7 @@ export default function HackathonDetailPage() {
                     </div>
                 </LiquidGlass>
 
-                {/* Tabs */}
+                {/* Tabs - Only for participants */}
                 <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none snap-x relative z-10 w-full">
                     {(['INFO', 'SCHEDULE', 'PROJECTS', 'TEAMS'] as const).map((t) => (
                         <button
@@ -165,7 +166,7 @@ export default function HackathonDetailPage() {
                     ))}
                 </div>
 
-                {/* Content */}
+                {/* Content - Participant-only */}
                 <div className="relative z-10">
                     {tab === 'INFO' ? (
                         <InfoTab hackathon={hackathon} isRegistered={isRegistered} myReg={myReg} />
@@ -174,7 +175,7 @@ export default function HackathonDetailPage() {
                     ) : tab === 'PROJECTS' ? (
                         <ProjectsTab hackathonId={hackathonId} />
                     ) : (
-                        <TeamsTab hackathonId={hackathonId} isRegistered={isRegistered} myTeamId={myReg?.teamId ?? null} />
+                        <TeamsTab hackathonId={hackathonId} isRegistered={isRegistered} myTeamId={myTeamId} />
                     )}
                 </div>
             </main>
