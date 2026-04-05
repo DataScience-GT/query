@@ -85,7 +85,6 @@ export default function JudgePage() {
             const conf = confMap[h.status];
             const assignment = assignments?.find((a) => a.hackathonId === h.id);
             const isRegistered = !!assignment;
-            const registrationStatus = assignment?.registrationStatus || 'pending';
 
             return (
               <LiquidGlass key={h.id} className="h-full flex flex-col p-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/10">
@@ -127,21 +126,9 @@ export default function JudgePage() {
                     <div className="mt-4 flex gap-2">
                       {isRegistered ? (
                         <>
-                          {registrationStatus === 'approved' && (
-                            <Link href={`/hackathons/${h.id}/judge`} className="flex-1 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-colors cursor-pointer">
-                              Ready to Judge
-                            </Link>
-                          )}
-                          {registrationStatus === 'pending' && (
-                            <button disabled className="flex-1 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest cursor-not-allowed">
-                              Pending Approval
-                            </button>
-                          )}
-                          {registrationStatus === 'rejected' && (
-                            <button disabled className="flex-1 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest cursor-not-allowed">
-                              Rejected
-                            </button>
-                          )}
+                          <Link href={`/hackathons/${h.id}/judge`} className="flex-1 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-colors cursor-pointer">
+                            Ready to Judge
+                          </Link>
                           <Link href={`/hackathons/${h.id}/participants`} className="px-3 py-2 rounded-xl border border-white/5 text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
