@@ -58,8 +58,6 @@ export default function ParticipantHackathonPage() {
 
     const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery({ id: hackathonId });
     const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
-    const { data: teams } = trpc.hackathon.getTeams.useQuery({ hackathonId }, { enabled: !!session && !!hackathon });
-    const { data: teamList } = trpc.hackathon.listTeams.useQuery(undefined, { enabled: !!session });
 
     useEffect(() => {
         if (authStatus === 'unauthenticated') router.push('/login');
@@ -71,7 +69,7 @@ export default function ParticipantHackathonPage() {
     const myReg = myRegs?.find((r) => r.hackathonId === hackathonId);
     const isRegistered = !!myReg;
     const conf = statusConfig(hackathon.status);
-    const myTeam = teams?.find((t) => t.hackathonId === hackathonId && t.creatorId === session.user.id);
+    const myTeamId = myReg?.team?.id ?? null;
 
     return (
         <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
@@ -177,7 +175,7 @@ export default function ParticipantHackathonPage() {
                     ) : tab === 'PROJECTS' ? (
                         <ProjectsTab hackathonId={hackathonId} />
                     ) : (
-                        <TeamsTab hackathonId={hackathonId} isRegistered={isRegistered} myTeamId={myTeam?.id ?? null} teamList={teamList} />
+                        <TeamsTab hackathonId={hackathonId} isRegistered={isRegistered} myTeamId={myTeamId} />
                     )}
                 </div>
             </main>
