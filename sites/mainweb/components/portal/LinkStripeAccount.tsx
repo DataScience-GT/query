@@ -57,24 +57,6 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
     },
   });
 
-  const payMutation = trpc.stripe.createCheckoutSession.useMutation({
-    onSuccess: (data) => {
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    },
-    onError: (err) => {
-      setError(err.message);
-      setIsPaying(false);
-    },
-  });
-
-  const handlePay = () => {
-    setError(null);
-    setIsPaying(true);
-    payMutation.mutate({ returnUrl: window.location.href });
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
