@@ -409,8 +409,11 @@ function SubmitPortalContent() {
 
 export default function SubmitPortalPage() {
     return (
-        <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
-            <SubmitPortalContent />
-        </Suspense>
+        <>
+            {/* @ts-expect-error Suspense type mismatch due to @types/react */}
+            <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
+                <SubmitPortalContent />
+            </Suspense>
+        </>
     );
 }
