@@ -80,26 +80,23 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = await ctx.db!.query.users.findFirst({
-        where: eq(users.id, input.userId),
-      });
+      // Parallel check: user exists AND not already admin
+      const [user, existingAdmin] = await Promise.all([
+        ctx.db!.query.users.findFirst({
+          where: eq(users.id, input.userId),
+          columns: { id: true },
+        }),
+        ctx.db!.query.admins.findFirst({
+          where: eq(admins.userId, input.userId),
+          columns: { id: true },
+        }),
+      ]);
 
       if (!user) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
-
-      const existingAdmin = await ctx.db!.query.admins.findFirst({
-        where: eq(admins.userId, input.userId),
-      });
-
       if (existingAdmin) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User is already an admin",
-        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "User is already an admin" });
       }
 
       const result = await ctx.db!
@@ -112,12 +109,8 @@ export const adminRouter = createTRPCRouter({
         .returning();
 
       const newAdmin = result[0];
-
       if (!newAdmin) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create admin",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create admin" });
       }
 
       return newAdmin;
@@ -138,37 +131,26 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!targetAdmin) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Admin not found",
-        });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
       }
       if (targetAdmin.userId === ctx.userId && input.isActive === false) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot deactivate your own admin account",
-        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot deactivate your own admin account" });
       }
 
       const result = await ctx.db!
         .update(admins)
-        .set({
-          role: input.role,
-          permissions: input.permissions,
-          isActive: input.isActive,
-          updatedAt: new Date(),
-        })
+        .set({ role: input.role, permissions: input.permissions, isActive: input.isActive, updatedAt: new Date() })
         .where(eq(admins.id, input.adminId))
         .returning();
 
       const updatedAdmin = result[0];
-
       if (!updatedAdmin) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update admin",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update admin" });
       }
+
+      // Bust the affected user's admin cache so next request re-checks
+      ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
+      ctx.cache.delete(`admins:list`);
 
       return updatedAdmin;
     }),
@@ -181,20 +163,16 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!targetAdmin) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Admin not found",
-        });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
       }
-
       if (targetAdmin.userId === ctx.userId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot remove your own admin account",
-        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot remove your own admin account" });
       }
 
       await ctx.db!.delete(admins).where(eq(admins.id, input.adminId));
+
+      ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
+      ctx.cache.delete(`admins:list`);
 
       return { success: true };
     }),
