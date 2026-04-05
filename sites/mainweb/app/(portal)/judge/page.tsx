@@ -12,14 +12,14 @@ import Link from 'next/link';
 type HackathonData = {
   id: string;
   name: string;
-  description: string;
-  startDate: string;
-  endDate: string;
+  description: string | null;
+  startDate: Date | string;
+  endDate: Date | string;
   status: string;
-  location?: string;
-  maxParticipants?: number;
-  currentParticipants?: number;
-  theme?: string;
+  location?: string | null;
+  maxParticipants?: number | null;
+  currentParticipants?: number | null;
+  theme?: string | null;
 };
 
 export default function JudgePage() {
