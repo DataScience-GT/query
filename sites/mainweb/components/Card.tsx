@@ -1,7 +1,5 @@
-import { ReactNode } from "react";
-
 interface CardProps {
-    children: ReactNode;
+    children: any;
     className?: string;
 }
 
