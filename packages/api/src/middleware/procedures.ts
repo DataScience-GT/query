@@ -13,7 +13,7 @@ export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
   let admin = ctx.cache.get<typeof admins.$inferSelect>(cacheKey);
 
   if (!admin) {
-    admin = await ctx.db!.query.admins.findFirst({
+    admin = await ctx.db!.query.admins.findFirst({ // try catch for ctx.db 
       where: and(
         eq(admins.userId, ctx.userId!),
         eq(admins.isActive, true)
