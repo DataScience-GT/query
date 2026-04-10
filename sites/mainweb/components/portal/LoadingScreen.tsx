@@ -6,7 +6,7 @@ interface LoadingScreenProps {
     message?: string;
 }
 
-export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps): React.ReactElement {
+export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
     return (
         <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none" />
