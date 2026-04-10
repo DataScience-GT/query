@@ -60,6 +60,52 @@ const Team = () => {
           </p>
         </div>
 
+        {/* IDEaS Lab Banner */}
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-12">
+          <a
+            href="https://ideas.gatech.edu"
+            target="_blank"
+            rel="noopener noreferrer"
+            id="ideas-card"
+            className="group relative flex flex-col sm:flex-row items-center gap-6 w-full rounded-2xl border border-white/10 bg-[#0a0a0a] p-8 overflow-hidden transition-all duration-500 hover:border-[#B3A369]/40 hover:shadow-[0_0_40px_rgba(179,163,105,0.12)] no-underline"
+          >
+            {/* Background glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#003057]/20 via-transparent to-[#B3A369]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            {/* GT Navy + Gold corner accent */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#B3A369]/10 to-transparent rounded-bl-full pointer-events-none" />
+
+            {/* Icon */}
+            <div className="relative flex-shrink-0 w-20 h-20 rounded-xl border border-[#B3A369]/30 bg-[#050505] flex items-center justify-center shadow-2xl">
+              <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10" aria-hidden="true">
+                <path d="M24 4L6 14v12c0 9.94 7.74 19.24 18 21.6C34.26 45.24 42 35.94 42 26V14L24 4z" fill="#003057" stroke="#B3A369" strokeWidth="2" />
+                <text x="24" y="30" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#B3A369" fontFamily="monospace">IDEaS</text>
+              </svg>
+            </div>
+
+            {/* Text */}
+            <div className="flex flex-col gap-2 flex-1 text-center sm:text-left">
+              <div className="inline-flex items-center justify-center sm:justify-start gap-2">
+                <span className="px-3 py-1 rounded-full bg-[#B3A369]/10 border border-[#B3A369]/25 text-[#B3A369] text-[10px] font-mono uppercase tracking-[0.2em]">
+                  Supervising Lab
+                </span>
+              </div>
+              <h2 className="text-white text-xl font-bold tracking-tight">
+                Institute for Data Engineering and Science
+              </h2>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-2xl">
+                IDEaS is the Georgia Tech research institute that oversees and supports DS@GT. It connects government, industry, and academia to advance foundational data science research, and provides the resources and faculty expertise that power our club&rsquo;s mission.
+              </p>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B3A369" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </div>
+          </a>
+        </div>
+
         {/* Team Grid Section */}
         <Section id="teams" className="px-6 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
