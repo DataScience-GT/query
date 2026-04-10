@@ -1,10 +1,11 @@
 import { ReactNode, HTMLAttributes, JSX } from "react";
 
-interface MajorProps extends HTMLAttributes<HTMLElement> {
+interface MajorProps {
   type?: "primary" | "secondary" | "a" | "b";
-  as?: keyof JSX.IntrinsicElements;
+  as?: any;
   compact?: boolean;
-  children: ReactNode;
+  children: any;
+  [key: string]: any;
 }
 
 export default function Major({
