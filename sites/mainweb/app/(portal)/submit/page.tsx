@@ -409,8 +409,10 @@ function SubmitPortalContent() {
 
 export default function SubmitPortalPage() {
     return (
-        <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
-            <SubmitPortalContent />
-        </Suspense>
+        <>
+            <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
+                <SubmitPortalContent />
+            </Suspense>
+        </>
     );
 }
