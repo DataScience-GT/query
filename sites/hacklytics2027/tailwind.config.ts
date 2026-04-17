@@ -1,36 +1,35 @@
-import type { Config } from 'tailwindcss'
-
-const config: Config = {
-  // Tells Tailwind to support dark mode based on the user's system preferences
-  darkMode: 'media', 
-  
-  // Scans your project files for Tailwind classes
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  
-  // This is where all your customizations live
+  darkMode: 'media',
   theme: {
     extend: {
       colors: {
-        // Your custom light blue background color
-        sky: '#A4C7FF', 
-        'wonka-yellow': '#FFBC0A',
-        'wonka-red': '#ef4444',
+        // 1980s Arcade Neon Colors
+        'neon-pink': '#ff00ff',
+        'neon-cyan': '#00ffff',
+        'neon-green': '#39ff14',
+        'neon-yellow': '#ffff00',
+        'neon-orange': '#ff4500',
+        'neon-purple': '#bf00ff',
+        'neon-red': '#ff0000',
+        'neon-blue': '#0000ff',
+        // Retro Backgrounds
+        'retro-black': '#1a1a2e',
+        'retro-dark-blue': '#16213e',
+        'retro-purple': '#2d1b4e',
       },
       fontFamily: {
-        // This makes the `font-sans` utility use the IBM Plex Mono font
-        sans: ['var(--font-ibm-plex-mono)', 'monospace'],
-        
-        // This is the crucial part that creates the `font-willywonka` utility
-        willywonka: ['Willywonka', 'cursive'],
+        // Retro Arcade Fonts
+        'pixel': ['var(--font-pixel)', 'monospace'],
+        'retro': ['var(--font-retro)', 'monospace'],
+        'display': ['Orbitron', 'sans-serif'],
       },
     },
   },
-  
   plugins: [],
 }
-
-export default config
