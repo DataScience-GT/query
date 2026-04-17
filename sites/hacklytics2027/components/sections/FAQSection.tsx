@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Truculenta } from 'next/font/google';
+import { Press_Start_2P } from 'next/font/google';
 
-const truculenta = Truculenta({
+const pixel = Press_Start_2P({
   subsets: ['latin'],
   weight: ['400', '700', '900'],
 });
@@ -14,7 +14,7 @@ const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }
     className={`absolute pointer-events-none animate-float ${className}`}
     style={{ animationDelay: delay }}
   >
-    <Image src={src} alt="Candy" width={60} height={60} className="object-contain drop-shadow-lg" />
+    <Image src={src} alt="Candy" width={60} height={60} className="object-contain drop-shadow-lg drop-shadow-[0_0_10px_var(--neon-pink)]" />
   </div>
 );
 
@@ -33,20 +33,20 @@ const FAQCard: React.FC<{ title: string; content: string; delay: string; color: 
       style={{ animationDelay: delay }}
       onClick={() => setIsOpen(!isOpen)}
     >
-      {/* Shadow Layer */}
-      <div className={`absolute inset-0 ${color} rounded-[2rem] transform translate-y-2 translate-x-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3`}></div>
+      {/* Shadow Layer - Neon colored */}
+      <div className={`absolute inset-0 ${color} rounded-[2rem] transform translate-y-2 translate-x-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3 drop-shadow-[0_0_15px_currentColor]`}></div>
 
       {/* Card Body */}
-      <div className="relative bg-white rounded-[2rem] border-[4px] border-gray-100 p-8 flex flex-col shadow-lg overflow-hidden group-hover:shadow-xl transition-all">
+      <div className="relative bg-white rounded-[2rem] border-[4px] border-neon-pink p-8 flex flex-col shadow-[0_0_20px_currentColor] overflow-hidden group-hover:shadow-[0_0_30px_currentColor] transition-all">
         <div className="flex justify-between items-start gap-4">
-          <h3 className={`${truculenta.className} text-2xl md:text-3xl font-black text-gray-800 leading-tight group-hover:text-${color.replace('bg-', '')} transition-colors select-none`}>
+          <h3 className={`${pixel.className} text-2xl md:text-3xl font-bold text-gray-800 leading-tight group-hover:text-neon-pink transition-colors select-none drop-shadow-[0_0_5px_currentColor]`}>
             {title}
           </h3>
 
           {/* Expand/Collapse Icon */}
           <div className={`flex-shrink-0 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} mt-1`}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 9L12 15L18 9" stroke="#4B5563" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 9L12 15L18 9" stroke={color === "bg-neon-pink/40" || color === "bg-pink-400" ? "#DC2626" : "#4B5563"} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
         </div>
@@ -69,7 +69,6 @@ export default function FAQ() {
       title: "What if i forgot to register?",
       content: "We will have a limited day of walk ins starting at 6:00PM",
       delay: "0s"
-
     },
     {
       title: "Who can register?",
@@ -78,12 +77,12 @@ export default function FAQ() {
     },
     {
       title: "Where and when is it held?",
-      content: "February 20th - February 22rd at the Klaus Advanced Computing Building",
+      content: "February 20th - February 22nd at the Klaus Advanced Computing Building",
       delay: "0.1s"
     },
     {
       title: "Can you participate virtually",
-      content: "Unfortunately, no, Hacklytics 2026 is only in person this year. Sponsors want to come see you work on your projects in person!",
+      content: "Unfortunately, no, Hacklytics 2027 is only in person this year. Sponsors want to come see you work on your projects in person!",
       delay: "0.3s"
     },
     {
@@ -112,41 +111,42 @@ export default function FAQ() {
   const itemsWithStyle = faqItems.map((item, index) => ({
     ...item,
     color: [
-      'bg-purple-400',
-      'bg-pink-400',
-      'bg-emerald-400',
-      'bg-orange-400',
-      'bg-blue-400',
-      'bg-yellow-400',
-      'bg-rose-400',
-      'bg-cyan-400'
+      'bg-neon-pink/40',
+      'bg-neon-cyan/40',
+      'bg-neon-green/40',
+      'bg-neon-yellow/40',
+      'bg-neon-purple/40',
+      'bg-neon-orange/40',
+      'bg-neon-pink/40',
+      'bg-neon-cyan/40'
     ][index % 8],
     rotate: index % 2 === 0 ? '-rotate-1' : 'rotate-1'
   }));
 
+  // Retro Arcade FAQ Section
   return (
     <section
       id="faqs"
-      className="section-anchor scroll-mt-28 min-h-screen bg-sky relative overflow-hidden py-24"
+      className="section-anchor scroll-mt-28 min-h-screen bg-retro-gradient relative overflow-hidden py-24"
     >
-      {/* Decorations */}
-      <div className="absolute top-20 left-[-60px] w-56 h-36 opacity-30 animate-drift" style={{ animationDelay: '0s' }}>
-        <Image src="/cloud-main/largecloud.png" alt="" fill className="object-contain" />
+      {/* Background Decorations */}
+      <div className="absolute top-20 left-[-60px] w-56 h-36 opacity-30 animate-drift drop-shadow-[0_0_20px_#8b5cf6]" style={{ animationDelay: '0s' }}>
+        <Image src="/cloud-main/largecloud.png" alt="" fill className="object-contain drop-shadow-[0_0_20px_#8b5cf6]" />
       </div>
-      <div className="absolute bottom-40 right-[-50px] w-64 h-40 opacity-40 animate-drift" style={{ animationDelay: '2s' }}>
-        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain" />
+      <div className="absolute bottom-40 right-[-50px] w-64 h-40 opacity-40 animate-drift drop-shadow-[0_0_20px_#06b6d4]" style={{ animationDelay: '2s' }}>
+        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain drop-shadow-[0_0_20px_#06b6d4]" />
       </div>
 
       <FloatingCandy src="/small-candy/pink.png" delay="0s" className="top-32 left-[10%] rotate-12" />
       <FloatingCandy src="/small-candy/blue.png" delay="2s" className="bottom-20 right-[15%] -rotate-12" />
-      <FloatingCandy src="/small-candy/green.png" delay="1.5s" className="top-[40%] left-[5%] rotate-6" />
+      <FloatingCandy src="/small-candy/yellow.png" delay="1.5s" className="top-[40%] left-[5%] rotate-6" />
 
       <div className="container mx-auto px-4 relative z-10 max-w-6xl">
         <div className="text-center mb-20 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/30 blur-3xl rounded-full -z-10"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-neon-cyan/20 blur-3xl rounded-full -z-10"></div>
           <h1
-            className="font-willywonka text-7xl md:text-9xl text-wonka-yellow mb-4 drop-shadow-[0_4px_0_rgba(133,77,14,0.6)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
-            style={{ WebkitTextStroke: "2px #854d0e" }}
+            className="font-pixel text-7xl md:text-9xl text-neon-cyan mb-4 drop-shadow-[0_0_30px_var(--neon-cyan)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
+            style={{ WebkitTextStroke: "2px #00ffff" }}
           >
             FAQ
           </h1>

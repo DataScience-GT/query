@@ -1,60 +1,163 @@
-/* app/globals.css */
+/* app/globals.css - 1980s Arcade Retro Theme */
 
 /* This must be the first line. It imports all of Tailwind's styles. */
 @import "tailwindcss";
 
 /*
   Define all CSS variables in a single :root block for clarity.
+  1980s Arcade Retro Theme - Neon colors, pixel aesthetics, CRT effects
 */
 :root {
-  /* Brand Colors */
-  --color-sky: #A4C7FF;
-  --color-wonka-yellow: #FFBC0A;
-;
-  --color-wonka-red: #ef4444;
+  /* 1980s Neon Colors */
+  --neon-pink: #ff00ff;
+  --neon-cyan: #00ffff;
+  --neon-green: #39ff14;
+  --neon-yellow: #ffff00;
+  --neon-orange: #ff4500;
+  --neon-purple: #bf00ff;
+  --neon-red: #ff0000;
+  --neon-blue: #0000ff;
 
-  /* Custom Fonts */
-  --font-family-willywonka: 'Willywonka', cursive;
+  /* CRT Scanline Overlay */
+  --scanline-color: rgba(18, 16, 16, 0.3);
+  --scanline-height: 4px;
+  --scanline-spacing: 8px;
+
+  /* Retro Background Colors */
+  --retro-black: #1a1a2e;
+  --retro-dark-blue: #16213e;
+  --retro-purple: #2d1b4e;
+  --retro-gradient-start: #1a1a2e;
+  --retro-gradient-mid: #16213e;
+  --retro-gradient-end: #2d1b4e;
+
+  /* Retro Text Colors */
+  --retro-white: #f0f8ff;
+  --retro-gray: #8b9bb4;
+  --retro-dim: #5c6b7f;
+
+  /* Font Config */
+  --font-family-pixel: 'Press Start 2P', monospace;
+  --font-family-retro: 'Courier New', monospace;
+  --font-family-display: 'Orbitron', sans-serif;
+
+  /* CRT Effects */
+  --crt-flicker: 0.02;
+  --crt-curvature: 1px;
+  --crt-vignette: 0.3;
+
+  /* Button Configuration */
+  --button-height: 48px;
+  --button-bg-top: var(--neon-pink);
+  --button-bg-gradient: linear-gradient(180deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+  --button-shadow: 0 4px 0 var(--neon-red);
 
   /* Navbar Configuration */
-  --navbar-height: 64px;
-  --navbar-bg-top: #A4C7FF; /* Initial background color at the top of the page */
-  --navbar-bg-scrolled: rgba(164, 199, 255, 0.84); /* Background when scrolled */
-  --navbar-blur: 6px;
-  --navbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --navbar-height: 60px;
+  --navbar-bg: rgba(22, 33, 62, 0.95);
+  --navbar-blur: 2px;
+  --navbar-glow: 0 0 20px var(--neon-cyan);
+  --navbar-border: 1px solid var(--neon-cyan);
 }
-.justify-between {
-    justify-content: space-between;
+
+/* 1980s CRT Scanline Overlay */
+:root::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    var(--scanline-color) 50%,
+    rgba(0, 0, 0, 0) 50%
+  );
+  background-size: var(--scanline-spacing) 100%;
+  z-index: 9999;
+  pointer-events: none;
+  pointer-events: none;
+}
+
+/* 1980s CRT Flicker Effect */
+:root::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(18, 16, 16, var(--crt-flicker));
+  opacity: 0;
+  z-index: 9998;
+  pointer-events: none;
+  animation: crt-flicker 0.15s infinite;
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.01; }
+  50% { opacity: 0.05; }
+  100% { opacity: 0.01; }
 }
 
 /* Minimal utility classes to match app usage */
-.bg-sky { background-color: var(--color-sky); }
-.text-wonka-yellow { color: var(--color-wonka-yellow); }
-.bg-wonka-red { background-color: var(--color-wonka-red); }
-.text-wonka-red { color: var(--color-wonka-red); }
+.bg-retro { background: var(--retro-black); }
+.bg-retro-gradient { background: linear-gradient(180deg, var(--retro-gradient-start), var(--retro-gradient-mid), var(--retro-gradient-end)); }
+.text-neon-pink { color: var(--neon-pink); }
+.text-neon-cyan { color: var(--neon-cyan); }
+.text-neon-green { color: var(--neon-green); }
+.text-neon-yellow { color: var(--neon-yellow); }
+.text-neon-orange { color: var(--neon-orange); }
+.text-neon-purple { color: var(--neon-purple); }
+.text-neon-red { color: var(--neon-red); }
+.text-neon-blue { color: var(--neon-blue); }
 
-/* Helper class for smooth navbar transitions */
-.navbar-transition {
-  transition: background-color 220ms ease, box-shadow 220ms ease, backdrop-filter 220ms ease, height 220ms ease;
+/* Helper class for retro button transitions */
+.button-retro-transition {
+  transition: background 200ms ease, box-shadow 200ms ease, transform 150ms ease;
 }
 
 /* Ensure anchors scroll into view below the sticky navbar */
 .section-anchor {
-  scroll-margin-top: calc(var(--navbar-height) + 12px);
+  scroll-margin-top: calc(var(--navbar-height) + 16px);
 }
 
 /*
   This @font-face rule tells the browser where to find the font file
-  when the 'Willywonka' font-family is used.
+  when the 'Pixel' font-family is used.
 */
 @font-face {
-  font-family: 'Willywonka';
-  src: url('/fonts/Willywonka.ttf') format('truetype');
+  font-family: 'Pixel';
+  src: url('/fonts/Pixel.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
 
-/* Utility class for the Willy Wonka font */
-.font-willywonka {
-  font-family: var(--font-family-willywonka);
+/* Pixel font utility class */
+.font-pixel {
+  font-family: var(--font-family-pixel);
+}
+
+/* Utility class for CRT curvature effect */
+.crt-curvature {
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+/* Utility class for retro neon glow */
+.neon-glow-pink {
+  text-shadow: 0 0 5px var(--neon-pink), 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
+}
+
+.neon-glow-cyan {
+  text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+}
+
+.neon-glow-green {
+  text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+}
+
+.neon-glow-yellow {
+  text-shadow: 0 0 5px var(--neon-yellow), 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow);
 }
