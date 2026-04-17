@@ -1,14 +1,12 @@
 {
   "projects": {
-    "default": "dsgt-website"
+    "default": "hacklytics2027"
   },
   "targets": {
-    "dsgt-website": {
+    "hacklytics2027": {
       "hosting": {
-        "judging": ["dsgt-judging"],
-        "portal": ["dsgt-portal"],
-        "mainweb": ["dsgt-website"],
-        "hacklytics-2": ["hacklytics-2"]
+        "site": "hacklytics2027",
+        "public": "public"
       }
     }
   }
