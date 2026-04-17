@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import Image from "next/image";
-import { Truculenta } from 'next/font/google';
+import { Press_Start_2P } from 'next/font/google';
 
-const truculenta = Truculenta({
+const pixel = Press_Start_2P({
   subsets: ['latin'],
-  weight: ['800'],
+  weight: ['400'],
 });
 
 const navItems = [
@@ -153,21 +153,25 @@ export default function Navbar() {
         ref={headerRef}
         className={`fixed top-0 z-40 w-full py-3 md:py-4 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'}`}
         style={{
-          backgroundColor: scrolled ? 'var(--navbar-bg-scrolled)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(var(--navbar-blur))' : 'none',
-          boxShadow: scrolled ? 'var(--navbar-shadow)' : 'none'
+          backgroundColor: scrolled ? 'var(--navbar-bg)' : 'transparent',
+          backdropFilter: scrolled ? `blur(var(--navbar-blur))` : 'none',
+          boxShadow: scrolled ? 'var(--navbar-glow)' : 'none',
+          borderColor: scrolled ? 'var(--neon-cyan)' : 'transparent',
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <div className="flex-shrink-0">
             <Link href="/" onClick={() => setOpen(false)}>
-              <Image src="/logo.png" alt="Hacklytics logo" width={48} height={48} />
+              <div className="relative">
+                <Image src="/logo.png" alt="Hacklytics logo" width={48} height={48} />
+                <div className="absolute inset-0 bg-neon-pink/50 rounded blur-sm"></div>
+              </div>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex flex-1 justify-center">
-            <nav className={`${truculenta.className} flex items-center space-x-10 text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
+            <nav className={`${pixel.className} flex items-center space-x-8 text-neon-pink text-2xl font-bold uppercase leading-none tracking-wide`}>
               {renderNavLinks()}
             </nav>
           </div>
@@ -176,10 +180,10 @@ export default function Navbar() {
             {/* Mobile Menu Button */}
             <div className="md:hidden">
               {/* **MODIFIED**: Set z-index to 50 to ensure button is above the new fullscreen overlay */}
-              <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="relative z-50 p-2 rounded-md text-white focus:outline-none">
+              <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="relative z-50 p-2 rounded-md text-neon-cyan focus:outline-none">
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {open ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} className="text-neon-pink" d="M6 18L18 6M6 6l12 12" />
                   ) : (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
                   )}
@@ -188,24 +192,29 @@ export default function Navbar() {
             </div>
           </div>
         </div>
-      </header>
 
-      {/* **MODIFIED**: Fullscreen Mobile Navigation Menu */}
-      <div 
-        className={`
-          md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center 
-          transition-opacity duration-300 ease-in-out
-          ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
-        `}
-        style={{
-          backgroundColor: 'var(--navbar-bg-scrolled)',
-          backdropFilter: 'blur(var(--navbar-blur))'
-        }}
-      >
-        <div className={`${truculenta.className} space-y-4 text-center text-white text-4xl font-extrabold uppercase leading-none tracking-normal`}>
-          {renderNavLinks(true)}
+        {/* Mobile glow effect */}
+        <div className="md:hidden absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-neon-pink/20 to-transparent"></div>
         </div>
-      </div>
+
+        {/* **MODIFIED**: Fullscreen Mobile Navigation Menu */}
+        <div
+          className={`
+            md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center
+            transition-opacity duration-300 ease-in-out
+            ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+          `}
+          style={{
+            backgroundColor: 'var(--navbar-bg)',
+            backdropFilter: 'blur(var(--navbar-blur))'
+          }}
+        >
+          <div className={`${pixel.className} space-y-6 text-center text-neon-pink text-3xl font-bold uppercase leading-none tracking-wide`}>
+            {renderNavLinks(true)}
+          </div>
+        </div>
+      </header>
     </>
   );
 }
