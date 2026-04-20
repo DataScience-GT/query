@@ -18,8 +18,10 @@ export class CacheService {
     private cache = new Map<string, CacheEntry<unknown>>();
     private stats: CacheStats = { hits: 0, misses: 0, size: 0 };
     private cleanupInterval: NodeJS.Timeout;
+    private maxCacheSize: number;
 
-    constructor(private defaultTTL: number = 300) {
+    constructor(private defaultTTL: number = 300, maxCacheSize: number = 10000) {
+        this.maxCacheSize = maxCacheSize;
         // Cleanup expired entries every 60 seconds
         this.cleanupInterval = setInterval(() => {
             this.cleanup();
@@ -127,15 +129,35 @@ export class CacheService {
     }
 
     /**
-     * Remove expired entries
+     * Remove expired entries and evict oldest entries if cache is over max size (LRU)
      */
     private cleanup(): void {
         const now = Date.now();
         let removed = 0;
 
+        // Remove expired entries first
         for (const [key, entry] of this.cache.entries()) {
             if (now > entry.expiresAt) {
                 this.cache.delete(key);
+                removed++;
+            }
+        }
+
+        // If cache is over max size, evict oldest entries (LRU - remove oldest by expiresAt as proxy)
+        while (this.cache.size > this.maxCacheSize) {
+            let oldestKey: string | null = null;
+            let oldestValue: CacheEntry<unknown> | undefined = undefined;
+
+            // Find the oldest entry
+            for (const [key, entry] of this.cache.entries()) {
+                if (!oldestValue || entry.expiresAt < oldestValue.expiresAt) {
+                    oldestKey = key;
+                    oldestValue = entry;
+                }
+            }
+
+            if (oldestKey) {
+                this.cache.delete(oldestKey);
                 removed++;
             }
         }
@@ -155,7 +177,7 @@ export class CacheService {
 }
 
 // Global cache instance
-export const cache = new CacheService(300); // 5 minutes default TTL
+export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max 10000 entries // 5 minutes default TTL
 
 // Cache key builders for consistency
 export const CacheKeys = {
