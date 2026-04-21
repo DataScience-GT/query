@@ -76,7 +76,6 @@
   background-size: var(--scanline-spacing) 100%;
   z-index: 9999;
   pointer-events: none;
-  pointer-events: none;
 }
 
 /* 1980s CRT Flicker Effect */
