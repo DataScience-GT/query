@@ -141,28 +141,6 @@ export const publicProcedure = t.procedure
   });
 
 const isAuthed = t.middleware(async ({ ctx, next, type }) => {
-  // DDoS Protection - check IP-based limits first
-  const ddosCheck = ddosProtection(ctx.clientIp);
-  if (!ddosCheck.allowed) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: `Too many requests from your IP. Please try again in ${ddosCheck.retryAfter} seconds.`,
-    });
-  }
-
-  if (!ctx.session?.user || !ctx.userId) {
-    logSecurityEvent({
-      type: 'auth_failure',
-      identifier: ctx.clientIp,
-      details: 'Missing session or userId',
-    });
-
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "Authentication required",
-    });
-  }
-
   const config = RATE_LIMITS.authenticated;
   const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
 
@@ -184,7 +162,6 @@ const isAuthed = t.middleware(async ({ ctx, next, type }) => {
   return next({
     ctx: {
       ...ctx,
-      session: { ...ctx.session, user: ctx.session.user },
       userId: ctx.userId,
     },
   });
@@ -204,88 +181,12 @@ export const uploadProcedure = t.procedure
 
 export const judgeProcedure = t.procedure
   .use(requiresDb)
-  .use(async ({ ctx, next, type }) => {
-    if (!ctx.session?.user || !ctx.userId) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
-      });
-    }
-
-    const judge = await ctx.db.query.judges.findFirst({
-      where: (j, { eq }) => eq(j.userId, ctx.userId!),
-    });
-
-    if (!judge || !judge.isActive) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Judge access required",
-      });
-    }
-
-    const config = RATE_LIMITS.judge;
-    const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
-
-    const result = rateLimit(`judge-${ctx.userId}`, config.maxTokens, config.refillRate, tokens);
-
-    if (!result.allowed) {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: `Too many requests. Please try again in ${result.retryAfter} seconds.`,
-      });
-    }
-
-    return next({
-      ctx: {
-        ...ctx,
-        session: { ...ctx.session, user: ctx.session.user },
-        userId: ctx.userId,
-      },
-    });
-  })
+  .use(isAuthed)
   .use(sanitizeInputs)
   .use(cacheInvalidationMiddleware);
 
 export const adminProcedure = t.procedure
   .use(requiresDb)
-  .use(async ({ ctx, next, type }) => {
-    if (!ctx.session?.user || !ctx.userId) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
-      });
-    }
-
-    const admin = await ctx.db.query.admins.findFirst({
-      where: (a, { eq }) => eq(a.userId, ctx.userId!),
-    });
-
-    if (!admin || !admin.isActive) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Admin access required",
-      });
-    }
-
-    const config = RATE_LIMITS.admin;
-    const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
-
-    const result = rateLimit(`admin-${ctx.userId}`, config.maxTokens, config.refillRate, tokens);
-
-    if (!result.allowed) {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: `Too many requests. Please try again in ${result.retryAfter} seconds.`,
-      });
-    }
-
-    return next({
-      ctx: {
-        ...ctx,
-        session: { ...ctx.session, user: ctx.session.user },
-        userId: ctx.userId,
-      },
-    });
-  })
+  .use(isAuthed)
   .use(sanitizeInputs)
   .use(cacheInvalidationMiddleware);
