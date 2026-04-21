@@ -73,39 +73,6 @@ const enforceSizeLimit = () => {
   }
 };
 
-  // Cleanup rate limit store - remove oldest entries when over limit
-  while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
-    let oldestKey = null;
-    let oldestTime = Infinity;
-    for (const [key, value] of rateLimitStore.entries()) {
-      if (value.lastRefill < oldestTime) {
-        oldestTime = value.lastRefill;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey) {
-      rateLimitStore.delete(oldestKey);
-    }
-  }
-
-  // Cleanup IP tracking store - remove old entries
-  while (ipTrackingStore.size > MAX_IP_TRACKING_STORE_SIZE) {
-    let oldestKey = null;
-    let oldestTime = Infinity;
-    for (const [ip, record] of ipTrackingStore.entries()) {
-      if (now - record.firstRequest > 5 * 60 * 1000 && now < record.blockedUntil) {
-        if (record.firstRequest < oldestTime) {
-          oldestTime = record.firstRequest;
-          oldestKey = ip;
-        }
-      }
-    }
-    if (oldestKey) {
-      ipTrackingStore.delete(oldestKey);
-    }
-  }
-};
-
 // Run cleanup every minute
 setInterval(enforceSizeLimit, 60 * 1000);
 
@@ -366,8 +333,16 @@ async function flushLogs() {
   const batch = flushQueue.splice(0, MAX_BATCH_SIZE);
 
   if (!db) {
-    // Critical: Security events dropped when DB is unavailable - log but do not fail silently
+    // Critical: Security events dropped when DB is unavailable - warn to stderr and persist to file
     console.error(`[Security] CRITICAL: DB unavailable, ${batch.length} critical security logs dropped. Consider implementing queue-based persistence.`);
+    try {
+      const fs = await import("fs");
+      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs dropped.\n`;
+      fs.appendFile("packages/api/src/.security-errors.log", errorLog, "utf8");
+      console.error(errorLog.trim());
+    } catch {
+      // Ignore fs errors
+    }
     return;
   }
 
