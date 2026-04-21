@@ -62,7 +62,7 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
-      const cached = ctx.cache.get<typeof hackathon>(cacheKey);
+      const cached = ctx.cache.get<typeof await ctx.db!.query.hackathons.findFirst>(cacheKey);
       if (cached) return cached;
 
       const hackathon = await ctx.db!.query.hackathons.findFirst({
