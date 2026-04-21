@@ -23,12 +23,55 @@ interface IPRecord {
 
 const ipTrackingStore = new Map<string, IPRecord>();
 
-// Enforce size limits with cleanup
-const MAX_RATE_LIMIT_STORE_SIZE = 10000; // Limit rate limit store size to prevent memory bloat
-const MAX_IP_TRACKING_STORE_SIZE = 50000; // Limit IP tracking store size
-
 const enforceSizeLimit = () => {
   const now = Date.now();
+
+  // Cleanup rate limit store - remove oldest entries when over limit
+  while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
+    let oldestKey = null;
+    let oldestTime = Infinity;
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.lastRefill < oldestTime) {
+        oldestTime = value.lastRefill;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) {
+      rateLimitStore.delete(oldestKey);
+    }
+  }
+
+  // Cleanup IP tracking store - remove old entries
+  while (ipTrackingStore.size > MAX_IP_TRACKING_STORE_SIZE) {
+    let oldestKey = null;
+    let oldestTime = Infinity;
+    for (const [ip, record] of ipTrackingStore.entries()) {
+      if (now - record.firstRequest > 5 * 60 * 1000 && now < record.blockedUntil) {
+        if (record.firstRequest < oldestTime) {
+          oldestTime = record.firstRequest;
+          oldestKey = ip;
+        }
+      }
+    }
+    if (oldestKey) {
+      ipTrackingStore.delete(oldestKey);
+    }
+  }
+
+  // Remove expired records
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.blockedUntil) {
+      rateLimitStore.delete(key);
+    }
+  }
+
+  // Cleanup non-blocked IPs older than 5 minutes
+  for (const [ip, record] of ipTrackingStore.entries()) {
+    if (!record.isBlocked && now - record.firstRequest > 5 * 60 * 1000) {
+      ipTrackingStore.delete(ip);
+    }
+  }
+};
 
   // Cleanup rate limit store - remove oldest entries when over limit
   while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
@@ -357,7 +400,6 @@ async function flushLogs() {
       // Ignore fs errors
     }
   }
-}
 }
 
 // Start flush timer

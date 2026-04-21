@@ -28,7 +28,7 @@ export const hackathonRouter = createTRPCRouter({
       const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
 
       // Check cache first
-      const cached = ctx.cache.get<typeof allHackathons>(cacheKey);
+      const cached = ctx.cache.get<typeof await ctx.db!.query.hackathons.findMany>(cacheKey);
       if (cached) return cached;
 
       const now = new Date();

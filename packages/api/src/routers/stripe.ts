@@ -77,10 +77,6 @@ export const stripeRouter = createTRPCRouter({
           code: "SERVICE_UNAVAILABLE",
           message: "Payment service is temporarily unavailable. Please try again later.",
         });
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create checkout session. Please try again later.",
-        });
       }
     }),
 
