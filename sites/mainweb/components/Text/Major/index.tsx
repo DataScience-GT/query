@@ -1,4 +1,4 @@
-import { ReactNode, HTMLAttributes, JSX } from "react";
+import { ReactNode, HTMLAttributes, JSX, ElementType, ReactNode as ReactNodeProp } from "react";
 
 interface MajorProps {
   type?: "primary" | "secondary" | "a" | "b";
