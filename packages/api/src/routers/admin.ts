@@ -113,6 +113,10 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create admin" });
       }
 
+      // Invalidate admin caches after creation
+      ctx.cache.deletePattern(`${CacheKeys.admin(input.userId)}*`);
+      ctx.cache.delete(`admins:list`);
+
       return newAdmin;
     }),
 

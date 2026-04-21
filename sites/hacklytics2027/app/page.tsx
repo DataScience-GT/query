@@ -1,4 +1,3 @@
-"use client";
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
@@ -178,35 +177,17 @@ export default function HomePage() {
           </div>
 
           {/* Clouds - Retro styled */}
-          <Cloud src="/cloud-main/smallCloud.png" className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40" animationDelay="0s" speed="normal" />
-          <Cloud src="/cloud-main/smallCloud.png" className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40" animationDelay="2.5s" speed="fast" />
-          <Cloud src="/cloud-main/midCloud.png" className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95" animationDelay="1.8s" speed="slow" />
-          <Cloud src="/cloud-main/largecloud.png" className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80" animationDelay="3.2s" speed="slow" />
-
-          {/* Bottom Clouds */}
-          <div className="absolute bottom-0 left-0 w-[50%] h-32 -translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-          <div className="absolute bottom-0 left-0 w-[75%] h-32 -translate-x-[25%] opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-          <div className="absolute bottom-0 right-0 w-[50%] h-32 translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-          <div className="absolute bottom-0 right-0 w-[75%] h-32 translate-x-[25%] opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-
-          {/* Static Candies - 1980s style */}
-          <Candy className="bottom-0 left-[2%] w-28 h-28 md:left-[5%] md:w-60 md:h-60" direction="left" />
-          <Candy className="bottom-0 right-[2%] w-28 h-28 md:right-[5%] md:w-60 md:h-60" direction="right" />
+          <Image src="/cloud-main/smallCloud.png" alt="Cloud" className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40 absolute" />
+          <Image src="/cloud-main/smallCloud.png" alt="Cloud" className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40 absolute" />
+          <Image src="/cloud-main/midCloud.png" alt="Cloud" className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95 absolute" />
+          <Image src="/cloud-main/largecloud.png" alt="Cloud" className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80 absolute" />
 
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-10 md:z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
             <Image src="/dsgt.png" alt="DSGT Footer" fill className="object-contain" />
           </div>
 
-          <Cloud src="/cloud-main/dateCloud.png" className="hidden md:block bottom-[45%] left-[15%] w-64 h-32 opacity-95" animationDelay="2.7s" speed="slow" />
-          <Cloud src="/cloud-main/DSGTCloud.png" className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95" animationDelay="4.1s" speed="normal" />
+          <Image src="/cloud-main/dateCloud.png" alt="Cloud" className="hidden md:block bottom-[45%] left-[15%] w-64 h-32 opacity-95 absolute" />
+          <Image src="/cloud-main/DSGTCloud.png" alt="Cloud" className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95 absolute" />
 
           {/* Hero Content - 1980s Arcade Typography */}
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8 min-h-[60vh]">

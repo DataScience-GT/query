@@ -208,7 +208,7 @@ export class CacheService {
 }
 
 // Global cache instance
-export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max 10000 entries // 5 minutes default TTL
+export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max 10000 entries
 
 /**
  * Cache statistics for metrics/monitoring export

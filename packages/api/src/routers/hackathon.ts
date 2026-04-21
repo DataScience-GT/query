@@ -298,6 +298,9 @@ export const hackathonRouter = createTRPCRouter({
             })
             .where(eq(hackathons.id, input.hackathonId));
 
+          // Invalidate all hackathon caches after successful registration
+          ctx.cache.deletePattern('hackathon*');
+
           return participant;
         });
       } catch (error: any) {
@@ -562,6 +565,9 @@ export const hackathonRouter = createTRPCRouter({
         eventId: input.eventId,
         participantId: input.participantId,
       });
+
+      // Invalidate hackathon caches after attendance scan
+      ctx.cache.deletePattern('hackathon*');
 
       return { success: true, message: `Successfully checked in ${participant.user.name || participant.user.email}!` };
     }),
