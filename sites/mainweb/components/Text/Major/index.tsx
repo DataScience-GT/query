@@ -2,10 +2,9 @@ import { ReactNode, HTMLAttributes, JSX } from "react";
 
 interface MajorProps {
   type?: "primary" | "secondary" | "a" | "b";
-  as?: any;
+  as?: React.ElementType;
   compact?: boolean;
-  children: any;
-  [key: string]: any;
+  children?: React.ReactNode;
 }
 
 export default function Major({
