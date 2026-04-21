@@ -169,15 +169,52 @@ export class CacheService {
 
     /**
      * Destroy the cache service and cleanup intervals
+     *
+     * @description
+     * Properly destroys the cache service by:
+     * 1. Clearing the cleanup interval to prevent memory leaks on module unload
+     * 2. Clearing all cached entries
+     * 3. Resetting statistics counters
+     *
+     * @example
+     * // On application shutdown
+     * app.close(() => {
+     *   cache.destroy();
+     * });
+     *
+     * // Optional: Export stats before destruction
+     * const stats = cache.getStats();
+     * console.log(`Cache hits: ${stats.hits}, misses: ${stats.misses}`);
+     * cache.destroy();
      */
     destroy(): void {
         clearInterval(this.cleanupInterval);
         this.cache.clear();
+        this.stats = { hits: 0, misses: 0, size: 0 };
+    }
+
+    /**
+     * Get cache statistics for monitoring and metrics export
+     *
+     * @returns Object containing hits, misses, and current cache size
+     *
+     * @example
+     * const stats = cache.getStats();
+     * // { hits: 150, misses: 23, size: 45 }
+     */
+    exportStats(): CacheStats {
+        return { ...this.stats };
     }
 }
 
 // Global cache instance
 export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max 10000 entries // 5 minutes default TTL
+
+/**
+ * Cache statistics for metrics/monitoring export
+ * Access via cache.getStats() or cache.exportStats()
+ */
+export const cacheStats = cache.exportStats();
 
 // Cache key builders for consistency
 export const CacheKeys = {
