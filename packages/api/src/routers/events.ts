@@ -29,6 +29,9 @@ export const eventRouter = createTRPCRouter({
         })
         .returning();
 
+      // Invalidate all event-related cache entries after creation
+      ctx.cache.deletePattern('event*');
+
       return newEvent;
     }),
 
@@ -53,12 +56,16 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
+      // Invalidate event and related caches after QR regeneration
+      ctx.cache.deletePattern(`event:${input.eventId}`);
+      ctx.cache.deletePattern('event*');
+
       return updatedEvent;
     }),
 
   listAll: isAdmin.query(async ({ ctx }) => {
     const cacheKey = `events:list:all`;
-    const cached = ctx.cache.get<typeof allEvents>(cacheKey);
+    const cached = ctx.cache.get<typeof await ctx.db!.query.events.findMany>(cacheKey);
     if (cached) return cached;
 
     const allEvents = await ctx.db!.query.events.findMany({
@@ -130,13 +137,25 @@ export const eventRouter = createTRPCRouter({
         .where(eq(events.id, input.eventId))
         .returning();
 
+      // Invalidate event and check-in related caches
+      ctx.cache.deletePattern(`event:${input.eventId}`);
+      ctx.cache.deletePattern('event*');
+
       return updatedEvent;
     }),
 
   delete: isAdmin
     .input(z.object({ eventId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      // Also delete associated check-ins before removing the event
+      await ctx.db!.delete(eventCheckIns).where(eq(eventCheckIns.eventId, input.eventId));
+
       await ctx.db!.delete(events).where(eq(events.id, input.eventId));
+
+      // Invalidate all event-related cache entries after deletion
+      ctx.cache.deletePattern(`event:${input.eventId}`);
+      ctx.cache.deletePattern('event*');
+
       return { success: true };
     }),
 
@@ -210,6 +229,10 @@ export const eventRouter = createTRPCRouter({
             .where(eq(events.id, event.id)),
         ]);
 
+        // Invalidate event and related caches after successful check-in
+        ctx.cache.deletePattern(`event:${event.id}`);
+        ctx.cache.deletePattern('event*');
+
         return {
           success: true,
           eventTitle: event.title,
@@ -219,7 +242,7 @@ export const eventRouter = createTRPCRouter({
 
   myEvents: protectedProcedure.query(async ({ ctx }) => {
     const cacheKey = `events:my:${ctx.userId}`;
-    const cached = ctx.cache.get<typeof checkIns>(cacheKey);
+    const cached = ctx.cache.get<typeof await ctx.db!.query.eventCheckIns.findMany>(cacheKey);
     if (cached) return cached;
 
     const checkIns = await ctx.db!.query.eventCheckIns.findMany({
