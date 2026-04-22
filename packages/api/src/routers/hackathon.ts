@@ -28,7 +28,7 @@ export const hackathonRouter = createTRPCRouter({
       const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
 
       // Check cache first
-      const cached = ctx.cache.get<typeof await ctx.db!.query.hackathons.findMany>(cacheKey);
+      const cached = ctx.cache.get<typeof ctx.db!.query.hackathons.findMany>(cacheKey);
       if (cached) return cached;
 
       const now = new Date();
@@ -62,7 +62,7 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
-      const cached = ctx.cache.get<typeof await ctx.db!.query.hackathons.findFirst>(cacheKey);
+      const cached = ctx.cache.get<typeof ctx.db!.query.hackathons.findFirst>(cacheKey);
       if (cached) return cached;
 
       const hackathon = await ctx.db!.query.hackathons.findFirst({
