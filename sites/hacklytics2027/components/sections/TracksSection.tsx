@@ -6,7 +6,7 @@ import { Press_Start_2P } from 'next/font/google';
 
 const pixel = Press_Start_2P({
   subsets: ['latin'],
-  weight: ['400', '700', '900'],
+  weight: ['400'],
 });
 
 const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }> = ({ src, delay, className }) => (

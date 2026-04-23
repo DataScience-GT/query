@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Press_Start_2P } from './next/font/google';
+import { Press_Start_2P } from 'next/font/google';
 import { scheduleData, categories } from './data';
 
 const pixel = Press_Start_2P({
