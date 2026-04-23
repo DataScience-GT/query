@@ -65,7 +65,7 @@ export const eventRouter = createTRPCRouter({
 
   listAll: isAdmin.query(async ({ ctx }) => {
     const cacheKey = `events:list:all`;
-    const cached = ctx.cache.get<typeof ctx.db!.query.events.findMany>(cacheKey);
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof ctx.db!.query.events.findMany>>>(cacheKey);
     if (cached) return cached;
 
     const allEvents = await ctx.db!.query.events.findMany({
