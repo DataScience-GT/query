@@ -1,7 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { eq } from "drizzle-orm";
 import type { Context } from "./context";
 import { rateLimit, RATE_LIMITS, sanitizeInput, logSecurityEvent, ddosProtection, validateRequestSize } from "./middleware/security";
 
