@@ -18,51 +18,6 @@ const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }
   </div>
 );
 
-const FAQCard: React.FC<{ title: string; content: string; delay: string; color: string; rotate: string }> = ({
-  title,
-  content,
-  delay,
-  color,
-  rotate
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div
-      className={`group relative w-full animate-fade-in-up ${rotate} hover:rotate-0 transition-all duration-300 hover:z-10 cursor-pointer h-fit`}
-      style={{ animationDelay: delay }}
-      onClick={() => setIsOpen(!isOpen)}
-    >
-      {/* Shadow Layer */}
-      <div className={`absolute inset-0 ${color} rounded-[2rem] transform translate-y-2 translate-x-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3 drop-shadow-[0_0_15px_currentColor]`}></div>
-
-      {/* Card Body */}
-      <div className="relative bg-white rounded-[2rem] border-[4px] border-neon-pink p-8 flex flex-col shadow-[0_0_20px_currentColor] overflow-hidden group-hover:shadow-[0_0_30px_currentColor] transition-all">
-        <div className="flex justify-between items-start gap-4">
-          <h3 className={`${pixel.className} text-2xl md:text-3xl font-bold text-gray-800 leading-tight group-hover:text-neon-pink transition-colors select-none drop-shadow-[0_0_5px_currentColor]`}>
-            {title}
-          </h3>
-
-          {/* Expand/Collapse Icon */}
-          <div className={`flex-shrink-0 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} mt-1`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 9L12 15L18 9" stroke={color === "bg-neon-pink/40" || color === "bg-pink-400" ? "#DC2626" : "#4B5563"} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        </div>
-
-        <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
-          <div className="overflow-hidden">
-            <p className="text-gray-600 font-medium leading-relaxed text-lg select-none">
-              {content}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Track Card Component - 1980s Arcade Style
 const TrackCard: React.FC<{ title: string; description: string; icon: React.ReactNode; color: string; rotate: string; delay: string }> = ({
   title,
