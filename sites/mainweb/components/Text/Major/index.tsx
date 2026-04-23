@@ -1,11 +1,10 @@
-import { ReactNode, HTMLAttributes, JSX } from "react";
+import { ReactNode, HTMLAttributes, JSX, ElementType, ReactNode as ReactNodeProp } from "react";
 
 interface MajorProps {
   type?: "primary" | "secondary" | "a" | "b";
-  as?: any;
+  as?: React.ElementType;
   compact?: boolean;
-  children: any;
-  [key: string]: any;
+  children?: React.ReactNode;
 }
 
 export default function Major({
