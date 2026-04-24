@@ -25,6 +25,6 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/node": "^20",
-    "typescript": "^6.0.0"
+    "typescript": "^5.8.3"
   }
 }

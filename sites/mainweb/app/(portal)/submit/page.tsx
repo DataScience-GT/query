@@ -408,11 +408,12 @@ function SubmitPortalContent() {
 }
 
 export default function SubmitPortalPage() {
+    const SuspenseWrapper = Suspense as any;
     return (
         <>
-            <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
+            <SuspenseWrapper fallback={<LoadingScreen message="Initializing Workspace..." />}>
                 <SubmitPortalContent />
-            </Suspense>
+            </SuspenseWrapper>
         </>
     );
 }

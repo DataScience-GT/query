@@ -8,7 +8,7 @@ import Stripe from "stripe";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2026-02-25.clover",
+    apiVersion: "2026-03-25.dahlia",
   })
   : null;
 
@@ -21,8 +21,8 @@ export const stripeRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       if (!stripe) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Stripe is not configured on the server. Missing STRIPE_SECRET_KEY.",
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is currently unavailable. Please try again later.",
         });
       }
 
@@ -67,15 +67,15 @@ export const stripeRouter = createTRPCRouter({
       } catch (error: unknown) {
         console.error("Stripe Checkout Error:", error);
         // Check for invalid API key errors specifically if possible, but obscure all
-        if (error instanceof Error && error.message?.includes("Invalid API Key")) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Payment configuration error. Please contact support.",
-          });
-        }
+        // Generic error for all Stripe failures - don't leak configuration status
+        logSecurityEvent({
+          type: 'validation_error',
+          identifier: ctx.userId ?? 'unknown',
+          details: `Stripe error: ${error}`,
+        });
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create checkout session. Please try again later.",
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is temporarily unavailable. Please try again later.",
         });
       }
     }),
