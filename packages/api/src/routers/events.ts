@@ -64,13 +64,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   listAll: isAdmin.query(async ({ ctx }) => {
-    type DB = NonNullable<typeof ctx.db>;
-    type EventList = Awaited<ReturnType<DB["query"]["events"]["findMany"]>>;
-    const cacheKey = `events:list:all`;
-    const cached = ctx.cache.get<EventList>(cacheKey);
-    if (cached !== undefined) return cached;
-
-    const allEvents = await ctx.db!.query.events.findMany({
+    const fetchEvents = () => ctx.db!.query.events.findMany({
       orderBy: (events, { desc }) => [desc(events.eventDate)],
       with: {
         createdBy: {
@@ -80,6 +74,11 @@ export const eventRouter = createTRPCRouter({
       limit: 100,
     });
 
+    const cacheKey = `events:list:all`;
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const allEvents = await fetchEvents();
     ctx.cache.set(cacheKey, allEvents, 30);
     return allEvents;
   }),
@@ -243,11 +242,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   myEvents: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = `events:my:${ctx.userId}`;
-    const cached = ctx.cache.get<{ totalEvents: number }>(cacheKey);
-    if (cached) return cached;
-
-    const checkIns = await ctx.db!.query.eventCheckIns.findMany({
+    const fetchCheckIns = () => ctx.db!.query.eventCheckIns.findMany({
       where: eq(eventCheckIns.userId, ctx.userId!),
       with: {
         event: {
@@ -258,6 +253,11 @@ export const eventRouter = createTRPCRouter({
       limit: 50,
     });
 
+    const cacheKey = `events:my:${ctx.userId}`;
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchCheckIns>>>(cacheKey);
+    if (cached) return cached;
+
+    const checkIns = await fetchCheckIns();
     ctx.cache.set(cacheKey, checkIns, 60);
     return checkIns;
   }),
