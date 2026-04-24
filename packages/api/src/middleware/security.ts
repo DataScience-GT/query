@@ -28,7 +28,7 @@ const enforceSizeLimit = () => {
 
   // Cleanup rate limit store - remove oldest entries when over limit
   while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
-    let oldestKey = null;
+    let oldestKey: string | null = null;
     let oldestTime = Infinity;
     for (const [key, value] of rateLimitStore.entries()) {
       if (value.lastRefill < oldestTime) {
@@ -43,7 +43,7 @@ const enforceSizeLimit = () => {
 
   // Cleanup IP tracking store - remove old entries
   while (ipTrackingStore.size > MAX_IP_TRACKING_STORE_SIZE) {
-    let oldestKey = null;
+    let oldestKey: string | null = null;
     let oldestTime = Infinity;
     for (const [ip, record] of ipTrackingStore.entries()) {
       if (now - record.firstRequest > 5 * 60 * 1000 && now < record.blockedUntil) {
@@ -338,7 +338,7 @@ async function flushLogs() {
     try {
       const fs = await import("fs");
       const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs dropped.\n`;
-      fs.appendFile("packages/api/src/.security-errors.log", errorLog, "utf8");
+      fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
       console.error(errorLog.trim());
     } catch {
       // Ignore fs errors
@@ -362,7 +362,7 @@ async function flushLogs() {
     });
 
     const result = await db.insert(auditLogs).values(values);
-    console.log(`[Security] Flushed ${result.count} security events to audit logs`);
+    console.log(`[Security] Flushed ${batch.length} security events to audit logs`);
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
     console.error(errorMsg);
@@ -370,7 +370,7 @@ async function flushLogs() {
     try {
       const fs = await import("fs");
       const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
-      fs.appendFile("packages/api/src/.security-errors.log", errorLog, "utf8");
+      fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
     } catch {
       // Ignore fs errors
     }
