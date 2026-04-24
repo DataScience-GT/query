@@ -1,6 +1,6 @@
 import { ReactNode, HTMLAttributes, JSX, ElementType, ReactNode as ReactNodeProp } from "react";
 
-interface MajorProps {
+interface MajorProps extends React.HTMLAttributes<HTMLElement> {
   type?: "primary" | "secondary" | "a" | "b";
   as?: React.ElementType;
   compact?: boolean;

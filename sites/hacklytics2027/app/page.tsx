@@ -2,47 +2,14 @@
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
-import { Truculenta } from "next/font/google";
+import { Press_Start_2P } from "next/font/google";
 
-const truculenta = Truculenta({
+const pixel = Press_Start_2P({
   subsets: ["latin"],
-  weight: ["900"],
+  weight: ["400"],
 });
 
-const Cloud: React.FC<{ src: string; className?: string; animationDelay?: string; speed?: "slow" | "normal" | "fast" }> = ({
-  src,
-  className,
-  animationDelay = "0s",
-  speed = "normal"
-}) => {
-  const speedClass = speed === "slow" ? "animate-float-slow" : speed === "fast" ? "animate-float-fast" : "animate-float";
-
-  return (
-    <div
-      className={`absolute pointer-events-none ${className} ${speedClass}`}
-      style={{ animationDelay }}
-    >
-      <Image src={src} alt="Decorative cloud" fill className="object-contain" />
-    </div>
-  );
-};
-
-const Candy: React.FC<{ className?: string; direction?: "left" | "right" }> = ({
-  className,
-  direction = "left"
-}) => (
-  <div className={`absolute ${className} z-30`}>
-    <Image
-      src="/cloud-main/candy/candyEnd.png"
-      alt={`Candy ${direction}`}
-      fill
-      className="object-contain md:scale-150"
-    />
-  </div>
-);
-
-// Countdown component
-// Countdown component with digital grid
+// 1980s Arcade Countdown Timer
 const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
 
@@ -71,11 +38,17 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
 
   if (!timeLeft) {
     return (
-      <div className="flex gap-3 md:gap-4">
+      <div className="flex gap-3 md:gap-4 justify-center">
         {["DAYS", "HOURS", "MINUTES", "SECONDS"].map((label, i) => (
-          <div key={i} className="flex flex-col items-center bg-wonka-red rounded-2xl px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_4px_0_#991b1b] border-2 border-red-900">
-            <span className="text-white text-3xl md:text-5xl font-bold">00</span>
-            <span className="text-white text-xs md:text-sm tracking-wider mt-1">{label}</span>
+          <div
+            key={i}
+            className="flex flex-col items-center bg-neon-pink rounded-xl px-4 py-3 min-w-[80px] md:min-w-[120px] shadow-[0_0_20px_var(--neon-pink)] border-4 border-neon-pink"
+            style={{ animationDelay: `${i * 0.1}s` }}
+          >
+            <span className="text-white text-4xl md:text-6xl font-bold drop-shadow-[0_0_5px_var(--neon-pink)]">
+              00
+            </span>
+            <span className="text-neon-cyan text-xs md:text-sm tracking-wider mt-1 font-pixel">{label}</span>
           </div>
         ))}
       </div>
@@ -83,16 +56,22 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   }
 
   return (
-    <div className="flex gap-3 md:gap-4">
+    <div className="flex gap-3 md:gap-4 justify-center">
       {[
         { label: "DAYS", value: timeLeft.days },
         { label: "HOURS", value: timeLeft.hours },
         { label: "MINUTES", value: timeLeft.minutes },
         { label: "SECONDS", value: timeLeft.seconds },
       ].map((unit, i) => (
-        <div key={i} className="flex flex-col items-center bg-wonka-red rounded-2xl px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_4px_0_#991b1b] border-2 border-red-900">
-          <span className="text-white text-3xl md:text-5xl font-bold">{formatUnit(unit.value)}</span>
-          <span className="text-white text-xs md:text-sm tracking-wider mt-1">{unit.label}</span>
+        <div
+          key={i}
+          className="flex flex-col items-center bg-neon-pink rounded-xl px-4 py-3 min-w-[80px] md:min-w-[120px] shadow-[0_0_20px_var(--neon-pink)] border-4 border-neon-pink animate-pulse"
+          style={{ animationDelay: `${i * 0.1}s` }}
+        >
+          <span className="text-white text-4xl md:text-6xl font-bold drop-shadow-[0_0_5px_var(--neon-pink)]">
+            {formatUnit(unit.value)}
+          </span>
+          <span className="text-neon-cyan text-xs md:text-sm tracking-wider mt-1 font-pixel">{unit.label}</span>
         </div>
       ))}
     </div>
@@ -101,16 +80,6 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
 
 
 export default function HomePage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
   return (
     <>
       <style jsx global>{`
@@ -134,15 +103,20 @@ export default function HomePage() {
 
         @keyframes pulse-glow {
           0%, 100% {
-            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3),
-                        0 0 40px rgba(220, 38, 38, 0.2),
-                        0 0 60px rgba(220, 38, 38, 0.1);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5),
+                        0 0 40px rgba(255, 0, 255, 0.3),
+                        0 0 60px rgba(255, 0, 255, 0.1);
           }
           50% {
-            box-shadow: 0 0 30px rgba(220, 38, 38, 0.5),
-                        0 0 60px rgba(220, 38, 38, 0.4),
-                        0 0 90px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.7),
+                        0 0 60px rgba(255, 0, 255, 0.5),
+                        0 0 90px rgba(255, 0, 255, 0.3);
           }
+        }
+
+        @keyframes neon-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
 
         @keyframes shine {
@@ -172,9 +146,13 @@ export default function HomePage() {
         .button-glow {
           animation: pulse-glow 2s ease-in-out infinite;
         }
+
+        .animate-neon-blink {
+          animation: neon-blink 2s ease-in-out infinite;
+        }
       `}</style>
 
-      <main className="relative w-full font-sans text-gray-800 overflow-hidden">
+      <main className="relative w-full bg-retro-gradient text-neon-cyan overflow-hidden">
         {/* MLH Trust Badge */}
         <a
           id="mlh-trust-badge"
@@ -189,55 +167,49 @@ export default function HomePage() {
           />
         </a>
 
-        {/* Hero Section */}
-        <div className="relative w-full bg-sky overflow-hidden py-20 md:py-32">
-          {/* Clouds */}
-          <Cloud src="/cloud-main/smallCloud.png" className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40" animationDelay="0s" speed="normal" />
-          <Cloud src="/cloud-main/smallCloud.png" className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40" animationDelay="2.5s" speed="fast" />
-          <Cloud src="/cloud-main/midCloud.png" className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95" animationDelay="1.8s" speed="slow" />
-          <Cloud src="/cloud-main/largecloud.png" className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80" animationDelay="3.2s" speed="slow" />
-
-          {/* Bottom Clouds */}
-          <div className="absolute bottom-0 left-0 w-[50%] h-32 -translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-          <div className="absolute bottom-0 left-0 w-[75%] h-32 -translate-x-[25%] opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-          <div className="absolute bottom-0 right-0 w-[50%] h-32 translate-x-1/4 opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
-          </div>
-          <div className="absolute bottom-0 right-0 w-[75%] h-32 translate-x-[25%] opacity-95 md:h-52 pointer-events-none">
-            <Image src="/cloud-main/cloudBottom.png" alt="Decorative cloud" fill className="object-contain" />
+        {/* Hero Section - 1980s Arcade Style */}
+        <div className="relative w-full overflow-hidden py-20 md:py-32">
+          {/* Neon border glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-neon-pink/30 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-neon-cyan/30 to-transparent"></div>
+            <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-neon-purple/30 to-transparent"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-neon-green/30 to-transparent"></div>
           </div>
 
-          {/* Static Candies */}
-          <Candy className="bottom-0 left-[2%] w-28 h-28 md:left-[5%] md:w-60 md:h-60" direction="left" />
-          <Candy className="bottom-0 right-[2%] w-28 h-28 md:right-[5%] md:w-60 md:h-60" direction="right" />
+          {/* Clouds - Retro styled */}
+          <Image src="/cloud-main/smallCloud.png" alt="Cloud" className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40 absolute" />
+          <Image src="/cloud-main/smallCloud.png" alt="Cloud" className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40 absolute" />
+          <Image src="/cloud-main/midCloud.png" alt="Cloud" className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95 absolute" />
+          <Image src="/cloud-main/largecloud.png" alt="Cloud" className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80 absolute" />
 
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-10 md:z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
             <Image src="/dsgt.png" alt="DSGT Footer" fill className="object-contain" />
           </div>
 
-          <Cloud src="/cloud-main/dateCloud.png" className="hidden md:block bottom-[45%] left-[15%] w-64 h-32 opacity-95" animationDelay="2.7s" speed="slow" />
-          <Cloud src="/cloud-main/DSGTCloud.png" className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95" animationDelay="4.1s" speed="normal" />
+          <Image src="/cloud-main/dateCloud.png" alt="Cloud" className="hidden md:block bottom-[45%] left-[15%] w-64 h-32 opacity-95 absolute" />
+          <Image src="/cloud-main/DSGTCloud.png" alt="Cloud" className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95 absolute" />
 
-          {/* Hero Content */}
+          {/* Hero Content - 1980s Arcade Typography */}
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8 min-h-[60vh]">
-            {/* Decorative light burst */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-radial-gradient from-white/40 to-transparent opacity-60 blur-3xl -z-10 pointer-events-none animate-pulse-slow"></div>
+            {/* Decorative retro glow burst */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-neon-pink/20 via-neon-cyan/10 to-transparent opacity-60 blur-3xl -z-10 pointer-events-none animate-pulse-slow"></div>
 
             <div className="-mt-4 md:-mt-8">
-              <h2 className={`${truculenta.className} text-5xl md:text-7xl font-black leading-none tracking-tight text-white drop-shadow-[0_4px_0_rgba(165,32,25,0.4)] animate-fade-in-up mb-8`}>
-                Hacklytics 2026
+              <h2 className={`${pixel.className} text-4xl md:text-6xl font-bold text-neon-cyan drop-shadow-[0_0_10px_var(--neon-cyan)] mb-6 animate-fade-in-up`}>
+                HACKLYTICS
+              </h2>
+              <h2 className={`${pixel.className} text-4xl md:text-6xl font-bold text-neon-pink drop-shadow-[0_0_10px_var(--neon-pink)] mb-6 animate-fade-in-up`}>
+                2027
               </h2>
 
-              <div className="relative group">
+              {/* Arcade-style title */}
+              <div className="relative">
                 <h1
-                  className="font-willywonka text-9xl md:text-[170px] font-normal text-wonka-yellow my-2 leading-[0.8] tracking-normal transition-transform duration-500 hover:scale-105 hover:rotate-2 drop-shadow-[0_8px_0_rgba(133,77,14,0.8)] filter"
-                  style={{ WebkitTextStroke: "3px #854d0e" }}
+                  className="font-pixel text-7xl md:text-[120px] font-bold text-neon-green my-2 leading-[0.9] tracking-wider transition-transform duration-300 hover:scale-105 hover:-rotate-1 drop-shadow-[0_0_20px_rgba(57,255,20,0.8)] filter"
+                  style={{ WebkitTextStroke: "2px #39ff14" }}
                 >
-                  Golden Byte
+                  ARCADE EDITION
                 </h1>
               </div>
             </div>
@@ -245,11 +217,6 @@ export default function HomePage() {
             {/* Countdown */}
             <div className="mt-8 flex flex-col items-center">
               <Countdown targetDate={new Date("2026-02-20T23:59:59")} />
-            </div>
-
-            {/* Golden ticket placeholder */}
-            <div className="mt-12 w-64 h-32 md:w-[480px] md:h-[240px] bg-transparent mx-auto animate-float-slow relative">
-              <div className="absolute inset-0 bg-yellow-400/20 blur-[60px] rounded-full transform scale-75"></div>
             </div>
           </div>
         </div>
