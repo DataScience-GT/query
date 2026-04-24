@@ -47,11 +47,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
-    const cacheKey = `admins:list`;
-    const cached = ctx.cache.get<typeof allAdmins>(cacheKey);
-    if (cached) return cached;
-
-    const allAdmins = await ctx.db!.query.admins.findMany({
+    const fetchAdmins = () => ctx.db!.query.admins.findMany({
       with: {
         user: {
           columns: {
@@ -66,6 +62,11 @@ export const adminRouter = createTRPCRouter({
       limit: 100,
     });
 
+    const cacheKey = `admins:list`;
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchAdmins>>>(cacheKey);
+    if (cached) return cached;
+
+    const allAdmins = await fetchAdmins();
     ctx.cache.set(cacheKey, allAdmins, 60);
 
     return allAdmins;
@@ -112,6 +113,10 @@ export const adminRouter = createTRPCRouter({
       if (!newAdmin) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create admin" });
       }
+
+      // Invalidate admin caches after creation
+      ctx.cache.deletePattern(`${CacheKeys.admin(input.userId)}*`);
+      ctx.cache.delete(`admins:list`);
 
       return newAdmin;
     }),

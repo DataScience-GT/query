@@ -74,12 +74,8 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   const handlePay = () => {
     setError(null);
     setIsPaying(true);
-    // API temporarily disabled because stripe API key is not configured ATM
-    // payMutation.mutate({ returnUrl: window.location.href });
-    setTimeout(() => {
-      setError("Stripe API is temporarily disabled.");
-      setIsPaying(false);
-    }, 500);
+    // Redirect to Stripe Checkout
+    payMutation.mutate({ returnUrl: window.location.href });
   };
 
   const handleSubmit = (e: React.FormEvent) => {

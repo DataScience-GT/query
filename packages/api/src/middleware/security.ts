@@ -8,6 +8,9 @@ interface RateLimitRecord {
   blockedUntil: number;
 }
 
+const MAX_RATE_LIMIT_STORE_SIZE = 10000; // Limit rate limit store size to prevent memory bloat
+const MAX_IP_TRACKING_STORE_SIZE = 50000; // Limit IP tracking store size
+
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
 interface IPRecord {
@@ -20,15 +23,73 @@ interface IPRecord {
 
 const ipTrackingStore = new Map<string, IPRecord>();
 
-// DDoS Protection Constants
-const DDOS_CONFIG = {
-  maxRequestsPerMinute: 3000, // Increased for venue WiFi (100 judges @ 30rpm)
-  suspiciousThreshold: 2000,
-  blockDurationMs: 5 * 60 * 1000,
-  burstThreshold: 500, // Allow 100 concurrent page loads
-  burstWindowMs: 5 * 1000,
-  cleanupIntervalMs: 60 * 1000,
+const enforceSizeLimit = () => {
+  const now = Date.now();
+
+  // Cleanup rate limit store - remove oldest entries when over limit
+  while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.lastRefill < oldestTime) {
+        oldestTime = value.lastRefill;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) {
+      rateLimitStore.delete(oldestKey);
+    }
+  }
+
+  // Cleanup IP tracking store - remove old entries
+  while (ipTrackingStore.size > MAX_IP_TRACKING_STORE_SIZE) {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [ip, record] of ipTrackingStore.entries()) {
+      if (now - record.firstRequest > 5 * 60 * 1000 && now < record.blockedUntil) {
+        if (record.firstRequest < oldestTime) {
+          oldestTime = record.firstRequest;
+          oldestKey = ip;
+        }
+      }
+    }
+    if (oldestKey) {
+      ipTrackingStore.delete(oldestKey);
+    }
+  }
+
+  // Remove expired records
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.blockedUntil) {
+      rateLimitStore.delete(key);
+    }
+  }
+
+  // Cleanup non-blocked IPs older than 5 minutes
+  for (const [ip, record] of ipTrackingStore.entries()) {
+    if (!record.isBlocked && now - record.firstRequest > 5 * 60 * 1000) {
+      ipTrackingStore.delete(ip);
+    }
+  }
 };
+
+// Run cleanup every minute
+setInterval(enforceSizeLimit, 60 * 1000);
+
+// DDoS Protection Configuration
+// These thresholds are intentionally lower than the absolute limits to allow headroom
+const DDOS_CONFIG = {
+  // Rate limits are configurable via environment variables
+  maxRequestsPerMinute: Number(process.env.DDOS_MAX_REQUESTS_PER_MINUTE) || 1000, // Adjusted for safe operation
+  suspiciousThreshold: Number(process.env.DDOS_SUSPICIOUS_THRESHOLD) || 700, // Lower threshold for safety
+  blockDurationMs: Number(process.env.DDOS_BLOCK_DURATION_MS) || 5 * 60 * 1000,
+  burstThreshold: Number(process.env.DDOS_BURST_THRESHOLD) || 100, // Reduced for safety
+  burstWindowMs: Number(process.env.DDOS_BURST_WINDOW_MS) || 5 * 1000,
+  cleanupIntervalMs: Number(process.env.DDOS_CLEANUP_INTERVAL_MS) || 60 * 1000,
+};
+
+// Log configuration for debugging
+console.log(`[DDoS Config] Using thresholds: ${DDOS_CONFIG.maxRequestsPerMinute}/min, burst at ${DDOS_CONFIG.burstThreshold} in ${DDOS_CONFIG.burstWindowMs}ms`);
 
 // Cleanup expired records
 setInterval(() => {
@@ -272,7 +333,16 @@ async function flushLogs() {
   const batch = flushQueue.splice(0, MAX_BATCH_SIZE);
 
   if (!db) {
-    console.warn(`[Security] DB unavailable, dropping ${batch.length} logs`);
+    // Critical: Security events dropped when DB is unavailable - warn to stderr and persist to file
+    console.error(`[Security] CRITICAL: DB unavailable, ${batch.length} critical security logs dropped. Consider implementing queue-based persistence.`);
+    try {
+      const fs = await import("fs");
+      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs dropped.\n`;
+      fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
+      console.error(errorLog.trim());
+    } catch {
+      // Ignore fs errors
+    }
     return;
   }
 
@@ -291,10 +361,19 @@ async function flushLogs() {
       };
     });
 
-    await db.insert(auditLogs).values(values);
+    const result = await db.insert(auditLogs).values(values);
+    console.log(`[Security] Flushed ${batch.length} security events to audit logs`);
   } catch (err) {
-    console.error(`[Security] Failed to flush ${batch.length} logs:`, err);
-    // In a real system, might want to re-queue, but for now we drop to avoid endless growth
+    const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
+    console.error(errorMsg);
+    // Log to a separate error audit file if available
+    try {
+      const fs = await import("fs");
+      const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
+      fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
+    } catch {
+      // Ignore fs errors
+    }
   }
 }
 
