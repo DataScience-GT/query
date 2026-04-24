@@ -140,6 +140,10 @@ export const publicProcedure = t.procedure
   });
 
 const isAuthed = t.middleware(async ({ ctx, next, type }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+  }
+
   const config = RATE_LIMITS.authenticated;
   const tokens = type === 'mutation' ? config.mutationTokens : config.queryTokens;
 

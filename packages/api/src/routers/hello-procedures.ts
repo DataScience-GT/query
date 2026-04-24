@@ -17,14 +17,14 @@ export const greetPublic = publicProcedure
     });
 
 export const sayHelloAuth = protectedProcedure.mutation(({ ctx }) => {
-    const user = ctx.session.user;
+    const user = ctx.session!.user;
 
     return {
-        message: `Hello ${user.name ?? user.email}!`,
+        message: `Hello ${user?.name ?? user?.email}!`,
         user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
+            id: user?.id,
+            email: user?.email,
+            name: user?.name,
         },
     };
 });
@@ -33,7 +33,7 @@ export const greet = protectedProcedure
     .input(z.object({ name: z.string().min(1) }))
     .mutation(({ ctx, input }) => {
         return {
-            message: `Hello ${input.name}, from ${ctx.session.user.email}`,
+            message: `Hello ${input.name}, from ${ctx.session!.user?.email}`,
             userId: ctx.userId,
         };
     });
