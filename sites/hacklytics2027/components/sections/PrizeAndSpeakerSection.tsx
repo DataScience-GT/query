@@ -1,11 +1,11 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
-import { Truculenta } from 'next/font/google';
+import { Press_Start_2P } from 'next/font/google';
 
-const truculenta = Truculenta({
+const pixel = Press_Start_2P({
   subsets: ['latin'],
-  weight: ['400', '700', '900'],
+  weight: ['400'],
 });
 
 const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }> = ({ src, delay, className }) => (
@@ -13,11 +13,11 @@ const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }
     className={`absolute pointer-events-none animate-float ${className}`}
     style={{ animationDelay: delay }}
   >
-    <Image src={src} alt="Candy" width={60} height={60} className="object-contain drop-shadow-lg" />
+    <Image src={src} alt="Candy" width={50} height={50} className="object-contain drop-shadow-md drop-shadow-[0_0_10px_var(--neon-pink)]" />
   </div>
 );
 
-// Main Prize Ticket Component
+// Main Prize Ticket Component - 1980s Arcade Style
 const PrizeTicket: React.FC<{
   type: 'gold' | 'silver' | 'bronze';
   prize: string;
@@ -39,7 +39,7 @@ const PrizeTicket: React.FC<{
       className={`flex flex-col items-center w-full max-w-[280px] animate-fade-in-up group`}
       style={{ animationDelay: delay }}
     >
-      <div className={`relative w-full aspect-[1.8/1] transition-all duration-500 hover:scale-105 hover:z-10 ${rotate} hover:rotate-0 drop-shadow-xl`}>
+      <div className={`relative w-full aspect-[1.8/1] transition-all duration-500 hover:scale-105 hover:z-10 ${rotate} hover:rotate-0 drop-shadow-xl drop-shadow-[0_0_20px_currentColor]`}>
         <svg viewBox="0 0 300 160" className="w-full h-full">
           <defs>
             <filter id={`glow-${type}`} x="-20%" y="-20%" width="140%" height="140%">
@@ -77,7 +77,7 @@ const PrizeTicket: React.FC<{
 
         {/* Prize Image - Overlaying the ticket */}
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="w-28 h-28 md:w-36 md:h-36 relative group-hover:scale-110 transition-transform drop-shadow-2xl bg-white rounded-xl overflow-hidden">
+          <div className="w-28 h-28 md:w-36 md:h-36 relative group-hover:scale-110 transition-transform drop-shadow-2xl bg-white rounded-xl overflow-hidden border-2 border-neon-pink">
             <Image src={image} alt={prize} fill className="object-contain p-2" />
           </div>
         </div>
@@ -85,7 +85,7 @@ const PrizeTicket: React.FC<{
 
       {/* Prize Text Below */}
       <div
-        className={`${truculenta.className} text-lg md:text-xl font-black uppercase tracking-wide mt-4 drop-shadow-sm text-center px-2`}
+        className={`${pixel.className} text-lg md:text-xl font-bold uppercase tracking-wide mt-4 drop-shadow-sm text-center px-2`}
         style={{ color: color.text }}
       >
         {prize}
@@ -94,7 +94,7 @@ const PrizeTicket: React.FC<{
   );
 };
 
-// Track Prize Card Component
+// Track Prize Card Component - 1980s Arcade Style
 const TrackPrizeCard: React.FC<{
   trackName: string;
   description: string;
@@ -103,12 +103,12 @@ const TrackPrizeCard: React.FC<{
   delay: string;
 }> = ({ trackName, description, prizes, color, delay }) => (
   <div
-    className="animate-fade-in-up bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-xl border-4 border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+    className="animate-fade-in-up bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-[0_0_30px_#ec4899] border-4 border-neon-pink hover:shadow-[0_0_40px_#ec4899] transition-all duration-300 hover:-translate-y-2"
     style={{ animationDelay: delay }}
   >
     {/* Track Header */}
-    <div className={`${color} rounded-2xl px-4 py-3 mb-4`}>
-      <h3 className={`${truculenta.className} text-2xl md:text-3xl font-black text-white text-center drop-shadow-sm`}>
+    <div className={`${color.replace('bg-', 'bg-neon-') || 'bg-neon-pink'} rounded-2xl px-4 py-3 mb-4 shadow-[0_0_15px_currentColor]`}>
+      <h3 className={`${pixel.className} text-2xl md:text-3xl font-bold text-white text-center drop-shadow-sm`}>
         {trackName}
       </h3>
     </div>
@@ -121,12 +121,12 @@ const TrackPrizeCard: React.FC<{
     {/* Prizes */}
     <div className="space-y-4">
       {prizes.map((prize, index) => (
-        <div key={index} className="flex items-center gap-4 bg-gray-50 rounded-xl p-3">
-          <div className="w-14 h-14 relative rounded-lg overflow-hidden bg-white shadow-md flex-shrink-0">
+        <div key={index} className="flex items-center gap-4 bg-neon-pink/10 rounded-xl p-3 border-2 border-neon-pink/30">
+          <div className="w-14 h-14 relative rounded-lg overflow-hidden bg-white shadow-md flex-shrink-0 border-2 border-neon-cyan/30">
             <Image src={prize.image} alt={prize.name} fill className="object-contain p-1" />
           </div>
           <div className="flex-1 min-w-0">
-            <span className={`${truculenta.className} text-sm font-bold ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-500' : 'text-orange-700'
+            <span className={`${pixel.className} text-sm font-bold ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-500' : 'text-orange-700'
               }`}>
               {prize.place}
             </span>
@@ -138,7 +138,7 @@ const TrackPrizeCard: React.FC<{
   </div>
 );
 
-// Speaker Card Component
+// Speaker Card Component - 1980s Arcade Style
 const SpeakerCard: React.FC<{ name: string; title: string; company: string; image: string; color: string; delay: string; rotate: string }> = ({
   name,
   title,
@@ -149,41 +149,39 @@ const SpeakerCard: React.FC<{ name: string; title: string; company: string; imag
   rotate
 }) => (
   <div className={`group relative w-full animate-fade-in-up ${rotate} hover:rotate-0 transition-all duration-300 hover:z-10`} style={{ animationDelay: delay }}>
-    {/* Shadow Layer */}
-    <div className={`absolute inset-0 ${color} rounded-[2rem] transform translate-y-2 translate-x-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3`}></div>
+    {/* Shadow Layer - Neon glow */}
+    <div className={`absolute inset-0 ${color} rounded-[2rem] transform translate-y-2 translate-x-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3 drop-shadow-[0_0_20px_currentColor]`}></div>
 
     {/* Card Body */}
-    <div className="relative bg-white rounded-[2rem] border-[4px] border-gray-100 p-6 flex flex-col items-center text-center shadow-lg overflow-hidden group-hover:shadow-xl transition-all">
+    <div className="relative bg-white rounded-[2rem] border-[4px] border-neon-pink p-6 flex flex-col items-center text-center shadow-[0_0_20px_currentColor] overflow-hidden group-hover:shadow-[0_0_30px_currentColor] transition-all">
 
       {/* Image Container */}
-      <div className={`relative w-28 h-28 mb-4 rounded-full border-[4px] border-${color.replace('bg-', '')} overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-300`}>
-        <Image src={image} alt={name} fill className="object-cover" />
+      <div className={`relative w-28 h-28 mb-4 rounded-full border-[4px] border-neon-pink overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-300`}>
+        <Image src={image} alt={name} fill className="object-cover drop-shadow-[0_0_5px_currentColor]" />
       </div>
 
       {/* Info */}
-      <h3 className={`${truculenta.className} text-2xl font-black text-gray-800 mb-1 group-hover:text-${color.replace('bg-', '')} transition-colors`}>
+      <h3 className={`${pixel.className} text-2xl font-bold text-gray-800 mb-1 group-hover:text-neon-pink transition-colors drop-shadow-[0_0_5px_currentColor]`}>
         {name}
       </h3>
       <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">{title}</p>
-      <p className="text-sm font-medium text-gray-400">{company}</p>
+      <p className="text-sm font-medium text-gray-400 drop-shadow-[0_0_3px_currentColor]">{company}</p>
     </div>
   </div>
 );
 
 export default function PrizeAndSpeakerSection() {
-  // Main prizes data
   const mainPrizes = [
     { type: 'silver' as const, rank: '2', prize: 'Apple AirPods Max', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/airpods-max-select-spacegray-202011?wid=400&hei=400&fmt=png-alpha' },
     { type: 'gold' as const, rank: '1', prize: 'Apple MacBook Air M4', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-midnight-select-20220606?wid=400&hei=400&fmt=png-alpha' },
     { type: 'bronze' as const, rank: '3', prize: 'Samsung Odyssey G5 Monitor', image: '/prizes/samsung-monitor.jpg' },
   ];
 
-  // Track prizes data
   const trackPrizes = [
     {
       trackName: 'Finance',
       description: 'Analyze market trends, predict stock movements, and build fintech solutions',
-      color: 'bg-emerald-500',
+      color: 'bg-emerald-400',
       prizes: [
         { place: '1st Place', name: 'Nespresso Virtuo Next w/ Milk Frother', image: '/prizes/nespresso-new.jpg' },
         { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-flip.jpg' },
@@ -193,7 +191,7 @@ export default function PrizeAndSpeakerSection() {
     {
       trackName: 'Sports Analytics',
       description: 'Dive into player performance, game strategy, and the future of sports data',
-      color: 'bg-blue-500',
+      color: 'bg-blue-400',
       prizes: [
         { place: '1st Place', name: 'Apple 40mm Watch SE 3', image: '/prizes/apple-watch.jpg' },
         { place: '2nd Place', name: 'JBL Grip Speaker', image: '/prizes/jbl-flip.jpg' },
@@ -203,7 +201,7 @@ export default function PrizeAndSpeakerSection() {
     {
       trackName: 'Healthcare',
       description: 'Innovate in bioinformatics, patient care, and personal health technology',
-      color: 'bg-red-500',
+      color: 'bg-pink-400',
       prizes: [
         { place: '1st Place', name: 'Theragun Mini Gen 3', image: '/prizes/theragun-mini.jpg' },
         { place: '2nd Place', name: 'Fitbit Inspire 3', image: '/prizes/fitbit.jpg' },
@@ -213,7 +211,7 @@ export default function PrizeAndSpeakerSection() {
     {
       trackName: 'Entertainment',
       description: 'See how AI is transforming movies, gaming, and interactive experiences',
-      color: 'bg-purple-500',
+      color: 'bg-purple-400',
       prizes: [
         { place: '1st Place', name: 'Projector', image: '/prizes/projector-new.jpg' },
         { place: '2nd Place', name: 'Karaoke Machine', image: '/prizes/karaoke-new.jpg' },
@@ -223,7 +221,7 @@ export default function PrizeAndSpeakerSection() {
     {
       trackName: 'Pure Imagination',
       description: 'Unleash your creativity, explore unconventional ideas, and use data to build the coolest, most unique project',
-      color: 'bg-gradient-to-r from-pink-500 to-yellow-500',
+      color: 'bg-gradient-to-r from-pink-400 to-yellow-400',
       prizes: [
         { place: '1st Place', name: 'Ninja Swirl by CREAMi Soft Serve and Ice Cream Maker', image: '/prizes/ninja-creami.jpg' },
       ]
@@ -255,7 +253,7 @@ export default function PrizeAndSpeakerSection() {
       title: 'Workshop Lead',
       company: 'Coming Soon',
       image: '/wonka/wonka.jpg',
-      color: 'bg-emerald-400',
+      color: 'bg-neon-green',
       rotate: '-rotate-1'
     },
     {
@@ -270,13 +268,13 @@ export default function PrizeAndSpeakerSection() {
   ];
 
   return (
-    <section id="prizes" className="section-anchor scroll-mt-28 min-h-screen bg-sky relative overflow-hidden py-24">
+    <section id="prizes" className="section-anchor scroll-mt-28 min-h-screen bg-retro-gradient relative overflow-hidden py-24">
       {/* Decorations */}
-      <div className="absolute top-20 left-[-60px] w-56 h-36 opacity-30 animate-drift" style={{ animationDelay: '0s' }}>
-        <Image src="/cloud-main/largecloud.png" alt="" fill className="object-contain" />
+      <div className="absolute top-20 left-[-60px] w-56 h-36 opacity-30 animate-drift drop-shadow-[0_0_25px_#ec4899]" style={{ animationDelay: '0s' }}>
+        <Image src="/cloud-main/largecloud.png" alt="" fill className="object-contain drop-shadow-[0_0_25px_#ec4899]" />
       </div>
-      <div className="absolute bottom-40 right-[-50px] w-64 h-40 opacity-40 animate-drift" style={{ animationDelay: '2s' }}>
-        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain" />
+      <div className="absolute bottom-40 right-[-50px] w-64 h-40 opacity-40 animate-drift drop-shadow-[0_0_25px_#06b6d4]" style={{ animationDelay: '2s' }}>
+        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain drop-shadow-[0_0_25px_#06b6d4]" />
       </div>
 
       <FloatingCandy src="/small-candy/green.png" delay="0s" className="top-32 left-[10%] rotate-12" />
@@ -287,12 +285,12 @@ export default function PrizeAndSpeakerSection() {
         {/* Main Prizes Section */}
         <div className="mb-24">
           <div className="text-center mb-16 relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/30 blur-3xl rounded-full -z-10"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-neon-cyan/20 blur-3xl rounded-full -z-10"></div>
             <h1
-              className="font-willywonka text-7xl md:text-9xl text-wonka-yellow mb-4 drop-shadow-[0_4px_0_rgba(133,77,14,0.6)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
-              style={{ WebkitTextStroke: "2px #854d0e" }}
+              className="font-pixel text-7xl md:text-9xl text-neon-cyan mb-4 drop-shadow-[0_0_30px_var(--neon-cyan)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
+              style={{ WebkitTextStroke: "2px #00ffff" }}
             >
-              Grand Prizes
+              GRAND PRIZES
             </h1>
           </div>
 
@@ -315,16 +313,16 @@ export default function PrizeAndSpeakerSection() {
         {/* Track Prizes Section */}
         <div className="mb-32">
           <div className="text-center mb-16 relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/30 blur-3xl rounded-full -z-10"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-neon-purple/20 blur-3xl rounded-full -z-10"></div>
             <h1
-              className="font-willywonka text-6xl md:text-8xl text-wonka-yellow mb-4 drop-shadow-[0_4px_0_rgba(133,77,14,0.6)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
-              style={{ WebkitTextStroke: "2px #854d0e" }}
+              className="font-pixel text-6xl md:text-8xl text-neon-cyan mb-4 drop-shadow-[0_0_30px_var(--neon-cyan)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
+              style={{ WebkitTextStroke: "2px #00ffff" }}
             >
-              Track Prizes
+              TRACK PRIZES
             </h1>
           </div>
 
-          {/* Reverse Pyramid Layout: 3 on top, 2 in middle, 1 at bottom */}
+          {/* Reverse Pyramid Layout */}
           <div className="flex flex-col gap-6">
             {/* Top Row - 3 cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -352,12 +350,12 @@ export default function PrizeAndSpeakerSection() {
         {/* Speakers Section */}
         <div>
           <div className="text-center mb-16 relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/30 blur-3xl rounded-full -z-10"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-neon-pink/20 blur-3xl rounded-full -z-10"></div>
             <h1
-              className="font-willywonka text-7xl md:text-9xl text-wonka-yellow mb-4 drop-shadow-[0_4px_0_rgba(133,77,14,0.6)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
-              style={{ WebkitTextStroke: "2px #854d0e" }}
+              className="font-pixel text-7xl md:text-9xl text-neon-cyan mb-4 drop-shadow-[0_0_30px_var(--neon-cyan)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
+              style={{ WebkitTextStroke: "2px #00ffff" }}
             >
-              Speakers
+              SPEAKERS
             </h1>
           </div>
 
