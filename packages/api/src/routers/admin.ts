@@ -47,13 +47,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
-    type DB = NonNullable<typeof ctx.db>;
-    type AdminList = Awaited<ReturnType<DB["query"]["admins"]["findMany"]>>;
-    const cacheKey = `admins:list`;
-    const cached = ctx.cache.get<AdminList>(cacheKey);
-    if (cached) return cached;
-
-    const allAdmins = await ctx.db!.query.admins.findMany({
+    const fetchAdmins = () => ctx.db!.query.admins.findMany({
       with: {
         user: {
           columns: {
@@ -68,6 +62,11 @@ export const adminRouter = createTRPCRouter({
       limit: 100,
     });
 
+    const cacheKey = `admins:list`;
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchAdmins>>>(cacheKey);
+    if (cached) return cached;
+
+    const allAdmins = await fetchAdmins();
     ctx.cache.set(cacheKey, allAdmins, 60);
 
     return allAdmins;
