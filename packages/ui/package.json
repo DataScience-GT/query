@@ -45,7 +45,7 @@
     "typescript": "5.8.3"
   },
   "dependencies": {
-    "minimatch": "10.0.3",
+    "minimatch": "^10.2.3",
     "react-dom": "19.0.0"
   }
 }
