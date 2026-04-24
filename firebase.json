@@ -19,6 +19,12 @@
             "public": "sites/mainweb/out",
             "cleanUrls": true,
             "trailingSlash": true
+        },
+        {
+            "site": "hacklytics2027",
+            "public": "sites/hacklytics2027/public",
+            "cleanUrls": true,
+            "trailingSlash": true
         }
     ]
 }
