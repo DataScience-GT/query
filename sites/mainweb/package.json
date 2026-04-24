@@ -19,7 +19,7 @@
     "@query/ui": "workspace:*",
     "@tanstack/react-query": "^5.90.12",
     "@trpc/client": "^11.15.1",
-    "@trpc/next": "^11.15.1",
+    "@trpc/next": "^11.16.0",
     "@trpc/react-query": "^11.15.1",
     "@trpc/server": "^11.15.1",
     "@yudiel/react-qr-scanner": "^2.5.0",
