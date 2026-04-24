@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  reactCompiler: true,
   transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
   outputFileTracingRoot: path.join(__dirname, '../../'),
   async headers() {

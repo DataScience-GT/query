@@ -11,6 +11,10 @@ const nextConfig = {
       },
     ],
   },
+  reactCompiler: true,
+  experimental: {
+    optimizePackageImports: ['react-icons'],
+  },
   reactStrictMode: true, // recommended
 };
 
