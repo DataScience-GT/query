@@ -22,7 +22,7 @@
         },
         {
             "site": "hacklytics2027",
-            "public": "sites/hacklytics2027/public",
+            "public": "sites/hacklytics2027/out",
             "cleanUrls": true,
             "trailingSlash": true
         }
