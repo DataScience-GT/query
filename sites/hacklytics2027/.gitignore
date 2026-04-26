@@ -15,7 +15,8 @@
 
 # next.js
 /.next/
-/out/
+# Build output is included for Firebase deployment
+# /out/
 
 # production
 /build
