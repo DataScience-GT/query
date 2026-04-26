@@ -7,7 +7,7 @@ scripts:
 runConfig:
   runtime: nodejs20
   concurrency: 80
-  cpu: 4
+  cpu: 1
   memoryMiB: 1024
   minInstances: 0
   maxInstances: 10
