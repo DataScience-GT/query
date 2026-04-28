@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,8 @@ import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
+
+type HackathonStatus = 'open' | 'in_progress' | 'completed' | 'closed' | 'cancelled';
 
 function formatDate(d: Date | string) {
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -25,13 +27,14 @@ function formatDateRange(start: Date | string, end: Date | string) {
     return `${formatDate(s)} – ${formatDate(e)}`;
 }
 
-function statusConfig(s: string) {
+function statusConfig(s: HackathonStatus | 'draft' | 'cancelled') {
     const map: Record<string, { label: string; dot: string; text: string; bg: string; border: string; glow: string }> = {
         open: { label: 'Registering', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.6)]' },
         in_progress: { label: 'Live Now', dot: 'bg-cyan-400', text: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', glow: 'shadow-[0_0_15px_rgba(34,211,238,0.6)]' },
         completed: { label: 'Completed', dot: 'bg-white/40', text: 'text-white/60', bg: 'bg-white/5', border: 'border-white/10', glow: '' },
         closed: { label: 'Applications Closed', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30', glow: '' },
         cancelled: { label: 'Cancelled', dot: 'bg-rose-500', text: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30', glow: '' },
+        draft: { label: 'Draft', dot: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' },
     };
     return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
 }
@@ -39,6 +42,8 @@ function statusConfig(s: string) {
 export default function HackathonsPage() {
     const { data: session, status: authStatus } = useSession();
     const router = useRouter();
+
+    const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'live' | 'completed'>('all');
 
     const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery({});
     const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
@@ -58,7 +63,7 @@ export default function HackathonsPage() {
                     <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.02)]">
                         <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                     </div>
-                    <h2 className="text-xl text-white font-medium mb-2">No Active Events</h2>
+                    <h2 className="text-xl text-white font-medium mb-2">No Active Hackathons</h2>
                     <p className="text-sm text-white/40 mb-8 leading-relaxed">
                         There are currently no hackathons available. Please check back later for upcoming events.
                     </p>
@@ -83,7 +88,7 @@ export default function HackathonsPage() {
 
             <div className="relative z-10 max-w-6xl mx-auto py-24 px-6 md:px-12">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
                     <div>
                         <Link href="/dashboard" className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium mb-8 group">
                             <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
@@ -92,23 +97,69 @@ export default function HackathonsPage() {
                             Dashboard
                         </Link>
 
-                        <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 tracking-tight mb-4">
-                            Events & Hackathons
+                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-3">
+                            Hackathon Directory
                         </h1>
-                        <p className="text-base md:text-lg text-white/40 max-w-xl leading-relaxed">
-                            Discover and register for upcoming hackathons. Join teams, build projects, and compete for prizes.
+                        <p className="text-base text-white/40 max-w-xl leading-relaxed">
+                            Browse upcoming hackathons, competitions, and event-based challenges. Register to join teams and compete.
                         </p>
                     </div>
                 </div>
 
+                {/* Status Filter */}
+                <div className="flex items-center bg-black/40 border border-white/5 p-1.5 rounded-xl gap-1 mb-8 overflow-x-auto">
+                    <button
+                        onClick={() => setStatusFilter('all')}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'all'
+                            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        All Hackathons
+                    </button>
+                    <button
+                        onClick={() => setStatusFilter('open')}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'open'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        Registering
+                    </button>
+                    <button
+                        onClick={() => setStatusFilter('live')}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'live'
+                            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        Live Now
+                    </button>
+                    <button
+                        onClick={() => setStatusFilter('completed')}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'completed'
+                            ? 'bg-white/10 text-white/60 border border-white/10'
+                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        Completed
+                    </button>
+                </div>
+
                 {/* Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {hackathons.map((h) => {
-                        const conf = statusConfig(h.status);
-                        const isRegistered = registeredIds.has(h.id);
+                    {hackathons
+                        .filter((h) => {
+                            if (statusFilter === 'all') return true;
+                            if (statusFilter === 'open') return h.status === 'open';
+                            if (statusFilter === 'live') return h.status === 'in_progress';
+                            return h.status === 'completed';
+                        })
+                        .map((h) => {
+                            const conf = statusConfig(h.status);
+                            const isRegistered = registeredIds.has(h.id);
 
-                        return (
-                            <Link key={h.id} href={`/hackathons/${h.id}/participants`} className="group block h-full">
+                            return (
                                 <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/20">
                                     <div className="relative flex flex-col h-full bg-[#0a0a0a] rounded-2xl p-6 md:p-8 overflow-hidden z-10">
 
@@ -183,9 +234,8 @@ export default function HackathonsPage() {
                                         </div>
                                     </div>
                                 </LiquidGlass>
-                            </Link>
-                        );
-                    })}
+                            );
+                        })}
                 </div>
             </div>
         </div>
