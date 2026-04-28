@@ -50,21 +50,30 @@ export default function AdminHackathonUnifiedDashboard() {
 
             {/* HEADER */}
             <header className="relative z-10 w-full pt-8 pb-4 px-4 md:px-6 bg-[#050505]/90 backdrop-blur-md border-b border-white/5 sticky top-0 md:static">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div>
-                        <Link href="/admin/hackathons" className="mb-4 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit">
-                            <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                            Back to Hub
-                        </Link>
-                        <p className="text-[#00A8A8] font-mono text-xs tracking-[0.2em] uppercase mb-1 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00A8A8] animate-pulse" />
-                            Operations Dashboard
-                        </p>
-                        <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight italic">
-                            {hackathon.name}
-                        </h1>
-                    </div>
+              <div className="max-w-7xl mx-auto flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <Link href="/admin/hackathons" className="mb-2 md:mb-0 flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit" aria-label="Back to hackathons hub">
+                    <svg className="w-4 h-4 shrink-0 md:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    <span className="hidden md:inline">Back to Hub</span>
+                  </Link>
+                  <p className="text-[#00A8A8] font-mono text-xs tracking-[0.2em] uppercase mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00A8A8] animate-pulse" />
+                    <span className="hidden sm:inline">Operations Dashboard</span>
+                    <span className="sm:hidden">Stats</span>
+                  </p>
+                  <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight italic">
+                    {hackathon.name}
+                  </h1>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/hackathons/${hackathon.id}/scanner`}
+                    className="px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-medium hover:bg-cyan-500/20 active:scale-95 transition-all"
+                  >
+                    Quick Scan
+                  </Link>
+                </div>
+              </div>
             </header>
 
             {/* DESKTOP TABS */}
