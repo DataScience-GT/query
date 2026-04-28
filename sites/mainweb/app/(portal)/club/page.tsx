@@ -403,8 +403,8 @@ export default function ClubPage() {
             <div className="relative z-10 flex flex-1 flex-col">
               {/* General Events Tab */}
               {activeTab === "general" && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 grid grid-cols-1 items-start gap-8 duration-500 md:grid-cols-2">
-                  <div className="group relative flex flex-col items-center rounded-3xl border border-green-500/10 bg-black/40 p-8 transition-all duration-500 hover:border-green-500/30">
+                <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-500">
+                  <div className="group relative flex flex-col rounded-3xl border border-green-500/10 bg-black/40 p-8 transition-all duration-500 hover:border-green-500/30">
                     <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                     <button
@@ -412,7 +412,7 @@ export default function ClubPage() {
                       disabled={showScanner}
                       className="relative z-10 mb-8 w-full rounded-xl border border-green-500/30 px-8 py-4 text-xs font-black tracking-[0.2em] text-green-400 uppercase transition-all hover:bg-green-500/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      SCAN ROOM CODE (CAMERA)
+                      SCAN ROOM CODE
                     </button>
 
                     <div className="relative mb-6 flex w-full justify-center">
@@ -432,9 +432,9 @@ export default function ClubPage() {
                           />
                         </svg>
                         <p className="font-mono text-xs text-gray-500 uppercase">
-                          Ready to check-in to club events.
+                          Room check-in
                           <br />
-                          Scan room codes when events are live.
+                          Scan when events start
                         </p>
                       </div>
                     </div>
@@ -444,19 +444,19 @@ export default function ClubPage() {
                         Check-In Terminal
                       </h2>
                       <p className="mt-1 font-mono text-[10px] tracking-[0.4em] text-gray-500 uppercase">
-                        For general club gatherings and events
+                        For general gatherings
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="group relative flex items-center justify-between rounded-2xl border border-green-500/5 bg-black/40 p-6 transition-colors hover:border-green-500/20">
+                  <div className="space-y-3">
+                    <div className="group relative flex items-center justify-between rounded-2xl border border-green-500/5 bg-black/40 p-5 transition-colors hover:border-green-500/20">
                       <div>
                         <span className="mb-1 block font-mono text-[10px] tracking-[0.4em] text-gray-500 uppercase">
-                          LOGGED SESSIONS
+                          COMPLETED SESSIONS
                         </span>
                         <span className="font-mono text-xs text-gray-400">
-                          Total club events attended
+                          Total check-ins recorded
                         </span>
                       </div>
                       <div className="flex items-center gap-3 rounded-xl bg-green-500/10 px-4 py-2">
@@ -465,38 +465,6 @@ export default function ClubPage() {
                           {myStats?.totalEvents ?? 0}
                         </span>
                       </div>
-                    </div>
-
-                    <div className="group relative flex items-center justify-between rounded-2xl border border-green-500/5 bg-black/40 p-6 transition-colors hover:border-green-500/20">
-                      <div>
-                        <span className="mb-1 block font-mono text-[10px] tracking-[0.4em] text-gray-500 uppercase">
-                          UPCOMING EVENTS
-                        </span>
-                        <span className="font-mono text-xs text-gray-400">
-                          Check-in enabled events
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-xl bg-green-500/10 px-4 py-2">
-                        <span className="text-3xl font-black text-white tabular-nums">
-                          {myStats?.totalEvents ?? 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-8 rounded-2xl border border-green-500/10 bg-green-500/5 p-6">
-                      <h4 className="mb-2 font-mono text-sm font-bold tracking-widest text-green-400 uppercase">
-                        Quick Actions
-                      </h4>
-                      <ul className="space-y-2 text-sm text-gray-400">
-                        <li className="flex items-center gap-2">
-                          <span className="text-lg leading-none text-green-400">›</span>
-                          <span>Find local club members easily</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="text-lg leading-none text-green-400">›</span>
-                          <span>Join upcoming internal events</span>
-                        </li>
-                      </ul>
                     </div>
                   </div>
                 </div>
