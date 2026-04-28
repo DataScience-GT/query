@@ -207,68 +207,73 @@ export default function ClubPage() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex flex-1 gap-2 overflow-x-auto pb-2 scrollbar-none lg:flex-col lg:pb-0">
+            <nav className="w-full gap-2 overflow-x-auto pb-2 scrollbar-none lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible">
               <Link
                 href="/club#general"
-                className={`group flex shrink-0 items-center justify-center gap-3 rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 lg:w-full lg:justify-between ${
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
                   activeTab === 'general'
                     ? 'border-green-500/20 bg-green-500/10 text-green-400 shadow-[inset_0_0_20px_rgba(34,197,94,0.05)]'
                     : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
                 }`}
+                aria-label="General Events - Club gatherings with QR check-ins"
               >
-                <span>General Events</span>
+                <span>Events</span>
                 <span
                   className={`h-2 w-2 rounded-full transition-all ${activeTab === 'general' ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]" : "bg-transparent group-hover:bg-green-500/40"}`}
                 ></span>
               </Link>
               <Link
                 href="/club#hackathons"
-                className={`group flex shrink-0 items-center justify-center gap-3 rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 lg:w-full lg:justify-between ${
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
                   activeTab === 'hackathons'
                     ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
                     : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
                 }`}
+                aria-label="My Hackathons - Competition events you're registered for"
               >
-                <span>My Hackathons</span>
+                <span>Hackathons</span>
                 <span
                   className={`h-2 w-2 rounded-full transition-all ${activeTab === 'hackathons' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
                 ></span>
               </Link>
               <Link
                 href="/club#projects"
-                className={`group flex shrink-0 items-center justify-center gap-3 rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 lg:w-full lg:justify-between ${
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
                   activeTab === 'projects'
                     ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
                     : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
                 }`}
+                aria-label="My Projects - Your submitted project entries"
               >
-                <span>My Projects</span>
+                <span>Projects</span>
                 <span
                   className={`h-2 w-2 rounded-full transition-all ${activeTab === 'projects' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
                 ></span>
               </Link>
               <Link
                 href="/club#history"
-                className={`group flex shrink-0 items-center justify-center gap-3 rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 lg:w-full lg:justify-between ${
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
                   activeTab === 'history'
                     ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
                     : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
                 }`}
+                aria-label="Attendance History - Your event check-in records"
               >
-                <span>Attendance History</span>
+                <span>History</span>
                 <span
                   className={`h-2 w-2 rounded-full transition-all ${activeTab === 'history' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
                 ></span>
               </Link>
               <Link
                 href="/club#status"
-                className={`group flex shrink-0 items-center justify-center gap-3 rounded-xl border border-transparent px-6 py-4 text-sm font-bold tracking-widest transition-all duration-200 lg:w-full lg:justify-between ${
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
                   activeTab === 'status'
                     ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
                     : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
                 }`}
+                aria-label="Membership Status - Your member access info"
               >
-                <span>Membership</span>
+                <span>Status</span>
                 <span
                   className={`h-2 w-2 rounded-full transition-all ${activeTab === 'status' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
                 ></span>
@@ -299,35 +304,53 @@ export default function ClubPage() {
                   </li>
                 </ul>
               </div>
-              <div className="mt-6 rounded-xl border border-white/5 bg-white/5 p-6">
-                <h4 className="mb-2 font-mono text-xs font-bold tracking-widest text-white uppercase">Quick Navigation</h4>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-6 rounded-xl border border-white/5 bg-white/5 p-4 md:p-6">
+                <h4 className="mb-3 flex items-center gap-2 font-mono text-xs font-bold tracking-wider text-white uppercase">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a2 2 0 002-2v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4a1 1 0 001 1zm-3 1h2" />
+                  </svg>
+                  Quick Links
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
                   <Link
                     href="/hackathons"
-                    className="inline-flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-xs font-mono text-green-400 transition-all hover:bg-green-500/20 hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                    className="group flex items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-all hover:bg-green-500/20 active:scale-[0.98]"
+                    aria-label="Browse all hackathons and competitions"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Browse Hackathons
+                    <span>Browse Hackathons</span>
                   </Link>
                   <Link
                     href="/club"
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-xs font-mono text-white transition-all hover:bg-white/10 hover:shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                    className="group flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.98]"
+                    aria-label="Go to club events terminal"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    Club Terminal
+                    <span>Club Terminal</span>
                   </Link>
                   <Link
                     href="/judge"
-                    className="inline-flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-xs font-mono text-purple-400 transition-all hover:bg-purple-500/20"
+                    className="group flex items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-sm font-medium text-purple-400 transition-all hover:bg-purple-500/20 active:scale-[0.98]"
+                    aria-label="Access judge portal"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    Judge Portal
+                    <span>Judge Portal</span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="group flex items-center justify-center gap-2 rounded-xl border border-gray-500/30 bg-gray-500/10 px-4 py-3 text-sm font-medium text-gray-400 transition-all hover:bg-gray-500/20 active:scale-[0.98]"
+                    aria-label="Return to main dashboard"
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1 1v4a1 1 0 011 1h2a2 2 0 002-2v-4a1 1 0 001-1zm-3 1h2" />
+                    </svg>
+                    <span>Dashboard</span>
                   </Link>
                 </div>
               </div>

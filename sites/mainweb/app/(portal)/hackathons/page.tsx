@@ -107,19 +107,19 @@ export default function HackathonsPage() {
                 </div>
 
                 {/* Status Filter */}
-                <div className="flex items-center bg-black/40 border border-white/5 p-1.5 rounded-xl gap-1 mb-8 overflow-x-auto">
+                <div className="flex flex-wrap items-center bg-black/40 border border-white/5 p-2 rounded-xl gap-2 mb-6 sm:mb-8">
                     <button
                         onClick={() => setStatusFilter('all')}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'all'
+                        className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'all'
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                             : 'text-gray-500 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        All Hackathons
+                        All
                     </button>
                     <button
                         onClick={() => setStatusFilter('open')}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'open'
+                        className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'open'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                             : 'text-gray-500 hover:text-white hover:bg-white/5'
                             }`}
@@ -128,7 +128,7 @@ export default function HackathonsPage() {
                     </button>
                     <button
                         onClick={() => setStatusFilter('live')}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'live'
+                        className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'live'
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                             : 'text-gray-500 hover:text-white hover:bg-white/5'
                             }`}
@@ -137,7 +137,7 @@ export default function HackathonsPage() {
                     </button>
                     <button
                         onClick={() => setStatusFilter('completed')}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'completed'
+                        className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'completed'
                             ? 'bg-white/10 text-white/60 border border-white/10'
                             : 'text-gray-500 hover:text-white hover:bg-white/5'
                             }`}
@@ -147,7 +147,7 @@ export default function HackathonsPage() {
                 </div>
 
                 {/* Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {hackathons
                         .filter((h) => {
                             if (statusFilter === 'all') return true;
