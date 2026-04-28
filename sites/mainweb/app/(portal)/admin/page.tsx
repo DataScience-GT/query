@@ -40,7 +40,8 @@ export default function AdminPage() {
     enabled: !!session && adminStatus?.isAdmin,
   });
 
-  const [eventView, setEventView] = useState<'all' | 'hackathons' | 'general'>('all');
+  type EventView = 'all' | 'competitions' | 'gatherings';
+  const [eventView, setEventView] = useState<EventView>('all');
 
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
@@ -149,9 +150,9 @@ export default function AdminPage() {
               All
             </button>
             <button
-              onClick={() => setEventView('hackathons')}
+              onClick={() => setEventView('competitions')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                eventView === 'hackathons'
+                eventView === 'competitions'
                   ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                   : 'text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10'
               }`}
@@ -160,13 +161,13 @@ export default function AdminPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Hackathons
+                Competitions
               </div>
             </button>
             <button
-              onClick={() => setEventView('general')}
+              onClick={() => setEventView('gatherings')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                eventView === 'general'
+                eventView === 'gatherings'
                   ? 'bg-green-500/10 text-green-400 border border-green-500/30'
                   : 'text-gray-500 hover:text-green-400 hover:bg-green-500/10'
               }`}
@@ -175,7 +176,7 @@ export default function AdminPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                Club Events
+                Gatherings
               </div>
             </button>
           </div>
@@ -183,7 +184,7 @@ export default function AdminPage() {
             {eventView === 'all'
               ? `${events?.length} total events`
               : `${events?.filter((e) => {
-                  if (eventView === 'hackathons') return e.checkInEnabled;
+                  if (eventView === 'competitions') return e.checkInEnabled;
                   return !e.checkInEnabled;
                 }).length} of ${events?.length} shown`}
           </div>
@@ -195,27 +196,27 @@ export default function AdminPage() {
             <div>
               <h2 className="text-xl font-bold text-white">
                 {eventView === 'all' && 'All Events'}
-                {eventView === 'hackathons' && (
+                {eventView === 'competitions' && (
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Hackathons
+                    Competitions
                   </div>
                 )}
-                {eventView === 'general' && (
+                {eventView === 'gatherings' && (
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    Club Events
+                    Gatherings
                   </div>
                 )}
               </h2>
               <p className="text-gray-500 text-sm font-mono">
                 {eventView === 'all'
                   ? `${events?.length} events in the system`
-                  : eventView === 'hackathons'
+                  : eventView === 'competitions'
                   ? `Competitions with teams, projects, and judging`
                   : `General gatherings with QR check-ins`}
               </p>
@@ -235,24 +236,24 @@ export default function AdminPage() {
                   <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
                 </svg>
               </div>
-              <h3 className="text-white font-semibold mb-1">No {eventView === 'all' ? 'events' : eventView === 'hackathons' ? 'hackathons' : 'club events'} yet</h3>
-              <p className="text-gray-500 text-sm font-mono">Create your first {eventView === 'all' ? 'event' : eventView === 'hackathons' ? 'hackathon' : 'club event'} to get started.</p>
+              <h3 className="text-white font-semibold mb-1">No {eventView === 'all' ? 'events' : eventView === 'competitions' ? 'competitions' : 'gatherings'} yet</h3>
+              <p className="text-gray-500 text-sm font-mono">Create your first {eventView === 'all' ? 'event' : eventView === 'competitions' ? 'competition' : 'gathering'} to get started.</p>
             </LiquidGlass>
           ) : (
             <div className="space-y-4">
               {events
                 .filter((e) => {
                   if (eventView === 'all') return true;
-                  if (eventView === 'hackathons') return e.checkInEnabled;
+                  if (eventView === 'competitions') return e.checkInEnabled;
                   return !e.checkInEnabled;
                 })
                 .map((event) => (
                   <LiquidGlass
                     key={event.id}
                     className={`p-6 hover:border-white/20 transition-all ${
-                      eventView === 'hackathons'
+                      eventView === 'competitions'
                         ? 'border-l-4 border-l-cyan-500'
-                        : eventView === 'general'
+                        : eventView === 'gatherings'
                         ? 'border-l-4 border-l-green-500'
                         : ''
                     }`}
@@ -304,7 +305,7 @@ export default function AdminPage() {
                           : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                           }`}
                       >
-                        {event.checkInEnabled ? 'Close' : 'Open'}
+                        {event.checkInEnabled ? 'Gathering' : 'Competition'}
                       </button>
                       <button
                         onClick={() => {
