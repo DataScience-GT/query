@@ -795,20 +795,13 @@ export const judgeRouter = createTRPCRouter({
         })
         .returning();
 
-      // Fetch all projects for this hackathon
       const allProjects = await ctx.db!.query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      // Filter based on track if assigned
-      const assignedProjects = input.track
-        ? allProjects.filter((p) => {
-          const inTracks = p.tracks?.includes(input.track!) ?? false;
-          const inChallenges = p.challenges?.includes(input.track!) ?? false;
-          return inTracks || inChallenges;
-        })
-        : allProjects;
+      // Auto-assign all projects - judges choose what to judge
+      const assignedProjects = allProjects;
 
       if (assignedProjects.length > 0) {
         await ctx.db!.insert(judgeQueue).values(
