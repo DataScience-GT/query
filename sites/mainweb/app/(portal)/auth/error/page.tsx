@@ -3,7 +3,6 @@
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 
 function AuthErrorContent() {
     const searchParams = useSearchParams();
