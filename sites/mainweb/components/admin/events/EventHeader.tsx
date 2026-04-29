@@ -11,14 +11,14 @@ export function EventHeader() {
                     Check-in <span className="text-[#00A8A8] italic">Events</span>
                 </h1>
                 <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                    Manage Hackathon Check-in Locations
+                    Manage Event Check-in Locations
                 </p>
             </div>
             <Link
-                href="/admin/hackathons/scanner"
+                href="/admin/hackathons"
                 className="px-6 py-3 bg-white/5 border border-white/10 text-white text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-2 font-mono"
             >
-                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 Open QR Scanner
             </Link>
         </div>

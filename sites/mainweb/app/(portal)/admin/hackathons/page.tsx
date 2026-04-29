@@ -31,17 +31,16 @@ export default function AdminHackathonsPage() {
 
     return (
         <AdminLayout>
-            <div className="relative z-10 max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
-                            Hackathon <span className="text-[#00A8A8] italic">Manager</span>
-                        </h1>
-                        <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                            Manage your hackathon events
-                        </p>
-                    </div>
-                    <button
+            <div className="relative z-10 max-w-7xl mx-auto">
+                <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+                  <h1 className="text-2xl font-black text-white tracking-tighter mb-2">
+                    Hackathon <span className="text-[#00A8A8] italic">Manager</span>
+                  </h1>
+                  <p className="text-gray-400 text-sm">
+                    Manage your hackathons, participants, and event check-in locations.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
                         onClick={() => setShowCreate(true)}
                         className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)]"
                     >
@@ -70,13 +69,13 @@ export default function AdminHackathonsPage() {
                     />
                 )}
 
-                <div className="space-y-6">
-                    <div>
-                        <h2 className="text-xl font-bold text-white mb-1">Hackathons</h2>
-                        <p className="text-gray-500 text-sm font-mono">{hackathons?.length || 0} total</p>
-                    </div>
-
-                    {isLoading ? (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">Hackathons</h2>
+                            <p className="text-gray-500 text-sm">{hackathons?.length || 0} total</p>
+                        </div>
+                        <button
                         <div className="py-12 text-center">
                             <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">Loading...</p>
                         </div>
