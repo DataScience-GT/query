@@ -1,52 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
-import {
-  LayoutDashboard,
-  Calendar,
-  ClipboardList,
-  Settings,
-  BarChart3,
-  Users,
-  FileText,
-  Code,
-  LogOut,
-  Menu,
-} from 'lucide-react';
-
-type AdminRoute = {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-};
-
-const adminRoutes: AdminRoute[] = [
-  { name: 'Events', href: '/admin', icon: LayoutDashboard },
-  { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
-  { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
-  { name: 'Attendees', href: '/admin/attendees', icon: Users },
-  { name: 'Projects', href: '/admin/projects', icon: FileText },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
-];
-
-'use client';
-
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { LayoutDashboard, Calendar, ClipboardList, Settings, BarChart3, Users, FileText, Code, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Code, ClipboardList, Users, FileText, BarChart3, Settings, LogOut, Menu } from 'lucide-react';
 
-type AdminRoute = {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-};
-
-const adminRoutes: AdminRoute[] = [
+const routes = [
   { name: 'Events', href: '/admin', icon: LayoutDashboard },
   { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
   { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
@@ -94,7 +54,7 @@ export default function AdminSidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
-          {adminRoutes.map((route) => {
+          {routes.map((route) => {
             const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
             return (
               <Link
