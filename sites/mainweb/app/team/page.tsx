@@ -36,8 +36,6 @@ const Team = () => {
 
   return (
     <div id="team-page" className="relative min-h-screen bg-[#1A1A1A] text-gray-400 font-sans selection:bg-indigo-500/30">
-      {/* Background with low opacity to match other pages */}
-      <Background className="fixed inset-0 z-0 opacity-20" />
 
       {/* Navbar fixed with glassmorphism */}
       <Navbar
