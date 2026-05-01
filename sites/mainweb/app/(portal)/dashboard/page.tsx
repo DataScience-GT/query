@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Background from '@/components/portal/Background';
 import Link from 'next/link';
 import LinkStripeAccount from '@/components/portal/LinkStripeAccount';
 import ProfileForm from '@/components/portal/profile/ProfileForm';
