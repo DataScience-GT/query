@@ -31,22 +31,22 @@ export default function AdminHackathonsPage() {
 
     return (
         <AdminLayout>
-            <div className="relative z-10 max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
-                            Hackathon <span className="text-[#00A8A8] italic">Manager</span>
-                        </h1>
-                        <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
-                            Manage your hackathon events
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setShowCreate(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)]"
-                    >
-                        + New Hackathon
-                    </button>
+            <div className="relative z-10 max-w-7xl mx-auto">
+                <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+                  <h1 className="text-2xl font-black text-white tracking-tighter mb-2">
+                    Hackathon <span className="text-[#00A8A8] italic">Manager</span>
+                  </h1>
+                  <p className="text-gray-400 text-sm">
+                    Manage your hackathons, participants, and event check-in locations.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setShowCreate(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)]"
+                  >
+                    + New Hackathon
+                  </button>
                 </div>
 
                 {showCreate && (
@@ -70,17 +70,15 @@ export default function AdminHackathonsPage() {
                     />
                 )}
 
-                <div className="space-y-6">
-                    <div>
-                        <h2 className="text-xl font-bold text-white mb-1">Hackathons</h2>
-                        <p className="text-gray-500 text-sm font-mono">{hackathons?.length || 0} total</p>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">Hackathons</h2>
+                            <p className="text-gray-500 text-sm">{hackathons?.length || 0} total</p>
+                        </div>
                     </div>
 
-                    {isLoading ? (
-                        <div className="py-12 text-center">
-                            <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">Loading...</p>
-                        </div>
-                    ) : !hackathons || hackathons.length === 0 ? (
+                    {!hackathons || hackathons.length === 0 ? (
                         <LiquidGlass className="p-16 text-center">
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                                 <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>

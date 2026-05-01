@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter, useParams } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import { ScannerTab } from '@/components/admin/hackathons/ScannerTab';
 import { AttendeesTab } from '@/components/admin/hackathons/AttendeesTab';
@@ -40,7 +39,6 @@ export default function AdminHackathonDashboard() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans flex flex-col pb-20 md:pb-0">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
       {/* HEADER */}
       <header className="sticky top-0 z-30 bg-[#050505]/95 backdrop-blur border-b border-white/5">
