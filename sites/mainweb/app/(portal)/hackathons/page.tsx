@@ -82,8 +82,6 @@ export default function HackathonsPage() {
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
-            <Background className="fixed inset-0 z-0 opacity-[0.02]" />
-
             <div className="relative z-10 max-w-6xl mx-auto py-24 px-6 md:px-12">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
