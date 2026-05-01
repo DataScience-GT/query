@@ -184,9 +184,9 @@ export default function AttendeesPage() {
                               className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                 attendee.registrationStatus === 'approved'
                                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                  : attendee.status === 'pending'
+                                  : attendee.registrationStatus === 'pending'
                                   ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                  : attendee.status === 'cancelled'
+                                  : attendee.registrationStatus === 'rejected'
                                   ? 'bg-red-500/10 text-red-400 border border-red-500/20'
                                   : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                               }`}
