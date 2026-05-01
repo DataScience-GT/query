@@ -1,183 +1,249 @@
-/* thelearningcompany styles - ios-inspired minimal design */
+/* thelearningcompany styles - ios-inspired minimal design (refactored) */
+/* Clean, consistent design system with accessibility improvements */
 
-/* css variables - dark theme (default) */
+/* CSS Custom Properties - Clean, minimal dark theme */
 :root {
+  /* Background colors */
   --bg-primary: #000000;
-  --bg-secondary: #0d0d0d;
-  --bg-tertiary: #171717;
-  --bg-hover: #1f1f1f;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #111111;
+  --bg-card: #0f0f0f;
+
+  /* Text colors */
   --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
-  --text-muted: #737373;
-  --border: #262626;
-  --border-hover: #404040;
-  --accent: #34d399;
-  --accent-hover: #10b981;
-  --accent-glow: rgba(52, 211, 153, 0.3);
-  --accent-dim: rgba(52, 211, 153, 0.15);
+  --text-secondary: #8a8a8a;
+  --text-muted: #6a6a6a;
+  --text-disabled: #4a4a4a;
+
+  /* Border colors */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  /* Accent colors (single primary accent) */
+  --accent: #00A8A8;
+  --accent-hover: #009E9E;
+  --accent-dim: rgba(0, 168, 168, 0.1);
+  --accent-glow: rgba(0, 168, 168, 0.15);
+
+  /* Status colors */
+  --success: #10b981;
+  --warning: #f59e0b;
   --danger: #ef4444;
+  --info: #3b82f6;
+
+  /* Border radius - consistent scale */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Shadows - subtle, not overwhelming */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --transition: 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-fast: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-slow: 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-theme: 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow-accent: 0 0 30px var(--accent-glow);
+
+  /* Transitions - smooth but not sluggish */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Glass effect */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
 }
 
-/* light theme - ios glossy style */
+/* Light theme - clean, not glossy */
 [data-theme="light"] {
-  --bg-primary: #f5f5f7;
+  --bg-primary: #fafafa;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f0f0f2;
-  --bg-hover: #e8e8ed;
-  --text-primary: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --text-muted: #86868b;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.15);
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-glow: rgba(16, 185, 129, 0.2);
-  --accent-dim: rgba(16, 185, 129, 0.12);
-  --danger: #ff3b30;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  --bg-tertiary: #f5f5f7;
+  --bg-card: #fafafa;
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --text-muted: #6a6a6a;
+  --text-disabled: #8a8a8a;
+  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-medium: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --accent: #00A8A8;
+  --accent-hover: #009E9E;
+  --accent-dim: rgba(0, 168, 168, 0.08);
+  --accent-glow: rgba(0, 168, 168, 0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-highlight: rgba(0, 0, 0, 0.05);
 }
 
-/* reset */
+/* Reset */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-/* Background gradient for liquid glass effect */
+/* Background gradient - subtle, non-distracting */
 .glass-bg {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: -1;
   background:
-    radial-gradient(ellipse 100% 80% at 10% 20%, rgba(52, 211, 153, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 60% at 90% 30%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
-    radial-gradient(ellipse 70% 50% at 50% 90%, rgba(52, 211, 153, 0.18) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 30% 70%, rgba(168, 85, 247, 0.12) 0%, transparent 50%);
+    radial-gradient(circle at 15% -10%, var(--accent-dim) 0%, transparent 50%),
+    radial-gradient(circle at 85% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
   pointer-events: none;
-  animation: glassBgShift 20s ease-in-out infinite alternate;
-  transition: background var(--transition-theme);
-}
-
-@keyframes glassBgShift {
-  0% {
-    transform: scale(1) translate(0, 0);
-  }
-  100% {
-    transform: scale(1.05) translate(2%, 2%);
-  }
-}
-
-[data-theme="light"] .glass-bg {
-  background:
-    radial-gradient(ellipse 100% 80% at 10% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 60% at 90% 30%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse 70% 50% at 50% 90%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 30% 70%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
 }
 
 /* ===== LIQUID GLASS EFFECT ===== */
 
-/* Base liquid glass class */
+/* Base liquid glass class - clean and subtle */
 .liquid-glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px) saturate(180%);
-  -webkit-backdrop-filter: blur(10px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   position: relative;
+  overflow: hidden;
 }
 
-/* Glossy inner highlight for depth */
+/* Glossy inner highlight - subtle */
 .liquid-glass::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
+  inset: 0;
+  pointer-events: none;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.4),
-    rgba(255, 255, 255, 0)
+    transparent,
+    var(--glass-highlight) 45%,
+    transparent 55%
   );
-  opacity: 0.5;
+  opacity: 0.6;
+  mix-blend-mode: overlay;
 }
 
 /* Large liquid glass variant */
 .liquid-glass-lg {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.08) 100%
+    var(--glass-bg) 0%,
+    rgba(255, 255, 255, 0.02) 100%
   );
-  backdrop-filter: blur(15px) saturate(200%);
-  -webkit-backdrop-filter: blur(15px) saturate(200%);
-  border: 1.5px solid rgba(200, 200, 220, 0.3);
-  border-radius: 24px;
-  box-shadow:
-    0 8px 32px rgba(31, 38, 135, 0.37),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(16px) saturate(200%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   position: relative;
+  overflow: hidden;
 }
 
 [data-theme="light"] .liquid-glass-lg {
-  background: rgba(255, 255, 255, 0.55);
-  border: 1.5px solid rgba(180, 180, 210, 0.3);
-  box-shadow:
-    0 8px 32px rgba(31, 38, 135, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
 }
 
-/* Hover effect for liquid glass */
+/* Hover effect - subtle elevation */
 .liquid-glass:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  box-shadow:
-    0 20px 60px rgba(31, 38, 135, 0.6),
-    0 0 30px rgba(16, 163, 127, 0.2);
-  transform: translateY(-6px);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-lg), var(--shadow-accent);
+  transform: translateY(-2px);
+  transition: var(--transition-normal);
 }
 
-/* Animation for liquid glass entry */
+.liquid-glass-lg:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+  transition: var(--transition-normal);
+}
+
+/* Focus states for accessibility */
+.liquid-glass:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Animation for entry */
 @keyframes liquidGlassEntry {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
-    backdrop-filter: blur(0px);
+    transform: translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-    backdrop-filter: blur(10px);
   }
 }
 
 .liquid-glass-animate {
-  animation: liquidGlassEntry 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: liquidGlassEntry var(--transition-slow) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Text helpers */
+.text-accent {
+  color: var(--accent);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-disabled {
+  color: var(--text-disabled);
+}
+
+/* Background helpers */
+.bg-accent-dim {
+  background-color: var(--accent-dim);
+}
+
+.bg-accent-glow {
+  background-color: var(--accent);
+  box-shadow: var(--shadow-accent);
+}
+
+/* Border helpers */
+.border-subtle {
+  border-color: var(--border-subtle);
+}
+
+.border-medium {
+  border-color: var(--border-medium);
+}
+
+.border-strong {
+  border-color: var(--border-strong);
+}
+
+/* Radius helpers */
+.radius-sm {
+  border-radius: var(--radius-sm);
+}
+
+.radius-md {
+  border-radius: var(--radius-md);
+}
+
+.radius-lg {
+  border-radius: var(--radius-lg);
+}
+
+.radius-xl {
+  border-radius: var(--radius-xl);
 }
