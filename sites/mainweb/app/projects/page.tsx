@@ -63,7 +63,6 @@ export default function ProjectsPage() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-400/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.05]" />
 
       <Navbar
         screen_width={windowWidth}
