@@ -2,7 +2,6 @@
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 function VerifyContent() {

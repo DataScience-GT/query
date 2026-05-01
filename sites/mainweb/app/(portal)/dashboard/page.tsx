@@ -44,8 +44,6 @@ export default function Dashboard() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
       <main className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-12 gap-8 py-20 px-6">
 
         {/* SIDEBAR */}
