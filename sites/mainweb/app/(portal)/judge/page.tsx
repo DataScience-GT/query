@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -61,7 +60,6 @@ export default function JudgePage() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
       <div className="relative z-10 max-w-7xl mx-auto py-16 px-6 md:px-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="max-w-xl">
