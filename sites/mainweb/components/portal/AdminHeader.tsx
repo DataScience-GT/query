@@ -93,10 +93,10 @@ export default function AdminHeader() {
         {/* Logo */}
         <Link href="/admin" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 text-white shadow-lg shadow-[#00A8A8]/20">
-            <span className="font-black text-sm">GL</span>
+            <span className="font-black text-sm">DS</span>
           </div>
           <span className="hidden lg:block text-lg font-black text-white tracking-tight">
-            GreenLight
+            DSGT Portal
           </span>
         </Link>
       </div>

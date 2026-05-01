@@ -6,7 +6,7 @@ import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
 
 interface FooterProps {
-  screen_width: number;
+  screen_width?: number;
   className?: string;
 }
 
@@ -33,13 +33,16 @@ const Footer = ({ screen_width: _screen_width, className = "" }: FooterProps) =>
             </p>
           </div>
 
-          {/* COMPANY COLUMN */}
+          {/* NAVIGATION COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">Organization</h2>
+            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">Navigation</h2>
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <Link href="/team" className="hover:text-[#00A8A8] transition-colors">Meet the Team</Link>
               <Link href="mailto:hello@datasciencegt.org" className="hover:text-[#00A8A8] transition-colors">Contact</Link>
               <Link href="/bootcamp" className="hover:text-[#00A8A8] transition-colors">Bootcamp</Link>
+              <Link href="/events" className="hover:text-[#00A8A8] transition-colors">Events</Link>
+              <Link href="/history" className="hover:text-[#00A8A8] transition-colors">History</Link>
+              <Link href="/status" className="hover:text-[#00A8A8] transition-colors">Status</Link>
             </nav>
           </div>
 

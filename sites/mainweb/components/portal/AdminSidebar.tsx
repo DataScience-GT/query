@@ -31,7 +31,7 @@ export default function AdminSidebar() {
               <Code className="h-6 w-6" />
             </div>
             <span className="text-lg font-black text-white tracking-tight">
-              GreenLight
+              DSGT Portal
             </span>
           </div>
         )}
