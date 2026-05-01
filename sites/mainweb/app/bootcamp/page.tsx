@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import Background from "@/components/Background";
 
 const curriculum = [
     { week: 1, title: "Python Basics & Setup", desc: "Variables, data types, and environment configuration." },
@@ -32,7 +31,6 @@ export default function BootcampPage() {
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30">
-            <Background className="fixed inset-0 z-0 opacity-[0.05]" />
 
             <Navbar
                 screen_width={windowWidth}

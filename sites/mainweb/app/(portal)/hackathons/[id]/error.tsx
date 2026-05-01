@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import Background from '@/components/Background';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 export default function Error({

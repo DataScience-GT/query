@@ -133,18 +133,25 @@ export default function AdminPage() {
         />
       )}
 
-      <div className="relative z-10 max-w-6xl mx-auto">
-        <EventHeader />
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+          <h1 className="text-2xl font-black text-white tracking-tight mb-2">
+            Check-in <span className="text-[#00A8A8] italic">Events</span>
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Manage your event check-in locations, QR codes, and attendance tracking.
+          </p>
+        </div>
 
         {/* View Controls */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center bg-black/40 border border-white/5 p-1.5 rounded-xl">
+          <div className="flex items-center bg-black/30 border border-white/5 p-2 rounded-xl gap-2">
             <button
               onClick={() => setEventView('all')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 eventView === 'all'
-                  ? 'bg-white/10 text-white border border-white/20'
-                  : 'text-gray-500 hover:text-white hover:bg-white/5'
+                  ? 'bg-gradient-to-r from-[#00A8A8] to-emerald-600 text-white shadow-lg shadow-[#00A8A8]/20'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
               All
@@ -153,8 +160,8 @@ export default function AdminPage() {
               onClick={() => setEventView('competitions')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 eventView === 'competitions'
-                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                  : 'text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10'
+                  ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/20'
+                  : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -168,8 +175,8 @@ export default function AdminPage() {
               onClick={() => setEventView('gatherings')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 eventView === 'gatherings'
-                  ? 'bg-green-500/10 text-green-400 border border-green-500/30'
-                  : 'text-gray-500 hover:text-green-400 hover:bg-green-500/10'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20'
+                  : 'text-gray-400 hover:text-green-400 hover:bg-green-500/10'
               }`}
             >
               <div className="flex items-center gap-2">

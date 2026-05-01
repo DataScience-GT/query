@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Background from "@/components/portal/Background";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
@@ -145,7 +144,6 @@ export default function ClubPage() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-gray-400 selection:bg-[#00A8A8]/30">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
       {/* QR SCANNER MODAL */}
       {showScanner && (
