@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter, useParams } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import { ScannerTab } from '@/components/admin/hackathons/ScannerTab';
 import { AttendeesTab } from '@/components/admin/hackathons/AttendeesTab';
