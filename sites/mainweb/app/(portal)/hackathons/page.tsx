@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -58,7 +57,6 @@ export default function HackathonsPage() {
     if (!hackathons || hackathons.length === 0) {
         return (
             <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] to-transparent">
-                <Background className="fixed inset-0 z-0 opacity-[0.03]" />
                 <LiquidGlass className="relative z-10 max-w-lg w-full p-12 text-center flex flex-col items-center border border-white/5">
                     <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.02)]">
                         <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>

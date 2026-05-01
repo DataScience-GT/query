@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { skipToken } from '@tanstack/react-query';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { Download } from 'lucide-react';
@@ -15,12 +16,15 @@ export default function AttendeesPage() {
 
   const [filter, setFilter] = useState<'all' | 'registered' | 'pending' | 'cancelled'>('all');
 
-  const { data: attendees, isLoading } = trpc.hackathon.adminGetAttendees.useQuery(
-    undefined,
-    { enabled: !!session }
-  );
-
+  // Fetch all hackathons for the dropdown
+  const { data: hackathons } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
+
+  // Fetch attendees for selected hackathon
+  const { data: attendees, isLoading } = trpc.hackathon.adminGetAttendees.useQuery(
+    selectedHackathon ? { hackathonId: selectedHackathon } : skipToken,
+    { enabled: !!session && !!selectedHackathon }
+  );
 
   if (status === 'unauthenticated') {
     router.push('/login');
@@ -57,9 +61,9 @@ export default function AttendeesPage() {
                 className="bg-transparent text-white text-sm font-medium px-4 py-2 focus:outline-none cursor-pointer"
               >
                 <option value="">Select a hackathon...</option>
-                {attendees?.map((hackathon) => (
-                  <option key={hackathon.id} value={hackathon.id}>
-                    {hackathon.name}
+                {hackathons?.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
                   </option>
                 ))}
               </select>
@@ -151,9 +155,9 @@ export default function AttendeesPage() {
                     {attendees
                       .filter((a) => {
                         if (filter === 'all') return true;
-                        if (filter === 'registered') return a.status === 'registered';
-                        if (filter === 'pending') return a.status === 'pending';
-                        if (filter === 'cancelled') return a.status === 'cancelled';
+                        if (filter === 'registered') return a.registrationStatus === 'approved';
+                        if (filter === 'pending') return a.registrationStatus === 'pending';
+                        if (filter === 'cancelled') return a.registrationStatus === 'rejected';
                         return true;
                       })
                       .map((attendee) => (
@@ -161,22 +165,24 @@ export default function AttendeesPage() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <img
-                                src={attendee.userImage || '/avatars/default.png'}
-                                alt={attendee.name}
+                                src={(attendee.user?.image || null) as string || '/avatars/default.png'}
+                                alt={(attendee.user?.name || attendee.user?.email) || ''}
                                 className="h-10 w-10 rounded-full border border-white/10 object-cover"
                               />
                               <div>
-                                <p className="font-medium text-white">{attendee.name}</p>
-                                <p className="text-sm text-gray-500">{attendee.user?.email}</p>
+                                <p className="font-medium text-white">
+{(attendee.user?.name || attendee.user?.email) || ''}
+</p>
+                                <p className="text-sm text-gray-500">{attendee.user?.email || ''}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-gray-400">{attendee.email}</td>
-                          <td className="px-6 py-4 text-gray-400">{attendee.team || 'Individual'}</td>
+                          <td className="px-6 py-4 text-gray-400">{attendee.user?.email || ''}</td>
+                          <td className="px-6 py-4 text-gray-400">{attendee.team?.name || 'Individual'}</td>
                           <td className="px-6 py-4">
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                attendee.status === 'registered'
+                                attendee.registrationStatus === 'approved'
                                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                   : attendee.status === 'pending'
                                   ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
@@ -185,11 +191,11 @@ export default function AttendeesPage() {
                                   : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                               }`}
                             >
-                              {attendee.status}
+                              {attendee.registrationStatus}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-gray-400">
-                            {new Date(attendee.registrationDate).toLocaleDateString()}
+                            {new Date(attendee.registeredAt).toLocaleDateString()}
                           </td>
                         </tr>
                       ))}
