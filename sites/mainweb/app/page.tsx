@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Section from "@/components/Section";
@@ -84,8 +83,6 @@ const Home = () => {
 
   return (
     <div id="home-page" className="relative bg-[#1A1A1A] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.05]" />
-
       <Navbar screen_width={windowWidth} page="home" className="fixed top-0 z-50 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md" />
       <Hero screen_width={windowWidth} />
 
