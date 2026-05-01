@@ -31,7 +31,6 @@ export default function BootcampPage() {
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30">
-            <Background className="fixed inset-0 z-0 opacity-[0.05]" />
 
             <Navbar
                 screen_width={windowWidth}
