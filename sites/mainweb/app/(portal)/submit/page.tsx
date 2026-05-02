@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -112,8 +111,6 @@ function SubmitPortalContent() {
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
             <main className="relative z-10 max-w-5xl mx-auto px-6 py-24 min-h-screen">
 
                 {/* Header Link */}
@@ -408,9 +405,12 @@ function SubmitPortalContent() {
 }
 
 export default function SubmitPortalPage() {
+    const SuspenseWrapper = Suspense as any;
     return (
-        <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
-            <SubmitPortalContent />
-        </Suspense>
+        <>
+            <SuspenseWrapper fallback={<LoadingScreen message="Initializing Workspace..." />}>
+                <SubmitPortalContent />
+            </SuspenseWrapper>
+        </>
     );
 }

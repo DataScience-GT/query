@@ -3,9 +3,9 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "target": "ES2022",
+    "target": "ESNext",
     "lib": [
-      "ES2022"
+      "ESNext"
     ],
     "allowJs": true,
     "resolveJsonModule": true,

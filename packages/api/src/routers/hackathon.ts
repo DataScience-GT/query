@@ -4,15 +4,15 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import {
   hackathons,
   hackathonParticipants,
-  hackathonTeams,
   hackathonProjects,
+  hackathonTeams,
   members,
   hackathonEvents,
   hackathonEventAttendees,
 } from "@query/db";
 import { eq, and, gte, sql, inArray } from "drizzle-orm";
-import { CacheKeys } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
+import { CacheKeys } from "../middleware/cache";
 
 export const hackathonRouter = createTRPCRouter({
   list: publicProcedure
@@ -27,8 +27,10 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
 
+      type DB = NonNullable<typeof ctx.db>;
+      type HackathonList = Awaited<ReturnType<DB["query"]["hackathons"]["findMany"]>>;
       // Check cache first
-      const cached = ctx.cache.get<typeof allHackathons>(cacheKey);
+      const cached = ctx.cache.get<HackathonList>(cacheKey);
       if (cached) return cached;
 
       const now = new Date();
@@ -62,7 +64,9 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
-      const cached = ctx.cache.get<typeof hackathon>(cacheKey);
+      type DB = NonNullable<typeof ctx.db>;
+      type HackathonItem = Awaited<ReturnType<DB["query"]["hackathons"]["findFirst"]>>;
+      const cached = ctx.cache.get<HackathonItem>(cacheKey);
       if (cached) return cached;
 
       const hackathon = await ctx.db!.query.hackathons.findFirst({
@@ -298,6 +302,9 @@ export const hackathonRouter = createTRPCRouter({
             })
             .where(eq(hackathons.id, input.hackathonId));
 
+          // Invalidate all hackathon caches after successful registration
+          ctx.cache.deletePattern('hackathon*');
+
           return participant;
         });
       } catch (error: any) {
@@ -310,6 +317,10 @@ export const hackathonRouter = createTRPCRouter({
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = `hackathon:registrations:${ctx.userId}`;
+    const cached = ctx.cache.get<typeof registrations>(cacheKey);
+    if (cached) return cached;
+
     const registrations = await ctx.db!.query.hackathonParticipants.findMany({
       where: eq(hackathonParticipants.userId, ctx.userId!),
       with: {
@@ -323,6 +334,7 @@ export const hackathonRouter = createTRPCRouter({
       orderBy: (hackathonParticipants, { desc }) => [desc(hackathonParticipants.registeredAt)],
     });
 
+    ctx.cache.set(cacheKey, registrations, 30);
     return registrations;
   }),
 
@@ -359,7 +371,33 @@ export const hackathonRouter = createTRPCRouter({
       return participants;
     }),
 
+  getTeams: publicProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const teams = await ctx.db!.query.hackathonTeams.findMany({
+        where: eq(hackathonTeams.hackathonId, input.hackathonId),
+        with: {
+          captain: {
+            columns: { id: true, name: true, image: true },
+          },
+          participants: {
+            columns: {
+              id: true,
+              userId: true,
+              registrationStatus: true,
+            },
+            with: {
+              user: {
+                columns: { id: true, name: true, image: true },
+              },
+            },
+          },
+        },
+        orderBy: (hackathonTeams, { desc }) => [desc(hackathonTeams.createdAt)],
+      });
 
+      return teams;
+    }),
 
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
@@ -531,6 +569,9 @@ export const hackathonRouter = createTRPCRouter({
         eventId: input.eventId,
         participantId: input.participantId,
       });
+
+      // Invalidate hackathon caches after attendance scan
+      ctx.cache.deletePattern('hackathon*');
 
       return { success: true, message: `Successfully checked in ${participant.user.name || participant.user.email}!` };
     }),
