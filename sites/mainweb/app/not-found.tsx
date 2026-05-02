@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -20,7 +19,6 @@ export default function NotFound() {
 
   return (
     <div className="relative min-h-screen flex flex-col bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
-      <Background className="fixed inset-0 z-0 opacity-20" />
 
       <Navbar
         screen_width={windowWidth}

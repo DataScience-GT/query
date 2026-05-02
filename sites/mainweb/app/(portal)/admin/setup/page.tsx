@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
@@ -41,10 +41,6 @@ export default function AdminSetupPage() {
     const [judgesImported, setJudgesImported] = useState(false);
     const [projectsImported, setProjectsImported] = useState(false);
     const [judgesAssigned, setJudgesAssigned] = useState(false);
-
-    // File refs
-    const judgesFileRef = useRef<HTMLInputElement>(null);
-    const projectsFileRef = useRef<HTMLInputElement>(null);
 
     // Admin check
     const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {

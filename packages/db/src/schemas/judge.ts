@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, uuid, boolean, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
-import { hackathons, hackathonProjects } from "./hackathons";
+import { hackathons } from "./hackathons";
 
 export const judges = pgTable("judge", {
   id: uuid("id").defaultRandom().primaryKey(),

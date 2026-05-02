@@ -4,15 +4,15 @@ on:
   push:
     branches: [main]
     paths:
-      - 'sites/portal/**'
+      - 'sites/mainweb/**'
       - 'packages/**'
-      - 'sites/portal/Dockerfile'
+      - 'sites/mainweb/Dockerfile'
   workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
-  SERVICE_NAME: portal
+  SERVICE_NAME: mainweb
 
 jobs:
   deploy:
@@ -43,7 +43,7 @@ jobs:
           docker build \
             -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest \
-            -f sites/portal/Dockerfile .
+            -f sites/mainweb/Dockerfile .
 
       - name: Push to Container Registry
         run: |

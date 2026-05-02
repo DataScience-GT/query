@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Background from "@/components/Background";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import Section from "@/components/Section";
@@ -21,6 +20,7 @@ import Content2 from "@/assets/images/2025/glenne.png"
 import External2 from "@/assets/images/2025/vidhi.jpeg"
 import Project from "@/assets/images/2025/anika.jpg"
 import Advisor from "@/assets/images/2025/jake.png"
+import IDEaS from "@/assets/images/2025/ideas.png"
 
 const Team = () => {
   const [windowWidth, setWindowWidth] = useState<number>(
@@ -36,8 +36,6 @@ const Team = () => {
 
   return (
     <div id="team-page" className="relative min-h-screen bg-[#1A1A1A] text-gray-400 font-sans selection:bg-indigo-500/30">
-      {/* Background with low opacity to match other pages */}
-      <Background className="fixed inset-0 z-0 opacity-20" />
 
       {/* Navbar fixed with glassmorphism */}
       <Navbar
@@ -63,6 +61,11 @@ const Team = () => {
         {/* Team Grid Section */}
         <Section id="teams" className="px-6 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+
+            <TeamCard name="IDEaS @ Georgia Tech" title="Supervising Lab" img={IDEaS}>
+              The Institute for Data Engineering and Science (IDEaS) is the Georgia Tech lab that oversees DS@GT. It connects government, industry, and academia to advance foundational data science research and provides the faculty expertise that powers our club.
+            </TeamCard>
+
 
             <TeamCard name="Aditi Koratpallikar" title="President" img={President}>
               Aditi oversees all operations of DSGT, leading the executive board and coordinating with faculty and industry partners to shape the future of data science at GT.

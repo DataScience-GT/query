@@ -11,6 +11,7 @@ export interface SecurityHeaders {
     'Content-Security-Policy': string;
     'Referrer-Policy': string;
     'Permissions-Policy': string;
+    'X-Request-Id': string;
 }
 
 export interface CacheHeaders {
@@ -28,7 +29,10 @@ export interface RateLimitHeaders {
 /**
  * Generate strict security headers for API responses
  */
-export function getSecurityHeaders(): SecurityHeaders {
+export async function getSecurityHeaders(): Promise<SecurityHeaders> {
+    const crypto = await import('crypto');
+    const generateRequestId = () => crypto.randomUUID();
+
     return {
         // Prevent MIME type sniffing
         'X-Content-Type-Options': 'nosniff',
@@ -43,13 +47,17 @@ export function getSecurityHeaders(): SecurityHeaders {
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 
         // Content Security Policy - strict for API
-        'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+        // Relaxed to allow API responses (script-src for CSP nonce support)
+        'Content-Security-Policy': "default-src 'none'; script-src 'self'; frame-ancestors 'none'",
 
         // Referrer policy
         'Referrer-Policy': 'strict-origin-when-cross-origin',
 
         // Permissions policy - disable all features
-        'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+        'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), usb=(), midi=()',
+
+        // Request ID for observability
+        'X-Request-Id': generateRequestId(),
     };
 }
 
@@ -174,12 +182,13 @@ export async function applySecurityHeaders(
             reset: number;
             retryAfter?: number;
         };
+        request?: Request; // Optional request for X-Request-Id
     }
 ): Promise<Response> {
     const headers = new Headers(response.headers);
 
     // Apply security headers
-    const securityHeaders = getSecurityHeaders();
+    const securityHeaders = await getSecurityHeaders();
     Object.entries(securityHeaders).forEach(([key, value]) => {
         headers.set(key, value);
     });

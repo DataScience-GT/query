@@ -1,18 +1,25 @@
-// app/layout.tsx
+// app/layout.tsx - 1980s Arcade Retro Theme
 import './globals.css'
 import type { Metadata } from 'next'
-import { IBM_Plex_Mono } from 'next/font/google'
+import { Press_Start_2P, Orbitron } from 'next/font/google'
 import Navbar from '../components/Navbar'
 
-const ibmPlexMono = IBM_Plex_Mono({
+// 1980s Arcade fonts
+const pixel = Press_Start_2P({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-ibm-plex-mono',
+  weight: ['400'],
+  variable: '--font-pixel',
+})
+
+const retro = Orbitron({
+  subsets: ['latin'],
+  weight: ['400', '700', '900'],
+  variable: '--font-retro',
 })
 
 export const metadata: Metadata = {
-  title: 'Hacklytics 2026: Golden Byte',
-  description: 'Data Science @ GT',
+  title: 'Hacklytics 2027: Arcade Edition',
+  description: 'Data Science @ GT - 1980s Arcade Style',
 }
 
 export default function RootLayout({
@@ -22,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${ibmPlexMono.variable} font-sans`}>
+      <body className={`${pixel.variable} ${retro.variable} font-pixel`} suppressHydrationWarning>
         <Navbar />
         {children}
       </body>

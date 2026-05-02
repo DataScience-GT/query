@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Background from '@/components/portal/Background';
 import Link from 'next/link';
 import LinkStripeAccount from '@/components/portal/LinkStripeAccount';
 import ProfileForm from '@/components/portal/profile/ProfileForm';
@@ -44,8 +43,6 @@ export default function Dashboard() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
-
       <main className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-12 gap-8 py-20 px-6">
 
         {/* SIDEBAR */}
@@ -75,31 +72,36 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-none">
-              <button
-                onClick={() => setMode('DASHBOARD')}
-                className={`flex-shrink-0 lg:w-full group flex items-center justify-center lg:justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent gap-3
-                  ${mode === 'DASHBOARD'
-                    ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
-                    : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
-                  }`}
-              >
-                <span>OVERVIEW</span>
+            {/* Navigation - Hackathons Section */}
+            <nav className="space-y-2 border-t border-white/5 pt-8">
+              <p className="px-6 text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Hackathons</p>
+              <Link href="/hackathons" className={`flex-shrink-0 group flex items-center justify-between px-6 py-3 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
+                ${mode === 'DASHBOARD' ? 'bg-white/[0.03] text-white border-white/5' : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'}
+              `}>
+                <span>Browse</span>
                 <span className={`h-2 w-2 rounded-full transition-all ${mode === 'DASHBOARD' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
-              </button>
+              </Link>
+              {judgeStatus?.isJudge && (
+                <Link href="/judge" className={`flex-shrink-0 group flex items-center justify-between px-6 py-3 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
+                  ${mode === 'DASHBOARD' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[inset_0_0_10px_rgba(168,85,247,0.1)]' : 'text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/20'}
+                `}>
+                  <span>Judge Portal</span>
+                  <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+                </Link>
+              )}
+            </nav>
 
-              <button
-                onClick={() => setMode('PROFILE')}
-                className={`flex-shrink-0 lg:w-full group flex items-center justify-center lg:justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent gap-3
-                  ${mode === 'PROFILE'
-                    ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
-                    : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
-                  }`}
-              >
-                <span>VIEW DOSSIER</span>
-                <span className={`h-2 w-2 rounded-full transition-all ${mode === 'PROFILE' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
-              </button>
+            {/* Navigation - Club/Events Section */}
+            <nav className="space-y-2 border-t border-white/5 pt-8">
+              <p className="px-6 text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Club & Events</p>
+              {memberStatus?.isMember && (
+                <Link href="/club" className={`flex-shrink-0 group flex items-center justify-between px-6 py-3 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
+                  ${mode === 'PROFILE' ? 'bg-white/[0.03] text-white border-white/5' : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'}
+                `}>
+                  <span>Club Terminal</span>
+                  <span className={`h-2 w-2 rounded-full transition-all ${mode === 'PROFILE' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
+                </Link>
+              )}
             </nav>
 
             <div className="mt-8 pt-8 border-t border-white/5">
@@ -343,7 +345,7 @@ export default function Dashboard() {
                         {/* HACKATHON REGISTRATIONS */}
                         {loadingRegs ? (
                           <div className="relative h-full p-8 bg-black/40 border border-white/5 rounded-lg flex items-center justify-center animate-pulse">
-                            <span className="text-gray-500 text-sm font-mono">Loading events...</span>
+                            <span className="text-gray-500 text-sm font-mono">Loading hackathons...</span>
                           </div>
                         ) : activeRegs.length > 0 ? (
                           activeRegs.map((reg) => (
@@ -355,12 +357,19 @@ export default function Dashboard() {
                                   <svg className="w-16 h-16 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
                                 </div>
 
-                                <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-[#00A8A8]">
-                                  Registered Event
-                                </p>
-                                <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors truncate relative z-10">
-                                  {reg.hackathon.name}
-                                </h3>
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-md bg-[#00A8A8]/10 border border-[#00A8A8]/30">
+                                      <svg className="w-4 h-4 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                                    </div>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-[#00A8A8]">Hackathon</p>
+                                  </div>
+                                  {reg.team?.projects && reg.team.projects.length > 0 && (
+                                    <div className="px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Project Submited</span>
+                                    </div>
+                                  )}
+                                </div>
 
                                 <div className="space-y-2 mb-6 flex-1 relative z-10 mt-2">
                                   <div className="flex items-center justify-between">

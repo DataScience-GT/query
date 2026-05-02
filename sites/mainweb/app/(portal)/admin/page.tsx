@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import Link from 'next/link';
 import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
@@ -40,6 +39,9 @@ export default function AdminPage() {
   const { data: events } = trpc.events.listAll.useQuery(undefined, {
     enabled: !!session && adminStatus?.isAdmin,
   });
+
+  type EventView = 'all' | 'competitions' | 'gatherings';
+  const [eventView, setEventView] = useState<EventView>('all');
 
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
@@ -131,15 +133,100 @@ export default function AdminPage() {
         />
       )}
 
-      <div className="relative z-10 max-w-6xl mx-auto">
-        <EventHeader />
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+          <h1 className="text-2xl font-black text-white tracking-tight mb-2">
+            Check-in <span className="text-[#00A8A8] italic">Events</span>
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Manage your event check-in locations, QR codes, and attendance tracking.
+          </p>
+        </div>
+
+        {/* View Controls */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center bg-black/30 border border-white/5 p-2 rounded-xl gap-2">
+            <button
+              onClick={() => setEventView('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                eventView === 'all'
+                  ? 'bg-gradient-to-r from-[#00A8A8] to-emerald-600 text-white shadow-lg shadow-[#00A8A8]/20'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setEventView('competitions')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                eventView === 'competitions'
+                  ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/20'
+                  : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Competitions
+              </div>
+            </button>
+            <button
+              onClick={() => setEventView('gatherings')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                eventView === 'gatherings'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20'
+                  : 'text-gray-400 hover:text-green-400 hover:bg-green-500/10'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Gatherings
+              </div>
+            </button>
+          </div>
+          <div className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+            {eventView === 'all'
+              ? `${events?.length} total events`
+              : `${events?.filter((e) => {
+                  if (eventView === 'competitions') return e.checkInEnabled;
+                  return !e.checkInEnabled;
+                }).length} of ${events?.length} shown`}
+          </div>
+        </div>
 
         {/* Events Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">Events</h2>
-              <p className="text-gray-500 text-sm font-mono">{events?.length || 0} total events</p>
+              <h2 className="text-xl font-bold text-white">
+                {eventView === 'all' && 'All Events'}
+                {eventView === 'competitions' && (
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Competitions
+                  </div>
+                )}
+                {eventView === 'gatherings' && (
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Gatherings
+                  </div>
+                )}
+              </h2>
+              <p className="text-gray-500 text-sm font-mono">
+                {eventView === 'all'
+                  ? `${events?.length} events in the system`
+                  : eventView === 'competitions'
+                  ? `Competitions with teams, projects, and judging`
+                  : `General gatherings with QR check-ins`}
+              </p>
             </div>
             <button
               onClick={() => setShowCreateEvent(true)}
@@ -156,17 +243,29 @@ export default function AdminPage() {
                   <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
                 </svg>
               </div>
-              <h3 className="text-white font-semibold mb-1">No events yet</h3>
-              <p className="text-gray-500 text-sm font-mono">Create your first event to get started.</p>
+              <h3 className="text-white font-semibold mb-1">No {eventView === 'all' ? 'events' : eventView === 'competitions' ? 'competitions' : 'gatherings'} yet</h3>
+              <p className="text-gray-500 text-sm font-mono">Create your first {eventView === 'all' ? 'event' : eventView === 'competitions' ? 'competition' : 'gathering'} to get started.</p>
             </LiquidGlass>
           ) : (
             <div className="space-y-4">
-              {events.map((event) => (
-                <LiquidGlass
-                  key={event.id}
-                  className="p-6 hover:border-white/20 transition-all"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              {events
+                .filter((e) => {
+                  if (eventView === 'all') return true;
+                  if (eventView === 'competitions') return e.checkInEnabled;
+                  return !e.checkInEnabled;
+                })
+                .map((event) => (
+                  <LiquidGlass
+                    key={event.id}
+                    className={`p-6 hover:border-white/20 transition-all ${
+                      eventView === 'competitions'
+                        ? 'border-l-4 border-l-cyan-500'
+                        : eventView === 'gatherings'
+                        ? 'border-l-4 border-l-green-500'
+                        : ''
+                    }`}
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-bold text-white">{event.title}</h3>
@@ -176,7 +275,7 @@ export default function AdminPage() {
                             : 'bg-red-500/10 text-red-400 border border-red-500/20'
                             }`}
                         >
-                          {event.checkInEnabled ? 'Active' : 'Disabled'}
+                          {event.checkInEnabled ? 'Open' : 'Closed'}
                         </span>
                       </div>
                       {event.description && (
@@ -213,7 +312,7 @@ export default function AdminPage() {
                           : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                           }`}
                       >
-                        {event.checkInEnabled ? 'Disable' : 'Enable'}
+                        {event.checkInEnabled ? 'Gathering' : 'Competition'}
                       </button>
                       <button
                         onClick={() => {

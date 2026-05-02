@@ -293,19 +293,33 @@ export const teamRouter = createTRPCRouter({
                 throw new TRPCError({ code: "NOT_FOUND", message: "You are not registered for this hackathon." });
             }
 
-            // If they provided a team ID but they are not the captain, block them.
-            if (participant.team && participant.team.id === input.teamId) {
-                if (participant.team.captainId !== ctx.userId!) {
+            // Validate team ownership to prevent IDOR attacks
+            // Use teamId from participant record instead of nested team object
+            if (input.teamId) {
+                // Verify team belongs to this hackathon
+                const team = await ctx.db!.query.hackathonTeams.findFirst({
+                    where: and(
+                        eq(hackathonTeams.id, input.teamId),
+                        eq(hackathonTeams.hackathonId, input.hackathonId)
+                    ),
+                });
+
+                if (!team) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Team not found for this hackathon.",
+                    });
+                }
+
+                // Verify captain ownership using teamId comparison (not nested object)
+                if (team.captainId !== ctx.userId!) {
                     throw new TRPCError({
                         code: "FORBIDDEN",
                         message: "Only the team captain can submit the project.",
                     });
                 }
-            } else if (input.teamId) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You do not belong to this team.",
-                });
+            } else {
+                // No team ID provided - solo submission (participant is already in the team)
             }
 
             try {

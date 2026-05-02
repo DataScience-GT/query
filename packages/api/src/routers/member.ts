@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory } from "@query/db";
 import { eq, and } from "drizzle-orm";
-import { CacheKeys } from "../middleware/cache";
 
 const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
 const urlSchema = z.string().url().max(500).optional();
@@ -11,11 +10,17 @@ const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number
 
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = `member:me:${ctx.userId}`;
+    const cached = ctx.cache.get<typeof member>(cacheKey);
+    if (cached) return cached;
+
     const member = await ctx.db!.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
-    return member || null;
+    const result = member ?? null;
+    ctx.cache.set(cacheKey, result, 60);
+    return result;
   }),
 
   register: protectedProcedure
@@ -272,24 +277,23 @@ export const memberRouter = createTRPCRouter({
     }),
 
   history: protectedProcedure.query(async ({ ctx }) => {
+    // Single joined query instead of member lookup + history lookup
     const member = await ctx.db!.query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
+      columns: { id: true },
+      with: {
+        membershipHistory: {
+          orderBy: (h, { desc }) => [desc(h.createdAt)],
+          limit: 50,
+        },
+      },
     });
 
     if (!member) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Member not found",
-      });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
     }
 
-    const history = await ctx.db!.query.membershipHistory.findMany({
-      where: eq(membershipHistory.memberId, member.id),
-      orderBy: (membershipHistory, { desc }) => [desc(membershipHistory.createdAt)],
-      limit: 50,
-    });
-
-    return history;
+    return member.membershipHistory;
   }),
 
   checkStatus: protectedProcedure.query(async ({ ctx }) => {

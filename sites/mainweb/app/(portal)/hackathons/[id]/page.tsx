@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -76,8 +75,6 @@ export default function HackathonDetailPage() {
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
-            <Background className="fixed inset-0 z-0 opacity-[0.02]" />
-
             <main className="relative z-10 max-w-5xl mx-auto py-24 px-6 md:px-12">
                 <Link href="/hackathons" className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium mb-12 group">
                     <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
@@ -148,6 +145,7 @@ export default function HackathonDetailPage() {
                     </div>
                 </LiquidGlass>
 
+                {/* Tabs */}
                 <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none snap-x relative z-10 w-full">
                     {(['INFO', 'SCHEDULE', 'PROJECTS', 'TEAMS'] as const).map((t) => (
                         <button
@@ -164,6 +162,7 @@ export default function HackathonDetailPage() {
                     ))}
                 </div>
 
+                {/* Content */}
                 <div className="relative z-10">
                     {tab === 'INFO' ? (
                         <InfoTab hackathon={hackathon} isRegistered={isRegistered} myReg={myReg} />

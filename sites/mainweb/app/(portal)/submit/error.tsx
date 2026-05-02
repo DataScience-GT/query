@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 export default function SubmitError({
@@ -18,7 +17,6 @@ export default function SubmitError({
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden flex items-center justify-center">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
             <main className="relative z-10 w-full max-w-xl px-6">
                 <LiquidGlass className="p-12 text-center border-red-500/20">

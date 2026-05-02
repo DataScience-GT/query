@@ -1,7 +1,6 @@
 import { pgTable, text, timestamp, uuid, integer, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
-import { members } from "./members";
 
 /**
  * Stores Stripe checkout/payment info from webhooks.

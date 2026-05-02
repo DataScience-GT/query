@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter } from "../trpc";
-import { auditLogs, securitySeverityEnum } from "@query/db";
+import { auditLogs } from "@query/db";
 import { isAdmin } from "../middleware/procedures";
 import { desc, eq, and, sql } from "drizzle-orm";
 
