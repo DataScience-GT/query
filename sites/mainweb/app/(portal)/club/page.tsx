@@ -177,6 +177,7 @@ export default function ClubPage() {
             <div className="mb-8 flex items-center gap-5 border-b border-border-subtle pb-8">
               <div className="group relative shrink-0">
                 <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-accent to-success opacity-50 blur transition duration-1000 group-hover:opacity-75 group-hover:duration-200">
+                </div>
                 {userData?.image ? (
                   <Image
                     src={userData.image}
