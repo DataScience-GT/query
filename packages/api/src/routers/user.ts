@@ -4,24 +4,37 @@ import { createTRPCRouter, protectedProcedure, uploadProcedure } from "../trpc";
 import { users, userProfiles } from "@query/db";
 import { eq } from "drizzle-orm";
 import { imageSize } from "image-size";
+import { CacheKeys } from "../middleware/cache";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = CacheKeys.userProfile(ctx.userId!);
+    const cached = ctx.cache.get<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      image: string | null;
+      bio: string | null | undefined;
+      website: string | null | undefined;
+      location: string | null | undefined;
+    }>(cacheKey);
+    if (cached) return cached;
+
     const user = await ctx.db!.query.users.findFirst({
       where: eq(users.id, ctx.userId!),
+      columns: { id: true, email: true, name: true, image: true },
       with: {
-        profile: true,
+        profile: {
+          columns: { bio: true, website: true, location: true },
+        },
       },
     });
 
     if (!user) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found"
-      });
+      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     }
 
-    return {
+    const result = {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -30,6 +43,9 @@ export const userRouter = createTRPCRouter({
       website: user.profile?.website,
       location: user.profile?.location,
     };
+
+    ctx.cache.set(cacheKey, result, 120);
+    return result;
   }),
 
   updateProfile: protectedProcedure
@@ -43,51 +59,40 @@ export const userRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.name !== undefined || input.image !== undefined) {
-        await ctx.db!
-          .update(users)
-          .set({
-            name: input.name,
-            image: input.image,
-          })
-          .where(eq(users.id, ctx.userId!));
-      }
-      if (input.bio !== undefined || input.website !== undefined || input.location !== undefined) {
-        const existingProfile = await ctx.db!.query.userProfiles.findFirst({
-          where: eq(userProfiles.userId, ctx.userId!),
-        });
+      const { name, image, bio, website, location } = input;
 
-        if (existingProfile) {
-          await ctx.db!
-            .update(userProfiles)
-            .set({
-              bio: input.bio !== undefined ? input.bio : existingProfile.bio,
-              website: input.website !== undefined ? input.website : existingProfile.website,
-              location: input.location !== undefined ? input.location : existingProfile.location,
-              updatedAt: new Date(),
+      // Run user update and profile upsert in parallel when both are needed
+      const ops: Promise<unknown>[] = [];
+
+      if (name !== undefined || image !== undefined) {
+        ops.push(
+          ctx.db!.update(users).set({ name, image }).where(eq(users.id, ctx.userId!))
+        );
+      }
+
+      if (bio !== undefined || website !== undefined || location !== undefined) {
+        // Use upsert instead of check-then-insert (eliminates one round-trip)
+        ops.push(
+          ctx.db!
+            .insert(userProfiles)
+            .values({ userId: ctx.userId!, bio, website, location })
+            .onConflictDoUpdate({
+              target: userProfiles.userId,
+              set: {
+                bio: bio ?? undefined,
+                website: website ?? undefined,
+                location: location ?? undefined,
+                updatedAt: new Date(),
+              },
             })
-            .where(eq(userProfiles.userId, ctx.userId!));
-        } else {
-          await ctx.db!.insert(userProfiles).values({
-            userId: ctx.userId!,
-            bio: input.bio,
-            website: input.website,
-            location: input.location,
-          });
-        }
+        );
       }
 
-      const updatedUser = await ctx.db!.query.users.findFirst({
-        where: eq(users.id, ctx.userId!),
-        with: {
-          profile: true,
-        },
-      });
+      await Promise.all(ops);
 
-      ctx.cache.deletePattern(`user:${ctx.userId}*`);
-      ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
+      ctx.cache.deletePattern(`user:${ctx.userId!}*`);
 
-      return { success: true, user: updatedUser };
+      return { success: true };
     }),
 
   updateProfileImage: uploadProcedure
@@ -95,16 +100,13 @@ export const userRouter = createTRPCRouter({
       z.object({
         base64Image: z.string()
           .regex(/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/]+={0,2}$/, "Invalid image format")
-          .max(2 * 1024 * 1024), // Approx 2MB
+          .max(2 * 1024 * 1024),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const base64Data = input.base64Image.split(",")[1];
       if (!base64Data) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid base64 payload",
-        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid base64 payload" });
       }
 
       const buffer = Buffer.from(base64Data, "base64");
@@ -112,45 +114,23 @@ export const userRouter = createTRPCRouter({
       try {
         const dimensions = imageSize(buffer);
         if (!dimensions.width || !dimensions.height) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid image dimensions. File may be corrupt.",
-          });
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid image dimensions. File may be corrupt." });
         }
-
-        // Prevent image bombs: 2000x2000 max resolution
         if (dimensions.width > 2000 || dimensions.height > 2000) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
-          });
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Image dimensions exceed the maximum allowed size of 2000x2000 pixels." });
         }
-
-        // Validate image type using image-size instead of manual magic bytes
         const allowedTypes = ['jpg', 'jpeg', 'png', 'webp'];
         if (!dimensions.type || !allowedTypes.includes(dimensions.type)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Malicious payload detected: File signature does not match expected image formats.",
-          });
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Malicious payload detected: File signature does not match expected image formats." });
         }
       } catch (err) {
         if (err instanceof TRPCError) throw err;
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Could not parse image. File may be corrupt or malicious.",
-        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Could not parse image. File may be corrupt or malicious." });
       }
 
-      await ctx.db!
-        .update(users)
-        .set({
-          image: input.base64Image,
-        })
-        .where(eq(users.id, ctx.userId!));
+      await ctx.db!.update(users).set({ image: input.base64Image }).where(eq(users.id, ctx.userId!));
 
-      ctx.cache.deletePattern(`user:${ctx.userId}*`);
-      ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
+      ctx.cache.deletePattern(`user:${ctx.userId!}*`);
 
       return { success: true };
     }),

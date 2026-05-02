@@ -11,9 +11,11 @@ const nextConfig = {
       },
     ],
   },
+  reactCompiler: true,
+  experimental: {
+    optimizePackageImports: ['react-icons'],
+  },
   reactStrictMode: true, // recommended
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

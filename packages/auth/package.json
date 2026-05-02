@@ -12,12 +12,12 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "^1.7.1",
+    "@auth/drizzle-adapter": "1.7.1",
     "@query/db": "workspace:*",
-    "drizzle-orm": "^0.36.4",
-    "minimatch": "^10.2.3",
-    "next-auth": "^5.0.0-beta.25",
-    "nodemailer": "^8.0.4"
+    "drizzle-orm": "0.45.2",
+    "minimatch": "10.2.3",
+    "next-auth": "5.0.0-beta.30",
+    "nodemailer": "8.0.5"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
@@ -25,6 +25,6 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/node": "^20",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }

@@ -2,7 +2,6 @@
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 function VerifyContent() {
@@ -105,7 +104,6 @@ function VerifyContent() {
 
     return (
         <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
             <LiquidGlass className="relative z-10 w-full max-w-lg p-10 md:p-14 flex flex-col items-center">
                 <div className="w-24 h-24 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(0,168,168,0.1)]">
