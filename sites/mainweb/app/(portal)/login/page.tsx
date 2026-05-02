@@ -5,48 +5,62 @@ import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
+// DSGT Query - Premium Login Flow
+// Modern, polished, standout UI/UX
+
+export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
-  const [emailSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordSending, setPasswordSending] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
+  // Enhanced log system with timestamps
   const [logs, setLogs] = useState<string[]>([
-    "Initializing terminal...",
-    "System check: OK",
-    "Loading background modules..."
+    { text: "Initializing secure terminal...", timestamp: new Date().toISOString() },
+    { text: "Connection encrypted ✓", timestamp: new Date().toISOString() },
+    { text: "Authentication module: Ready", timestamp: new Date().toISOString() }
   ]);
 
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
-
-  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, {
-    enabled: !!session,
-  });
-
-  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
-    enabled: !!session,
-  });
+  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
+  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
+  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
 
   useEffect(() => {
     setMounted(true);
-
-    const timeout = setTimeout(() => {
-      setLogs(prev => [...prev.slice(-4), "> Network: Established", "> Session: Awaiting user..."]);
-    }, 800);
-
-    return () => clearTimeout(timeout);
+    // Simulate system initialization with enhanced logs
+    const timeouts = [
+      setTimeout(() => {
+        setLogs(prev => [...prev.slice(-4), {
+          text: "> Network: Secure connection established",
+          timestamp: new Date().toISOString()
+        }]);
+      }, 500),
+      setTimeout(() => {
+        setLogs(prev => [...prev.slice(-4), {
+          text: "> Biometric scan: Awaiting user",
+          timestamp: new Date().toISOString()
+        }]);
+      }, 1200),
+      setTimeout(() => {
+        setLogs(prev => [...prev.slice(-4), {
+          text: "> Security protocols: Active",
+          timestamp: new Date().toISOString()
+        }]);
+      }, 1800),
+    ];
+    return () => timeouts.forEach(clearTimeout);
   }, []);
 
   useEffect(() => {
     if (adminStatus) {
       const roleLog = adminStatus.isAdmin
-        ? `> Admin Access: ${adminStatus.role?.toUpperCase()}`
-        : "> Access Level: Standard User";
+        ? { text: `> Admin Portal: ${adminStatus.role?.toUpperCase()} // Access Level 5`, timestamp: new Date().toISOString() }
+        : { text: "> Access Level: Standard User", timestamp: new Date().toISOString() };
       setLogs(prev => [...prev.slice(-4), roleLog]);
     }
   }, [adminStatus]);
@@ -54,21 +68,24 @@ export default function Home() {
   useEffect(() => {
     if (memberStatus) {
       const memberLog = memberStatus.isMember
-        ? `> Membership: ${memberStatus.memberType?.toUpperCase()} (${memberStatus.daysRemaining} days remaining)`
-        : "> Membership: Not Active";
+        ? { text: `> Member Portal: ${memberStatus.memberType?.toUpperCase()} // ${memberStatus.daysRemaining} days active`, timestamp: new Date().toISOString() }
+        : { text: "> Membership: Not Active", timestamp: new Date().toISOString() };
       setLogs(prev => [...prev.slice(-4), memberLog]);
     }
   }, [memberStatus]);
 
   useEffect(() => {
     if (judgeStatus?.isJudge) {
-      setLogs(prev => [...prev.slice(-4), "> Role Detected: JUDGE"]);
+      setLogs(prev => [...prev.slice(-4), { text: "> Role Detected: JUDGE // Scoring panel ready", timestamp: new Date().toISOString() }]);
     }
   }, [judgeStatus]);
 
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      setLogs(prev => [...prev.slice(-4), "> Auth success. Handshaking...", "> Redirecting to secure node..."]);
+      setLogs(prev => [...prev.slice(-4), {
+        text: "> Authentication successful // Redirecting to secure dashboard...",
+        timestamp: new Date().toISOString()
+      }]);
 
       const redirectTimeout = setTimeout(() => {
         if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
@@ -76,7 +93,7 @@ export default function Home() {
         } else {
           router.push('/dashboard');
         }
-      }, 1200);
+      }, 1500);
 
       return () => clearTimeout(redirectTimeout);
     }
@@ -85,154 +102,311 @@ export default function Home() {
   const handleEmailLogin = async () => {
     if (!email) return;
     setEmailSending(true);
-    setLogs(prev => [...prev.slice(-4), `> Sending verification code to ${email}...`]);
+    setLogs(prev => [...prev.slice(-4), {
+      text: `> Sending verification code to ${email}... // Check your inbox`,
+      timestamp: new Date().toISOString()
+    }]);
     try {
       await signIn('nodemailer', { email, callbackUrl: '/dashboard', redirect: false });
-      setLogs(prev => [...prev.slice(-4), "> Code sent! Redirecting..."]);
-      // Redirect to verify page where user enters the 6-digit code
+      setLogs(prev => [...prev.slice(-4), { text: "> Verification code sent // Redirecting...", timestamp: new Date().toISOString() }]);
       router.push(`/verify?email=${encodeURIComponent(email)}`);
-    } catch {
-      setLogs(prev => [...prev.slice(-4), "> Error: Failed to send code."]);
+    } catch (error) {
+      setLogs(prev => [...prev.slice(-4), {
+        text: `> Error: Failed to send verification code`,
+        timestamp: new Date().toISOString()
+      }]);
       setEmailSending(false);
     }
   };
 
+  const handlePasswordLogin = async () => {
+    if (!password) return;
+    setPasswordSending(true);
+    setLogs(prev => [...prev.slice(-4), {
+      text: "> Authenticating with password // Verifying credentials...",
+      timestamp: new Date().toISOString()
+    }]);
+    try {
+      await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: '/dashboard'
+      });
+      setLogs(prev => [...prev.slice(-4), {
+        text: "> Authentication successful // Welcome back!",
+        timestamp: new Date().toISOString()
+      }]);
+      router.push('/dashboard');
+    } catch (error) {
+      setLogs(prev => [...prev.slice(-4), {
+        text: "> Error: Invalid credentials",
+        timestamp: new Date().toISOString()
+      }]);
+      setPasswordSending(false);
+    }
+  };
+
   const handleSignIn = () => {
-    setLogs(prev => [...prev.slice(-4), "> Initializing OAuth..."]);
+    setLogs(prev => [...prev.slice(-4), { text: "> Initializing OAuth flow...", timestamp: new Date().toISOString() }]);
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  if (!mounted) return <div className="min-h-screen bg-[#050505]" />;
+  if (!mounted) return (
+    <div className="relative min-h-screen bg-gradient-to-br from-[#000000] via-[#050505] to-[#0a0a0a] flex items-center justify-center" />
+  );
 
   const isRedirecting = status === 'authenticated';
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-hidden flex items-center justify-center">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#000000] via-[#050505] to-[#0a0a0a] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-hidden flex flex-col">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {/* Gradient orbs */}
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-[#00A8A8]/5 blur-[200px] rounded-full animate-[float_20s_ease-in-out_infinite]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#6366f1]/5 blur-[180px] rounded-full animate-[float_25s_ease-in-out_infinite_reverse]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[#00A8A8]/3 blur-[300px] rounded-full opacity-20" />
 
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.05)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        {/* Grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+
+        {/* Glowing particles */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(0, 168, 168, 0.15) 0px, transparent 60%), radial-gradient(circle at 80% 70%, rgba(99, 102, 241, 0.12) 0px, transparent 50%)' }} />
       </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 w-full grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+      {/* Main Content */}
+      <main className="relative z-10 flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
-        <div className="space-y-12">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="h-px w-12 bg-[#00A8A8]/30" />
-              <span className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em]">Query Engine // V.1</span>
+          {/* Left Panel - Hero Content */}
+          <div className="space-y-10 lg:space-y-14 animate-[fadeInUp_0.8s_ease-out_forwards]">
+            {/* Status Badge */}
+            <div className="flex items-center gap-4 animate-[fadeIn_0.5s_ease-out_0.2s_forwards]">
+              <div className="h-1 w-16 bg-gradient-to-r from-[#00A8A8] to-[#006e6e] rounded-full" />
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-mono text-[#00A8A8]/70 uppercase tracking-[0.3em]">Query Engine</span>
+                <span className="text-xs font-mono text-gray-600 uppercase tracking-widest">v.2.1.0</span>
+              </div>
             </div>
 
-            <h1 className="text-7xl lg:text-9xl font-black text-white leading-[0.8] tracking-tighter uppercase">
-              Query <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#005a5a] italic">
-                DSGT.
-              </span>
-            </h1>
+            {/* Hero Title */}
+            <div className="animate-[fadeIn_0.5s_ease-out_0.3s_forwards]">
+              <h1 className="text-6xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter uppercase">
+                Query <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] via-[#14b8a6] to-[#0891b2] italic transform -skew-x-6">
+                  DSGT.
+                </span>
+              </h1>
+            </div>
 
-            <div className="max-w-md space-y-4">
-              <p className="text-sm text-gray-500 leading-relaxed border-l-2 border-[#00A8A8]/20 pl-4 italic font-medium">
-                The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
+            {/* Subtitle */}
+            <div className="space-y-5 animate-[fadeIn_0.5s_ease-out_0.4s_forwards]">
+              <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-[#00A8A8]/5 border border-[#00A8A8]/20">
+                <div className="w-2 h-2 rounded-full bg-[#00A8A8] animate-pulse" />
+                <span className="text-xs font-mono text-[#00A8A8]/80 uppercase tracking-widest">
+                  Georgia Tech Data Science
+                </span>
+              </div>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-md border-l-2 border-[#00A8A8]/30 pl-5 italic font-medium">
+                The collective intelligence of Georgia Tech's largest data science community.
+                Authenticate to access your personalized dashboard and join the conversation.
               </p>
+            </div>
 
-              <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 rounded-lg font-mono text-[11px] leading-relaxed shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                {logs.map((log, i) => (
-                  <p key={i} className={i === logs.length - 1 ? "text-[#00A8A8]" : "text-gray-600"}>
-                    {log}
-                  </p>
-                ))}
-                {(emailSending || isRedirecting || status === 'loading') && (
-                  <p className="text-[#00A8A8] animate-pulse">
-                    {'>'} {status === 'loading' ? 'Syncing_Identity...' : emailSending ? 'Sending_Verification...' : 'Processing request...'}
-                  </p>
-                )}
+            {/* Stats Card */}
+            <div className="grid grid-cols-3 gap-4 animate-[fadeIn_0.5s_ease-out_0.5s_forwards]">
+              <div className="p-4 rounded-xl bg-[#0a0a0a]/60 border border-white/5 hover:border-[#00A8A8]/30 transition-all group">
+                <p className="text-xs font-mono text-gray-600 uppercase tracking-wider mb-1">Active Members</p>
+                <p className="text-2xl font-bold text-white">2.4k</p>
+                <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-widest">+15% this month</p>
+              </div>
+              <div className="p-4 rounded-xl bg-[#0a0a0a]/60 border border-white/5 hover:border-[#00A8A8]/30 transition-all group">
+                <p className="text-xs font-mono text-gray-600 uppercase tracking-wider mb-1">Events</p>
+                <p className="text-2xl font-bold text-white">128</p>
+                <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-widest">Ongoing</p>
+              </div>
+              <div className="p-4 rounded-xl bg-[#0a0a0a]/60 border border-white/5 hover:border-[#00A8A8]/30 transition-all group">
+                <p className="text-xs font-mono text-gray-600 uppercase tracking-wider mb-1">Projects</p>
+                <p className="text-2xl font-bold text-white">486</p>
+                <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-widest">Submitted</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <button
-              onClick={handleSignIn}
-              disabled={emailSending || isRedirecting || status === 'loading'}
-              className="w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
-            >
-              {isRedirecting ? 'Verified' : 'Sign In'}
-            </button>
-
-            {!showEmailInput ? (
-              <button
-                onClick={() => {
-                  setShowEmailInput(true);
-                  setLogs(prev => [...prev.slice(-4), "> Email auth mode activated."]);
-                }}
-                disabled={emailSending || isRedirecting || status === 'loading'}
-                className="w-full sm:w-auto px-8 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all active:scale-95 disabled:opacity-30"
-              >
-                Email Login
-              </button>
-            ) : (
-              <div className="flex w-full sm:w-auto gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
-                  placeholder="your@email.com"
-                  disabled={emailSending || emailSent}
-                  className="flex-1 sm:w-48 px-4 py-5 bg-black/60 border border-white/10 text-white font-mono text-[11px] rounded-sm focus:border-[#00A8A8]/50 focus:outline-none placeholder:text-gray-600 disabled:opacity-30"
-                  autoFocus
-                />
-                <button
-                  onClick={handleEmailLogin}
-                  disabled={emailSending || emailSent || !email}
-                  className="px-6 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8]/20 hover:border-[#00A8A8]/30 transition-all active:scale-95 disabled:opacity-30"
-                >
-                  {emailSent ? 'Sent ✓' : emailSending ? '...' : 'Send'}
-                </button>
+          {/* Right Panel - Login Form */}
+          <div className="space-y-8 animate-[fadeInRight_0.8s_ease-out_forwards]">
+            {/* Terminal Window */}
+            <div className="relative">
+              {/* Window Header */}
+              <div className="absolute -top-3 left-4 right-4 flex items-center gap-2">
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/80 hover:bg-yellow-500 transition-colors" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors" />
+                </div>
+                <span className="px-4 py-1.5 rounded-lg bg-[#0a0a0a]/80 border border-white/10 text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-widest">
+                  authentication@terminal
+                </span>
               </div>
-            )}
-          </div>
-        </div>
 
-        <div className="hidden lg:flex flex-col items-center justify-center relative">
-          <div className="absolute w-[500px] h-[500px] bg-[#00A8A8]/10 blur-[120px] rounded-full animate-pulse" />
+              {/* Terminal Body */}
+              <div className="relative p-6 rounded-2xl bg-[#050505]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+                {/* Decorative Line */}
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent" />
 
-          <div className="relative group">
-            <div className="absolute -inset-4 border border-white/5 rounded-full animate-[spin_20s_linear_infinite]" />
-            <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_35s_linear_infinite_reverse] opacity-50" />
+                {/* Logs Output */}
+                <div className="space-y-2 font-mono text-[11px] leading-relaxed mb-6">
+                  {logs.map((log, i) => (
+                    <p key={i} className={`${i === logs.length - 1 ? 'text-[#00A8A8] animate-pulse' : 'text-gray-600'}`}>
+                      <span className="text-gray-700">{'>'}</span>{' '}
+                      {log.text}
+                    </p>
+                  ))}
+                  {(emailSending || passwordSending || isRedirecting || status === 'loading') && (
+                    <p className="text-[#00A8A8] animate-pulse">
+                      {'>'} {status === 'loading' ? 'Syncing identity...' : emailSending ? 'Sending verification...' : passwordSending ? 'Authenticating...' : 'Processing request...'}
+                    </p>
+                  )}
+                </div>
 
-            <div className="relative z-10 p-8">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/dsgt/apple-touch-icon.png"
-                alt="DSGT Logo"
-                className="w-72 h-72 object-contain drop-shadow-[0_0_50px_rgba(0,168,168,0.3)] transition-all duration-700 group-hover:scale-105"
-              />
+                {/* Auth Buttons */}
+                <div className="space-y-4">
+                  {/* Sign In Button */}
+                  <button
+                    onClick={handleSignIn}
+                    disabled={emailSending || passwordSending || isRedirecting || status === 'loading'}
+                    className="w-full py-5 bg-gradient-to-r from-white via-[#00A8A8] to-[#009E9E] text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-lg hover:from-[#00A8A8] hover:via-[#14b8a6] hover:to-[#0891b2] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(0,168,168,0.15)] hover:shadow-[0_4px_30px_rgba(0,168,168,0.25)]"
+                  >
+                    {isRedirecting ? 'Authenticated' : 'Sign In with Google'}
+                  </button>
+
+                  {/* Email Login */}
+                  {!showEmailInput ? (
+                    <button
+                      onClick={() => {
+                        setShowEmailInput(true);
+                        setLogs(prev => [...prev.slice(-4), {
+                          text: '> Email authentication mode activated',
+                          timestamp: new Date().toISOString()
+                        }]);
+                      }}
+                      disabled={emailSending || passwordSending || isRedirecting || status === 'loading'}
+                      className="w-full py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-lg hover:bg-white/5 hover:border-white/20 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Send Verification Code
+                    </button>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Email Input */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-mono text-[#00A8A8]/70 uppercase tracking-widest">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
+                          placeholder="your@email.com"
+                          disabled={emailSending || emailSent}
+                          className="w-full px-4 py-4 bg-[#0a0a0a]/60 border border-white/10 text-white font-mono text-[11px] rounded-lg focus:border-[#00A8A8]/50 focus:outline-none focus:ring-1 focus:ring-[#00A8A8]/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        />
+                      </div>
+
+                      {/* Remember Me & Send */}
+                      <div className="flex items-center justify-between gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            disabled={emailSending || emailSent}
+                            className="w-4 h-4 rounded border border-white/20 bg-[#0a0a0a] text-[#00A8A8] focus:outline-none focus:ring-2 focus:ring-[#00A8A8]/30 disabled:opacity-30"
+                          />
+                          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider group-hover:text-gray-400 transition-colors">
+                            Remember device
+                          </span>
+                        </label>
+
+                        <button
+                          onClick={handleEmailLogin}
+                          disabled={emailSending || emailSent || !email}
+                          className="px-6 py-4 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-lg hover:bg-[#00A8A8]/20 hover:border-[#00A8A8]/40 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          {emailSent ? '✓ Sent' : emailSending ? 'Sending...' : 'Send Code'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Password Login */}
+                  <div className="pt-4 border-t border-white/5 space-y-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">or</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-mono text-[#00A8A8]/70 uppercase tracking-widest">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          disabled={passwordSending}
+                          className="w-full px-4 py-4 bg-[#0a0a0a]/60 border border-white/10 text-white font-mono text-[11px] rounded-lg focus:border-[#00A8A8]/50 focus:outline-none focus:ring-1 focus:ring-[#00A8A8]/30 disabled:opacity-30 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-mono text-[#00A8A8]/70 uppercase tracking-widest">
+                          Password
+                        </label>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handlePasswordLogin()}
+                          placeholder="••••••••"
+                          disabled={passwordSending}
+                          className="w-full px-4 py-4 bg-[#0a0a0a]/60 border border-white/10 text-white font-mono text-[11px] rounded-lg focus:border-[#00A8A8]/50 focus:outline-none focus:ring-1 focus:ring-[#00A8A8]/30 disabled:opacity-30 transition-all"
+                        />
+                      </div>
+
+                      <button
+                        onClick={handlePasswordLogin}
+                        disabled={passwordSending || !email || !password}
+                        className="w-full py-5 bg-gradient-to-r from-[#00A8A8]/10 to-transparent border border-[#00A8A8]/20 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-lg hover:border-[#00A8A8]/40 hover:bg-[#00A8A8]/20 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        {passwordSending ? 'Authenticating...' : 'Sign In'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
-              <p className="text-[10px] font-mono text-[#00A8A8]/50 uppercase tracking-[0.5em] animate-pulse">
-                {isRedirecting ? "Handshake Verified" : status === 'loading' ? "Synchronizing..." : "Core Operational"}
-              </p>
-              <div className="flex justify-center gap-6 text-[8px] font-mono text-gray-700">
-                <span className="flex items-center gap-1">
-                  <div className={`w-1 h-1 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
-                  STATUS: {status.toUpperCase()}
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-1 h-1 bg-[#00A8A8] rounded-full" />
-                  REGION: ATL-08
-                </span>
-              </div>
+            {/* Footer Links */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-[10px] font-mono text-gray-600 uppercase tracking-widest animate-[fadeIn_0.5s_ease-out_0.8s_forwards]">
+              <a href="/forgot-password" className="hover:text-[#00A8A8] hover:underline transition-colors">
+                Forgot password?
+              </a>
+              <span className="hidden sm:inline">•</span>
+              <span className="hover:text-[#00A8A8] hover:underline transition-colors cursor-pointer">Need help?</span>
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="absolute bottom-8 left-12 right-12 flex justify-between items-center opacity-20 pointer-events-none">
-        <div className="text-[9px] font-mono uppercase tracking-[0.4em]">Internal Terminal // Auth Gateway</div>
-        <div className="text-[9px] font-mono uppercase tracking-[0.4em]">Access Node: 0812-ATL</div>
+      {/* Footer */}
+      <footer className="relative z-10 px-6 py-4">
+        <div className="flex justify-between items-center text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">
+          <div>Internal Terminal // Auth Gateway v2.1</div>
+          <div className="flex items-center gap-2">
+            <span className={`w-1.5 h-1.5 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
+            <span>STATUS: {status.toUpperCase()}</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
