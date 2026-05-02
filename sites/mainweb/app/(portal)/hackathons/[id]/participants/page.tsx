@@ -38,7 +38,7 @@ function statusConfig(s: string) {
         closed: { label: 'Applications Closed', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30', glow: '' },
         cancelled: { label: 'Cancelled', dot: 'bg-rose-500', text: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30', glow: '' },
     };
-    return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
+    return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-text-muted', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
 }
 
 type TabType = 'INFO' | 'SCHEDULE' | 'PROJECTS' | 'TEAMS';
@@ -71,7 +71,7 @@ export default function ParticipantHackathonPage() {
     const myTeamId = myReg?.team?.id ?? null;
 
     return (
-        <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
+        <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-hidden">
             {/* Ambient Background Glows */}
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />

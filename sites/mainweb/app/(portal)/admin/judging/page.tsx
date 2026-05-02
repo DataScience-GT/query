@@ -118,9 +118,9 @@ export default function AdminResultsPage() {
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="mb-12">
           <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2">
-            Voting <span className="text-[#00A8A8] italic">Results</span>
+            Voting <span className="text-accent italic">Results</span>
           </h1>
-          <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
+          <p className="text-sm font-mono text-text-muted uppercase tracking-widest">
             Data Evaluation Layer // {selectedHackathon ? 'SYNC ACTIVE' : 'IDLE'}
           </p>
         </div>
@@ -144,9 +144,9 @@ export default function AdminResultsPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-                    Judging {judgingStatus?.active ? <span className="text-emerald-400 italic">Active</span> : <span className="text-gray-500 italic">Inactive</span>}
+                    Judging {judgingStatus?.active ? <span className="text-emerald-400 italic">Active</span> : <span className="text-text-muted italic">Inactive</span>}
                   </h2>
-                  <p className="text-xs font-mono text-gray-500 uppercase tracking-widest mt-1">
+                  <p className="text-xs font-mono text-text-muted uppercase tracking-widest mt-1">
                     {judgingStatus?.active
                       ? 'Judges are currently scoring projects in real-time'
                       : 'Judges are on standby — waiting for you to begin'}

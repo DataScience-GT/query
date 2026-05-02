@@ -102,12 +102,12 @@ export default function Home() {
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  if (!mounted) return <div className="min-h-screen bg-[#050505]" />;
+  if (!mounted) return <div className="min-h-screen bg-[var(--bg-secondary)]" />;
 
   const isRedirecting = status === 'authenticated';
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-hidden flex items-center justify-center">
+    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-text-muted font-sans selection:bg-accent/30 overflow-hidden flex items-center justify-center">
 
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.05)_0%,transparent_70%)]" />
@@ -119,31 +119,31 @@ export default function Home() {
         <div className="space-y-12">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="h-px w-12 bg-[#00A8A8]/30" />
-              <span className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em]">Query Engine // V.1</span>
+              <div className="h-px w-12 bg-accent/30" />
+              <span className="text-xs font-mono text-text-muted uppercase tracking-[0.4em]">Query Engine // V.1</span>
             </div>
 
             <h1 className="text-7xl lg:text-9xl font-black text-white leading-[0.8] tracking-tighter uppercase">
               Query <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#005a5a] italic">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-cyan-700 italic">
                 DSGT.
               </span>
             </h1>
 
             <div className="max-w-md space-y-4">
-              <p className="text-sm text-gray-500 leading-relaxed border-l-2 border-[#00A8A8]/20 pl-4 italic font-medium">
+              <p className="text-sm text-text-muted leading-relaxed border-l-2 border-accent/20 pl-4 italic font-medium">
                 The collective intelligence of Georgia Tech's largest data science community. Authenticate to access your dashboard.
               </p>
 
               <div className="bg-black/60 backdrop-blur-md border border-white/5 p-5 rounded-lg font-mono text-[11px] leading-relaxed shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 {logs.map((log, i) => (
-                  <p key={i} className={i === logs.length - 1 ? "text-[#00A8A8]" : "text-gray-600"}>
+                  <p key={i} className={i === logs.length - 1 ? "text-accent" : "text-text-disabled"}>
                     {log}
                   </p>
                 ))}
                 {(emailSending || isRedirecting || status === 'loading') && (
-                  <p className="text-[#00A8A8] animate-pulse">
+                  <p className="text-accent animate-pulse">
                     {'>'} {status === 'loading' ? 'Syncing_Identity...' : emailSending ? 'Sending_Verification...' : 'Processing request...'}
                   </p>
                 )}
@@ -155,7 +155,7 @@ export default function Home() {
             <button
               onClick={handleSignIn}
               disabled={emailSending || isRedirecting || status === 'loading'}
-              className="w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+              className="w-full sm:w-auto px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-white transition-all active:scale-95 disabled:opacity-30 shadow-[0_0_30px_rgba(0,168,168,0.1)]"
             >
               {isRedirecting ? 'Verified' : 'Sign In'}
             </button>
@@ -180,13 +180,13 @@ export default function Home() {
                   onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
                   placeholder="your@email.com"
                   disabled={emailSending || emailSent}
-                  className="flex-1 sm:w-48 px-4 py-5 bg-black/60 border border-white/10 text-white font-mono text-[11px] rounded-sm focus:border-[#00A8A8]/50 focus:outline-none placeholder:text-gray-600 disabled:opacity-30"
+                  className="flex-1 sm:w-48 px-4 py-5 bg-black/60 border border-white/10 text-white font-mono text-[11px] rounded-sm focus:border-accent/50 focus:outline-none placeholder:text-text-disabled disabled:opacity-30"
                   autoFocus
                 />
                 <button
                   onClick={handleEmailLogin}
                   disabled={emailSending || emailSent || !email}
-                  className="px-6 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8]/20 hover:border-[#00A8A8]/30 transition-all active:scale-95 disabled:opacity-30"
+                  className="px-6 py-5 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent/20 hover:border-accent/30 transition-all active:scale-95 disabled:opacity-30"
                 >
                   {emailSent ? 'Sent ✓' : emailSending ? '...' : 'Send'}
                 </button>
@@ -196,7 +196,7 @@ export default function Home() {
         </div>
 
         <div className="hidden lg:flex flex-col items-center justify-center relative">
-          <div className="absolute w-[500px] h-[500px] bg-[#00A8A8]/10 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute w-[500px] h-[500px] bg-accent/10 blur-[120px] rounded-full animate-pulse" />
 
           <div className="relative group">
             <div className="absolute -inset-4 border border-white/5 rounded-full animate-[spin_20s_linear_infinite]" />
@@ -212,16 +212,16 @@ export default function Home() {
             </div>
 
             <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
-              <p className="text-[10px] font-mono text-[#00A8A8]/50 uppercase tracking-[0.5em] animate-pulse">
+              <p className="text-[10px] font-mono text-accent/50 uppercase tracking-[0.5em] animate-pulse">
                 {isRedirecting ? "Handshake Verified" : status === 'loading' ? "Synchronizing..." : "Core Operational"}
               </p>
               <div className="flex justify-center gap-6 text-[8px] font-mono text-gray-700">
                 <span className="flex items-center gap-1">
-                  <div className={`w-1 h-1 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
+                  <div className={`w-1 h-1 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-accent'}`} />
                   STATUS: {status.toUpperCase()}
                 </span>
                 <span className="flex items-center gap-1">
-                  <div className="w-1 h-1 bg-[#00A8A8] rounded-full" />
+                  <div className="w-1 h-1 bg-accent rounded-full" />
                   REGION: ATL-08
                 </span>
               </div>

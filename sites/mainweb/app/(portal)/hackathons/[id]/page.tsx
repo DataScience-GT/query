@@ -70,7 +70,7 @@ export default function HackathonDetailPage() {
     const conf = statusConfig(hackathon.status);
 
     return (
-        <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
+        <div className="relative min-h-screen bg-[var(--bg-tertiary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-hidden">
             {/* Ambient Background Glows */}
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />

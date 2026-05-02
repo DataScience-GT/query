@@ -134,11 +134,11 @@ export default function AdminPage() {
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 to-transparent rounded-2xl">
           <h1 className="text-2xl font-black text-white tracking-tight mb-2">
-            Check-in <span className="text-[#00A8A8] italic">Events</span>
+            Check-in <span className="text-accent italic">Events</span>
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-text-muted text-sm">
             Manage your event check-in locations, QR codes, and attendance tracking.
           </p>
         </div>
@@ -150,8 +150,8 @@ export default function AdminPage() {
               onClick={() => setEventView('all')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 eventView === 'all'
-                  ? 'bg-gradient-to-r from-[#00A8A8] to-emerald-600 text-white shadow-lg shadow-[#00A8A8]/20'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-gradient-to-r from-accent to-emerald-600 text-white shadow-lg shadow-accent/20'
+                  : 'text-text-muted hover:text-white hover:bg-white/5'
               }`}
             >
               All
@@ -161,7 +161,7 @@ export default function AdminPage() {
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 eventView === 'competitions'
                   ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/20'
-                  : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
+                  : 'text-text-muted hover:text-cyan-400 hover:bg-cyan-500/10'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export default function AdminPage() {
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 eventView === 'gatherings'
                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20'
-                  : 'text-gray-400 hover:text-green-400 hover:bg-green-500/10'
+                  : 'text-text-muted hover:text-green-400 hover:bg-green-500/10'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -230,7 +230,7 @@ export default function AdminPage() {
             </div>
             <button
               onClick={() => setShowCreateEvent(true)}
-              className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-[#00A8A8]/20"
+              className="px-6 py-3 bg-gradient-to-r from-accent to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
             >
               + New Event
             </button>
@@ -279,14 +279,14 @@ export default function AdminPage() {
                         </span>
                       </div>
                       {event.description && (
-                        <p className="text-gray-400 text-sm mb-3">{event.description}</p>
+                        <p className="text-text-muted text-sm mb-3">{event.description}</p>
                       )}
                       <div className="flex flex-wrap gap-4 text-xs text-gray-500 font-mono">
                         <span>{event.location || 'No location'}</span>
                         <span>•</span>
                         <span>{new Date(event.eventDate).toLocaleDateString()}</span>
                         <span>•</span>
-                        <span className="text-[#00A8A8]">{event.currentCheckIns} check-ins</span>
+                        <span className="text-accent">{event.currentCheckIns} check-ins</span>
                       </div>
                     </div>
 
@@ -296,7 +296,7 @@ export default function AdminPage() {
                           generateQRCode(event.qrCode);
                           setSelectedEvent(event);
                         }}
-                        className="px-4 py-2 bg-[#00A8A8]/10 border border-[#00A8A8]/20 text-[#00A8A8] text-sm font-medium rounded-xl hover:bg-[#00A8A8]/20 transition-colors"
+                        className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-xl hover:bg-accent/20 transition-colors"
                       >
                         QR Code
                       </button>

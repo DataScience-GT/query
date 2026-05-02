@@ -19,11 +19,11 @@ export default function ProjectsPage() {
     <AdminLayout>
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 to-transparent rounded-2xl">
           <h1 className="text-2xl font-black text-white tracking-tighter mb-2">
-            Projects <span className="text-[#00A8A8] italic">Manager</span>
+            Projects <span className="text-accent italic">Manager</span>
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-text-muted text-sm">
             Browse and manage hackathon projects submitted by participants.
           </p>
         </div>
