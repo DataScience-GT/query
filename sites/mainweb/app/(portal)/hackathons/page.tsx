@@ -33,9 +33,9 @@ function statusConfig(s: HackathonStatus | 'draft' | 'cancelled') {
         completed: { label: 'Completed', dot: 'bg-white/40', text: 'text-white/60', bg: 'bg-white/5', border: 'border-white/10', glow: '' },
         closed: { label: 'Applications Closed', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30', glow: '' },
         cancelled: { label: 'Cancelled', dot: 'bg-rose-500', text: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30', glow: '' },
-        draft: { label: 'Draft', dot: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' },
+        draft: { label: 'Draft', dot: 'bg-gray-500', text: 'text-text-muted', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' },
     };
-    return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
+    return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-text-muted', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
 }
 
 export default function HackathonsPage() {
@@ -56,7 +56,7 @@ export default function HackathonsPage() {
 
     if (!hackathons || hackathons.length === 0) {
         return (
-            <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] to-transparent">
+            <div className="relative min-h-screen bg-[var(--bg-secondary)] text-text-muted font-sans flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] to-transparent">
                 <LiquidGlass className="relative z-10 max-w-lg w-full p-12 text-center flex flex-col items-center border border-white/5">
                     <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.02)]">
                         <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
@@ -77,7 +77,7 @@ export default function HackathonsPage() {
     const registeredIds = new Set(myRegs?.map((r) => r.hackathonId) ?? []);
 
     return (
-        <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
+        <div className="relative min-h-screen bg-[var(--bg-tertiary)] text-text-muted font-sans selection:bg-accent/30 overflow-hidden">
             {/* Ambient Background Glows */}
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
@@ -108,7 +108,7 @@ export default function HackathonsPage() {
                         onClick={() => setStatusFilter('all')}
                         className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'all'
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            : 'text-text-muted hover:text-white hover:bg-white/5'
                             }`}
                     >
                         All
@@ -117,7 +117,7 @@ export default function HackathonsPage() {
                         onClick={() => setStatusFilter('open')}
                         className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'open'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            : 'text-text-muted hover:text-white hover:bg-white/5'
                             }`}
                     >
                         Registering
@@ -126,7 +126,7 @@ export default function HackathonsPage() {
                         onClick={() => setStatusFilter('live')}
                         className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'live'
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            : 'text-text-muted hover:text-white hover:bg-white/5'
                             }`}
                     >
                         Live Now
@@ -135,7 +135,7 @@ export default function HackathonsPage() {
                         onClick={() => setStatusFilter('completed')}
                         className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-semibold transition-all ${statusFilter === 'completed'
                             ? 'bg-white/10 text-white/60 border border-white/10'
-                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                            : 'text-text-muted hover:text-white hover:bg-white/5'
                             }`}
                     >
                         Completed
@@ -157,7 +157,7 @@ export default function HackathonsPage() {
 
                             return (
                                 <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/20">
-                                    <div className="relative flex flex-col h-full bg-[#0a0a0a] rounded-2xl p-6 md:p-8 overflow-hidden z-10">
+                                    <div className="relative flex flex-col h-full bg-[var(--bg-tertiary)] rounded-2xl p-6 md:p-8 overflow-hidden z-10">
 
                                         {/* Hover Gradient Overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />

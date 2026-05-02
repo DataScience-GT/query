@@ -176,14 +176,14 @@ export default function ClubPage() {
             {/* User Profile Header */}
             <div className="mb-8 flex items-center gap-5 border-b border-border-subtle pb-8">
               <div className="group relative shrink-0">
-                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#00A8A8] to-emerald-600 opacity-50 blur transition duration-1000 group-hover:opacity-75 group-hover:duration-200"></div>
+                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-accent to-success opacity-50 blur transition duration-1000 group-hover:opacity-75 group-hover:duration-200">
                 {userData?.image ? (
                   <Image
                     src={userData.image}
                     alt="Avatar"
                     width={56}
                     height={56}
-                    className="relative h-14 w-14 rounded-full border-2 border-[#00A8A8] bg-black object-cover transition-all duration-300"
+                    className="relative h-14 w-14 rounded-full border-2 border-accent bg-black object-cover transition-all duration-300"
                   />
                 ) : (
                   <div className="relative flex h-14 w-14 items-center justify-center rounded-full radius-md border-2 border-accent transition-all duration-300">
@@ -594,7 +594,7 @@ export default function ClubPage() {
                   ) : (
                     <div className="flex flex-col items-center rounded-2xl border border-border-subtle bg-card py-16 text-center">
                       <svg
-                        className="mb-4 h-12 w-12 text-gray-600"
+                        className="mb-4 h-12 w-12 text-text-muted"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -639,7 +639,7 @@ export default function ClubPage() {
                   {projects.length === 0 ? (
                     <div className="flex flex-col items-center rounded-2xl border border-border-subtle bg-card py-16 text-center">
                       <svg
-                        className="mb-4 h-12 w-12 text-gray-600"
+                        className="mb-4 h-12 w-12 text-text-muted"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -739,7 +739,7 @@ export default function ClubPage() {
                   {!myEvents || myEvents.length === 0 ? (
                     <div className="flex flex-col items-center rounded-2xl border border-border-subtle bg-card py-16 text-center">
                       <svg
-                        className="mb-4 h-12 w-12 text-gray-600"
+                        className="mb-4 h-12 w-12 text-text-muted"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -834,7 +834,7 @@ export default function ClubPage() {
               {/* Status Tab */}
               {activeTab === "status" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 max-w-3xl space-y-6 duration-500">
-                  <div className="flex items-center justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-subtle10">
+                  <div className="flex items-center justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-medium">
                     <div>
                       <h4 className="mb-1 text-lg font-bold text-text-primary">
                         Club Membership Status
@@ -898,7 +898,7 @@ export default function ClubPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-subtle10">
+                  <div className="flex items-center justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-medium">
                     <div>
                       <h4 className="mb-1 text-lg font-bold text-text-primary">
                         Account Permission Level
@@ -908,13 +908,13 @@ export default function ClubPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="rounded-lg border border-border-subtle10 bg-white/5 px-4 py-2 font-black tracking-widest text-text-primary uppercase italic">
+                      <span className="rounded-lg border border-border-medium bg-white/5 px-4 py-2 font-black tracking-widest text-text-primary uppercase italic">
                         {memberStatus?.isMember ? "VERIFIED MEMBER" : "USER"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-subtle10">
+                  <div className="flex flex-col rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-medium">
                     <div className="mb-6 flex items-center justify-between">
                       <div>
                         <h4 className="mb-1 text-lg font-bold text-text-primary">

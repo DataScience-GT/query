@@ -28,11 +28,11 @@ export default function AnalyticsPage() {
           <Icon className="h-7 w-7" />
         </div>
         <div className="flex-1">
-          <p className="text-sm text-gray-500">{title}</p>
+          <p className="text-sm text-text-muted">{title}</p>
           <p className="text-2xl font-bold text-white">{value}</p>
           {subtitle && (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-gray-500">{subtitle}</span>
+              <span className="text-xs text-text-muted">{subtitle}</span>
               {trend?.positive && (
                 <span className="text-xs text-emerald-400 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
@@ -56,11 +56,11 @@ export default function AnalyticsPage() {
     <AdminLayout>
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-8 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
+        <div className="mb-8 p-5 border border-white/5 bg-gradient-to-br from-accent/5 to-transparent rounded-2xl">
           <h1 className="text-2xl font-black text-white tracking-tighter mb-2">
-            Analytics <span className="text-[#00A8A8] italic">Dashboard</span>
+            Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-text-muted text-sm">
             View comprehensive statistics across all events, hackathons, and user engagement.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function AnalyticsPage() {
           <LiquidGlass className="p-6">
             <h2 className="text-lg font-bold text-white mb-4">Registration Trend</h2>
             <div className="h-64 bg-black/20 rounded-xl flex items-center justify-center border border-white/5">
-              <p className="text-gray-500 text-sm text-center">Chart visualization for registration trends</p>
+              <p className="text-text-muted text-sm text-center">Chart visualization for registration trends</p>
             </div>
           </LiquidGlass>
 
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
           <LiquidGlass className="p-6">
             <h2 className="text-lg font-bold text-white mb-4">Event Distribution</h2>
             <div className="h-64 bg-black/20 rounded-xl flex items-center justify-center border border-white/5">
-              <p className="text-gray-500 text-sm text-center">Pie chart for event type breakdown</p>
+              <p className="text-text-muted text-sm text-center">Pie chart for event type breakdown</p>
             </div>
           </LiquidGlass>
         </div>
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
                 </div>
               ))
             ) : (
-              <div className="text-gray-500 text-sm text-center py-8">
+              <div className="text-text-muted text-sm text-center py-8">
                 No recent activity to display
               </div>
             )}
