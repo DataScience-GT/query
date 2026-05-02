@@ -38,14 +38,14 @@ export default function AdminHackathonDashboard() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans flex flex-col pb-20 md:pb-0">
+    <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans flex flex-col pb-20 md:pb-0">
 
       {/* HEADER */}
-      <header className="sticky top-0 z-30 bg-[#050505]/95 backdrop-blur border-b border-white/5">
+      <header className="sticky top-0 z-30 bg-[var(--bg-primary)] backdrop-blur border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <Link href="/admin/hackathons" className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit" aria-label="Back to hackathons hub">
+              <Link href="/admin/hackathons" className="flex items-center gap-2 text-text-muted hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit" aria-label="Back to hackathons hub">
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 <span className="hidden md:inline">Hackathons</span>
               </Link>
@@ -68,7 +68,7 @@ export default function AdminHackathonDashboard() {
       </header>
 
       {/* DESKTOP TABS - Hidden on mobile */}
-      <div className="hidden md:block border-b border-white/5 bg-[#111]/30">
+      <div className="hidden md:block border-b border-white/5 bg-[var(--bg-primary)]/30">
         <div className="max-w-7xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => (
             <button
@@ -76,8 +76,8 @@ export default function AdminHackathonDashboard() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 min-h-[56px] flex items-center justify-center gap-3 px-4 py-4 text-sm font-bold uppercase tracking-widest transition-all border-b-2 ${
                 activeTab === tab.id
-                  ? 'border-[#00A8A8] text-white bg-white/[0.02]'
-                  : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'
+                  ? 'border-accent text-white bg-white/[0.02]'
+                  : 'border-transparent text-text-muted hover:text-gray-300 hover:bg-white/[0.02]'
               }`}
             >
               {tab.icon}
@@ -97,13 +97,13 @@ export default function AdminHackathonDashboard() {
       </main>
 
       {/* MOBILE BOTTOM NAVIGATION */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 z-40 grid grid-cols-3 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/95 backdrop-blur-xl border-t border-white/10 z-40 grid grid-cols-3 pb-safe">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
-              activeTab === tab.id ? 'text-[#00A8A8]' : 'text-gray-500'
+              activeTab === tab.id ? 'text-accent' : 'text-text-muted'
             }`}
           >
             {tab.icon}

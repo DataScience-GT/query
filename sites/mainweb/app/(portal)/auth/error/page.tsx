@@ -30,7 +30,7 @@ function AuthErrorContent() {
     const { title, desc } = (error && errorMessages[error]) || errorMessages.Default!;
 
     return (
-        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-screen bg-[var(--bg-secondary)] flex flex-col items-center justify-center px-6 text-center">
 
             <div className="relative z-10 w-24 h-24 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(239,68,68,0.1)]">
                 <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,12 +42,12 @@ function AuthErrorContent() {
                 <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
                     Auth_<span className="text-red-500">Error</span>
                 </h1>
-                <p className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em] mb-4">
+                <p className="text-xs font-mono text-text-muted uppercase tracking-[0.4em] mb-4">
                     Status_Code: 401 // Type: {error || 'Unknown'}
                 </p>
                 <div className="h-[1px] w-12 bg-red-500/30 mx-auto transition-all group-hover:w-24" />
                 <h2 className="text-xl font-bold text-gray-200 uppercase">{title}</h2>
-                <p className="text-gray-500 font-mono text-sm leading-relaxed lowercase">
+                <p className="text-text-muted font-mono text-sm leading-relaxed lowercase">
                     &gt; {desc}
                 </p>
             </div>

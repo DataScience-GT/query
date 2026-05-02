@@ -16,7 +16,7 @@ export default function SubmitError({
     }, [error]);
 
     return (
-        <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden flex items-center justify-center">
+        <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden flex items-center justify-center">
 
             <main className="relative z-10 w-full max-w-xl px-6">
                 <LiquidGlass className="p-12 text-center border-red-500/20">
@@ -30,7 +30,7 @@ export default function SubmitError({
                         Deployment Failure
                     </h2>
 
-                    <p className="text-sm font-mono text-gray-400 mb-8">
+                    <p className="text-sm font-mono text-text-muted mb-8">
                         The submission terminal encountered a fatal error during the deployment sequence.
                         No data was lost.
                         <br /><br />
@@ -42,7 +42,7 @@ export default function SubmitError({
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
                             onClick={() => reset()}
-                            className="px-6 py-3 bg-[#00A8A8] text-black font-black uppercase tracking-widest text-sm rounded-xl hover:bg-white transition-colors"
+                            className="px-6 py-3 bg-accent text-black font-black uppercase tracking-widest text-sm rounded-xl hover:bg-white transition-colors"
                         >
                             Restart Sequence
                         </button>
