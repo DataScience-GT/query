@@ -143,9 +143,9 @@ export default function AdminSetupPage() {
             <div className="relative z-10 max-w-4xl mx-auto">
                 <div className="mb-12">
                     <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
-                        Judging Data <span className="text-[#00A8A8] italic">Import</span>
+                        Judging Data <span className="text-accent italic">Import</span>
                     </h1>
-                    <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">
+                    <p className="text-sm font-mono text-text-muted uppercase tracking-widest">
                         Configure the event and import CSV files
                     </p>
                 </div>
@@ -225,7 +225,7 @@ export default function AdminSetupPage() {
                 {activeStep === 4 && (
                     <LiquidGlass className="rounded-lg p-8">
                         <h2 className="text-xl font-black text-white uppercase tracking-tight mb-2">Auto-Assign Judges to Projects</h2>
-                        <p className="text-xs text-gray-500 font-mono mb-8">
+                        <p className="text-xs text-text-muted font-mono mb-8">
                             Main track judges get 3-9 projects. Special label judges get all matching projects (randomized).
                         </p>
 
@@ -235,7 +235,7 @@ export default function AdminSetupPage() {
                                 assignJudges.mutate({ hackathonId: selectedHackathonId });
                             }}
                             disabled={assignJudges.isPending || !selectedHackathonId}
-                            className="w-full px-8 py-6 bg-gradient-to-r from-[#00A8A8]/10 to-emerald-500/10 border-2 border-[#00A8A8]/40 text-white font-black text-lg uppercase tracking-widest rounded-2xl hover:from-[#00A8A8]/20 hover:to-emerald-500/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+                            className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-emerald-500/10 border-2 border-accent/40 text-white font-black text-lg uppercase tracking-widest rounded-2xl hover:from-accent/20 hover:to-emerald-500/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(0,168,168,0.1)]"
                         >
                             {assignJudges.isPending ? 'Assigning...' : 'Auto-Assign All Judges'}
                         </button>
@@ -260,7 +260,7 @@ export default function AdminSetupPage() {
                                             {assignJudges.data.assignments.map((a, i) => (
                                                 <tr key={i} className="border-t border-white/5">
                                                     <td className="py-2 px-3 text-white">{a.judgeName || 'Unknown'}</td>
-                                                    <td className="py-2 px-3 text-[#00A8A8]">{a.track || 'General'}</td>
+                                                    <td className="py-2 px-3 text-accent">{a.track || 'General'}</td>
                                                     <td className="py-2 px-3 text-gray-400 font-mono">{a.assignedCount}</td>
                                                 </tr>
                                             ))}
@@ -275,7 +275,7 @@ export default function AdminSetupPage() {
                                 <p className="text-emerald-400 text-sm font-bold mb-4">Setup complete - all judges assigned.</p>
                                 <button
                                     onClick={() => router.push('/admin/judging')}
-                                    className="px-10 py-4 bg-[#00A8A8]/10 border border-[#00A8A8]/40 text-[#00A8A8] font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-[#00A8A8]/20 transition-all font-mono"
+                                    className="px-10 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-accent/20 transition-all font-mono"
                                 >
                                     Go to Results Dashboard
                                 </button>
