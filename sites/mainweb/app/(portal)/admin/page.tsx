@@ -134,13 +134,12 @@ export default function AdminPage() {
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 to-transparent rounded-2xl">
-          <h1 className="text-2xl font-black text-white tracking-tight mb-2">
-            Check-in <span className="text-accent italic">Events</span>
+        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 via-cyan-900/10 to-transparent rounded-2xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <h1 className="text-2xl font-black text-white tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
+            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-emerald-500 italic">Events</span>
           </h1>
-          <p className="text-text-muted text-sm">
-            Manage your event check-in locations, QR codes, and attendance tracking.
-          </p>
+          <p className="text-text-muted text-sm relative z-10">Manage your event check-in locations, QR codes, and attendance tracking.</p>
         </div>
 
         {/* View Controls */}
