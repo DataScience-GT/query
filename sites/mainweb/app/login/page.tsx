@@ -138,10 +138,10 @@ export default function LoginPage() {
 
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-6 lg:px-12 w-full">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center w-full">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center w-full">
 
           {/* Left Panel - Hero */}
-          <div className="space-y-12 lg:space-y-16 animate-[fadeInUp_1s_ease-out_forwards]">
+          <div className="lg:col-span-7 space-y-12 lg:space-y-16 animate-[fadeInUp_1s_ease-out_forwards]">
             {/* Status Badge */}
             <div className="flex items-center gap-4 animate-[fadeIn_0.5s_ease-out_0.2s_forwards]">
               <div className="h-1 w-16 bg-gradient-to-r from-[#00A8A8] via-[#14b8a6] to-[#00A8A8] rounded-full" />
@@ -154,7 +154,7 @@ export default function LoginPage() {
 
             {/* Hero Title */}
             <div className="animate-[fadeIn_0.5s_ease-out_0.3s_forwards]">
-              <h1 className="text-7xl lg:text-9xl font-black text-white leading-[0.85] tracking-tighter uppercase">
+              <h1 className="text-5xl lg:text-7xl font-black text-white leading-[0.85] tracking-tighter uppercase">
                 Query <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] via-[#14b8a6] to-[#0891b2] italic transform -skew-x-6">
                   DSGT.
@@ -170,9 +170,9 @@ export default function LoginPage() {
                   Georgia Tech Data Science Community
                 </span>
               </div>
-              <p className="text-base text-gray-400 leading-relaxed max-w-md border-l-2 border-[#00A8A8]/30 pl-5 italic font-medium">
+              <p className="text-base text-gray-400 leading-relaxed max-w-xl border-l-2 border-[#00A8A8]/30 pl-5 italic font-medium">
                 The collective intelligence of Georgia Tech's largest data science community.
-                Connect with peers, discover events, and contribute to groundbreaking research.
+                Search events, hackathons, and connect with peers.
               </p>
             </div>
 
@@ -223,7 +223,7 @@ export default function LoginPage() {
           </div>
 
           {/* Right Panel - Visual */}
-          <div className="hidden lg:flex flex-col items-center justify-center relative animate-[fadeIn_0.6s_ease-out_forwards]">
+          <div className="hidden lg:flex lg:col-span-5 flex-col items-center justify-center relative animate-[fadeIn_0.6s_ease-out_forwards]">
             {/* Background glow */}
             <div className="absolute w-[500px] h-[500px] bg-gradient-to-br from-[#00A8A8]/10 via-[#6366f1]/5 to-transparent blur-[150px] rounded-full animate-[pulse_8s_ease-in-out_infinite]" />
 
@@ -275,10 +275,10 @@ export default function LoginPage() {
       {/* Footer */}
       <footer className="relative z-10 px-6 py-4">
         <div className="flex justify-between items-center text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">
-          <div>Internal Terminal // Auth Gateway v2.1</div>
+          <div>DSGT Portal</div>
           <div className="flex items-center gap-2">
             <span className={`w-1.5 h-1.5 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
-            <span>ACCESS NODE: 0812-ATL</span>
+            <span>Auth Gateway v2.1</span>
           </div>
         </div>
       </footer>
