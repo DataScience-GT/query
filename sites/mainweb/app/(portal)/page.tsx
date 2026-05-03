@@ -37,8 +37,8 @@ export default function Home() {
         setLogs(prev => [...prev.slice(-4), "> Network: Secure connection established ✓"]);
       }, 600),
       setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Authentication module: Ready">
-        setLogs(prev => [...prev.slice(-4), "> Security protocols: Active ✓"];
+        setLogs(prev => [...prev.slice(-4), "> Authentication module: Ready ✓"]);
+        setLogs(prev => [...prev.slice(-4), "> Security protocols: Active ✓"]);
       }, 1200),
       setTimeout(() => {
         setLogs(prev => [...prev.slice(-4), "> Session: Awaiting user..."]);
@@ -72,7 +72,7 @@ export default function Home() {
   }, [judgeStatus]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session) {
+    if (!!session) {
       setLogs(prev => [...prev.slice(-4), "> Auth success // Redirecting to dashboard..."]);
 
       const redirectTimeout = setTimeout(() => {
@@ -108,7 +108,7 @@ export default function Home() {
 
   if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-[#000000] via-[#050505] to-[#0a0a0a]" />;
 
-  const isRedirecting = status === 'authenticated';
+  const isRedirecting = !!session;
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#000000] via-[#050505] to-[#0a0a0a] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-hidden flex flex-col">
@@ -250,8 +250,8 @@ export default function Home() {
                 </p>
                 <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">
                   <span className="flex items-center gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isRedirecting ? 'bg-green-500' : status === 'authenticated' ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
-                    <span className={isRedirecting ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${!!session ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
+                    <span className={!!session ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 bg-[#00A8A8] rounded-full" />
