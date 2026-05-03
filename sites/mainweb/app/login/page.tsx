@@ -5,10 +5,10 @@ import { useSession, signIn } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 
-// DSGT Query - Premium Landing Page
+// DSGT Query - Login Page
 // Ultra-modern, standout UI/UX
 
-export default function Home() {
+export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
