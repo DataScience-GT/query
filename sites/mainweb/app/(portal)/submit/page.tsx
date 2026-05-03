@@ -110,13 +110,21 @@ function SubmitPortalContent() {
     const activeRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(reg.hackathon.endDate) >= new Date() : true) || [];
 
     return (
-        <div className="relative min-h-screen bg-[var(--bg-secondary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden">
+        <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden">
+            {/* Ambient Background Effects */}
+            <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-600/5 blur-[150px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/5 blur-[150px] animate-pulse delay-1000" />
+                <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-indigo-600/5 blur-[120px] animate-pulse delay-2000" />
+            </div>
+
             <main className="relative z-10 max-w-5xl mx-auto px-6 py-24 min-h-screen">
 
                 {/* Header Link */}
-                <div className="w-full flex justify-between items-center mb-12">
-                    <Link href="/dashboard" className="text-text-muted hover:text-white transition-colors font-mono text-xs tracking-widest uppercase flex items-center gap-2">
-                        <span className="text-lg">←</span> Central Gateway
+                <div className="w-full flex justify-between items-center mb-12 group">
+                    <Link href="/dashboard" className="text-text-muted hover:text-accent transition-all duration-300 font-mono text-xs tracking-widest uppercase flex items-center gap-2 group-hover:pl-2">
+                        <span className="text-lg transition-transform duration-300 group-hover:-translate-x-1">←</span>
+                        <span className="bg-gradient-to-r from-gray-400 to-white bg-clip-text text-transparent group-hover:from-white group-hover:to-cyan-300 transition-all">Central Gateway</span>
                     </Link>
                 </div>
 
@@ -139,10 +147,10 @@ function SubmitPortalContent() {
                     </div>
 
                     {!myRegs || myRegs.length === 0 ? (
-                        <LiquidGlass className="p-12 text-center border-orange-500/20">
-                            <h3 className="text-2xl font-bold text-white mb-4">No Active Registrations</h3>
-                            <p className="text-text-muted font-mono mb-8">You must register for a hackathon before you can form a team or submit a project.</p>
-                            <Link href="/hackathons" className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-colors">
+                        <LiquidGlass className="p-12 text-center border-orange-500/20 transition-all duration-500 hover:border-orange-400/30 hover:bg-orange-500/5">
+                            <h3 className="text-2xl font-bold text-white mb-4 animate-in fade-in slide-in-from-bottom-4">No Active Registrations</h3>
+                            <p className="text-text-muted font-mono mb-8 max-w-md mx-auto">You must register for a hackathon before you can form a team or submit a project.</p>
+                            <Link href="/hackathons" className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
                                 Browse Hackathons
                             </Link>
                         </LiquidGlass>
@@ -262,7 +270,7 @@ function SubmitPortalContent() {
 
                             {/* RIGHT ALCOVE - PROJECT SUBMISSION */}
                             <div className="lg:col-span-8 flex flex-col">
-                                <LiquidGlass className="p-8 md:p-12 relative overflow-hidden flex-1 border-t-2 border-accent/30">
+                                <LiquidGlass className="p-8 md:p-12 relative overflow-hidden flex-1 border-t-2 border-accent/30 transition-all duration-500 hover:border-accent/50 hover:shadow-[inset_0_0_50px_rgba(0,168,168,0.05)]">
                                     <div className="absolute top-0 right-0 p-8 opacity-5">
                                         <svg className="w-48 h-48 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" /></svg>
                                     </div>
@@ -315,7 +323,7 @@ function SubmitPortalContent() {
                                                     value={projectName}
                                                     onChange={e => setProjectName(e.target.value)}
                                                     placeholder="Project Apollo"
-                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-xl text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-xl text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-all duration-300 focus:shadow-[0_0_20px_rgba(0,168,168,0.2)] hover:border-white/20 group"
                                                 />
                                             </div>
                                             <div>

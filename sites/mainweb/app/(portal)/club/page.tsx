@@ -170,13 +170,21 @@ export default function ClubPage() {
       )}
 
       <main className="relative z-10 mx-auto grid min-h-screen max-w-7xl gap-8 px-6 py-20 lg:grid-cols-12">
+        {/* Animated Background */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 left-0 w-[50%] h-[50%] rounded-full bg-cyan-600/5 blur-[150px] animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-[50%] h-[50%] rounded-full bg-purple-600/5 blur-[150px] animate-pulse delay-1000" />
+        </div>
+
         {/* SIDEBAR */}
-        <div className="space-y-4 lg:col-span-4">
-          <LiquidGlass className="relative flex h-full flex-col overflow-visible p-6 radius-xl">
+        <div className="space-y-4 lg:col-span-4 relative">
+          <LiquidGlass className="relative flex h-full flex-col overflow-visible p-6 radius-xl transition-all duration-500 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
+            {/* Animated Progress Bar */}
+            <div className="absolute top-0 left-0 h-0.5 bg-gradient-to-r from-accent via-cyan-500 to-accent animate-progress" style={{ width: '0%' }} />
             {/* User Profile Header */}
-            <div className="mb-8 flex items-center gap-5 border-b border-border-subtle pb-8">
+            <div className="mb-8 flex items-center gap-5 border-b border-border-subtle pb-8 group">
               <div className="group relative shrink-0">
-                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-accent to-success opacity-50 blur transition duration-1000 group-hover:opacity-75 group-hover:duration-200">
+                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-accent via-cyan-500 to-purple-500 opacity-50 blur-md transition-all duration-700 group-hover:opacity-75 group-hover:duration-200 group-hover:scale-110">
                 </div>
                 {userData?.image ? (
                   <Image
@@ -193,12 +201,12 @@ export default function ClubPage() {
                 )}
               </div>
               <div className="space-y-1 flex-1 min-w-0">
-                <p className="truncate font-mono text-base font-black tracking-tight text-text-primary uppercase">
+                <p className="truncate font-mono text-base font-black tracking-tight text-text-primary uppercase group-hover:text-accent transition-colors">
                   {userData?.name || "GUEST"}
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse shadow-[0_0_8px_var(--accent-glow)]"></div>
-                  <p className="text-xs font-bold tracking-widest text-text-muted uppercase">
+                  <p className="text-xs font-bold tracking-widest text-accent/80 uppercase group-hover:text-accent transition-colors">
                     CLUB MEMBER
                   </p>
                 </div>
@@ -211,8 +219,8 @@ export default function ClubPage() {
                 href="#general"
                 className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'general'
-                    ? 'border-accent/30 bg-accent/10 text-accent'
-                    : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="General Events - Club gatherings with QR check-ins"
               >
@@ -228,8 +236,8 @@ export default function ClubPage() {
                 href="#hackathons"
                 className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'hackathons'
-                    ? 'border-accent/30 bg-accent/10 text-accent'
-                    : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="My Hackathons - Competition events you're registered for"
               >
@@ -245,8 +253,8 @@ export default function ClubPage() {
                 href="#projects"
                 className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'projects'
-                    ? 'border-accent/30 bg-accent/10 text-accent'
-                    : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="My Projects - Your submitted project entries"
               >
@@ -262,8 +270,8 @@ export default function ClubPage() {
                 href="#history"
                 className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'history'
-                    ? 'border-accent/30 bg-accent/10 text-accent'
-                    : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="Attendance History - Your event check-in records"
               >
@@ -279,8 +287,8 @@ export default function ClubPage() {
                 href="#status"
                 className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'status'
-                    ? 'border-accent/30 bg-accent/10 text-accent'
-                    : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="Membership Status - Your member access info"
               >
