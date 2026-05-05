@@ -9,9 +9,9 @@ import { useRouter } from 'next/navigation';
 // Ultra-modern, standout UI/UX
 
 export default function LoginPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const { data: session, status } = useSession();
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
