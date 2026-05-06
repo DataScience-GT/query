@@ -3,17 +3,43 @@
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { Clock, AlertCircle } from 'lucide-react';
+import { skipToken } from '@tanstack/react-query';
 
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
+
+  const { data: hackathonList } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
+
+  const { data: projects, isLoading } = trpc.hackathon.projects.useQuery(
+    selectedHackathon ? { hackathonId: selectedHackathon } : skipToken,
+  );
+
   if (status === 'unauthenticated') {
     router.push('/login');
     return null;
   }
+
+  const getStatusColor = (projectStatus: string) => {
+    switch (projectStatus) {
+      case 'submitted':
+        return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      case 'judging':
+        return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      case 'winner':
+        return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+      case 'draft':
+        return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
+      default:
+        return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+    }
+  };
 
   return (
     <AdminLayout>
@@ -36,36 +62,77 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        {/* Content Area - Enhanced */}
-        <div className="relative p-16 text-center bg-black/20 border border-white/5 rounded-2xl overflow-hidden group hover:border-white/20 transition-all duration-300">
-          {/* Decorative corner accents */}
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg className="w-40 h-40 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M9 11l3 3L22 4" /></svg>
+        <div className="space-y-6">
+          {/* Hackathon Selector */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 bg-black/30 border border-white/5 rounded-xl p-1">
+              <select
+                value={selectedHackathon || ''}
+                onChange={(e) => setSelectedHackathon(e.target.value || null)}
+                className="bg-transparent text-white text-sm font-medium px-4 py-2 focus:outline-none cursor-pointer"
+              >
+                <option value="">Select a hackathon...</option>
+                {hackathonList?.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-gray-500 text-sm">{projects?.length || 0} total projects</p>
           </div>
-          <div className="absolute bottom-0 left-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg className="w-40 h-40 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M15 11l-3-3L2 4" /></svg>
+
+          <div className="space-y-4">
+            {!selectedHackathon ? (
+              <LiquidGlass className="p-16 text-center">
+                <h3 className="text-white font-semibold mb-1">Select a hackathon</h3>
+                <p className="text-gray-500 text-sm">Choose a hackathon above to view its submitted projects.</p>
+              </LiquidGlass>
+            ) : isLoading ? (
+              <div className="py-12 text-center">
+                <p className="text-gray-600 font-mono text-sm animate-pulse">Loading projects...</p>
+              </div>
+            ) : !projects || projects.length === 0 ? (
+              <LiquidGlass className="p-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+                  <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-semibold mb-1">No projects yet</h3>
+                <p className="text-gray-500 text-sm">Hackathon projects will appear here once participants submit them.</p>
+              </LiquidGlass>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project) => (
+                  <LiquidGlass key={project.id} className="p-5 hover:border-[#00A8A8]/30 transition-all group">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-white group-hover:text-[#00A8A8] transition-colors">
+                          {project.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description || 'No description'}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(project.status)}`}>
+                        {project.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs text-gray-500 font-mono">
+                      {project.tracks && project.tracks.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          <span>{project.tracks.join(', ')}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>Team: {project.team?.name || 'Unknown'}</span>
+                      </div>
+                    </div>
+                  </LiquidGlass>
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* Icon - Enhanced */}
-          <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-accent/10 via-cyan-900/5 to-transparent border border-accent/20 group-hover:border-accent/40 group-hover:shadow-[0_0_30px_rgba(0,168,168,0.3)] transition-all duration-500">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <svg className="relative w-10 h-10 text-accent group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-
-          {/* Heading - Enhanced */}
-          <h2 className="relative mt-6 text-white font-bold text-2xl group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-200 to-gray-400 transition-all duration-500">
-            No projects configured
-          </h2>
-
-          {/* Description - Enhanced */}
-          <p className="relative text-gray-500 font-mono text-sm mt-3 group-hover:text-gray-400 transition-colors">
-            Project management is under development. Hackathon registrations will be displayed in the attendees section.
-          </p>
-
-          {/* Decorative underline */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-[2px] bg-gradient-to-r from-accent/50 via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
       </div>
     </AdminLayout>
