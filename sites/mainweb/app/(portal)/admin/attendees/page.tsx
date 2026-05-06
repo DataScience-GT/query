@@ -8,7 +8,6 @@ import { skipToken } from '@tanstack/react-query';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { Download } from 'lucide-react';
-import { skipToken } from '@tanstack/react-query';
 
 export default function AttendeesPage() {
   const { data: session, status } = useSession();
@@ -20,11 +19,6 @@ export default function AttendeesPage() {
 
   const { data: hackathonList } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
 
-  // Fetch all hackathons for the dropdown
-  const { data: hackathons } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
-  const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
-
-  // Fetch attendees for selected hackathon
   const { data: attendees, isLoading } = trpc.hackathon.adminGetAttendees.useQuery(
     selectedHackathon ? { hackathonId: selectedHackathon } : skipToken,
   );
