@@ -284,7 +284,7 @@ export default function Home() {
       </footer>
 
       {/* Global styles for custom animations */}
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
@@ -317,7 +317,7 @@ export default function Home() {
             transform: translateX(0);
           }
         }
-      `}</style>
+      `}} />
     </div>
   );
 }

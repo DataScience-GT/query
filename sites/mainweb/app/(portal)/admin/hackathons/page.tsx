@@ -84,9 +84,7 @@ export default function AdminHackathonsPage() {
                         <div className="py-12 text-center">
                             <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">Loading...</p>
                         </div>
-                    </div>
-
-                    {!hackathons || hackathons.length === 0 ? (
+                    ) : !hackathons || hackathons.length === 0 ? (
                         <LiquidGlass className="p-16 text-center">
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                                 <svg className="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
