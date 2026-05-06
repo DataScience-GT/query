@@ -6,54 +6,36 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { Plus, Star, Clock, AlertCircle } from 'lucide-react';
+import { Clock, AlertCircle } from 'lucide-react';
+import { skipToken } from '@tanstack/react-query';
 
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const utils = trpc.useUtils();
 
-  const { data: projects, isLoading, refetch } = trpc.project.listAll.useQuery(
-    undefined,
-    { enabled: !!session }
+  const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
+
+  const { data: hackathonList } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
+
+  const { data: projects, isLoading } = trpc.hackathon.projects.useQuery(
+    selectedHackathon ? { hackathonId: selectedHackathon } : skipToken,
   );
-
-  const [showCreateProject, setShowCreateProject] = useState(false);
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-
-  const createProjectMutation = trpc.project.create.useMutation({
-    onSuccess: () => {
-      setShowCreateProject(false);
-      utils.project.listAll.invalidate();
-    },
-  });
-
-  const updateProjectMutation = trpc.project.update.useMutation({
-    onSuccess: () => {
-      setEditingProjectId(null);
-      utils.project.listAll.invalidate();
-    },
-  });
-
-  const deleteProjectMutation = trpc.project.delete.useMutation({
-    onSuccess: () => {
-      utils.project.listAll.invalidate();
-    },
-  });
 
   if (status === 'unauthenticated') {
     router.push('/login');
     return null;
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'accepted':
+  const getStatusColor = (projectStatus: string) => {
+    switch (projectStatus) {
+      case 'submitted':
         return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-      case 'reviewing':
+      case 'judging':
         return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-      case 'rejected':
-        return 'bg-red-500/10 text-red-400 border border-red-500/20';
+      case 'winner':
+        return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+      case 'draft':
+        return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
       default:
         return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
     }
@@ -61,48 +43,6 @@ export default function ProjectsPage() {
 
   return (
     <AdminLayout>
-      {showCreateProject && (
-        <LiquidGlass className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreateProject(false)} />
-          <div className="relative w-full max-w-2xl bg-[#0a0c10] border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-6">Create New Project</h2>
-            {/* Form would go here - simplified for now */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Project Name</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#00A8A8] focus:ring-2 focus:ring-[#00A8A8]/20"
-                  placeholder="Enter project name..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Description</label>
-                <textarea
-                  className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#00A8A8] focus:ring-2 focus:ring-[#00A8A8]/20 min-h-[100px]"
-                  placeholder="Project description..."
-                />
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowCreateProject(false)}
-                  className="px-6 py-2 text-gray-400 hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => createProjectMutation.mutate({ name: '', description: '' })}
-                  disabled={createProjectMutation.isPending}
-                  className="px-6 py-2 bg-gradient-to-r from-[#00A8A8] to-emerald-600 text-white rounded-xl font-medium disabled:opacity-50"
-                >
-                  Create
-                </button>
-              </div>
-            </div>
-          </div>
-        </LiquidGlass>
-      )}
-
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Page Header */}
         <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
@@ -115,19 +55,30 @@ export default function ProjectsPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Hackathon Selector */}
           <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 bg-black/30 border border-white/5 rounded-xl p-1">
+              <select
+                value={selectedHackathon || ''}
+                onChange={(e) => setSelectedHackathon(e.target.value || null)}
+                className="bg-transparent text-white text-sm font-medium px-4 py-2 focus:outline-none cursor-pointer"
+              >
+                <option value="">Select a hackathon...</option>
+                {hackathonList?.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
             <p className="text-gray-500 text-sm">{projects?.length || 0} total projects</p>
-            <button
-              onClick={() => setShowCreateProject(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-[#00A8A8]/20"
-            >
-              <Plus className="h-5 w-5" />
-              New Project
-            </button>
           </div>
 
           <div className="space-y-4">
-            {isLoading ? (
+            {!selectedHackathon ? (
+              <LiquidGlass className="p-16 text-center">
+                <h3 className="text-white font-semibold mb-1">Select a hackathon</h3>
+                <p className="text-gray-500 text-sm">Choose a hackathon above to view its submitted projects.</p>
+              </LiquidGlass>
+            ) : isLoading ? (
               <div className="py-12 text-center">
                 <p className="text-gray-600 font-mono text-sm animate-pulse">Loading projects...</p>
               </div>
@@ -158,34 +109,16 @@ export default function ProjectsPage() {
                     </div>
 
                     <div className="space-y-2 text-xs text-gray-500 font-mono">
-                      {project.category && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#00A8A8]" />
-                          <span>{project.category}</span>
-                        </div>
-                      )}
-                      {project.track && (
+                      {project.tracks && project.tracks.length > 0 && (
                         <div className="flex items-center gap-2">
                           <Clock className="h-3 w-3" />
-                          <span>{project.track}</span>
+                          <span>{project.tracks.join(', ')}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
                         <AlertCircle className="h-3 w-3" />
-                        <span>{project.teamSize || 0} members</span>
+                        <span>Team: {project.team?.name || 'Unknown'}</span>
                       </div>
-                    </div>
-
-                    <div className="flex gap-2 mt-4 pt-4 border-t border-white/5">
-                      <button
-                        onClick={() => setEditingProjectId(project.id)}
-                        className="flex-1 px-3 py-2 text-xs text-[#00A8A8] border border-[#00A8A8]/20 rounded-lg hover:bg-[#00A8A8]/10 transition-colors text-center"
-                      >
-                        Edit
-                      </button>
-                      <button className="flex-1 px-3 py-2 text-xs text-red-400/70 border border-red-500/10 rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-colors text-center">
-                        Delete
-                      </button>
                     </div>
                   </LiquidGlass>
                 ))}

@@ -432,6 +432,9 @@ importers:
       geist:
         specifier: ^1.5.1
         version: 1.7.0(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))
+      lucide-react:
+        specifier: ^1.14.0
+        version: 1.14.0(react@19.0.0)
       minimatch:
         specifier: '>=10.2.3'
         version: 10.2.4

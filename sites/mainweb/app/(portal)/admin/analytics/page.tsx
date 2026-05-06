@@ -11,7 +11,15 @@ export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const { data: stats, isLoading } = trpc.analytics.overview.useQuery(undefined, { enabled: !!session });
+  const { data: hackathons, isLoading } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
+
+  // Derive overview stats from hackathon list
+  const stats = hackathons ? {
+    totalParticipants: hackathons.reduce((sum, h) => sum + (h.currentParticipants ?? 0), 0),
+    totalEvents: hackathons.length,
+    totalHackathons: hackathons.filter(h => ['open', 'in_progress'].includes(h.status)).length,
+    checkinsToday: 0, // not tracked at aggregate level
+  } : undefined;
 
   if (status === 'unauthenticated') {
     router.push('/login');

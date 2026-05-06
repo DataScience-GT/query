@@ -41,6 +41,7 @@ export default function AdminHackathonsPage() {
                   </p>
                 </div>
                 <div className="flex items-center justify-between">
+                    <button
                         onClick={() => setShowCreate(true)}
                         className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)]"
                     >
@@ -70,12 +71,7 @@ export default function AdminHackathonsPage() {
                 )}
 
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-xl font-bold text-white">Hackathons</h2>
-                            <p className="text-gray-500 text-sm">{hackathons?.length || 0} total</p>
-                        </div>
-                        <button
+                    {isLoading ? (
                         <div className="py-12 text-center">
                             <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">Loading...</p>
                         </div>
