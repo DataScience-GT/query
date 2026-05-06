@@ -36,7 +36,6 @@
         "tsx": "4.19.3",
         "turbo": "2.5.4",
         "typescript": "5.8.3",
-        "zod": "3.25.53",
       },
     },
     "packages/api": {
