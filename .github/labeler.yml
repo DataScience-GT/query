@@ -8,4 +8,4 @@ documentation:
   - head-branch: ['^doc/', '^docs/']
 dependencies:
   - changed-files:
-    - any-glob-to-any-file: ['package.json', 'package-lock.json', 'pnpm-lock.yaml']
+    - any-glob-to-any-file: ['package.json', 'package-lock.json', 'bun.lockb']
