@@ -7,31 +7,46 @@ const packagesToRestore = [
 ];
 
 function restore(dir) {
-  const files = fs.readdirSync(dir);
-  for (const file of files) {
-    const fullPath = path.join(dir, file);
-    if (fs.statSync(fullPath).isDirectory()) {
-      if (!fullPath.includes('node_modules') && !fullPath.includes('.next')) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!entry.name.includes('node_modules') && !entry.name.includes('.next')) {
         restore(fullPath);
       }
-    } else if (file === 'package.json') {
-      let content = fs.readFileSync(fullPath, 'utf8');
-      let changed = false;
-      const json = JSON.parse(content);
-      
-      for (const section of ['dependencies', 'devDependencies', 'peerDependencies']) {
-        if (json[section]) {
-          for (const pkg of packagesToRestore) {
-            if (json[section][pkg] === '*') {
-              json[section][pkg] = 'workspace:*';
-              changed = true;
+    } else if (entry.name === 'package.json') {
+      try {
+        const fd = fs.openSync(fullPath, 'r+');
+        const content = fs.readFileSync(fd, 'utf8');
+        const json = JSON.parse(content);
+        let changed = false;
+
+        for (const section of ['dependencies', 'devDependencies', 'peerDependencies']) {
+          if (json[section]) {
+            for (const pkg of packagesToRestore) {
+              if (json[section][pkg] === '*') {
+                json[section][pkg] = 'workspace:*';
+                changed = true;
+              }
             }
           }
         }
-      }
-      if (changed) {
-        fs.writeFileSync(fullPath, JSON.stringify(json, null, 2) + '\n');
-        console.log('Restored workspace:* in ' + fullPath);
+
+        if (changed) {
+          const output = JSON.stringify(json, null, 2) + '\n';
+          fs.ftruncateSync(fd);
+          fs.writeSync(fd, output, 0);
+          console.log('Restored workspace:* in ' + fullPath);
+        }
+        fs.closeSync(fd);
+      } catch (e) {
+        console.error('Error processing ' + fullPath + ': ' + e.message);
       }
     }
   }
