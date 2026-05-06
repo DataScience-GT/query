@@ -57,7 +57,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "prettier": "3.5.3",
     "tsx": "4.19.3",
-    "turbo": "2.5.4",
+    "turbo": "2.9.9",
     "typescript": "5.8.3",
     "zod": "3.25.53"
   },
