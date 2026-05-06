@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 // DSGT Query - Login Page
 // Ultra-modern, standout UI/UX
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -15,15 +17,6 @@ export default function LoginPage() {
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-
-  // Enhanced log system
-  const [logs, setLogs] = useState<string[]>([
-    "Initializing terminal...",
-    "System check: OK",
-    "Loading background modules..."
-  ]);
-
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
@@ -34,14 +27,14 @@ export default function LoginPage() {
     // Enhanced initialization sequence
     const timeouts = [
       setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Network: Secure connection established ✓"]);
+        console.log("> Network: Secure connection established ✓");
       }, 600),
       setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Authentication module: Ready ✓"]);
-        setLogs(prev => [...prev.slice(-4), "> Security protocols: Active ✓"]);
+        console.log("> Authentication module: Ready ✓");
+        console.log("> Security protocols: Active ✓");
       }, 1200),
       setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Session: Awaiting user..."]);
+        console.log("> Session: Awaiting user...");
       }, 1600),
     ];
     return () => timeouts.forEach(clearTimeout);
@@ -49,31 +42,25 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (adminStatus) {
-      const roleLog = adminStatus.isAdmin
-        ? `> Admin Access Granted // Level ${adminStatus.role?.toUpperCase()}`
-        : "> Access Level: Standard User";
-      setLogs(prev => [...prev.slice(-4), roleLog]);
+      console.log("> Admin Status:", adminStatus.isAdmin ? "Admin Access Granted" : "Standard User");
     }
   }, [adminStatus]);
 
   useEffect(() => {
     if (memberStatus) {
-      const memberLog = memberStatus.isMember
-        ? `> Member Status: ${memberStatus.memberType?.toUpperCase()} // ${memberStatus.daysRemaining} days active`
-        : "> Membership: Not Active";
-      setLogs(prev => [...prev.slice(-4), memberLog]);
+      console.log("> Member Status:", memberStatus.isMember ? memberStatus.memberType : "Not Active");
     }
   }, [memberStatus]);
 
   useEffect(() => {
     if (judgeStatus?.isJudge) {
-      setLogs(prev => [...prev.slice(-4), "> Role Detected: JUDGE // Scoring panel ready"]);
+      console.log("> Role Detected: JUDGE");
     }
   }, [judgeStatus]);
 
   useEffect(() => {
     if (!!session) {
-      setLogs(prev => [...prev.slice(-4), "> Auth success // Redirecting to dashboard..."]);
+      console.log("> Auth success // Redirecting to dashboard...");
 
       const redirectTimeout = setTimeout(() => {
         if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
@@ -90,19 +77,17 @@ export default function LoginPage() {
   const handleEmailLogin = async () => {
     if (!email) return;
     setEmailSending(true);
-    setLogs(prev => [...prev.slice(-4), `> Sending verification code to ${email}... // Check your inbox`]);
     try {
       await signIn('nodemailer', { email, callbackUrl: '/dashboard', redirect: false });
-      setLogs(prev => [...prev.slice(-4), "> Code sent! Redirecting..."]);
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch {
-      setLogs(prev => [...prev.slice(-4), "> Error: Failed to send code."]);
+      console.log("> Error: Failed to send code.");
       setEmailSending(false);
     }
   };
 
   const handleSignIn = () => {
-    setLogs(prev => [...prev.slice(-4), "> Initializing OAuth..."]);
+    console.log("> Initializing OAuth...");
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
@@ -192,7 +177,7 @@ export default function LoginPage() {
                 <button
                   onClick={() => {
                     setShowEmailInput(true);
-                    setLogs(prev => [...prev.slice(-4), "> Email auth mode activated."]);
+                    console.log("> Email auth mode activated.");
                   }}
                   disabled={emailSending || isRedirecting || status === 'loading'}
                   className="w-full sm:w-auto px-8 py-6 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30"
@@ -207,15 +192,15 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
                     placeholder="your@email.com"
-                    disabled={emailSending || emailSent}
+                    disabled={emailSending}
                     className="flex-1 sm:w-56 px-5 py-6 bg-black/60 border border-white/10 text-white font-mono text-[11px] rounded-sm focus:border-[#00A8A8]/50 focus:outline-none focus:ring-2 focus:ring-[#00A8A8]/20 placeholder:text-gray-600 disabled:opacity-30 transition-all"
                   />
                   <button
                     onClick={handleEmailLogin}
-                    disabled={emailSending || emailSent || !email}
+                    disabled={emailSending || !email}
                     className="px-6 py-6 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8]/20 hover:border-[#00A8A8]/40 transition-all active:scale-95 disabled:opacity-30"
                   >
-                    {emailSent ? '✓ Sent' : emailSending ? '.·.' : 'Send'}
+                    {emailSending ? '.·.' : 'Send'}
                   </button>
                 </div>
               )}
@@ -305,16 +290,6 @@ export default function LoginPage() {
           to {
             opacity: 1;
             transform: translateY(0);
-          }
-        }
-        @keyframes fadeInRight {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
           }
         }
       `}</style>
