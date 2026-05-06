@@ -26,7 +26,7 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/pg": "^8.10.9",
-    "drizzle-kit": "^0.28.1",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
