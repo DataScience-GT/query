@@ -28,7 +28,7 @@
     "typecheck": "turbo run typecheck"
   },
   "dependencies": {
-    "@query/db": "workspace:*",
+    "@query/db": "*",
     "@tanstack/react-router": "1.145.7",
     "autoprefixer": "10.4.22",
     "chart.js": "4.5.1",
@@ -41,10 +41,10 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
-    "@query/eslint-config": "workspace:*",
-    "@query/prettier-config": "workspace:*",
-    "@query/tailwind-config": "workspace:*",
-    "@query/tsconfig": "workspace:*",
+    "@query/eslint-config": "*",
+    "@query/prettier-config": "*",
+    "@query/tailwind-config": "*",
+    "@query/tsconfig": "*",
     "@tailwindcss/postcss": "4.1.8",
     "@tanstack/react-query": "5.90.12",
     "@trpc/client": "11.15.1",
