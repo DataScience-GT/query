@@ -10,6 +10,10 @@ const nextConfig = {
   reactCompiler: true,
   transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  experimental: {
+    // Skip static generation for pages that use useSession
+    renderToStaticMarkup: false,
+  },
   async headers() {
     return [
       {
