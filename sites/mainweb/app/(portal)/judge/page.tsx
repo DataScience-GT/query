@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -60,12 +59,11 @@ export default function JudgePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-text-muted font-sans">
       <div className="relative z-10 max-w-7xl mx-auto py-16 px-6 md:px-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="max-w-xl">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium mb-6 group">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium mb-6 group">
               <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -74,9 +72,9 @@ export default function JudgePage() {
               Nexus
             </Link>
             <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2">
-              Judge <span className="text-[#00A8A8] italic">Portal</span>
+              Judge <span className="text-accent italic">Portal</span>
             </h1>
-            <p className="text-sm text-gray-400">Browse upcoming hackathons and apply to become a judge. You must be approved by the hackathon admin before you can start judging.</p>
+            <p className="text-sm text-text-muted">Browse upcoming hackathons and apply to become a judge. You must be approved by the hackathon admin before you can start judging.</p>
           </div>
         </div>
 
@@ -97,17 +95,17 @@ export default function JudgePage() {
                     <div className="flex-1 min-h-0 mb-4">
                       {h.theme && <p className="text-cyan-400/70 text-xs font-mono mb-2 uppercase tracking-wide">{h.theme}</p>}
                       <h2 className="text-xl font-bold text-white mb-2 leading-tight truncate" title={h.name}>{h.name}</h2>
-                      {h.description && <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{h.description}</p>}
+                      {h.description && <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">{h.description}</p>}
                     </div>
                     <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2 text-xs text-text-muted">
                         <svg className="w-3.5 h-3.5 flex-shrink-0 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span>{formatDateRange(h.startDate, h.endDate)}</span>
                       </div>
                       {h.location && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
                           <svg className="w-3.5 h-3.5 flex-shrink-0 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           </svg>
@@ -115,7 +113,7 @@ export default function JudgePage() {
                         </div>
                       )}
                       {h.maxParticipants && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
                           <svg className="w-3.5 h-3.5 flex-shrink-0 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
@@ -129,14 +127,14 @@ export default function JudgePage() {
                           <Link href={`/hackathons/${h.id}/judge`} className="flex-1 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-colors cursor-pointer">
                             Ready to Judge
                           </Link>
-                          <Link href={`/hackathons/${h.id}/participants`} className="px-3 py-2 rounded-xl border border-white/5 text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
+                          <Link href={`/hackathons/${h.id}/participants`} className="px-3 py-2 rounded-xl border border-white/5 text-text-muted hover:text-white hover:bg-white/5 transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
                           </Link>
                         </>
                       ) : h.status === 'open' || h.status === 'in_progress' ? (
-                        <Link href={`/judge/register?hackathonId=${h.id}`} className="flex-1 px-4 py-2 rounded-xl bg-[#00A8A8]/10 border border-[#00A8A8]/30 text-[#00A8A8] text-xs font-bold uppercase tracking-widest hover:bg-[#00A8A8]/20 transition-colors">
+                        <Link href={`/judge/register?hackathonId=${h.id}`} className="flex-1 px-4 py-2 rounded-xl bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors">
                           Apply to Judge
                         </Link>
                       ) : (
@@ -144,7 +142,7 @@ export default function JudgePage() {
                           Closed
                         </button>
                       )}
-                      <Link href={`/hackathons/${h.id}/participants`} className="px-3 py-2 rounded-xl border border-white/5 text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
+                      <Link href={`/hackathons/${h.id}/participants`} className="px-3 py-2 rounded-xl border border-white/5 text-text-muted hover:text-white hover:bg-white/5 transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>

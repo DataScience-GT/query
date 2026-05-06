@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -71,29 +70,32 @@ export default function HackathonDetailPage() {
     const conf = statusConfig(hackathon.status);
 
     return (
-        <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
-            {/* Ambient Background Glows */}
-            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
-            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
-
-            <Background className="fixed inset-0 z-0 opacity-[0.02]" />
+        <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-hidden">
+            {/* Animated Ambient Background Glows */}
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-r from-cyan-600/10 via-purple-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse" />
+            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-r from-purple-600/10 via-cyan-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse delay-1000" />
 
             <main className="relative z-10 max-w-5xl mx-auto py-24 px-6 md:px-12">
-                <Link href="/hackathons" className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium mb-12 group">
-                    <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
-                        <svg className="w-3.5 h-3.5 transform group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                <Link
+                    href="/hackathons"
+                    className="inline-flex items-center gap-2 text-white/40 hover:text-cyan-300 transition-all duration-300 group -ml-2 -mt-2"
+                >
+                    <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-cyan-500/20 group-hover:border-cyan-400/40 transition-colors">
+                        <svg className="w-3.5 h-3.5 transform group-hover:-translate-x-1 group-hover:-translate-y-0.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </div>
-                    All Events
+                    <span className="font-medium tracking-wide">All Events</span>
                 </Link>
 
                 {/* Header Card */}
-                <LiquidGlass className="p-8 md:p-12 mb-8 relative overflow-hidden bg-white/[0.01] border-white/5 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]">
+                <LiquidGlass className="p-8 md:p-12 mb-8 relative overflow-hidden bg-white/[0.01] border-white/5 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)]">
                     {/* Header Background Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-cyan-900/[0.03] to-transparent pointer-events-none" />
+                    {/* Subtle Border Glow */}
+                    <div className="absolute inset-0 ring-1 ring-white/10 ring-inset rounded-xl opacity-0 transition-opacity duration-500 hover:opacity-100" />
 
                     <div className="flex flex-wrap items-center gap-3 mb-6 relative z-10">
                         {/* Status Badge */}
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${conf.bg} border ${conf.border} backdrop-blur-md`}>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-105 ${conf.bg} ${conf.border} border ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'hover:shadow-lg' : ''}`}>
                             <div className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.glow} ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'animate-pulse' : ''}`} />
                             <span className={`text-[11px] font-semibold uppercase tracking-widest ${conf.text}`}>
                                 {conf.label}
@@ -110,13 +112,13 @@ export default function HackathonDetailPage() {
 
                         {/* Theme */}
                         {hackathon.theme && (
-                            <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                            <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest px-3 py-1.5 rounded-full bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:text-white/70">
                                 {hackathon.theme}
                             </span>
                         )}
                     </div>
 
-                    <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/50 tracking-tight mb-8 relative z-10">
+                    <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-cyan-100 to-white/80 tracking-tight mb-8 relative z-10 animate-in fade-in duration-700">
                         {hackathon.name}
                     </h1>
 
@@ -154,10 +156,10 @@ export default function HackathonDetailPage() {
                         <button
                             key={t}
                             onClick={() => setTab(t)}
-                            className={`px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1
+                            className={`px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1 min-w-[100px]
                                 ${tab === t
-                                    ? 'bg-white/10 text-white border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)]'
-                                    : 'text-white/40 border-transparent hover:text-white/80 hover:bg-white/5'
+                                    ? 'bg-white/10 text-white border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] ring-2 ring-cyan-500/30'
+                                    : 'text-white/40 border-transparent hover:text-white/80 hover:bg-white/5 hover:border-white/15 hover:ring-2 hover:ring-white/10'
                                 }`}
                         >
                             {t === 'INFO' ? 'Info & Register' : t === 'SCHEDULE' ? 'Schedule & QR' : t === 'PROJECTS' ? 'Project Gallery' : 'Find Teams'}

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -39,7 +38,7 @@ function statusConfig(s: string) {
         closed: { label: 'Applications Closed', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30', glow: '' },
         cancelled: { label: 'Cancelled', dot: 'bg-rose-500', text: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30', glow: '' },
     };
-    return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
+    return map[s] ?? { label: s, dot: 'bg-gray-500', text: 'text-text-muted', bg: 'bg-gray-500/10', border: 'border-gray-500/20', glow: '' };
 }
 
 type TabType = 'INFO' | 'SCHEDULE' | 'PROJECTS' | 'TEAMS';
@@ -72,12 +71,10 @@ export default function ParticipantHackathonPage() {
     const myTeamId = myReg?.team?.id ?? null;
 
     return (
-        <div className="relative min-h-screen bg-[#020202] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-hidden">
+        <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-hidden">
             {/* Ambient Background Glows */}
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
-
-            <Background className="fixed inset-0 z-0 opacity-[0.02]" />
 
             <main className="relative z-10 max-w-5xl mx-auto py-24 px-6 md:px-12">
                 <Link href="/hackathons" className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium mb-12 group">

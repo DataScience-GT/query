@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 export default function Error({
@@ -18,8 +17,7 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-cyan-500/30 overflow-x-hidden flex items-center justify-center">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <div className="relative min-h-screen bg-[var(--bg-secondary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-x-hidden flex items-center justify-center">
 
             <main className="relative z-10 w-full max-w-xl px-6">
                 <LiquidGlass className="p-12 text-center border-red-500/20">
@@ -44,7 +42,7 @@ export default function Error({
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
                             onClick={() => reset()}
-                            className="px-6 py-3 bg-cyan-500 text-[#020202] font-black uppercase tracking-widest text-sm rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                            className="px-6 py-3 bg-cyan-500 text-[var(--bg-primary)] font-black uppercase tracking-widest text-sm rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                         >
                             Reboot System
                         </button>

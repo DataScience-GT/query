@@ -37,10 +37,13 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
   const homeMenuItems = [
     { name: "About", to: "about", link: false },
     { name: "Bootcamp", to: "bootcamp", link: false },
-    { name: "Hacklytics", to: "golden-byte", link: false },
+    { name: "Hacklytics", to: "/hackathons", link: false },
     { name: "Projects", to: "projects", link: false },
     { name: "Get Involved", to: "getinvolved", link: false },
     { name: "Team", to: "/team", link: true },
+    { name: "Events", to: "/events", link: false },
+    { name: "History", to: "/history", link: false },
+    { name: "Status", to: "/status", link: false },
   ];
 
   const otherPageMenuItems = [
@@ -48,6 +51,9 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
     { name: "Bootcamp", to: "/bootcamp", link: true },
     { name: "Team", to: "/team", link: true },
     { name: "Projects", to: "/projects", link: true },
+    { name: "Events", to: "/events", link: true },
+    { name: "History", to: "/history", link: true },
+    { name: "Status", to: "/status", link: true },
   ];
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
