@@ -25,6 +25,7 @@
     "@yudiel/react-qr-scanner": "^2.5.0",
     "chart.js": "^4.5.1",
     "geist": "^1.5.1",
+    "lucide-react": "^1.14.0",
     "minimatch": "10.2.3",
     "next": "16.2.3",
     "next-auth": "5.0.0-beta.30",
