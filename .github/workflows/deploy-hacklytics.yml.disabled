@@ -23,14 +23,16 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Build
-        run: pnpm turbo build --filter=hacklytics2026
+        run: bun turbo build --filter=hacklytics2026
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
