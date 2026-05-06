@@ -59,10 +59,9 @@
     "tsx": "4.19.3",
     "turbo": "2.5.4",
     "typescript": "5.8.3",
-    "zod": "3.25.53"
   },
   "prettier": "@query/prettier-config",
-  "overrides": {
+  "resolutions": {
       "basic-ftp": ">=5.2.0",
       "minimatch": ">=10.2.3",
       "next": "16.2.3",
