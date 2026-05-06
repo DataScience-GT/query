@@ -49,21 +49,13 @@ export default function AdminHackathonsPage() {
                     Manage your hackathons, participants, and event check-in locations.
                   </p>
                 </div>
-                <div className="flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
-                  <button
-                    onClick={() => setShowCreate(true)}
-                    className="group relative px-8 py-3 bg-gradient-to-r from-accent to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-all duration-300 shadow-[0_0_25px_rgba(0,168,168,0.25)] hover:shadow-[0_0_35px_rgba(0,168,168,0.35)] hover:from-accent/90 hover:to-emerald-500/90 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                    <span className="relative flex items-center gap-2">
-                      <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      New Hackathon
-                    </span>
-                  </button>
-                  {/* Ambient button glow */}
-                  <div className="absolute inset-0 bg-accent/5 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setShowCreate(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)]"
+                    >
+                        + New Hackathon
+                    </button>
                 </div>
 
                 {showCreate && (
@@ -87,26 +79,12 @@ export default function AdminHackathonsPage() {
                     />
                 )}
 
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex items-center justify-between group">
-                        <div className="space-y-1">
-                            <h2 className="text-xl font-black text-white uppercase tracking-wide group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-200 to-gray-400 transition-all duration-300">
-                              Hackathons
-                            </h2>
-                            <p className="text-text-muted text-sm font-mono flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_#00A8A8]" />
-                              {hackathons?.length || 0} {hackathons?.length === 1 ? 'event' : 'events'}
-                            </p>
+                <div className="space-y-4">
+                    {isLoading ? (
+                        <div className="py-12 text-center">
+                            <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">Loading...</p>
                         </div>
-                        {/* Decorative element */}
-                        <div className="hidden group-hover:flex items-center gap-2 text-accent/70 transition-all duration-300">
-                          <svg className="w-4 h-4 animate-in slide-in-from-right-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H3" />
-                          </svg>
-                        </div>
-                    </div>
-
-                    {!hackathons || hackathons.length === 0 ? (
+                    ) : !hackathons || hackathons.length === 0 ? (
                         <LiquidGlass className="p-16 text-center">
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                                 <svg className="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>

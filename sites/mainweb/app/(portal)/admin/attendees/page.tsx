@@ -15,15 +15,12 @@ export default function AttendeesPage() {
   const utils = trpc.useUtils();
 
   const [filter, setFilter] = useState<'all' | 'registered' | 'pending' | 'cancelled'>('all');
-
-  // Fetch all hackathons for the dropdown
-  const { data: hackathons } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
 
-  // Fetch attendees for selected hackathon
+  const { data: hackathonList } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
+
   const { data: attendees, isLoading } = trpc.hackathon.adminGetAttendees.useQuery(
     selectedHackathon ? { hackathonId: selectedHackathon } : skipToken,
-    { enabled: !!session && !!selectedHackathon }
   );
 
   if (status === 'unauthenticated') {
@@ -70,9 +67,9 @@ export default function AttendeesPage() {
                 className="bg-transparent text-white text-sm font-medium px-5 py-3 focus:outline-none cursor-pointer hover:text-white transition-all"
               >
                 <option value="">Select a hackathon...</option>
-                {hackathons?.map((h) => (
-                  <option key={h.id} value={h.id} className="bg-[#0a0a0a]">
-                    {h.name}
+                {hackathonList?.map((hackathon) => (
+                  <option key={hackathon.id} value={hackathon.id}>
+                    {hackathon.name}
                   </option>
                 ))}
               </select>
@@ -178,25 +175,24 @@ export default function AttendeesPage() {
                         <tr key={attendee.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={(attendee.user?.image || null) as string || '/avatars/default.png'}
-                                alt={(attendee.user?.name || attendee.user?.email) || ''}
+                                src={attendee.user?.image || '/avatars/default.png'}
+                                alt={attendee.user?.name || 'Attendee'}
                                 className="h-10 w-10 rounded-full border border-white/10 object-cover"
                               />
                               <div>
-                                <p className="font-medium text-white">
-{(attendee.user?.name || attendee.user?.email) || ''}
-</p>
-                                <p className="text-sm text-text-muted">{attendee.user?.email || ''}</p>
+                                <p className="font-medium text-white">{attendee.user?.name || `${attendee.firstName ?? ''} ${attendee.lastName ?? ''}`.trim() || 'Unknown'}</p>
+                                <p className="text-sm text-gray-500">{attendee.user?.email}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-text-muted">{attendee.user?.email || ''}</td>
-                          <td className="px-6 py-4 text-text-muted">{attendee.team?.name || 'Individual'}</td>
+                          <td className="px-6 py-4 text-gray-400">{attendee.user?.email}</td>
+                          <td className="px-6 py-4 text-gray-400">{attendee.team?.name || 'Individual'}</td>
                           <td className="px-6 py-4">
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                attendee.registrationStatus === 'approved'
+                                attendee.registrationStatus === 'approved' || attendee.registrationStatus === 'checked_in'
                                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                   : attendee.registrationStatus === 'pending'
                                   ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
@@ -208,8 +204,8 @@ export default function AttendeesPage() {
                               {attendee.registrationStatus}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-text-muted">
-                            {new Date(attendee.registeredAt).toLocaleDateString()}
+                          <td className="px-6 py-4 text-gray-400">
+                            {attendee.registeredAt ? new Date(attendee.registeredAt).toLocaleDateString() : '—'}
                           </td>
                         </tr>
                       ))}
