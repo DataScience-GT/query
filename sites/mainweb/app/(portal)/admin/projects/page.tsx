@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { Clock, AlertCircle } from 'lucide-react';
@@ -44,12 +43,20 @@ export default function ProjectsPage() {
   return (
     <AdminLayout>
       <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-[#00A8A8]/5 to-transparent rounded-2xl">
-          <h1 className="text-2xl font-black text-white tracking-tighter mb-2">
-            Projects <span className="text-[#00A8A8] italic">Manager</span>
+        {/* Animated Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-15%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-accent/6 via-cyan-900/12 to-purple-900/8 blur-[350px] rounded-full" />
+          <div className="absolute bottom-[-20%] right-[-8%] w-[600px] h-[600px] bg-gradient-to-r from-emerald-900/12 via-cyan-900/10 to-indigo-900/8 blur-[300px] rounded-full" />
+        </div>
+
+        {/* Page Header - Enhanced */}
+        <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/12 to-transparent rounded-2xl overflow-hidden group hover:border-accent/40 transition-all duration-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-accent/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-emerald-500 transition-all duration-500">
+            Projects <span className="text-accent italic font-bold">Manager</span>
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="relative text-text-muted text-sm font-mono">
             Browse and manage hackathon projects submitted by participants.
           </p>
         </div>

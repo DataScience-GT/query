@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Background from "@/components/portal/Background";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
@@ -144,8 +143,7 @@ export default function ClubPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-gray-400 selection:bg-[#00A8A8]/30">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+    <div className="relative min-h-screen overflow-x-hidden bg-black font-sans text-text-secondary selection:bg-accent/30">
 
       {/* QR SCANNER MODAL */}
       {showScanner && (
@@ -172,34 +170,43 @@ export default function ClubPage() {
       )}
 
       <main className="relative z-10 mx-auto grid min-h-screen max-w-7xl gap-8 px-6 py-20 lg:grid-cols-12">
+        {/* Animated Background */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 left-0 w-[50%] h-[50%] rounded-full bg-cyan-600/5 blur-[150px] animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-[50%] h-[50%] rounded-full bg-purple-600/5 blur-[150px] animate-pulse delay-1000" />
+        </div>
+
         {/* SIDEBAR */}
-        <div className="space-y-4 lg:col-span-4">
-          <LiquidGlass className="relative flex h-full flex-col overflow-visible p-6">
+        <div className="space-y-4 lg:col-span-4 relative">
+          <LiquidGlass className="relative flex h-full flex-col overflow-visible p-6 radius-xl transition-all duration-500 hover:shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
+            {/* Animated Progress Bar */}
+            <div className="absolute top-0 left-0 h-0.5 bg-gradient-to-r from-accent via-cyan-500 to-accent animate-progress" style={{ width: '0%' }} />
             {/* User Profile Header */}
-            <div className="mb-8 flex items-center gap-5 border-b border-white/5 pb-8">
+            <div className="mb-8 flex items-center gap-5 border-b border-border-subtle pb-8 group">
               <div className="group relative shrink-0">
-                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#00A8A8] to-blue-600 opacity-50 blur transition duration-1000 group-hover:opacity-75 group-hover:duration-200"></div>
+                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-accent via-cyan-500 to-purple-500 opacity-50 blur-md transition-all duration-700 group-hover:opacity-75 group-hover:duration-200 group-hover:scale-110">
+                </div>
                 {userData?.image ? (
                   <Image
                     src={userData.image}
                     alt="Avatar"
                     width={56}
                     height={56}
-                    className="relative h-14 w-14 rounded-full border border-black bg-black object-cover transition-all duration-300"
+                    className="relative h-14 w-14 rounded-full border-2 border-accent bg-black object-cover transition-all duration-300"
                   />
                 ) : (
-                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-black bg-black font-mono font-bold text-white transition-all duration-300">
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full radius-md border-2 border-accent transition-all duration-300">
                     {firstName.charAt(0)}
                   </div>
                 )}
               </div>
-              <div className="space-y-1">
-                <p className="truncate font-mono text-base font-bold tracking-tight text-white uppercase">
+              <div className="space-y-1 flex-1 min-w-0">
+                <p className="truncate font-mono text-base font-black tracking-tight text-text-primary uppercase group-hover:text-accent transition-colors">
                   {userData?.name || "GUEST"}
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]"></div>
-                  <p className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                  <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse shadow-[0_0_8px_var(--accent-glow)]"></div>
+                  <p className="text-xs font-bold tracking-widest text-accent/80 uppercase group-hover:text-accent transition-colors">
                     CLUB MEMBER
                   </p>
                 </div>
@@ -209,103 +216,124 @@ export default function ClubPage() {
             {/* Navigation */}
             <nav className="w-full gap-2 overflow-x-auto pb-2 scrollbar-none lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible">
               <Link
-                href="/club#general"
-                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
+                href="#general"
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'general'
-                    ? 'border-green-500/20 bg-green-500/10 text-green-400 shadow-[inset_0_0_20px_rgba(34,197,94,0.05)]'
-                    : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="General Events - Club gatherings with QR check-ins"
               >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
                 <span>Events</span>
                 <span
-                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'general' ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]" : "bg-transparent group-hover:bg-green-500/40"}`}
+                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'general' ? "bg-accent shadow-[0_0_8px_rgba(0,168,168,0.8)]" : "bg-transparent group-hover:bg-accent/40"}`}
                 ></span>
               </Link>
               <Link
-                href="/club#hackathons"
-                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
+                href="#hackathons"
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'hackathons'
-                    ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
-                    : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="My Hackathons - Competition events you're registered for"
               >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
                 <span>Hackathons</span>
                 <span
-                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'hackathons' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
+                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'hackathons' ? "bg-accent shadow-[0_0_8px_rgba(0,168,168,0.8)]" : "bg-transparent group-hover:bg-accent/40"}`}
                 ></span>
               </Link>
               <Link
-                href="/club#projects"
-                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
+                href="#projects"
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'projects'
-                    ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
-                    : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="My Projects - Your submitted project entries"
               >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 <span>Projects</span>
                 <span
-                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'projects' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
+                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'projects' ? "bg-accent shadow-[0_0_8px_rgba(0,168,168,0.8)]" : "bg-transparent group-hover:bg-accent/40"}`}
                 ></span>
               </Link>
               <Link
-                href="/club#history"
-                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
+                href="#history"
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'history'
-                    ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
-                    : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="Attendance History - Your event check-in records"
               >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <span>History</span>
                 <span
-                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'history' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
+                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'history' ? "bg-accent shadow-[0_0_8px_rgba(0,168,168,0.8)]" : "bg-transparent group-hover:bg-accent/40"}`}
                 ></span>
               </Link>
               <Link
-                href="/club#status"
-                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wider transition-all duration-200 md:py-3 md:text-base ${
+                href="#status"
+                className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === 'status'
-                    ? 'border-[#00A8A8]/20 bg-white/[0.03] text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]'
-                    : 'text-gray-500 hover:bg-white/[0.02] hover:text-white'
+                    ? 'border-accent/30 bg-accent/10 text-accent shadow-[0_0_15px_rgba(0,168,168,0.3)]'
+                    : 'text-text-muted hover:bg-white/5 hover:text-white hover:border-white/20 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]'
                 }`}
                 aria-label="Membership Status - Your member access info"
               >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <span>Status</span>
                 <span
-                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'status' ? "bg-[#00A8A8] shadow-[0_0_8px_rgba(0,168,168,0.5)]" : "bg-transparent group-hover:bg-[#00A8A8]/40"}`}
+                  className={`h-2 w-2 rounded-full transition-all ${activeTab === 'status' ? "bg-accent shadow-[0_0_8px_rgba(0,168,168,0.8)]" : "bg-transparent group-hover:bg-accent/40"}`}
                 ></span>
               </Link>
             </nav>
 
             {/* Info Section */}
-            <div className="mt-8 border-t border-white/5 pt-8">
-              <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-6">
-                <h4 className="mb-3 flex items-center gap-2 font-mono text-sm font-bold tracking-widest text-green-400 uppercase">
+            <div className="mt-8 border-t border-border-subtle pt-8">
+              <div className="rounded-xl radius-lg border-accent/20 bg-accent/5 p-6">
+                <h4 className="mb-3 flex items-center gap-2 font-mono text-sm font-bold tracking-wide text-accent uppercase">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.64l3.97.999-1.97 3.97-3.97-.999zM12 18h.01" />
                   </svg>
                   Event Types Guide
                 </h4>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li className="flex items-center gap-2">
-                    <span className="text-lg leading-none text-green-400">›</span>
-                    <span>General Events: Club gatherings with QR check-ins</span>
+                <ul className="space-y-2.5 text-sm text-text-muted">
+                  <li className="flex items-start gap-2 group">
+                    <span className="mt-0.5 text-lg leading-none text-accent group-hover:translate-x-1 transition-transform">›</span>
+                    <div>
+                      <span className="block font-bold text-text-primary uppercase text-xs">General Events</span>
+                      <span className="text-text-muted">Club gatherings with QR code check-ins for attendance tracking</span>
+                    </div>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-lg leading-none text-green-400">›</span>
-                    <span>Hackathons: Competition events - see My Hackathons tab</span>
+                  <li className="flex items-start gap-2 group">
+                    <span className="mt-0.5 text-lg leading-none text-accent group-hover:translate-x-1 transition-transform">›</span>
+                    <div>
+                      <span className="block font-bold text-accent uppercase text-xs">Hackathons</span>
+                      <span className="text-text-muted">Competition events - view registrations in My Hackathons tab</span>
+                    </div>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-lg leading-none text-green-400">›</span>
-                    <span>This terminal handles General Events only</span>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 text-lg leading-none text-text-disabled">›</span>
+                    <span className="italic text-text-disabled">Scan QR codes at event entrances for check-in</span>
                   </li>
                 </ul>
               </div>
-              <div className="mt-6 rounded-xl border border-white/5 bg-white/5 p-4 md:p-6">
-                <h4 className="mb-3 flex items-center gap-2 font-mono text-xs font-bold tracking-wider text-white uppercase">
+              <div className="mt-6 rounded-xl radius-lg border-border-subtle bg-white/5 p-4 md:p-6">
+                <h4 className="mb-3 flex items-center gap-2 font-mono text-xs font-bold tracking-wide text-text-primary uppercase">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a2 2 0 002-2v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4a1 1 0 001 1zm-3 1h2" />
                   </svg>
@@ -314,7 +342,7 @@ export default function ClubPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <Link
                     href="/hackathons"
-                    className="group flex items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-all hover:bg-green-500/20 active:scale-[0.98]"
+                    className="group flex items-center justify-center gap-2 rounded-xl radius-lg border-accent/30 bg-accent/10 px-4 py-3 text-sm font-medium text-accent transition-all hover:bg-accent/20"
                     aria-label="Browse all hackathons and competitions"
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +352,7 @@ export default function ClubPage() {
                   </Link>
                   <Link
                     href="/club"
-                    className="group flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.98]"
+                    className="group flex items-center justify-center gap-2 rounded-xl radius-lg border-border-medium bg-white/5 px-4 py-3 text-sm font-medium text-text-primary transition-all hover:bg-white/10"
                     aria-label="Go to club events terminal"
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,7 +362,7 @@ export default function ClubPage() {
                   </Link>
                   <Link
                     href="/judge"
-                    className="group flex items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-sm font-medium text-purple-400 transition-all hover:bg-purple-500/20 active:scale-[0.98]"
+                    className="group flex items-center justify-center gap-2 rounded-xl radius-lg border-info/30 bg-info/10 px-4 py-3 text-sm font-medium text-info transition-all hover:bg-info/20"
                     aria-label="Access judge portal"
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,7 +372,7 @@ export default function ClubPage() {
                   </Link>
                   <Link
                     href="/dashboard"
-                    className="group flex items-center justify-center gap-2 rounded-xl border border-gray-500/30 bg-gray-500/10 px-4 py-3 text-sm font-medium text-gray-400 transition-all hover:bg-gray-500/20 active:scale-[0.98]"
+                    className="group flex items-center justify-center gap-2 rounded-xl radius-lg border-border-subtle bg-white/5 px-4 py-3 text-sm font-medium text-text-muted transition-all hover:bg-white/10 hover:text-text-primary"
                     aria-label="Return to main dashboard"
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +385,7 @@ export default function ClubPage() {
             </div>
             <button
               onClick={() => router.push("/dashboard")}
-              className="group flex w-full items-center justify-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-6 py-4 font-mono text-xs tracking-[0.2em] text-gray-400 uppercase transition-all hover:border-white/10 hover:bg-white/5 hover:text-white"
+              className="group flex w-full items-center justify-center gap-3 rounded-xl radius-lg border-border-subtle bg-white/5 px-6 py-4 font-mono text-xs tracking-wide text-text-muted uppercase transition-all hover:border-border-medium hover:bg-white/10 hover:text-text-primary"
             >
               <svg
                 className="h-4 w-4 transform transition-transform group-hover:-translate-x-1"
@@ -379,22 +407,22 @@ export default function ClubPage() {
 
         {/* MAIN CONTENT */}
         <div className="flex flex-col lg:col-span-8">
-          <LiquidGlass className="relative flex h-full min-h-[600px] flex-col overflow-hidden p-8">
+          <LiquidGlass className="relative flex h-full min-h-[600px] flex-col overflow-hidden p-8 radius-xl border-border-medium bg-card">
             {/* Decorative Top Line */}
-            <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
+            <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-accent/20 to-transparent"></div>
 
-            <div className="relative z-10 mb-12 flex items-end justify-between border-b border-white/5 pb-8">
+            <div className="relative z-10 mb-12 flex items-end justify-between border-b border-border-subtle pb-8">
               <div>
-                <p className="mb-2 font-mono text-xs tracking-[0.4em] text-gray-600 uppercase">
+                <p className="mb-2 font-mono text-xs tracking-wide text-text-muted uppercase">
                   Club Portal
                 </p>
-                <h2 className="text-3xl font-black tracking-tighter text-white uppercase italic md:text-4xl">
+                <h2 className="text-3xl font-black tracking-tighter text-text-primary uppercase italic md:text-4xl">
                   {tabLabels[activeTab]}
                 </h2>
               </div>
-              <div className="hidden items-center gap-2 rounded-full border border-white/5 bg-white/[0.03] px-3 py-1 sm:flex">
-                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00A8A8]" />
-                <span className="font-mono text-[9px] tracking-wider text-gray-400 uppercase">
+              <div className="hidden items-center gap-2 rounded-full radius-full border-border-medium bg-white/5 px-3 py-1 sm:flex">
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+                <span className="font-mono text-[9px] tracking-wider text-text-muted uppercase">
                   SYNCED
                 </span>
               </div>
@@ -404,22 +432,22 @@ export default function ClubPage() {
               {/* General Events Tab */}
               {activeTab === "general" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-500">
-                  <div className="group relative flex flex-col rounded-3xl border border-green-500/10 bg-black/40 p-8 transition-all duration-500 hover:border-green-500/30">
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="group relative flex flex-col rounded-2xl radius-xl border-accent/10 bg-card p-8 transition-all duration-500 hover:border-accent/30">
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                     <button
                       onClick={() => setShowScanner(true)}
                       disabled={showScanner}
-                      className="relative z-10 mb-8 w-full rounded-xl border border-green-500/30 px-8 py-4 text-xs font-black tracking-[0.2em] text-green-400 uppercase transition-all hover:bg-green-500/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="relative z-10 mb-8 w-full rounded-xl radius-lg border-accent/30 px-8 py-4 text-xs font-black tracking-wide text-accent uppercase transition-all hover:bg-accent/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
                       SCAN ROOM CODE
                     </button>
 
                     <div className="relative mb-6 flex w-full justify-center">
-                      <div className="absolute inset-0 rounded-3xl bg-white opacity-10 blur-xl transition-opacity group-hover:opacity-20" />
-                      <div className="relative flex h-[228px] w-full flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-6 px-8 text-center">
+                      <div className="absolute inset-0 rounded-2xl bg-white opacity-10 blur-xl transition-opacity group-hover:opacity-20" />
+                      <div className="relative flex h-[228px] w-full flex-col items-center justify-center rounded-2xl radius-xl border-border-medium bg-card p-6 px-8 text-center">
                         <svg
-                          className="mb-4 h-12 w-12 text-green-400"
+                          className="mb-4 h-12 w-12 text-accent"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -431,7 +459,7 @@ export default function ClubPage() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <p className="font-mono text-xs text-gray-500 uppercase">
+                        <p className="font-mono text-xs text-text-muted uppercase">
                           Room check-in
                           <br />
                           Scan when events start
@@ -439,29 +467,29 @@ export default function ClubPage() {
                       </div>
                     </div>
 
-                    <div className="relative z-10 w-full border-t border-white/5 pt-4 text-center">
-                      <h2 className="text-lg font-black tracking-tighter text-white uppercase italic">
+                    <div className="relative z-10 w-full border-t border-border-subtle pt-4 text-center">
+                      <h2 className="text-lg font-black tracking-tighter text-text-primary uppercase italic">
                         Check-In Terminal
                       </h2>
-                      <p className="mt-1 font-mono text-[10px] tracking-[0.4em] text-gray-500 uppercase">
+                      <p className="mt-1 font-mono text-[10px] tracking-wide text-text-muted uppercase">
                         For general gatherings
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="group relative flex items-center justify-between rounded-2xl border border-green-500/5 bg-black/40 p-5 transition-colors hover:border-green-500/20">
+                    <div className="group relative flex items-center justify-between rounded-2xl radius-lg border-border-medium bg-card p-5 transition-colors hover:border-accent/20">
                       <div>
-                        <span className="mb-1 block font-mono text-[10px] tracking-[0.4em] text-gray-500 uppercase">
+                        <span className="mb-1 block font-mono text-[10px] tracking-wide text-text-muted uppercase">
                           COMPLETED SESSIONS
                         </span>
-                        <span className="font-mono text-xs text-gray-400">
+                        <span className="font-mono text-xs text-text-muted">
                           Total check-ins recorded
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 rounded-xl bg-green-500/10 px-4 py-2">
-                        <div className="h-2 w-2 animate-pulse rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
-                        <span className="text-3xl font-black text-white tabular-nums">
+                      <div className="flex items-center gap-3 rounded-xl bg-accent/10 px-4 py-2">
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-accent shadow-[0_0_10px_var(--accent-glow)]" />
+                        <span className="text-3xl font-black text-text-primary tabular-nums">
                           {myStats?.totalEvents ?? 0}
                         </span>
                       </div>
@@ -479,37 +507,37 @@ export default function ClubPage() {
                         <Link
                           key={reg.id}
                           href={`/hackathons?id=${reg.hackathonId}&tab=OVERVIEW`}
-                          className="group flex flex-col rounded-2xl border border-[#00A8A8]/10 bg-black/40 p-6 transition-all duration-300 hover:border-[#00A8A8]/30"
+                          className="group flex flex-col rounded-2xl radius-lg border-accent/10 bg-card p-6 transition-all duration-300 hover:border-accent/30"
                         >
                           <div className="mb-4 flex items-start justify-between">
-                            <h4 className="text-xl font-black text-white italic transition-colors group-hover:text-[#00A8A8]">
+                            <h4 className="text-xl font-black text-text-primary italic transition-colors group-hover:text-accent">
                               {reg.hackathon.name}
                             </h4>
                             <span
-                              className={`rounded-md border px-2 py-1 font-mono text-[9px] tracking-widest uppercase ${reg.registrationStatus === "approved"
-                                ? "border-[#00A8A8]/30 bg-[#00A8A8]/10 text-[#00A8A8]"
+                              className={`rounded-md radius-md border px-2 py-1 font-mono text-[9px] tracking-wide uppercase ${reg.registrationStatus === "approved"
+                                ? "border-accent/30 bg-accent/10 text-accent"
                                 : reg.registrationStatus === "rejected"
-                                ? "border-red-500/30 bg-red-500/10 text-red-500"
-                                : "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
+                                ? "border-danger/30 bg-danger/10 text-danger"
+                                : "border-warning/30 bg-warning/10 text-warning"
                               }`}
                             >
                               {reg.registrationStatus.replace("_", " ")}
                             </span>
                           </div>
                           {reg.hackathon.theme && (
-                            <p className="mb-2 text-[#00A8A8]/80 text-xs font-mono uppercase tracking-wider">
+                            <p className="mb-2 text-accent/80 text-xs font-mono uppercase tracking-wide">
                               Theme: {reg.hackathon.theme}
                             </p>
                           )}
-                          <p className="mb-4 line-clamp-2 flex-1 text-sm text-gray-500">
+                          <p className="mb-4 line-clamp-2 flex-1 text-sm text-text-muted">
                             {reg.hackathon.description}
                           </p>
 
-                          <div className="flex flex-wrap gap-4 border-t border-white/5 pt-4 font-mono text-xs">
+                          <div className="flex flex-wrap gap-4 border-t border-border-subtle pt-4 font-mono text-xs">
                             {reg.hackathon.startDate && (
-                              <div className="flex items-center gap-2 text-gray-500">
+                              <div className="flex items-center gap-2 text-text-muted">
                                 <svg
-                                  className="h-3 w-3 text-gray-400"
+                                  className="h-3 w-3 text-text-muted"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -527,9 +555,9 @@ export default function ClubPage() {
                               </div>
                             )}
                             {reg.hackathon.location && (
-                              <div className="flex items-center gap-2 text-gray-500">
+                              <div className="flex items-center gap-2 text-text-muted">
                                 <svg
-                                  className="h-3 w-3 text-gray-400"
+                                  className="h-3 w-3 text-text-muted"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -550,9 +578,9 @@ export default function ClubPage() {
                                 <span>{reg.hackathon.location}</span>
                               </div>
                             )}
-                            <div className="flex items-center gap-2 text-gray-500">
+                            <div className="flex items-center gap-2 text-text-muted">
                               <svg
-                                className="h-3 w-3 text-gray-400"
+                                className="h-3 w-3 text-text-muted"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -573,9 +601,9 @@ export default function ClubPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center rounded-2xl border border-white/5 bg-black/40 py-16 text-center">
+                    <div className="flex flex-col items-center rounded-2xl border border-border-subtle bg-card py-16 text-center">
                       <svg
-                        className="mb-4 h-12 w-12 text-gray-600"
+                        className="mb-4 h-12 w-12 text-text-muted"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -587,12 +615,12 @@ export default function ClubPage() {
                           d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <p className="font-mono text-sm tracking-widest text-gray-500 uppercase">
+                      <p className="font-mono text-sm tracking-widest text-text-muted uppercase">
                         No active hackathon registrations
                       </p>
                       <Link
                         href="/hackathons"
-                        className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#00A8A8]/30 bg-[#00A8A8]/10 px-4 py-2 text-xs font-mono text-[#00A8A8] transition-all hover:bg-[#00A8A8]/20"
+                        className="mt-4 inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-mono text-accent transition-all hover:bg-accent/20"
                       >
                         <svg
                           className="h-3 w-3"
@@ -618,9 +646,9 @@ export default function ClubPage() {
               {activeTab === "projects" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-500">
                   {projects.length === 0 ? (
-                    <div className="flex flex-col items-center rounded-2xl border border-white/5 bg-black/40 py-16 text-center">
+                    <div className="flex flex-col items-center rounded-2xl border border-border-subtle bg-card py-16 text-center">
                       <svg
-                        className="mb-4 h-12 w-12 text-gray-600"
+                        className="mb-4 h-12 w-12 text-text-muted"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -632,7 +660,7 @@ export default function ClubPage() {
                           d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <p className="font-mono text-sm tracking-widest text-gray-500 uppercase">
+                      <p className="font-mono text-sm tracking-widest text-text-muted uppercase">
                         No projects submitted yet.
                       </p>
                     </div>
@@ -641,10 +669,10 @@ export default function ClubPage() {
                       {projects.map((project) => (
                         <div
                           key={project.id}
-                          className="group flex flex-col rounded-2xl border border-white/5 bg-black/40 p-6 transition-all duration-300 hover:border-[#00A8A8]/30"
+                          className="group flex flex-col rounded-2xl border border-border-subtle bg-card p-6 transition-all duration-300 hover:border-accent/30"
                         >
                           <div className="mb-4 flex items-start justify-between">
-                            <h4 className="text-xl font-black text-white italic transition-colors group-hover:text-[#00A8A8]">
+                            <h4 className="text-xl font-black text-text-primary italic transition-colors group-hover:text-accent">
                               {project.name}
                             </h4>
                             <span
@@ -653,22 +681,22 @@ export default function ClubPage() {
                                   ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
                                   : project.status === "judging"
                                   ? "border-blue-500/30 bg-blue-500/10 text-blue-500"
-                                  : "border-[#00A8A8]/30 bg-[#00A8A8]/10 text-[#00A8A8]"
+                                  : "border-accent/30 bg-accent/10 text-accent"
                               }`}
                             >
                               {project.status}
                             </span>
                           </div>
-                          <p className="mb-6 line-clamp-3 flex-1 text-sm text-gray-500">
+                          <p className="mb-6 line-clamp-3 flex-1 text-sm text-text-muted">
                             {project.description}
                           </p>
 
-                          <div className="flex flex-wrap gap-4 border-t border-white/5 pt-4 font-mono text-xs">
+                          <div className="flex flex-wrap gap-4 border-t border-border-subtle pt-4 font-mono text-xs">
                             {project.githubUrl && (
                               <Link
                                 href={project.githubUrl}
                                 target="_blank"
-                                className="flex items-center gap-1.5 text-gray-400 transition-colors hover:text-white"
+                                className="flex items-center gap-1.5 text-text-muted transition-colors hover:text-text-primary"
                               >
                                 <svg
                                   className="h-4 w-4"
@@ -688,7 +716,7 @@ export default function ClubPage() {
                               <Link
                                 href={project.demoUrl}
                                 target="_blank"
-                                className="flex items-center gap-1.5 text-gray-400 transition-colors hover:text-white"
+                                className="flex items-center gap-1.5 text-text-muted transition-colors hover:text-text-primary"
                               >
                                 <svg
                                   className="h-4 w-4"
@@ -718,9 +746,9 @@ export default function ClubPage() {
               {activeTab === "history" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-500">
                   {!myEvents || myEvents.length === 0 ? (
-                    <div className="flex flex-col items-center rounded-2xl border border-white/5 bg-black/40 py-16 text-center">
+                    <div className="flex flex-col items-center rounded-2xl border border-border-subtle bg-card py-16 text-center">
                       <svg
-                        className="mb-4 h-12 w-12 text-gray-600"
+                        className="mb-4 h-12 w-12 text-text-muted"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -732,7 +760,7 @@ export default function ClubPage() {
                           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <p className="font-mono text-sm tracking-widest text-gray-500 uppercase">
+                      <p className="font-mono text-sm tracking-widest text-text-muted uppercase">
                         No attendance records found.
                       </p>
                     </div>
@@ -741,24 +769,24 @@ export default function ClubPage() {
                       {myEvents.map((checkIn) => (
                         <div
                           key={checkIn.id}
-                          className="group/item relative overflow-hidden rounded-2xl border border-white/5 bg-black/40 p-6 text-left transition-all duration-300 hover:border-[#00A8A8]/30"
+                          className="group/item relative overflow-hidden rounded-2xl border border-border-subtle bg-card p-6 text-left transition-all duration-300 hover:border-accent/30"
                         >
                           <div className="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
                             <svg
-                              className="h-12 w-12 text-[#00A8A8]"
+                              className="h-12 w-12 text-accent"
                               viewBox="0 0 24 24"
                               fill="currentColor"
                             >
                               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                             </svg>
                           </div>
-                          <h4 className="relative z-10 mb-2 text-lg font-black tracking-tight text-white uppercase italic transition-colors group-hover/item:text-[#00A8A8]">
+                          <h4 className="relative z-10 mb-2 text-lg font-black tracking-tight text-text-primary uppercase italic transition-colors group-hover/item:text-accent">
                             {checkIn.event.title}
                           </h4>
-                          <div className="relative z-10 mt-4 flex flex-col gap-2 border-t border-white/5 pt-4">
-                            <div className="flex items-center gap-2 text-gray-500">
+                          <div className="relative z-10 mt-4 flex flex-col gap-2 border-t border-border-subtle pt-4">
+                            <div className="flex items-center gap-2 text-text-muted">
                               <svg
-                                className="h-3 w-3 text-gray-400"
+                                className="h-3 w-3 text-text-muted"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -770,7 +798,7 @@ export default function ClubPage() {
                                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                                 />
                               </svg>
-                              <span className="font-mono text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+                              <span className="font-mono text-[10px] font-bold tracking-widest text-text-muted uppercase">
                                 {new Date(checkIn.checkedInAt).toLocaleDateString()}{" "}
                                 {new Date(checkIn.checkedInAt).toLocaleTimeString([], {
                                   hour: "2-digit",
@@ -779,9 +807,9 @@ export default function ClubPage() {
                               </span>
                             </div>
                             {checkIn.event.location && (
-                              <div className="flex items-center gap-2 text-gray-500">
+                              <div className="flex items-center gap-2 text-text-muted">
                                 <svg
-                                  className="h-3 w-3 text-gray-400"
+                                  className="h-3 w-3 text-text-muted"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -799,7 +827,7 @@ export default function ClubPage() {
                                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                   />
                                 </svg>
-                                <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">
+                                <span className="font-mono text-[10px] tracking-widest text-text-muted uppercase">
                                   {checkIn.event.location}
                                 </span>
                               </div>
@@ -815,12 +843,12 @@ export default function ClubPage() {
               {/* Status Tab */}
               {activeTab === "status" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 max-w-3xl space-y-6 duration-500">
-                  <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-black/40 p-6 transition-colors hover:border-white/10">
+                  <div className="flex items-center justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-medium">
                     <div>
-                      <h4 className="mb-1 text-lg font-bold text-white">
+                      <h4 className="mb-1 text-lg font-bold text-text-primary">
                         Club Membership Status
                       </h4>
-                      <p className="font-mono text-xs text-gray-500">
+                      <p className="font-mono text-xs text-text-muted">
                         Access to core events and resources
                       </p>
                     </div>
@@ -828,17 +856,17 @@ export default function ClubPage() {
                       {memberStatus?.isActive ? (
                         <>
                           <div className="text-right">
-                            <span className="text-lg font-black tracking-widest text-[#00A8A8] uppercase italic">
+                            <span className="text-lg font-black tracking-widest text-accent uppercase italic">
                               Active
                             </span>
-                            <p className="mt-1 font-mono text-[10px] text-gray-400">
+                            <p className="mt-1 font-mono text-[10px] text-text-muted">
                               Valid thru{" "}
                               {new Date(memberStatus.expiresAt!).toLocaleDateString()}
                             </p>
                           </div>
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#00A8A8]/30 bg-[#00A8A8]/10">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/10">
                             <svg
-                              className="h-5 w-5 text-[#00A8A8]"
+                              className="h-5 w-5 text-accent"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -879,29 +907,29 @@ export default function ClubPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-black/40 p-6 transition-colors hover:border-white/10">
+                  <div className="flex items-center justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-medium">
                     <div>
-                      <h4 className="mb-1 text-lg font-bold text-white">
+                      <h4 className="mb-1 text-lg font-bold text-text-primary">
                         Account Permission Level
                       </h4>
-                      <p className="font-mono text-xs text-gray-500">
+                      <p className="font-mono text-xs text-text-muted">
                         Current system privilege tier
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-black tracking-widest text-gray-300 uppercase italic">
+                      <span className="rounded-lg border border-border-medium bg-white/5 px-4 py-2 font-black tracking-widest text-text-primary uppercase italic">
                         {memberStatus?.isMember ? "VERIFIED MEMBER" : "USER"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col rounded-2xl border border-white/5 bg-black/40 p-6 transition-colors hover:border-white/10">
+                  <div className="flex flex-col rounded-2xl border border-border-subtle bg-card p-6 transition-colors hover:border-border-medium">
                     <div className="mb-6 flex items-center justify-between">
                       <div>
-                        <h4 className="mb-1 text-lg font-bold text-white">
+                        <h4 className="mb-1 text-lg font-bold text-text-primary">
                           Event Registrations
                         </h4>
-                        <p className="font-mono text-xs text-gray-500">
+                        <p className="font-mono text-xs text-text-muted">
                           Current hackathons applied to
                         </p>
                       </div>
@@ -912,20 +940,20 @@ export default function ClubPage() {
                         {myRegs.map((reg) => (
                           <div
                             key={reg.id}
-                            className="flex items-center justify-between border-t border-white/5 py-3 first:border-0 first:pt-0"
+                            className="flex items-center justify-between border-t border-border-subtle py-3 first:border-0 first:pt-0"
                           >
                             <div className="flex items-center gap-3">
                               <div
-                                className={`h-2 w-2 rounded-full ${reg.registrationStatus === "approved" ? "bg-[#00A8A8]" : "bg-yellow-500"}`}
+                                className={`h-2 w-2 rounded-full ${reg.registrationStatus === "approved" ? "bg-accent" : "bg-yellow-500"}`}
                               />
-                              <span className="text-sm font-bold text-gray-300">
+                              <span className="text-sm font-bold text-text-primary">
                                 {reg.hackathon.name}
                               </span>
                             </div>
                             <span
                               className={`rounded border bg-black/50 px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase ${
                                 reg.registrationStatus === "approved"
-                                  ? "border-[#00A8A8]/30 text-[#00A8A8]"
+                                  ? "border-accent/30 text-accent"
                                   : reg.registrationStatus === "rejected"
                                   ? "border-red-500/30 text-red-500"
                                   : "border-yellow-500/30 text-yellow-500"
@@ -937,8 +965,8 @@ export default function ClubPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-white/5 bg-white/5 py-8 text-center">
-                        <p className="font-mono text-xs tracking-widest text-gray-500 uppercase">
+                      <div className="rounded-xl border border-border-subtle bg-white/5 py-8 text-center">
+                        <p className="font-mono text-xs tracking-widest text-text-muted uppercase">
                           No active event registrations found.
                         </p>
                       </div>

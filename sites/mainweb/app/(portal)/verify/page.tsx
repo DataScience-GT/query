@@ -2,7 +2,6 @@
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Background from '@/components/portal/Background';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
 function VerifyContent() {
@@ -104,36 +103,62 @@ function VerifyContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center px-6 text-center">
-            <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+        <div className="relative min-h-screen bg-[var(--bg-secondary)] flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+            {/* Ambient Background */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/5 via-cyan-900/10 to-purple-900/8 blur-[400px] rounded-full" />
+                <div className="absolute bottom-[-15%] right-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-emerald-900/10 via-cyan-900/10 to-indigo-900/8 blur-[350px] rounded-full" />
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+            </div>
 
-            <LiquidGlass className="relative z-10 w-full max-w-lg p-10 md:p-14 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(0,168,168,0.1)]">
-                    <svg className="w-12 h-12 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <LiquidGlass className="relative z-10 w-full max-w-lg p-10 md:p-14 flex flex-col items-center relative overflow-hidden">
+                {/* Decorative corner accents */}
+                <div className="absolute top-4 right-4 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <svg className="w-32 h-32 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                </div>
+                <div className="absolute bottom-4 left-4 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <svg className="w-28 h-28 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+                </div>
+
+                <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-accent/15 to-emerald-500/10 border border-accent/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(0,168,168,0.15)] group hover:border-accent/50 hover:shadow-[0_0_50px_rgba(0,168,168,0.25)] transition-all duration-300">
+                    {/* Icon glow */}
+                    <div className="absolute inset-0 rounded-full bg-accent/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+                    <svg className="relative w-12 h-12 text-accent group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                 </div>
 
-                <div className="space-y-4 mb-10 text-center flex flex-col items-center">
-                    <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
-                        Enter<span className="text-[#00A8A8]"> Code</span>
+                <div className="space-y-4 mb-10 text-center flex flex-col items-center relative">
+                    <h1 className="text-5xl font-black text-white uppercase tracking-tighter italic relative">
+                        Enter<span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-emerald-500 relative z-10">Code</span>
+                        {/* Animated underline */}
+                        <div className="absolute -bottom-3 left-0 right-0 h-[3px] bg-gradient-to-r from-accent/0 via-accent/100 to-accent/0 blur-[2px]" />
                     </h1>
-                    <p className="text-xs font-mono text-gray-500 uppercase tracking-[0.4em] mb-4">
+                    <p className="text-xs font-mono text-text-muted uppercase tracking-[0.4em] mb-2">
                         Code Verification
                     </p>
-                    <div className="h-[1px] w-12 bg-[#00A8A8]/30 mx-auto" />
-                    <p className="text-gray-400 font-mono text-sm leading-relaxed mt-4">
+                    <div className="h-[1px] w-16 bg-gradient-to-r from-accent/40 via-accent/70 to-accent/40 mx-auto" />
+                    <p className="text-text-muted font-mono text-sm leading-relaxed mt-4">
                         We sent a 6-digit access code to your terminal.
                     </p>
                     {email && (
-                        <p className="text-[#00A8A8]/70 font-mono text-xs">
-                            {email}
+                        <p className="text-accent/80 font-mono text-xs flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          {email}
                         </p>
                     )}
+                    {/* Decorative particles */}
+                    <div className="absolute top-2 right-10 w-1 h-1 rounded-full bg-accent/40 animate-pulse" />
+                    <div className="absolute bottom-8 left-10 w-1 h-1 rounded-full bg-emerald-500/40 animate-pulse delay-75" />
+                    <div className="absolute top-8 left-12 w-1 h-1 rounded-full bg-cyan-500/40 animate-pulse delay-150" />
                 </div>
 
-                {/* 6-digit code input */}
-                <div className="flex gap-2 sm:gap-3 mb-8" onPaste={handlePaste}>
+                {/* 6-digit code input - Enhanced */}
+                <div className="flex gap-2 sm:gap-3 mb-8 relative" onPaste={handlePaste}>
+                    {/* Background decorative elements */}
+                    <div className="absolute -inset-x-4 top-1/2 -translate-y-1/2 h-[calc(100%-1rem)] w-full bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
                     {code.map((digit, i) => (
                         <input
                             key={i}
@@ -152,8 +177,8 @@ function VerifyContent() {
                                 ${error
                                     ? 'border-red-500/50 focus:border-red-500 focus:bg-red-500/5 text-red-500'
                                     : digit
-                                        ? 'border-[#00A8A8]/50 text-[#00A8A8] shadow-[0_0_20px_rgba(0,168,168,0.15)] bg-[#00A8A8]/5'
-                                        : 'border-white/10 focus:border-[#00A8A8]/70 focus:bg-[#00A8A8]/5 focus:-translate-y-1 focus:shadow-[0_10px_20px_rgba(0,168,168,0.1)]'
+                                      ? 'border-accent/50 text-accent shadow-[0_0_20px_rgba(0,168,168,0.15)] bg-accent/5'
+                     : 'border-white/10 focus:border-accent/70 focus:bg-accent/5 focus:-translate-y-1 focus:shadow-[0_10px_20px_rgba(0,168,168,0.1)]'
                                 }
                                 ${verifying ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
@@ -171,24 +196,41 @@ function VerifyContent() {
                     </div>
                 )}
 
-                {/* Submit button */}
+                {/* Submit button - Enhanced */}
                 <button
                     onClick={() => handleSubmit(code.join(''))}
                     disabled={verifying || code.some(d => d === '')}
-                    className="w-full sm:w-auto px-12 py-5 bg-[#00A8A8] text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-all duration-300 rounded-xl shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                    className="group relative w-full sm:w-auto px-14 py-5 bg-gradient-to-r from-accent to-emerald-500 text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-all duration-300 rounded-xl shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 overflow-hidden"
                 >
-                    {verifying ? 'VERIFYING...' : 'VERIFY CODE'}
+                    {/* Button shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-opacity duration-300" />
+                    <span className="relative flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                        {verifying ? 'VERIFYING...' : 'VERIFY CODE'}
+                    </span>
                 </button>
 
                 {!email && (
-                    <p className="mt-8 p-3 w-full text-center border border-red-500/20 bg-red-500/5 text-red-500/90 font-mono text-xs rounded-lg uppercase tracking-widest">
+                    <p className="mt-8 p-3 w-full text-center border border-red-500/20 bg-red-500/5 text-text-disabled font-mono text-xs rounded-lg uppercase tracking-widest">
                         ERROR: EMAIL BINDING LOST.<br /> RETURN TO LOGIN.
                     </p>
                 )}
             </LiquidGlass>
 
-            <div className="fixed bottom-12 left-0 w-full text-center">
-                <p className="text-[10px] text-gray-700 font-mono uppercase tracking-[0.5em]"> </p>
+            <div className="fixed bottom-12 left-0 w-full text-center z-20">
+                <p className="text-[10px] font-mono text-gray-700 uppercase tracking-[0.5em] animate-in fade-in">
+                    Access Node Online
+                </p>
+                {/* Status indicator */}
+                <div className="flex justify-center gap-4 mt-2">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                        <span className="text-gray-700/60">System Operational</span>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -197,7 +239,7 @@ function VerifyContent() {
 export default function VerifyPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-emerald-500 uppercase tracking-widest">
+            <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center font-mono text-emerald-500 uppercase tracking-widest">
                 Loading
             </div>
         }>

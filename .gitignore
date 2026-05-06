@@ -77,3 +77,4 @@ output.txt
 # Scratch / one-off fix scripts
 fix.js
 *.fix.js
+.claude/skills/ui-ux-pro-max/SKILL.md
