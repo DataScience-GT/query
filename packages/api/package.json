@@ -21,8 +21,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@query/auth": "workspace:*",
-    "@query/db": "workspace:*",
+    "@query/auth": "*",
+    "@query/db": "*",
     "@tanstack/react-query": "5.90.12",
     "@trpc/client": "^11.15.1",
     "@trpc/next": "^11.15.1",
@@ -36,7 +36,7 @@
     "zod": "3.25.53"
   },
   "devDependencies": {
-    "@query/tsconfig": "workspace:*",
+    "@query/tsconfig": "*",
     "@types/sanitize-html": "^2.16.0",
     "typescript": "5.8.3",
     "vitest": "^3.1.0"
