@@ -1,7 +1,7 @@
 # Monorepo - app is in sites/portal
 
 scripts:
-  buildCommand: npm install -g bun && node restore-workspace.js && rm -rf node_modules package-lock.json && bun install && bun --filter web build && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
+  buildCommand: npm install -g bun && node restore-workspace.js && rm -rf node_modules package-lock.json bun.lock && bun install && bun --filter web build && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
   runCommand: node sites/mainweb/.next/standalone/sites/mainweb/server.js
 
 runConfig:
