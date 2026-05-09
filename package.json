@@ -2,14 +2,14 @@
   "name": "query",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "pnpm@10.5.2",
+  "packageManager": "npm@10.9.4",
   "workspaces": [
     "sites/*",
     "packages/*",
     "tooling/*"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.16.0 <23"
   },
   "scripts": {
     "dev": "pnpm turbo run dev --parallel",
