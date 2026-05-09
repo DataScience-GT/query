@@ -2,15 +2,14 @@
   "name": "query",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "bun@1.1.8",
+  "packageManager": "npm@10.9.4",
   "workspaces": [
-    "apps/*",
     "sites/*",
     "packages/*",
     "tooling/*"
   ],
   "engines": {
-    "node": ">=20.16.0 <23"
+    "node": ">=20"
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
