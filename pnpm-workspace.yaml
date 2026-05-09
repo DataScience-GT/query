@@ -1,4 +1,0 @@
-packages:
-  - 'sites/*'
-  - 'packages/*'
-  - 'tooling/*'
