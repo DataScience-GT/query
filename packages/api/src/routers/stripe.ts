@@ -6,11 +6,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2026-04-22.dahlia",
-  })
-  : null;
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 export const stripeRouter = createTRPCRouter({
   /**
@@ -143,7 +139,7 @@ export const stripeRouter = createTRPCRouter({
 
   /**
    * Check if the current user has an unlinked Stripe payment
-
+   *
    * that matches their email (auto-link scenario)
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
