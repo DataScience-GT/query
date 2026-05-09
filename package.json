@@ -2,7 +2,7 @@
   "name": "query",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "npm@10.9.4",
+  "packageManager": "pnpm@10.5.2",
   "workspaces": [
     "sites/*",
     "packages/*",
@@ -12,19 +12,19 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo run dev --parallel",
-    "dev:mainweb": "turbo run dev --filter=web",
-    "dev:full": "turbo run dev --parallel",
-    "build:mainweb": "turbo run build --filter=web",
-    "build": "turbo run build",
-    "start": "turbo run start",
+    "dev": "pnpm turbo run dev --parallel",
+    "dev:mainweb": "pnpm turbo run dev --filter=web",
+    "dev:full": "pnpm turbo run dev --parallel",
+    "build:mainweb": "pnpm turbo run build --filter=web",
+    "build": "pnpm turbo run build",
+    "start": "pnpm turbo run start",
     "clean": "git clean -xdf node_modules",
-    "clean:workspaces": "turbo run clean",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint -- --fix",
-    "format": "turbo run format",
-    "format:fix": "turbo run format -- --write",
-    "typecheck": "turbo run typecheck"
+    "clean:workspaces": "pnpm turbo run clean",
+    "lint": "pnpm turbo run lint",
+    "lint:fix": "pnpm turbo run lint -- --fix",
+    "format": "pnpm turbo run format",
+    "format:fix": "pnpm turbo run format -- --write",
+    "typecheck": "pnpm turbo run typecheck"
   },
   "dependencies": {
     "@query/db": "*",
