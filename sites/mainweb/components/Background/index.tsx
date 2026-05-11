@@ -2,7 +2,7 @@
 
 import React from "react";
 
-interface BackgroundProps extends React.HTMLAttributes<HTMLDivElement> {}
+type BackgroundProps = React.HTMLAttributes<HTMLDivElement>;
 
 export default function Background(props: BackgroundProps) {
   return (

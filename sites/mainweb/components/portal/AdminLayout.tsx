@@ -6,7 +6,7 @@ import AdminHeader from './AdminHeader';
 import { useEffect, useState } from 'react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
