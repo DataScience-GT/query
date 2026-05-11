@@ -260,7 +260,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input as object)) {
-      if (!/^[\w\-\.]{1,100}$/.test(key)) {
+      if (!/^[\w.-]{1,100}$/.test(key)) {
         continue;
       }
       sanitized[key] = sanitizeInput(value, depth + 1);
@@ -277,7 +277,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 function hasInjectionPattern(str: string): boolean {
   const patterns = [
     /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b.*\b(from|into|table|database)\b)/i,
-    /(--|\#|\/\*)/,
+    /(--|#|\/\*)/,
     /(\bor\b|\band\b)\s*[\d\w]+\s*=\s*[\d\w]+/i,
     /\$where/i,
     /\$gt|\$lt|\$ne|\$eq/i,
@@ -361,7 +361,7 @@ async function flushLogs() {
       };
     });
 
-    const result = await db.insert(auditLogs).values(values);
+    await db.insert(auditLogs).values(values);
     console.log(`[Security] Flushed ${batch.length} security events to audit logs`);
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;

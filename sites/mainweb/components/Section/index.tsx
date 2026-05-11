@@ -1,9 +1,8 @@
 import { ReactNode, HTMLAttributes } from "react";
 
-interface SectionProps {
-  children: any;
+interface SectionProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
   makefull?: boolean;
-  [key: string]: any;
 }
 
 export default function Section({ children, makefull = false, ...rest }: SectionProps) {

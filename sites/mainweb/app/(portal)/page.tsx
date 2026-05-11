@@ -72,7 +72,7 @@ export default function Home() {
   }, [judgeStatus]);
 
   useEffect(() => {
-    if (!!session) {
+    if (session) {
       setLogs(prev => [...prev.slice(-4), "> Auth success // Redirecting to dashboard..."]);
 
       const redirectTimeout = setTimeout(() => {
@@ -250,8 +250,8 @@ export default function Home() {
                 </p>
                 <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">
                   <span className="flex items-center gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${!!session ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
-                    <span className={!!session ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${session ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
+                    <span className={session ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 bg-[#00A8A8] rounded-full" />
