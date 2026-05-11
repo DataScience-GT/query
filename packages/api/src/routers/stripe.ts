@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members } from "@query/db";
+import { stripePayments, userAccountLinks, members, type DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
-import type { DrizzleDB } from "@query/db";
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
@@ -23,8 +22,8 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      const user = await (ctx.db as DrizzleDB).query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId as string),
+      const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
 
       if (!user?.email) {
@@ -56,7 +55,7 @@ export const stripeRouter = createTRPCRouter({
           cancel_url: `${input.returnUrl}?payment=cancelled`,
           customer_email: user.email,
           metadata: {
-            userId: ctx.userId as string,
+            userId: ctx.userId!,
           },
         });
 
@@ -81,9 +80,9 @@ export const stripeRouter = createTRPCRouter({
    * Attempt to auto-link a Stripe payment matching the user's email
    */
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
-    return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+    return await (ctx.db as unknown as DrizzleDB).transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId as string),
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
 
       if (!user?.email) return { success: false };
@@ -100,7 +99,7 @@ export const stripeRouter = createTRPCRouter({
 
       // Verify not already linked (double check)
       const existingLink = await tx.query.userAccountLinks.findFirst({
-        where: eq(userAccountLinks.userId, ctx.userId as string),
+        where: eq(userAccountLinks.userId, ctx.userId!),
       });
       if (existingLink) return { success: true };
 
@@ -109,7 +108,7 @@ export const stripeRouter = createTRPCRouter({
       const lastName = names.slice(1).join(" ") || "Member";
 
       await tx.insert(userAccountLinks).values({
-        userId: ctx.userId as string,
+        userId: ctx.userId!,
         stripePaymentId: payment.id,
         providedFirstName: firstName,
         providedLastName: lastName,
@@ -118,21 +117,21 @@ export const stripeRouter = createTRPCRouter({
 
       await tx.update(stripePayments)
         .set({
-          linkedUserId: ctx.userId as string,
+          linkedUserId: ctx.userId!,
           linkedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(
-        tx as DrizzleDB,
-        ctx.userId as string,
+        tx as unknown as DrizzleDB,
+        ctx.userId!,
         firstName,
         lastName
       );
 
       // Invalidate cache directly
-      ctx.cache.delete(`member:status:${ctx.userId as string}`);
+      ctx.cache.delete(`member:status:${ctx.userId!}`);
 
       return { success: true };
     });
@@ -144,15 +143,15 @@ export const stripeRouter = createTRPCRouter({
    * that matches their email (auto-link scenario)
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
-    const user = await (ctx.db as DrizzleDB).query.users.findFirst({
-      where: eq((await import("@query/db")).users.id, ctx.userId as string),
+    const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
+      where: eq((await import("@query/db")).users.id, ctx.userId!),
     });
 
     if (!user?.email) {
       return { hasPendingPayment: false };
     }
 
-    const pendingPayment = await (ctx.db as DrizzleDB).query.stripePayments.findFirst({
+    const pendingPayment = await (ctx.db as unknown as DrizzleDB).query.stripePayments.findFirst({
       where: and(
         eq(stripePayments.customerEmail, user.email),
         isNull(stripePayments.linkedUserId),
@@ -179,7 +178,7 @@ export const stripeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+      return await (ctx.db as unknown as DrizzleDB).transaction(async (tx) => {
         const payment = await tx.query.stripePayments.findFirst({
           where: and(
             eq(stripePayments.customerEmail, input.email.toLowerCase()),
@@ -212,7 +211,7 @@ export const stripeRouter = createTRPCRouter({
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
-          where: eq(userAccountLinks.userId, ctx.userId as string),
+          where: eq(userAccountLinks.userId, ctx.userId!),
         });
 
         if (userExistingLink) {
@@ -223,7 +222,7 @@ export const stripeRouter = createTRPCRouter({
         }
 
         await tx.insert(userAccountLinks).values({
-          userId: ctx.userId as string,
+          userId: ctx.userId!,
           stripePaymentId: payment.id,
           providedFirstName: input.firstName,
           providedLastName: input.lastName,
@@ -233,21 +232,21 @@ export const stripeRouter = createTRPCRouter({
         await tx
           .update(stripePayments)
           .set({
-            linkedUserId: ctx.userId as string,
+            linkedUserId: ctx.userId!,
             linkedAt: new Date(),
             updatedAt: new Date(),
           })
           .where(eq(stripePayments.id, payment.id));
 
         await createOrUpdateMembership(
-          tx as DrizzleDB,
-          ctx.userId as string,
+          tx as unknown as DrizzleDB,
+          ctx.userId!,
           input.firstName,
           input.lastName
         );
 
         // Invalidate membership status cache
-        ctx.cache.delete(`member:status:${ctx.userId as string}`);
+        ctx.cache.delete(`member:status:${ctx.userId!}`);
 
         return { success: true, message: "Account linked successfully! You are now a member." };
       });
@@ -257,8 +256,8 @@ export const stripeRouter = createTRPCRouter({
    * Get the current user's linked payment status
    */
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
-    const link = await (ctx.db as DrizzleDB).query.userAccountLinks.findFirst({
-      where: eq(userAccountLinks.userId, ctx.userId as string),
+    const link = await (ctx.db as unknown as DrizzleDB).query.userAccountLinks.findFirst({
+      where: eq(userAccountLinks.userId, ctx.userId!),
       with: {
         stripePayment: true,
       },
@@ -277,11 +276,12 @@ export const stripeRouter = createTRPCRouter({
 });
 
 async function createOrUpdateMembership(
-  db: DrizzleDB,
+  db: typeof import("@query/db").db | null,
   userId: string,
   firstName: string,
   lastName: string
 ) {
+  if (!db) return;
   const existingMember = await db.query.members.findFirst({
     where: eq(members.userId, userId),
   });
