@@ -1,17 +1,16 @@
-name: Pnpm Build Test
+name: Pnpm CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "dev"]
   pull_request:
-    branches: ["*"]
+    branches: ["main", "dev"]
 
 jobs:
   build:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
@@ -24,3 +23,6 @@ jobs:
 
       - name: Build
         run: pnpm turbo run build
+
+      - name: Run tests
+        run: pnpm turbo run test

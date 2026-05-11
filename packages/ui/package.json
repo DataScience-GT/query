@@ -34,9 +34,9 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "16.2.1",
-    "@query/eslint-config": "*",
-    "@query/tailwind-config": "*",
-    "@query/tsconfig": "*",
+    "@query/eslint-config": "workspace:*",
+    "@query/tailwind-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
     "@tailwindcss/cli": "4.1.8",
     "@types/minimatch": "^6.0.0",
     "@types/react": "^19.1.3",
