@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Menu, Search, Bell, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,7 +16,6 @@ export default function AdminHeader() {
   const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -26,10 +24,6 @@ export default function AdminHeader() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    router.push('/login');
-  };
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center border-b border-white/5 bg-[#0a0c10]/80 backdrop-blur-3xl px-4 py-3">

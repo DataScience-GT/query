@@ -10,7 +10,9 @@ export const STATUSES: { value: HackathonStatus; label: string; color: string; b
 ];
 
 export function getStatusMeta(s: string) {
-    return STATUSES.find((x) => x.value === s) ?? STATUSES[0]!;
+    const status = STATUSES.find((x) => x.value === s);
+    if (!status) return STATUSES[0];
+    return status;
 }
 
 export function toInputDate(d: Date | string) {

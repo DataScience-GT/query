@@ -25,7 +25,7 @@ const NAV_ITEMS: { id: DocSection; label: string; icon: string }[] = [
 function CodeBlock({
   title,
   code,
-  language = "bash",
+  language,
 }: {
   title?: string;
   code: string;

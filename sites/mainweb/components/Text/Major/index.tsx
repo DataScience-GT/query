@@ -1,10 +1,10 @@
-import { ReactNode, HTMLAttributes, JSX, ElementType, ReactNode as ReactNodeProp } from "react";
+import type { ReactNode, HTMLAttributes, ElementType } from "react";
 
-interface MajorProps extends React.HTMLAttributes<HTMLElement> {
+interface MajorProps extends HTMLAttributes<HTMLElement> {
   type?: "primary" | "secondary" | "a" | "b";
-  as?: React.ElementType;
+  as?: ElementType;
   compact?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export default function Major({
@@ -28,7 +28,7 @@ export default function Major({
     ? `text-lg md:text-xl lg:text-xl font-semibold leading-snug tracking-normal m-0`
     : `uppercase text-4xl md:text-5xl lg:text-6xl font-extrabold text-center leading-tight tracking-wide my-4`;
 
-  const Tag = as as React.ElementType;
+  const Tag = as as ElementType;
 
   return (
     <Tag {...props} className={`${displayClasses} ${typeClasses[resolvedType] ?? ""} ${className ?? ""}`}>
