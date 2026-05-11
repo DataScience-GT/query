@@ -125,7 +125,7 @@ export const stripeRouter = createTRPCRouter({
         .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(
-        tx as unknown as DrizzleDB,
+        tx as DrizzleDB,
         ctx.userId as string,
         firstName,
         lastName
@@ -240,7 +240,7 @@ export const stripeRouter = createTRPCRouter({
           .where(eq(stripePayments.id, payment.id));
 
         await createOrUpdateMembership(
-          tx as unknown as DrizzleDB,
+          tx as DrizzleDB,
           ctx.userId as string,
           input.firstName,
           input.lastName

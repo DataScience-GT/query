@@ -2,6 +2,18 @@
   "$schema": "https://turborepo.org/schema.json",
   "ui": "stream",
   "tasks": {
+    "test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "test/**/*.ts",
+        "test/**/*.tsx"
+      ]
+    },
     "topo": {
       "dependsOn": [
         "^topo"

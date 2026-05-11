@@ -5,6 +5,7 @@ import { admins, users } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
+import type { DrizzleDB } from "@query/db";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
@@ -28,7 +29,7 @@ export const adminRouter = createTRPCRouter({
         message: "Cannot cache the admin",
       });
     }
-    const admin = await ctx.db.query.admins.findFirst({
+    const admin = await (ctx.db as DrizzleDB).query.admins.findFirst({
       where: and(
         eq(admins.userId, ctx.userId as string),
         eq(admins.isActive, true)
@@ -47,7 +48,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
-    const fetchAdmins = () => (ctx.db as NonNullable<typeof ctx.db>).query.admins.findMany({
+    const fetchAdmins = () => (ctx.db as DrizzleDB).query.admins.findMany({
       with: {
         user: {
           columns: {
@@ -83,11 +84,11 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Parallel check: user exists AND not already admin
       const [user, existingAdmin] = await Promise.all([
-        (ctx.db as NonNullable<typeof ctx.db>).query.users.findFirst({
+        (ctx.db as DrizzleDB).query.users.findFirst({
           where: eq(users.id, input.userId),
           columns: { id: true },
         }),
-        (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({
+        (ctx.db as DrizzleDB).query.admins.findFirst({
           where: eq(admins.userId, input.userId),
           columns: { id: true },
         }),
@@ -100,7 +101,7 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "User is already an admin" });
       }
 
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(admins)
         .values({
           userId: input.userId,
@@ -131,7 +132,7 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const targetAdmin = await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({
+      const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
         where: eq(admins.id, input.adminId),
       });
 
@@ -142,7 +143,7 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot deactivate your own admin account" });
       }
 
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .update(admins)
         .set({ role: input.role, permissions: input.permissions, isActive: input.isActive, updatedAt: new Date() })
         .where(eq(admins.id, input.adminId))
@@ -163,7 +164,7 @@ export const adminRouter = createTRPCRouter({
   remove: isSuperAdmin
     .input(z.object({ adminId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const targetAdmin = await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({
+      const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
         where: eq(admins.id, input.adminId),
       });
 
@@ -174,7 +175,7 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot remove your own admin account" });
       }
 
-      await (ctx.db as NonNullable<typeof ctx.db>).delete(admins).where(eq(admins.id, input.adminId));
+      await (ctx.db as DrizzleDB).delete(admins).where(eq(admins.id, input.adminId));
 
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
