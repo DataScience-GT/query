@@ -1,4 +1,4 @@
-import { ReactNode, HTMLAttributes } from "react";
+import type { ReactNode, HTMLAttributes } from "react";
 
 interface MiniProps extends HTMLAttributes<HTMLParagraphElement> {
   children: ReactNode;

@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { STATUSES, HackathonStatus } from '@/components/admin/hackathons/constants';
+import type { HackathonStatus } from '@/components/admin/hackathons/constants';
+import { STATUSES } from '@/components/admin/hackathons/constants';
 
 export function HackathonCard({
     hackathon,

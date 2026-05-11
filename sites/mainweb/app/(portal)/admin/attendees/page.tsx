@@ -174,7 +174,7 @@ export default function AttendeesPage() {
                         <tr key={attendee.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              { }
                               <img
                                 src={attendee.user?.image || '/avatars/default.png'}
                                 alt={attendee.user?.name || 'Attendee'}
