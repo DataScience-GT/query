@@ -13,6 +13,7 @@ import {
 import { eq, and, gte, sql, inArray } from "drizzle-orm";
 import { isAdmin } from "../middleware/procedures";
 import { CacheKeys } from "../middleware/cache";
+import type { DrizzleDB } from "@query/db";
 
 export const hackathonRouter = createTRPCRouter({
   list: publicProcedure
@@ -27,7 +28,7 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
 
-      type DB = NonNullable<typeof ctx.db>;
+      type DB = DrizzleDB;
       type HackathonList = Awaited<ReturnType<DB["query"]["hackathons"]["findMany"]>>;
       // Check cache first
       const cached = ctx.cache.get<HackathonList>(cacheKey);
@@ -35,7 +36,7 @@ export const hackathonRouter = createTRPCRouter({
 
       const now = new Date();
 
-      const allHackathons = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathons.findMany({
+      const allHackathons = await (ctx.db as DrizzleDB).query.hackathons.findMany({
         where: and(
           eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
@@ -53,7 +54,7 @@ export const hackathonRouter = createTRPCRouter({
 
   listAll: isAdmin
     .query(async ({ ctx }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).query.hackathons.findMany({
+      return await (ctx.db as DrizzleDB).query.hackathons.findMany({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
       });
     }),
@@ -64,12 +65,12 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
-      type DB = NonNullable<typeof ctx.db>;
+      type DB = DrizzleDB;
       type HackathonItem = Awaited<ReturnType<DB["query"]["hackathons"]["findFirst"]>>;
       const cached = ctx.cache.get<HackathonItem>(cacheKey);
       if (cached) return cached;
 
-      const hackathon = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathons.findFirst({
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
         where: eq(hackathons.id, input.id),
       });
 
@@ -114,7 +115,7 @@ export const hackathonRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [newHackathon] = await (ctx.db as NonNullable<typeof ctx.db>)
+      const [newHackathon] = await (ctx.db as DrizzleDB)
         .insert(hackathons)
         .values({
           ...input,
@@ -157,7 +158,7 @@ export const hackathonRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;
 
-      const existing = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathons.findFirst({
+      const existing = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
         where: eq(hackathons.id, id),
       });
 
@@ -168,7 +169,7 @@ export const hackathonRouter = createTRPCRouter({
         });
       }
 
-      const [updatedHackathon] = await (ctx.db as NonNullable<typeof ctx.db>)
+      const [updatedHackathon] = await (ctx.db as DrizzleDB)
         .update(hackathons)
         .set({
           ...updateData,
@@ -216,7 +217,7 @@ export const hackathonRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+        return await (ctx.db as DrizzleDB).transaction(async (tx) => {
           const hackathon = await tx.query.hackathons.findFirst({
             where: eq(hackathons.id, input.hackathonId),
           });
@@ -322,7 +323,7 @@ export const hackathonRouter = createTRPCRouter({
     const cached = ctx.cache.get<typeof registrations>(cacheKey);
     if (cached) return cached;
 
-    const registrations = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findMany({
+    const registrations = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
       where: eq(hackathonParticipants.userId, ctx.userId as string),
       with: {
         hackathon: true,
@@ -346,7 +347,7 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof participants>(cacheKey);
       if (cached) return cached;
 
-      const participants = await ctx.db!.query.hackathonParticipants.findMany({
+      const participants = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
         columns: {
           id: true,
@@ -375,7 +376,7 @@ export const hackathonRouter = createTRPCRouter({
   getTeams: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const teams = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findMany({
+      const teams = await (ctx.db as DrizzleDB).query.hackathonTeams.findMany({
         where: eq(hackathonTeams.hackathonId, input.hackathonId),
         with: {
           captain: {
@@ -407,7 +408,7 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof projects>(cacheKey);
       if (cached) return cached;
 
-      const projects = await ctx.db!.query.hackathonProjects.findMany({
+      const projects = await (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
         where: eq(hackathonProjects.hackathonId, input.hackathonId),
         with: {
           team: {
@@ -452,7 +453,7 @@ export const hackathonRouter = createTRPCRouter({
       hackathonId: z.string().uuid("Invalid hackathon ID"),
     }))
     .query(async ({ ctx, input }) => {
-      const attendees = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findMany({
+      const attendees = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
         with: {
           user: {
@@ -479,7 +480,7 @@ export const hackathonRouter = createTRPCRouter({
   analytics: isAdmin
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const participants = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findMany({
+      const participants = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
       });
 
@@ -529,7 +530,7 @@ export const hackathonRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       // 1. Verify participant exists and belongs to this hackathon
-      const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
+      const participant = await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
         where: and(
           eq(hackathonParticipants.id, input.participantId),
           eq(hackathonParticipants.hackathonId, input.hackathonId)
@@ -542,7 +543,7 @@ export const hackathonRouter = createTRPCRouter({
       }
 
       // 2. Verify event exists and belongs to this hackathon
-      const event = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonEvents.findFirst({
+      const event = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst({
         where: and(
           eq(hackathonEvents.id, input.eventId),
           eq(hackathonEvents.hackathonId, input.hackathonId)
@@ -554,7 +555,7 @@ export const hackathonRouter = createTRPCRouter({
       }
 
       // 3. Check for existing check-in to prevent duplicates
-      const existingScan = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonEventAttendees.findFirst({
+      const existingScan = await (ctx.db as DrizzleDB).query.hackathonEventAttendees.findFirst({
         where: and(
           eq(hackathonEventAttendees.eventId, input.eventId),
           eq(hackathonEventAttendees.participantId, input.participantId)
@@ -566,7 +567,7 @@ export const hackathonRouter = createTRPCRouter({
       }
 
       // 4. Record attendance
-      await (ctx.db as NonNullable<typeof ctx.db>).insert(hackathonEventAttendees).values({
+      await (ctx.db as DrizzleDB).insert(hackathonEventAttendees).values({
         eventId: input.eventId,
         participantId: input.participantId,
       });
@@ -580,7 +581,7 @@ export const hackathonRouter = createTRPCRouter({
   getEvents: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonEvents.findMany({
+      return await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
         where: eq(hackathonEvents.hackathonId, input.hackathonId),
         orderBy: (events, { asc }) => [asc(events.startTime)],
       });
@@ -589,7 +590,7 @@ export const hackathonRouter = createTRPCRouter({
   myParticipantRecord: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
+      return await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
         where: and(
           eq(hackathonParticipants.hackathonId, input.hackathonId),
           eq(hackathonParticipants.userId, ctx.userId as string)
@@ -603,7 +604,7 @@ export const hackathonRouter = createTRPCRouter({
   getPublicProjects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const projects = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonProjects.findMany({
+      const projects = await (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
         where: and(
           eq(hackathonProjects.hackathonId, input.hackathonId),
           // We only show projects that are submitted, judging, or winner. Drafts stay hidden.

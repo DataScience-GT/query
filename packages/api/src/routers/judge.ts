@@ -14,6 +14,7 @@ import {
 import { eq, and, asc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin, isJudge } from "../middleware/procedures";
+import type { DrizzleDB } from "@query/db";
 
 function shuffleArray<T>(array: T[]): T[] {
   const result = [...array];
@@ -36,7 +37,7 @@ export const judgeRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const judge = await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findFirst({
+    const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
       where: and(
         eq(judges.userId, ctx.userId as string),
         eq(judges.isActive, true)
@@ -54,7 +55,7 @@ export const judgeRouter = createTRPCRouter({
   }),
 
   getMyAssignments: isJudge.query(async ({ ctx }) => {
-    const assignments = await (ctx.db as NonNullable<typeof ctx.db>).query.judgeAssignments.findMany({
+    const assignments = await (ctx.db as DrizzleDB).query.judgeAssignments.findMany({
       where: eq(judgeAssignments.judgeId, ctx.judge.id),
       with: {
         hackathon: true,
@@ -69,7 +70,7 @@ export const judgeRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       try {
-        const nextInQueue = await (ctx.db as NonNullable<typeof ctx.db>).query.judgeQueue.findFirst({
+        const nextInQueue = await (ctx.db as DrizzleDB).query.judgeQueue.findFirst({
           where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
             eq(judgeQueue.hackathonId, input.hackathonId),
@@ -85,7 +86,7 @@ export const judgeRouter = createTRPCRouter({
           return { done: true, project: null, remaining: 0 };
         }
 
-        const remainingCount = await (ctx.db as NonNullable<typeof ctx.db>)
+        const remainingCount = await (ctx.db as DrizzleDB)
           .select({ count: sql<number>`count(*)` })
           .from(judgeQueue)
           .where(
@@ -114,12 +115,12 @@ export const judgeRouter = createTRPCRouter({
   getProjects: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const projects = await (ctx.db as NonNullable<typeof ctx.db>).query.judgingProjects.findMany({
+      const projects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      const myVotes = await (ctx.db as NonNullable<typeof ctx.db>).query.judgeVotes.findMany({
+      const myVotes = await (ctx.db as DrizzleDB).query.judgeVotes.findMany({
         where: eq(judgeVotes.judgeId, ctx.judge.id),
       });
 
@@ -135,7 +136,7 @@ export const judgeRouter = createTRPCRouter({
   getMaps: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const maps = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonMaps.findMany({
+      const maps = await (ctx.db as DrizzleDB).query.hackathonMaps.findMany({
         where: eq(hackathonMaps.hackathonId, input.hackathonId),
         orderBy: [asc(hackathonMaps.order)],
       });
@@ -146,7 +147,7 @@ export const judgeRouter = createTRPCRouter({
   getJudgingStatus: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const hackathon = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathons.findFirst({
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
         where: eq(hackathons.id, input.hackathonId),
         columns: { judgingActive: true },
       });
@@ -159,7 +160,7 @@ export const judgeRouter = createTRPCRouter({
       active: z.boolean(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await (ctx.db as NonNullable<typeof ctx.db>)
+      const [updated] = await (ctx.db as DrizzleDB)
         .update(hackathons)
         .set({ judgingActive: input.active, updatedAt: new Date() })
         .where(eq(hackathons.id, input.hackathonId))
@@ -184,7 +185,7 @@ export const judgeRouter = createTRPCRouter({
       const totalScore = input.scoreCreativity + input.scoreImpact + input.scoreScope + input.scoreClarity + input.scoreSoundness;
 
       // Atomic upsert: INSERT or UPDATE if judge already voted on this project
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(judgeVotes)
         .values({
           judgeId: ctx.judge.id,
@@ -234,7 +235,7 @@ export const judgeRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const totalScore = input.scoreCreativity + input.scoreImpact + input.scoreScope + input.scoreClarity + input.scoreSoundness;
 
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // 1. Atomic upsert vote
         await tx
           .insert(judgeVotes)
@@ -315,7 +316,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // Get the queue item to find the hackathon
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
@@ -366,7 +367,7 @@ export const judgeRouter = createTRPCRouter({
   forceSkipOvertime: isJudge
     .input(z.object({ queueId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
           with: { project: true },
@@ -473,7 +474,7 @@ export const judgeRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       try {
-        const totalResult = await (ctx.db as NonNullable<typeof ctx.db>)
+        const totalResult = await (ctx.db as DrizzleDB)
           .select({ count: sql<number>`count(*)` })
           .from(judgeQueue)
           .where(
@@ -483,7 +484,7 @@ export const judgeRouter = createTRPCRouter({
             )
           );
 
-        const completedResult = await (ctx.db as NonNullable<typeof ctx.db>)
+        const completedResult = await (ctx.db as DrizzleDB)
           .select({ count: sql<number>`count(*)` })
           .from(judgeQueue)
           .where(
@@ -518,7 +519,7 @@ export const judgeRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof result>(cacheKey);
       if (cached) return cached;
 
-      const projects = await (ctx.db as NonNullable<typeof ctx.db>).query.judgingProjects.findMany({
+      const projects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
           votes: {
@@ -693,7 +694,7 @@ export const judgeRouter = createTRPCRouter({
     }),
 
   list: isAdmin.query(async ({ ctx }) => {
-    const allJudges = await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findMany({
+    const allJudges = await (ctx.db as DrizzleDB).query.judges.findMany({
       with: {
         user: {
           columns: {
@@ -728,7 +729,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = await (ctx.db as NonNullable<typeof ctx.db>).query.users.findFirst({
+      const user = await (ctx.db as DrizzleDB).query.users.findFirst({
         where: eq(users.id, input.userId),
       });
 
@@ -739,7 +740,7 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      const existing = await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findFirst({
+      const existing = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: eq(judges.userId, input.userId),
       });
 
@@ -750,7 +751,7 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(judges)
         .values({
           userId: input.userId,
@@ -771,7 +772,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const existing = await (ctx.db as NonNullable<typeof ctx.db>).query.judgeAssignments.findFirst({
+      const existing = await (ctx.db as DrizzleDB).query.judgeAssignments.findFirst({
         where: and(
           eq(judgeAssignments.judgeId, input.judgeId),
           eq(judgeAssignments.hackathonId, input.hackathonId)
@@ -785,7 +786,7 @@ export const judgeRouter = createTRPCRouter({
         });
       }
 
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(judgeAssignments)
         .values({
           judgeId: input.judgeId,
@@ -795,7 +796,7 @@ export const judgeRouter = createTRPCRouter({
         })
         .returning();
 
-      const allProjects = await (ctx.db as NonNullable<typeof ctx.db>).query.judgingProjects.findMany({
+      const allProjects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
@@ -804,7 +805,7 @@ export const judgeRouter = createTRPCRouter({
       const assignedProjects = allProjects;
 
       if (assignedProjects.length > 0) {
-        await (ctx.db as NonNullable<typeof ctx.db>).insert(judgeQueue).values(
+        await (ctx.db as DrizzleDB).insert(judgeQueue).values(
           assignedProjects.map((p, idx) => ({
             judgeId: input.judgeId,
             hackathonId: input.hackathonId,
@@ -834,7 +835,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(judgingProjects)
         .values(input)
         .returning();
@@ -862,7 +863,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(judgingProjects)
         .values(
           input.projects.map((p) => ({
@@ -892,7 +893,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         const results = { created: 0, skipped: 0, errors: [] as string[] };
 
         for (const j of input.judges) {
@@ -970,7 +971,7 @@ export const judgeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Get the current max table number for this hackathon
-      const maxResult = await (ctx.db as NonNullable<typeof ctx.db>)
+      const maxResult = await (ctx.db as DrizzleDB)
         .select({ max: sql<number>`COALESCE(MAX(${judgingProjects.tableNumber}), 0)` })
         .from(judgingProjects)
         .where(eq(judgingProjects.hackathonId, input.hackathonId));
@@ -993,7 +994,7 @@ export const judgeRouter = createTRPCRouter({
         };
       });
 
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(judgingProjects)
         .values(rows)
         .returning();
@@ -1011,7 +1012,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await (ctx.db as NonNullable<typeof ctx.db>)
+      const result = await (ctx.db as DrizzleDB)
         .insert(hackathonMaps)
         .values(input)
         .returning();
@@ -1028,7 +1029,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await (ctx.db as NonNullable<typeof ctx.db>)
+      await (ctx.db as DrizzleDB)
         .delete(judgeQueue)
         .where(
           and(
@@ -1038,7 +1039,7 @@ export const judgeRouter = createTRPCRouter({
         );
 
       // Get judge assignment to check for track restriction
-      const assignment = await (ctx.db as NonNullable<typeof ctx.db>).query.judgeAssignments.findFirst({
+      const assignment = await (ctx.db as DrizzleDB).query.judgeAssignments.findFirst({
         where: and(
           eq(judgeAssignments.judgeId, input.judgeId),
           eq(judgeAssignments.hackathonId, input.hackathonId)
@@ -1046,7 +1047,7 @@ export const judgeRouter = createTRPCRouter({
       });
 
       // Fetch all projects (or filter in query if possible, but JS filter matches assignToHackathon logic)
-      const allProjects = await (ctx.db as NonNullable<typeof ctx.db>).query.judgingProjects.findMany({
+      const allProjects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
@@ -1081,7 +1082,7 @@ export const judgeRouter = createTRPCRouter({
   remove: isAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      await (ctx.db as NonNullable<typeof ctx.db>).delete(judges).where(eq(judges.id, input.judgeId));
+      await (ctx.db as DrizzleDB).delete(judges).where(eq(judges.id, input.judgeId));
       return { success: true };
     }),
 
@@ -1102,7 +1103,7 @@ export const judgeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // 1. Get Hackathon for dynamic tracks
         const hackathon = await tx.query.hackathons.findFirst({
           where: eq(hackathons.id, input.hackathonId),
@@ -1196,7 +1197,7 @@ export const judgeRouter = createTRPCRouter({
   getAllVotes: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const projects = await (ctx.db as NonNullable<typeof ctx.db>).query.judgingProjects.findMany({
+      const projects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
           votes: {
