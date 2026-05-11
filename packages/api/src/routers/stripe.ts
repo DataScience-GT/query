@@ -5,7 +5,7 @@ import { stripePayments, userAccountLinks, members } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
-import type { db } from "@query/db";
+import type { DrizzleDB } from "@query/db";
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
@@ -23,7 +23,7 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      const user = await (ctx.db as NonNullable<typeof ctx.db>).query.users.findFirst({
+      const user = await (ctx.db as DrizzleDB).query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId as string),
       });
 
@@ -81,7 +81,7 @@ export const stripeRouter = createTRPCRouter({
    * Attempt to auto-link a Stripe payment matching the user's email
    */
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
-    return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+    return await (ctx.db as DrizzleDB).transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId as string),
       });
@@ -125,7 +125,7 @@ export const stripeRouter = createTRPCRouter({
         .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(
-        tx as unknown as NonNullable<typeof db>,
+        tx as unknown as DrizzleDB,
         ctx.userId as string,
         firstName,
         lastName
@@ -144,7 +144,7 @@ export const stripeRouter = createTRPCRouter({
    * that matches their email (auto-link scenario)
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
-    const user = await (ctx.db as NonNullable<typeof ctx.db>).query.users.findFirst({
+    const user = await (ctx.db as DrizzleDB).query.users.findFirst({
       where: eq((await import("@query/db")).users.id, ctx.userId as string),
     });
 
@@ -152,7 +152,7 @@ export const stripeRouter = createTRPCRouter({
       return { hasPendingPayment: false };
     }
 
-    const pendingPayment = await (ctx.db as NonNullable<typeof ctx.db>).query.stripePayments.findFirst({
+    const pendingPayment = await (ctx.db as DrizzleDB).query.stripePayments.findFirst({
       where: and(
         eq(stripePayments.customerEmail, user.email),
         isNull(stripePayments.linkedUserId),
@@ -179,7 +179,7 @@ export const stripeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         const payment = await tx.query.stripePayments.findFirst({
           where: and(
             eq(stripePayments.customerEmail, input.email.toLowerCase()),
@@ -240,7 +240,7 @@ export const stripeRouter = createTRPCRouter({
           .where(eq(stripePayments.id, payment.id));
 
         await createOrUpdateMembership(
-          tx as unknown as NonNullable<typeof db>,
+          tx as unknown as DrizzleDB,
           ctx.userId as string,
           input.firstName,
           input.lastName
@@ -257,7 +257,7 @@ export const stripeRouter = createTRPCRouter({
    * Get the current user's linked payment status
    */
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
-    const link = await (ctx.db as NonNullable<typeof ctx.db>).query.userAccountLinks.findFirst({
+    const link = await (ctx.db as DrizzleDB).query.userAccountLinks.findFirst({
       where: eq(userAccountLinks.userId, ctx.userId as string),
       with: {
         stripePayment: true,
@@ -277,7 +277,7 @@ export const stripeRouter = createTRPCRouter({
 });
 
 async function createOrUpdateMembership(
-  db: NonNullable<typeof db>,
+  db: DrizzleDB,
   userId: string,
   firstName: string,
   lastName: string

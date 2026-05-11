@@ -192,7 +192,7 @@ export default function AdminSetupPage() {
                         judgesData={judgesData}
                         handleJudgesCSV={handleJudgesCSV}
                         importJudgesPending={importJudges.isPending}
-                        importJudgesData={importJudges.data}
+                        importJudgesData={importJudges.data || null}
                         onImport={() => {
                             if (!selectedHackathonId) return;
                             importJudges.mutate({
@@ -210,7 +210,7 @@ export default function AdminSetupPage() {
                         projectsData={projectsData}
                         handleProjectsCSV={handleProjectsCSV}
                         importProjectsPending={importProjects.isPending}
-                        importProjectsData={importProjects.data}
+                        importProjectsData={importProjects.data || null}
                         onImport={() => {
                             if (!selectedHackathonId) return;
                             importProjects.mutate({

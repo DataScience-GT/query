@@ -226,7 +226,7 @@ export default function AdminResultsPage() {
 
         {viewMode === 'results' && (
           <RankingsView
-            rankings={rankings}
+            rankings={rankings || null}
             processedRankings={processedRankings}
             selectedTrack={selectedTrack}
             judges={judges || []}

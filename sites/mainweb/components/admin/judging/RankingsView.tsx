@@ -10,9 +10,9 @@ type Project = {
     zone: string | null;
     category?: string | null;
     teamMembers?: string | null;
-    tracks?: string[];
-    challenges?: string[];
-    isCreateX?: boolean;
+    tracks?: string[] | null;
+    challenges?: string[] | null;
+    isCreateX?: boolean | null;
 };
 
 type Vote = {
@@ -62,7 +62,7 @@ type ProcessedRanking = Ranking & {
 
 type Judge = {
     id: string;
-    name: string;
+    name: string | null;
     isActive: boolean;
     specialty?: string | null;
     user?: {
