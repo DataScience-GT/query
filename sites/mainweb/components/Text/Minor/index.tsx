@@ -1,9 +1,8 @@
 import { ReactNode, HTMLAttributes } from "react";
 
-interface MinorProps {
+interface MinorProps extends HTMLAttributes<HTMLHeadingElement> {
   type?: "primary" | "secondary";
-  children: any;
-  [key: string]: any;
+  children: ReactNode;
 }
 
 export default function Minor({ type = "primary", children, className, ...props }: MinorProps) {

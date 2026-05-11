@@ -1,8 +1,7 @@
 import { ReactNode, HTMLAttributes } from "react";
 
-interface MiniProps {
-  children: any;
-  [key: string]: any;
+interface MiniProps extends HTMLAttributes<HTMLParagraphElement> {
+  children: ReactNode;
 }
 
 export default function Mini({ children, className, ...props }: MiniProps) {

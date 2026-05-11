@@ -7,7 +7,7 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "analyze": "cross-env ANALYZE=true next build"
   },

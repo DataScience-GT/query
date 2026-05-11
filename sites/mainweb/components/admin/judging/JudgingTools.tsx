@@ -2,8 +2,13 @@
 
 import React from 'react';
 
+type Hackathon = {
+    id: string;
+    name: string;
+};
+
 type JudgingToolsProps = {
-    hackathons: any[];
+    hackathons: Hackathon[];
     selectedHackathon: string | null;
     setSelectedHackathon: (id: string) => void;
     viewMode: 'results' | 'rooms' | 'judges';

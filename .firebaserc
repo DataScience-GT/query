@@ -1,13 +1,5 @@
 {
   "projects": {
-    "default": "hacklytics2027"
-  },
-  "targets": {
-    "hacklytics2027": {
-      "hosting": {
-        "site": "hacklytics2027",
-        "public": "public"
-      }
-    }
+    "default": "dsgt-website"
   }
 }

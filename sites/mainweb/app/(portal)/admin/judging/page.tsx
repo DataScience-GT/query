@@ -32,7 +32,7 @@ export default function AdminResultsPage() {
 
   // Get rankings for selected hackathon
   const { data: rankings } = trpc.judge.getRankings.useQuery(
-    { hackathonId: selectedHackathon! },
+    { hackathonId: selectedHackathon as string },
     { enabled: !!selectedHackathon }
   );
 
@@ -43,7 +43,7 @@ export default function AdminResultsPage() {
 
   // Judging active status
   const { data: judgingStatus, refetch: refetchJudgingStatus } = trpc.judge.getJudgingStatus.useQuery(
-    { hackathonId: selectedHackathon! },
+    { hackathonId: selectedHackathon as string },
     { enabled: !!selectedHackathon, refetchInterval: 10000 }
   );
 
@@ -63,8 +63,8 @@ export default function AdminResultsPage() {
 
   // Auto-select first hackathon
   useEffect(() => {
-    if (hackathons?.length && !selectedHackathon) {
-      setSelectedHackathon(hackathons[0]!.id);
+    if (hackathons?.[0] && !selectedHackathon) {
+      setSelectedHackathon(hackathons[0].id);
     }
   }, [hackathons, selectedHackathon]);
 
