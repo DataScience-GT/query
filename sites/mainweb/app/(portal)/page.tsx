@@ -16,8 +16,6 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-
-
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
@@ -25,22 +23,6 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (adminStatus) {
-      const roleLog = adminStatus.isAdmin
-        ? `> Admin Access Granted // Level ${adminStatus.role?.toUpperCase()}`
-        : "> Access Level: Standard User";
-    }
-  }, [adminStatus]);
-
-  useEffect(() => {
-    if (memberStatus) {
-      const memberLog = memberStatus.isMember
-        ? `> Member Status: ${memberStatus.memberType?.toUpperCase()} // ${memberStatus.daysRemaining} days active`
-        : "> Membership: Not Active";
-    }
-  }, [memberStatus]);
 
 
   useEffect(() => {
@@ -63,6 +45,7 @@ export default function Home() {
     setEmailSending(true);
     try {
       await signIn('nodemailer', { email, callbackUrl: '/dashboard', redirect: false });
+      setEmailSent(true);
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch {
       setEmailSending(false);

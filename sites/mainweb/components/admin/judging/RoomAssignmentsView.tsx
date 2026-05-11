@@ -9,9 +9,9 @@ type Project = {
     tableNumber: number;
     zone: string | null;
     teamMembers?: string | null;
-    tracks?: string[];
-    challenges?: string[];
-    isCreateX?: boolean;
+    tracks?: string[] | null;
+    challenges?: string[] | null;
+    isCreateX?: boolean | null;
 };
 
 type Ranking = {
