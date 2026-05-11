@@ -69,8 +69,8 @@ export const authConfig: NextAuthConfig = {
   trustHost: true,
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       allowDangerousEmailAccountLinking: true,
       checks: [],
       authorization: {
@@ -83,17 +83,17 @@ export const authConfig: NextAuthConfig = {
     }),
     EmailProvider({
       server: {
-        host: process.env.EMAIL_SERVER_HOST!,
+        host: process.env.EMAIL_SERVER_HOST as string,
         port: Number(process.env.EMAIL_SERVER_PORT || "587"),
         auth: {
-          user: process.env.EMAIL_SERVER_USER!,
-          pass: process.env.EMAIL_SERVER_PASSWORD!,
+          user: process.env.EMAIL_SERVER_USER as string,
+          pass: process.env.EMAIL_SERVER_PASSWORD as string,
         },
         pool: true,
       },
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
       // 6-digit code flow — no magic link, user types the code.
-      sendVerificationRequest: async ({ identifier, url, provider }) => {
+      sendVerificationRequest: async ({ identifier, _url, provider }) => {
         // Generate a 6-digit numeric code
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const customToken = `custom:${code}`;
@@ -111,7 +111,7 @@ export const authConfig: NextAuthConfig = {
           console.error(`[sendVerificationRequest] No DB — code NOT stored for ${identifier}`);
         }
 
-        // @ts-ignore
+        // @ts-expect-error - node-compatible import
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
@@ -156,7 +156,7 @@ export const authConfig: NextAuthConfig = {
         const judge = await db.query.judges.findFirst({
           where: (j, { eq }) => eq(j.userId, user.id)
         });
-        // @ts-ignore - custom property
+        // @ts-expect-error - custom property
         session.user.isJudge = !!judge;
       }
       return session;

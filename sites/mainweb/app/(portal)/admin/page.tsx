@@ -9,7 +9,6 @@ import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import AdminLayout from '@/components/portal/AdminLayout';
-import { EventHeader } from '@/components/admin/events/EventHeader';
 
 type Event = {
   id: string;

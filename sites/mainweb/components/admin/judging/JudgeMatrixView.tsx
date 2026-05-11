@@ -3,8 +3,30 @@
 import React from 'react';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
+type Project = {
+    id: string;
+    name: string;
+    tableNumber: number;
+    zone: string | null;
+};
+
+type Vote = {
+    score: number;
+    durationSeconds: number | null;
+    judgeName: string;
+};
+
+type Ranking = {
+    project: Project;
+    votes: Vote[];
+};
+
+type RankingsData = {
+    rankings: Ranking[];
+};
+
 type JudgeMatrixViewProps = {
-    rankings: any;
+    rankings: RankingsData | null;
 };
 
 export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {

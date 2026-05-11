@@ -3,8 +3,31 @@
 import React from 'react';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
+type Project = {
+    id: string;
+    name: string;
+    tableNumber: number;
+    zone: string | null;
+    teamMembers?: string | null;
+    tracks?: string[];
+    challenges?: string[];
+    isCreateX?: boolean;
+};
+
+type Ranking = {
+    project: Project;
+    voteCount: number;
+    avgScore: number;
+    weightedScore: number;
+    confidenceLevel: string;
+};
+
+type RankingsData = {
+    rankings: Ranking[];
+};
+
 type RoomAssignmentsViewProps = {
-    rankings: any;
+    rankings: RankingsData | null;
 };
 
 export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {

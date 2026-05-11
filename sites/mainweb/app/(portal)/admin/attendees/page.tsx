@@ -12,7 +12,6 @@ import { Download } from 'lucide-react';
 export default function AttendeesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const utils = trpc.useUtils();
 
   const [filter, setFilter] = useState<'all' | 'registered' | 'pending' | 'cancelled'>('all');
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);

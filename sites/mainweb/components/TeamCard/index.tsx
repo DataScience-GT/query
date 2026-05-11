@@ -3,13 +3,12 @@
 import { ReactNode, HTMLAttributes } from "react";
 import Image, { StaticImageData } from "next/image";
 
-interface TeamCardProps {
+interface TeamCardProps extends HTMLAttributes<HTMLDivElement> {
   img: string | StaticImageData;
   name: string;
   title: string;
   zoom?: boolean;
-  children?: any;
-  [key: string]: any;
+  children?: ReactNode;
 }
 
 export default function TeamCard({

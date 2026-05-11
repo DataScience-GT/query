@@ -10,7 +10,6 @@ import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
-import { QRCodeSVG } from "qrcode.react";
 
 type Tab = "general" | "hackathons" | "projects" | "history" | "status";
 
@@ -40,6 +39,19 @@ export default function ClubPage() {
   const projects = myRegs?.flatMap((reg) => reg.team?.projects || []) || [];
 
   const [activeTab, setActiveTab] = useState<Tab>("general");
+
+  // Sync tab with URL hash
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as Tab;
+      if (["general", "hackathons", "projects", "history", "status"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<{
     success: boolean;
@@ -861,7 +873,7 @@ export default function ClubPage() {
                             </span>
                             <p className="mt-1 font-mono text-[10px] text-text-muted">
                               Valid thru{" "}
-                              {new Date(memberStatus.expiresAt!).toLocaleDateString()}
+                              {memberStatus.expiresAt ? new Date(memberStatus.expiresAt).toLocaleDateString() : 'N/A'}
                             </p>
                           </div>
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-accent/10">

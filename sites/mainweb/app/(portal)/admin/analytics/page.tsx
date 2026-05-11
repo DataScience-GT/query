@@ -5,7 +5,20 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { Users, Trophy, Calendar, Clock, TrendingUp, Activity } from 'lucide-react';
+import { Users, Trophy, Calendar, TrendingUp } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+interface StatCardProps {
+  icon: LucideIcon;
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  trend?: {
+    positive?: boolean;
+    negative?: boolean;
+    percent: number;
+  };
+}
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
@@ -26,7 +39,7 @@ export default function AnalyticsPage() {
     return null;
   }
 
-  const StatCard = ({ icon: Icon, title, value, subtitle, trend }: any) => (
+  const StatCard = ({ icon: Icon, title, value, subtitle, trend }: StatCardProps) => (
     <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
       {/* Background gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-emerald-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
