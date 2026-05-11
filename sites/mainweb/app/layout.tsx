@@ -9,6 +9,7 @@ const geistMonoVar = GeistMono.variable;
 export const metadata: Metadata = {
   title: "DSGT | Georgia Tech",
   description: "The largest student-run data science organization at Georgia Tech.",
+  authors: [{ name: "aamoghS" }],
 };
 
 export default function RootLayout({
