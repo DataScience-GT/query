@@ -19,7 +19,8 @@
     "lint:fix": "turbo run lint -- --fix",
     "format": "turbo run format",
     "format:fix": "turbo run format -- --write",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
   },
   "dependencies": {
     "@tanstack/react-router": "1.145.7",

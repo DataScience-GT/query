@@ -29,5 +29,11 @@ jobs:
       - name: Build
         run: pnpm turbo run build
 
+      - name: Lint
+        run: pnpm turbo run lint
+
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+
       - name: Run tests
         run: pnpm turbo run test
