@@ -1,3 +1,5 @@
+import type { NextRequest, NextResponse } from "next/server";
+
 /**
  * In-Memory Cache Service
  * Provides TTL-based caching with automatic cleanup

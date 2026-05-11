@@ -14,17 +14,14 @@ function getCacheControl(pathname: string): string {
   if (pathname === "/") {
     return "public, max-age=300, must-revalidate";
   }
-  if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard")) {
-    return "public, max-age=60, must-revalidate";
-  }
-  if (pathname.match(/\.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)) {
-    return "public, max-age=31536000, immutable";
-  }
   if (pathname.startsWith("/hackathons") || pathname.startsWith("/events") || pathname.startsWith("/projects")) {
     return "public, max-age=3600, stale-while-revalidate=86400";
   }
   if (pathname.startsWith("/club") || pathname.startsWith("/history")) {
     return "public, max-age=1800, stale-while-revalidate=7200";
+  }
+  if (pathname.match(/\.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)) {
+    return "public, max-age=31536000, immutable";
   }
   return "no-cache, no-store, must-revalidate";
 }
@@ -71,9 +68,7 @@ const securityHeaders: string[] = [
 
 // Static config for Next.js proxy
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/trpc|api/auth|api/webhooks).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
   headers: true,
 };
 
