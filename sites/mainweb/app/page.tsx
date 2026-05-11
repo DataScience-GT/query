@@ -101,7 +101,7 @@ const Home = () => {
           </div>
           <div className="relative group">
             <div className="absolute -inset-1 bg-[#00A8A8]/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
-            <Image src={squad} alt="DSGT Executive Board" className="relative rounded-xl border border-white/10 shadow-2xl transition-all duration-700" width={800} height={450} priority />
+            <Image src={squad} alt="DSGT Executive Board" className="relative rounded-xl border border-white/10 shadow-2xl transition-all duration-700" width={800} height={450} priority placeholder="blur" />
           </div>
         </div>
       </Section>
@@ -138,7 +138,7 @@ const Home = () => {
       <Section id="bootcamp" className="py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
           <div className="order-2 lg:order-1 relative">
-            <Image src={slide9} alt="Bootcamp Session" className="rounded-xl border border-white/10 shadow-xl transition-all duration-700" width={600} height={400} />
+            <Image src={slide9} alt="Bootcamp Session" className="rounded-xl border border-white/10 shadow-xl transition-all duration-700" width={600} height={400} placeholder="blur" />
           </div>
           <div className="space-y-8 order-1 lg:order-2">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">Bootcamp.</h2>
@@ -165,7 +165,7 @@ const Home = () => {
             </a>
           </div>
           <div className="relative">
-            <Image src={slide6} alt="Hacklytics Event" className="rounded-xl border border-white/10 shadow-xl transition-all duration-700" width={600} height={400} />
+            <Image src={slide6} alt="Hacklytics Event" className="rounded-xl border border-white/10 shadow-xl transition-all duration-700" width={600} height={400} placeholder="blur" />
           </div>
         </div>
       </Section>
@@ -182,7 +182,7 @@ const Home = () => {
             <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
               <div className="w-full flex justify-center mb-6">
                 <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image src={arc} alt="ARC" width={80} height={80} className="w-20 h-20 object-contain" />
+                  <Image src={arc} alt="ARC" width={80} height={80} className="w-20 h-20 object-contain" placeholder="blur" />
                 </div>
               </div>
               <h3 className="text-white text-xl font-bold text-center mb-2">ARC Research</h3>
@@ -194,7 +194,7 @@ const Home = () => {
             <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
               <div className="w-full flex justify-center mb-6">
                 <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image src={stock} alt="Robo" width={80} height={80} className="w-20 h-20 object-contain" />
+                  <Image src={stock} alt="Robo" width={80} height={80} className="w-20 h-20 object-contain" placeholder="blur" />
                 </div>
               </div>
               <h3 className="text-white text-xl font-bold text-center mb-2">Roboinvesting</h3>
@@ -206,7 +206,7 @@ const Home = () => {
             <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
               <div className="w-full flex justify-center mb-6">
                 <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image src={trading} alt="AI" width={80} height={80} className="w-20 h-20 object-contain" />
+                  <Image src={trading} alt="AI" width={80} height={80} className="w-20 h-20 object-contain" placeholder="blur" />
                 </div>
               </div>
               <h3 className="text-white text-xl font-bold text-center mb-2">AI Trading Agent</h3>
@@ -216,7 +216,7 @@ const Home = () => {
             </Card>
 
             <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl group shadow-2xl">
-              <div className="w-full flex justify-center mb-6"><Image src={gtaa} alt="Sports" width={100} height={100} className="w-24 h-24 object-contain opacity-50" /></div>
+              <div className="w-full flex justify-center mb-6"><Image src={gtaa} alt="Sports" width={100} height={100} className="w-24 h-24 object-contain opacity-50" placeholder="blur" /></div>
               <h3 className="text-white text-xl font-bold text-center mb-2">Sports Analytics</h3>
               <div className="flex justify-center mb-4"><span className="px-2 py-0.5 text-[9px] font-mono rounded bg-red-500/10 text-red-400 border border-red-500/20 uppercase tracking-widest">Closed</span></div>
               <p className="text-sm text-gray-500 text-center leading-relaxed italic">NFL projections and NBA roster optimization using advanced stats.</p>
@@ -249,7 +249,7 @@ const Home = () => {
               <div key={i} className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl">
                 <div className="h-56 overflow-hidden relative">
                   <div className="absolute inset-0 bg-[#00A8A8]/10 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Image src={event.i} alt={event.t} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <Image src={event.i} alt={event.t} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" placeholder="blur" />
                 </div>
                 <div className="p-8 space-y-4">
                   <h4 className="text-white text-lg font-bold uppercase italic tracking-tight">{event.t}</h4>
