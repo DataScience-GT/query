@@ -93,7 +93,7 @@ export const authConfig: NextAuthConfig = {
       },
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
       // 6-digit code flow — no magic link, user types the code.
-      sendVerificationRequest: async ({ identifier, _url, provider }) => {
+      sendVerificationRequest: async ({ identifier, url, provider }) => {
         // Generate a 6-digit numeric code
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const customToken = `custom:${code}`;
@@ -111,7 +111,6 @@ export const authConfig: NextAuthConfig = {
           console.error(`[sendVerificationRequest] No DB — code NOT stored for ${identifier}`);
         }
 
-        // @ts-expect-error - node-compatible import
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
