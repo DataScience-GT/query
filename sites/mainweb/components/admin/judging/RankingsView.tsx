@@ -485,7 +485,7 @@ export function RankingsView({
                                     <tr key={j.id} className="hover:bg-black/40 transition-colors duration-300">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                { }
                                                 <img
                                                     src={j.user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(j.name || 'J')}`}
                                                     alt={j.name || ''}

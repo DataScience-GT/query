@@ -10,7 +10,8 @@ import Section from "@/components/Section";
 import Card from "@/components/Card";
 import Footer from "@/components/Footer";
 
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, TooltipItem } from "chart.js";
+import type { TooltipItem } from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import dynamic from "next/dynamic";
 import { ClassData, MajorData } from "@/assets/Data/demographics";
 
