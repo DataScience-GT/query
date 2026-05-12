@@ -277,7 +277,7 @@ export const stripeRouter = createTRPCRouter({
 });
 
 async function createOrUpdateMembership(
-  db: typeof import("@query/db").db | null,
+  db: typeof import("@query/db")["db"] | null,
   userId: string,
   firstName: string,
   lastName: string
