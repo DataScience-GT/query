@@ -155,7 +155,7 @@ export const authConfig: NextAuthConfig = {
       }
       return session;
     },
-    async redirect({ _url: url, baseUrl }) {
+    async redirect({ url, baseUrl }) {
       return url.startsWith("/") ? `${baseUrl}${url}` : (new URL(url).origin === baseUrl ? url : baseUrl);
     },
   },
