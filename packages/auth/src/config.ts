@@ -93,7 +93,7 @@ export const authConfig: NextAuthConfig = {
       },
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
       // 6-digit code flow — no magic link, user types the code.
-      sendVerificationRequest: async ({ identifier, url, provider }) => {
+      sendVerificationRequest: async ({ identifier, provider }) => {
         // Generate a 6-digit numeric code
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const customToken = `custom:${code}`;
@@ -106,9 +106,6 @@ export const authConfig: NextAuthConfig = {
             INSERT INTO "verificationToken" ("identifier", "token", "expires")
             VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamp)
           `);
-          console.log(`[sendVerificationRequest] Stored code for ${identifier}`);
-        } else {
-          console.error(`[sendVerificationRequest] No DB — code NOT stored for ${identifier}`);
         }
 
         const { createTransport } = await import("nodemailer");
@@ -131,11 +128,9 @@ export const authConfig: NextAuthConfig = {
 
           const failed = result.rejected.concat(result.pending).filter(Boolean);
           if (failed.length) {
-            console.error(`[sendVerificationRequest] Email(s) could not be sent: ${failed.join(", ")}`);
             throw new Error(`Email(s) could not be sent`);
           }
         } catch (error) {
-          console.error("[sendVerificationRequest] Failed to send email:", error);
           throw new Error("Failed to send verification email. Please try again later.");
         }
       },
@@ -160,7 +155,7 @@ export const authConfig: NextAuthConfig = {
       }
       return session;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ _url: url, baseUrl }) {
       return url.startsWith("/") ? `${baseUrl}${url}` : (new URL(url).origin === baseUrl ? url : baseUrl);
     },
   },
