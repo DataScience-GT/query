@@ -80,3 +80,11 @@ fix.js
 .claude/skills/ui-ux-pro-max/SKILL.md
 .claude/skills/react-doctor/SKILL.md
 .agents/skills/react-doctor/SKILL.md
+
+# Git commit restriction
+# To restrict commits to 'aamoghS' only:
+# 1. Enable branch protection on 'main' branch in GitHub Settings
+# 2. Add "Require pull request reviews before merging" + "Require status checks to pass before merging"
+# 3. Set "Required status checks" or use "Branch restrictions" to limit who can push
+# Or use pre-receive hook on GitHub with: git config commit.gpgsign true
+# Then enforce via GitHub branch protection rules
