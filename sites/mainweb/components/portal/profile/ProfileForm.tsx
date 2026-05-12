@@ -191,7 +191,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           onClick={() => fileInputRef.current?.click()}
         >
           {imagePreview ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
+             
             <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500">

@@ -11,9 +11,7 @@ const pixel = Press_Start_2P({
 
 // 1980s Arcade Countdown Timer
 const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft());
-
-  function getTimeLeft() {
+  const getTimeLeft = React.useCallback(() => {
     const now = new Date().getTime();
     const distance = targetDate.getTime() - now;
 
@@ -25,7 +23,9 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
     const seconds = Math.floor((distance / 1000) % 60);
 
     return { days, hours, minutes, seconds };
-  }
+  }, [targetDate]);
+
+  const [timeLeft, setTimeLeft] = useState(getTimeLeft());
 
   useEffect(() => {
     const interval = setInterval(() => setTimeLeft(getTimeLeft()), 1000);

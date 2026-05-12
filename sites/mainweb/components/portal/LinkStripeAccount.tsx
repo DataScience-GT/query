@@ -39,7 +39,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   useEffect(() => {
     // Attempt to auto-link on mount
     autoLinkMutation.mutate();
-  }, []);
+  }, [autoLinkMutation]);
 
 
 

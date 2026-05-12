@@ -18,7 +18,7 @@ export function ImportJudgesStep({
     judgesData: ParsedJudge[];
     handleJudgesCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
     importJudgesPending: boolean;
-    importJudgesData: any;
+    importJudgesData: { created: number; skipped: number; errors: string[] } | null;
     onImport: () => void;
 }) {
     const fileRef = useRef<HTMLInputElement>(null);
@@ -103,7 +103,7 @@ export function ImportProjectsStep({
     projectsData: ParsedProject[];
     handleProjectsCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
     importProjectsPending: boolean;
-    importProjectsData: any;
+    importProjectsData: { created: number; startTable: number; endTable: number } | null;
     onImport: () => void;
 }) {
     const fileRef = useRef<HTMLInputElement>(null);

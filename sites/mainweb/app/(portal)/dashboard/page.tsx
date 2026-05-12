@@ -17,7 +17,7 @@ import { LoadingScreen } from '@/components/portal/LoadingScreen';
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [mode, setMode] = useState<'DASHBOARD' | 'PROFILE'>('DASHBOARD');
+  const [mode] = useState<'DASHBOARD' | 'PROFILE'>('DASHBOARD');
 
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });

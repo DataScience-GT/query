@@ -16,64 +16,17 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-
-  // Enhanced log system
-  const [logs, setLogs] = useState<string[]>([
-    "Initializing terminal...",
-    "System check: OK",
-    "Loading background modules..."
-  ]);
-
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
   const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
 
   useEffect(() => {
     setMounted(true);
-
-    // Enhanced initialization sequence
-    const timeouts = [
-      setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Network: Secure connection established ✓"]);
-      }, 600),
-      setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Authentication module: Ready ✓"]);
-        setLogs(prev => [...prev.slice(-4), "> Security protocols: Active ✓"]);
-      }, 1200),
-      setTimeout(() => {
-        setLogs(prev => [...prev.slice(-4), "> Session: Awaiting user..."]);
-      }, 1600),
-    ];
-    return () => timeouts.forEach(clearTimeout);
   }, []);
 
-  useEffect(() => {
-    if (adminStatus) {
-      const roleLog = adminStatus.isAdmin
-        ? `> Admin Access Granted // Level ${adminStatus.role?.toUpperCase()}`
-        : "> Access Level: Standard User";
-      setLogs(prev => [...prev.slice(-4), roleLog]);
-    }
-  }, [adminStatus]);
 
   useEffect(() => {
-    if (memberStatus) {
-      const memberLog = memberStatus.isMember
-        ? `> Member Status: ${memberStatus.memberType?.toUpperCase()} // ${memberStatus.daysRemaining} days active`
-        : "> Membership: Not Active";
-      setLogs(prev => [...prev.slice(-4), memberLog]);
-    }
-  }, [memberStatus]);
-
-  useEffect(() => {
-    if (judgeStatus?.isJudge) {
-      setLogs(prev => [...prev.slice(-4), "> Role Detected: JUDGE // Scoring panel ready"]);
-    }
-  }, [judgeStatus]);
-
-  useEffect(() => {
-    if (!!session) {
-      setLogs(prev => [...prev.slice(-4), "> Auth success // Redirecting to dashboard..."]);
+    if (session) {
 
       const redirectTimeout = setTimeout(() => {
         if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
@@ -90,19 +43,16 @@ export default function Home() {
   const handleEmailLogin = async () => {
     if (!email) return;
     setEmailSending(true);
-    setLogs(prev => [...prev.slice(-4), `> Sending verification code to ${email}... // Check your inbox`]);
     try {
       await signIn('nodemailer', { email, callbackUrl: '/dashboard', redirect: false });
-      setLogs(prev => [...prev.slice(-4), "> Code sent! Redirecting..."]);
+      setEmailSent(true);
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch {
-      setLogs(prev => [...prev.slice(-4), "> Error: Failed to send code."]);
       setEmailSending(false);
     }
   };
 
   const handleSignIn = () => {
-    setLogs(prev => [...prev.slice(-4), "> Initializing OAuth..."]);
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
@@ -191,9 +141,8 @@ export default function Home() {
               {!showEmailInput ? (
                 <button
                   onClick={() => {
-                    setShowEmailInput(true);
-                    setLogs(prev => [...prev.slice(-4), "> Email auth mode activated."]);
-                  }}
+                  setShowEmailInput(true);
+                }}
                   disabled={emailSending || isRedirecting || status === 'loading'}
                   className="w-full sm:w-auto px-8 py-6 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30"
                 >
@@ -250,8 +199,8 @@ export default function Home() {
                 </p>
                 <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">
                   <span className="flex items-center gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${!!session ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
-                    <span className={!!session ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${session ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
+                    <span className={session ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 bg-[#00A8A8] rounded-full" />
