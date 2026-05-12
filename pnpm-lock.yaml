@@ -32,7 +32,7 @@ importers:
         version: 11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3)
       '@trpc/next':
         specifier: ^11.15.1
-        version: 11.17.0(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/react-query@11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)
+        version: 11.17.0(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/react-query@11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)
       '@trpc/react-query':
         specifier: ^11.15.1
         version: 11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3)
@@ -90,7 +90,7 @@ importers:
         version: 10.2.3
       next-auth:
         specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.5)(react@19.0.0)
+        version: 5.0.0-beta.30(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.5)(react@19.0.0)
       nodemailer:
         specifier: 8.0.5
         version: 8.0.5
@@ -135,7 +135,7 @@ importers:
         version: 10.2.3
       next-auth:
         specifier: 4.24.14
-        version: 4.24.14(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 4.24.14(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       pg:
         specifier: 8.11.3
         version: 8.11.3
@@ -238,6 +238,9 @@ importers:
       '@yudiel/react-qr-scanner':
         specifier: 2.3.1
         version: 2.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      babel-plugin-react-compiler:
+        specifier: 1.0.0
+        version: 1.0.0
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
@@ -246,7 +249,7 @@ importers:
         version: 2.1.1
       next:
         specifier: 16.2.3
-        version: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react:
         specifier: 19.0.0
         version: 19.0.0
@@ -322,7 +325,7 @@ importers:
         version: 11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3)
       '@trpc/next':
         specifier: ^11.15.1
-        version: 11.17.0(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/react-query@11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)
+        version: 11.17.0(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/react-query@11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)
       '@trpc/react-query':
         specifier: ^11.15.1
         version: 11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3)
@@ -340,7 +343,7 @@ importers:
         version: 0.45.2(@types/pg@8.20.0)(pg@8.11.3)(postgres@3.4.3)
       geist:
         specifier: ^1.5.1
-        version: 1.7.0(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))
+        version: 1.7.0(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.0.0)
@@ -349,10 +352,10 @@ importers:
         version: 10.2.3
       next:
         specifier: 16.2.3
-        version: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       next-auth:
         specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.5)(react@19.0.0)
+        version: 5.0.0-beta.30(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.5)(react@19.0.0)
       qrcode:
         specifier: 1.5.4
         version: 1.5.4
@@ -544,7 +547,7 @@ importers:
         version: 10.2.3
       next:
         specifier: 16.2.3
-        version: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       postcss:
         specifier: 8.5.14
         version: 8.5.14
@@ -2826,6 +2829,9 @@ packages:
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
     engines: {node: '>= 0.4'}
+
+  babel-plugin-react-compiler@1.0.0:
+    resolution: {integrity: sha512-Ixm8tFfoKKIPYdCCKYTsqv+Fd4IJ0DQqMyEimo+pxUOMUR9cVPlwTrFt9Avu+3cb6Zp3mAzl+t1MrG2fxxKsxw==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -6532,11 +6538,11 @@ snapshots:
       '@trpc/server': 11.15.1(typescript@5.8.3)
       typescript: 5.8.3
 
-  '@trpc/next@11.17.0(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/react-query@11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)':
+  '@trpc/next@11.17.0(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/react-query@11.15.1(@tanstack/react-query@5.90.12(react@19.0.0))(@trpc/client@11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(react@19.0.0)(typescript@5.8.3))(@trpc/server@11.15.1(typescript@5.8.3))(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)':
     dependencies:
       '@trpc/client': 11.15.1(@trpc/server@11.15.1(typescript@5.8.3))(typescript@5.8.3)
       '@trpc/server': 11.15.1(typescript@5.8.3)
-      next: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      next: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       typescript: 5.8.3
@@ -7097,6 +7103,10 @@ snapshots:
   axe-core@4.11.4: {}
 
   axobject-query@4.1.0: {}
+
+  babel-plugin-react-compiler@1.0.0:
+    dependencies:
+      '@babel/types': 7.29.0
 
   balanced-match@1.0.2: {}
 
@@ -7916,9 +7926,9 @@ snapshots:
 
   fuse.js@7.3.0: {}
 
-  geist@1.7.0(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)):
+  geist@1.7.0(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)):
     dependencies:
-      next: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      next: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
 
   generator-function@2.0.1: {}
 
@@ -8392,13 +8402,13 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next-auth@4.24.14(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+  next-auth@4.24.14(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
       '@babel/runtime': 7.29.2
       '@panva/hkdf': 1.2.1
       cookie: 0.7.2
       jose: 4.15.9
-      next: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      next: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       oauth: 0.9.15
       openid-client: 5.7.1
       preact: 10.29.1
@@ -8407,15 +8417,15 @@ snapshots:
       react-dom: 19.0.0(react@19.0.0)
       uuid: 8.3.2
 
-  next-auth@5.0.0-beta.30(next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.5)(react@19.0.0):
+  next-auth@5.0.0-beta.30(next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@8.0.5)(react@19.0.0):
     dependencies:
       '@auth/core': 0.41.0(nodemailer@8.0.5)
-      next: 16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      next: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react: 19.0.0
     optionalDependencies:
       nodemailer: 8.0.5
 
-  next@16.2.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+  next@16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
       '@next/env': 16.2.3
       '@swc/helpers': 0.5.15
@@ -8434,6 +8444,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.2.3
       '@next/swc-win32-arm64-msvc': 16.2.3
       '@next/swc-win32-x64-msvc': 16.2.3
+      babel-plugin-react-compiler: 1.0.0
       sharp: 0.34.5
     transitivePeerDependencies:
       - '@babel/core'
