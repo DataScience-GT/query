@@ -23,6 +23,8 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection unavailable", });
+
       const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
         where: eq(db.query.users.id, ctx.userId!),
       });
@@ -144,7 +146,9 @@ export const stripeRouter = createTRPCRouter({
    * that matches their email (auto-link scenario)
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
-    const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection unavailable", });
+
+      const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
       where: eq(db.query.users.id, ctx.userId!),
     });
 
