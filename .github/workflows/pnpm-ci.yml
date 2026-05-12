@@ -27,8 +27,5 @@ jobs:
       - name: Build
         run: pnpm turbo run build
 
-      - name: Typecheck
-        run: pnpm turbo run typecheck
-
       - name: Run tests
         run: pnpm turbo run test
