@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members, db } from "@query/db";
-import type { DrizzleDB } from "@query/db";
+import { stripePayments, userAccountLinks, members } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
@@ -23,10 +22,8 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection unavailable", });
-
-      const user = await (db!).query.users.findFirst({
-        where: eq(db!.query.users, ctx.userId!),
+      const user = await ctx.db!.query.users.findFirst({
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
 
       if (!user?.email) {
@@ -83,9 +80,9 @@ export const stripeRouter = createTRPCRouter({
    * Attempt to auto-link a Stripe payment matching the user's email
    */
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
-    return await (db!).transaction(async (tx) => {
+    return await ctx.db!.transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
-        where: eq(db!.query.users, ctx.userId!),
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
 
       if (!user?.email) return { success: false };
@@ -127,7 +124,7 @@ export const stripeRouter = createTRPCRouter({
         .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(
-        tx as unknown as DrizzleDB,
+        tx as unknown as NonNullable<typeof import("@query/db").db>,
         ctx.userId!,
         firstName,
         lastName
@@ -146,17 +143,15 @@ export const stripeRouter = createTRPCRouter({
    * that matches their email (auto-link scenario)
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection unavailable", });
-
-      const user = await (db!).query.users.findFirst({
-      where: eq(db!.query.users, ctx.userId!),
+    const user = await ctx.db!.query.users.findFirst({
+      where: eq((await import("@query/db")).users.id, ctx.userId!),
     });
 
     if (!user?.email) {
       return { hasPendingPayment: false };
     }
 
-    const pendingPayment = await (db!).query.stripePayments.findFirst({
+    const pendingPayment = await ctx.db!.query.stripePayments.findFirst({
       where: and(
         eq(stripePayments.customerEmail, user.email),
         isNull(stripePayments.linkedUserId),
@@ -183,7 +178,7 @@ export const stripeRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await (db!).transaction(async (tx) => {
+      return await ctx.db!.transaction(async (tx) => {
         const payment = await tx.query.stripePayments.findFirst({
           where: and(
             eq(stripePayments.customerEmail, input.email.toLowerCase()),
@@ -244,7 +239,7 @@ export const stripeRouter = createTRPCRouter({
           .where(eq(stripePayments.id, payment.id));
 
         await createOrUpdateMembership(
-          tx as unknown as DrizzleDB,
+          tx as unknown as NonNullable<typeof import("@query/db").db>,
           ctx.userId!,
           input.firstName,
           input.lastName
@@ -261,7 +256,7 @@ export const stripeRouter = createTRPCRouter({
    * Get the current user's linked payment status
    */
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
-    const link = await (db!).query.userAccountLinks.findFirst({
+    const link = await ctx.db!.query.userAccountLinks.findFirst({
       where: eq(userAccountLinks.userId, ctx.userId!),
       with: {
         stripePayment: true,
@@ -279,11 +274,13 @@ export const stripeRouter = createTRPCRouter({
     };
   }),
 });
+
+async function createOrUpdateMembership(
+  db: NonNullable<typeof import("@query/db").db>,
   userId: string,
   firstName: string,
   lastName: string
 ) {
-  if (!db) return;
   const existingMember = await db.query.members.findFirst({
     where: eq(members.userId, userId),
   });
@@ -305,7 +302,7 @@ export const stripeRouter = createTRPCRouter({
       })
       .where(eq(members.id, existingMember.id));
   } else {
-    await db!.insert(members).values({
+    await db.insert(members).values({
       userId,
       firstName,
       lastName,
