@@ -8,7 +8,7 @@ import { CacheKeys } from "../middleware/cache";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = CacheKeys.userProfile(ctx.userId!);
+    const cacheKey = CacheKeys.userProfile(ctx.userId as string);
     const cached = ctx.cache.get<{
       id: string;
       email: string | null;
@@ -20,8 +20,8 @@ export const userRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const user = await ctx.db!.query.users.findFirst({
-      where: eq(users.id, ctx.userId!),
+    const user = await (ctx.db as NonNullable<typeof ctx.db>).query.users.findFirst({
+      where: eq(users.id, ctx.userId as string),
       columns: { id: true, email: true, name: true, image: true },
       with: {
         profile: {
@@ -66,16 +66,16 @@ export const userRouter = createTRPCRouter({
 
       if (name !== undefined || image !== undefined) {
         ops.push(
-          ctx.db!.update(users).set({ name, image }).where(eq(users.id, ctx.userId!))
+          (ctx.db as NonNullable<typeof ctx.db>).update(users).set({ name, image }).where(eq(users.id, ctx.userId as string))
         );
       }
 
       if (bio !== undefined || website !== undefined || location !== undefined) {
         // Use upsert instead of check-then-insert (eliminates one round-trip)
         ops.push(
-          ctx.db!
+          (ctx.db as NonNullable<typeof ctx.db>)
             .insert(userProfiles)
-            .values({ userId: ctx.userId!, bio, website, location })
+            .values({ userId: ctx.userId as string, bio, website, location })
             .onConflictDoUpdate({
               target: userProfiles.userId,
               set: {
@@ -90,7 +90,7 @@ export const userRouter = createTRPCRouter({
 
       await Promise.all(ops);
 
-      ctx.cache.deletePattern(`user:${ctx.userId!}*`);
+      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
 
       return { success: true };
     }),
@@ -128,9 +128,9 @@ export const userRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Could not parse image. File may be corrupt or malicious." });
       }
 
-      await ctx.db!.update(users).set({ image: input.base64Image }).where(eq(users.id, ctx.userId!));
+      await (ctx.db as NonNullable<typeof ctx.db>).update(users).set({ image: input.base64Image }).where(eq(users.id, ctx.userId as string));
 
-      ctx.cache.deletePattern(`user:${ctx.userId!}*`);
+      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
 
       return { success: true };
     }),

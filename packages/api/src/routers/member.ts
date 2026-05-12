@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory } from "@query/db";
 import { eq, and } from "drizzle-orm";
+import type { DrizzleDB } from "@query/db";
 
 const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
 const urlSchema = z.string().url().max(500).optional();
@@ -14,7 +15,7 @@ export const memberRouter = createTRPCRouter({
     const cached = ctx.cache.get<typeof member>(cacheKey);
     if (cached) return cached;
 
-    const member = await ctx.db!.query.members.findFirst({
+    const member = await (ctx.db as DrizzleDB).query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
@@ -40,7 +41,7 @@ export const memberRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const existingMember = await ctx.db!.query.members.findFirst({
+      const existingMember = await (ctx.db as DrizzleDB).query.members.findFirst({
         where: eq(members.userId, ctx.userId!),
       });
 
@@ -55,7 +56,7 @@ export const memberRouter = createTRPCRouter({
       const membershipEndDate = new Date();
       membershipEndDate.setFullYear(membershipEndDate.getFullYear() + 1);
 
-      const result = await ctx.db!
+      const result = await (ctx.db as DrizzleDB)
         .insert(members)
         .values({
           userId: ctx.userId!,
@@ -85,7 +86,7 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db!.insert(membershipHistory).values({
+      await (ctx.db as DrizzleDB).insert(membershipHistory).values({
         memberId: newMember.id,
         action: "joined",
         startDate: membershipStartDate,
@@ -96,7 +97,7 @@ export const memberRouter = createTRPCRouter({
     }),
 
   renew: protectedProcedure.mutation(async ({ ctx }) => {
-    const member = await ctx.db!.query.members.findFirst({
+    const member = await (ctx.db as DrizzleDB).query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 
@@ -110,7 +111,7 @@ export const memberRouter = createTRPCRouter({
     const newEndDate = new Date(member.membershipEndDate || new Date());
     newEndDate.setFullYear(newEndDate.getFullYear() + 1);
 
-    const result = await ctx.db!
+    const result = await (ctx.db as DrizzleDB)
       .update(members)
       .set({
         memberType: "continuous",
@@ -131,7 +132,7 @@ export const memberRouter = createTRPCRouter({
       });
     }
 
-    await ctx.db!.insert(membershipHistory).values({
+    await (ctx.db as DrizzleDB).insert(membershipHistory).values({
       memberId: member.id,
       action: "renewed",
       startDate: member.membershipEndDate || new Date(),
@@ -158,7 +159,7 @@ export const memberRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await ctx.db!.query.members.findFirst({
+      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
         where: eq(members.userId, ctx.userId!),
       });
 
@@ -169,7 +170,7 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db!
+      const result = await (ctx.db as DrizzleDB)
         .update(members)
         .set({
           ...input,
@@ -203,7 +204,7 @@ export const memberRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof allMembers>(cacheKey);
       if (cached) return cached;
 
-      const allMembers = await ctx.db!.query.members.findMany({
+      const allMembers = await (ctx.db as DrizzleDB).query.members.findMany({
         where: and(
           eq(members.isActive, true),
           input.memberType ? eq(members.memberType, input.memberType) : undefined
@@ -241,7 +242,7 @@ export const memberRouter = createTRPCRouter({
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const member = await ctx.db!.query.members.findFirst({
+      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
         where: eq(members.id, input.id),
         with: {
           user: {
@@ -278,7 +279,7 @@ export const memberRouter = createTRPCRouter({
 
   history: protectedProcedure.query(async ({ ctx }) => {
     // Single joined query instead of member lookup + history lookup
-    const member = await ctx.db!.query.members.findFirst({
+    const member = await (ctx.db as DrizzleDB).query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
       columns: { id: true },
       with: {
@@ -308,7 +309,7 @@ export const memberRouter = createTRPCRouter({
     }>(cacheKey);
     if (cached) return cached;
 
-    const member = await ctx.db!.query.members.findFirst({
+    const member = await (ctx.db as DrizzleDB).query.members.findFirst({
       where: eq(members.userId, ctx.userId!),
     });
 

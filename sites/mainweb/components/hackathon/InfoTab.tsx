@@ -10,8 +10,8 @@ import {
 import {
     SHIRT_SIZES, DIETARY_OPTIONS, LEVELS_OF_STUDY, GENDERS,
     REGISTRATION_STEPS, SCHOOLS, MAJORS,
-    type ShirtSize, type LevelOfStudy,
 } from '@/components/hackathon/constants';
+import type { ShirtSize, LevelOfStudy } from '@/components/hackathon/constants';
 
 type RegistrationStep = 0 | 1 | 2 | 3;
 

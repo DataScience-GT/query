@@ -5,7 +5,7 @@ import * as schema from "./schemas";
 // DATABASE_URL should be set via Next.js env loading or Firebase Functions config
 const DATABASE_URL = process.env.DATABASE_URL;
 
-type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
+export type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
 
 const globalForDb = globalThis as unknown as {
   conn: Pool | undefined;

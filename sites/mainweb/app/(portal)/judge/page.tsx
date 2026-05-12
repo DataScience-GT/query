@@ -23,7 +23,6 @@ type HackathonData = {
 
 export default function JudgePage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   const { data: judgeStatus, isLoading: checkingJudge } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });

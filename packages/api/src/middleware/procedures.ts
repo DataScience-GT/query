@@ -9,13 +9,13 @@ import { CacheKeys } from "./cache";
  * Result is cached for 60s per user to avoid a DB round-trip on every request.
  */
 export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
-  const cacheKey = `${CacheKeys.admin(ctx.userId!)}:role`;
+  const cacheKey = `${CacheKeys.admin(ctx.userId as string)}:role`;
   let admin = ctx.cache.get<typeof admins.$inferSelect>(cacheKey);
 
   if (!admin) {
-    admin = await ctx.db!.query.admins.findFirst({ // try catch for ctx.db 
+    admin = await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({ // try catch for ctx.db 
       where: and(
-        eq(admins.userId, ctx.userId!),
+        eq(admins.userId, ctx.userId as string),
         eq(admins.isActive, true)
       ),
     }) ?? null;
@@ -52,13 +52,13 @@ export const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
  * Result is cached for 60s per user to avoid a DB round-trip on every request.
  */
 export const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
-  const cacheKey = `${CacheKeys.judge(ctx.userId!)}:role`;
+  const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:role`;
   let judge = ctx.cache.get<typeof judges.$inferSelect>(cacheKey);
 
   if (!judge) {
-    judge = await ctx.db!.query.judges.findFirst({
+    judge = await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findFirst({
       where: and(
-        eq(judges.userId, ctx.userId!),
+        eq(judges.userId, ctx.userId as string),
         eq(judges.isActive, true)
       ),
     }) ?? null;

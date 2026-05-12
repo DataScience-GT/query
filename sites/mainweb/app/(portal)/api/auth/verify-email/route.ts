@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { db, users, sessions, accounts, stripePayments, userAccountLinks, members, verificationTokens } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { rateLimit, cache } from "@query/api";
@@ -81,7 +82,11 @@ export async function POST(request: NextRequest) {
                     .insert(users)
                     .values({ id: newId, email, emailVerified: new Date() })
                     .returning();
-                user = inserted[0]!;
+                const firstUser = inserted[0];
+                if (!firstUser) {
+                    throw new Error("Failed to create user");
+                }
+                user = firstUser;
                 console.log(`[verify-email] Created new user ${user.id}`);
             } else if (!user.emailVerified) {
                 await tx

@@ -12,7 +12,6 @@ import { Download } from 'lucide-react';
 export default function AttendeesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const utils = trpc.useUtils();
 
   const [filter, setFilter] = useState<'all' | 'registered' | 'pending' | 'cancelled'>('all');
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
@@ -175,7 +174,7 @@ export default function AttendeesPage() {
                         <tr key={attendee.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              { }
                               <img
                                 src={attendee.user?.image || '/avatars/default.png'}
                                 alt={attendee.user?.name || 'Attendee'}

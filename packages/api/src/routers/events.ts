@@ -20,12 +20,12 @@ export const eventRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const qrCode = randomUUID();
 
-      const [newEvent] = await ctx.db!
+      const [newEvent] = await (ctx.db as NonNullable<typeof ctx.db>)
         .insert(events)
         .values({
           ...input,
           qrCode,
-          createdById: ctx.userId!,
+          createdById: ctx.userId as string,
         })
         .returning();
 
@@ -40,7 +40,7 @@ export const eventRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const newQrCode = randomUUID();
 
-      const [updatedEvent] = await ctx.db!
+      const [updatedEvent] = await (ctx.db as NonNullable<typeof ctx.db>)
         .update(events)
         .set({
           qrCode: newQrCode,
@@ -64,7 +64,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   listAll: isAdmin.query(async ({ ctx }) => {
-    const fetchEvents = () => ctx.db!.query.events.findMany({
+    const fetchEvents = () => (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
       orderBy: (events, { desc }) => [desc(events.eventDate)],
       with: {
         createdBy: {
@@ -86,7 +86,7 @@ export const eventRouter = createTRPCRouter({
   getById: isAdmin
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const event = await ctx.db!.query.events.findFirst({
+      const event = await (ctx.db as NonNullable<typeof ctx.db>).query.events.findFirst({
         where: eq(events.id, input.id),
         with: {
           checkIns: {
@@ -129,7 +129,7 @@ export const eventRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [updatedEvent] = await ctx.db!
+      const [updatedEvent] = await (ctx.db as NonNullable<typeof ctx.db>)
         .update(events)
         .set({
           checkInEnabled: input.enabled,
@@ -149,9 +149,9 @@ export const eventRouter = createTRPCRouter({
     .input(z.object({ eventId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       // Also delete associated check-ins before removing the event
-      await ctx.db!.delete(eventCheckIns).where(eq(eventCheckIns.eventId, input.eventId));
+      await (ctx.db as NonNullable<typeof ctx.db>).delete(eventCheckIns).where(eq(eventCheckIns.eventId, input.eventId));
 
-      await ctx.db!.delete(events).where(eq(events.id, input.eventId));
+      await (ctx.db as NonNullable<typeof ctx.db>).delete(events).where(eq(events.id, input.eventId));
 
       // Invalidate all event-related cache entries after deletion
       ctx.cache.deletePattern(`event:${input.eventId}`);
@@ -163,7 +163,7 @@ export const eventRouter = createTRPCRouter({
   checkIn: protectedProcedure
     .input(z.object({ qrCode: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return await ctx.db!.transaction(async (tx) => {
+      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
         const event = await tx.query.events.findFirst({
           where: eq(events.qrCode, input.qrCode),
         });
@@ -191,12 +191,12 @@ export const eventRouter = createTRPCRouter({
 
         const [member, existingCheckIn] = await Promise.all([
           tx.query.members.findFirst({
-            where: eq(members.userId, ctx.userId!),
+            where: eq(members.userId, ctx.userId as string),
           }),
           tx.query.eventCheckIns.findFirst({
             where: and(
               eq(eventCheckIns.eventId, event.id),
-              eq(eventCheckIns.userId, ctx.userId!)
+              eq(eventCheckIns.userId, ctx.userId as string)
             ),
           }),
         ]);
@@ -218,7 +218,7 @@ export const eventRouter = createTRPCRouter({
         await Promise.all([
           tx.insert(eventCheckIns).values({
             eventId: event.id,
-            userId: ctx.userId!,
+            userId: ctx.userId as string,
             memberId: member.id,
             checkInMethod: "qr_code",
           }),
@@ -242,8 +242,8 @@ export const eventRouter = createTRPCRouter({
     }),
 
   myEvents: protectedProcedure.query(async ({ ctx }) => {
-    const fetchCheckIns = () => ctx.db!.query.eventCheckIns.findMany({
-      where: eq(eventCheckIns.userId, ctx.userId!),
+    const fetchCheckIns = () => (ctx.db as NonNullable<typeof ctx.db>).query.eventCheckIns.findMany({
+      where: eq(eventCheckIns.userId, ctx.userId as string),
       with: {
         event: {
           columns: { id: true, title: true, description: true, location: true, eventDate: true },
@@ -267,10 +267,10 @@ export const eventRouter = createTRPCRouter({
     const cached = ctx.cache.get<{ totalEvents: number }>(cacheKey);
     if (cached) return cached;
 
-    const result = await ctx.db!
+    const result = await (ctx.db as NonNullable<typeof ctx.db>)
       .select({ totalEvents: sql<number>`count(*)::int` })
       .from(eventCheckIns)
-      .where(eq(eventCheckIns.userId, ctx.userId!));
+      .where(eq(eventCheckIns.userId, ctx.userId as string));
 
     const stats = { totalEvents: result[0]?.totalEvents ?? 0 };
     ctx.cache.set(cacheKey, stats, 60);
