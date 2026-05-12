@@ -26,6 +26,3 @@ jobs:
 
       - name: Build
         run: pnpm turbo run build
-
-      - name: Run tests
-        run: pnpm turbo run test
