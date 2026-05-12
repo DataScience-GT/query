@@ -3,8 +3,13 @@
 import React from 'react';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
+type Hackathon = {
+    id: string;
+    name: string;
+};
+
 type CreateHackathonStepProps = {
-    hackathons: any[];
+    hackathons: Hackathon[];
     selectedHackathonId: string | null;
     setSelectedHackathonId: (id: string | null) => void;
     setActiveStep: (step: number) => void;

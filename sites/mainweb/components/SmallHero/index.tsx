@@ -1,11 +1,10 @@
-import { ReactNode, HTMLAttributes } from "react";
+import type { ReactNode, HTMLAttributes } from "react";
 
-interface SmallHeroProps {
+interface SmallHeroProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
   desc?: string;
   description?: string;
-  children?: any;
-  [key: string]: any;
+  children?: ReactNode;
 }
 
 export default function SmallHero({

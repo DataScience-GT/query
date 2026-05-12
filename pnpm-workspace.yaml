@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - sites/*
+  - packages/*
+  - tooling/*
+  - packages/api
+  - packages/auth
+  - packages/db
+  - packages/consts
+  - packages/ui

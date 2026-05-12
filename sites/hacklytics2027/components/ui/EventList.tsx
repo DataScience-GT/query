@@ -1,7 +1,7 @@
 "use client";
 
 import type React from 'react';
-import { ScheduleEvent } from '../sections/Schedule/data';
+import type { ScheduleEvent } from '../sections/Schedule/data';
 
 interface Props {
   events: ScheduleEvent[];

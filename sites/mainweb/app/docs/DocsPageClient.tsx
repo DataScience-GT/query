@@ -25,11 +25,9 @@ const NAV_ITEMS: { id: DocSection; label: string; icon: string }[] = [
 function CodeBlock({
   title,
   code,
-  language = "bash",
 }: {
   title?: string;
   code: string;
-  language?: string;
 }) {
   const [copied, setCopied] = useState(false);
   return (
