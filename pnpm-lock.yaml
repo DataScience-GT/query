@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      next:
+        specifier: 16.2.3
+        version: 16.2.3(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
