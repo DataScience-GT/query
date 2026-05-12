@@ -78,3 +78,5 @@ output.txt
 fix.js
 *.fix.js
 .claude/skills/ui-ux-pro-max/SKILL.md
+.claude/skills/react-doctor/SKILL.md
+.agents/skills/react-doctor/SKILL.md
