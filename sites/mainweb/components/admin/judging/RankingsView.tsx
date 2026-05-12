@@ -3,11 +3,83 @@
 import React, { useState } from 'react';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 
+type Project = {
+    id: string;
+    name: string;
+    tableNumber: number;
+    zone: string | null;
+    category?: string | null;
+    teamMembers?: string | null;
+    tracks?: string[] | null;
+    challenges?: string[] | null;
+    isCreateX?: boolean | null;
+};
+
+type Vote = {
+    score: number;
+    scoreCreativity: number | null;
+    scoreImpact: number | null;
+    scoreScope: number | null;
+    scoreClarity: number | null;
+    scoreSoundness: number | null;
+    comment: string | null;
+    durationSeconds: number | null;
+    judgeName: string;
+};
+
+type Ranking = {
+    project: Project;
+    totalScore: number;
+    voteCount: number;
+    avgScore: number;
+    categoryAvg: {
+        creativity: number;
+        impact: number;
+        scope: number;
+        clarity: number;
+        soundness: number;
+    };
+    votes: Vote[];
+    weightedScore: number;
+    confidenceLevel: "NONE" | "LOW" | "MEDIUM" | "HIGH";
+};
+
+type Tie = {
+    score: number;
+    projects: { id: string; name: string; tableNumber: number; zone: string | null }[];
+};
+
+type RankingsData = {
+    rankings: Ranking[];
+    globalAvg: number;
+    ties: Tie[];
+    hasTies: boolean;
+};
+
+type ProcessedRanking = Ranking & {
+    displayScore: number;
+};
+
+type Judge = {
+    id: string;
+    name: string | null;
+    isActive: boolean;
+    specialty?: string | null;
+    user?: {
+        email: string;
+        image?: string | null;
+    };
+    assignments: {
+        hackathonId: string;
+        track?: string | null;
+    }[];
+};
+
 type RankingsViewProps = {
-    rankings: any;
-    processedRankings: any[];
+    rankings: RankingsData | null;
+    processedRankings: ProcessedRanking[];
     selectedTrack: string;
-    judges: any[];
+    judges: Judge[];
     selectedHackathon: string | null;
 };
 
@@ -106,15 +178,15 @@ export function RankingsView({
                         // 1. Identify Overall Winners (Top 3) by weighted score
                         const sortedByScore = [...rankings.rankings].sort((a, b) => b.weightedScore - a.weightedScore);
                         const overallWinners = sortedByScore.slice(0, 3);
-                        const overallWinnerIds = new Set(overallWinners.map((r: any) => r.project.id));
+                        const overallWinnerIds = new Set(overallWinners.map((r) => r.project.id));
 
                         // 2. Identify Track Winners (Top 1 per Track, excluding Overall)
-                        const allTracks = Array.from(new Set(rankings.rankings.flatMap((r: any) => r.project.tracks || []))) as string[];
-                        const trackWinners: Record<string, any> = {};
+                        const allTracks = Array.from(new Set(rankings.rankings.flatMap((r) => r.project.tracks || []))) as string[];
+                        const trackWinners: Record<string, Ranking> = {};
                         const usedWinnerIds = new Set(overallWinnerIds);
 
                         allTracks.forEach(track => {
-                            const projectsInTrack = rankings.rankings.filter((r: any) => r.project.tracks?.includes(track));
+                            const projectsInTrack = rankings.rankings.filter((r) => r.project.tracks?.includes(track));
 
                             const sortedTrackProjects = [...projectsInTrack].sort((a, b) => {
                                 return b.weightedScore - a.weightedScore;
@@ -326,7 +398,7 @@ export function RankingsView({
                                                                     <p className="text-gray-600 font-mono text-sm uppercase">&gt; 0 records found for this node</p>
                                                                 ) : (
                                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                        {r.votes.map((v: any, vi: number) => (
+                                                                        {r.votes.map((v, vi) => (
                                                                             <div
                                                                                 key={vi}
                                                                                 className="relative bg-black/40 border border-white/5 p-6 rounded-xl hover:border-[#00A8A8]/20 transition-all group/vote"
@@ -413,7 +485,7 @@ export function RankingsView({
                                     <tr key={j.id} className="hover:bg-black/40 transition-colors duration-300">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                { }
                                                 <img
                                                     src={j.user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(j.name || 'J')}`}
                                                     alt={j.name || ''}
@@ -431,8 +503,8 @@ export function RankingsView({
                                         <td className="px-8 py-6">
                                             <div className="flex flex-wrap gap-2">
                                                 {j.assignments
-                                                    .filter((a: any) => a.hackathonId === selectedHackathon)
-                                                    .map((a: any, i: number) => (
+                                                    .filter((a) => a.hackathonId === selectedHackathon)
+                                                    .map((a, i) => (
                                                         <span key={i} className="px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">
                                                             {a.track || 'Unassigned'}
                                                         </span>

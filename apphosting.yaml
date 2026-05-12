@@ -1,7 +1,7 @@
 # Monorepo - app is in sites/portal
 
 scripts:
-  buildCommand: npm install && npx turbo run build --filter=web && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
+  buildCommand: pnpm install && pnpm turbo run build --filter=web && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
   runCommand: node sites/mainweb/.next/standalone/sites/mainweb/server.js
 
 runConfig:
