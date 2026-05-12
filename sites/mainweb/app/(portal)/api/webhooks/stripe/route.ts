@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { db, stripePayments, users, members } from "@query/db";
 import { eq } from "drizzle-orm";

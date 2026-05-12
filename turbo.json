@@ -2,6 +2,18 @@
   "$schema": "https://turborepo.org/schema.json",
   "ui": "stream",
   "tasks": {
+    "test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "test/**/*.ts",
+        "test/**/*.tsx"
+      ]
+    },
     "topo": {
       "dependsOn": [
         "^topo"
@@ -84,7 +96,23 @@
     "ROLE_ANNOUNCEMENTS_ID",
     "ROLE_WORKSHOPS_ID",
     "ROLE_SPONSORS_ID",
-    "ROLE_FOOD_ID"
+    "ROLE_FOOD_ID",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "EMAIL_SERVER_HOST",
+    "EMAIL_SERVER_PORT",
+    "EMAIL_SERVER_USER",
+    "EMAIL_SERVER_PASSWORD",
+    "EMAIL_FROM",
+    "AUTH_URL",
+    "NEXTAUTH_URL",
+    "STRIPE_WEBHOOK_SECRET",
+    "DDOS_MAX_REQUESTS_PER_MINUTE",
+    "DDOS_SUSPICIOUS_THRESHOLD",
+    "DDOS_BLOCK_DURATION_MS",
+    "DDOS_BURST_THRESHOLD",
+    "DDOS_BURST_WINDOW_MS",
+    "DDOS_CLEANUP_INTERVAL_MS"
   ],
   "globalPassThroughEnv": [
     "NODE_ENV",

@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Background from '@/components/portal/Background';
+
 
 function AuthErrorContent() {
     const searchParams = useSearchParams();
@@ -28,7 +28,7 @@ function AuthErrorContent() {
         },
     };
 
-    const { title, desc } = (error && errorMessages[error]) || errorMessages.Default!;
+    const { title, desc } = (error && errorMessages[error]) || errorMessages.Default;
 
     return (
         <div className="min-h-screen bg-[var(--bg-secondary)] flex flex-col items-center justify-center px-6 text-center">

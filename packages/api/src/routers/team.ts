@@ -20,10 +20,10 @@ export const teamRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             // 1. Check if user is registered for this hackathon
-            const participant = await ctx.db!.query.hackathonParticipants.findFirst({
+            const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
                     eq(hackathonParticipants.hackathonId, input.hackathonId),
-                    eq(hackathonParticipants.userId, ctx.userId!)
+                    eq(hackathonParticipants.userId, ctx.userId as string)
                 ),
             });
 
@@ -43,7 +43,7 @@ export const teamRouter = createTRPCRouter({
             }
 
             try {
-                return await ctx.db!.transaction(async (tx) => {
+                return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
                     // 3. Create the team
                     const [newTeam] = await tx
                         .insert(hackathonTeams)
@@ -51,7 +51,7 @@ export const teamRouter = createTRPCRouter({
                             hackathonId: input.hackathonId,
                             name: input.name,
                             description: input.description,
-                            captainId: ctx.userId!,
+                            captainId: ctx.userId as string,
                             currentMembers: 1, // The captain is the first member
                             maxMembers: input.maxMembers,
                         })
@@ -67,11 +67,12 @@ export const teamRouter = createTRPCRouter({
 
                     return newTeam;
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (error instanceof TRPCError) throw error;
+                const message = error instanceof Error ? error.message : "Unknown error";
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Failed to create team: ${error.message || "Unknown error"}`,
+                    message: `Failed to create team: ${message}`,
                 });
             }
         }),
@@ -85,10 +86,10 @@ export const teamRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             // 1. Verify user is registered for hackathon
-            const participant = await ctx.db!.query.hackathonParticipants.findFirst({
+            const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
                     eq(hackathonParticipants.hackathonId, input.hackathonId),
-                    eq(hackathonParticipants.userId, ctx.userId!)
+                    eq(hackathonParticipants.userId, ctx.userId as string)
                 ),
             });
 
@@ -108,7 +109,7 @@ export const teamRouter = createTRPCRouter({
             }
 
             try {
-                return await ctx.db!.transaction(async (tx) => {
+                return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
                     // 3. Find the team and check capacity
                     const team = await tx.query.hackathonTeams.findFirst({
                         where: and(
@@ -143,11 +144,12 @@ export const teamRouter = createTRPCRouter({
 
                     return { success: true };
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (error instanceof TRPCError) throw error;
+                const message = error instanceof Error ? error.message : "Unknown error";
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Failed to join team: ${error.message || "Unknown error"}`,
+                    message: `Failed to join team: ${message}`,
                 });
             }
         }),
@@ -159,10 +161,10 @@ export const teamRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            const participant = await ctx.db!.query.hackathonParticipants.findFirst({
+            const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
                     eq(hackathonParticipants.hackathonId, input.hackathonId),
-                    eq(hackathonParticipants.userId, ctx.userId!)
+                    eq(hackathonParticipants.userId, ctx.userId as string)
                 ),
             });
 
@@ -171,7 +173,7 @@ export const teamRouter = createTRPCRouter({
             }
 
             try {
-                return await ctx.db!.transaction(async (tx) => {
+                return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
                     const team = await tx.query.hackathonTeams.findFirst({
                         where: eq(hackathonTeams.id, participant.teamId!),
                     });
@@ -179,7 +181,7 @@ export const teamRouter = createTRPCRouter({
                     if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
 
                     // If captain is the only one left, they can "leave" which deletes the team
-                    if (team.captainId === ctx.userId!) {
+                    if (team.captainId === ctx.userId as string) {
                         if (team.currentMembers <= 1) {
                             // Delete team projects first
                             await tx.delete(hackathonProjects).where(eq(hackathonProjects.teamId, team.id));
@@ -210,11 +212,12 @@ export const teamRouter = createTRPCRouter({
 
                     return { success: true };
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (error instanceof TRPCError) throw error;
+                const message = error instanceof Error ? error.message : "Unknown error";
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Failed to leave team: ${error.message || "Unknown error"}`,
+                    message: `Failed to leave team: ${message}`,
                 });
             }
         }),
@@ -227,7 +230,7 @@ export const teamRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            const team = await ctx.db!.query.hackathonTeams.findFirst({
+            const team = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findFirst({
                 where: and(
                     eq(hackathonTeams.id, input.teamId),
                     eq(hackathonTeams.hackathonId, input.hackathonId)
@@ -235,12 +238,12 @@ export const teamRouter = createTRPCRouter({
             });
 
             if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
-            if (team.captainId !== ctx.userId!) {
+            if (team.captainId !== ctx.userId as string) {
                 throw new TRPCError({ code: "FORBIDDEN", message: "Only the captain can disband the team." });
             }
 
             try {
-                return await ctx.db!.transaction(async (tx) => {
+                return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
                     // 1. Remove all members
                     await tx
                         .update(hackathonParticipants)
@@ -255,11 +258,12 @@ export const teamRouter = createTRPCRouter({
 
                     return { success: true };
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (error instanceof TRPCError) throw error;
+                const message = error instanceof Error ? error.message : "Unknown error";
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Failed to disband team: ${error.message || "Unknown error"}`,
+                    message: `Failed to disband team: ${message}`,
                 });
             }
         }),
@@ -281,10 +285,10 @@ export const teamRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             // 1. Verify user is registered for hackathon
-            const participant = await ctx.db!.query.hackathonParticipants.findFirst({
+            const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
                     eq(hackathonParticipants.hackathonId, input.hackathonId),
-                    eq(hackathonParticipants.userId, ctx.userId!)
+                    eq(hackathonParticipants.userId, ctx.userId as string)
                 ),
                 with: { team: true },
             });
@@ -297,7 +301,7 @@ export const teamRouter = createTRPCRouter({
             // Use teamId from participant record instead of nested team object
             if (input.teamId) {
                 // Verify team belongs to this hackathon
-                const team = await ctx.db!.query.hackathonTeams.findFirst({
+                const team = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findFirst({
                     where: and(
                         eq(hackathonTeams.id, input.teamId),
                         eq(hackathonTeams.hackathonId, input.hackathonId)
@@ -312,7 +316,7 @@ export const teamRouter = createTRPCRouter({
                 }
 
                 // Verify captain ownership using teamId comparison (not nested object)
-                if (team.captainId !== ctx.userId!) {
+                if (team.captainId !== ctx.userId as string) {
                     throw new TRPCError({
                         code: "FORBIDDEN",
                         message: "Only the team captain can submit the project.",
@@ -323,7 +327,7 @@ export const teamRouter = createTRPCRouter({
             }
 
             try {
-                return await ctx.db!.transaction(async (tx) => {
+                return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
                     // Check if there is already a project for this team/user
                     let existingProject;
                     if (input.teamId) {
@@ -382,11 +386,12 @@ export const teamRouter = createTRPCRouter({
 
                     return finalProject;
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (error instanceof TRPCError) throw error;
+                const message = error instanceof Error ? error.message : "Unknown error";
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Failed to submit project: ${error.message || "Unknown error"}`,
+                    message: `Failed to submit project: ${message}`,
                 });
             }
         }),
@@ -394,7 +399,7 @@ export const teamRouter = createTRPCRouter({
     list: protectedProcedure
         .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
         .query(async ({ ctx, input }) => {
-            const teams = await ctx.db!.query.hackathonTeams.findMany({
+            const teams = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findMany({
                 where: eq(hackathonTeams.hackathonId, input.hackathonId),
                 with: {
                     captain: {

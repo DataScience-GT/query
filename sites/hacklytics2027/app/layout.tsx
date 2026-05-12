@@ -18,8 +18,9 @@ const retro = Orbitron({
 })
 
 export const metadata: Metadata = {
-  title: 'Hacklytics 2027: Arcade Edition',
-  description: 'Data Science @ GT - 1980s Arcade Style',
+  title: "Hacklytics 2027: Arcade Edition",
+  description: "Data Science @ GT - 1980s Arcade Style",
+  authors: [{ name: "aamoghS" }],
 }
 
 export default function RootLayout({
