@@ -280,7 +280,6 @@ export const stripeRouter = createTRPCRouter({
   }),
 });
   userId: string,
-  userId: string,
   firstName: string,
   lastName: string
 ) {
