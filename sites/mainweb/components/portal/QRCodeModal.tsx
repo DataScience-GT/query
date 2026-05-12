@@ -64,7 +64,7 @@ export function QRCodeModal({
                 {/* QR Code Display - White background with more padding */}
                 <div className="bg-white p-8 rounded-2xl shadow-lg mx-auto max-w-sm">
                     {qrCodeDataURL && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
+                         
                         <img
                             src={qrCodeDataURL}
                             alt="Event QR Code"
