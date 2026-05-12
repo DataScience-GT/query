@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members } from "@query/db";
+import { stripePayments, userAccountLinks, members, db } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
@@ -24,7 +24,7 @@ export const stripeRouter = createTRPCRouter({
       }
 
       const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId!),
+        where: eq(db.query.users.id, ctx.userId!),
       });
 
       if (!user?.email) {
@@ -83,7 +83,7 @@ export const stripeRouter = createTRPCRouter({
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
     return await (ctx.db as unknown as DrizzleDB).transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId!),
+        where: eq(db.query.users.id, ctx.userId!),
       });
 
       if (!user?.email) return { success: false };
@@ -145,7 +145,7 @@ export const stripeRouter = createTRPCRouter({
    */
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
     const user = await (ctx.db as unknown as DrizzleDB).query.users.findFirst({
-      where: eq((await import("@query/db")).users.id, ctx.userId!),
+      where: eq(db.query.users.id, ctx.userId!),
     });
 
     if (!user?.email) {
@@ -277,7 +277,7 @@ export const stripeRouter = createTRPCRouter({
 });
 
 async function createOrUpdateMembership(
-  db: typeof import("@query/db")["db"] | null,
+  db: db | null,
   userId: string,
   firstName: string,
   lastName: string
