@@ -130,7 +130,7 @@ export const authConfig: NextAuthConfig = {
           if (failed.length) {
             throw new Error(`Email(s) could not be sent`);
           }
-        } catch (error) {
+        } catch {
           throw new Error("Failed to send verification email. Please try again later.");
         }
       },

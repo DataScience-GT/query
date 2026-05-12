@@ -5,7 +5,6 @@ import type { Adapter, VerificationToken } from "next-auth/adapters";
 
 function createAdapter(): Adapter | undefined {
   if (!db || !process.env.DATABASE_URL) {
-    console.warn("Auth adapter: No database connection, using JWT sessions");
     return undefined;
   }
 
@@ -55,8 +54,7 @@ function createAdapter(): Adapter | undefined {
         };
       },
     };
-  } catch (error) {
-    console.error("Auth adapter: Failed to create Drizzle adapter:", error);
+  } catch {
     return undefined;
   }
 }
