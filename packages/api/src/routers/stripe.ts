@@ -281,7 +281,7 @@ export const stripeRouter = createTRPCRouter({
 });
 
 async function createOrUpdateMembership(
-  db: db | null,
+  db: DrizzleDB | null,
   userId: string,
   firstName: string,
   lastName: string
@@ -308,7 +308,7 @@ async function createOrUpdateMembership(
       })
       .where(eq(members.id, existingMember.id));
   } else {
-    await db.insert(members).values({
+    await db!.insert(members).values({
       userId,
       firstName,
       lastName,
