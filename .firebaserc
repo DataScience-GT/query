@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "dsgt-website"
+  },
+  "targets": {
+    "dsgt-website": {
+      "hosting": {
+        "hacklytics": [
+          "hacklytics2027"
+        ]
+      }
+    }
   }
 }
