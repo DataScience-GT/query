@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * Proxy middleware for HTTP caching and edge caching
@@ -78,7 +78,7 @@ export const config = {
 };
 
 // Export proxy function
-export async function proxy(req: NextRequest): Promise<Response | { headers: Record<string, string> }> {
+export async function proxy(req: NextRequest): Promise<Response> {
   // Handle ETag validation - return 304 if unchanged
   if (handleETag(req)) {
     return new Response(null, {
@@ -115,24 +115,24 @@ export async function proxy(req: NextRequest): Promise<Response | { headers: Rec
     });
   }
 
-  // Add cache headers to response
+  // Add cache headers to response via NextResponse.next()
   const cacheControl = getCacheControl(req.nextUrl.pathname);
   const etag = getETag(req.nextUrl.pathname);
   const lastModified = getLastModified();
 
-  // Build headers object
-  const headers: Record<string, string> = {
-    "Cache-Control": cacheControl,
-    "ETag": etag,
-    "Last-Modified": lastModified,
-    "Vary": "Accept-Encoding, Cookie, Authorization",
-  };
+  const response = NextResponse.next();
+
+  // Set cache headers
+  response.headers.set("Cache-Control", cacheControl);
+  response.headers.set("ETag", etag);
+  response.headers.set("Last-Modified", lastModified);
+  response.headers.set("Vary", "Accept-Encoding, Cookie, Authorization");
 
   // Add security headers
   securityHeaders.forEach((header) => {
     const [key, value] = header.split(": ");
-    headers[key] = value;
+    response.headers.set(key, value);
   });
 
-  return { headers };
+  return response;
 }
