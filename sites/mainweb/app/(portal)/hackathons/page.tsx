@@ -156,7 +156,8 @@ export default function HackathonsPage() {
                             const isRegistered = registeredIds.has(h.id);
 
                             return (
-                                <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/20">
+                                <Link href={`/hackathons/${h.id}`} key={h.id} className="block group">
+                                    <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/20">
                                     <div className="relative flex flex-col h-full bg-[var(--bg-tertiary)] rounded-2xl p-6 md:p-8 overflow-hidden z-10">
 
                                         {/* Hover Gradient Overlay */}
@@ -229,7 +230,8 @@ export default function HackathonsPage() {
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                                         </div>
                                     </div>
-                                </LiquidGlass>
+                                    </LiquidGlass>
+                                </Link>
                             );
                         })}
                 </div>

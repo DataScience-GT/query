@@ -9,9 +9,9 @@ import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
-import { 
-  QrCode, Calendar, FolderGit2, Clock, ShieldCheck, 
-  ChevronRight, ArrowRight, LayoutDashboard, Search, FileCode2
+import {
+  QrCode, Calendar, FolderGit2, Clock, ShieldCheck,
+  ChevronRight, ArrowRight, LayoutDashboard, Search, FileCode2, Globe
 } from "lucide-react";
 
 type Tab = "general" | "hackathons" | "projects" | "history" | "status";
@@ -146,7 +146,7 @@ export default function ClubPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden relative pb-20">
-      
+
       {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#00A8A8]/5 blur-[200px] rounded-full animate-[float_20s_ease-in-out_infinite]" />
@@ -177,11 +177,11 @@ export default function ClubPage() {
       )}
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 md:pt-20 lg:pt-24 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        
+
         {/* Profile Header */}
         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0c10]/80 backdrop-blur-xl shadow-2xl p-8 md:p-12 mb-8 md:mb-12">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#00A8A8] via-[#6366f1] to-emerald-500" />
-          
+
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div className="flex items-center gap-6">
               <div className="relative group shrink-0">
@@ -212,7 +212,7 @@ export default function ClubPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-              <Link 
+              <Link
                 href="/dashboard"
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-white transition-all hover:bg-white/10 hover:border-white/20 active:scale-95"
               >
@@ -230,11 +230,10 @@ export default function ClubPage() {
               <Link
                 key={tab.id}
                 href={`#${tab.id}`}
-                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? 'bg-gradient-to-r from-[#00A8A8]/10 to-transparent border border-[#00A8A8]/30 text-[#00A8A8] shadow-[0_0_20px_rgba(0,168,168,0.15)]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                }`}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 ${activeTab === tab.id
+                  ? 'bg-gradient-to-r from-[#00A8A8]/10 to-transparent border border-[#00A8A8]/30 text-[#00A8A8] shadow-[0_0_20px_rgba(0,168,168,0.15)]'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
               >
                 <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-[#00A8A8]' : 'text-gray-500'}`} />
                 {tab.label}
@@ -245,13 +244,13 @@ export default function ClubPage() {
 
         {/* Tab Content Areas */}
         <div className="relative min-h-[400px]">
-          
+
           {/* General Events */}
           {activeTab === "general" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f1115] shadow-2xl transition-all duration-500 hover:border-[#00A8A8]/30 p-8 md:p-12">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+
                 <div className="relative z-10 flex flex-col items-center justify-center text-center h-full min-h-[300px]">
                   <div className="w-24 h-24 mb-6 rounded-3xl bg-[#00A8A8]/10 border border-[#00A8A8]/20 flex items-center justify-center relative">
                     <div className="absolute inset-0 bg-[#00A8A8]/20 blur-xl rounded-full" />
@@ -259,7 +258,7 @@ export default function ClubPage() {
                   </div>
                   <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic mb-4">Event Check-In</h2>
                   <p className="text-gray-400 max-w-sm mb-8 text-sm">Scan the QR code displayed at the entrance of general club meetings to record your attendance.</p>
-                  
+
                   <button
                     onClick={() => setShowScanner(true)}
                     disabled={showScanner}
@@ -308,48 +307,49 @@ export default function ClubPage() {
                   {myRegs.map((reg) => (
                     <Link
                       key={reg.id}
-                      href={`/hackathons?id=${reg.hackathonId}&tab=OVERVIEW`}
-                      className="group flex flex-col rounded-3xl border border-white/10 bg-[#0f1115] p-8 transition-all hover:border-[#00A8A8]/30 hover:shadow-[0_0_30px_rgba(0,168,168,0.1)] relative overflow-hidden"
+                      href={`/hackathons/${reg.hackathonId}?tab=INFO`}
+                      className="group flex flex-col rounded-3xl border border-white/10 bg-gradient-to-b from-[#0f1115] to-black p-8 transition-all hover:border-[#00A8A8]/50 hover:shadow-[0_0_40px_rgba(0,168,168,0.15)] relative overflow-hidden"
                     >
-                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <FileCode2 className="w-16 h-16 text-[#00A8A8]" />
+                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+                        <FileCode2 className="w-24 h-24 text-[#00A8A8]" />
                       </div>
-                      
+
                       <div className="flex justify-between items-start mb-6 relative z-10">
-                        <span className={`px-3 py-1 rounded-md text-[10px] font-mono uppercase tracking-widest font-bold ${
-                          reg.registrationStatus === "approved" ? "bg-[#00A8A8]/10 text-[#00A8A8] border border-[#00A8A8]/20" :
-                          reg.registrationStatus === "rejected" ? "bg-red-500/10 text-red-500 border border-red-500/20" :
-                          "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
-                        }`}>
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest font-bold shadow-lg ${reg.registrationStatus === "approved" ? "bg-[#00A8A8]/20 text-[#00A8A8] border border-[#00A8A8]/30 shadow-[#00A8A8]/20" :
+                          reg.registrationStatus === "rejected" ? "bg-red-500/20 text-red-500 border border-red-500/30 shadow-red-500/20" :
+                            "bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shadow-yellow-500/20"
+                          }`}>
                           {reg.registrationStatus}
                         </span>
                       </div>
-                      
+
                       <h4 className="text-2xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors mb-2 relative z-10">
                         {reg.hackathon.name}
                       </h4>
                       {reg.hackathon.theme && (
-                        <p className="text-[#00A8A8] text-xs font-mono uppercase mb-4 tracking-wide relative z-10">
+                        <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-emerald-400 text-xs font-mono uppercase mb-4 tracking-wide relative z-10 font-bold">
                           Theme: {reg.hackathon.theme}
                         </p>
                       )}
-                      
-                      <p className="text-gray-400 text-sm line-clamp-2 mb-6 flex-1 relative z-10">{reg.hackathon.description}</p>
 
-                      <div className="border-t border-white/10 pt-4 mt-auto flex items-center justify-between text-xs text-gray-500 relative z-10">
-                        <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {reg.hackathon.startDate ? new Date(reg.hackathon.startDate).toLocaleDateString() : 'TBA'}</span>
-                        <span className="flex items-center gap-1 font-bold group-hover:text-white transition-colors">View Details <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></span>
+                      <p className="text-gray-400 text-sm line-clamp-3 mb-6 flex-1 relative z-10 leading-relaxed">{reg.hackathon.description}</p>
+
+                      <div className="border-t border-white/10 pt-5 mt-auto flex items-center justify-between text-xs text-gray-500 relative z-10">
+                        <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5"><Calendar className="w-3.5 h-3.5 text-gray-400" /> {reg.hackathon.startDate ? new Date(reg.hackathon.startDate).toLocaleDateString() : 'TBA'}</span>
+                        <span className="flex items-center gap-1 font-bold group-hover:text-[#00A8A8] transition-colors bg-[#00A8A8]/0 px-3 py-1.5 rounded-lg group-hover:bg-[#00A8A8]/10">Enter Portal <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" /></span>
                       </div>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center p-16 text-center border border-white/10 rounded-3xl bg-[#0f1115]">
-                  <Calendar className="w-12 h-12 text-gray-600 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2">No active registrations</h3>
-                  <p className="text-gray-400 mb-6">You haven't registered for any upcoming hackathons yet.</p>
-                  <Link href="/hackathons" className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-bold text-sm hover:bg-white/10 transition-all">
-                    Browse Hackathons
+                <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                    <Calendar className="w-8 h-8 text-gray-500" />
+                  </div>
+                  <h3 className="text-2xl font-black text-white mb-3 italic">No active registrations</h3>
+                  <p className="text-gray-400 mb-8 max-w-sm">You haven't registered for any upcoming hackathons yet. Find an event to get started.</p>
+                  <Link href="/hackathons" className="px-8 py-4 bg-gradient-to-r from-[#00A8A8] to-emerald-600 rounded-xl text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2">
+                    Browse Hackathons <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               )}
@@ -360,38 +360,43 @@ export default function ClubPage() {
           {activeTab === "projects" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               {projects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-16 text-center border border-white/10 rounded-3xl bg-[#0f1115]">
-                  <FolderGit2 className="w-12 h-12 text-gray-600 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2">No projects submitted</h3>
-                  <p className="text-gray-400">Join a hackathon team and submit a project to see it here.</p>
+                <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                    <FolderGit2 className="w-8 h-8 text-gray-500" />
+                  </div>
+                  <h3 className="text-2xl font-black text-white mb-3 italic">No projects submitted</h3>
+                  <p className="text-gray-400 max-w-sm mb-8">Join a hackathon team and submit a project to see your portfolio grow here.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {projects.map((project) => (
-                    <div key={project.id} className="group rounded-3xl border border-white/10 bg-[#0f1115] p-8 hover:border-[#00A8A8]/30 transition-colors">
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className="text-2xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors">{project.name}</h4>
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-mono uppercase font-bold tracking-widest border ${
-                          project.status === "winner" ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500" :
-                          project.status === "judging" ? "border-blue-500/30 bg-blue-500/10 text-blue-500" :
-                          "border-[#00A8A8]/30 bg-[#00A8A8]/10 text-[#00A8A8]"
-                        }`}>
-                          {project.status}
-                        </span>
-                      </div>
-                      <p className="text-gray-400 text-sm mb-6 line-clamp-3">{project.description}</p>
-                      
-                      <div className="flex gap-4 border-t border-white/10 pt-4">
-                        {project.githubUrl && (
-                          <Link href={project.githubUrl} target="_blank" className="text-xs font-bold text-gray-400 hover:text-white flex items-center gap-1.5">
-                            Repository <ArrowRight className="w-3 h-3" />
-                          </Link>
-                        )}
-                        {project.demoUrl && (
-                          <Link href={project.demoUrl} target="_blank" className="text-xs font-bold text-[#00A8A8] hover:text-emerald-400 flex items-center gap-1.5">
-                            Live Demo <ArrowRight className="w-3 h-3" />
-                          </Link>
-                        )}
+                    <div key={project.id} className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f1115] p-8 hover:border-[#00A8A8]/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(0,168,168,0.1)]">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-6">
+                          <h4 className="text-3xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors">{project.name}</h4>
+                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase font-bold tracking-widest border shadow-lg ${project.status === "winner" ? "border-yellow-500/40 bg-yellow-500/20 text-yellow-500 shadow-yellow-500/20" :
+                            project.status === "judging" ? "border-blue-500/40 bg-blue-500/20 text-blue-500 shadow-blue-500/20" :
+                              "border-[#00A8A8]/40 bg-[#00A8A8]/20 text-[#00A8A8] shadow-[#00A8A8]/20"
+                            }`}>
+                            {project.status}
+                          </span>
+                        </div>
+                        <p className="text-gray-400 text-sm mb-8 line-clamp-3 leading-relaxed">{project.description}</p>
+
+                        <div className="flex flex-wrap gap-4 border-t border-white/10 pt-6">
+                          {project.githubUrl && (
+                            <Link href={project.githubUrl} target="_blank" className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95">
+                              <FolderGit2 className="w-4 h-4" /> Source Code
+                            </Link>
+                          )}
+                          {project.demoUrl && (
+                            <Link href={project.demoUrl} target="_blank" className="px-5 py-2.5 rounded-xl bg-[#00A8A8]/10 hover:bg-[#00A8A8]/20 border border-[#00A8A8]/30 text-xs font-bold text-[#00A8A8] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,168,168,0.2)]">
+                              <Globe className="w-4 h-4" /> Live Demo
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -402,27 +407,33 @@ export default function ClubPage() {
 
           {/* History */}
           {activeTab === "history" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
               {!myEvents || myEvents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-16 text-center border border-white/10 rounded-3xl bg-[#0f1115]">
-                  <Clock className="w-12 h-12 text-gray-600 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2">No history</h3>
-                  <p className="text-gray-400">You haven't attended any events yet.</p>
+                <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                    <Clock className="w-8 h-8 text-gray-500" />
+                  </div>
+                  <h3 className="text-2xl font-black text-white mb-3 italic">No history</h3>
+                  <p className="text-gray-400 max-w-sm">You haven't checked into any events yet. When you do, they will appear here.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {myEvents.map((checkIn) => (
-                    <div key={checkIn.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-2xl border border-white/10 bg-[#0f1115] hover:bg-white/5 transition-colors gap-4">
-                      <div>
-                        <h4 className="text-lg font-bold text-white mb-1">{checkIn.event.title}</h4>
-                        <div className="flex items-center gap-4 text-xs font-mono text-gray-500">
-                          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(checkIn.checkedInAt).toLocaleDateString()}</span>
-                          {checkIn.event.location && <span className="flex items-center gap-1"><QrCode className="w-3.5 h-3.5" /> {checkIn.event.location}</span>}
+                <div className="relative border-l-2 border-white/10 ml-4 md:ml-6 space-y-8 pb-4">
+                  {myEvents.map((checkIn, idx) => (
+                    <div key={checkIn.id} className="relative pl-8 md:pl-12 group">
+                      {/* Timeline dot */}
+                      <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-[#00A8A8] bg-black group-hover:bg-[#00A8A8] group-hover:scale-125 transition-all shadow-[0_0_10px_rgba(0,168,168,0.5)]" />
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 md:p-8 rounded-3xl border border-white/10 bg-gradient-to-r from-[#0f1115] to-black group-hover:border-[#00A8A8]/30 group-hover:shadow-[0_0_30px_rgba(0,168,168,0.1)] transition-all gap-4">
+                        <div>
+                          <h4 className="text-xl font-bold text-white mb-3 group-hover:text-[#00A8A8] transition-colors">{checkIn.event.title}</h4>
+                          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-gray-500">
+                            <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-md border border-white/5"><Calendar className="w-3.5 h-3.5 text-gray-400" /> {new Date(checkIn.checkedInAt).toLocaleDateString()}</span>
+                            {checkIn.event.location && <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-md border border-white/5"><QrCode className="w-3.5 h-3.5 text-gray-400" /> {checkIn.event.location}</span>}
+                          </div>
                         </div>
-                      </div>
-                      <div className="px-4 py-2 rounded-lg bg-[#00A8A8]/10 text-[#00A8A8] text-xs font-bold tracking-widest uppercase border border-[#00A8A8]/20 flex items-center gap-2 w-max">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#00A8A8]" />
-                        Attended
+                        <div className="px-5 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 text-xs font-bold tracking-widest uppercase border border-emerald-500/20 flex items-center gap-2 w-max shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                          <ShieldCheck className="w-4 h-4" /> Verified
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -433,24 +444,45 @@ export default function ClubPage() {
 
           {/* Status */}
           {activeTab === "status" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl space-y-6">
-              <div className="p-8 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-[0_0_40px_rgba(16,185,129,0.05)]">
-                <div>
-                  <h4 className="text-2xl font-black text-white italic mb-2">Membership Valid</h4>
-                  <p className="text-gray-400 text-sm">You have full access to club events and resources.</p>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl space-y-6">
+              <div className="relative overflow-hidden p-8 md:p-10 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-8 shadow-[0_0_50px_rgba(16,185,129,0.15)]">
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none" />
+
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-4">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest font-bold">System Status: Nominal</span>
+                  </div>
+                  <h4 className="text-3xl md:text-4xl font-black text-white italic mb-2 tracking-tight">Membership Valid</h4>
+                  <p className="text-emerald-100/70 text-sm max-w-md leading-relaxed">You have full, unrestricted access to the club portal, hackathons, and exclusive resources.</p>
                 </div>
-                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-500">
-                  <ShieldCheck className="w-8 h-8" />
+                <div className="relative z-10 flex items-center justify-center w-20 h-20 shrink-0 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)] backdrop-blur-md">
+                  <ShieldCheck className="w-10 h-10" />
                 </div>
               </div>
 
-              <div className="p-8 rounded-3xl border border-white/10 bg-[#0f1115] flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div>
-                  <h4 className="text-lg font-bold text-white mb-1">Account Tier</h4>
-                  <p className="text-gray-500 text-xs font-mono tracking-wide uppercase">System privileges</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-8 rounded-3xl border border-white/10 bg-[#0f1115] hover:border-[#00A8A8]/30 transition-colors shadow-xl">
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                    <LayoutDashboard className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Account Tier</h4>
+                  <p className="text-gray-500 text-sm mb-6 leading-relaxed">Your current privilege level within the query engine ecosystem.</p>
+                  <div className="inline-block px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-black tracking-widest text-sm uppercase shadow-inner">
+                    Verified Member
+                  </div>
                 </div>
-                <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white font-black tracking-widest text-sm uppercase">
-                  Verified Member
+
+                <div className="p-8 rounded-3xl border border-white/10 bg-[#0f1115] hover:border-[#00A8A8]/30 transition-colors shadow-xl">
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                    <Clock className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Valid Through</h4>
+                  <p className="text-gray-500 text-sm mb-6 leading-relaxed">The date your current member profile requires a renewal check.</p>
+                  <div className="inline-block px-5 py-2.5 rounded-xl bg-[#00A8A8]/10 border border-[#00A8A8]/30 text-[#00A8A8] font-mono tracking-widest text-sm shadow-[0_0_15px_rgba(0,168,168,0.1)]">
+                    {/* @ts-ignore */}
+                    {memberStatus?.expiresAt ? new Date(memberStatus.expiresAt).toLocaleDateString() : 'N/A'}
+                  </div>
                 </div>
               </div>
             </div>
