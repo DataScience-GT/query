@@ -226,7 +226,7 @@ export default function ClubPage() {
             </div>
 
             {/* Navigation */}
-            <nav className="w-full gap-2 overflow-x-auto pb-2 scrollbar-none lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible">
+            <nav className="flex flex-col sm:flex-row flex-wrap w-full gap-2 overflow-x-auto pb-2 scrollbar-none lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible">
               <Link
                 href="#general"
                 className={`group flex items-center justify-center gap-2 rounded-xl border border-transparent py-3 px-4 text-sm font-bold tracking-wide transition-all duration-200 ${

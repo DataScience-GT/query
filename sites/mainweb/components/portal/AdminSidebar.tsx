@@ -77,15 +77,17 @@ export default function AdminSidebar() {
       {/* User section */}
       <div className="border-t border-white/5 px-3 py-4">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          <img src={session?.user?.image || '/avatars/default.png'} alt={session?.user?.name || 'User'} className="h-10 w-10 rounded-full border border-white/10 object-cover" />
           {isOpen && (
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium text-white truncate">{session?.user?.name || 'Admin User'}</p>
-              <p className="text-xs text-gray-500 truncate">{session?.user?.email || 'Admin'}</p>
-            </div>
+            <>
+              <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-10 w-10 rounded-full border border-white/10 object-cover" />
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium text-white truncate">{session?.user?.name || 'Admin User'}</p>
+                <p className="text-xs text-gray-500 truncate">{session?.user?.email || 'Admin'}</p>
+              </div>
+            </>
           )}
           {!isOpen && (
-            <img src={session?.user?.image || '/avatars/default.png'} alt="User" className="h-8 w-8 rounded-full border border-white/10 object-cover" />
+            <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-8 w-8 rounded-full border border-white/10 object-cover" />
           )}
         </div>
         {isOpen && (
