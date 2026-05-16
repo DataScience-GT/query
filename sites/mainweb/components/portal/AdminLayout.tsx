@@ -2,7 +2,6 @@
 
 import { useSession } from 'next-auth/react';
 import AdminSidebar from './AdminSidebar';
-import AdminHeader from './AdminHeader';
 import { useEffect, useState } from 'react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -28,11 +27,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="relative min-h-screen bg-[#0a0c10] dark:bg-darkBlue/80 text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#0a0c10] dark:bg-darkBlue/80 text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden flex">
       <AdminSidebar />
-      <AdminHeader />
-      <div className="w-full ml-64 pt-16">
-        {children}
+      <div className="flex-1 lg:ml-64 ml-20 transition-all duration-300">
+        <div className="p-6">
+          {children}
+        </div>
       </div>
     </div>
   );
