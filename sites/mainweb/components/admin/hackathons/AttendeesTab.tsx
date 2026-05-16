@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { ChevronDown, ChevronUp, Check, X, Clock, ExternalLink } from 'lucide-react';
 
 function statusColors(status: string) {
     switch (status) {
@@ -17,18 +18,27 @@ function statusColors(status: string) {
 }
 
 export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: string, hackathonName: string }) {
+    const utils = trpc.useUtils();
     const { data: attendees, isLoading } = trpc.hackathon.adminGetAttendees.useQuery({ hackathonId });
+    const updateStatus = trpc.hackathon.updateParticipantStatus.useMutation({
+        onSuccess: () => {
+            utils.hackathon.adminGetAttendees.invalidate({ hackathonId });
+        }
+    });
+
+    const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
     if (isLoading) return <div className="text-gray-500 font-mono text-center py-20 animate-pulse">Loading Registry...</div>;
 
     const exportToCSV = () => {
         if (!attendees || attendees.length === 0) return;
-        const headers = ['Name', 'Email', 'Status', 'Team', 'Shirt Size', 'Dietary Restrictions', 'Emergency Contact', 'Emergency Phone', 'Registered At'];
+        const headers = ['Name', 'Email', 'Status', 'Team', 'School', 'Major', 'Grad Year', 'Shirt Size', 'Dietary Restrictions', 'Emergency Contact', 'Emergency Phone', 'Registered At'];
 
         type Attendee = NonNullable<typeof attendees>[number];
 
         const rows = attendees.map((a: Attendee) => [
             `"${a.user?.name || 'Unknown'}"`, `"${a.user?.email || 'Unknown'}"`, `"${a.registrationStatus}"`, `"${a.team?.name || 'No Team'}"`,
+            `"${a.school || ''}"`, `"${a.major || ''}"`, `"${a.graduationYear || ''}"`,
             `"${a.shirtSize || 'None'}"`, `"${(a.dietaryRestrictions || []).join(', ') || 'None'}"`, `"${a.emergencyContact || ''}"`,
             `"${a.emergencyPhone || ''}"`, `"${new Date(a.registeredAt).toISOString()}"`
         ]);
@@ -42,6 +52,10 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleStatusUpdate = (participantId: string, newStatus: "pending" | "approved" | "rejected" | "waitlisted" | "checked_in") => {
+        updateStatus.mutate({ hackathonId, participantId, status: newStatus });
     };
 
     return (
@@ -60,15 +74,15 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                 </button>
             </div>
 
-            <LiquidGlass className="p-0 overflow-hidden overflow-x-auto border-white/5">
+            <LiquidGlass className="p-0 overflow-hidden overflow-x-auto border-white/5 relative z-10">
                 <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
                     <thead className="bg-black/40 border-b border-white/10 text-gray-400 font-mono text-[10px] uppercase tracking-wider">
                         <tr>
+                            <th className="px-6 py-4 font-semibold w-12"></th>
                             <th className="px-6 py-4 font-semibold">Participant</th>
                             <th className="px-6 py-4 font-semibold">Status</th>
-                            <th className="px-6 py-4 font-semibold">Team</th>
-                            <th className="px-6 py-4 font-semibold">Logistics</th>
-                            <th className="px-6 py-4 font-semibold">Registered</th>
+                            <th className="px-6 py-4 font-semibold">School & Major</th>
+                            <th className="px-6 py-4 font-semibold text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -78,31 +92,125 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                             </tr>
                         ) : (
                             attendees.map((attendee: NonNullable<typeof attendees>[number]) => (
-                                <tr key={attendee.id} className="hover:bg-white/[0.02] transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <Image src={attendee.user?.image || '/avatar-placeholder.png'} alt="Avatar" width={32} height={32} className="rounded-full bg-black shrink-0" />
-                                            <div>
-                                                <p className="text-white font-bold">{attendee.user?.name || 'Unknown User'}</p>
-                                                <p className="text-gray-500 text-xs">{attendee.user?.email || 'No email'}</p>
+                                <React.Fragment key={attendee.id}>
+                                    <tr className="hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
+                                        <td className="px-6 py-4">
+                                            {expandedRow === attendee.id ? <ChevronUp className="w-4 h-4 text-cyan-400" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <Image src={attendee.user?.image || '/avatar-placeholder.png'} alt="Avatar" width={32} height={32} className="rounded-full bg-black shrink-0" />
+                                                <div>
+                                                    <p className="text-white font-bold">{attendee.user?.name || 'Unknown User'}</p>
+                                                    <p className="text-gray-500 text-xs font-mono">{attendee.user?.email || 'No email'}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded border text-[10px] font-mono font-bold uppercase tracking-wider ${statusColors(attendee.registrationStatus)}`}>
-                                            {attendee.registrationStatus}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-300 font-medium">
-                                        {attendee.team?.name || <span className="text-gray-600 italic font-normal text-xs">No Team</span>}
-                                    </td>
-                                    <td className="px-6 py-4 text-xs font-mono">
-                                        <p className="text-gray-400"><span className="text-gray-500">Shirt:</span> {attendee.shirtSize}</p>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-500 font-mono text-xs">
-                                        {new Date(attendee.registeredAt).toLocaleDateString()}
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded border text-[10px] font-mono font-bold uppercase tracking-wider ${statusColors(attendee.registrationStatus)}`}>
+                                                {attendee.registrationStatus}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-gray-300 text-xs max-w-[200px] truncate">{attendee.school || 'N/A'}</p>
+                                            <p className="text-gray-500 text-xs truncate max-w-[200px]">{attendee.major || 'N/A'}</p>
+                                        </td>
+                                        <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                                            <select 
+                                                className={`bg-black border rounded-lg text-xs font-mono px-3 py-1.5 outline-none cursor-pointer ${statusColors(attendee.registrationStatus)} disabled:opacity-50`}
+                                                value={attendee.registrationStatus}
+                                                onChange={(e) => handleStatusUpdate(attendee.id, e.target.value as any)}
+                                                disabled={updateStatus.isPending}
+                                            >
+                                                <option value="pending">Pending</option>
+                                                <option value="waitlisted">Waitlisted</option>
+                                                <option value="approved">Approved</option>
+                                                <option value="rejected">Rejected</option>
+                                                <option value="checked_in">Checked In</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {expandedRow === attendee.id && (
+                                        <tr className="bg-black/30">
+                                            <td colSpan={5} className="p-0">
+                                                <div className="p-6 md:p-8 animate-in fade-in duration-300">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                                        
+                                                        {/* General Info */}
+                                                        <div className="space-y-4">
+                                                            <h4 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Application Details</h4>
+                                                            <div>
+                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Education</p>
+                                                                <p className="text-sm text-gray-200">{attendee.school} • {attendee.levelOfStudy}</p>
+                                                                <p className="text-xs text-gray-400">{attendee.major} (Class of {attendee.graduationYear})</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Personal</p>
+                                                                <p className="text-sm text-gray-200">{attendee.age} years old • {attendee.gender || 'Not specified'}</p>
+                                                                <p className="text-sm text-gray-200">{attendee.country}</p>
+                                                                <p className="text-xs text-gray-400 mt-1">{attendee.phone}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Experience & Logistics */}
+                                                        <div className="space-y-4">
+                                                            <h4 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Logistics & Links</h4>
+                                                            <div className="flex gap-4">
+                                                                {attendee.resumeUrl && (
+                                                                    <a href={attendee.resumeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                                                                        <ExternalLink className="w-3 h-3" /> Resume
+                                                                    </a>
+                                                                )}
+                                                                {attendee.githubUrl && (
+                                                                    <a href={attendee.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                                                                        <ExternalLink className="w-3 h-3" /> GitHub
+                                                                    </a>
+                                                                )}
+                                                                {attendee.linkedinUrl && (
+                                                                    <a href={attendee.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                                                                        <ExternalLink className="w-3 h-3" /> LinkedIn
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                                                <div>
+                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Shirt Size</p>
+                                                                    <p className="text-sm text-gray-200 font-bold">{attendee.shirtSize || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Dietary</p>
+                                                                    <p className="text-sm text-gray-200">{(attendee.dietaryRestrictions || []).join(', ') || 'None'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Emergency</p>
+                                                                <p className="text-sm text-gray-200">{attendee.emergencyContact}</p>
+                                                                <p className="text-xs text-gray-400">{attendee.emergencyPhone}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Questionnaire */}
+                                                        <div className="space-y-4 lg:col-span-1 md:col-span-2">
+                                                            <h4 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Questionnaire</h4>
+                                                            <div>
+                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Hackathons Attended</p>
+                                                                <p className="text-sm text-gray-200 font-mono bg-white/5 w-fit px-2 py-0.5 rounded border border-white/10">{attendee.hackathonsAttended ?? 0}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-2">Why Attend?</p>
+                                                                <div className="bg-white/5 border border-white/5 p-4 rounded-xl">
+                                                                    <p className="text-xs text-gray-300 italic whitespace-pre-wrap leading-relaxed">
+                                                                        {attendee.whyAttend ? `"${attendee.whyAttend}"` : "No answer provided."}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))
                         )}
                     </tbody>
