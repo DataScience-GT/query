@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { trpc } from '@/lib/trpc';
-import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Clock, Server } from 'lucide-react';
+import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Server } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function AdminSettingsPage() {
-  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations'>('general');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
