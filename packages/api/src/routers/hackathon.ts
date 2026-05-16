@@ -477,6 +477,34 @@ export const hackathonRouter = createTRPCRouter({
       return attendees;
     }),
 
+  updateParticipantStatus: isAdmin
+    .input(z.object({
+      hackathonId: z.string().uuid("Invalid hackathon ID"),
+      participantId: z.string().uuid("Invalid participant ID"),
+      status: z.enum(["pending", "approved", "rejected", "waitlisted", "checked_in"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const participant = await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.id, input.participantId),
+          eq(hackathonParticipants.hackathonId, input.hackathonId)
+        ),
+      });
+
+      if (!participant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Participant not found" });
+      }
+
+      await (ctx.db as DrizzleDB)
+        .update(hackathonParticipants)
+        .set({ registrationStatus: input.status })
+        .where(eq(hackathonParticipants.id, input.participantId));
+
+      ctx.cache.deletePattern('hackathon*');
+
+      return { success: true };
+    }),
+
   analytics: isAdmin
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
