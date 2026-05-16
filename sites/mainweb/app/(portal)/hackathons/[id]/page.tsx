@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import Link from 'next/link';
@@ -14,21 +14,6 @@ import { ScheduleTab } from '@/components/hackathon/ScheduleTab';
 import { ProjectsTab } from '@/components/hackathon/ProjectsTab';
 import { TeamsTab } from '@/components/hackathon/TeamsTab';
 
-function formatDate(d: Date | string) {
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatDateRange(start: Date | string, end: Date | string) {
-    const s = new Date(start);
-    const e = new Date(end);
-    if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
-        return `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${e.getDate()}, ${e.getFullYear()}`;
-    }
-    if (s.getFullYear() === e.getFullYear()) {
-        return `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${e.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${e.getFullYear()}`;
-    }
-    return `${formatDate(s)} - ${formatDate(e)}`;
-}
 
 function statusConfig(s: string) {
     const map: Record<string, { label: string; dot: string; text: string; bg: string; border: string; glow: string }> = {

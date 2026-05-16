@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { ChevronDown, ChevronUp, Check, X, Clock, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 function statusColors(status: string) {
     switch (status) {
