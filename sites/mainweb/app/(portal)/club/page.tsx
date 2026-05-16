@@ -11,7 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
 import {
   QrCode, Calendar, FolderGit2, Clock, ShieldCheck,
-  ChevronRight, ArrowRight, LayoutDashboard, FileCode2, Globe
+  ChevronRight, ArrowRight, LayoutDashboard, Search, FileCode2, Globe
 } from "lucide-react";
 
 type Tab = "general" | "hackathons" | "projects" | "history" | "status";
