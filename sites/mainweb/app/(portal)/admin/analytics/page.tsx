@@ -24,15 +24,7 @@ export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const { data: hackathons, isLoading } = trpc.hackathon.listAll.useQuery(undefined, { enabled: !!session });
-
-  // Derive overview stats from hackathon list
-  const stats = hackathons ? {
-    totalParticipants: hackathons.reduce((sum, h) => sum + (h.currentParticipants ?? 0), 0),
-    totalEvents: hackathons.length,
-    totalHackathons: hackathons.filter(h => ['open', 'in_progress'].includes(h.status)).length,
-    checkinsToday: 0, // not tracked at aggregate level
-  } : undefined;
+  const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(undefined, { enabled: !!session });
 
   if (status === 'unauthenticated') {
     router.push('/login');
@@ -121,28 +113,24 @@ export default function AnalyticsPage() {
                 title="Total Participants"
                 value={stats?.totalParticipants || 0}
                 subtitle="registered across all events"
-                trend={{ positive: true, percent: 12 }}
               />
               <StatCard
                 icon={Trophy}
                 title="Events Hosted"
                 value={stats?.totalEvents || 0}
                 subtitle="competitions and gatherings"
-                trend={{ positive: true, percent: 8 }}
               />
               <StatCard
                 icon={Calendar}
                 title="Hackathons"
                 value={stats?.totalHackathons || 0}
                 subtitle="active and upcoming"
-                trend={{ positive: true, percent: 5 }}
               />
               <StatCard
                 icon={TrendingUp}
                 title="Check-ins Today"
                 value={stats?.checkinsToday || 0}
                 subtitle="scanned via QR codes"
-                trend={{ positive: true, percent: 23 }}
               />
             </>
           )}
