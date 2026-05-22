@@ -28,7 +28,7 @@
     "geist": "^1.5.1",
     "lucide-react": "^1.14.0",
     "minimatch": "10.2.3",
-    "next": "16.2.4",
+    "next": "16.2.6",
     "next-auth": "5.0.0-beta.30",
     "qrcode": "1.5.4",
     "qrcode.react": "^3.2.0",
@@ -41,8 +41,8 @@
     "superjson": "^2.2.3"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "16.2.1",
-    "@next/eslint-plugin-next": "16.2.1",
+    "@next/bundle-analyzer": "16.2.6",
+    "@next/eslint-plugin-next": "16.2.6",
     "@query/eslint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",

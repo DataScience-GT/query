@@ -9,6 +9,8 @@ import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import AdminLayout from '@/components/portal/AdminLayout';
+import { QrCode } from 'lucide-react';
+
 
 type Event = {
   id: string;
@@ -135,11 +137,15 @@ export default function AdminPage() {
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 via-cyan-900/10 to-transparent rounded-2xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+            <QrCode className="w-3 h-3" /> Club Events
+          </p>
           <h1 className="text-2xl font-black text-white tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
-            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-emerald-500 italic">Events</span>
+            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-emerald-500 italic">Manager</span>
           </h1>
-          <p className="text-text-muted text-sm relative z-10">Manage your event check-in locations, QR codes, and attendance tracking.</p>
+          <p className="text-text-muted text-sm relative z-10">Create events, generate QR codes, and track attendance for general club gatherings.</p>
         </div>
+
 
         {/* View Controls */}
         <div className="flex items-center justify-between mb-6">

@@ -10,11 +10,11 @@ import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
 import {
-  QrCode, Calendar, FolderGit2, Clock, ShieldCheck,
-  ChevronRight, ArrowRight, LayoutDashboard, Search, FileCode2, Globe
+  QrCode, Calendar, Clock, ShieldCheck,
+  ChevronRight, LayoutDashboard, Search, Zap
 } from "lucide-react";
 
-type Tab = "general" | "hackathons" | "projects" | "history" | "status";
+type Tab = "general" | "history" | "status";
 
 export default function ClubPage() {
   const { data: session, status } = useSession();
@@ -34,18 +34,12 @@ export default function ClubPage() {
     enabled: !!session,
   });
 
-  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
-    enabled: !!session,
-  });
-
-  const projects = myRegs?.flatMap((reg) => reg.team?.projects || []) || [];
-
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '') as Tab;
-      if (["general", "hackathons", "projects", "history", "status"].includes(hash)) {
+      if (["general", "history", "status"].includes(hash)) {
         setActiveTab(hash);
       }
     };
@@ -108,15 +102,12 @@ export default function ClubPage() {
 
   const handleScan = async (detectedCodes: { rawValue: string }[]) => {
     if (isProcessing || !detectedCodes || detectedCodes.length === 0) return;
-
     const scannedData = detectedCodes[0]?.rawValue;
     if (!scannedData) return;
     if (scannedCodes.has(scannedData)) return;
-
     setScannedCodes((prev) => new Set(prev).add(scannedData));
     setIsPaused(true);
     setIsProcessing(true);
-
     try {
       await checkInMutation.mutateAsync({ qrCode: scannedData });
     } catch (error) {
@@ -137,9 +128,7 @@ export default function ClubPage() {
   const firstName = userData?.name?.split(" ")[0] || "Member";
 
   const tabs = [
-    { id: "general", label: "General Events", icon: QrCode },
-    { id: "hackathons", label: "My Hackathons", icon: Calendar },
-    { id: "projects", label: "My Projects", icon: FolderGit2 },
+    { id: "general", label: "Event Check-In", icon: QrCode },
     { id: "history", label: "Attendance History", icon: Clock },
     { id: "status", label: "Membership Status", icon: ShieldCheck },
   ];
@@ -205,9 +194,10 @@ export default function ClubPage() {
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[10px] font-mono text-emerald-500 uppercase tracking-widest">Active Member</span>
                 </div>
-                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase italic group-hover:text-[#00A8A8] transition-colors">
+                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase italic">
                   {userData?.name || "Member"}
                 </h1>
+                <p className="text-gray-500 font-mono text-xs uppercase tracking-widest mt-1">Club Events Portal</p>
               </div>
             </div>
 
@@ -223,7 +213,25 @@ export default function ClubPage() {
           </div>
         </div>
 
-        {/* Dynamic Navigation */}
+        {/* Hackathon Hub Banner */}
+        <Link
+          href="/hackathons"
+          className="group relative overflow-hidden flex items-center justify-between gap-4 w-full rounded-2xl border border-[#00A8A8]/20 bg-[#00A8A8]/5 hover:bg-[#00A8A8]/10 hover:border-[#00A8A8]/40 transition-all duration-300 p-5 md:p-6 mb-8 md:mb-10"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-[#00A8A8]/10 border border-[#00A8A8]/30 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5 text-[#00A8A8]" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Looking for Hackathons?</p>
+              <p className="text-gray-500 text-xs mt-0.5">Browse events, view your registrations, and manage your projects in the Hackathon Hub.</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#00A8A8] shrink-0 group-hover:translate-x-1 transition-transform relative z-10" />
+        </Link>
+
+        {/* Tab Navigation */}
         <div className="mb-10 w-full overflow-x-auto scrollbar-none border-b border-white/10 pb-4">
           <div className="flex items-center gap-3 w-max min-w-full">
             {tabs.map((tab) => (
@@ -234,6 +242,7 @@ export default function ClubPage() {
                   ? 'bg-gradient-to-r from-[#00A8A8]/10 to-transparent border border-[#00A8A8]/30 text-[#00A8A8] shadow-[0_0_20px_rgba(0,168,168,0.15)]'
                   : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
+                onClick={() => setActiveTab(tab.id as Tab)}
               >
                 <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-[#00A8A8]' : 'text-gray-500'}`} />
                 {tab.label}
@@ -242,10 +251,10 @@ export default function ClubPage() {
           </div>
         </div>
 
-        {/* Tab Content Areas */}
+        {/* Tab Content */}
         <div className="relative min-h-[400px]">
 
-          {/* General Events */}
+          {/* General Check-In */}
           {activeTab === "general" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f1115] shadow-2xl transition-all duration-500 hover:border-[#00A8A8]/30 p-8 md:p-12">
@@ -291,7 +300,7 @@ export default function ClubPage() {
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                      Hackathons have separate registration and check-ins.
+                      Hackathons have their own separate hub with registration and team tools.
                     </li>
                   </ul>
                 </div>
@@ -299,113 +308,7 @@ export default function ClubPage() {
             </div>
           )}
 
-          {/* Hackathons */}
-          {activeTab === "hackathons" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {myRegs && myRegs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {myRegs.map((reg) => (
-                    <Link
-                      key={reg.id}
-                      href={`/hackathons/${reg.hackathonId}?tab=INFO`}
-                      className="group flex flex-col rounded-3xl border border-white/10 bg-gradient-to-b from-[#0f1115] to-black p-8 transition-all hover:border-[#00A8A8]/50 hover:shadow-[0_0_40px_rgba(0,168,168,0.15)] relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                        <FileCode2 className="w-24 h-24 text-[#00A8A8]" />
-                      </div>
-
-                      <div className="flex justify-between items-start mb-6 relative z-10">
-                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest font-bold shadow-lg ${reg.registrationStatus === "approved" ? "bg-[#00A8A8]/20 text-[#00A8A8] border border-[#00A8A8]/30 shadow-[#00A8A8]/20" :
-                          reg.registrationStatus === "rejected" ? "bg-red-500/20 text-red-500 border border-red-500/30 shadow-red-500/20" :
-                            "bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shadow-yellow-500/20"
-                          }`}>
-                          {reg.registrationStatus}
-                        </span>
-                      </div>
-
-                      <h4 className="text-2xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors mb-2 relative z-10">
-                        {reg.hackathon.name}
-                      </h4>
-                      {reg.hackathon.theme && (
-                        <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-emerald-400 text-xs font-mono uppercase mb-4 tracking-wide relative z-10 font-bold">
-                          Theme: {reg.hackathon.theme}
-                        </p>
-                      )}
-
-                      <p className="text-gray-400 text-sm line-clamp-3 mb-6 flex-1 relative z-10 leading-relaxed">{reg.hackathon.description}</p>
-
-                      <div className="border-t border-white/10 pt-5 mt-auto flex items-center justify-between text-xs text-gray-500 relative z-10">
-                        <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5"><Calendar className="w-3.5 h-3.5 text-gray-400" /> {reg.hackathon.startDate ? new Date(reg.hackathon.startDate).toLocaleDateString() : 'TBA'}</span>
-                        <span className="flex items-center gap-1 font-bold group-hover:text-[#00A8A8] transition-colors bg-[#00A8A8]/0 px-3 py-1.5 rounded-lg group-hover:bg-[#00A8A8]/10">Enter Portal <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" /></span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
-                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                    <Calendar className="w-8 h-8 text-gray-500" />
-                  </div>
-                  <h3 className="text-2xl font-black text-white mb-3 italic">No active registrations</h3>
-                  <p className="text-gray-400 mb-8 max-w-sm">You haven't registered for any upcoming hackathons yet. Find an event to get started.</p>
-                  <Link href="/hackathons" className="px-8 py-4 bg-gradient-to-r from-[#00A8A8] to-emerald-600 rounded-xl text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2">
-                    Browse Hackathons <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Projects */}
-          {activeTab === "projects" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {projects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
-                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                    <FolderGit2 className="w-8 h-8 text-gray-500" />
-                  </div>
-                  <h3 className="text-2xl font-black text-white mb-3 italic">No projects submitted</h3>
-                  <p className="text-gray-400 max-w-sm mb-8">Join a hackathon team and submit a project to see your portfolio grow here.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {projects.map((project) => (
-                    <div key={project.id} className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f1115] p-8 hover:border-[#00A8A8]/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(0,168,168,0.1)]">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                      <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-6">
-                          <h4 className="text-3xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors">{project.name}</h4>
-                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase font-bold tracking-widest border shadow-lg ${project.status === "winner" ? "border-yellow-500/40 bg-yellow-500/20 text-yellow-500 shadow-yellow-500/20" :
-                            project.status === "judging" ? "border-blue-500/40 bg-blue-500/20 text-blue-500 shadow-blue-500/20" :
-                              "border-[#00A8A8]/40 bg-[#00A8A8]/20 text-[#00A8A8] shadow-[#00A8A8]/20"
-                            }`}>
-                            {project.status}
-                          </span>
-                        </div>
-                        <p className="text-gray-400 text-sm mb-8 line-clamp-3 leading-relaxed">{project.description}</p>
-
-                        <div className="flex flex-wrap gap-4 border-t border-white/10 pt-6">
-                          {project.githubUrl && (
-                            <Link href={project.githubUrl} target="_blank" className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95">
-                              <FolderGit2 className="w-4 h-4" /> Source Code
-                            </Link>
-                          )}
-                          {project.demoUrl && (
-                            <Link href={project.demoUrl} target="_blank" className="px-5 py-2.5 rounded-xl bg-[#00A8A8]/10 hover:bg-[#00A8A8]/20 border border-[#00A8A8]/30 text-xs font-bold text-[#00A8A8] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,168,168,0.2)]">
-                              <Globe className="w-4 h-4" /> Live Demo
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* History */}
+          {/* Attendance History */}
           {activeTab === "history" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
               {!myEvents || myEvents.length === 0 ? (
@@ -413,16 +316,14 @@ export default function ClubPage() {
                   <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
                     <Clock className="w-8 h-8 text-gray-500" />
                   </div>
-                  <h3 className="text-2xl font-black text-white mb-3 italic">No history</h3>
+                  <h3 className="text-2xl font-black text-white mb-3 italic">No history yet</h3>
                   <p className="text-gray-400 max-w-sm">You haven't checked into any events yet. When you do, they will appear here.</p>
                 </div>
               ) : (
                 <div className="relative border-l-2 border-white/10 ml-4 md:ml-6 space-y-8 pb-4">
-                  {myEvents.map((checkIn, idx) => (
+                  {myEvents.map((checkIn) => (
                     <div key={checkIn.id} className="relative pl-8 md:pl-12 group">
-                      {/* Timeline dot */}
                       <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-[#00A8A8] bg-black group-hover:bg-[#00A8A8] group-hover:scale-125 transition-all shadow-[0_0_10px_rgba(0,168,168,0.5)]" />
-
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 md:p-8 rounded-3xl border border-white/10 bg-gradient-to-r from-[#0f1115] to-black group-hover:border-[#00A8A8]/30 group-hover:shadow-[0_0_30px_rgba(0,168,168,0.1)] transition-all gap-4">
                         <div>
                           <h4 className="text-xl font-bold text-white mb-3 group-hover:text-[#00A8A8] transition-colors">{checkIn.event.title}</h4>
@@ -442,12 +343,11 @@ export default function ClubPage() {
             </div>
           )}
 
-          {/* Status */}
+          {/* Membership Status */}
           {activeTab === "status" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl space-y-6">
               <div className="relative overflow-hidden p-8 md:p-10 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-8 shadow-[0_0_50px_rgba(16,185,129,0.15)]">
                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none" />
-
                 <div className="relative z-10">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-4">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
