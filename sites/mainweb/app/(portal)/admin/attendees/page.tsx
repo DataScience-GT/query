@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { skipToken } from '@tanstack/react-query';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { Download } from 'lucide-react';
+import { Download, QrCode } from 'lucide-react';
 
 export default function AttendeesPage() {
   const { data: session, status } = useSession();
@@ -46,6 +46,9 @@ export default function AttendeesPage() {
         {/* Page Header */}
         <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-2xl overflow-hidden group hover:border-accent/40 transition-all duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+            <QrCode className="w-3 h-3" /> Club Events
+          </p>
           <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-emerald-500 transition-all duration-500">
             Attendees <span className="text-accent italic font-bold">Registry</span>
           </h1>

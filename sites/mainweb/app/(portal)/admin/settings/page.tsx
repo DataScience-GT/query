@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Server } from 'lucide-react';
+import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Server, QrCode } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function AdminSettingsPage() {
@@ -32,6 +32,9 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
+          <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+            <QrCode className="w-3 h-3" /> Club Events
+          </p>
           <h1 className="text-4xl font-black text-white tracking-tight uppercase italic flex items-center gap-3">
             <Settings className="w-8 h-8 text-[#00A8A8]" />
             System Settings

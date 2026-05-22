@@ -12,6 +12,7 @@ import { getStatusMeta } from '@/components/admin/hackathons/constants';
 import { HackathonCard } from '@/components/admin/hackathons/HackathonCard';
 import { CreateHackathonForm } from '@/components/admin/hackathons/CreateHackathonForm';
 import { EditHackathonForm } from '@/components/admin/hackathons/EditHackathonForm';
+import { Zap } from 'lucide-react';
 
 export default function AdminHackathonsPage() {
     const { data: session, status } = useSession();
@@ -42,6 +43,9 @@ export default function AdminHackathonsPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
+                  <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+                    <Zap className="w-3 h-3" /> Hackathon Hub
+                  </p>
                   <h1 className="relative text-3xl font-black text-white tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 to-gray-400 transition-all duration-500">
                     Hackathon <span className="text-accent italic">Manager</span>
                   </h1>

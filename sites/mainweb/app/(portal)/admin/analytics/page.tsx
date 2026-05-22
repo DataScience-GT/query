@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { Users, Trophy, Calendar, TrendingUp } from 'lucide-react';
+import { Users, Trophy, Calendar, TrendingUp, QrCode } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
@@ -91,6 +91,9 @@ export default function AnalyticsPage() {
         <div className="relative mb-8 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-2xl overflow-hidden group hover:border-accent/40 transition-all duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+            <QrCode className="w-3 h-3" /> Club Events
+          </p>
           <h1 className="relative text-3xl font-black text-white tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 to-gray-400 transition-all duration-500">
             Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
