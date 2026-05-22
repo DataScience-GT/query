@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { UploadCloud, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
@@ -142,6 +143,9 @@ export default function AdminSetupPage() {
         <AdminLayout>
             <div className="relative z-10 max-w-4xl mx-auto">
                 <div className="mb-12">
+                    <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                        <Zap className="w-3 h-3" /> Hackathon Hub
+                    </p>
                     <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
                         Judging Data <span className="text-accent italic">Import</span>
                     </h1>
