@@ -223,34 +223,6 @@ export default function Dashboard() {
                         </div>
                       </Link>
 
-                      <Link href="/admin/hackathons/analytics" className="block group">
-                        <div className="relative p-8 rounded-2xl bg-gradient-to-br from-black/50 via-[#050505] to-black/50 border border-white/10 hover:border-blue-500/30 transition-all duration-500 overflow-hidden group-hover:translate-y-[-2px] group-hover:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <div className="absolute -right-20 -top-20 w-60 h-60 bg-blue-500/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                            <svg className="w-32 h-32 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
-                          </div>
-
-                          <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                              <p className="text-xs uppercase tracking-[0.2em] font-bold text-blue-400">Node Access Level 4</p>
-                            </div>
-                            <h3 className="text-4xl font-bold text-white uppercase tracking-tight mb-3 group-hover:text-blue-400 transition-colors">
-                              Admin Analytics Node
-                            </h3>
-                            <p className="text-base text-gray-400 font-mono leading-relaxed">
-                              View real-time registration statistics, dietary restrictions, and t-shirt sizes.
-                            </p>
-                            <div className="mt-8 flex items-center gap-3 text-[10px] font-mono text-blue-400/70 uppercase tracking-[0.15em] group-hover:opacity-100 transition-opacity">
-                              <span>INITIATE TELEMETRY</span>
-                              <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-
                       <Link href="/club" className="block group">
                         <div className="relative p-8 rounded-2xl bg-gradient-to-br from-black/50 via-[#050505] to-black/50 border border-white/10 hover:border-[#00A8A8]/30 transition-all duration-500 overflow-hidden group-hover:translate-y-[-2px] group-hover:shadow-[0_0_40px_rgba(0,168,168,0.15)]">
                           <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
