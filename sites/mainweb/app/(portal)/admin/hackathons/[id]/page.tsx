@@ -9,15 +9,16 @@ import { LoadingScreen } from '@/components/portal/LoadingScreen';
 import { ScannerTab } from '@/components/admin/hackathons/ScannerTab';
 import { AttendeesTab } from '@/components/admin/hackathons/AttendeesTab';
 import { AnalyticsTab } from '@/components/admin/hackathons/AnalyticsTab';
+import { EventsTab } from '@/components/admin/hackathons/EventsTab';
 
-type Tab = 'scanner' | 'attendees' | 'analytics';
+type Tab = 'events' | 'scanner' | 'attendees' | 'analytics';
 
 export default function AdminHackathonDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const hackathonId = params?.id as string;
-  const [activeTab, setActiveTab] = useState<Tab>('scanner');
+  const [activeTab, setActiveTab] = useState<Tab>('events');
 
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
   const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery(
@@ -32,6 +33,7 @@ export default function AdminHackathonDashboard() {
   if (!hackathon) return null;
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'events', label: 'Events', icon: <IconCalendar className="w-5 h-5" /> },
     { id: 'scanner', label: 'Scan', icon: <IconScanner className="w-5 h-5" /> },
     { id: 'attendees', label: 'Attendees', icon: <IconUsers className="w-5 h-5" /> },
     { id: 'analytics', label: 'Stats', icon: <IconChart className="w-5 h-5" /> },
@@ -117,6 +119,7 @@ export default function AdminHackathonDashboard() {
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 p-4 md:p-6 min-h-[calc(100vh-200px)]">
         <div className="max-w-4xl mx-auto">
+          {activeTab === 'events' && <EventsTab hackathonId={hackathon.id} />}
           {activeTab === 'scanner' && <ScannerTab hackathonId={hackathon.id} />}
           {activeTab === 'attendees' && <AttendeesTab hackathonId={hackathon.id} hackathonName={hackathon.name} />}
           {activeTab === 'analytics' && <AnalyticsTab hackathonId={hackathon.id} />}
@@ -124,7 +127,7 @@ export default function AdminHackathonDashboard() {
       </main>
 
       {/* MOBILE BOTTOM NAVIGATION - Enhanced */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-white/10 z-40 grid grid-cols-3 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-white/10 z-40 grid grid-cols-4 pb-safe">
         {/* Top gradient overlay */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
@@ -181,6 +184,14 @@ function IconChart({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  );
+}
+
+function IconCalendar({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   );
 }
