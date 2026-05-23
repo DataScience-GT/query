@@ -47,6 +47,7 @@ export default function AdminPage() {
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
       if (newEvent) {
+        utils.events.listAll.invalidate();
         setShowCreateEvent(false);
         generateQRCode(newEvent.qrCode);
         setSelectedEvent(newEvent as unknown as Event);

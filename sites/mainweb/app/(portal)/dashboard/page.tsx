@@ -385,7 +385,7 @@ export default function Dashboard() {
                           </div>
                         ) : activeRegs.length > 0 ? (
                           activeRegs.map((reg) => (
-                            <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=SCHEDULE`} className="block group h-full">
+                            <Link key={reg.id} href={`/hackathons/${reg.hackathonId}?tab=SCHEDULE`} className="block group h-full">
                               <div className="relative h-full p-8 rounded-2xl bg-black/40 border border-[#00A8A8]/20 hover:border-[#00A8A8]/40 transition-all duration-300 flex flex-col rounded-lg hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,168,168,0.15)] overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/8 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -402,10 +402,14 @@ export default function Dashboard() {
                                   </div>
                                   {reg.team?.projects && reg.team.projects.length > 0 && (
                                     <div className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-                                      <span className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Project Submited</span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Project Submitted</span>
                                     </div>
                                   )}
                                 </div>
+
+                                <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-3 group-hover:text-[#00A8A8] transition-colors relative z-10">
+                                  {reg.hackathon.name}
+                                </h3>
 
                                 <div className="space-y-2 mb-6 flex-1 relative z-10 mt-2">
                                   <div className="flex items-center justify-between">
@@ -488,7 +492,7 @@ export default function Dashboard() {
                           </h2>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {pastRegs.map((reg) => (
-                              <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=OVERVIEW`} className="block group h-full">
+                              <Link key={reg.id} href={`/hackathons/${reg.hackathonId}?tab=INFO`} className="block group h-full">
                                 <div className="relative h-full p-6 rounded-2xl bg-black/40 border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col rounded-lg opacity-70 hover:opacity-100">
                                   <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                                     <svg className="w-16 h-16 text-gray-600" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
