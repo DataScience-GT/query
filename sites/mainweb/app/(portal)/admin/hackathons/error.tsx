@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import Background from '@/components/portal/Background';
 
 export default function AdminError({
     error,
