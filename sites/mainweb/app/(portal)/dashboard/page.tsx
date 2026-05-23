@@ -348,8 +348,33 @@ export default function Dashboard() {
                             </div>
                           </Link>
                         ) : (
-                          <div className="h-full">
+                          <div className="h-full space-y-6">
                             <LinkStripeAccount />
+                            
+                            {/* NON-MEMBER HACKATHON GUEST SIGNUP TILE */}
+                            <Link href="/hackathons" className="block group">
+                              <div className="relative p-8 rounded-2xl bg-gradient-to-br from-black/50 via-[#050505] to-black/50 border border-white/10 hover:border-[#00A8A8]/30 transition-all duration-500 overflow-hidden group-hover:translate-y-[-2px] group-hover:shadow-[0_0_40px_rgba(0,168,168,0.2)]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                                <div className="absolute -right-20 -top-20 w-60 h-60 bg-[#00A8A8]/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                                
+                                <div className="relative z-10">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <span className="w-2 h-2 bg-[#00A8A8] rounded-full animate-pulse shadow-[0_0_8px_#00A8A8]" />
+                                    <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#00A8A8]">Guest Pass Registry</p>
+                                  </div>
+                                  <h3 className="text-3xl font-bold text-white uppercase tracking-tight mb-3 group-hover:text-[#00A8A8] transition-colors">
+                                    Guest Registration
+                                  </h3>
+                                  <p className="text-base text-gray-400 font-mono leading-relaxed">
+                                    Not a club member? No problem! You can still register for and attend our hackathons as a guest participant.
+                                  </p>
+                                  <div className="mt-8 flex items-center gap-3 text-[10px] font-mono text-[#00A8A8]/70 uppercase tracking-[0.15em]">
+                                    <span>REGISTER AS GUEST</span>
+                                    <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
                           </div>
                         )}
 
