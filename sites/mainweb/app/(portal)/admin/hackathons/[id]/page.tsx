@@ -118,7 +118,7 @@ export default function AdminHackathonDashboard() {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 p-4 md:p-6 min-h-[calc(100vh-200px)]">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto w-full">
           {activeTab === 'events' && <EventsTab hackathonId={hackathon.id} />}
           {activeTab === 'scanner' && <ScannerTab hackathonId={hackathon.id} />}
           {activeTab === 'attendees' && <AttendeesTab hackathonId={hackathon.id} hackathonName={hackathon.name} />}
