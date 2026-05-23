@@ -27,16 +27,30 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
     });
 
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'waitlisted' | 'checked_in'>('all');
 
     if (isLoading) return <div className="text-gray-500 font-mono text-center py-20 animate-pulse">Loading Registry...</div>;
 
+    const filteredAttendees = attendees?.filter((a) => {
+        if (statusFilter !== 'all' && a.registrationStatus !== statusFilter) return false;
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            (a.user?.name || '').toLowerCase().includes(q) ||
+            (a.user?.email || '').toLowerCase().includes(q) ||
+            (a.school || '').toLowerCase().includes(q) ||
+            (a.major || '').toLowerCase().includes(q)
+        );
+    }) || [];
+
     const exportToCSV = () => {
-        if (!attendees || attendees.length === 0) return;
+        if (!filteredAttendees || filteredAttendees.length === 0) return;
         const headers = ['Name', 'Email', 'Status', 'Team', 'School', 'Major', 'Grad Year', 'Shirt Size', 'Dietary Restrictions', 'Emergency Contact', 'Emergency Phone', 'Registered At'];
 
-        type Attendee = NonNullable<typeof attendees>[number];
+        type Attendee = typeof filteredAttendees[number];
 
-        const rows = attendees.map((a: Attendee) => [
+        const rows = filteredAttendees.map((a: Attendee) => [
             `"${a.user?.name || 'Unknown'}"`, `"${a.user?.email || 'Unknown'}"`, `"${a.registrationStatus}"`, `"${a.team?.name || 'No Team'}"`,
             `"${a.school || ''}"`, `"${a.major || ''}"`, `"${a.graduationYear || ''}"`,
             `"${a.shirtSize || 'None'}"`, `"${(a.dietaryRestrictions || []).join(', ') || 'None'}"`, `"${a.emergencyContact || ''}"`,
@@ -63,7 +77,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h2 className="text-xl font-bold text-white uppercase tracking-wider">Registered Users</h2>
-                    <p className="text-sm font-mono text-gray-500">{attendees?.length || 0} Total Participants</p>
+                    <p className="text-sm font-mono text-gray-500">{filteredAttendees.length} of {attendees?.length || 0} Total Participants</p>
                 </div>
                 <button
                     onClick={exportToCSV}
@@ -72,6 +86,34 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                     Export CSV
                 </button>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1">
+                    <input
+                        type="text"
+                        placeholder="Search by name, email, school, or major..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00A8A8]/50 transition-colors"
+                    />
+                </div>
+                <div className="flex flex-wrap gap-2 items-center bg-black/30 border border-white/5 p-1.5 rounded-xl">
+                    {(['all', 'pending', 'approved', 'waitlisted', 'rejected', 'checked_in'] as const).map((s) => (
+                        <button
+                            key={s}
+                            onClick={() => setStatusFilter(s)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all border border-transparent ${
+                                statusFilter === s
+                                    ? 'bg-[#00A8A8]/20 text-[#00A8A8] border-[#00A8A8]/30 shadow-[#00A8A8]/10'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
+                        >
+                            {s === 'all' ? 'All' : s === 'checked_in' ? 'Checked In' : s.charAt(0).toUpperCase() + s.slice(1)}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <LiquidGlass className="p-0 overflow-hidden overflow-x-auto border-white/5 relative z-10">
@@ -86,12 +128,12 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {(!attendees || attendees.length === 0) ? (
+                        {(!filteredAttendees || filteredAttendees.length === 0) ? (
                             <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500 font-mono italic">No registrations found.</td>
                             </tr>
                         ) : (
-                            attendees.map((attendee: NonNullable<typeof attendees>[number]) => (
+                            filteredAttendees.map((attendee) => (
                                 <React.Fragment key={attendee.id}>
                                     <tr className="hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
                                         <td className="px-6 py-4">
