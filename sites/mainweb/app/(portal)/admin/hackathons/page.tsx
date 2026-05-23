@@ -83,7 +83,7 @@ export default function AdminHackathonsPage() {
                     />
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-8">
                     {isLoading ? (
                         <div className="py-12 text-center">
                             <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">Loading...</p>
@@ -97,7 +97,7 @@ export default function AdminHackathonsPage() {
                             <p className="text-text-muted text-sm font-mono">Create your first hackathon to get started.</p>
                         </LiquidGlass>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-12">
                             {hackathons.map((h: NonNullable<typeof hackathons>[number]) => {
                                 const sm = getStatusMeta(h.status);
                                 return (

@@ -54,9 +54,17 @@ export const hackathonRouter = createTRPCRouter({
 
   listAll: isAdmin
     .query(async ({ ctx }) => {
-      return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+      const cacheKey = "hackathons:list:all";
+      const cached = ctx.cache.get<any>(cacheKey);
+      if (cached !== undefined) return cached;
+
+      const allHackathons = await (ctx.db as DrizzleDB).query.hackathons.findMany({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
       });
+
+      ctx.cache.set(cacheKey, allHackathons, 60);
+
+      return allHackathons;
     }),
 
 
@@ -712,10 +720,18 @@ export const hackathonRouter = createTRPCRouter({
   getEvents: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
+      const cacheKey = `hackathon:${input.hackathonId}:events`;
+      const cached = ctx.cache.get<any>(cacheKey);
+      if (cached !== undefined) return cached;
+
+      const events = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
         where: eq(hackathonEvents.hackathonId, input.hackathonId),
         orderBy: (events, { asc }) => [asc(events.startTime)],
       });
+
+      ctx.cache.set(cacheKey, events, 60);
+
+      return events;
     }),
 
   myParticipantRecord: protectedProcedure
