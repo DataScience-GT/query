@@ -15,12 +15,12 @@ import {
 const BLOCKED_ROLES = ["Organizer", "Admin", "Judge", "Staff", "Sponsors"];
 
 const roleEmojis: Record<string, string> = {
-  Announcements: "📢",
-  Workshops: "🛠️",
-  Food: "🍔",
-  Mentor: "👩‍🏫",
-  Volunteer: "🤝",
-  Hacker: "💻",
+  Announcements: "[A]",
+  Workshops: "[W]",
+  Food: "[F]",
+  Mentor: "[M]",
+  Volunteer: "[V]",
+  Hacker: "[H]",
 };
 
 export const data = new SlashCommandBuilder()
@@ -77,10 +77,10 @@ export async function execute(interaction: CommandInteraction) {
   const rows: ActionRowBuilder<ButtonBuilder>[] = [];
 
   assignableRoles.forEach((role) => {
-    const emoji = roleEmojis[role.name] || "🔘";
+    const prefix = roleEmojis[role.name] || "[*]";
     const button = new ButtonBuilder()
       .setCustomId(`role_${role.id}`)
-      .setLabel(`${emoji} ${role.name}`)
+      .setLabel(`${prefix} ${role.name}`)
       .setStyle(ButtonStyle.Primary);
     rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(button));
   });
