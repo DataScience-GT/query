@@ -606,6 +606,109 @@ export const hackathonRouter = createTRPCRouter({
       return { success: true, message: `Successfully checked in ${participant.user.name || participant.user.email}!` };
     }),
 
+  createEvent: isAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        name: z.string().min(1).max(200),
+        description: z.string().max(2000).optional(),
+        type: z.enum(["workshop", "meal", "ceremony", "activity", "sponsor_session"]),
+        location: z.string().min(1).max(500),
+        startTime: z.date(),
+        endTime: z.date(),
+        points: z.number().int().min(0).max(1000).default(0),
+      }).refine(data => data.endTime > data.startTime, {
+        message: "End time must be after start time",
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+      });
+
+      if (!hackathon) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
+      }
+
+      const [newEvent] = await (ctx.db as DrizzleDB)
+        .insert(hackathonEvents)
+        .values({
+          hackathonId: input.hackathonId,
+          name: input.name,
+          description: input.description,
+          type: input.type,
+          location: input.location,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          points: input.points,
+        })
+        .returning();
+
+      ctx.cache.deletePattern('hackathon*');
+
+      return newEvent;
+    }),
+
+  updateEvent: isAdmin
+    .input(
+      z.object({
+        eventId: z.string().uuid("Invalid event ID"),
+        name: z.string().min(1).max(200).optional(),
+        description: z.string().max(2000).optional(),
+        type: z.enum(["workshop", "meal", "ceremony", "activity", "sponsor_session"]).optional(),
+        location: z.string().min(1).max(500).optional(),
+        startTime: z.date().optional(),
+        endTime: z.date().optional(),
+        points: z.number().int().min(0).max(1000).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { eventId, ...updateData } = input;
+
+      const existing = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst({
+        where: eq(hackathonEvents.id, eventId),
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      }
+
+      const [updatedEvent] = await (ctx.db as DrizzleDB)
+        .update(hackathonEvents)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(hackathonEvents.id, eventId))
+        .returning();
+
+      ctx.cache.deletePattern('hackathon*');
+
+      return updatedEvent;
+    }),
+
+  deleteEvent: isAdmin
+    .input(z.object({
+      eventId: z.string().uuid("Invalid event ID"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst({
+        where: eq(hackathonEvents.id, input.eventId),
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      }
+
+      await (ctx.db as DrizzleDB)
+        .delete(hackathonEvents)
+        .where(eq(hackathonEvents.id, input.eventId));
+
+      ctx.cache.deletePattern('hackathon*');
+
+      return { success: true };
+    }),
+
   getEvents: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
