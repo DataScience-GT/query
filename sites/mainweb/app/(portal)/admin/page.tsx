@@ -37,7 +37,7 @@ export default function AdminPage() {
   const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {
     enabled: !!session,
   });
-  const { data: events } = trpc.events.listAll.useQuery(undefined, {
+  const { data: events, isLoading: eventsLoading } = trpc.events.listAll.useQuery(undefined, {
     enabled: !!session && adminStatus?.isAdmin,
   });
 
@@ -193,12 +193,14 @@ export default function AdminPage() {
             </button>
           </div>
           <div className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-            {eventView === 'all'
-              ? `${events?.length} total events`
+            {eventsLoading ? (
+              <span className="text-gray-600">Loading events...</span>
+            ) : eventView === 'all'
+              ? `${events?.length || 0} total events`
               : `${events?.filter((e) => {
-                  if (eventView === 'competitions') return e.checkInEnabled;
-                  return !e.checkInEnabled;
-                }).length} of ${events?.length} shown`}
+                  if (eventView === 'competitions') return !e.checkInEnabled;
+                  return e.checkInEnabled;
+                }).length || 0} of ${events?.length || 0} shown`}
           </div>
         </div>
 
@@ -226,8 +228,10 @@ export default function AdminPage() {
                 )}
               </h2>
               <p className="text-gray-500 text-sm font-mono">
-                {eventView === 'all'
-                  ? `${events?.length} events in the system`
+                {eventsLoading ? (
+                  <span>Loading events...</span>
+                ) : eventView === 'all'
+                  ? `${events?.length || 0} events in the system`
                   : eventView === 'competitions'
                   ? `Competitions with teams, projects, and judging`
                   : `General gatherings with QR check-ins`}
@@ -241,7 +245,18 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {!events || events.length === 0 ? (
+          {eventsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="animate-pulse bg-white/5 border border-white/5 rounded-2xl p-6 h-28" />
+              ))}
+            </div>
+          ) : !events ||
+            events.filter((e) => {
+              if (eventView === 'all') return true;
+              if (eventView === 'competitions') return !e.checkInEnabled;
+              return e.checkInEnabled;
+            }).length === 0 ? (
             <LiquidGlass className="p-16 text-center">
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                 <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
@@ -256,18 +271,16 @@ export default function AdminPage() {
               {events
                 .filter((e) => {
                   if (eventView === 'all') return true;
-                  if (eventView === 'competitions') return e.checkInEnabled;
-                  return !e.checkInEnabled;
+                  if (eventView === 'competitions') return !e.checkInEnabled;
+                  return e.checkInEnabled;
                 })
                 .map((event) => (
                   <LiquidGlass
                     key={event.id}
                     className={`p-6 hover:border-white/20 transition-all ${
-                      eventView === 'competitions'
+                      !event.checkInEnabled
                         ? 'border-l-4 border-l-cyan-500'
-                        : eventView === 'gatherings'
-                        ? 'border-l-4 border-l-green-500'
-                        : ''
+                        : 'border-l-4 border-l-green-500'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
