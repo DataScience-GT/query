@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Server, QrCode } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations'>('general');

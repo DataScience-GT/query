@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 import { LoadingScreen } from '@/components/portal/LoadingScreen';
@@ -15,7 +15,6 @@ type Tab = 'events' | 'scanner' | 'attendees' | 'analytics';
 
 export default function AdminHackathonDashboard() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const params = useParams();
   const hackathonId = params?.id as string;
   const [activeTab, setActiveTab] = useState<Tab>('events');
