@@ -56,7 +56,7 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx }) => {
       const cacheKey = "hackathons:list:all";
       const cached = ctx.cache.get<any>(cacheKey);
-      if (cached !== undefined) return cached;
+      if (cached !== null) return cached;
 
       const allHackathons = await (ctx.db as DrizzleDB).query.hackathons.findMany({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
@@ -722,7 +722,7 @@ export const hackathonRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const cacheKey = `hackathon:${input.hackathonId}:events`;
       const cached = ctx.cache.get<any>(cacheKey);
-      if (cached !== undefined) return cached;
+      if (cached !== null) return cached;
 
       const events = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
         where: eq(hackathonEvents.hackathonId, input.hackathonId),
