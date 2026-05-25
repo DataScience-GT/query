@@ -76,7 +76,7 @@ export const eventRouter = createTRPCRouter({
 
     const cacheKey = `events:list:all`;
     const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
-    if (cached !== undefined) return cached;
+    if (cached !== null) return cached;
 
     const allEvents = await fetchEvents();
     ctx.cache.set(cacheKey, allEvents, 30);
