@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { admins, users } from "@query/db";
-import { eq, and } from "drizzle-orm";
+import { admins, users, events, eventCheckIns, hackathons, hackathonParticipants } from "@query/db";
+import { eq, and, count, gte, inArray } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
 import type { DrizzleDB } from "@query/db";
@@ -45,6 +45,30 @@ export const adminRouter = createTRPCRouter({
     ctx.cache.set(cacheKey, result, 60);
 
     return result;
+  }),
+
+  analyticsOverview: isAdmin.query(async ({ ctx }) => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [
+      participantsResult,
+      eventsResult,
+      hackathonsResult,
+      checkinsResult
+    ] = await Promise.all([
+      (ctx.db as DrizzleDB).select({ count: count() }).from(hackathonParticipants),
+      (ctx.db as DrizzleDB).select({ count: count() }).from(events),
+      (ctx.db as DrizzleDB).select({ count: count() }).from(hackathons).where(inArray(hackathons.status, ["open", "in_progress"])),
+      (ctx.db as DrizzleDB).select({ count: count() }).from(eventCheckIns).where(gte(eventCheckIns.checkedInAt, startOfToday)),
+    ]);
+
+    return {
+      totalParticipants: participantsResult[0]?.count ?? 0,
+      totalEvents: eventsResult[0]?.count ?? 0,
+      totalHackathons: hackathonsResult[0]?.count ?? 0,
+      checkinsToday: checkinsResult[0]?.count ?? 0,
+    };
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
