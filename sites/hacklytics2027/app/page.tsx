@@ -99,7 +99,7 @@ export default function HomePage() {
           <img
             src="https://s3.amazonaws.com/logged-assets/trust-badge/2026/mlh-trust-badge-2026-white.svg"
             alt="Major League Hacking 2026 Hackathon Season"
-            className="w-full grayscale hover:grayscale-0 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] transition-all duration-300"
+            className="w-full drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] transition-all duration-300"
           />
         </a>
 
