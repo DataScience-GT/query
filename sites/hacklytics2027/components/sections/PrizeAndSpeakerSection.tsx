@@ -2,32 +2,21 @@
 import React from 'react';
 import Image from 'next/image';
 
-<<<<<<< HEAD
 // Cybernetic Prize Ticket Component
-=======
-// Main Prize Ticket Component - Brutalist Style
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
 const PrizeTicket: React.FC<{
   type: 'gold' | 'silver' | 'bronze';
   prize: string;
   image: string;
 }> = ({ type, prize, image }) => {
   const colors = {
-<<<<<<< HEAD
     gold: { text: 'text-bloom-lime', border: 'border-bloom-lime', shadow: 'shadow-[0_0_20px_rgba(204,255,0,0.3)]' },
     silver: { text: 'text-bloom-cyan', border: 'border-bloom-cyan', shadow: 'shadow-[0_0_20px_rgba(0,243,255,0.3)]' },
     bronze: { text: 'text-bloom-pink', border: 'border-bloom-pink', shadow: 'shadow-[0_0_20px_rgba(255,0,127,0.3)]' }
-=======
-    gold: { text: 'text-bloom-lime', border: 'border-bloom-lime' },
-    silver: { text: 'text-gray-300', border: 'border-gray-500' },
-    bronze: { text: 'text-bloom-pink', border: 'border-bloom-pink' }
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
   };
 
   const color = colors[type];
 
   return (
-<<<<<<< HEAD
     <div className={`flex flex-col items-center w-full max-w-[280px] group transition-all duration-500 hover:-translate-y-2`}>
       <div className={`w-full aspect-[1.8/1] relative glass-panel flex flex-col items-center justify-center p-4 overflow-hidden border-2 ${color.border} ${color.shadow} rounded-b-none`}>
         {/* Abstract Glow */}
@@ -35,32 +24,15 @@ const PrizeTicket: React.FC<{
         
         <div className={`w-16 h-16 md:w-24 md:h-24 relative mb-2 z-10 filter drop-shadow-[0_0_15px_currentColor] group-hover:scale-110 transition-all duration-500`}>
           <Image src={image} alt={prize} fill className="object-contain" />
-=======
-    <div className={`flex flex-col items-center w-full max-w-[280px] group`}>
-      <div className={`w-full aspect-[1.8/1] relative border-2 ${color.border} bg-black/50 flex flex-col items-center justify-center p-4 hover:bg-white/[0.05] transition-colors overflow-hidden`}>
-        {/* Abstract Glow */}
-        <div className={`absolute top-0 right-0 w-32 h-32 ${color.border.replace('border-', 'bg-')}/20 blur-[40px] pointer-events-none group-hover:scale-150 transition-transform duration-700`}></div>
-        
-        <div className={`w-16 h-16 md:w-24 md:h-24 relative mb-2 z-10 filter grayscale group-hover:grayscale-0 transition-all duration-300`}>
-          <Image src={image} alt={prize} fill className="object-contain drop-shadow-lg" />
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
         </div>
       </div>
 
       {/* Prize Text Below */}
-<<<<<<< HEAD
       <div className={`w-full glass-panel !rounded-t-none border-t-0 p-4 text-center border-2 ${color.border} border-t-transparent shadow-xl bg-black/40`}>
         <div className={`font-mono text-sm tracking-widest uppercase mb-1 font-bold ${color.text} drop-shadow-[0_0_5px_currentColor]`}>
           {type}
         </div>
         <div className={`font-sans text-lg md:text-xl font-bold uppercase tracking-tight text-white drop-shadow-md`}>
-=======
-      <div className="w-full border border-t-0 border-gridline bg-[#0b0c10] p-4 text-center">
-        <div className={`font-mono text-sm tracking-widest uppercase mb-1 ${color.text}`}>
-          {type}
-        </div>
-        <div className={`font-sans text-lg md:text-xl font-bold uppercase tracking-tight text-white`}>
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
           {prize}
         </div>
       </div>
@@ -68,18 +40,13 @@ const PrizeTicket: React.FC<{
   );
 };
 
-<<<<<<< HEAD
 // Cybernetic Track Prize Card Component
-=======
-// Track Prize Card Component - Brutalist Style
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
 const TrackPrizeCard: React.FC<{
   trackName: string;
   description: string;
   prizes: { place: string; name: string; image: string }[];
   colorClass: string;
 }> = ({ trackName, description, prizes, colorClass }) => (
-<<<<<<< HEAD
   <div className={`glass-panel hover:bg-white/[0.05] transition-all duration-500 h-full flex flex-col group relative overflow-hidden hover:-translate-y-1 hover:border-${colorClass.replace('text-', '')}/50`}>
     
     {/* Abstract Background Glow */}
@@ -91,19 +58,6 @@ const TrackPrizeCard: React.FC<{
         {trackName}
       </h3>
       <p className="font-mono text-xs text-gray-300 uppercase tracking-widest leading-relaxed">
-=======
-  <div className="border border-gridline bg-black/50 hover:bg-white/[0.02] transition-colors h-full flex flex-col group relative overflow-hidden">
-    
-    {/* Abstract Background Glow */}
-    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 ${colorClass.replace('text-', 'bg-')}/5 rounded-full blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none`}></div>
-    
-    {/* Track Header */}
-    <div className="border-b border-gridline p-6 relative z-10">
-      <h3 className={`font-sans text-2xl md:text-3xl font-bold uppercase tracking-tighter ${colorClass} mb-2`}>
-        {trackName}
-      </h3>
-      <p className="font-mono text-xs text-gray-400 uppercase tracking-widest leading-relaxed">
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
         {description}
       </p>
     </div>
@@ -111,7 +65,6 @@ const TrackPrizeCard: React.FC<{
     {/* Prizes List */}
     <div className="p-6 flex flex-col gap-4 flex-1 relative z-10">
       {prizes.map((prize, index) => (
-<<<<<<< HEAD
         <div key={index} className={`flex items-center gap-4 bg-white/5 rounded-xl p-3 border border-white/5 group-hover:border-${colorClass.replace('text-', '')}/30 transition-colors`}>
           <div className="w-12 h-12 relative flex-shrink-0 group-hover:scale-110 transition-transform duration-500 drop-shadow-[0_0_10px_currentColor] text-white">
             <Image src={prize.image} alt={prize.name} fill className="object-contain rounded-md" />
@@ -119,15 +72,6 @@ const TrackPrizeCard: React.FC<{
           <div className="flex-1 min-w-0">
             <span className={`font-mono text-xs uppercase tracking-widest block mb-1 font-bold ${
                 index === 0 ? 'text-bloom-lime' : index === 1 ? 'text-bloom-cyan' : 'text-bloom-pink'
-=======
-        <div key={index} className="flex items-center gap-4 border border-gridline bg-[#0b0c10] p-3 hover:border-white/20 transition-colors">
-          <div className="w-12 h-12 relative flex-shrink-0 filter grayscale group-hover:grayscale-0 transition-all duration-500">
-            <Image src={prize.image} alt={prize.name} fill className="object-contain" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className={`font-mono text-xs uppercase tracking-widest block mb-1 ${
-                index === 0 ? 'text-bloom-lime' : index === 1 ? 'text-gray-400' : 'text-bloom-pink'
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
               }`}>
               {prize.place}
             </span>
@@ -139,11 +83,7 @@ const TrackPrizeCard: React.FC<{
   </div>
 );
 
-<<<<<<< HEAD
 // Cybernetic Speaker Card Component
-=======
-// Speaker Card Component - Brutalist Style
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
 const SpeakerCard: React.FC<{ name: string; title: string; company: string; image: string; colorClass: string }> = ({
   name,
   title,
@@ -151,7 +91,6 @@ const SpeakerCard: React.FC<{ name: string; title: string; company: string; imag
   image,
   colorClass
 }) => (
-<<<<<<< HEAD
   <div className={`glass-panel p-6 flex flex-col items-center text-center group hover:-translate-y-2 transition-all duration-500 relative overflow-hidden hover:border-${colorClass.replace('text-', '')}/50`}>
     <div className={`absolute -bottom-10 -right-10 w-48 h-48 ${colorClass.replace('text-', 'bg-')}/20 blur-[50px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
     
@@ -166,22 +105,6 @@ const SpeakerCard: React.FC<{ name: string; title: string; company: string; imag
     </h3>
     <p className="font-mono text-xs text-gray-300 uppercase tracking-widest mb-1">{title}</p>
     <p className={`font-mono text-xs font-bold ${colorClass} drop-shadow-[0_0_5px_currentColor]`}>{company}</p>
-=======
-  <div className="border border-gridline bg-[#0b0c10] p-6 flex flex-col items-center text-center group hover:bg-white/[0.02] transition-colors relative overflow-hidden">
-    <div className={`absolute -bottom-10 -right-10 w-32 h-32 ${colorClass.replace('text-', 'bg-')}/10 blur-[40px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-    
-    {/* Image Container */}
-    <div className="w-full aspect-square relative mb-6 border border-gridline filter grayscale group-hover:grayscale-0 transition-all duration-500 overflow-hidden">
-      <Image src={image} alt={name} fill className="object-cover" />
-    </div>
-
-    {/* Info */}
-    <h3 className={`font-sans text-2xl font-bold uppercase tracking-tight text-white mb-2 group-hover:${colorClass} transition-colors`}>
-      {name}
-    </h3>
-    <p className="font-mono text-xs text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-    <p className={`font-mono text-xs font-bold ${colorClass}`}>{company}</p>
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
   </div>
 );
 
@@ -279,7 +202,6 @@ export default function PrizeAndSpeakerSection() {
   ];
 
   return (
-<<<<<<< HEAD
     <section id="prizes" className="section-anchor scroll-mt-24 text-white relative">
       
       {/* Grand Prizes Section Header */}
@@ -288,33 +210,15 @@ export default function PrizeAndSpeakerSection() {
         <h1 className="font-sans text-5xl md:text-8xl lg:text-9xl font-bold tracking-tighter uppercase relative z-10 drop-shadow-2xl">
           Grand<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-cyan to-white bloom-text-glow">Prizes</span>
-=======
-    <section id="prizes" className="section-anchor scroll-mt-20 border-b border-gridline bg-[#0b0c10] text-white">
-      
-      {/* Grand Prizes Section Header */}
-      <div className="w-full px-6 md:px-12 xl:px-24 py-12 md:py-24 border-b border-gridline relative overflow-hidden flex flex-col items-center text-center">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-bloom-cyan/5 rounded-full blur-[100px] pointer-events-none"></div>
-        <h1 className="font-sans text-5xl md:text-8xl font-bold tracking-tighter uppercase relative z-10">
-          Grand<br />
-          <span className="text-bloom-cyan">Prizes</span>
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
         </h1>
       </div>
 
       {/* Grand Prizes Display */}
-<<<<<<< HEAD
       <div className="w-full px-6 md:px-12 xl:px-24 pb-24 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-16">
         <div className="order-2 md:order-1 w-full flex justify-center">
           <PrizeTicket {...mainPrizes[0]} />
         </div>
         <div className="order-1 md:order-2 w-full flex justify-center transform md:scale-110 z-20">
-=======
-      <div className="w-full px-6 md:px-12 xl:px-24 py-16 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 bg-black/30 border-b border-gridline">
-        <div className="order-2 md:order-1 w-full flex justify-center">
-          <PrizeTicket {...mainPrizes[0]} />
-        </div>
-        <div className="order-1 md:order-2 w-full flex justify-center transform scale-110 z-20">
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
           <PrizeTicket {...mainPrizes[1]} />
         </div>
         <div className="order-3 w-full flex justify-center">
@@ -323,22 +227,14 @@ export default function PrizeAndSpeakerSection() {
       </div>
 
       {/* Track Prizes Header */}
-<<<<<<< HEAD
       <div className="w-full px-6 md:px-12 xl:px-24 py-16 relative overflow-hidden flex flex-col items-center text-center mt-12">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-bloom-purple/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
         <h2 className="font-sans text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter uppercase relative z-10 text-white drop-shadow-xl">
           Track <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-purple to-bloom-pink bloom-text-glow">Prizes</span>
-=======
-      <div className="w-full px-6 md:px-12 xl:px-24 py-12 border-b border-gridline relative overflow-hidden flex flex-col items-center text-center">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-bloom-purple/5 rounded-full blur-[80px] pointer-events-none"></div>
-        <h2 className="font-sans text-4xl md:text-6xl font-bold tracking-tighter uppercase relative z-10 text-white">
-          Track <span className="text-bloom-purple">Prizes</span>
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
         </h2>
       </div>
 
       {/* Track Prizes Grid */}
-<<<<<<< HEAD
       <div className="w-full px-6 md:px-12 xl:px-24 mb-24">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
           {trackPrizes.slice(0, 3).map((track, index) => (
@@ -357,47 +253,16 @@ export default function PrizeAndSpeakerSection() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-bloom-pink/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
         <h2 className="font-sans text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter uppercase relative z-10 text-white drop-shadow-xl">
           Guest <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-pink to-bloom-lime bloom-text-glow">Speakers</span>
-=======
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-b border-gridline">
-        {trackPrizes.slice(0, 3).map((track, index) => (
-          <div key={track.trackName} className={`border-b md:border-b-0 ${index < 2 ? 'md:border-r' : ''} border-gridline`}>
-            <TrackPrizeCard {...track} />
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 border-b border-gridline">
-        {trackPrizes.slice(3, 5).map((track, index) => (
-          <div key={track.trackName} className={`border-b md:border-b-0 ${index === 0 ? 'md:border-r' : ''} border-gridline`}>
-            <TrackPrizeCard {...track} />
-          </div>
-        ))}
-      </div>
-
-      {/* Speakers Header */}
-      <div className="w-full px-6 md:px-12 xl:px-24 py-12 border-b border-gridline relative overflow-hidden flex flex-col items-center text-center">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-bloom-pink/5 rounded-full blur-[80px] pointer-events-none"></div>
-        <h2 className="font-sans text-4xl md:text-6xl font-bold tracking-tighter uppercase relative z-10 text-white">
-          Guest <span className="text-bloom-pink">Speakers</span>
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
         </h2>
       </div>
 
       {/* Speakers Grid */}
-<<<<<<< HEAD
       <div className="w-full px-6 md:px-12 xl:px-24 mb-24">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {speakers.map((speaker, index) => (
             <SpeakerCard key={speaker.id} {...speaker} />
           ))}
         </div>
-=======
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        {speakers.map((speaker, index) => (
-          <div key={speaker.id} className={`border-b lg:border-b-0 ${index < 3 ? 'md:border-r' : ''} border-gridline`}>
-            <SpeakerCard {...speaker} />
-          </div>
-        ))}
->>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
       </div>
 
     </section>
