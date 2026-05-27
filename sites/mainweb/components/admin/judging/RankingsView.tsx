@@ -93,7 +93,7 @@ export function RankingsView({
     const [expandedProject, setExpandedProject] = useState<string | null>(null);
 
     const confidenceBadge = (level: string) => {
-        if (level === 'LOW') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">⚠ LOW</span>;
+        if (level === 'LOW') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">! LOW</span>;
         if (level === 'MEDIUM') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">● MED</span>;
         if (level === 'HIGH') return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">◉ HIGH</span>;
         return <span className="ml-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-gray-500/20 text-gray-500 border border-gray-500/30">—</span>;
@@ -380,7 +380,7 @@ export function RankingsView({
                                                     <td className="px-4 py-8 text-right">
                                                         <span className="text-gray-600 font-mono tabular-nums text-lg">{r.voteCount}</span>
                                                         <div className="mt-1">
-                                                            {r.confidenceLevel === 'LOW' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">⚠ LOW</span>}
+                                                            {r.confidenceLevel === 'LOW' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">! LOW</span>}
                                                             {r.confidenceLevel === 'MEDIUM' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">● MED</span>}
                                                             {r.confidenceLevel === 'HIGH' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">◉ HIGH</span>}
                                                             {r.confidenceLevel === 'NONE' && <span className="px-2 py-0.5 rounded-full text-[7px] font-bold bg-gray-500/20 text-gray-500 border border-gray-500/30">—</span>}

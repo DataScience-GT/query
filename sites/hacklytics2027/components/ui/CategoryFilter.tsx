@@ -10,39 +10,34 @@ interface Props {
 }
 
 export default function CategoryFilter({ selected, onSelect, bgColor }: Props) {
-  const buttonBg = bgColor || '#FE97B0';
+  const buttonBg = bgColor || '#0b0c10';
 
   return (
-    <div style={{ backgroundColor: buttonBg }} className="py-6 px-6">
+    <div style={{ backgroundColor: buttonBg }} className="py-6 px-6 border-y border-gridline">
       <div className="flex flex-wrap justify-center gap-3">
         <button
           key="all"
           onClick={() => onSelect('all')}
-          className={`flex items-center space-x-2 rounded-full py-2 px-4 border transition
-            ${selected === 'all' ? 'bg-white text-pink-600' : ''}`}
-          style={{
-            backgroundColor: selected === 'all' ? 'white' : buttonBg,
-            color: selected === 'all' ? '#FE97B0' : 'white',
-          }}
+          className={`font-mono text-xs uppercase tracking-widest px-4 py-2 border transition-colors ${
+            selected === 'all' 
+              ? 'bg-white text-black font-bold' 
+              : 'bg-transparent text-gray-400 border-gridline hover:border-white'
+          }`}
         >
-          <span className="font-medium text-sm">All</span>
+          All
         </button>
-        {categories.map(cat => (
+        {categories.map((cat: any) => (
           <button
             key={cat.id}
             onClick={() => onSelect(cat.id)}
-            className={`flex items-center space-x-2 rounded-full py-2 px-4 border transition
-              ${selected === cat.id ? 'bg-white text-pink-600' : ''}`}
-            style={{
-              backgroundColor: selected === cat.id ? 'white' : buttonBg,
-              color: selected === cat.id ? '#FE97B0' : 'white',
-            }}
+            className={`font-mono text-xs uppercase tracking-widest px-4 py-2 border transition-colors flex items-center gap-2 ${
+              selected === cat.id 
+                ? 'bg-white/10 text-white font-bold border-current' 
+                : 'bg-transparent text-gray-400 border-gridline hover:border-white'
+            }`}
           >
-            <span
-              className="w-6 h-6 bg-center bg-no-repeat bg-contain inline-block"
-              style={{ backgroundImage: `url(${cat.icon})` }}
-            />
-            <span className="font-medium text-sm">{cat.name}</span>
+            <span className={`w-3 h-3 ${cat.color.replace('text-', 'bg-')}`}></span>
+            {cat.name}
           </button>
         ))}
       </div>

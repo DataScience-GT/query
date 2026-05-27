@@ -223,29 +223,35 @@ export default function Dashboard() {
                         </div>
                       </Link>
 
-                      <Link href="/admin/hackathons/analytics" className="block group">
-                        <div className="relative p-8 rounded-2xl bg-gradient-to-br from-black/50 via-[#050505] to-black/50 border border-white/10 hover:border-blue-500/30 transition-all duration-500 overflow-hidden group-hover:translate-y-[-2px] group-hover:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <div className="absolute -right-20 -top-20 w-60 h-60 bg-blue-500/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <Link href="/club" className="block group">
+                        <div className="relative p-8 rounded-2xl bg-gradient-to-br from-black/50 via-[#050505] to-black/50 border border-white/10 hover:border-[#00A8A8]/30 transition-all duration-500 overflow-hidden group-hover:translate-y-[-2px] group-hover:shadow-[0_0_40px_rgba(0,168,168,0.15)]">
+                          <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <div className="absolute -right-20 -top-20 w-60 h-60 bg-[#00A8A8]/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                            <svg className="w-32 h-32 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
+                            <svg className="w-32 h-32 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                           </div>
 
                           <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-4">
-                              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                              <p className="text-xs uppercase tracking-[0.2em] font-bold text-blue-400">Node Access Level 4</p>
+                              <span className="w-2 h-2 rounded-full bg-[#00A8A8] animate-pulse shadow-[0_0_8px_#00A8A8]" />
+                              <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#00A8A8]">Member Preview</p>
                             </div>
-                            <h3 className="text-4xl font-bold text-white uppercase tracking-tight mb-3 group-hover:text-blue-400 transition-colors">
-                              Admin Analytics Node
+                            <h3 className="text-4xl font-bold text-white uppercase tracking-tight mb-3 group-hover:text-[#00A8A8] transition-colors">
+                              Test Member View
                             </h3>
                             <p className="text-base text-gray-400 font-mono leading-relaxed">
-                              View real-time registration statistics, dietary restrictions, and t-shirt sizes.
+                              Preview exactly what members see — Club Portal, Hackathon Hub, and event check-in flows.
                             </p>
-                            <div className="mt-8 flex items-center gap-3 text-[10px] font-mono text-blue-400/70 uppercase tracking-[0.15em] group-hover:opacity-100 transition-opacity">
-                              <span>INITIATE TELEMETRY</span>
-                              <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                            <div className="mt-8 flex flex-wrap items-center gap-4">
+                              <div className="flex items-center gap-3 text-[10px] font-mono text-[#00A8A8]/70 uppercase tracking-[0.15em] group-hover:opacity-100 transition-opacity">
+                                <span>Club Portal</span>
+                                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                              </div>
+                              <Link href="/hackathons" onClick={e => e.stopPropagation()} className="flex items-center gap-3 text-[10px] font-mono text-[#00A8A8]/70 hover:text-[#00A8A8] uppercase tracking-[0.15em] transition-all border-l border-white/10 pl-4">
+                                <span>Hackathon Hub</span>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                              </Link>
                             </div>
                           </div>
                         </div>
@@ -342,8 +348,33 @@ export default function Dashboard() {
                             </div>
                           </Link>
                         ) : (
-                          <div className="h-full">
+                          <div className="h-full space-y-6">
                             <LinkStripeAccount />
+                            
+                            {/* NON-MEMBER HACKATHON GUEST SIGNUP TILE */}
+                            <Link href="/hackathons" className="block group">
+                              <div className="relative p-8 rounded-2xl bg-gradient-to-br from-black/50 via-[#050505] to-black/50 border border-white/10 hover:border-[#00A8A8]/30 transition-all duration-500 overflow-hidden group-hover:translate-y-[-2px] group-hover:shadow-[0_0_40px_rgba(0,168,168,0.2)]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                                <div className="absolute -right-20 -top-20 w-60 h-60 bg-[#00A8A8]/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                                
+                                <div className="relative z-10">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <span className="w-2 h-2 bg-[#00A8A8] rounded-full animate-pulse shadow-[0_0_8px_#00A8A8]" />
+                                    <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#00A8A8]">Guest Pass Registry</p>
+                                  </div>
+                                  <h3 className="text-3xl font-bold text-white uppercase tracking-tight mb-3 group-hover:text-[#00A8A8] transition-colors">
+                                    Guest Registration
+                                  </h3>
+                                  <p className="text-base text-gray-400 font-mono leading-relaxed">
+                                    Not a club member? No problem! You can still register for and attend our hackathons as a guest participant.
+                                  </p>
+                                  <div className="mt-8 flex items-center gap-3 text-[10px] font-mono text-[#00A8A8]/70 uppercase tracking-[0.15em]">
+                                    <span>REGISTER AS GUEST</span>
+                                    <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
                           </div>
                         )}
 
@@ -354,7 +385,7 @@ export default function Dashboard() {
                           </div>
                         ) : activeRegs.length > 0 ? (
                           activeRegs.map((reg) => (
-                            <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=SCHEDULE`} className="block group h-full">
+                            <Link key={reg.id} href={`/hackathons/${reg.hackathonId}?tab=SCHEDULE`} className="block group h-full">
                               <div className="relative h-full p-8 rounded-2xl bg-black/40 border border-[#00A8A8]/20 hover:border-[#00A8A8]/40 transition-all duration-300 flex flex-col rounded-lg hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,168,168,0.15)] overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/8 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -371,10 +402,14 @@ export default function Dashboard() {
                                   </div>
                                   {reg.team?.projects && reg.team.projects.length > 0 && (
                                     <div className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-                                      <span className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Project Submited</span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Project Submitted</span>
                                     </div>
                                   )}
                                 </div>
+
+                                <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-3 group-hover:text-[#00A8A8] transition-colors relative z-10">
+                                  {reg.hackathon.name}
+                                </h3>
 
                                 <div className="space-y-2 mb-6 flex-1 relative z-10 mt-2">
                                   <div className="flex items-center justify-between">
@@ -457,7 +492,7 @@ export default function Dashboard() {
                           </h2>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {pastRegs.map((reg) => (
-                              <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=OVERVIEW`} className="block group h-full">
+                              <Link key={reg.id} href={`/hackathons/${reg.hackathonId}?tab=INFO`} className="block group h-full">
                                 <div className="relative h-full p-6 rounded-2xl bg-black/40 border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col rounded-lg opacity-70 hover:opacity-100">
                                   <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                                     <svg className="w-16 h-16 text-gray-600" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>

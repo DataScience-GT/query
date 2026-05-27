@@ -40,8 +40,8 @@ export const scheduleData: DaySchedule = {
 };
 
 export const categories = [
-  { id: 'general', name: 'General', icon: './small-candy/blue.png' },
-  { id: 'food', name: 'Food', icon: './small-candy/green.png' },
-  { id: 'workshop', name: 'Workshop', icon: './small-candy/pink.png' },
-  { id: 'activity', name: 'Activity', icon: '/small-candy/yellow.png' }
+  { id: 'general', name: 'General', color: 'text-bloom-cyan' },
+  { id: 'food', name: 'Food', color: 'text-bloom-lime' },
+  { id: 'workshop', name: 'Workshop', color: 'text-bloom-pink' },
+  { id: 'activity', name: 'Activity', color: 'text-bloom-purple' }
 ];

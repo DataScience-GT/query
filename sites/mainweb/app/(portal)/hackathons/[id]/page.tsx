@@ -30,6 +30,7 @@ function formatDateRange(start: Date | string, end: Date | string) {
     return `${formatDate(s)} - ${formatDate(e)}`;
 }
 
+
 function statusConfig(s: string) {
     const map: Record<string, { label: string; dot: string; text: string; bg: string; border: string; glow: string }> = {
         open: { label: 'Registering', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.6)]' },
@@ -75,7 +76,7 @@ export default function HackathonDetailPage() {
             <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-r from-cyan-600/10 via-purple-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse" />
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-r from-purple-600/10 via-cyan-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse delay-1000" />
 
-            <main className="relative z-10 max-w-5xl mx-auto py-24 px-6 md:px-12">
+            <main className="relative z-10 max-w-7xl mx-auto py-24 px-6 md:px-12">
                 <Link
                     href="/hackathons"
                     className="inline-flex items-center gap-2 text-white/40 hover:text-cyan-300 transition-all duration-300 group -ml-2 -mt-2"

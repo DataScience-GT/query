@@ -3,12 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
 import Image from "next/image";
-import { Press_Start_2P } from 'next/font/google';
-
-const pixel = Press_Start_2P({
-  subsets: ['latin'],
-  weight: ['400'],
-});
 
 const navItems = [
   { name: "About", href: "/#about" },
@@ -67,18 +61,17 @@ export default function Navbar() {
     };
   }, []);
 
-  // **NEW**: Effect to prevent body scroll when mobile menu is open
+  // Effect to prevent body scroll when mobile menu is open
   useEffect(() => {
     if (open) {
       document.body.classList.add('overflow-hidden');
     } else {
       document.body.classList.remove('overflow-hidden');
     }
-    // Cleanup function to remove the class when the component unmounts
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
-  }, [open]); // Re-run this effect when the 'open' state changes
+  }, [open]);
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -112,8 +105,8 @@ export default function Navbar() {
       const isScrollLink = item.href.startsWith('/#');
       
       const className = isMobile
-        ? "block py-3 hover:text-wonka-red transition-colors"
-        : "relative group px-2 py-1";
+        ? "block py-4 border-b border-white/10 hover:text-bloom-cyan hover:bg-white/5 transition-colors w-full text-center"
+        : "relative group px-4 py-2 hover:bg-white/5 transition-colors h-full flex items-center border-l border-white/10 last:border-r";
 
       if (isScrollLink) {
         return (
@@ -123,9 +116,9 @@ export default function Navbar() {
             onClick={(e) => handleScroll(e, item.href)} 
             className={className}
           >
-            {item.name}
+            <span className="relative z-10">{item.name}</span>
             {!isMobile && (
-              <span className="absolute -bottom-1 left-0 w-0 h-1 bg-wonka-red transition-all duration-300 group-hover:w-full rounded-full"></span>
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-bloom-cyan scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100 shadow-[0_0_10px_var(--bloom-cyan)]"></span>
             )}
           </a>
         );
@@ -137,9 +130,9 @@ export default function Navbar() {
             onClick={() => setOpen(false)} 
             className={className}
           >
-            {item.name}
+            <span className="relative z-10">{item.name}</span>
             {!isMobile && (
-              <span className="absolute -bottom-1 left-0 w-0 h-1 bg-wonka-red transition-all duration-300 group-hover:w-full rounded-full"></span>
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-bloom-cyan scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100 shadow-[0_0_10px_var(--bloom-cyan)]"></span>
             )}
           </Link>
         );
@@ -148,70 +141,55 @@ export default function Navbar() {
   };
 
   return (
-    <> {/* Use a fragment to return multiple top-level elements */}
+    <>
       <header
         ref={headerRef}
-        className={`fixed top-0 z-40 w-full py-3 md:py-4 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'}`}
-        style={{
-          backgroundColor: scrolled ? 'var(--navbar-bg)' : 'transparent',
-          backdropFilter: scrolled ? `blur(var(--navbar-blur))` : 'none',
-          boxShadow: scrolled ? 'var(--navbar-glow)' : 'none',
-          borderColor: scrolled ? 'var(--neon-cyan)' : 'transparent',
-        }}
+        className={`fixed top-4 left-4 right-4 z-40 transition-all duration-500 ${navVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} glass-panel`}
+        style={{ height: 'calc(var(--navbar-height) - 16px)' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex-shrink-0">
-            <Link href="/" onClick={() => setOpen(false)}>
-              <div className="relative">
-                <Image src="/logo.png" alt="Hacklytics logo" width={48} height={48} />
-                <div className="absolute inset-0 bg-neon-pink/50 rounded blur-sm"></div>
+        <div className="w-full h-full flex items-center justify-between px-6">
+          <div className="flex-shrink-0 h-full flex items-center">
+            <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-4 group">
+              <div className="relative overflow-hidden rounded-xl p-1 bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-bloom-cyan group-hover:shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all duration-300">
+                <Image src="/logo.png" alt="Hacklytics logo" width={40} height={40} className="drop-shadow-lg transition-transform duration-300 group-hover:scale-110" />
               </div>
+              <span className="font-sans font-bold text-xl tracking-tighter hidden sm:block text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 group-hover:from-bloom-cyan group-hover:to-bloom-pink transition-all duration-300">HACKLYTICS</span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex flex-1 justify-center">
-            <nav className={`${pixel.className} flex items-center space-x-8 text-neon-pink text-2xl font-bold uppercase leading-none tracking-wide`}>
-              {renderNavLinks()}
-            </nav>
+          <div className="hidden md:flex h-full items-center font-mono text-sm tracking-widest uppercase text-gray-300">
+            {renderNavLinks()}
           </div>
 
-          <div className="w-12 flex-shrink-0 flex justify-end">
+          <div className="flex-shrink-0 flex justify-end md:hidden">
             {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              {/* **MODIFIED**: Set z-index to 50 to ensure button is above the new fullscreen overlay */}
-              <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="relative z-50 p-2 rounded-md text-neon-cyan focus:outline-none">
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {open ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} className="text-neon-pink" d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                  )}
-                </svg>
-              </button>
-            </div>
+            <button aria-label="Toggle menu" onClick={() => setOpen((s) => !s)} className="relative z-50 p-2 rounded-xl border border-white/10 bg-white/5 text-white hover:text-bloom-cyan hover:border-bloom-cyan focus:outline-none transition-all duration-300">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {open ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} className="text-bloom-pink" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Mobile glow effect */}
-        <div className="md:hidden absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-b from-neon-pink/20 to-transparent"></div>
-        </div>
-
-        {/* **MODIFIED**: Fullscreen Mobile Navigation Menu */}
+        {/* Fullscreen Mobile Navigation Menu */}
         <div
           className={`
-            md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center
-            transition-opacity duration-300 ease-in-out
-            ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+            md:hidden fixed inset-0 z-40 flex flex-col pt-[var(--navbar-height)]
+            transition-all duration-500 ease-in-out glass-panel !rounded-none
+            ${open ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-4'}
           `}
-          style={{
-            backgroundColor: 'var(--navbar-bg)',
-            backdropFilter: 'blur(var(--navbar-blur))'
-          }}
         >
-          <div className={`${pixel.className} space-y-6 text-center text-neon-pink text-3xl font-bold uppercase leading-none tracking-wide`}>
+          <div className="flex-1 overflow-y-auto font-mono text-lg tracking-widest uppercase text-gray-300 flex flex-col mt-4">
             {renderNavLinks(true)}
+          </div>
+          
+          <div className="p-6 border-t border-white/10 text-center bg-black/20">
+             <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-pink to-bloom-cyan font-mono text-xs tracking-widest font-bold">DIGITAL BLOOM EDITION</span>
           </div>
         </div>
       </header>
