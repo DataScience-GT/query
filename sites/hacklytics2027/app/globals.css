@@ -25,11 +25,14 @@
 
 body {
   background-color: var(--color-bg);
-  background-image: url('/digital-bloom-bg.png');
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(255, 0, 127, 0.05), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(0, 243, 255, 0.05), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(157, 0, 255, 0.03), transparent 50%),
+    linear-gradient(180deg, #030408 0%, #0a0a0f 100%);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
-  background-blend-mode: screen;
   color: var(--color-text);
   font-family: var(--font-family-sans);
   overflow-x: hidden;

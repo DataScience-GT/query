@@ -97,8 +97,8 @@ export default function HomePage() {
           className="absolute top-0 right-4 md:right-[50px] z-50 block w-[10%] max-w-[100px] min-w-[60px] transition-transform hover:scale-105"
         >
           <img
-            src="https://s3.amazonaws.com/logged-assets/trust-badge/2026/mlh-trust-badge-2026-white.svg"
-            alt="Major League Hacking 2026 Hackathon Season"
+            src="/mlh-trust-badge.svg"
+            alt="Major League Hacking 2027 Hackathon Season"
             className="w-full drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] transition-all duration-300"
           />
         </a>
