@@ -4,16 +4,19 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { LayoutDashboard, Code, ClipboardList, Users, FileText, BarChart3, Settings, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Code, ClipboardList, Users, FileText, BarChart3, Settings, LogOut, Menu, QrCode, Zap } from 'lucide-react';
 
-const routes = [
+const clubRoutes = [
   { name: 'Events', href: '/admin', icon: LayoutDashboard },
-  { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
-  { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
   { name: 'Attendees', href: '/admin/attendees', icon: Users },
-  { name: 'Projects', href: '/admin/projects', icon: FileText },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
+];
+
+const hackathonRoutes = [
+  { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
+  { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
+  { name: 'Projects', href: '/admin/projects', icon: FileText },
 ];
 
 export default function AdminSidebar() {
@@ -52,40 +55,88 @@ export default function AdminSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="space-y-1">
-          {routes.map((route) => {
-            const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
-            return (
-              <Link
-                key={route.href}
-                href={route.href}
-                className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#00A8A8]/10 to-transparent text-[#00A8A8] font-medium border-l-2 border-[#00A8A8]'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-[#00A8A8]' : 'text-gray-500 group-hover:text-white'}`} />
-                {isOpen && <span className="text-sm">{route.name}</span>}
-              </Link>
-            );
-          })}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+
+        {/* Club Events Section */}
+        <div className="mb-1">
+          {isOpen && (
+            <div className="flex items-center gap-2 px-3 pb-2 mb-1">
+              <QrCode className="h-3 w-3 text-[#00A8A8]/60 flex-shrink-0" />
+              <span className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em]">Club Events</span>
+            </div>
+          )}
+          {!isOpen && <div className="w-8 h-px bg-[#00A8A8]/20 mx-auto mb-3" />}
+          <div className="space-y-1">
+            {clubRoutes.map((route) => {
+              const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
+              return (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#00A8A8]/10 to-transparent text-[#00A8A8] font-medium border-l-2 border-[#00A8A8]'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-[#00A8A8]' : 'text-gray-500 group-hover:text-white'}`} />
+                  {isOpen && <span className="text-sm">{route.name}</span>}
+                </Link>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Divider */}
+        <div className={`my-3 ${isOpen ? 'border-t border-white/5' : 'w-8 h-px bg-white/10 mx-auto'}`} />
+
+        {/* Hackathon Hub Section */}
+        <div>
+          {isOpen && (
+            <div className="flex items-center gap-2 px-3 pb-2 mb-1">
+              <Zap className="h-3 w-3 text-[#00A8A8]/60 flex-shrink-0" />
+              <span className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em]">Hackathon Hub</span>
+            </div>
+          )}
+          {!isOpen && <div className="w-8 h-px bg-[#00A8A8]/20 mx-auto mb-3" />}
+          <div className="space-y-1">
+            {hackathonRoutes.map((route) => {
+              const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
+              return (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-3 transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#00A8A8]/10 to-transparent text-[#00A8A8] font-medium border-l-2 border-[#00A8A8]'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-[#00A8A8]' : 'text-gray-500 group-hover:text-white'}`} />
+                  {isOpen && <span className="text-sm">{route.name}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
       </nav>
+
 
       {/* User section */}
       <div className="border-t border-white/5 px-3 py-4">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          <img src={session?.user?.image || '/avatars/default.png'} alt={session?.user?.name || 'User'} className="h-10 w-10 rounded-full border border-white/10 object-cover" />
           {isOpen && (
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium text-white truncate">{session?.user?.name || 'Admin User'}</p>
-              <p className="text-xs text-gray-500 truncate">{session?.user?.email || 'Admin'}</p>
-            </div>
+            <>
+              <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-10 w-10 rounded-full border border-white/10 object-cover" />
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium text-white truncate">{session?.user?.name || 'Admin User'}</p>
+                <p className="text-xs text-gray-500 truncate">{session?.user?.email || 'Admin'}</p>
+              </div>
+            </>
           )}
           {!isOpen && (
-            <img src={session?.user?.image || '/avatars/default.png'} alt="User" className="h-8 w-8 rounded-full border border-white/10 object-cover" />
+            <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-8 w-8 rounded-full border border-white/10 object-cover" />
           )}
         </div>
         {isOpen && (
