@@ -138,8 +138,11 @@ export default function Navbar() {
     <>
       <header
         ref={headerRef}
-        className={`fixed top-4 left-4 right-24 md:right-[150px] z-40 transition-all duration-500 ${navVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} glass-navbar`}
-        style={{ height: 'calc(var(--navbar-height) - 16px)' }}
+        className={`fixed top-4 left-1/2 z-40 transition-all duration-500 ${navVisible ? 'opacity-100' : 'opacity-0'} glass-navbar rounded-3xl w-[calc(100%-2rem)] max-w-5xl`}
+        style={{ 
+          height: 'calc(var(--navbar-height) - 16px)',
+          transform: navVisible ? 'translate(-50%, 0)' : 'translate(-50%, -150%)'
+        }}
       >
         <div className="w-full h-full flex items-center justify-between px-6">
           <div className="flex-shrink-0 h-full flex items-center">
