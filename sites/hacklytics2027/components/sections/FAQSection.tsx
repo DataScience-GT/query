@@ -11,7 +11,7 @@ const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
 
   return (
     <div
-      className={`glass-panel transition-all duration-500 overflow-hidden ${isOpen ? 'border-bloom-cyan/50 shadow-[0_0_20px_rgba(0,243,255,0.15)]' : 'hover:border-white/30 hover:-translate-y-1'} cursor-pointer mb-4`}
+      className={`glass-card transition-all duration-500 overflow-hidden ${isOpen ? 'border-bloom-cyan/50 shadow-[0_0_20px_rgba(0,243,255,0.15)]' : 'hover:border-white/30 hover:-translate-y-1'} cursor-pointer mb-4`}
       onClick={() => setIsOpen(!isOpen)}
     >
       <div className="flex justify-between items-center p-6 md:p-8 relative z-10">
