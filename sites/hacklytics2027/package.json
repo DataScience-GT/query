@@ -8,8 +8,12 @@
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "export": "next export",
+<<<<<<< HEAD
     "e2e": "playwright test",
     "vision": "npx ts-node scripts/capture-vision.ts"
+=======
+    "e2e": "playwright test"
+>>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
   },
   "dependencies": {
     "@radix-ui/react-slot": "1.2.4",
