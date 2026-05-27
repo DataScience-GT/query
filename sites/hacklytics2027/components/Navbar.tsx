@@ -37,20 +37,18 @@ export default function Navbar() {
       lastScrollY.current = currentScrollY;
     };
 
-    window.addEventListener('scroll', handleScrollEvent);
-    window.addEventListener('mousemove', (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (e.clientY < 50) {
         setNavVisible(true);
       }
-    });
+    };
+
+    window.addEventListener('scroll', handleScrollEvent);
+    window.addEventListener('mousemove', handleMouseMove);
     
     return () => {
       window.removeEventListener('scroll', handleScrollEvent);
-      window.removeEventListener('mousemove', (e) => {
-        if (e.clientY < 50) {
-          setNavVisible(true);
-        }
-      });
+      window.removeEventListener('mousemove', handleMouseMove);
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
       }
@@ -140,7 +138,7 @@ export default function Navbar() {
     <>
       <header
         ref={headerRef}
-        className={`fixed top-4 left-4 right-24 md:right-[150px] z-40 transition-all duration-500 ${navVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} glass-panel`}
+        className={`fixed top-4 left-4 right-24 md:right-[150px] z-40 transition-all duration-500 ${navVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} glass-navbar`}
         style={{ height: 'calc(var(--navbar-height) - 16px)' }}
       >
         <div className="w-full h-full flex items-center justify-between px-6">
@@ -176,7 +174,7 @@ export default function Navbar() {
         <div
           className={`
             md:hidden fixed inset-0 z-40 flex flex-col pt-[var(--navbar-height)]
-            transition-all duration-500 ease-in-out glass-panel !rounded-none
+            transition-all duration-500 ease-in-out glass-navbar !rounded-none
             ${open ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-4'}
           `}
         >
