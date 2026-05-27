@@ -2,21 +2,6 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Press_Start_2P } from 'next/font/google';
-
-const pixel = Press_Start_2P({
-  subsets: ['latin'],
-  weight: ['400'],
-});
-
-const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }> = ({ src, delay, className }) => (
-  <div
-    className={`absolute pointer-events-none animate-float ${className}`}
-    style={{ animationDelay: delay }}
-  >
-    <Image src={src} alt="Candy" width={60} height={60} className="object-contain drop-shadow-lg drop-shadow-[0_0_10px_var(--neon-pink)]" />
-  </div>
-);
 
 const SPONSORS = {
   gold: [
@@ -44,174 +29,127 @@ const SPONSORS = {
   ]
 };
 
+// Add a specific filter class for light/dark logos
 const getLogoStyles = (name: string) => {
   if (name === 'Assurant' || name === 'D.E. Shaw') {
-    return "brightness-0";
+    return "brightness-200 invert"; // Making them white for dark background
   }
   return "";
 };
 
 export default function SponsorsSection() {
   return (
-    <section
-      id="sponsors"
-      className="section-anchor scroll-mt-28 relative bg-retro-gradient overflow-hidden flex flex-col justify-between min-h-[80vh]"
-    >
-      {/* Decorations */}
-      <div className="absolute top-20 left-[-60px] w-56 h-36 opacity-30 animate-drift drop-shadow-[0_0_25px_#ec4899]" style={{ animationDelay: '0s' }}>
-        <Image src="/cloud-main/largecloud.png" alt="" fill className="object-contain drop-shadow-[0_0_25px_#ec4899]" />
+    <section id="sponsors" className="section-anchor scroll-mt-20 border-b border-gridline bg-[#0b0c10] text-white flex flex-col">
+      
+      {/* Header Area */}
+      <div className="w-full px-6 md:px-12 xl:px-24 py-16 md:py-24 border-b border-gridline relative overflow-hidden flex flex-col items-center text-center">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-bloom-pink/5 rounded-full blur-[100px] pointer-events-none"></div>
+        
+        <h1 className="font-sans text-5xl md:text-8xl font-bold tracking-tighter uppercase relative z-10 mb-8">
+          Our <span className="text-bloom-pink">Partners</span>
+        </h1>
+        
+        <a href="https://2025.hacklytics.io/#sponsors" target="_blank" rel="noopener noreferrer" 
+           className="relative z-10 border border-gridline bg-black/50 px-6 py-3 font-mono text-xs uppercase tracking-widest hover:bg-white/[0.05] hover:border-bloom-pink transition-colors group flex items-center gap-4">
+          <span className="w-2 h-2 rounded-full bg-bloom-cyan group-hover:animate-ping"></span>
+          View 2025 Sponsors
+        </a>
       </div>
-      <div className="absolute top-40 right-[-50px] w-64 h-40 opacity-40 animate-drift drop-shadow-[0_0_25px_#06b6d4]" style={{ animationDelay: '2s' }}>
-        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain drop-shadow-[0_0_25px_#06b6d4]" />
-      </div>
 
-      <FloatingCandy src="/small-candy/yellow.png" delay="0s" className="top-32 left-[15%] rotate-12" />
-      <FloatingCandy src="/small-candy/pink.png" delay="2s" className="top-60 right-[20%] -rotate-12" />
-
-      {/* Main content */}
-      <div className="container mx-auto px-6 pt-20 md:pt-32 flex flex-col items-center text-center z-10">
-        <div className="relative mb-12 w-full max-w-5xl">
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-neon-cyan/20 blur-3xl rounded-full -z-10"></div>
-            <h1
-              className="font-pixel text-7xl md:text-9xl text-neon-cyan mb-4 drop-shadow-[0_0_30px_var(--neon-cyan)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
-              style={{ WebkitTextStroke: "2px #00ffff" }}
-            >
-              SPONSORS
-            </h1>
-
-            {/* Pinned Note for Past Sponsors */}
-            <div className="relative mt-12 md:mt-0 md:absolute md:-right-16 md:top-1/2 md:-translate-y-1/2 z-40 animate-fade-in-up flex justify-center md:justify-end" style={{ animationDelay: '0.6s' }}>
-                <div className="group transform rotate-3 hover:rotate-0 transition-transform duration-300 w-64 cursor-pointer">
-                    <a href="https://2025.hacklytics.io/#sponsors" target="_blank" rel="noopener noreferrer" className="block">
-                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-50 filter drop-shadow-sm">
-                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M20 38L20 12" stroke="#9CA3AF" strokeWidth="3" strokeLinecap="round"/>
-                              <circle cx="20" cy="10" r="8" fill="#DC2626" stroke="#991B1B" strokeWidth="2"/>
-                              <circle cx="22" cy="8" r="3" fill="#FECACA" fillOpacity="0.5"/>
-                            </svg>
-                        </div>
-
-                        <div className="bg-neon-pink/20 text-white p-6 pt-8 rounded-sm shadow-lg border border-neon-pink/40 relative hover:shadow-[0_0_30px_#ec4899] transition-shadow duration-300">
-                            <div className="absolute bottom-0 right-0 border-t-[24px] border-t-neon-pink border-r-[24px] border-r-transparent shadow-sm"></div>
-                            <p className="font-medium text-xl leading-relaxed font-handwriting text-center mb-2">
-                              See who sponsored last year!
-                            </p>
-                            <p className={`${pixel.className} text-2xl font-bold text-neon-cyan text-center underline decoration-wavy decoration-neon-cyan/50`}>
-                              View 2025 Sponsors
-                            </p>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        {/* LOGO GRID SECTION */}
-        <div className="relative flex flex-col items-center max-w-6xl w-full px-4 z-20 mb-16 space-y-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-
-          {/* Gold Tier */}
-          <div className="flex flex-wrap justify-center gap-10">
+      {/* Grid Section for Sponsors */}
+      <div className="w-full flex flex-col">
+        
+        {/* Gold Tier */}
+        <div className="border-b border-gridline relative overflow-hidden p-8 md:p-16">
+          <div className="absolute top-0 left-0 w-1 h-full bg-bloom-lime"></div>
+          <div className="font-mono text-sm uppercase tracking-widest text-bloom-lime mb-8 text-center">Titanium Tier</div>
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16 relative z-10">
             {SPONSORS.gold.map((s) => (
               <a key={s.name} href={s.website} target="_blank" rel="noopener noreferrer"
-                className="group bg-white/80 backdrop-blur-md p-10 rounded-3xl border-4 border-neon-yellow shadow-[0_0_30px_#fbbf24] hover:border-neon-pink hover:scale-105 transition-all duration-300 w-96 h-52 flex items-center justify-center overflow-hidden">
-                <Image src={s.src} alt={s.name} width={300} height={150} className={`object-contain max-h-full transition-transform group-hover:scale-110 ${getLogoStyles(s.name)}`} />
+                className="group border border-gridline bg-black/50 hover:bg-white/[0.02] p-8 md:p-12 transition-colors flex items-center justify-center w-[300px] h-[160px] md:w-[400px] md:h-[200px]">
+                <Image src={s.src} alt={s.name} width={300} height={150} className={`object-contain max-h-full filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 ${getLogoStyles(s.name)}`} />
               </a>
             ))}
           </div>
+        </div>
 
-          {/* Silver Tier */}
-          <div className="flex flex-wrap justify-center gap-8">
+        {/* Silver Tier */}
+        <div className="border-b border-gridline relative overflow-hidden p-8 md:p-16 bg-[#0b0c10]/80">
+          <div className="absolute top-0 left-0 w-1 h-full bg-bloom-cyan"></div>
+          <div className="font-mono text-sm uppercase tracking-widest text-bloom-cyan mb-8 text-center">Platinum Tier</div>
+          <div className="flex flex-wrap justify-center gap-6 md:gap-10 relative z-10">
             {SPONSORS.silver.map((s) => (
               <a key={s.name} href={s.website} target="_blank" rel="noopener noreferrer"
-                className="group bg-white/70 backdrop-blur-md p-8 rounded-2xl border-4 border-neon-yellow/50 shadow-[0_0_20px_#fbbf24] hover:border-neon-pink hover:scale-105 transition-all duration-300 w-80 h-44 flex items-center justify-center overflow-hidden"
-              >
-                <Image src={s.src} alt={s.name} width={240} height={120} className={`object-contain max-h-full transition-transform group-hover:scale-110 ${getLogoStyles(s.name)}`} />
+                className="group border border-gridline bg-black/30 hover:bg-white/[0.02] p-6 transition-colors flex items-center justify-center w-[240px] h-[120px] md:w-[320px] md:h-[160px]">
+                <Image src={s.src} alt={s.name} width={240} height={120} className={`object-contain max-h-full filter grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 ${getLogoStyles(s.name)}`} />
               </a>
             ))}
           </div>
+        </div>
 
-          {/* Bronze & Mini Tier Combined */}
-          <div className="flex flex-wrap justify-center gap-6">
+        {/* Bronze & Mini Tier Combined */}
+        <div className="border-b border-gridline relative overflow-hidden p-8 md:p-16">
+          <div className="absolute top-0 left-0 w-1 h-full bg-white/20"></div>
+          <div className="font-mono text-sm uppercase tracking-widest text-gray-500 mb-8 text-center">Gold & Silver Tiers</div>
+          <div className="flex flex-wrap justify-center gap-4 md:gap-6 relative z-10 max-w-6xl mx-auto">
             {[...SPONSORS.bronze, ...SPONSORS.mini].map((s) => (
               <a key={s.name} href={s.website} target="_blank" rel="noopener noreferrer"
-                className="group bg-white/60 backdrop-blur-sm p-6 rounded-xl border-2 border-stone-300 shadow-md hover:border-neon-pink hover:shadow-[0_0_20px_#ec4899] hover:scale-105 transition-all duration-300 w-60 h-32 flex items-center justify-center"
-              >
-                <Image src={s.src} alt={s.name} width={180} height={90} className={`object-contain max-h-full ${getLogoStyles(s.name)}`} />
+                className="group border border-gridline bg-black/20 hover:bg-white/[0.02] p-4 transition-colors flex items-center justify-center w-[180px] h-[90px] md:w-[220px] md:h-[110px]">
+                <Image src={s.src} alt={s.name} width={180} height={90} className={`object-contain max-h-full filter grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 ${getLogoStyles(s.name)}`} />
               </a>
             ))}
           </div>
         </div>
 
-        {/* Become a Sponsor Card */}
-        <div className="relative flex flex-col items-center max-w-4xl w-full px-4 z-20">
-          <div className="group relative animate-fade-in-up w-full max-w-xl z-30" style={{ animationDelay: '0.4s' }}>
-            <div className="relative bg-white/90 backdrop-blur-sm rounded-[2rem] px-10 py-8 border-[4px] border-neon-yellow shadow-[0_0_30px_#fbbf24] flex flex-col items-center text-center transform transition-transform duration-300 hover:scale-[1.02]">
-              <h3 className={`${pixel.className} text-4xl md:text-5xl font-bold text-gray-800 mb-2`}>
-                Partner With Us
-              </h3>
-              <p className="text-gray-600 font-medium text-lg md:text-xl leading-relaxed mb-6 max-w-md">
-                Help us build a world of pure imagination for hackers everywhere.
-              </p>
-
-              <a
-                href="mailto:hello@hacklytics.io"
-                className={`${pixel.className} inline-block bg-neon-pink text-white text-xl md:text-2xl font-bold px-8 py-3 rounded-full shadow-[0_6px_0_#991b1b] hover:shadow-[0_3px_0_#991b1b] hover:translate-y-[3px] transition-all uppercase tracking-wider whitespace-nowrap border-4 border-red-800 relative overflow-hidden`}
-              >
-                <span className="relative z-10">Become a Sponsor</span>
-                <div className="absolute inset-0 -translate-x-full hover:animate-[shine_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Bottom clouds and Footer */}
-      <div className="relative w-full h-40 md:h-48 flex justify-center items-end mt-16">
-        <div className="absolute left-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] -translate-x-1/4 animate-drift" style={{ animationDelay: '0s' }}>
-          <Image src="/cloud-final/image.png" alt="Cloud left" fill className="object-cover object-bottom opacity-90" priority />
-        </div>
-        <div className="absolute bottom-0 z-20 w-full h-full md:w-[800px] animate-drift" style={{ animationDelay: '3.5s' }}>
-          <Image src="/cloud-final/image.png" alt="Cloud center" fill className="object-cover object-bottom opacity-90" priority />
-        </div>
-        <div className="absolute right-0 bottom-0 z-10 w-2/3 h-full md:w-[800px] translate-x-1/4 animate-drift" style={{ animationDelay: '7s' }}>
-          <Image src="/cloud-final/image.png" alt="Cloud right" fill className="object-cover object-bottom opacity-90" priority />
-        </div>
+      {/* Become a Sponsor Call to Action */}
+      <div className="w-full px-6 md:px-12 xl:px-24 py-16 md:py-32 border-b border-gridline relative overflow-hidden flex flex-col items-center text-center bg-bloom-pink/5">
+        <h3 className="font-sans text-3xl md:text-5xl font-bold uppercase tracking-tighter text-white mb-4">
+          Want to Partner With Us?
+        </h3>
+        <p className="font-mono text-sm text-gray-400 uppercase tracking-widest mb-10 max-w-lg leading-relaxed">
+          Help us empower the next generation of data scientists and engineers.
+        </p>
 
-        <div className="absolute bottom-0 left-0 right-0 z-30 w-full bg-gradient-to-t from-white/80 to-transparent pt-12 pb-6 px-6">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className={`flex flex-wrap gap-6 text-stone-600 text-sm md:text-base font-bold tracking-wide uppercase ${pixel.className}`}>
-              <Link href="mailto:hello@hacklytics.io" className="hover:text-neon-pink transition-colors">Contact Us</Link>
-              <Link href="https://instagram.com/dsgt" className="hover:text-neon-pink transition-colors">Instagram</Link>
-              <Link href="https://linkedin.com/company/dsgt" className="hover:text-neon-pink transition-colors">LinkedIn</Link>
-              <Link href="https://datasciencegt.org" className="hover:text-neon-pink transition-colors">DSGT</Link>
-              <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" className="hover:text-neon-pink transition-colors">Code of Conduct</Link>
-            </div>
-            <div className="text-stone-500 text-xs md:text-sm font-medium flex items-center gap-1">
-              <span>Made with <svg className="w-3.5 h-3.5 text-neon-pink fill-current inline-block animate-pulse" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> by <span className="font-bold text-stone-700">DSGT Tech</span></span>
-            </div>
-          </div>
-        </div>
+        <a
+          href="mailto:hello@hacklytics.io"
+          className="border border-bloom-pink bg-black text-bloom-pink font-mono text-sm uppercase tracking-widest px-8 py-4 hover:bg-bloom-pink hover:text-black transition-colors"
+        >
+          Contact Us
+        </a>
       </div>
 
-      <style jsx>{`
-        @keyframes drift {
-          0%, 100% { transform: translateX(0px); }
-          50% { transform: translateX(30px); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(var(--tw-rotate)); }
-          50% { transform: translateY(-20px) rotate(calc(var(--tw-rotate) + 5deg)); }
-        }
-        @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes shine {
-          to { transform: translateX(100%); }
-        }
-        .animate-drift { animation: drift 10s ease-in-out infinite; }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-fade-in-up { animation: fade-in-up 0.8s ease-out forwards; opacity: 0; }
-      `}</style>
+      {/* Brutalist Footer */}
+      <footer className="w-full px-6 md:px-12 py-12 bg-black border-t-8 border-gridline relative overflow-hidden flex flex-col gap-12">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          {/* Brand */}
+          <div>
+            <h2 className="font-sans text-3xl font-bold uppercase tracking-tighter text-white mb-2">Hacklytics 2027</h2>
+            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">
+              By Data Science @ Georgia Tech
+            </p>
+          </div>
+
+          {/* Links */}
+          <div className="flex flex-wrap gap-6 font-mono text-xs uppercase tracking-widest text-gray-400">
+            <Link href="mailto:hello@hacklytics.io" className="hover:text-bloom-pink transition-colors">Contact</Link>
+            <Link href="https://instagram.com/dsgt" className="hover:text-bloom-pink transition-colors">Instagram</Link>
+            <Link href="https://linkedin.com/company/dsgt" className="hover:text-bloom-pink transition-colors">LinkedIn</Link>
+            <Link href="https://datasciencegt.org" className="hover:text-bloom-pink transition-colors">DSGT</Link>
+            <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" className="hover:text-bloom-pink transition-colors">Code of Conduct</Link>
+          </div>
+        </div>
+
+        {/* Footer Bottom */}
+        <div className="pt-8 border-t border-gridline flex flex-col md:flex-row justify-between items-center gap-4 font-mono text-xs text-gray-600 uppercase tracking-widest">
+          <div>&copy; 2027 Data Science @ GT</div>
+          <div className="flex items-center gap-2">
+            Built with <span className="text-bloom-pink">❤</span> by DSGT Tech
+          </div>
+        </div>
+      </footer>
+
     </section>
   );
-};
+}
