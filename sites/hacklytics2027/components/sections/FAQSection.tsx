@@ -11,12 +11,21 @@ const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
 
   return (
     <div
+<<<<<<< HEAD
       className={`glass-panel transition-all duration-500 overflow-hidden ${isOpen ? 'border-bloom-cyan/50 shadow-[0_0_20px_rgba(0,243,255,0.15)]' : 'hover:border-white/30 hover:-translate-y-1'} cursor-pointer mb-4`}
       onClick={() => setIsOpen(!isOpen)}
     >
       <div className="flex justify-between items-center p-6 md:p-8 relative z-10">
         <div className="flex items-center gap-6">
           <span className={`font-mono text-xs md:text-sm tracking-widest font-bold ${isOpen ? 'text-bloom-pink drop-shadow-[0_0_5px_currentColor]' : 'text-gray-400'}`}>
+=======
+      className={`border-b border-gridline transition-colors duration-300 ${isOpen ? 'bg-white/[0.05]' : 'hover:bg-white/[0.02]'} cursor-pointer`}
+      onClick={() => setIsOpen(!isOpen)}
+    >
+      <div className="flex justify-between items-center p-6 md:p-8">
+        <div className="flex items-center gap-6">
+          <span className={`font-mono text-xs md:text-sm tracking-widest ${isOpen ? 'text-bloom-cyan' : 'text-gray-500'}`}>
+>>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
             {num}
           </span>
           <h3 className={`font-sans text-xl md:text-2xl font-bold tracking-tight ${isOpen ? 'text-white' : 'text-gray-300'} transition-colors`}>
@@ -25,17 +34,28 @@ const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
         </div>
 
         {/* Expand/Collapse Icon */}
+<<<<<<< HEAD
         <div className={`flex-shrink-0 transition-transform duration-500 ${isOpen ? 'rotate-45 text-bloom-cyan drop-shadow-[0_0_5px_currentColor]' : 'text-gray-400'}`}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+=======
+        <div className={`flex-shrink-0 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-45 text-bloom-cyan' : ''}`}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+>>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
         </div>
       </div>
 
+<<<<<<< HEAD
       <div className={`grid transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
         <div className="overflow-hidden relative z-10">
           <p className="font-mono text-sm text-gray-300 leading-relaxed p-6 pt-0 md:pl-[5.5rem] md:pr-8">
+=======
+      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">
+          <p className="font-mono text-sm text-gray-400 leading-relaxed p-6 pt-0 md:pl-16 md:pr-8">
+>>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
             {content}
           </p>
         </div>
@@ -81,6 +101,7 @@ export default function FAQ() {
   ];
 
   return (
+<<<<<<< HEAD
     <section id="faqs" className="section-anchor scroll-mt-24 text-white relative">
       <div className="flex flex-col lg:flex-row w-full gap-8 px-4 md:px-12 xl:px-24 mb-16">
         
@@ -97,6 +118,32 @@ export default function FAQ() {
               Everything you need to know about <span className="text-bloom-cyan font-bold drop-shadow-[0_0_5px_currentColor]">Hacklytics 2027</span>. Can't find the answer? Hit us up on Discord.
             </p>
           </div>
+=======
+    <section id="faqs" className="section-anchor scroll-mt-20 border-b border-gridline bg-[#0b0c10] text-white">
+      <div className="flex flex-col lg:flex-row w-full">
+        
+        {/* Left Sidebar Header */}
+        <div className="lg:w-1/3 border-b lg:border-b-0 lg:border-r border-gridline p-6 md:p-12 xl:p-24 relative overflow-hidden flex flex-col justify-between min-h-[400px]">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-bloom-pink/10 blur-[80px] pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <span className="font-mono text-sm text-bloom-lime tracking-widest uppercase mb-4 block">Information</span>
+            <h1 className="font-sans text-5xl md:text-7xl font-bold tracking-tighter uppercase mb-6">
+              FAQ
+            </h1>
+            <p className="font-mono text-sm text-gray-400 leading-relaxed uppercase tracking-wide">
+              Everything you need to know about <span className="text-white font-bold">Hacklytics 2027</span>. Can't find the answer? Hit us up on Discord.
+            </p>
+          </div>
+          
+          <div className="mt-12 lg:mt-0 relative z-10 hidden lg:block">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" className="text-gray-600">
+              <line x1="20" y1="0" x2="20" y2="40" strokeWidth="1"></line>
+              <line x1="0" y1="20" x2="40" y2="20" strokeWidth="1"></line>
+              <circle cx="20" cy="20" r="10" strokeWidth="1"></circle>
+            </svg>
+          </div>
+>>>>>>> 2be96d1c5816dc174837901901112274b3cfe4c7
         </div>
 
         {/* Right Accordion Area */}
