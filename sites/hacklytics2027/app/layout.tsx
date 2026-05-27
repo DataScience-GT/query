@@ -19,8 +19,17 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "Hacklytics 2027: Digital Bloom",
-  description: "Data Science @ GT - Digital Bloom",
+  description: "Data Science @ GT - The premier data science hackathon in the southeast. Register now for Hacklytics 2027.",
   authors: [{ name: "DSGT" }],
+  openGraph: {
+    title: "Hacklytics 2027: Digital Bloom",
+    description: "The premier data science hackathon. 36 hours. $30k+ in prizes. Join us in Atlanta.",
+    type: "website",
+    locale: "en_US",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  }
 }
 
 export default function RootLayout({

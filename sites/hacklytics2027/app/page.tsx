@@ -51,17 +51,17 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   return (
     <div className="flex flex-wrap md:flex-nowrap gap-4 md:gap-6 w-full mt-12 md:mt-24 justify-center">
       {[
-        { label: "DAYS", value: timeLeft.days, color: "text-bloom-pink", glow: "hover-bloom-glow" },
-        { label: "HOURS", value: timeLeft.hours, color: "text-bloom-cyan", glow: "hover-bloom-glow" },
-        { label: "MINUTES", value: timeLeft.minutes, color: "text-bloom-lime", glow: "hover-bloom-glow" },
-        { label: "SECONDS", value: timeLeft.seconds, color: "text-white", glow: "hover-bloom-glow" },
+        { label: "DAYS", value: timeLeft.days, color: "text-bloom-pink", glow: "hover-bloom-glow", glowColor: "var(--bloom-pink)" },
+        { label: "HOURS", value: timeLeft.hours, color: "text-bloom-cyan", glow: "hover-bloom-glow", glowColor: "var(--bloom-cyan)" },
+        { label: "MINUTES", value: timeLeft.minutes, color: "text-bloom-lime", glow: "hover-bloom-glow", glowColor: "var(--bloom-lime)" },
+        { label: "SECONDS", value: timeLeft.seconds, color: "text-white", glow: "hover-bloom-glow", glowColor: "white" },
       ].map((unit, i) => (
         <div
           key={i}
           className={`flex-1 flex flex-col items-center justify-center py-6 md:py-10 glass-panel relative overflow-hidden group min-w-[120px] transition-all duration-500 ${unit.glow} hover:-translate-y-2`}
         >
           {/* Glowing orbital background inside panel */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-t from-current to-transparent mix-blend-screen" style={{ color: `var(--${unit.color.split('-')[1]}-${unit.color.split('-')[2]})` }}></div>
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-t from-current to-transparent mix-blend-screen" style={{ color: unit.glowColor }}></div>
 
           <span className={`text-5xl md:text-8xl font-sans font-bold tracking-tighter relative z-10 ${unit.color} group-hover:bloom-text-glow transition-all duration-300`}>
             {formatUnit(unit.value)}
@@ -77,14 +77,6 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
 export default function HomePage() {
   return (
     <>
-      <style jsx global>{`
-        .bg-noise {
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-          opacity: 0.05;
-          pointer-events: none;
-        }
-      `}</style>
-
       <main className="relative w-full min-h-screen bg-transparent text-white selection:bg-bloom-cyan selection:text-black font-mono">
         {/* Grain overlay */}
         <div className="fixed inset-0 z-0 bg-noise mix-blend-overlay"></div>
@@ -136,7 +128,7 @@ export default function HomePage() {
                   <span className="text-xs tracking-widest uppercase text-white font-bold ml-2">Registration Open</span>
                 </div>
                 <div className="mt-8 text-left md:text-right glass-panel p-6 shadow-xl border-t border-white/10">
-                  <p className="text-xl md:text-2xl font-mono text-gray-200 font-light leading-snug">
+                  <p className="text-xl md:text-2xl font-mono text-gray-300 font-light leading-snug">
                     THE PREMIER<br />
                     DATA SCIENCE<br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-cyan to-white font-bold block mt-1 tracking-widest bloom-text-glow">HACKATHON</span>
