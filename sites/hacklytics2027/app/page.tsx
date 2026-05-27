@@ -3,6 +3,33 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
 
+// Cybernetic Digital Flower Bloom Animation
+const FlowerBloom = () => {
+  return (
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-[800px] h-[800px] mix-blend-screen opacity-50 z-0 overflow-hidden flex items-center justify-center">
+      <div className="relative w-full h-full animate-[spin_120s_linear_infinite]">
+        {/* Petals */}
+        {[...Array(16)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute top-1/2 left-1/2 w-[400px] h-[100px] -ml-[200px] -mt-[50px] rounded-[100%] border border-bloom-pink/40 shadow-[0_0_30px_rgba(255,0,127,0.3)] bg-gradient-to-r from-bloom-pink/10 via-bloom-purple/20 to-bloom-cyan/10"
+            style={{ 
+              transform: `rotate(${i * 22.5}deg)`,
+              animation: `pulse 4s infinite alternate`,
+              animationDelay: `${i * 0.2}s`
+            }}
+          >
+            <div className="w-full h-full rounded-[100%] border border-bloom-cyan/30 mix-blend-overlay" />
+          </div>
+        ))}
+        {/* Core */}
+        <div className="absolute top-1/2 left-1/2 w-48 h-48 -ml-24 -mt-24 bg-bloom-lime/30 rounded-full blur-[40px] animate-pulse shadow-[0_0_100px_var(--bloom-lime)]"></div>
+        <div className="absolute top-1/2 left-1/2 w-24 h-24 -ml-12 -mt-12 bg-white/40 rounded-full blur-[20px] shadow-[0_0_50px_white]"></div>
+      </div>
+    </div>
+  );
+};
+
 // Cybernetic Digital Bloom Countdown Timer
 const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   const getTimeLeft = React.useCallback(() => {
@@ -98,6 +125,9 @@ export default function HomePage() {
         {/* Hero Section - Cybernetic Glassmorphic */}
         <div className="relative w-full pt-32 pb-16 md:pt-48 md:pb-24 flex flex-col justify-center min-h-screen">
           
+          {/* Literal Digital Flower Bloom */}
+          <FlowerBloom />
+
           {/* Additional floating abstract glowing orbs */}
           <div className="absolute top-[10%] left-[5%] w-[400px] h-[400px] bg-bloom-pink/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-pulse"></div>
           <div className="absolute bottom-[10%] right-[5%] w-[500px] h-[500px] bg-bloom-cyan/20 rounded-full blur-[150px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
