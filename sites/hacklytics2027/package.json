@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
-    "export": "next export"
+    "export": "next export",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@radix-ui/react-slot": "1.2.4",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "16.2.6",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "4.1.8",
     "@types/node": "22.15.32",
     "@types/react": "^19.1.3",
