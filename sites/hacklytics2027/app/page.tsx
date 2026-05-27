@@ -2,14 +2,8 @@
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
-import { Press_Start_2P } from "next/font/google";
 
-const pixel = Press_Start_2P({
-  subsets: ["latin"],
-  weight: ["400"],
-});
-
-// 1980s Arcade Countdown Timer
+// Digital Bloom Countdown Timer (Brutalist style)
 const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   const getTimeLeft = React.useCallback(() => {
     const now = new Date().getTime();
@@ -38,17 +32,16 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
 
   if (!timeLeft) {
     return (
-      <div className="flex gap-3 md:gap-4 justify-center">
+      <div className="flex gap-0 border-t border-b border-gridline w-full">
         {["DAYS", "HOURS", "MINUTES", "SECONDS"].map((label, i) => (
           <div
             key={i}
-            className="flex flex-col items-center bg-neon-pink rounded-xl px-4 py-3 min-w-[80px] md:min-w-[120px] shadow-[0_0_20px_var(--neon-pink)] border-4 border-neon-pink"
-            style={{ animationDelay: `${i * 0.1}s` }}
+            className={`flex-1 flex flex-col items-center justify-center py-6 md:py-10 bg-[#0b0c10] ${i !== 3 ? 'border-r border-gridline' : ''} hover:bg-white/5 transition-colors`}
           >
-            <span className="text-white text-4xl md:text-6xl font-bold drop-shadow-[0_0_5px_var(--neon-pink)]">
+            <span className="text-white text-5xl md:text-8xl font-sans font-bold tracking-tighter">
               00
             </span>
-            <span className="text-neon-cyan text-xs md:text-sm tracking-wider mt-1 font-pixel">{label}</span>
+            <span className="text-bloom-cyan text-xs md:text-sm tracking-[0.2em] mt-2 font-mono uppercase">{label}</span>
           </div>
         ))}
       </div>
@@ -56,22 +49,24 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   }
 
   return (
-    <div className="flex gap-3 md:gap-4 justify-center">
+    <div className="flex gap-0 border-t border-b border-gridline w-full mt-12 md:mt-24">
       {[
-        { label: "DAYS", value: timeLeft.days },
-        { label: "HOURS", value: timeLeft.hours },
-        { label: "MINUTES", value: timeLeft.minutes },
-        { label: "SECONDS", value: timeLeft.seconds },
+        { label: "DAYS", value: timeLeft.days, color: "text-bloom-pink" },
+        { label: "HOURS", value: timeLeft.hours, color: "text-bloom-cyan" },
+        { label: "MINUTES", value: timeLeft.minutes, color: "text-bloom-lime" },
+        { label: "SECONDS", value: timeLeft.seconds, color: "text-white" },
       ].map((unit, i) => (
         <div
           key={i}
-          className="flex flex-col items-center bg-neon-pink rounded-xl px-4 py-3 min-w-[80px] md:min-w-[120px] shadow-[0_0_20px_var(--neon-pink)] border-4 border-neon-pink animate-pulse"
-          style={{ animationDelay: `${i * 0.1}s` }}
+          className={`flex-1 flex flex-col items-center justify-center py-6 md:py-10 bg-[#0b0c10] relative overflow-hidden group ${i !== 3 ? 'border-r border-gridline' : ''} hover:bg-[#111] transition-colors`}
         >
-          <span className="text-white text-4xl md:text-6xl font-bold drop-shadow-[0_0_5px_var(--neon-pink)]">
+          {/* Subtle Bloom effect on hover */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-b from-transparent to-current" style={{ color: `var(--${unit.color.split('-')[1]}-${unit.color.split('-')[2]})` }}></div>
+
+          <span className={`text-5xl md:text-8xl font-sans font-bold tracking-tighter ${unit.color}`}>
             {formatUnit(unit.value)}
           </span>
-          <span className="text-neon-cyan text-xs md:text-sm tracking-wider mt-1 font-pixel">{unit.label}</span>
+          <span className="text-gray-500 group-hover:text-gray-300 transition-colors text-xs md:text-sm tracking-[0.2em] mt-2 font-mono uppercase">{unit.label}</span>
         </div>
       ))}
     </div>
@@ -83,146 +78,98 @@ export default function HomePage() {
   return (
     <>
       <style jsx global>{`
-        @keyframes float {
-          0% { transform: translateX(0px); }
-          50% { transform: translateX(20px); }
-          100% { transform: translateX(0px); }
-        }
-
-        @keyframes float-slow {
-          0% { transform: translateX(0px); }
-          50% { transform: translateX(-20px); }
-          100% { transform: translateX(0px); }
-        }
-
-        @keyframes float-fast {
-          0% { transform: translateX(0px); }
-          50% { transform: translateX(15px); }
-          100% { transform: translateX(0px); }
-        }
-
-        @keyframes pulse-glow {
-          0%, 100% {
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5),
-                        0 0 40px rgba(255, 0, 255, 0.3),
-                        0 0 60px rgba(255, 0, 255, 0.1);
-          }
-          50% {
-            box-shadow: 0 0 30px rgba(255, 0, 255, 0.7),
-                        0 0 60px rgba(255, 0, 255, 0.5),
-                        0 0 90px rgba(255, 0, 255, 0.3);
-          }
-        }
-
-        @keyframes neon-blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-
-        @keyframes shine {
-          100% { transform: translateX(100%); }
-        }
-
-        .animate-shine {
-          animation: shine 1.5s ease-in-out infinite;
-        }
-
-        .animate-pulse-slow {
-          animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        .animate-float {
-          animation: float 8s ease-in-out infinite;
-        }
-
-        .animate-float-slow {
-          animation: float-slow 12s ease-in-out infinite;
-        }
-
-        .animate-float-fast {
-          animation: float-fast 6s ease-in-out infinite;
-        }
-
-        .button-glow {
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
-
-        .animate-neon-blink {
-          animation: neon-blink 2s ease-in-out infinite;
+        .bg-noise {
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+          opacity: 0.03;
+          pointer-events: none;
         }
       `}</style>
 
-      <main className="relative w-full bg-retro-gradient text-neon-cyan overflow-hidden">
+      <main className="relative w-full min-h-screen bg-[#0b0c10] text-white bg-brutalist-grid selection:bg-bloom-lime selection:text-black font-mono">
+        {/* Grain overlay */}
+        <div className="absolute inset-0 z-0 bg-noise mix-blend-overlay"></div>
+
         {/* MLH Trust Badge */}
         <a
           id="mlh-trust-badge"
           href="https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=white"
           target="_blank"
-          className="absolute top-0 right-4 md:right-[50px] z-50 block w-[10%] max-w-[100px] min-w-[60px] transition-transform hover:scale-110"
+          className="absolute top-0 right-4 md:right-[50px] z-50 block w-[10%] max-w-[100px] min-w-[60px] transition-transform hover:scale-105"
         >
           <img
             src="https://s3.amazonaws.com/logged-assets/trust-badge/2026/mlh-trust-badge-2026-white.svg"
             alt="Major League Hacking 2026 Hackathon Season"
-            className="w-full"
+            className="w-full grayscale hover:grayscale-0 transition-all duration-300"
           />
         </a>
 
-        {/* Hero Section - 1980s Arcade Style */}
-        <div className="relative w-full overflow-hidden py-20 md:py-32">
-          {/* Neon border glow */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-neon-pink/30 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-neon-cyan/30 to-transparent"></div>
-            <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-neon-purple/30 to-transparent"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-neon-green/30 to-transparent"></div>
-          </div>
+        {/* Hero Section - Brutalist Modular Grid */}
+        <div className="relative w-full pt-32 pb-16 md:pt-48 md:pb-24 border-b border-gridline flex flex-col justify-center min-h-[90vh]">
+          
+          {/* Abstract Glowing Orbs (Digital Bloom) */}
+          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-bloom-pink/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen"></div>
+          <div className="absolute bottom-[20%] right-[10%] w-[400px] h-[400px] bg-bloom-cyan/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+          <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] bg-bloom-lime/10 rounded-full blur-[80px] pointer-events-none mix-blend-screen"></div>
 
-          {/* Clouds - Retro styled */}
-          <Image src="/cloud-main/smallCloud.png" alt="Cloud" className="top-[5%] left-[5%] w-32 h-20 opacity-90 md:w-72 md:h-40 absolute" />
-          <Image src="/cloud-main/smallCloud.png" alt="Cloud" className="top-[2%] right-[5%] w-24 h-24 opacity-90 md:left-[70%] md:right-auto md:w-40 md:h-40 absolute" />
-          <Image src="/cloud-main/midCloud.png" alt="Cloud" className="hidden md:block md:top-[20%] md:right-[10%] md:w-56 md:h-28 opacity-95 absolute" />
-          <Image src="/cloud-main/largecloud.png" alt="Cloud" className="hidden md:block md:top-[60%] md:left-[5%] md:w-64 md:h-32 opacity-80 absolute" />
-
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[95%] max-w-lg h-28 z-10 md:z-40 md:w-[55rem] md:h-[23rem] md:max-w-none">
-            <Image src="/dsgt.png" alt="DSGT Footer" fill className="object-contain" />
-          </div>
-
-          <Image src="/cloud-main/dateCloud.png" alt="Cloud" className="hidden md:block bottom-[45%] left-[15%] w-64 h-32 opacity-95 absolute" />
-          <Image src="/cloud-main/DSGTCloud.png" alt="Cloud" className="hidden md:block bottom-[40%] right-[5%] w-64 h-32 opacity-95 absolute" />
-
-          {/* Hero Content - 1980s Arcade Typography */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 mt-8 min-h-[60vh]">
-            {/* Decorative retro glow burst */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-neon-pink/20 via-neon-cyan/10 to-transparent opacity-60 blur-3xl -z-10 pointer-events-none animate-pulse-slow"></div>
-
-            <div className="-mt-4 md:-mt-8">
-              <h2 className={`${pixel.className} text-4xl md:text-6xl font-bold text-neon-cyan drop-shadow-[0_0_10px_var(--neon-cyan)] mb-6 animate-fade-in-up`}>
-                HACKLYTICS
-              </h2>
-              <h2 className={`${pixel.className} text-4xl md:text-6xl font-bold text-neon-pink drop-shadow-[0_0_10px_var(--neon-pink)] mb-6 animate-fade-in-up`}>
-                2027
-              </h2>
-
-              {/* Arcade-style title */}
-              <div className="relative">
-                <h1
-                  className="font-pixel text-7xl md:text-[120px] font-bold text-neon-green my-2 leading-[0.9] tracking-wider transition-transform duration-300 hover:scale-105 hover:-rotate-1 drop-shadow-[0_0_20px_rgba(57,255,20,0.8)] filter"
-                  style={{ WebkitTextStroke: "2px #39ff14" }}
-                >
-                  ARCADE EDITION
+          <div className="px-6 md:px-12 xl:px-24 w-full relative z-10 flex flex-col h-full justify-between">
+            
+            {/* Top Grid Area */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-0">
+              <div className="md:col-span-8 flex flex-col justify-end border-l-4 border-bloom-lime pl-6 py-2">
+                <p className="text-gray-400 font-mono text-sm md:text-base tracking-widest uppercase mb-4">
+                  Data Science @ Georgia Tech
+                </p>
+                <h1 className="font-sans text-[12vw] md:text-[8vw] font-bold leading-[0.85] tracking-tighter text-white">
+                  HACKLYTICS<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-pink via-bloom-purple to-bloom-cyan">
+                    2027
+                  </span>
                 </h1>
+              </div>
+
+              <div className="md:col-span-4 flex flex-col justify-end md:items-end mt-8 md:mt-0">
+                <div className="inline-flex items-center gap-3 border border-gridline px-4 py-2 bg-black/50 backdrop-blur-sm rounded-full w-max md:w-auto">
+                  <span className="w-2 h-2 rounded-full bg-bloom-lime animate-pulse"></span>
+                  <span className="text-xs tracking-widest uppercase text-gray-300">Registration Open</span>
+                </div>
+                <div className="mt-8 text-left md:text-right">
+                  <p className="text-xl md:text-2xl font-mono text-gray-300 font-light">
+                    THE PREMIER<br />
+                    DATA SCIENCE<br />
+                    <span className="text-bloom-cyan font-bold block mt-1">HACKATHON</span>
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Countdown */}
-            <div className="mt-8 flex flex-col items-center">
-              <Countdown targetDate={new Date("2026-02-20T23:59:59")} />
+            {/* Bottom Grid Area / Countdown */}
+            <div className="mt-auto">
+              <Countdown targetDate={new Date("2027-02-20T23:59:59")} />
             </div>
+
+            {/* Brutalist Footer Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 border-b border-gridline mt-12 md:mt-16">
+              {[
+                { label: "PRIZES", value: "$30K+" },
+                { label: "HACKERS", value: "1000+" },
+                { label: "HOURS", value: "36" },
+                { label: "LOCATION", value: "ATLANTA" }
+              ].map((stat, idx) => (
+                <div key={idx} className={`p-6 bg-black/40 backdrop-blur-md border-t border-gridline ${idx % 2 === 0 ? 'border-r' : ''} ${idx < 3 ? 'md:border-r' : ''} border-gridline flex flex-col justify-between min-h-[120px] group hover:bg-white/5 transition-colors`}>
+                  <span className="text-xs text-gray-500 font-mono tracking-widest group-hover:text-bloom-lime transition-colors">{stat.label}</span>
+                  <span className="text-3xl md:text-4xl font-sans font-bold text-white mt-4">{stat.value}</span>
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
 
-        <HomeSections />
+        <div className="relative z-10 bg-[#0b0c10]">
+          <HomeSections />
+        </div>
       </main>
     </>
   );
 }
+
