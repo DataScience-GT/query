@@ -140,7 +140,7 @@ export default function Navbar() {
     <>
       <header
         ref={headerRef}
-        className={`fixed top-4 left-4 right-4 z-40 transition-all duration-500 ${navVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} glass-panel`}
+        className={`fixed top-4 left-4 right-24 md:right-[150px] z-40 transition-all duration-500 ${navVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} glass-panel`}
         style={{ height: 'calc(var(--navbar-height) - 16px)' }}
       >
         <div className="w-full h-full flex items-center justify-between px-6">
