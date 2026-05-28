@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 
 /* ─── SVG Flower Variants ─── */
 
@@ -206,10 +206,10 @@ function generateFlowers(count: number): FlowerInstance[] {
 
 /* ─── Render Component ─── */
 
-const FlowerRenderer: React.FC<{ flower: FlowerInstance }> = ({ flower }) => {
+const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: FlowerInstance }) {
   const props = { size: flower.size, color: flower.color, opacity: flower.opacity };
   
-  const FlowerSVG = () => {
+  const svgElement = useMemo(() => {
     switch (flower.type) {
       case 'cherry': return <CherryBlossom {...props} />;
       case 'lotus': return <LotusFlower {...props} />;
@@ -217,7 +217,7 @@ const FlowerRenderer: React.FC<{ flower: FlowerInstance }> = ({ flower }) => {
       case 'petal': return <FallingPetal {...props} />;
       case 'spiral': return <SpiralBloom {...props} />;
     }
-  };
+  }, [flower.type, props.size, props.color, props.opacity]);
 
   return (
     <div
@@ -229,13 +229,13 @@ const FlowerRenderer: React.FC<{ flower: FlowerInstance }> = ({ flower }) => {
         animationDelay: `${flower.animDelay}s`,
         animationDuration: `${flower.animDuration}s`,
         zIndex: 1,
-        willChange: 'transform',
+        contain: 'layout style paint',
       }}
     >
-      <FlowerSVG />
+      {svgElement}
     </div>
   );
-};
+});
 
 
 /* ─── Main Floating Flowers Component ─── */

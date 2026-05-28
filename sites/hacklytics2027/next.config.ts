@@ -12,10 +12,18 @@ const nextConfig = {
     ],
   },
   reactCompiler: true,
+  compress: true, // Enable gzip/brotli compression
+  poweredByHeader: false, // Remove X-Powered-By header (smaller responses + security)
   experimental: {
-    optimizePackageImports: ['react-icons'],
+    optimizePackageImports: [
+      'react-icons',
+      'clsx',
+      'class-variance-authority',
+      'tailwind-merge',
+    ],
   },
   reactStrictMode: true, // recommended
 };
 
 export default nextConfig;
+
