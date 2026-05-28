@@ -306,12 +306,26 @@ export default function HomePage() {
                 </h1>
               </div>
 
+              {/* CTA Button */}
+              <a
+                href="https://form.typeform.com/to/GvqBCdAe"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center gap-3 group relative overflow-hidden glass-panel px-8 py-4 border border-bloom-pink/60 hover:border-bloom-cyan shadow-[0_0_20px_rgba(255,0,127,0.2)] hover:shadow-[0_0_30px_rgba(0,243,255,0.3)] transition-all duration-500 rounded-2xl self-start"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-bloom-pink/20 to-bloom-cyan/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <span className="relative z-10 font-mono text-sm md:text-base font-bold tracking-widest uppercase text-white group-hover:text-bloom-cyan transition-colors">Register Now</span>
+                <svg className="relative z-10 w-4 h-4 text-bloom-pink group-hover:text-bloom-cyan group-hover:translate-x-1 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+
               <div className="flex flex-col justify-end md:items-end mt-8 md:mt-0 relative z-10">
-                <div className="inline-flex items-center gap-3 glass-panel px-6 py-3 rounded-full shadow-[0_0_20px_rgba(204,255,0,0.2)] border border-bloom-lime/50">
+                <a href="https://form.typeform.com/to/GvqBCdAe" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 glass-panel px-6 py-3 rounded-full shadow-[0_0_20px_rgba(204,255,0,0.2)] border border-bloom-lime/50 hover:shadow-[0_0_30px_rgba(204,255,0,0.4)] hover:border-bloom-lime transition-all duration-300 group/reg">
                   <span className="w-2 h-2 rounded-full bg-bloom-lime animate-ping"></span>
                   <span className="w-2 h-2 rounded-full bg-bloom-lime absolute"></span>
-                  <span className="text-xs tracking-widest uppercase text-white font-bold ml-2">Registration Open</span>
-                </div>
+                  <span className="text-xs tracking-widest uppercase text-white font-bold ml-2 group-hover/reg:text-bloom-lime transition-colors">Interest Form Open</span>
+                </a>
                 <div className="mt-8 text-left md:text-right glass-panel p-6 shadow-xl border-t border-white/10">
                   <p className="text-xl md:text-2xl font-mono text-gray-300 font-light leading-snug">
                     THE PREMIER<br />

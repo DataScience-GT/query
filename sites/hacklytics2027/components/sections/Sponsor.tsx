@@ -20,10 +20,10 @@ export default function SponsorsSection() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] bg-bloom-cyan/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] max-w-[400px] max-h-[400px] bg-bloom-pink/20 rounded-full blur-[80px] pointer-events-none"></div>
 
-        <div className="inline-flex items-center gap-3 border border-bloom-cyan/30 bg-black/60 px-6 py-2 mb-8 animate-pulse">
+        <a href="https://form.typeform.com/to/GvqBCdAe" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 border border-bloom-cyan/30 bg-black/60 px-6 py-2 mb-8 animate-pulse hover:border-bloom-cyan transition-colors">
           <span className="w-2 h-2 rounded-full bg-bloom-cyan shadow-[0_0_10px_var(--bloom-cyan)]"></span>
           <span className="text-xs font-mono tracking-widest uppercase text-bloom-cyan">Interest Form Open</span>
-        </div>
+        </a>
 
         <h1 className="font-sans text-6xl md:text-8xl lg:text-[10rem] font-bold tracking-tighter uppercase relative z-10 leading-[0.85] mb-6 drop-shadow-2xl">
           <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-bloom-pink to-bloom-cyan">Our</span> <br />
