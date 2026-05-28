@@ -2,6 +2,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { FlowerAccent } from '../FloatingFlowers';
 
 export default function SponsorsSection() {
   return (
@@ -15,6 +16,10 @@ export default function SponsorsSection() {
 
       {/* Content Area */}
       <div className="relative z-10 flex-1 flex flex-col justify-center items-center px-6 md:px-12 py-24 md:py-32 text-center mt-20">
+        <FlowerAccent position="top-left" color="#ff007f" size={55} />
+        <FlowerAccent position="top-right" color="#00f3ff" size={48} />
+        <FlowerAccent position="bottom-left" color="#ccff00" size={40} />
+        <FlowerAccent position="bottom-right" color="#9d00ff" size={42} />
         
         {/* Glow behind text */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] bg-bloom-cyan/10 rounded-full blur-[120px] pointer-events-none"></div>

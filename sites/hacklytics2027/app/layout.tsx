@@ -3,6 +3,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Roboto_Mono, Space_Grotesk } from 'next/font/google'
 import Navbar from '../components/Navbar'
+import FloatingFlowers from '../components/FloatingFlowers'
 
 // Techy, Brutalist fonts
 const robotoMono = Roboto_Mono({
@@ -41,8 +42,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${robotoMono.variable} ${spaceGrotesk.variable} font-sans`} suppressHydrationWarning>
         <Navbar />
+        <FloatingFlowers count={55} />
         {children}
       </body>
     </html>
   )
 }
+

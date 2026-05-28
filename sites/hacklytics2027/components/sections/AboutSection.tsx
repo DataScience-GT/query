@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { FlowerAccent } from '../FloatingFlowers';
 
 const AboutSection: React.FC = () => {
   return (
@@ -10,6 +11,8 @@ const AboutSection: React.FC = () => {
         <div className="w-full p-8 md:p-16 glass-panel relative overflow-hidden group hover:border-bloom-cyan/50 transition-colors duration-500">
           {/* Abstract bloom glow */}
           <div className="absolute top-1/2 right-[10%] -translate-y-1/2 w-[300px] h-[300px] bg-bloom-pink/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen group-hover:scale-110 transition-transform duration-700"></div>
+          <FlowerAccent position="top-right" color="#ff66b2" size={50} />
+          <FlowerAccent position="bottom-left" color="#cc44ff" size={38} />
           
           <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter uppercase mb-4 relative z-10 drop-shadow-lg">
             About<br />
@@ -47,6 +50,7 @@ const AboutSection: React.FC = () => {
             
             {/* Where & When Card */}
             <div className="glass-panel p-8 md:p-10 relative overflow-hidden group transition-all duration-500 hover:border-bloom-lime/50 hover:shadow-[0_0_30px_rgba(204,255,0,0.1)] flex-1">
+              <FlowerAccent position="top-right" color="#ccff00" size={30} />
               <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-bloom-lime/10 rounded-full blur-[40px] pointer-events-none"></div>
               
               <h3 className="font-sans text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-bloom-lime to-white mb-6 tracking-tighter uppercase flex items-center gap-4">

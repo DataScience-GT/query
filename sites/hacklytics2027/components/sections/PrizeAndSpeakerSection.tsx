@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
+import { FlowerAccent, FlowerDivider } from '../FloatingFlowers';
 
 // Cybernetic Prize Ticket Component
 const PrizeTicket: React.FC<{
@@ -207,6 +208,8 @@ export default function PrizeAndSpeakerSection() {
       {/* Grand Prizes Section Header */}
       <div className="w-full px-6 md:px-12 xl:px-24 py-12 md:py-24 relative overflow-hidden flex flex-col items-center text-center">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-bloom-cyan/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse"></div>
+        <FlowerAccent position="top-right" color="#00f3ff" size={55} />
+        <FlowerAccent position="top-left" color="#ff007f" size={45} />
         <h1 className="font-sans text-5xl md:text-8xl lg:text-9xl font-bold tracking-tighter uppercase relative z-10 drop-shadow-2xl">
           Grand<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-cyan to-white bloom-text-glow">Prizes</span>
@@ -225,6 +228,9 @@ export default function PrizeAndSpeakerSection() {
           <PrizeTicket {...mainPrizes[2]} />
         </div>
       </div>
+
+      {/* Flower divider */}
+      <FlowerDivider variant="lime" />
 
       {/* Track Prizes Header */}
       <div className="w-full px-6 md:px-12 xl:px-24 py-16 relative overflow-hidden flex flex-col items-center text-center mt-12">
@@ -247,6 +253,9 @@ export default function PrizeAndSpeakerSection() {
           ))}
         </div>
       </div>
+
+      {/* Flower divider before speakers */}
+      <FlowerDivider variant="pink" />
 
       {/* Speakers Header */}
       <div className="w-full px-6 md:px-12 xl:px-24 py-16 relative overflow-hidden flex flex-col items-center text-center">
