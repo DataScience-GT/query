@@ -269,3 +269,45 @@ body::before {
 .flower-sway-2 {
   animation: flowerSway2 var(--flower-duration, 10s) ease-in-out infinite;
 }
+
+/* ─── Performance Optimizations ─── */
+
+/* Off-screen sections: skip layout/paint until scrolled into view */
+.section-anchor {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* Containment for glass panels to isolate reflow cascades */
+.glass-panel,
+.glass-card {
+  contain: layout style;
+}
+
+/* GPU layer promotion for animated flower elements */
+.flower-drift-1,
+.flower-drift-2,
+.flower-drift-3,
+.flower-drift-4,
+.flower-sway-1,
+.flower-sway-2 {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Respect user preference for reduced motion — pauses all flower animations */
+@media (prefers-reduced-motion: reduce) {
+  .flower-drift-1,
+  .flower-drift-2,
+  .flower-drift-3,
+  .flower-drift-4,
+  .flower-sway-1,
+  .flower-sway-2 {
+    animation: none !important;
+  }
+  
+  /* Also reduce the hero bloom spin */
+  [style*="bloomSpin"] {
+    animation: none !important;
+  }
+}

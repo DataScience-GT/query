@@ -1,11 +1,11 @@
 "use client";
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import HomeSections from "@/components/HomeSections";
 import { FlowerDivider, FlowerAccent } from "@/components/FloatingFlowers";
 
 // Digital Bloom — A real SVG flower with organic petals
-const FlowerBloom = () => {
+const FlowerBloom = memo(function FlowerBloom() {
   // Each petal is a cubic-bezier SVG path radiating from center
   // We build 3 concentric rings: outer (8 petals), mid (10 petals), inner (6 petals)
   const cx = 400, cy = 400;
@@ -32,28 +32,28 @@ const FlowerBloom = () => {
   };
 
   // Outer ring: 8 big petals — hot pink to purple
-  const outerPetals = Array.from({ length: 8 }, (_, i) => ({
+  const outerPetals = useMemo(() => Array.from({ length: 8 }, (_, i) => ({
     d: petalPath(i * 45 + 10, 320, 70, 0.4),
     delay: i * 0.15,
     fill: "url(#petalOuter)",
     opacity: 0.7,
-  }));
+  })), []);
 
   // Mid ring: 10 petals offset — cyan to purple
-  const midPetals = Array.from({ length: 10 }, (_, i) => ({
+  const midPetals = useMemo(() => Array.from({ length: 10 }, (_, i) => ({
     d: petalPath(i * 36 + 18, 220, 55, 0.55),
     delay: 0.8 + i * 0.1,
     fill: "url(#petalMid)",
     opacity: 0.65,
-  }));
+  })), []);
 
   // Inner ring: 6 smaller petals — lime to cyan, tighter
-  const innerPetals = Array.from({ length: 6 }, (_, i) => ({
+  const innerPetals = useMemo(() => Array.from({ length: 6 }, (_, i) => ({
     d: petalPath(i * 60 + 30, 130, 40, 0.65),
     delay: 1.6 + i * 0.12,
     fill: "url(#petalInner)",
     opacity: 0.8,
-  }));
+  })), []);
 
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 w-[800px] h-[800px]">
@@ -184,7 +184,7 @@ const FlowerBloom = () => {
       </svg>
     </div>
   );
-};
+});
 
 // Cybernetic Digital Bloom Countdown Timer
 const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
