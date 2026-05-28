@@ -2,6 +2,7 @@
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
+import { FlowerDivider, FlowerAccent } from "@/components/FloatingFlowers";
 
 // Digital Bloom — A real SVG flower with organic petals
 const FlowerBloom = () => {
@@ -293,6 +294,8 @@ export default function HomePage() {
             {/* Top Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-16">
               <div className="flex flex-col justify-end glass-panel px-8 py-6 md:px-12 md:py-10 border-l-4 border-bloom-cyan shadow-[0_0_30px_rgba(0,243,255,0.15)] relative overflow-hidden group">
+                <FlowerAccent position="top-right" color="#ff007f" size={45} />
+                <FlowerAccent position="bottom-left" color="#00f3ff" size={35} />
                 <div className="absolute inset-0 bg-gradient-to-r from-bloom-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
                 <p className="text-bloom-cyan font-mono text-sm md:text-base tracking-widest uppercase mb-4 relative z-10 font-bold">
@@ -359,6 +362,9 @@ export default function HomePage() {
 
           </div>
         </div>
+
+        {/* Flower divider between hero and content */}
+        <FlowerDivider variant="pink" />
 
         <div className="relative z-10 bg-transparent flex flex-col items-center">
           <div className="w-full max-w-7xl mx-auto">

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { FlowerAccent } from '../FloatingFlowers';
 
 const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
   title,
@@ -86,6 +87,8 @@ export default function FAQ() {
         
         {/* Left Sidebar Header */}
         <div className="lg:w-1/3 glass-panel p-8 md:p-12 xl:p-16 relative overflow-hidden flex flex-col justify-between min-h-[400px] hover:border-bloom-purple/50 transition-colors duration-500 group">
+          <FlowerAccent position="top-right" color="#ff007f" size={45} />
+          <FlowerAccent position="bottom-left" color="#9d00ff" size={35} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-bloom-pink/20 blur-[100px] pointer-events-none mix-blend-screen group-hover:scale-110 transition-transform duration-700"></div>
           
           <div className="relative z-10">
