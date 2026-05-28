@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { FlowerAccent } from '../FloatingFlowers';
 
 // Minimalist Tech Vector Icons for Tracks
 const Icons = {
@@ -77,6 +78,8 @@ export default function TracksSection() {
         
         {/* Section Header */}
         <div className="w-full p-8 md:p-16 glass-panel relative overflow-hidden group">
+          <FlowerAccent position="top-left" color="#ccff00" size={42} />
+          <FlowerAccent position="bottom-right" color="#00f3ff" size={36} />
           <div className="absolute top-1/2 left-[10%] -translate-y-1/2 w-[300px] h-[300px] bg-bloom-cyan/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse"></div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
             <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter uppercase drop-shadow-lg">
