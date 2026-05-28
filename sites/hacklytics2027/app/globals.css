@@ -101,3 +101,45 @@ body::before {
   background-color: var(--bloom-cyan);
   color: var(--color-bg);
 }
+
+/* ─── Flower Bloom Animations ─── */
+@keyframes bloomPetal {
+  0% {
+    transform: scale(0) rotate(30deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes petalBreath {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.06);
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes stamenPulse {
+  0% {
+    opacity: 0.3;
+    r: 2;
+  }
+  100% {
+    opacity: 0.9;
+    r: 4;
+  }
+}
+
+@keyframes bloomSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

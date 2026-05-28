@@ -3,29 +3,184 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import HomeSections from "@/components/HomeSections";
 
-// Cybernetic Digital Flower Bloom Animation
+// Digital Bloom — A real SVG flower with organic petals
 const FlowerBloom = () => {
+  // Each petal is a cubic-bezier SVG path radiating from center
+  // We build 3 concentric rings: outer (8 petals), mid (10 petals), inner (6 petals)
+  const cx = 400, cy = 400;
+
+  // Build an organic petal path from center outward along angle
+  const petalPath = (angle: number, length: number, width: number, curve: number) => {
+    const rad = (angle * Math.PI) / 180;
+    const perpRad = rad + Math.PI / 2;
+    // Tip of the petal
+    const tx = cx + Math.cos(rad) * length;
+    const ty = cy + Math.sin(rad) * length;
+    // Control points — offset perpendicular to create width/curve
+    const c1x = cx + Math.cos(rad) * (length * 0.35) + Math.cos(perpRad) * width;
+    const c1y = cy + Math.sin(rad) * (length * 0.35) + Math.sin(perpRad) * width;
+    const c2x = cx + Math.cos(rad) * (length * 0.7) + Math.cos(perpRad) * (width * curve);
+    const c2y = cy + Math.sin(rad) * (length * 0.7) + Math.sin(perpRad) * (width * curve);
+    // Mirror side
+    const c3x = cx + Math.cos(rad) * (length * 0.7) - Math.cos(perpRad) * (width * curve);
+    const c3y = cy + Math.sin(rad) * (length * 0.7) - Math.sin(perpRad) * (width * curve);
+    const c4x = cx + Math.cos(rad) * (length * 0.35) - Math.cos(perpRad) * width;
+    const c4y = cy + Math.sin(rad) * (length * 0.35) - Math.sin(perpRad) * width;
+
+    return `M ${cx} ${cy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty} C ${c3x} ${c3y}, ${c4x} ${c4y}, ${cx} ${cy} Z`;
+  };
+
+  // Outer ring: 8 big petals — hot pink to purple
+  const outerPetals = Array.from({ length: 8 }, (_, i) => ({
+    d: petalPath(i * 45 + 10, 320, 70, 0.4),
+    delay: i * 0.15,
+    fill: "url(#petalOuter)",
+    opacity: 0.7,
+  }));
+
+  // Mid ring: 10 petals offset — cyan to purple
+  const midPetals = Array.from({ length: 10 }, (_, i) => ({
+    d: petalPath(i * 36 + 18, 220, 55, 0.55),
+    delay: 0.8 + i * 0.1,
+    fill: "url(#petalMid)",
+    opacity: 0.65,
+  }));
+
+  // Inner ring: 6 smaller petals — lime to cyan, tighter
+  const innerPetals = Array.from({ length: 6 }, (_, i) => ({
+    d: petalPath(i * 60 + 30, 130, 40, 0.65),
+    delay: 1.6 + i * 0.12,
+    fill: "url(#petalInner)",
+    opacity: 0.8,
+  }));
+
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-[800px] h-[800px] mix-blend-screen opacity-50 z-0 overflow-hidden flex items-center justify-center">
-      <div className="relative w-full h-full animate-[spin_120s_linear_infinite]">
-        {/* Petals */}
-        {[...Array(16)].map((_, i) => (
-          <div 
-            key={i}
-            className="absolute top-1/2 left-1/2 w-[400px] h-[100px] -ml-[200px] -mt-[50px] rounded-[100%] border border-bloom-pink/40 shadow-[0_0_30px_rgba(255,0,127,0.3)] bg-gradient-to-r from-bloom-pink/10 via-bloom-purple/20 to-bloom-cyan/10"
-            style={{ 
-              transform: `rotate(${i * 22.5}deg)`,
-              animation: `pulse 4s infinite alternate`,
-              animationDelay: `${i * 0.2}s`
-            }}
-          >
-            <div className="w-full h-full rounded-[100%] border border-bloom-cyan/30 mix-blend-overlay" />
-          </div>
-        ))}
-        {/* Core */}
-        <div className="absolute top-1/2 left-1/2 w-48 h-48 -ml-24 -mt-24 bg-bloom-lime/30 rounded-full blur-[40px] animate-pulse shadow-[0_0_100px_var(--bloom-lime)]"></div>
-        <div className="absolute top-1/2 left-1/2 w-24 h-24 -ml-12 -mt-12 bg-white/40 rounded-full blur-[20px] shadow-[0_0_50px_white]"></div>
-      </div>
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 w-[800px] h-[800px]">
+      <svg
+        viewBox="0 0 800 800"
+        className="w-full h-full"
+        style={{ animation: "bloomSpin 200s linear infinite" }}
+      >
+        <defs>
+          {/* Outer petal gradient: pink → purple tip */}
+          <radialGradient id="petalOuter" cx="0.3" cy="0.5" r="0.8">
+            <stop offset="0%" stopColor="#ff007f" stopOpacity="0.5" />
+            <stop offset="60%" stopColor="#9d00ff" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#9d00ff" stopOpacity="0" />
+          </radialGradient>
+          {/* Mid petal gradient: cyan → purple */}
+          <radialGradient id="petalMid" cx="0.3" cy="0.5" r="0.8">
+            <stop offset="0%" stopColor="#00f3ff" stopOpacity="0.5" />
+            <stop offset="50%" stopColor="#9d00ff" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#ff007f" stopOpacity="0" />
+          </radialGradient>
+          {/* Inner petal gradient: lime → cyan */}
+          <radialGradient id="petalInner" cx="0.3" cy="0.5" r="0.8">
+            <stop offset="0%" stopColor="#ccff00" stopOpacity="0.6" />
+            <stop offset="60%" stopColor="#00f3ff" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#00f3ff" stopOpacity="0" />
+          </radialGradient>
+          {/* Center glow */}
+          <radialGradient id="centerGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset="30%" stopColor="#ccff00" stopOpacity="0.6" />
+            <stop offset="60%" stopColor="#00f3ff" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#00f3ff" stopOpacity="0" />
+          </radialGradient>
+          {/* Gaussian blur for glow */}
+          <filter id="petalGlow">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="bigGlow">
+            <feGaussianBlur stdDeviation="18" />
+          </filter>
+        </defs>
+
+        {/* Outer petals */}
+        <g filter="url(#petalGlow)" style={{ mixBlendMode: "screen" }}>
+          {outerPetals.map((p, i) => (
+            <path
+              key={`outer-${i}`}
+              d={p.d}
+              fill={p.fill}
+              opacity={p.opacity}
+              stroke="rgba(255,0,127,0.15)"
+              strokeWidth="0.5"
+              style={{
+                transformOrigin: `${cx}px ${cy}px`,
+                animation: `bloomPetal 4s ease-out ${p.delay}s both, petalBreath 6s ease-in-out ${p.delay + 2}s infinite alternate`,
+              }}
+            />
+          ))}
+        </g>
+
+        {/* Mid petals */}
+        <g filter="url(#petalGlow)" style={{ mixBlendMode: "screen" }}>
+          {midPetals.map((p, i) => (
+            <path
+              key={`mid-${i}`}
+              d={p.d}
+              fill={p.fill}
+              opacity={p.opacity}
+              stroke="rgba(0,243,255,0.12)"
+              strokeWidth="0.5"
+              style={{
+                transformOrigin: `${cx}px ${cy}px`,
+                animation: `bloomPetal 3.5s ease-out ${p.delay}s both, petalBreath 5s ease-in-out ${p.delay + 2}s infinite alternate`,
+              }}
+            />
+          ))}
+        </g>
+
+        {/* Inner petals */}
+        <g filter="url(#petalGlow)" style={{ mixBlendMode: "screen" }}>
+          {innerPetals.map((p, i) => (
+            <path
+              key={`inner-${i}`}
+              d={p.d}
+              fill={p.fill}
+              opacity={p.opacity}
+              stroke="rgba(204,255,0,0.15)"
+              strokeWidth="0.5"
+              style={{
+                transformOrigin: `${cx}px ${cy}px`,
+                animation: `bloomPetal 3s ease-out ${p.delay}s both, petalBreath 4.5s ease-in-out ${p.delay + 2}s infinite alternate`,
+              }}
+            />
+          ))}
+        </g>
+
+        {/* Stamen — small dots around center */}
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = (i * 30 * Math.PI) / 180;
+          const r = 35 + (i % 3) * 12;
+          return (
+            <circle
+              key={`stamen-${i}`}
+              cx={cx + Math.cos(a) * r}
+              cy={cy + Math.sin(a) * r}
+              r={2.5 + (i % 2)}
+              fill="#ccff00"
+              opacity={0.6}
+              style={{
+                animation: `stamenPulse 3s ease-in-out ${i * 0.2}s infinite alternate`,
+              }}
+            />
+          );
+        })}
+
+        {/* Center pistil — bright warm glow */}
+        <circle cx={cx} cy={cy} r="55" fill="url(#centerGlow)" filter="url(#bigGlow)" style={{ mixBlendMode: "screen" }} />
+        <circle cx={cx} cy={cy} r="25" fill="url(#centerGlow)" opacity="0.9" style={{ mixBlendMode: "screen" }} />
+        <circle cx={cx} cy={cy} r="8" fill="white" opacity="0.9">
+          <animate attributeName="r" values="7;10;7" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite" />
+        </circle>
+      </svg>
     </div>
   );
 };
