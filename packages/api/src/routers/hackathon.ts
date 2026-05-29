@@ -254,6 +254,13 @@ export const hackathonRouter = createTRPCRouter({
             });
           }
 
+          if (hackathon.registrationDeadline && new Date() > hackathon.registrationDeadline) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Registration deadline has passed",
+            });
+          }
+
           const existingParticipant = await tx.query.hackathonParticipants.findFirst({
             where: and(
               eq(hackathonParticipants.hackathonId, input.hackathonId),
@@ -521,6 +528,34 @@ export const hackathonRouter = createTRPCRouter({
       ctx.cache.deletePattern('hackathon*');
 
       return { success: true };
+    }),
+
+  batchUpdateParticipantStatus: isAdmin
+    .input(z.object({
+      hackathonId: z.string().uuid("Invalid hackathon ID"),
+      participantIds: z.array(z.string().uuid()).min(1).max(500),
+      status: z.enum(["pending", "approved", "rejected", "waitlisted", "checked_in"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { hackathonId, participantIds, status } = input;
+
+      await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        for (const participantId of participantIds) {
+          await tx
+            .update(hackathonParticipants)
+            .set({ registrationStatus: status, updatedAt: new Date() })
+            .where(
+              and(
+                eq(hackathonParticipants.id, participantId),
+                eq(hackathonParticipants.hackathonId, hackathonId)
+              )
+            );
+        }
+      });
+
+      ctx.cache.deletePattern('hackathon*');
+
+      return { success: true, updated: participantIds.length };
     }),
 
   analytics: isAdmin

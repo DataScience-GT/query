@@ -10,14 +10,16 @@ import { ScannerTab } from '@/components/admin/hackathons/ScannerTab';
 import { AttendeesTab } from '@/components/admin/hackathons/AttendeesTab';
 import { AnalyticsTab } from '@/components/admin/hackathons/AnalyticsTab';
 import { EventsTab } from '@/components/admin/hackathons/EventsTab';
+import { JudgesTab } from '@/components/admin/hackathons/JudgesTab';
+import { Gavel } from 'lucide-react';
 
-type Tab = 'events' | 'scanner' | 'attendees' | 'analytics';
+type Tab = 'events' | 'scanner' | 'attendees' | 'analytics' | 'judges';
 
 export default function AdminHackathonDashboard() {
   const { data: session, status } = useSession();
   const params = useParams();
   const hackathonId = params?.id as string;
-  const [activeTab, setActiveTab] = useState<Tab>('events');
+  const [activeTab, setActiveTab] = useState<Tab>('attendees');
 
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
   const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery(
@@ -32,10 +34,11 @@ export default function AdminHackathonDashboard() {
   if (!hackathon) return null;
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'attendees', label: 'Applications', icon: <IconUsers className="w-5 h-5" /> },
     { id: 'events', label: 'Events', icon: <IconCalendar className="w-5 h-5" /> },
     { id: 'scanner', label: 'Scan', icon: <IconScanner className="w-5 h-5" /> },
-    { id: 'attendees', label: 'Attendees', icon: <IconUsers className="w-5 h-5" /> },
     { id: 'analytics', label: 'Stats', icon: <IconChart className="w-5 h-5" /> },
+    { id: 'judges', label: 'Judges', icon: <Gavel className="w-5 h-5" /> },
   ];
 
   return (
@@ -122,11 +125,12 @@ export default function AdminHackathonDashboard() {
           {activeTab === 'scanner' && <ScannerTab hackathonId={hackathon.id} />}
           {activeTab === 'attendees' && <AttendeesTab hackathonId={hackathon.id} hackathonName={hackathon.name} />}
           {activeTab === 'analytics' && <AnalyticsTab hackathonId={hackathon.id} />}
+          {activeTab === 'judges' && <JudgesTab hackathonId={hackathon.id} />}
         </div>
       </main>
 
       {/* MOBILE BOTTOM NAVIGATION - Enhanced */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-white/10 z-40 grid grid-cols-4 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-white/10 z-40 grid grid-cols-5 pb-safe">
         {/* Top gradient overlay */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
