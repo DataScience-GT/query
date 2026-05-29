@@ -88,8 +88,8 @@ export function InfoTab({
     });
 
     const isFull = !!(hackathon.maxParticipants && hackathon.currentParticipants >= hackathon.maxParticipants);
-    const canRegister = hackathon.status === 'open' && !isRegistered && !isFull;
-    const deadlinePassed = hackathon.registrationDeadline && new Date(hackathon.registrationDeadline) < new Date();
+    const deadlinePassed = !!(hackathon.registrationDeadline && new Date(hackathon.registrationDeadline) < new Date());
+    const canRegister = hackathon.status === 'open' && !isRegistered && !isFull && !deadlinePassed;
 
     function validateStep(s: RegistrationStep): boolean {
         setError('');

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Zap } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
@@ -137,6 +138,9 @@ export default function AdminResultsPage() {
                 </svg>
               </div>
               <div>
+                <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                  <Zap className="w-3 h-3" /> Hackathon Hub
+                </p>
                 <h1 className="text-6xl font-black text-white uppercase tracking-tighter mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 to-gray-400 transition-all duration-500">
                   Voting <span className="text-accent italic">Results</span>
                 </h1>
