@@ -138,21 +138,37 @@ export function HackathonCard({
                                     return (
                                         <div 
                                             key={event.id}
-                                            className="p-4 bg-white/[0.01] border border-white/5 rounded-xl hover:bg-white/[0.03] hover:border-white/10 transition-all flex flex-col justify-between gap-3 group/item"
+                                            className="p-4 bg-white/[0.01] border border-white/5 rounded-xl hover:bg-white/[0.03] hover:border-white/10 transition-all flex flex-col justify-between gap-3 group/item relative overflow-hidden"
                                         >
+                                            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent to-transparent opacity-50" />
                                             <div className="flex justify-between items-start gap-2">
-                                                <h5 className="font-semibold text-white text-sm group-hover/item:text-cyan-300 transition-colors truncate">{event.name}</h5>
+                                                <h5 className="font-semibold text-white text-sm group-hover/item:text-cyan-300 transition-colors truncate pl-2">{event.name}</h5>
                                                 {event.points > 0 && (
-                                                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded">
+                                                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded shrink-0">
                                                         +{event.points} pts
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-gray-500">
+                                            
+                                            {/* Advanced Analytics Section for Event */}
+                                            <div className="grid grid-cols-2 gap-2 mt-1 mb-1 pl-2">
+                                                <div className="flex flex-col p-2 bg-black/20 rounded border border-white/5">
+                                                    <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Attendance</span>
+                                                    <span className="text-xs font-bold text-white">{event.attendeeCount || 0} Checked-in</span>
+                                                </div>
+                                                <div className="flex flex-col p-2 bg-black/20 rounded border border-white/5">
+                                                    <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Engagement</span>
+                                                    <span className="text-xs font-bold text-accent">{(hackathon.currentParticipants > 0 ? Math.round(((event.attendeeCount || 0) / hackathon.currentParticipants) * 100) : 0)}% Active</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-gray-500 pl-2">
                                                 <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold tracking-wider ${tc.bg} ${tc.text} ${tc.border}`}>
                                                     {event.type.replace('_', ' ')}
                                                 </span>
-                                                <span className="truncate max-w-[120px]">{event.location}</span>
+                                                <span className="truncate max-w-[120px] text-[10px] flex items-center gap-1">
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    {event.location}
+                                                </span>
                                             </div>
                                         </div>
                                     );
@@ -176,33 +192,7 @@ export function HackathonCard({
                 <div className="flex flex-wrap items-center justify-between gap-6 pt-10 border-t border-white/5">
                     {/* Left group: Status + Visibility */}
                     <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowStatusMenu(!showStatusMenu)}
-                                className={`whitespace-nowrap px-6 py-3.5 ${statusMeta.bg} border ${statusMeta.border} ${statusMeta.color} text-base font-semibold rounded-xl transition-colors flex items-center gap-2`}
-                            >
-                                {statusMeta.label} ▾
-                            </button>
-                            {showStatusMenu && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowStatusMenu(false)} />
-                                    <div className="absolute left-0 top-16 z-50 w-56 bg-[#111] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-                                        {STATUSES.map((s) => (
-                                            <button
-                                                key={s.value}
-                                                onClick={() => updateMutation.mutate({ id: hackathon.id, status: s.value })}
-                                                disabled={hackathon.status === s.value || updateMutation.isPending}
-                                                className={`w-full px-5 py-3.5 text-left text-base flex items-center gap-3 transition-colors disabled:opacity-30 ${hackathon.status === s.value ? 'bg-white/5' : 'hover:bg-white/5'
-                                                    }`}
-                                            >
-                                                <span className={`w-2 h-2 rounded-full ${s.bg.replace('/10', '')} ${s.color.replace('text-', 'bg-').replace('-400', '-500')}`} />
-                                                <span className={hackathon.status === s.value ? 'text-white font-semibold' : 'text-gray-400'}>{s.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                        {/* Replaced Status Dropdown with just Hidden/Public toggle */}
 
                         <button
                             onClick={() => {
@@ -227,6 +217,19 @@ export function HackathonCard({
                             className="whitespace-nowrap px-6 py-3.5 border border-white/10 text-gray-300 text-base font-semibold rounded-xl hover:bg-white/5 hover:text-white transition-colors"
                         >
                             Edit
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                if (confirm("Are you sure you want to delete this hackathon?")) {
+                                    trpc.hackathon.delete.useMutation().mutate({ hackathonId: hackathon.id }, {
+                                        onSuccess: () => utils.hackathon.listAll.invalidate()
+                                    });
+                                }
+                            }}
+                            className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-xl hover:bg-red-500/10 transition-colors"
+                        >
+                            Delete
                         </button>
 
                         <Link
