@@ -42,6 +42,12 @@ export function HackathonCard({
         },
     });
 
+    const deleteMutation = trpc.hackathon.delete.useMutation({
+        onSuccess: () => {
+            utils.hackathon.listAll.invalidate();
+        },
+    });
+
     return (
         <LiquidGlass className="p-10 md:p-12 hover:border-white/20 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
             <div className="flex flex-col gap-10">
@@ -221,15 +227,14 @@ export function HackathonCard({
 
                         <button
                             onClick={() => {
-                                if (confirm("Are you sure you want to delete this hackathon?")) {
-                                    trpc.hackathon.delete.useMutation().mutate({ hackathonId: hackathon.id }, {
-                                        onSuccess: () => utils.hackathon.listAll.invalidate()
-                                    });
+                                if (confirm("Are you sure you want to delete this hackathon? This cannot be undone.")) {
+                                    deleteMutation.mutate({ hackathonId: hackathon.id });
                                 }
                             }}
-                            className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-xl hover:bg-red-500/10 transition-colors"
+                            disabled={deleteMutation.isPending}
+                            className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-xl hover:bg-red-500/10 transition-colors disabled:opacity-50"
                         >
-                            Delete
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                         </button>
 
                         <Link
