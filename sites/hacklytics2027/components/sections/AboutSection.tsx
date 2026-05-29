@@ -61,7 +61,7 @@ const AboutSection: React.FC = () => {
               <div className="font-mono text-white space-y-6 relative z-10">
                 <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors">
                   <span className="text-xs text-bloom-lime uppercase tracking-widest font-bold mb-1">Date</span>
-                  <span className="text-lg">Feb. 20 - 22, 2027</span>
+                  <span className="text-lg">Feb. 26 - 28, 2027</span>
                 </div>
                 <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors">
                   <span className="text-xs text-bloom-cyan uppercase tracking-widest font-bold mb-1">Location</span>

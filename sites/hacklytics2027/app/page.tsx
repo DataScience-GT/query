@@ -341,7 +341,7 @@ export default function HomePage() {
 
             {/* Countdown Area */}
             <div className="mt-auto z-10">
-              <Countdown targetDate={new Date("2027-02-20T23:59:59")} />
+              <Countdown targetDate={new Date("2027-02-26T23:59:59")} />
             </div>
 
             {/* Glassmorphic Stats */}
