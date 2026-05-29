@@ -298,10 +298,10 @@ export default function HomePage() {
                 <FlowerAccent position="bottom-left" color="#00f3ff" size={35} />
                 <div className="absolute inset-0 bg-gradient-to-r from-bloom-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
-                <p className="text-bloom-cyan font-mono text-sm md:text-base tracking-widest uppercase mb-4 relative z-10 font-bold">
+                <p className="text-bloom-cyan font-mono text-xs md:text-sm tracking-widest uppercase mb-4 relative z-10 font-bold">
                   Data Science @ Georgia Tech
                 </p>
-                <h1 className="font-sans text-[12vw] md:text-[8vw] lg:text-[7rem] font-bold leading-[0.85] tracking-tighter text-white relative z-10 drop-shadow-2xl">
+                <h1 className="font-sans text-[10vw] md:text-[6vw] lg:text-[5rem] font-bold leading-[0.85] tracking-tighter text-white relative z-10 drop-shadow-2xl">
                   HACKLYTICS<br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-pink via-bloom-purple to-bloom-cyan bloom-text-glow">
                     2027
