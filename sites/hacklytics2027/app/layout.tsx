@@ -1,26 +1,37 @@
-// app/layout.tsx - 1980s Arcade Retro Theme
+// app/layout.tsx - Digital Bloom x Brutalist Theme
 import './globals.css'
 import type { Metadata } from 'next'
-import { Press_Start_2P, Orbitron } from 'next/font/google'
+import { Roboto_Mono, Space_Grotesk } from 'next/font/google'
 import Navbar from '../components/Navbar'
+import FloatingFlowers from '../components/FloatingFlowers'
+import ServiceWorkerRegistrar from '../components/ServiceWorkerRegistrar'
 
-// 1980s Arcade fonts
-const pixel = Press_Start_2P({
+// Techy, Brutalist fonts
+const robotoMono = Roboto_Mono({
   subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-pixel',
+  weight: ['400', '700'],
+  variable: '--font-mono',
 })
 
-const retro = Orbitron({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['400', '700', '900'],
-  variable: '--font-retro',
+  weight: ['400', '700', '500'],
+  variable: '--font-sans',
 })
 
 export const metadata: Metadata = {
-  title: "Hacklytics 2027: Arcade Edition",
-  description: "Data Science @ GT - 1980s Arcade Style",
-  authors: [{ name: "aamoghS" }],
+  title: "Hacklytics 2027: Digital Bloom",
+  description: "Data Science @ GT - The premier data science hackathon in the southeast. Register now for Hacklytics 2027.",
+  authors: [{ name: "DSGT" }],
+  openGraph: {
+    title: "Hacklytics 2027: Digital Bloom",
+    description: "The premier data science hackathon. 36 hours. $30k+ in prizes. Join us in Atlanta.",
+    type: "website",
+    locale: "en_US",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  }
 }
 
 export default function RootLayout({
@@ -30,10 +41,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${pixel.variable} ${retro.variable} font-pixel`} suppressHydrationWarning>
+      <body className={`${robotoMono.variable} ${spaceGrotesk.variable} font-sans`} suppressHydrationWarning>
         <Navbar />
+        <FloatingFlowers count={55} />
         {children}
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   )
 }
+
+

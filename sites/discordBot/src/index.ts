@@ -35,7 +35,7 @@ class Bot {
     });
 
     this.client.once("ready", () => {
-      console.log(`✅ Bot online as ${this.client.user?.tag}`);
+      console.log(`[SUCCESS] Bot online as ${this.client.user?.tag}`);
     });
 
     this.client.on("interactionCreate", (i) => this.handleInteraction(i));
@@ -69,10 +69,10 @@ class Bot {
           this.commands.push(command);
           console.log(`  → Loaded /${command.data.name}`);
         } else {
-          console.warn(`  ⚠ Skipping ${file}: Missing 'data' or 'execute' exports`);
+          console.warn(`  [WARNING] Skipping ${file}: Missing 'data' or 'execute' exports`);
         }
       } catch (err) {
-        console.error(`  ✗ Failed to load ${file}:`, err);
+        console.error(`  [ERROR] Failed to load ${file}:`, err);
       }
     }
   }
@@ -88,9 +88,9 @@ class Bot {
         Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, env.GUILD_ID),
         { body },
       );
-      console.log(`✅ Registered ${body.length} slash commands`);
+      console.log(`[SUCCESS] Registered ${body.length} slash commands`);
     } catch (err) {
-      console.error("✗ Failed to register commands:", err);
+      console.error("[ERROR] Failed to register commands:", err);
     }
   }
 
@@ -119,7 +119,7 @@ class Bot {
     } catch (err) {
       console.error(`Error in /${interaction.commandName}:`, err);
       const payload: InteractionReplyOptions = {
-        content: "⚠️ Something went wrong executing that command.",
+        content: "[WARNING] Something went wrong executing that command.",
         ephemeral: true,
       };
       if (interaction.replied || interaction.deferred) {
@@ -141,7 +141,7 @@ class Bot {
     } catch (err) {
       console.error("Select menu error:", err);
       if (!interaction.replied) {
-        await interaction.reply({ content: "⚠️ Menu interaction failed.", ephemeral: true });
+        await interaction.reply({ content: "[WARNING] Menu interaction failed.", ephemeral: true });
       }
     }
   }
@@ -184,7 +184,7 @@ class Bot {
       } catch (err) {
         console.error("Button error:", err);
         if (!interaction.replied) {
-          await interaction.reply({ content: "⚠️ Button interaction failed.", ephemeral: true });
+          await interaction.reply({ content: "[WARNING] Button interaction failed.", ephemeral: true });
         }
       }
     }
@@ -195,12 +195,12 @@ class Bot {
 const bot = new Bot();
 
 process.on("SIGINT", () => {
-  console.log("\n🛑 Shutting down...");
+  console.log("\n[SHUTDOWN] Shutting down...");
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-  console.log("\n🛑 Terminating...");
+  console.log("\n[TERMINATE] Terminating...");
   process.exit(0);
 });
 
@@ -212,7 +212,7 @@ bot.start().then(() => {
     res.end("Discord Bot is running");
   });
   server.listen(port, () => {
-    console.log(`🌐 Dummy HTTP server listening on port ${port}`);
+    console.log(`Dummy HTTP server listening on port ${port}`);
   });
 }).catch((err) => {
   console.error("Fatal startup error:", err);

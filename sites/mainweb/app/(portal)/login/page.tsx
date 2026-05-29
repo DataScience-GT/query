@@ -17,7 +17,6 @@ export default function Home() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
-  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
   const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
 
   useEffect(() => {

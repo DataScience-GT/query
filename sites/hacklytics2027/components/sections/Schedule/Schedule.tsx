@@ -1,30 +1,8 @@
 "use client";
 import React, { useState } from 'react';
-import Image from 'next/image';
-import { Press_Start_2P } from 'next/font/google';
 import { scheduleData, categories } from './data';
 
-const pixel = Press_Start_2P({
-  subsets: ['latin'],
-  weight: ['400'],
-});
-
-const FloatingCandy: React.FC<{ src: string; delay: string; className?: string }> = ({ src, delay, className }) => (
-  <div
-    className={`absolute pointer-events-none animate-float ${className}`}
-    style={{ animationDelay: delay }}
-  >
-    <Image src={src} alt="Candy" width={50} height={50} className="object-contain drop-shadow-md drop-shadow-[0_0_10px_var(--neon-pink)]" />
-  </div>
-);
-
-const getCategoryIcon = (categoryId: string) => {
-  const cat = categories.find((c: { id: string }) => c.id === categoryId);
-  return cat ? cat.icon : '/small-candy/blue.png';
-};
-
 export default function Schedule() {
-  const SHOW_SCHEDULE = true;
   const [selectedDay, setSelectedDay] = useState('Friday');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -38,210 +16,133 @@ export default function Schedule() {
         ) || [];
 
   return (
-    <section
-      id="schedule"
-      className="section-anchor scroll-mt-28 min-h-0 bg-retro-gradient relative overflow-hidden py-12"
-    >
-      {/* Background Decorations */}
-      <div className="absolute top-20 left-[-50px] w-48 h-32 opacity-40 animate-drift drop-shadow-[0_0_25px_#8b5cf6]" style={{ animationDelay: '0s' }}>
-        <Image src="/cloud-main/smallCloud.png" alt="" fill className="object-contain drop-shadow-[0_0_25px_#8b5cf6]" />
-      </div>
-      <div className="absolute bottom-40 right-[-60px] w-40 h-28 opacity-50 animate-drift drop-shadow-[0_0_25px_#06b6d4]" style={{ animationDelay: '5s' }}>
-        <Image src="/cloud-main/midCloud.png" alt="" fill className="object-contain drop-shadow-[0_0_25px_#06b6d4]" />
-      </div>
-
-      <FloatingCandy src="/small-candy/pink.png" delay="0s" className="top-32 right-[10%] rotate-12" />
-      <FloatingCandy src="/small-candy/blue.png" delay="1.5s" className="bottom-20 left-[5%] -rotate-12" />
-      <FloatingCandy src="/small-candy/yellow.png" delay="3s" className="top-1/2 left-[8%] rotate-45" />
-
-      <div className="container mx-auto px-4 relative z-10 max-w-4xl">
-
+    <section id="schedule" className="section-anchor scroll-mt-24 text-white py-12 md:py-24 relative">
+      <div className="container mx-auto px-6 md:px-12 xl:px-24 max-w-7xl">
+        
         {/* Header */}
-        <div className="text-center mb-8 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-neon-cyan/20 blur-3xl rounded-full -z-10"></div>
-          <h1
-            className="font-pixel text-7xl md:text-8xl text-neon-cyan mb-2 drop-shadow-[0_0_30px_var(--neon-cyan)] animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
-            style={{ WebkitTextStroke: "2px #00ffff" }}
-          >
-            SCHEDULE
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 relative">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-bloom-lime/20 blur-[100px] pointer-events-none mix-blend-screen animate-pulse"></div>
+          <h1 className="font-sans text-5xl md:text-8xl font-bold tracking-tighter uppercase relative z-10 drop-shadow-xl">
+            Event<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-lime to-white bloom-text-glow">Timeline</span>
           </h1>
-          <div className={`${pixel.className} text-2xl md:text-3xl text-neon-pink font-bold tracking-wide drop-shadow-[0_0_15px_var(--neon-pink)] animate-fade-in-up`} style={{ animationDelay: '0.2s' }}>
-            THE ARCADE TIMELINE
+          <div className="mt-8 md:mt-0 font-mono text-sm text-gray-300 uppercase tracking-widest max-w-sm border-l-2 border-bloom-lime pl-4 drop-shadow-md">
+            36 hours of intense building, learning, and collaborating.
           </div>
         </div>
 
-        {/* Main Content Card - Coming Soon State */}
-        <div className={`animate-fade-in-up ${SHOW_SCHEDULE ? 'hidden' : 'block'}`} style={{ animationDelay: '0.4s' }}>
-          <div className="relative group">
-            {/* Card Shadow Layer */}
-            <div className="absolute inset-0 bg-neon-cyan/30 rounded-[2.5rem] transform translate-y-3 translate-x-3 drop-shadow-[0_0_30px_#06b6d4]"></div>
-
-            {/* Card Body */}
-            <div className="relative bg-white/90 backdrop-blur-md rounded-[2.5rem] border-[6px] border-neon-cyan shadow-[0_0_40px_#06b6d4] overflow-hidden p-12 md:p-16 text-center flex flex-col items-center justify-center gap-6">
-
-              <div className="space-y-4">
-                <h2 className={`${pixel.className} text-4xl md:text-5xl font-bold text-neon-cyan drop-shadow-[0_0_15px_#06b6d4]`}>
-                  In The Works!
-                </h2>
-                <p className="text-gray-600 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed">
-                  Our Oompa Loompas are busy organizing the timeline. <br />
-                  Check back soon for the official schedule!
-                </p>
-              </div>
-
-              {/* Decorative "Construction" Elements */}
-              <div className="flex gap-4 mt-4 opacity-60">
-                <span className="text-3xl animate-spin-slow">⚙️</span>
-                <span className="text-3xl animate-pulse">🔨</span>
-                <span className="text-3xl animate-spin-slow" style={{ animationDirection: 'reverse' }}>⚙️</span>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* Actual Schedule */}
-        <div className={`animate-fade-in-up ${SHOW_SCHEDULE ? 'block' : 'hidden'}`} style={{ animationDelay: '0.4s' }}>
-          <div className="relative group">
-            <div className="absolute inset-0 bg-neon-cyan/30 rounded-[2.5rem] transform translate-y-3 translate-x-3 drop-shadow-[0_0_30px_#06b6d4]"></div>
-            <div className="relative bg-white/90 backdrop-blur-md rounded-[2.5rem] border-[6px] border-neon-cyan shadow-[0_0_40px_#06b6d4] overflow-hidden">
-
-              <div className="flex flex-wrap justify-center gap-2 p-4 border-b-4 border-neon-cyan bg-neon-cyan/10">
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* Controls Sidebar */}
+          <div className="lg:w-1/4 flex flex-col gap-6">
+            {/* Day Selector */}
+            <div className="flex flex-col glass-panel p-6">
+              <h3 className="font-sans text-xl font-bold uppercase mb-4 text-white drop-shadow-[0_0_5px_currentColor]">Select Day</h3>
+              <div className="flex flex-col gap-2">
                 {days.map(day => (
                   <button
                     key={day}
                     onClick={() => setSelectedDay(day)}
-                    className={`${pixel.className} px-6 py-2 rounded-xl text-lg md:text-xl font-bold transition-all duration-300 transform hover:scale-105 border-b-4 ${selectedDay === day
-                        ? 'bg-neon-pink text-white border-red-800 shadow-[0_0_20px_#ec4899] translate-y-[-2px]'
-                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                        }`}
+                    className={`text-left px-4 py-3 rounded-lg font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
+                      selectedDay === day
+                        ? 'bg-bloom-lime/20 text-bloom-lime font-bold border border-bloom-lime/50 shadow-[0_0_15px_rgba(204,255,0,0.15)]'
+                        : 'text-gray-400 hover:bg-white/10 hover:text-white border border-transparent'
+                    }`}
                   >
                     {day}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="flex flex-wrap justify-center gap-3 p-4 bg-neon-cyan/5">
+            {/* Filter */}
+            <div className="flex flex-col glass-panel p-6">
+              <h3 className="font-sans text-xl font-bold uppercase mb-4 text-white drop-shadow-[0_0_5px_currentColor]">Filters</h3>
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors border-2 ${selectedCategory === 'all'
-                    ? 'bg-neon-cyan text-white border-neon-cyan drop-shadow-[0_0_8px_#06b6d4]'
-                    : 'bg-transparent text-gray-500 border-gray-300 hover:border-neon-cyan'
-                    }`}
+                  className={`text-left px-4 py-3 rounded-lg font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
+                    selectedCategory === 'all'
+                      ? 'bg-white/10 text-white font-bold border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                      : 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
                 >
                   All Events
                 </button>
-                {categories.map(cat => (
+                {categories.map((cat: any) => (
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold transition-colors border-2 ${selectedCategory === cat.id
-                      ? 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan/50'
-                      : 'bg-transparent text-gray-500 border-gray-300 hover:border-neon-cyan'
-                      }`}
+                    className={`text-left px-4 py-3 rounded-lg font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
+                      selectedCategory === cat.id
+                        ? `bg-${cat.color.replace('text-', '')}/20 ${cat.color} font-bold border border-${cat.color.replace('text-', '')}/50 shadow-[0_0_15px_currentColor]`
+                        : `${cat.color} opacity-70 hover:opacity-100 hover:bg-white/5 border border-transparent`
+                    }`}
                   >
-                    <span className="w-4 h-4 relative">
-                      <Image src={cat.icon} alt="" fill className="object-contain" />
-                    </span>
                     {cat.name}
                   </button>
                 ))}
               </div>
-
-              <div className="p-4 md:p-6 min-h-[300px]">
-                {filtered.length > 0 ? (
-                  <div className="space-y-3">
-                    {filtered.map((event, i) => (
-                      <div
-                        key={i}
-                        className="group relative bg-white rounded-2xl border-2 border-neon-cyan/30 p-3 md:p-4 transition-all hover:border-neon-cyan hover:shadow-md hover:shadow-[0_0_15px_#06b6d4] flex flex-col md:flex-row gap-3 md:items-center"
-                      >
-                        <div className="flex-shrink-0">
-                          <div className={`${pixel.className} bg-neon-cyan/20 text-neon-cyan px-4 py-2 rounded-xl text-xl font-bold text-center min-w-[100px] drop-shadow-[0_0_8px_#06b6d4]`}>
-                            {event.time}
-                          </div>
-                        </div>
-
-                        <div className="flex-grow">
-                          <h3 className={`${pixel.className} text-2xl font-bold text-gray-800 mb-1 group-hover:text-neon-cyan transition-colors drop-shadow-[0_0_5px_currentColor]`}>
-                            {event.eventName}
-                          </h3>
-                          <div className="flex items-center gap-2 text-gray-500 font-medium">
-                            <span>📍 {event.location}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex-shrink-0 self-start md:self-center">
-                          <div className="w-10 h-10 relative opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all">
-                            <Image
-                              src={getCategoryIcon(event.category)}
-                              alt={event.category}
-                              fill
-                              className="object-contain drop-shadow-[0_0_5px_currentColor]"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-20 text-gray-400">
-                    <div className="text-4xl mb-4">😴</div>
-                    <p className="text-xl font-medium">No events scheduled for this category yet!</p>
-                  </div>
-                )}
-              </div>
-
             </div>
           </div>
+
+          {/* Schedule List */}
+          <div className="lg:w-3/4 flex flex-col gap-4">
+            {filtered.length > 0 ? (
+              filtered.map((event, i) => {
+                const catColorClass = categories.find((c: any) => c.id === event.category)?.color || 'text-white';
+                
+                return (
+                  <div
+                    key={i}
+                    className={`group glass-panel p-6 transition-all duration-500 hover:-translate-y-1 hover:border-${catColorClass.replace('text-', '')}/50 flex flex-col md:flex-row gap-6 md:items-center relative overflow-hidden`}
+                  >
+                    {/* Glowing Left Border */}
+                    <div className={`absolute top-0 left-0 w-1.5 h-full ${catColorClass.replace('text-', 'bg-')} shadow-[0_0_10px_currentColor] opacity-70 group-hover:opacity-100 transition-opacity`}></div>
+                    
+                    {/* Background Glow on Hover */}
+                    <div className={`absolute top-1/2 -translate-y-1/2 left-0 w-32 h-32 ${catColorClass.replace('text-', 'bg-')}/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
+
+                    {/* Time */}
+                    <div className="w-48 flex-shrink-0 relative z-10">
+                      <span className={`font-mono text-sm tracking-widest uppercase font-bold drop-shadow-[0_0_5px_currentColor] ${catColorClass}`}>
+                        {event.time}
+                      </span>
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-grow relative z-10">
+                      <h3 className="font-sans text-2xl font-bold uppercase tracking-tight text-white mb-2 drop-shadow-md">
+                        {event.eventName}
+                      </h3>
+                      <div className="flex items-center gap-2 font-mono text-xs text-gray-300 uppercase tracking-widest">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="drop-shadow-[0_0_3px_currentColor]">
+                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
+                          <circle cx="12" cy="9" r="2.5"></circle>
+                        </svg>
+                        <span>{event.location}</span>
+                      </div>
+                    </div>
+
+                    {/* Category Label */}
+                    <div className="hidden md:block flex-shrink-0 relative z-10">
+                      <span className={`px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest border border-white/10 bg-white/5 ${catColorClass}`}>
+                        {event.category}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-12 text-center glass-panel">
+                <div className="font-mono text-sm text-gray-400 uppercase tracking-widest mb-4">No Data Found</div>
+                <h3 className="font-sans text-2xl font-bold text-white uppercase tracking-tight drop-shadow-md">Try adjusting filters</h3>
+              </div>
+            )}
+          </div>
+          
         </div>
-
       </div>
-
-      <style jsx>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        @keyframes drift {
-          0%, 100% { transform: translateX(0px) translateY(0px); }
-          50% { transform: translateX(20px) translateY(-10px); }
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(var(--tw-rotate)); }
-          50% { transform: translateY(-20px) rotate(calc(var(--tw-rotate) + 5deg)); }
-        }
-
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-
-        .animate-drift {
-          animation: drift 10s ease-in-out infinite;
-        }
-
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.8s ease-out forwards;
-          opacity: 0;
-        }
-      `}</style>
     </section>
   );
 }
