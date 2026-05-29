@@ -1,162 +1,313 @@
-/* app/globals.css - 1980s Arcade Retro Theme */
+/* app/globals.css - Cybernetic Digital Bloom Theme */
 
 /* This must be the first line. It imports all of Tailwind's styles. */
 @import "tailwindcss";
 
-/*
-  Define all CSS variables in a single :root block for clarity.
-  1980s Arcade Retro Theme - Neon colors, pixel aesthetics, CRT effects
-*/
+@theme inline {
+  --color-bloom-pink: var(--bloom-pink);
+  --color-bloom-cyan: var(--bloom-cyan);
+  --color-bloom-lime: var(--bloom-lime);
+  --color-bloom-purple: var(--bloom-purple);
+  --color-gridline: var(--color-gridline);
+}
+
 :root {
-  /* 1980s Neon Colors */
-  --neon-pink: #ff00ff;
-  --neon-cyan: #00ffff;
-  --neon-green: #39ff14;
-  --neon-yellow: #ffff00;
-  --neon-orange: #ff4500;
-  --neon-purple: #bf00ff;
-  --neon-red: #ff0000;
-  --neon-blue: #0000ff;
+  /* Cybernetic Theme Base */
+  --color-bg: #030408;
+  --color-text: #f5f5f7;
+  --color-gridline: rgba(255, 255, 255, 0.05); /* very subtle if needed */
+  
+  /* Digital Bloom Glowing Accent Colors */
+  --bloom-pink: #ff007f;
+  --bloom-cyan: #00f3ff;
+  --bloom-lime: #ccff00;
+  --bloom-purple: #9d00ff;
 
-  /* CRT Scanline Overlay */
-  --scanline-color: rgba(18, 16, 16, 0.3);
-  --scanline-height: 4px;
-  --scanline-spacing: 8px;
+  /* Font Configurations */
+  --font-family-mono: 'Roboto Mono', monospace;
+  --font-family-sans: 'Space Grotesk', sans-serif;
 
-  /* Retro Background Colors */
-  --retro-black: #1a1a2e;
-  --retro-dark-blue: #16213e;
-  --retro-purple: #2d1b4e;
-  --retro-gradient-start: #1a1a2e;
-  --retro-gradient-mid: #16213e;
-  --retro-gradient-end: #2d1b4e;
-
-  /* Retro Text Colors */
-  --retro-white: #f0f8ff;
-  --retro-gray: #8b9bb4;
-  --retro-dim: #5c6b7f;
-
-  /* Font Config */
-  --font-family-pixel: 'Press Start 2P', monospace;
-  --font-family-retro: 'Courier New', monospace;
-  --font-family-display: 'Orbitron', sans-serif;
-
-  /* CRT Effects */
-  --crt-flicker: 0.02;
-  --crt-curvature: 1px;
-  --crt-vignette: 0.3;
-
-  /* Button Configuration */
-  --button-height: 48px;
-  --button-bg-top: var(--neon-pink);
-  --button-bg-gradient: linear-gradient(180deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
-  --button-shadow: 0 4px 0 var(--neon-red);
-
-  /* Navbar Configuration */
-  --navbar-height: 60px;
-  --navbar-bg: rgba(22, 33, 62, 0.95);
-  --navbar-blur: 2px;
-  --navbar-glow: 0 0 20px var(--neon-cyan);
-  --navbar-border: 1px solid var(--neon-cyan);
+  /* Layout */
+  --navbar-height: 80px;
 }
 
-/* 1980s CRT Scanline Overlay */
-:root::after {
-  content: " ";
-  display: block;
+body {
+  background-color: var(--color-bg);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(255, 0, 127, 0.05), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(0, 243, 255, 0.05), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(157, 0, 255, 0.03), transparent 50%),
+    linear-gradient(180deg, #030408 0%, #0a0a0f 100%);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::before {
+  content: '';
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(
-    var(--scanline-color) 50%,
-    rgba(0, 0, 0, 0) 50%
-  );
-  background-size: var(--scanline-spacing) 100%;
-  z-index: 9999;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at center, transparent 0%, #030408 100%);
+  z-index: -1;
   pointer-events: none;
 }
 
-/* 1980s CRT Flicker Effect */
-:root::before {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: rgba(18, 16, 16, var(--crt-flicker));
-  opacity: 0;
-  z-index: 9998;
-  pointer-events: none;
-  animation: crt-flicker 0.15s infinite;
+@layer utilities {
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  /* Glassmorphism Panels */
+  .glass-panel {
+    background: rgba(11, 12, 16, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border-radius: 24px;
+  }
+
+  .glass-navbar {
+    background: rgba(11, 12, 16, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Digital Bloom Glow Effects */
+  .bloom-glow-pink { box-shadow: 0 0 20px rgba(255, 0, 127, 0.4), 0 0 40px rgba(255, 0, 127, 0.2); }
+  .bloom-glow-cyan { box-shadow: 0 0 20px rgba(0, 243, 255, 0.4), 0 0 40px rgba(0, 243, 255, 0.2); }
+  .bloom-glow-lime { box-shadow: 0 0 20px rgba(204, 255, 0, 0.4), 0 0 40px rgba(204, 255, 0, 0.2); }
+  .bloom-text-glow { text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.4); }
+
+  /* Hover effects */
+  .hover-bloom-glow:hover {
+    border-color: var(--bloom-cyan);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.2);
+  }
 }
 
-@keyframes crt-flicker {
-  0% { opacity: 0.01; }
-  50% { opacity: 0.05; }
-  100% { opacity: 0.01; }
+::selection {
+  background-color: var(--bloom-cyan);
+  color: var(--color-bg);
 }
 
-/* Minimal utility classes to match app usage */
-.bg-retro { background: var(--retro-black); }
-.bg-retro-gradient { background: linear-gradient(180deg, var(--retro-gradient-start), var(--retro-gradient-mid), var(--retro-gradient-end)); }
-.text-neon-pink { color: var(--neon-pink); }
-.text-neon-cyan { color: var(--neon-cyan); }
-.text-neon-green { color: var(--neon-green); }
-.text-neon-yellow { color: var(--neon-yellow); }
-.text-neon-orange { color: var(--neon-orange); }
-.text-neon-purple { color: var(--neon-purple); }
-.text-neon-red { color: var(--neon-red); }
-.text-neon-blue { color: var(--neon-blue); }
-
-/* Helper class for retro button transitions */
-.button-retro-transition {
-  transition: background 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+/* ─── Flower Bloom Animations ─── */
+@keyframes bloomPetal {
+  0% {
+    transform: scale(0) rotate(30deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
-/* Ensure anchors scroll into view below the sticky navbar */
+@keyframes petalBreath {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.06);
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes stamenPulse {
+  0% {
+    opacity: 0.3;
+    r: 2;
+  }
+  100% {
+    opacity: 0.9;
+    r: 4;
+  }
+}
+
+@keyframes bloomSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Floating Flower Animations ─── */
+
+/* Drift patterns — gentle floating movement across the screen */
+@keyframes flowerDrift1 {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: var(--flower-opacity, 0.3);
+  }
+  25% {
+    transform: translate(15px, -20px) rotate(15deg) scale(1.05);
+  }
+  50% {
+    transform: translate(-10px, -35px) rotate(-10deg) scale(0.95);
+    opacity: calc(var(--flower-opacity, 0.3) * 1.3);
+  }
+  75% {
+    transform: translate(20px, -15px) rotate(20deg) scale(1.02);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: var(--flower-opacity, 0.3);
+  }
+}
+
+@keyframes flowerDrift2 {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(-20px, 10px) rotate(-15deg);
+  }
+  40% {
+    transform: translate(10px, 25px) rotate(10deg);
+  }
+  60% {
+    transform: translate(25px, -5px) rotate(25deg);
+  }
+  80% {
+    transform: translate(-15px, -20px) rotate(-5deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes flowerDrift3 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translate(30px, -25px) rotate(20deg) scale(1.08);
+  }
+  66% {
+    transform: translate(-25px, 15px) rotate(-15deg) scale(0.92);
+  }
+}
+
+@keyframes flowerDrift4 {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: var(--flower-opacity, 0.3);
+  }
+  50% {
+    transform: translateY(-40px) rotate(180deg);
+    opacity: calc(var(--flower-opacity, 0.3) * 1.5);
+  }
+}
+
+/* Sway patterns — gentle rocking like in a breeze */
+@keyframes flowerSway1 {
+  0%, 100% {
+    transform: rotate(-5deg) translateX(0);
+  }
+  25% {
+    transform: rotate(8deg) translateX(5px);
+  }
+  50% {
+    transform: rotate(-3deg) translateX(-3px);
+  }
+  75% {
+    transform: rotate(6deg) translateX(4px);
+  }
+}
+
+@keyframes flowerSway2 {
+  0%, 100% {
+    transform: rotate(3deg) scale(1);
+  }
+  33% {
+    transform: rotate(-8deg) scale(1.05);
+  }
+  66% {
+    transform: rotate(5deg) scale(0.97);
+  }
+}
+
+/* Shimmer — subtle glow pulse for flowers */
+@keyframes flowerShimmer {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 2px currentColor);
+  }
+  50% {
+    filter: brightness(1.3) drop-shadow(0 0 8px currentColor);
+  }
+}
+
+/* Animation classes */
+.flower-drift-1 {
+  animation: flowerDrift1 var(--flower-duration, 20s) ease-in-out infinite;
+}
+.flower-drift-2 {
+  animation: flowerDrift2 var(--flower-duration, 22s) ease-in-out infinite;
+}
+.flower-drift-3 {
+  animation: flowerDrift3 var(--flower-duration, 18s) ease-in-out infinite;
+}
+.flower-drift-4 {
+  animation: flowerDrift4 var(--flower-duration, 25s) ease-in-out infinite;
+}
+.flower-sway-1 {
+  animation: flowerSway1 var(--flower-duration, 8s) ease-in-out infinite;
+}
+.flower-sway-2 {
+  animation: flowerSway2 var(--flower-duration, 10s) ease-in-out infinite;
+}
+
+/* ─── Performance Optimizations ─── */
+
+/* Off-screen sections: skip layout/paint until scrolled into view */
 .section-anchor {
-  scroll-margin-top: calc(var(--navbar-height) + 16px);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
 }
 
-/*
-  This @font-face rule tells the browser where to find the font file
-  when the 'Pixel' font-family is used.
-*/
-@font-face {
-  font-family: 'Pixel';
-  src: url('/fonts/Pixel.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
+/* Containment for glass panels to isolate reflow cascades */
+.glass-panel,
+.glass-card {
+  contain: layout style;
 }
 
-/* Pixel font utility class */
-.font-pixel {
-  font-family: var(--font-family-pixel);
+/* GPU layer promotion for animated flower elements */
+.flower-drift-1,
+.flower-drift-2,
+.flower-drift-3,
+.flower-drift-4,
+.flower-sway-1,
+.flower-sway-2 {
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
-/* Utility class for CRT curvature effect */
-.crt-curvature {
-  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-}
-
-/* Utility class for retro neon glow */
-.neon-glow-pink {
-  text-shadow: 0 0 5px var(--neon-pink), 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
-}
-
-.neon-glow-cyan {
-  text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
-}
-
-.neon-glow-green {
-  text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
-}
-
-.neon-glow-yellow {
-  text-shadow: 0 0 5px var(--neon-yellow), 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow);
+/* Respect user preference for reduced motion — pauses all flower animations */
+@media (prefers-reduced-motion: reduce) {
+  .flower-drift-1,
+  .flower-drift-2,
+  .flower-drift-3,
+  .flower-drift-4,
+  .flower-sway-1,
+  .flower-sway-2 {
+    animation: none !important;
+  }
+  
+  /* Also reduce the hero bloom spin */
+  [style*="bloomSpin"] {
+    animation: none !important;
+  }
 }
