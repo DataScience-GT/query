@@ -192,6 +192,16 @@ export const hackathonRouter = createTRPCRouter({
       return updatedHackathon;
     }),
 
+  delete: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { hackathonId } = input;
+      await (ctx.db as DrizzleDB).delete(hackathons).where(eq(hackathons.id, hackathonId));
+      ctx.cache.delete(CacheKeys.hackathon(hackathonId));
+      ctx.cache.deletePattern('hackathons:*');
+      return { success: true };
+    }),
+
   register: protectedProcedure
     .input(
       z.object({
@@ -724,10 +734,20 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<any>(cacheKey);
       if (cached !== null) return cached;
 
-      const events = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
+      const eventsData = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
         where: eq(hackathonEvents.hackathonId, input.hackathonId),
         orderBy: (events, { asc }) => [asc(events.startTime)],
+        with: {
+          attendees: {
+            columns: { id: true }
+          }
+        }
       });
+
+      const events = eventsData.map(e => ({
+        ...e,
+        attendeeCount: e.attendees.length
+      }));
 
       ctx.cache.set(cacheKey, events, 60);
 
