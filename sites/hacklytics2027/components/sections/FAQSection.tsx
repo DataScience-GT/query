@@ -57,7 +57,7 @@ export default function FAQ() {
     },
     {
       title: "Where and when is it held?",
-      content: "February 20th - February 22nd, 2027 at the Klaus Advanced Computing Building, Georgia Tech Campus."
+      content: "February 26th - February 28th, 2027 at the Klaus Advanced Computing Building, Georgia Tech Campus."
     },
     {
       title: "Can you participate virtually?",
