@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members } from "@query/db";
 import { eq, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -81,6 +81,28 @@ export const eventRouter = createTRPCRouter({
     const allEvents = await fetchEvents();
     ctx.cache.set(cacheKey, allEvents, 30);
     return allEvents;
+  }),
+
+  list: publicProcedure.query(async ({ ctx }) => {
+    const fetchEvents = () => (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
+      orderBy: (events, { desc }) => [desc(events.eventDate)],
+      limit: 50,
+    });
+
+    const cacheKey = `events:list:public`;
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
+    let allEvents = cached;
+    
+    if (!allEvents) {
+      allEvents = await fetchEvents();
+      ctx.cache.set(cacheKey, allEvents, 30);
+    }
+
+    const now = new Date();
+    return allEvents.map(event => ({
+      ...event,
+      status: (event.checkInEnabled && event.eventDate >= new Date(now.getTime() - 24 * 60 * 60 * 1000)) ? "open" : "closed",
+    }));
   }),
 
   getById: isAdmin
