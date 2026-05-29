@@ -14,10 +14,18 @@
     "typecheck": "turbo run typecheck"
   },
   "dependencies": {
-    "next": "16.2.3",
+    "next": "16.2.6",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "turbo": "^2.9.9"
+    "turbo": "^2.9.14"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "^8.5.10",
+      "esbuild": "^0.25.12",
+      "ws": "^8.20.1",
+      "@eslint/plugin-kit": "^0.3.4"
+    }
   }
 }

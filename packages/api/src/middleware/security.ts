@@ -196,6 +196,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [],
   allowedAttributes: {},
   disallowedTagsMode: 'discard',
+  nonTextTags: ['style', 'script', 'textarea', 'noscript', 'option', 'xmp'],
 };
 
 export function sanitizeInput(input: unknown, depth: number = 0): unknown {

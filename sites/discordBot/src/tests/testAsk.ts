@@ -17,7 +17,7 @@ const edgeCases = [
     "\\u0000", 
     "undefined", 
     "NaN", 
-    "🥹 🫥 🫡", 
+    "unicode_test_accents_and_foreign_chars_汉字", 
     "zalgo_t̹e̖x̗t", 
     "__proto__", // The one that broke 'ask.ts'
     "$$$$$$$$", 
@@ -148,27 +148,27 @@ async function runSuite() {
     const commandsPath = path.join(__dirname, '../commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
 
-    console.log(`\n🔍 Found ${commandFiles.length} commands.\n`);
+    console.log(`\n[SEARCH] Found ${commandFiles.length} commands.\n`);
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         const commandName = file.replace('.ts', '');
 
-        console.log(`🧪 Testing: ${commandName.toUpperCase()}`);
+        console.log(`[TEST] Testing: ${commandName.toUpperCase()}`);
         
         try {
             const module = await import(`file://${filePath}`);
             if (!module.execute) continue;
 
             const happyInputs = { query: "food", event_name: "Test Event", channel: "announcements", input: "test" };
-            await runTest(module, commandName, happyInputs, "✅ Happy Path");
+            await runTest(module, commandName, happyInputs, "[SUCCESS] Happy Path");
 
             for (const evil of edgeCases) {
                 const evilInputs = { query: evil, event_name: evil, start_time: evil, input: evil };
-                await runTest(module, commandName, evilInputs, `🔥 Fuzz: "${evil.substring(0,10)}..."`);
+                await runTest(module, commandName, evilInputs, `[FUZZ] Fuzz: "${evil.substring(0,10)}..."`);
             }
         } catch (error) {
-            console.error(`   ❌ FATAL LOAD ERROR: ${file}`, error);
+            console.error(`   [ERROR] FATAL LOAD ERROR: ${file}`, error);
         }
         console.log("   ----------------------------------------");
     }
@@ -178,9 +178,9 @@ async function runTest(module: any, name: string, inputs: any, label: string) {
     const mock = new MockInteraction(name, inputs);
     try {
         await module.execute(mock);
-        if (mock.logs.length === 0) console.log(`   ⚠️  SILENT | ${label}`);
+        if (mock.logs.length === 0) console.log(`   [WARNING] SILENT | ${label}`);
     } catch (err: any) {
-        console.error(`   ❌ CRASH | ${label}`);
+        console.error(`   [ERROR] CRASH | ${label}`);
         console.error(`      Stack: ${err.message.split('\n')[0]}`);
     }
 }

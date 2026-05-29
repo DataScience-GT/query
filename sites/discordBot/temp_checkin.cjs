@@ -1,6 +1,6 @@
 const https = require('https');
 
-const token = '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';
+const token = process.env.NOTION_API_TOKEN;
 const pageId = '2aac5c7f-72ad-80bf-a0f9-c66c9626abfb';
 
 function getChildren(id) {

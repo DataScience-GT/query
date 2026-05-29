@@ -102,7 +102,7 @@ function extractText(block: NotionBlock): string {
       return `1. ${text}`;
     case "to_do": {
       const td = block.to_do as { checked?: boolean } | undefined;
-      return `${td?.checked ? "☑" : "☐"} ${text}`;
+      return `${td?.checked ? "[x]" : "[ ]"} ${text}`;
     }
     case "heading_1":
     case "heading_2":
