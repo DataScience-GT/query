@@ -53,7 +53,7 @@ export default function AttendeesPage() {
             Attendees <span className="text-accent italic font-bold">Registry</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
-            View and manage attendee registrations for hackathon events.
+            View and manage attendee registrations for events.
           </p>
           {/* Decorative Corner Accent */}
           <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-accent/5 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -68,7 +68,7 @@ export default function AttendeesPage() {
                 onChange={(e) => setSelectedHackathon(e.target.value || null)}
                 className="bg-transparent text-white text-sm font-medium px-5 py-3 focus:outline-none cursor-pointer hover:text-white transition-all"
               >
-                <option value="">Select a hackathon...</option>
+                <option value="">Select an event...</option>
                 {hackathonList?.map((hackathon) => (
                   <option key={hackathon.id} value={hackathon.id}>
                     {hackathon.name}
@@ -148,7 +148,7 @@ export default function AttendeesPage() {
                   </svg>
                 </div>
                 <h3 className="text-white font-semibold mb-1">No attendees yet</h3>
-                <p className="text-text-muted text-sm">Select a hackathon to view registrations.</p>
+                <p className="text-text-muted text-sm">Select an event to view registrations.</p>
               </LiquidGlass>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/20 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
