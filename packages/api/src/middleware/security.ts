@@ -173,8 +173,8 @@ export const RATE_LIMITS = {
     mutationTokens: 3,
   },
   authenticated: {
-    maxTokens: 100,
-    refillRate: 2,
+    maxTokens: 300,  // Raised from 100 to prevent legitimate multi-step form users from being blocked
+    refillRate: 5,   // Raised from 2 to recover faster between form steps
     queryTokens: 1,
     mutationTokens: 2,
   },
@@ -353,9 +353,21 @@ async function flushLogs() {
       const severity = event.type === 'injection_attempt' ? 'critical' :
         event.type === 'auth_failure' ? 'warn' : 'info';
 
+      // identifier can be a raw userId UUID, 'user:UUID', or an IP address
+      let resolvedUserId: string | null = null;
+      if (event.identifier.startsWith('user:')) {
+        resolvedUserId = event.identifier.split(':')[1] ?? null;
+      } else if (event.identifier.startsWith('ip-') || event.identifier.includes('.') || event.identifier.includes(':')) {
+        // IP address — no userId
+        resolvedUserId = null;
+      } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(event.identifier)) {
+        // Raw UUID — treat as userId
+        resolvedUserId = event.identifier;
+      }
+
       return {
         action: event.type,
-        userId: event.identifier.startsWith('user:') ? event.identifier.split(':')[1] : null,
+        userId: resolvedUserId,
         resourceId: event.identifier,
         metadata: { details: safeDetails },
         severity: severity as "critical" | "warn" | "info",
