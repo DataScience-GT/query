@@ -91,14 +91,52 @@ const uploadSanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => 
   return result;
 });
 
+/**
+ * Surgical cache invalidation: each mutation path maps to the exact cache key
+ * patterns it should evict, rather than blindly wiping an entire namespace.
+ * Unmapped routes fall back to namespace-level eviction.
+ */
+const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
+  // Hackathon mutations — scope by what actually changed
+  "hackathon.register":              ["hackathon:*:participants", "hackathon:*:analytics"],
+  "hackathon.updateParticipantStatus": ["hackathon:*:participants", "hackathon:*:analytics"],
+  "hackathon.batchUpdateParticipantStatus": ["hackathon:*:participants", "hackathon:*:analytics"],
+  "hackathon.scanParticipantPass":   ["hackathon:*:participants"],
+  "hackathon.create":                ["hackathons:list"],
+  "hackathon.update":                ["hackathons:list", "hackathon:*"],
+  "hackathon.delete":                ["hackathons:list", "hackathon:*"],
+  "hackathon.createEvent":           ["hackathon:*:events"],
+  "hackathon.updateEvent":           ["hackathon:*:events"],
+  "hackathon.deleteEvent":           ["hackathon:*:events"],
+  // Judge mutations — only invalidate judging-related keys
+  "judge.submitVote":                ["hackathon:*:rankings", "hackathon:*:judge-analytics"],
+  "judge.completeAndNext":           ["hackathon:*:rankings", "hackathon:*:judge-analytics"],
+  "judge.toggleJudging":             ["hackathon:*"],
+  "judge.assignJudgesToProjects":    ["hackathon:*:rankings", "hackathon:*:judge-analytics"],
+  "judge.assignToHackathon":         ["judge:*"],
+  // Member mutations
+  "member.update":                   ["member:*", "user:*:profile"],
+  // Stripe — invalidate member status after linking
+  "stripe.attemptAutoLink":          ["member:*"],
+  "stripe.linkAccount":              ["member:*"],
+  // Events (club check-ins)
+  "events.create":                   ["events:list"],
+  "events.delete":                   ["events:list"],
+  "events.toggleCheckIn":            ["events:list"],
+  "events.checkIn":                  ["events:list", "member:*"],
+};
+
 const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path }) => {
   const result = await next();
 
-  // Only invalidate on successful mutations — no-op on failures or queries
   if (type === 'mutation' && result.ok) {
-    const namespace = path.split('.')[0];
-    if (namespace) {
-      ctx.cache.deletePattern(`${namespace}:*`);
+    const patterns = CACHE_INVALIDATION_MAP[path];
+    if (patterns) {
+      for (const pattern of patterns) ctx.cache.deletePattern(pattern);
+    } else {
+      // Fallback: evict the whole namespace (safe but broad)
+      const namespace = path.split('.')[0];
+      if (namespace) ctx.cache.deletePattern(`${namespace}:*`);
     }
   }
 
