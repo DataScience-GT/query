@@ -277,11 +277,16 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
 function hasInjectionPattern(str: string): boolean {
   const patterns = [
+    // SQL SELECT/INSERT/UPDATE/DELETE keywords with FROM/INTO/TABLE/DATABASE
     /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b.*\b(from|into|table|database)\b)/i,
-    /(--|#|\/\*)/,
-    /(\bor\b|\band\b)\s*[\d\w]+\s*=\s*[\d\w]+/i,
+    // SQL comment sequences: "--" must be followed by space or end-of-string (not in URLs like some--repo)
+    /(--\s|--$)/,
+    // Block comment: /* only when followed by * content
+    /\/\*[\s\S]*?\*\//,
+    // NoSQL injection
     /\$where/i,
     /\$gt|\$lt|\$ne|\$eq/i,
+    // XSS
     /<script/i,
     /javascript:/i,
     /on\w+\s*=/i,
