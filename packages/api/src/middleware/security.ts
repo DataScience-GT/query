@@ -337,7 +337,7 @@ const MAX_BATCH_SIZE = 25;
 const MAX_QUEUE_SIZE = 500;
 // Deduplication: track last log time per rate_limit identifier to suppress storms
 const rateLimitLogCooldown = new Map<string, number>();
-const RATE_LIMIT_LOG_COOLDOWN_MS = 10_000; // only log once per 10s per identifier
+const RATE_LIMIT_LOG_COOLDOWN_MS = 60 * 60 * 1_000; // only log once per 1 hour per identifier
 
 async function flushLogs() {
   if (flushQueue.length === 0) return;
