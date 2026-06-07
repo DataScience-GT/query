@@ -197,7 +197,7 @@ export function HackathonCard({
                 {/* Actions Section — full width row */}
                 <div className="flex flex-wrap items-center justify-between gap-6 pt-10 border-t border-white/5">
                     {/* Left group: Status + Visibility */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
                         {/* Replaced Status Dropdown with just Hidden/Public toggle */}
 
                         <button
@@ -217,7 +217,7 @@ export function HackathonCard({
                     </div>
 
                     {/* Right group: Dashboard + Edit */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
                         <button
                             onClick={onEdit}
                             className="whitespace-nowrap px-6 py-3.5 border border-white/10 text-gray-300 text-base font-semibold rounded-xl hover:bg-white/5 hover:text-white transition-colors"

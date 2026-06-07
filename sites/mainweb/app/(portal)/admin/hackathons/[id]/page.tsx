@@ -42,7 +42,7 @@ export default function AdminHackathonDashboard() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans flex flex-col pb-20 md:pb-0">
+    <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans flex flex-col pb-32 md:pb-12">
       {/* Ambient Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-15%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/6 via-cyan-900/12 to-purple-900/10 blur-[400px] rounded-full" />

@@ -112,7 +112,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
             {/* Assigned Judges */}
             <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                     <h2 className="text-xl font-bold text-white uppercase tracking-wider">Assigned Judges</h2>
                     <button
                         onClick={() => setShowAddForm(!showAddForm)}

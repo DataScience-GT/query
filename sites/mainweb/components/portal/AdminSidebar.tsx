@@ -20,15 +20,41 @@ const hackathonRoutes = [
 ];
 
 export default function AdminSidebar() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
 
   return (
-    <div className={`fixed left-0 top-0 z-50 h-screen border-r bg-[#0a0c10] dark:bg-darkBlue/80 backdrop-blur-3xl transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
+    <>
+      {/* Mobile Top Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0c10]/95 backdrop-blur-xl border-b border-white/5 z-40 flex items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#00A8A8] to-emerald-600 text-white shadow-lg shadow-[#00A8A8]/20">
+            <Code className="h-4 w-4" />
+          </div>
+          <span className="text-lg font-black text-white tracking-tight">DSGT Portal</span>
+        </div>
+        <button onClick={() => setIsMobileOpen(!isMobileOpen)} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+          <Menu className="h-6 w-6 text-gray-300" />
+        </button>
+      </div>
+
+      {/* Overlay for mobile */}
+      {isMobileOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 z-50 h-screen border-r border-white/5 bg-[#0a0c10] dark:bg-darkBlue/80 backdrop-blur-3xl transition-all duration-300 
+        ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full'} 
+        md:translate-x-0 ${isOpen ? 'md:w-64' : 'md:w-20'}`}>
       {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-white/5 px-4">
-        {isOpen && (
+        {(isOpen || isMobileOpen) && (
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 text-white shadow-lg shadow-[#00A8A8]/20">
               <Code className="h-6 w-6" />
@@ -38,8 +64,8 @@ export default function AdminSidebar() {
             </span>
           </div>
         )}
-        {!isOpen && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 text-white">
+        {!isOpen && !isMobileOpen && (
+          <div className="hidden md:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#00A8A8] to-emerald-600 text-white">
             <Code className="h-5 w-5" />
           </div>
         )}
@@ -59,13 +85,13 @@ export default function AdminSidebar() {
 
         {/* Club Events Section */}
         <div className="mb-1">
-          {isOpen && (
+          {(isOpen || isMobileOpen) && (
             <div className="flex items-center gap-2 px-3 pb-2 mb-1">
               <QrCode className="h-3 w-3 text-[#00A8A8]/60 flex-shrink-0" />
               <span className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em]">Club Events</span>
             </div>
           )}
-          {!isOpen && <div className="w-8 h-px bg-[#00A8A8]/20 mx-auto mb-3" />}
+          {!(isOpen || isMobileOpen) && <div className="w-8 h-px bg-[#00A8A8]/20 mx-auto mb-3" />}
           <div className="space-y-1">
             {clubRoutes.map((route) => {
               const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
@@ -80,7 +106,7 @@ export default function AdminSidebar() {
                   }`}
                 >
                   <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-[#00A8A8]' : 'text-gray-500 group-hover:text-white'}`} />
-                  {isOpen && <span className="text-sm">{route.name}</span>}
+                  {(isOpen || isMobileOpen) && <span className="text-sm">{route.name}</span>}
                 </Link>
               );
             })}
@@ -88,17 +114,17 @@ export default function AdminSidebar() {
         </div>
 
         {/* Divider */}
-        <div className={`my-3 ${isOpen ? 'border-t border-white/5' : 'w-8 h-px bg-white/10 mx-auto'}`} />
+        <div className={`my-3 ${(isOpen || isMobileOpen) ? 'border-t border-white/5' : 'w-8 h-px bg-white/10 mx-auto'}`} />
 
         {/* Hackathon Hub Section */}
         <div>
-          {isOpen && (
+          {(isOpen || isMobileOpen) && (
             <div className="flex items-center gap-2 px-3 pb-2 mb-1">
               <Zap className="h-3 w-3 text-[#00A8A8]/60 flex-shrink-0" />
               <span className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em]">Hackathon Hub</span>
             </div>
           )}
-          {!isOpen && <div className="w-8 h-px bg-[#00A8A8]/20 mx-auto mb-3" />}
+          {!(isOpen || isMobileOpen) && <div className="w-8 h-px bg-[#00A8A8]/20 mx-auto mb-3" />}
           <div className="space-y-1">
             {hackathonRoutes.map((route) => {
               const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
@@ -113,7 +139,7 @@ export default function AdminSidebar() {
                   }`}
                 >
                   <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-[#00A8A8]' : 'text-gray-500 group-hover:text-white'}`} />
-                  {isOpen && <span className="text-sm">{route.name}</span>}
+                  {(isOpen || isMobileOpen) && <span className="text-sm">{route.name}</span>}
                 </Link>
               );
             })}
@@ -126,7 +152,7 @@ export default function AdminSidebar() {
       {/* User section */}
       <div className="border-t border-white/5 px-3 py-4">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          {isOpen && (
+          {(isOpen || isMobileOpen) && (
             <>
               <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-10 w-10 rounded-full border border-white/10 object-cover" />
               <div className="flex-1 overflow-hidden">
@@ -135,17 +161,18 @@ export default function AdminSidebar() {
               </div>
             </>
           )}
-          {!isOpen && (
+          {!(isOpen || isMobileOpen) && (
             <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-8 w-8 rounded-full border border-white/10 object-cover" />
           )}
         </div>
-        {isOpen && (
+        {(isOpen || isMobileOpen) && (
           <button onClick={() => signOut({ callbackUrl: '/login' })} className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors">
             <LogOut className="h-5 w-5" />
-            <span className="text-sm">Sign Out</span>
+            <span className="text-sm font-semibold">Log out</span>
           </button>
         )}
       </div>
     </div>
+    </>
   );
 }

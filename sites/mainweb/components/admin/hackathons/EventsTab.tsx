@@ -125,7 +125,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
     return (
         <div className="animate-in fade-in zoom-in-95 duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-2xl font-black text-white uppercase tracking-tight">Events</h2>
                     <p className="text-xs text-gray-500 font-mono mt-1">
