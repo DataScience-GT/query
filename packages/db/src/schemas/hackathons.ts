@@ -115,8 +115,10 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   index("participant_hackathon_id_idx").on(table.hackathonId),
   index("participant_user_id_idx").on(table.userId),
   index("participant_team_id_idx").on(table.teamId),
-  // Compound for quick check "is this user in this hackathon?"
-  index("participant_hackathon_user_idx").on(table.hackathonId, table.userId),
+  // Enforce one registration per user per hackathon at the DB level.
+  // This prevents duplicates even under concurrent requests that race
+  // past the application-level findFirst check inside the transaction.
+  unique("unique_participant_per_hackathon").on(table.hackathonId, table.userId),
 ]);
 
 // Project submissions
