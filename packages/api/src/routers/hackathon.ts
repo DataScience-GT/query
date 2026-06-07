@@ -336,6 +336,7 @@ export const hackathonRouter = createTRPCRouter({
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         const message = error instanceof Error ? error.message : "Unknown error";
+        console.error("[hackathon.register] Unexpected error during registration:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Registration failed: ${message}`,
