@@ -229,10 +229,10 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                     <button
                         key={stat.label}
                         onClick={() => setStatusFilter(stat.filter)}
-                        className={`p-4 rounded-xl border transition-all text-left ${statusFilter === stat.filter ? `${stat.bg} ${stat.border} ring-1 ring-white/10 scale-[1.02]` : 'bg-black/20 border-white/5 hover:bg-white/[0.03] hover:border-white/10'}`}
+                        className={`p-5 rounded-xl border transition-all text-left ${statusFilter === stat.filter ? `${stat.bg} ${stat.border} ring-1 ring-white/10 scale-[1.02]` : 'bg-black/20 border-white/5 hover:bg-white/[0.03] hover:border-white/10'}`}
                     >
-                        <p className={`text-2xl font-black font-mono ${stat.color}`}>{stat.value}</p>
-                        <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mt-1">{stat.label}</p>
+                        <p className={`text-4xl font-black font-mono ${stat.color}`}>{stat.value}</p>
+                        <p className="text-xs font-mono text-gray-500 uppercase tracking-widest mt-2">{stat.label}</p>
                     </button>
                 ))}
             </div>
@@ -291,14 +291,14 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
             {/* Table */}
             <LiquidGlass className="p-0 overflow-hidden overflow-x-auto border-white/5 relative z-10">
                 <table className="w-full text-left text-sm whitespace-nowrap min-w-[900px]">
-                    <thead className="bg-black/40 border-b border-white/10 text-gray-400 font-mono text-[10px] uppercase tracking-wider">
+                    <thead className="bg-black/40 border-b border-white/10 text-gray-400 font-mono text-xs uppercase tracking-wider">
                         <tr>
                             <th className="px-4 py-4 font-semibold w-10">
                                 <input
                                     type="checkbox"
                                     checked={selectedIds.size === filteredAttendees.length && filteredAttendees.length > 0}
                                     onChange={selectAllVisible}
-                                    className="w-3.5 h-3.5 rounded border-white/20 bg-transparent accent-[#00A8A8] cursor-pointer"
+                                    className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#00A8A8] cursor-pointer"
                                 />
                             </th>
                             <th className="px-4 py-4 font-semibold w-8"></th>
@@ -318,37 +318,37 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                             filteredAttendees.map((attendee) => (
                                 <React.Fragment key={attendee.id}>
                                     <tr className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedIds.has(attendee.id) ? 'bg-accent/[0.03]' : ''}`}>
-                                        <td className="px-4 py-4" onClick={(e) => { e.stopPropagation(); toggleSelect(attendee.id); }}>
+                                        <td className="px-4 py-5" onClick={(e) => { e.stopPropagation(); toggleSelect(attendee.id); }}>
                                             <input
                                                 type="checkbox"
                                                 checked={selectedIds.has(attendee.id)}
                                                 onChange={() => toggleSelect(attendee.id)}
-                                                className="w-3.5 h-3.5 rounded border-white/20 bg-transparent accent-[#00A8A8] cursor-pointer"
+                                                className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#00A8A8] cursor-pointer"
                                             />
                                         </td>
-                                        <td className="px-4 py-4" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
-                                            {expandedRow === attendee.id ? <ChevronUp className="w-4 h-4 text-cyan-400" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                                        <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
+                                            {expandedRow === attendee.id ? <ChevronUp className="w-5 h-5 text-cyan-400" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
                                         </td>
-                                        <td className="px-4 py-4" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
+                                        <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
                                             <div className="flex items-center gap-3">
-                                                <Image src={attendee.user?.image || '/avatar-placeholder.png'} alt="Avatar" width={32} height={32} className="rounded-full bg-black shrink-0" />
+                                                <Image src={attendee.user?.image || '/avatar-placeholder.png'} alt="Avatar" width={40} height={40} className="rounded-full bg-black shrink-0" />
                                                 <div>
-                                                    <p className="text-white font-bold">{attendee.firstName && attendee.lastName ? `${attendee.firstName} ${attendee.lastName}` : (attendee.user?.name || 'Unknown User')}</p>
-                                                    <p className="text-gray-500 text-xs font-mono">{attendee.user?.email || 'No email'}</p>
+                                                    <p className="text-white font-bold text-base">{attendee.firstName && attendee.lastName ? `${attendee.firstName} ${attendee.lastName}` : (attendee.user?.name || 'Unknown User')}</p>
+                                                    <p className="text-gray-500 text-sm font-mono">{attendee.user?.email || 'No email'}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-mono font-bold uppercase tracking-wider ${statusColors(attendee.registrationStatus)}`}>
+                                        <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-mono font-bold uppercase tracking-wider ${statusColors(attendee.registrationStatus)}`}>
                                                 {statusIcon(attendee.registrationStatus)}
                                                 {attendee.registrationStatus === 'checked_in' ? 'Checked In' : attendee.registrationStatus}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-4" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
-                                            <p className="text-gray-300 text-xs max-w-[200px] truncate">{attendee.school || 'N/A'}</p>
-                                            <p className="text-gray-500 text-xs truncate max-w-[200px]">{attendee.major || 'N/A'}</p>
+                                        <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
+                                            <p className="text-gray-300 text-sm max-w-[200px] truncate">{attendee.school || 'N/A'}</p>
+                                            <p className="text-gray-400 text-xs truncate max-w-[200px] mt-0.5">{attendee.major || 'N/A'}</p>
                                         </td>
-                                        <td className="px-4 py-4 text-xs font-mono text-gray-500" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
+                                        <td className="px-4 py-5 text-sm font-mono text-gray-400" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
                                             {new Date(attendee.registeredAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -394,68 +394,68 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
 
                                                         {/* Application Details */}
                                                         <div className="space-y-4">
-                                                            <h4 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Application Details</h4>
+                                                            <h4 className="text-xs uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Application Details</h4>
                                                             <div>
-                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Education</p>
+                                                                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Education</p>
                                                                 <p className="text-sm text-gray-200">{attendee.school} • {attendee.levelOfStudy}</p>
-                                                                <p className="text-xs text-gray-400">{attendee.major} (Class of {attendee.graduationYear})</p>
+                                                                <p className="text-sm text-gray-400">{attendee.major} (Class of {attendee.graduationYear})</p>
                                                             </div>
                                                             <div>
-                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Personal</p>
+                                                                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Personal</p>
                                                                 <p className="text-sm text-gray-200">{attendee.age} years old • {attendee.gender || 'Not specified'}</p>
                                                                 <p className="text-sm text-gray-200">{attendee.country}</p>
-                                                                <p className="text-xs text-gray-400 mt-1">{attendee.phone}</p>
+                                                                <p className="text-sm text-gray-400 mt-1">{attendee.phone}</p>
                                                             </div>
                                                         </div>
 
                                                         {/* Experience & Logistics */}
                                                         <div className="space-y-4">
-                                                            <h4 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Logistics & Links</h4>
+                                                            <h4 className="text-xs uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Logistics & Links</h4>
                                                             <div className="flex gap-4">
                                                                 {attendee.resumeUrl && (
-                                                                    <a href={attendee.resumeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
-                                                                        <ExternalLink className="w-3 h-3" /> Resume
+                                                                    <a href={attendee.resumeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                                                                        <ExternalLink className="w-3.5 h-3.5" /> Resume
                                                                     </a>
                                                                 )}
                                                                 {attendee.githubUrl && (
-                                                                    <a href={attendee.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
-                                                                        <ExternalLink className="w-3 h-3" /> GitHub
+                                                                    <a href={attendee.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                                                                        <ExternalLink className="w-3.5 h-3.5" /> GitHub
                                                                     </a>
                                                                 )}
                                                                 {attendee.linkedinUrl && (
-                                                                    <a href={attendee.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
-                                                                        <ExternalLink className="w-3 h-3" /> LinkedIn
+                                                                    <a href={attendee.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                                                                        <ExternalLink className="w-3.5 h-3.5" /> LinkedIn
                                                                     </a>
                                                                 )}
                                                             </div>
                                                             <div className="grid grid-cols-2 gap-4 pt-2">
                                                                 <div>
-                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Shirt Size</p>
+                                                                    <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Shirt Size</p>
                                                                     <p className="text-sm text-gray-200 font-bold">{attendee.shirtSize || 'N/A'}</p>
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Dietary</p>
+                                                                    <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Dietary</p>
                                                                     <p className="text-sm text-gray-200">{(attendee.dietaryRestrictions || []).join(', ') || 'None'}</p>
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Emergency</p>
+                                                                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Emergency</p>
                                                                 <p className="text-sm text-gray-200">{attendee.emergencyContact}</p>
-                                                                <p className="text-xs text-gray-400">{attendee.emergencyPhone}</p>
+                                                                <p className="text-sm text-gray-400">{attendee.emergencyPhone}</p>
                                                             </div>
                                                         </div>
 
                                                         {/* Questionnaire Response */}
                                                         <div className="space-y-4 lg:col-span-1 md:col-span-2">
-                                                            <h4 className="text-[10px] uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Questionnaire Response</h4>
+                                                            <h4 className="text-xs uppercase font-bold tracking-widest text-cyan-500 border-b border-cyan-500/20 pb-2 mb-3">Questionnaire Response</h4>
                                                             <div>
-                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Hackathons Attended</p>
+                                                                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Hackathons Attended</p>
                                                                 <p className="text-sm text-gray-200 font-mono bg-white/5 w-fit px-2 py-0.5 rounded border border-white/10">{attendee.hackathonsAttended ?? 0}</p>
                                                             </div>
                                                             <div>
-                                                                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-2">Why do you want to attend?</p>
+                                                                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Why do you want to attend?</p>
                                                                 <div className="bg-white/5 border border-white/5 p-4 rounded-xl">
-                                                                    <p className="text-xs text-gray-300 italic whitespace-pre-wrap leading-relaxed">
+                                                                    <p className="text-sm text-gray-300 italic whitespace-pre-wrap leading-relaxed">
                                                                         {attendee.whyAttend ? `"${attendee.whyAttend}"` : 'No answer provided.'}
                                                                     </p>
                                                                 </div>
