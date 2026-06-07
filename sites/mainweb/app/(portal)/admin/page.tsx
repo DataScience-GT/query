@@ -41,7 +41,8 @@ export default function AdminPage() {
     enabled: !!session && adminStatus?.isAdmin,
   });
 
-
+  type StatusFilter = 'all' | 'open' | 'closed';
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
@@ -151,12 +152,29 @@ export default function AdminPage() {
 
         {/* Events Section */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">All Events</h2>
-              <p className="text-gray-500 text-sm font-mono">
-                {eventsLoading ? 'Loading events...' : `${events?.length || 0} events in the system`}
-              </p>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center bg-black/30 border border-white/5 p-1.5 rounded-xl gap-1">
+              {(['all', 'open', 'closed'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-all ${
+                    statusFilter === f
+                      ? f === 'open'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : f === 'closed'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        : 'bg-white/10 text-white border border-white/10'
+                      : 'text-gray-500 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {f === 'all'
+                    ? `All (${events?.length ?? 0})`
+                    : f === 'open'
+                    ? `Open (${events?.filter((e) => e.checkInEnabled).length ?? 0})`
+                    : `Closed (${events?.filter((e) => !e.checkInEnabled).length ?? 0})`}
+                </button>
+              ))}
             </div>
             <button
               onClick={() => setShowCreateEvent(true)}
@@ -185,6 +203,11 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-4">
               {events
+                .filter((e) =>
+                  statusFilter === 'all' ? true :
+                  statusFilter === 'open' ? e.checkInEnabled :
+                  !e.checkInEnabled
+                )
                 .map((event) => (
                   <LiquidGlass
                     key={event.id}
