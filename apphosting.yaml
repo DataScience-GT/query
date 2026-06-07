@@ -49,3 +49,5 @@ env:
     secret: projects/672446353769/secrets/EMAIL_SERVER_PASSWORD
   - variable: EMAIL_FROM
     value: datascience.gt@gmail.com
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
