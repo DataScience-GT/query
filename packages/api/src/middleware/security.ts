@@ -326,7 +326,13 @@ import { db, auditLogs } from "@query/db";
 
 const flushQueue: Omit<SecurityEvent, 'timestamp'>[] = [];
 const FLUSH_INTERVAL = 5000;
-const MAX_BATCH_SIZE = 50;
+// Keep batch size small enough that PG parameter count (5 cols × N rows) never approaches the 65535 limit
+const MAX_BATCH_SIZE = 25;
+// Prevent unbounded queue growth during log storms
+const MAX_QUEUE_SIZE = 500;
+// Deduplication: track last log time per rate_limit identifier to suppress storms
+const rateLimitLogCooldown = new Map<string, number>();
+const RATE_LIMIT_LOG_COOLDOWN_MS = 10_000; // only log once per 10s per identifier
 
 async function flushLogs() {
   if (flushQueue.length === 0) return;
@@ -334,13 +340,14 @@ async function flushLogs() {
   const batch = flushQueue.splice(0, MAX_BATCH_SIZE);
 
   if (!db) {
-    // Critical: Security events dropped when DB is unavailable - warn to stderr and persist to file
-    console.error(`[Security] CRITICAL: DB unavailable, ${batch.length} critical security logs dropped. Consider implementing queue-based persistence.`);
+    // DB unavailable — re-queue events (up to the cap) so they are not silently dropped
+    const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
+    flushQueue.unshift(...requeue);
+    console.error(`[Security] CRITICAL: DB unavailable, ${batch.length - requeue.length} security logs dropped (queue full). ${requeue.length} re-queued.`);
     try {
       const fs = await import("fs");
-      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs dropped.\n`;
+      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.\n`;
       fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
-      console.error(errorLog.trim());
     } catch {
       // Ignore fs errors
     }
@@ -379,7 +386,18 @@ async function flushLogs() {
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
     console.error(errorMsg);
-    // Log to a separate error audit file if available
+
+    // Re-queue failed events so they are retried on the next flush interval.
+    // Only re-queue up to the remaining capacity to prevent unbounded growth.
+    const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
+    if (requeue.length > 0) {
+      flushQueue.unshift(...requeue);
+    }
+    const dropped = batch.length - requeue.length;
+    if (dropped > 0) {
+      console.error(`[Security] ${dropped} log(s) permanently dropped (queue at capacity).`);
+    }
+
     try {
       const fs = await import("fs");
       const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
@@ -396,16 +414,39 @@ setInterval(() => {
 }, FLUSH_INTERVAL);
 
 export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
+  const now = Date.now();
+
+  // Deduplicate rate_limit events: suppress repeat logs for the same identifier
+  // within the cooldown window to prevent audit log storms under heavy rate limiting.
+  if (event.type === 'rate_limit') {
+    const lastLogged = rateLimitLogCooldown.get(event.identifier);
+    if (lastLogged && now - lastLogged < RATE_LIMIT_LOG_COOLDOWN_MS) {
+      return; // Suppressed — already logged recently for this identifier
+    }
+    rateLimitLogCooldown.set(event.identifier, now);
+
+    // Prune cooldown map periodically to prevent memory leak
+    if (rateLimitLogCooldown.size > 10000) {
+      for (const [id, ts] of rateLimitLogCooldown.entries()) {
+        if (now - ts > RATE_LIMIT_LOG_COOLDOWN_MS) rateLimitLogCooldown.delete(id);
+      }
+    }
+  }
+
   // Keep in-memory for immediate/short-term checks
-  securityLog.push({ ...event, timestamp: Date.now() });
+  securityLog.push({ ...event, timestamp: now });
   if (securityLog.length > MAX_LOG_SIZE) {
     securityLog.shift();
   }
 
-  // Queue for DB persistence
-  flushQueue.push(event);
+  // Queue for DB persistence — respect the cap
+  if (flushQueue.length < MAX_QUEUE_SIZE) {
+    flushQueue.push(event);
+  } else {
+    console.warn(`[Security] Flush queue at capacity (${MAX_QUEUE_SIZE}). Event dropped: ${event.type}/${event.identifier}`);
+  }
 
-  // Instant flush if critical or queue full
+  // Instant flush if critical or queue is at batch threshold
   if (event.type === 'injection_attempt' || flushQueue.length >= MAX_BATCH_SIZE) {
     void flushLogs();
   }
