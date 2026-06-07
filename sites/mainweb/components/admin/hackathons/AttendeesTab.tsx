@@ -289,7 +289,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
             </div>
 
             {/* Table */}
-            <LiquidGlass className="p-0 overflow-hidden overflow-x-auto border-white/5 relative z-10">
+            <LiquidGlass className="p-0 overflow-x-auto border-white/5 relative z-10">
                 <table className="w-full text-left text-sm whitespace-nowrap min-w-[900px]">
                     <thead className="bg-black/40 border-b border-white/10 text-gray-400 font-mono text-xs uppercase tracking-wider">
                         <tr>
@@ -389,7 +389,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                     {expandedRow === attendee.id && (
                                         <tr className="bg-black/30">
                                             <td colSpan={7} className="p-0">
-                                                <div className="p-6 md:p-8 animate-in fade-in duration-300">
+                                                <div className="p-6 md:p-8 animate-in fade-in duration-300 whitespace-normal">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
                                                         {/* Application Details */}
