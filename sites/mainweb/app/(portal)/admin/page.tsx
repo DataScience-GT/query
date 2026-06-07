@@ -41,8 +41,7 @@ export default function AdminPage() {
     enabled: !!session && adminStatus?.isAdmin,
   });
 
-  type EventView = 'all' | 'competitions' | 'gatherings';
-  const [eventView, setEventView] = useState<EventView>('all');
+
 
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
@@ -148,93 +147,15 @@ export default function AdminPage() {
         </div>
 
 
-        {/* View Controls */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center bg-black/30 border border-white/5 p-2 rounded-xl gap-2">
-            <button
-              onClick={() => setEventView('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                eventView === 'all'
-                  ? 'bg-gradient-to-r from-accent to-emerald-600 text-white shadow-lg shadow-accent/20'
-                  : 'text-text-muted hover:text-white hover:bg-white/5'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setEventView('competitions')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                eventView === 'competitions'
-                  ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/20'
-                  : 'text-text-muted hover:text-cyan-400 hover:bg-cyan-500/10'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Competitions
-              </div>
-            </button>
-            <button
-              onClick={() => setEventView('gatherings')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                eventView === 'gatherings'
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20'
-                  : 'text-text-muted hover:text-green-400 hover:bg-green-500/10'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Gatherings
-              </div>
-            </button>
-          </div>
-          <div className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-            {eventsLoading ? (
-              <span className="text-gray-600">Loading events...</span>
-            ) : eventView === 'all'
-              ? `${events?.length || 0} total events`
-              : `${events?.filter((e) => {
-                  if (eventView === 'competitions') return !e.checkInEnabled;
-                  return e.checkInEnabled;
-                }).length || 0} of ${events?.length || 0} shown`}
-          </div>
-        </div>
+
 
         {/* Events Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">
-                {eventView === 'all' && 'All Events'}
-                {eventView === 'competitions' && (
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Competitions
-                  </div>
-                )}
-                {eventView === 'gatherings' && (
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    Gatherings
-                  </div>
-                )}
-              </h2>
+              <h2 className="text-xl font-bold text-white">All Events</h2>
               <p className="text-gray-500 text-sm font-mono">
-                {eventsLoading ? (
-                  <span>Loading events...</span>
-                ) : eventView === 'all'
-                  ? `${events?.length || 0} events in the system`
-                  : eventView === 'competitions'
-                  ? `Competitions with teams, projects, and judging`
-                  : `General gatherings with QR check-ins`}
+                {eventsLoading ? 'Loading events...' : `${events?.length || 0} events in the system`}
               </p>
             </div>
             <button
@@ -251,36 +172,24 @@ export default function AdminPage() {
                 <div key={n} className="animate-pulse bg-white/5 border border-white/5 rounded-2xl p-6 h-28" />
               ))}
             </div>
-          ) : !events ||
-            events.filter((e) => {
-              if (eventView === 'all') return true;
-              if (eventView === 'competitions') return !e.checkInEnabled;
-              return e.checkInEnabled;
-            }).length === 0 ? (
+          ) : !events || events.length === 0 ? (
             <LiquidGlass className="p-16 text-center">
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                 <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
                 </svg>
               </div>
-              <h3 className="text-white font-semibold mb-1">No {eventView === 'all' ? 'events' : eventView === 'competitions' ? 'competitions' : 'gatherings'} yet</h3>
-              <p className="text-gray-500 text-sm font-mono">Create your first {eventView === 'all' ? 'event' : eventView === 'competitions' ? 'competition' : 'gathering'} to get started.</p>
+              <h3 className="text-white font-semibold mb-1">No events yet</h3>
+              <p className="text-gray-500 text-sm font-mono">Create your first event to get started.</p>
             </LiquidGlass>
           ) : (
             <div className="space-y-4">
               {events
-                .filter((e) => {
-                  if (eventView === 'all') return true;
-                  if (eventView === 'competitions') return !e.checkInEnabled;
-                  return e.checkInEnabled;
-                })
                 .map((event) => (
                   <LiquidGlass
                     key={event.id}
-                    className={`p-6 hover:border-white/20 transition-all ${
-                      !event.checkInEnabled
-                        ? 'border-l-4 border-l-cyan-500'
-                        : 'border-l-4 border-l-green-500'
+                    className={`p-6 hover:border-white/20 transition-all border-l-4 ${
+                      event.checkInEnabled ? 'border-l-emerald-500' : 'border-l-red-500/50'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -330,7 +239,7 @@ export default function AdminPage() {
                           : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                           }`}
                       >
-                        {event.checkInEnabled ? 'Gathering' : 'Competition'}
+                        {event.checkInEnabled ? 'Close' : 'Open'}
                       </button>
                       <button
                         onClick={() => {
