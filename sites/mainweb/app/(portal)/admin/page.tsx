@@ -142,7 +142,7 @@ export default function AdminPage() {
             <QrCode className="w-3 h-3" /> Club Events
           </p>
           <h1 className="text-2xl font-black text-white tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
-            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-[#00E5FF] italic">Manager</span>
+            Check-in <span className="text-accent italic font-bold">Manager</span>
           </h1>
           <p className="text-text-muted text-sm relative z-10">Create events, generate QR codes, and track attendance for general club gatherings.</p>
         </div>
