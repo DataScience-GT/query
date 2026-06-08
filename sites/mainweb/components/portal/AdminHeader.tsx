@@ -26,7 +26,7 @@ export default function AdminHeader() {
 
 
   return (
-    <header className="sticky top-0 z-40 flex w-full items-center border-b border-white/5 bg-[#000000]/80 backdrop-blur-3xl px-4 py-3">
+    <header className="sticky top-0 z-40 flex w-full items-center border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl px-4 py-3">
       <div className="flex h-16 items-center gap-4">
         {/* Toggle sidebar button */}
         <button
@@ -34,19 +34,19 @@ export default function AdminHeader() {
           className="p-2 hover:bg-white/5 rounded-none transition-colors hidden lg:block"
           aria-label="Toggle sidebar"
         >
-          <Menu className="h-5 w-5 text-gray-400" />
+          <Menu className="h-5 w-5 text-[var(--text-muted)]" />
         </button>
 
         {/* Search bar */}
         <div className={`flex-1 max-w-md transition-all duration-300 ${showSearch ? 'opacity-100' : 'opacity-0'}`}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-subtle)]" />
             <input
               type="text"
               placeholder="Search events, hackathons..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-10 pr-4 bg-white/5 border border-white/10 rounded-none text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#00E5FF]/50 focus:ring-2 focus:ring-[#00E5FF]/20"
+              className="w-full h-9 pl-10 pr-4 bg-white/5 border border-[var(--border-subtle)] rounded-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
               autoFocus={showSearch}
               onBlur={() => setTimeout(() => setShowSearch(false), 200)}
             />
@@ -59,7 +59,7 @@ export default function AdminHeader() {
           className="p-2 hover:bg-white/5 rounded-none transition-colors hidden sm:block"
           aria-label="Toggle search"
         >
-          <Search className="h-5 w-5 text-gray-400" />
+          <Search className="h-5 w-5 text-[var(--text-muted)]" />
         </button>
 
         {/* Notifications */}
@@ -67,8 +67,8 @@ export default function AdminHeader() {
           className="p-2 hover:bg-white/5 rounded-none transition-colors relative"
           aria-label="Notifications"
         >
-          <Bell className="h-5 w-5 text-gray-400" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-sm bg-[#00E5FF]" />
+          <Bell className="h-5 w-5 text-[var(--text-muted)]" />
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-sm bg-accent" />
         </button>
 
         {/* Theme toggle */}
@@ -78,18 +78,18 @@ export default function AdminHeader() {
           aria-label="Toggle dark mode"
         >
           {theme === 'dark' ? (
-            <Moon className="h-5 w-5 text-gray-400" />
+            <Moon className="h-5 w-5 text-[var(--text-muted)]" />
           ) : (
-            <Sun className="h-5 w-5 text-gray-400" />
+            <Sun className="h-5 w-5 text-[var(--text-muted)]" />
           )}
         </button>
 
         {/* Logo */}
         <Link href="/admin" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-none bg-gradient-to-br from-[#00E5FF] to-[#00E5FF] text-white shadow-[4px_4px_0_0_#00E5FF]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-none bg-gradient-to-br from-accent to-accent text-[var(--text-primary)] shadow-[4px_4px_0_0_var(--accent)]">
             <span className="font-black text-sm">DS</span>
           </div>
-          <span className="hidden lg:block text-lg font-black text-white tracking-tight">
+          <span className="hidden lg:block text-lg font-black text-[var(--text-primary)] tracking-tight">
             DSGT Portal
           </span>
         </Link>

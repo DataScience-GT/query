@@ -143,10 +143,10 @@ export default function AdminSetupPage() {
         <AdminLayout>
             <div className="relative z-10 max-w-4xl mx-auto">
                 <div className="mb-12">
-                    <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                    <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                         <Zap className="w-3 h-3" /> Hackathon Hub
                     </p>
-                    <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
+                    <h1 className="text-4xl font-black text-[var(--text-primary)] uppercase tracking-tighter mb-1">
                         Judging Data <span className="text-accent italic">Import</span>
                     </h1>
                     <p className="text-sm font-mono text-text-muted uppercase tracking-widest">
@@ -228,7 +228,7 @@ export default function AdminSetupPage() {
                 {/* Step 4: Auto-Assign Judges */}
                 {activeStep === 4 && (
                     <LiquidGlass className="rounded-none p-8">
-                        <h2 className="text-xl font-black text-white uppercase tracking-tight mb-2">Auto-Assign Judges to Projects</h2>
+                        <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-2">Auto-Assign Judges to Projects</h2>
                         <p className="text-xs text-text-muted font-mono mb-8">
                             Main track judges get 3-9 projects. Special label judges get all matching projects (randomized).
                         </p>
@@ -239,15 +239,15 @@ export default function AdminSetupPage() {
                                 assignJudges.mutate({ hackathonId: selectedHackathonId });
                             }}
                             disabled={assignJudges.isPending || !selectedHackathonId}
-                            className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-[#00E5FF]/10 border-2 border-accent/40 text-white font-black text-lg uppercase tracking-widest rounded-none hover:from-accent/20 hover:to-[#00E5FF]/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+                            className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-accent/10 border-2 border-accent/40 text-[var(--text-primary)] font-black text-lg uppercase tracking-widest rounded-none hover:from-accent/20 hover:to-accent/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(16,185,129,0.1)]"
                         >
                             {assignJudges.isPending ? 'Assigning...' : 'Auto-Assign All Judges'}
                         </button>
 
                         {assignJudges.data && (
                             <div className="mt-6">
-                                <div className="p-4 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none mb-4">
-                                    <p className="text-emerald-400 text-sm font-mono font-bold mb-2">
+                                <div className="p-4 bg-accent/10 border border-accent/20 rounded-none mb-4">
+                                    <p className="text-accent text-sm font-mono font-bold mb-2">
                                         Assigned {assignJudges.data.totalJudges} judges
                                     </p>
                                 </div>
@@ -262,10 +262,10 @@ export default function AdminSetupPage() {
                                         </thead>
                                         <tbody>
                                             {assignJudges.data.assignments.map((a, i) => (
-                                                <tr key={i} className="border-t border-white/5">
-                                                    <td className="py-2 px-3 text-white">{a.judgeName || 'Unknown'}</td>
+                                                <tr key={i} className="border-t border-[var(--border-subtle)]">
+                                                    <td className="py-2 px-3 text-[var(--text-primary)]">{a.judgeName || 'Unknown'}</td>
                                                     <td className="py-2 px-3 text-accent">{a.track || 'General'}</td>
-                                                    <td className="py-2 px-3 text-gray-400 font-mono">{a.assignedCount}</td>
+                                                    <td className="py-2 px-3 text-[var(--text-muted)] font-mono">{a.assignedCount}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -276,7 +276,7 @@ export default function AdminSetupPage() {
 
                         {judgesAssigned && (
                             <div className="mt-8 text-center">
-                                <p className="text-emerald-400 text-sm font-bold mb-4">Setup complete - all judges assigned.</p>
+                                <p className="text-accent text-sm font-bold mb-4">Setup complete - all judges assigned.</p>
                                 <button
                                     onClick={() => router.push('/admin/judging')}
                                     className="px-10 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all font-mono"

@@ -30,29 +30,29 @@ export function QRScannerModal({
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">
+                    <h3 className="text-xl font-black text-[var(--text-primary)] italic uppercase tracking-tighter">
                         QR Scanner
                     </h3>
-                    <p className="text-[9px] font-mono text-[#00E5FF] uppercase tracking-widest">
+                    <p className="text-[9px] font-mono text-accent uppercase tracking-widest">
                         Event Check-In System
                     </p>
                 </div>
                 <button
                     onClick={handleClose}
                     disabled={isProcessing}
-                    className="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
+                    className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
                 >
                     [ Close ]
                 </button>
             </div>
 
             {/* Camera Feed */}
-            <div className="relative rounded-none overflow-hidden border-2 border-[#00E5FF]/30">
+            <div className="relative rounded-none overflow-hidden border-2 border-accent/30">
                 {isProcessing && (
-                    <div className="absolute inset-0 bg-black/80 z-10 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-[var(--bg-primary)]/80 z-10 flex items-center justify-center">
                         <div className="text-center">
-                            <div className="w-12 h-12 border-4 border-[#00E5FF] border-t-transparent rounded-sm animate-spin mx-auto mb-3" />
-                            <p className="text-[10px] text-[#00E5FF] uppercase tracking-widest font-mono">
+                            <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-sm animate-spin mx-auto mb-3" />
+                            <p className="text-[10px] text-accent uppercase tracking-widest font-mono">
                                 Verifying...
                             </p>
                         </div>
@@ -81,11 +81,11 @@ export function QRScannerModal({
             </div>
 
             {/* Instructions */}
-            <div className="mt-4 bg-[#00E5FF]/10 border border-[#00E5FF]/30 rounded-none p-4">
-                <p className="text-[9px] text-[#00E5FF] uppercase tracking-widest font-bold mb-2">
+            <div className="mt-4 bg-accent/10 border border-accent/30 rounded-none p-4">
+                <p className="text-[9px] text-accent uppercase tracking-widest font-bold mb-2">
                     Instructions:
                 </p>
-                <ul className="text-[8px] text-gray-500 space-y-1 font-mono">
+                <ul className="text-[8px] text-[var(--text-subtle)] space-y-1 font-mono">
                     <li>• Hold phone steady over QR code</li>
                     <li>• Ensure good lighting conditions</li>
                     <li>• Scan happens automatically</li>

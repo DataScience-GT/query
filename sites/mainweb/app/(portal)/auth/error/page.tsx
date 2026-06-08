@@ -40,7 +40,7 @@ function AuthErrorContent() {
             </div>
 
             <div className="relative z-10 space-y-4 mb-12 max-w-lg">
-                <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
+                <h1 className="text-4xl font-black text-[var(--text-primary)] uppercase tracking-tighter italic">
                     Auth_<span className="text-red-500">Error</span>
                 </h1>
                 <p className="text-xs font-mono text-text-muted uppercase tracking-[0.4em] mb-4">
@@ -56,7 +56,7 @@ function AuthErrorContent() {
             <div className="relative z-10 flex gap-4">
                 <Link
                     href="/login"
-                    className="px-10 py-4 bg-white/[0.03] border border-white/10 text-white font-black text-xs uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white/20 transition-all rounded-none shadow-lg font-mono"
+                    className="px-10 py-4 bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-xs uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white/20 transition-all rounded-none shadow-lg font-mono"
                 >
                     &lt; Return_To_Base
                 </Link>
@@ -74,7 +74,7 @@ function AuthErrorContent() {
 export default function AuthErrorPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#000000] flex items-center justify-center font-mono text-red-500 uppercase tracking-widest">
+            <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center font-mono text-red-500 uppercase tracking-widest">
                 Loading_Error_Log...
             </div>
         }>

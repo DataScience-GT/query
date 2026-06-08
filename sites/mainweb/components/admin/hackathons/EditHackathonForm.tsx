@@ -64,52 +64,52 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+            <div className="absolute inset-0 bg-[var(--bg-primary)]/70 backdrop-blur-sm" onClick={onClose} />
             <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <LiquidGlass className="p-6 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-white">Edit Hackathon</h3>
-                        <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-sm font-mono">✕</button>
+                        <h3 className="text-lg font-bold text-[var(--text-primary)]">Edit Hackathon</h3>
+                        <button onClick={onClose} className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm font-mono">✕</button>
                     </div>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Name</label>
-                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors" />
+                            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Name</label>
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors" />
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Description</label>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors resize-none" />
+                            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Description</label>
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors resize-none" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Location</label>
-                                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors" />
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Location</label>
+                                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors" />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Theme</label>
-                                <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors" />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Start Date</label>
-                                <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors [color-scheme:dark]" />
-                            </div>
-                            <div>
-                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">End Date</label>
-                                <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Theme</label>
+                                <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Registration Deadline</label>
-                                <input type="datetime-local" value={regDeadline} onChange={(e) => setRegDeadline(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Start Date</label>
+                                <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Max Participants</label>
-                                <input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors" />
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">End Date</label>
+                                <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Registration Deadline</label>
+                                <input type="datetime-local" value={regDeadline} onChange={(e) => setRegDeadline(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                            </div>
+                            <div>
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Max Participants</label>
+                                <input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors" />
                             </div>
                         </div>
 
@@ -119,11 +119,11 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
                             <button
                                 onClick={handleSubmit}
                                 disabled={updateMutation.isPending}
-                                className="px-6 py-3 bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_#00E5FF] disabled:opacity-50"
+                                className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] disabled:opacity-50"
                             >
                                 {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                             </button>
-                            <button onClick={onClose} className="px-4 py-3 text-gray-500 hover:text-white text-sm font-mono transition-colors">Cancel</button>
+                            <button onClick={onClose} className="px-4 py-3 text-[var(--text-subtle)] hover:text-[var(--text-primary)] text-sm font-mono transition-colors">Cancel</button>
                         </div>
                     </div>
                 </LiquidGlass>

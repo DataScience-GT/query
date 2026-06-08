@@ -7,6 +7,8 @@ import { useState } from 'react';
 import superjson from 'superjson';
 import { trpc } from '@/lib/trpc';
 
+import { ThemeProvider } from 'next-themes';
+
 export function Providers({ children }: { children: React.ReactNode }) {
 
 
@@ -43,12 +45,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SessionProvider basePath="/api/auth">
-      <QueryClientProvider client={queryClient}>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          {children}
-        </trpc.Provider>
-      </QueryClientProvider>
-    </SessionProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <SessionProvider basePath="/api/auth">
+        <QueryClientProvider client={queryClient}>
+          <trpc.Provider client={trpcClient} queryClient={queryClient}>
+            {children}
+          </trpc.Provider>
+        </QueryClientProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }
