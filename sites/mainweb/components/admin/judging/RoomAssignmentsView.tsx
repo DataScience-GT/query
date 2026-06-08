@@ -34,10 +34,10 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
     if (!rankings) return null;
 
     return (
-        <LiquidGlass className="rounded-lg overflow-hidden mb-12">
+        <LiquidGlass className="rounded-none overflow-hidden mb-12">
             <div className="p-6 border-b border-white/5">
                 <h2 className="text-xl font-black text-white uppercase tracking-tight">
-                    Room <span className="text-[#00A8A8] italic">Assignments</span>
+                    Room <span className="text-[#EAFF2B] italic">Assignments</span>
                 </h2>
                 <p className="text-xs text-gray-500 font-mono mt-1">{rankings.rankings.length} projects assigned</p>
             </div>
@@ -73,7 +73,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                                     </td>
                                     <td className="py-4 px-6">
                                         {r.project.tracks?.[0] ? (
-                                            <span className="px-3 py-1 rounded-full text-[9px] font-bold bg-[#00A8A8]/10 text-[#00A8A8] border border-[#00A8A8]/20 uppercase tracking-widest">
+                                            <span className="px-3 py-1 rounded-sm text-[9px] font-bold bg-[#EAFF2B]/10 text-[#EAFF2B] border border-[#EAFF2B]/20 uppercase tracking-widest">
                                                 {r.project.tracks[0]}
                                             </span>
                                         ) : <span className="text-gray-600">-</span>}
@@ -81,12 +81,12 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                                     <td className="py-4 px-6">
                                         <div className="flex flex-wrap gap-1">
                                             {(r.project.tracks?.slice(1) || []).concat(r.project.challenges || []).map((t: string, i: number) => (
-                                                <span key={i} className="px-2 py-0.5 rounded-full text-[8px] font-bold bg-white/5 text-gray-400 border border-white/10 uppercase tracking-widest">
+                                                <span key={i} className="px-2 py-0.5 rounded-sm text-[8px] font-bold bg-white/5 text-gray-400 border border-white/10 uppercase tracking-widest">
                                                     {t}
                                                 </span>
                                             ))}
                                             {r.project.isCreateX && (
-                                                <span className="px-2 py-0.5 rounded-full text-[8px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest">
+                                                <span className="px-2 py-0.5 rounded-sm text-[8px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest">
                                                     CREATE-X
                                                 </span>
                                             )}
@@ -104,8 +104,8 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                                     </td>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg font-black text-[#00A8A8] tabular-nums">{r.weightedScore}</span>
-                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border ${r.confidenceLevel === 'HIGH' ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                                            <span className="text-lg font-black text-[#EAFF2B] tabular-nums">{r.weightedScore}</span>
+                                            <span className={`px-2 py-0.5 rounded-sm text-[8px] font-bold uppercase tracking-widest border ${r.confidenceLevel === 'HIGH' ? 'bg-green-500/20 text-green-400 border-green-500/30'
                                                 : r.confidenceLevel === 'MEDIUM' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                                                     : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                                                 }`}>{r.confidenceLevel}</span>

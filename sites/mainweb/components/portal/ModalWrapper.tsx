@@ -28,7 +28,7 @@ export function ModalWrapper({
                 onClick={onClose}
             />
             <div
-                className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[#0A0A0A] border border-[#00A8A8]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto`}
+                className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[#0A0A0A] border border-[#EAFF2B]/30 rounded-none p-8 shadow-[0_0_50px_rgba(0,168,168,0.2)] animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto`}
             >
                 {children}
             </div>

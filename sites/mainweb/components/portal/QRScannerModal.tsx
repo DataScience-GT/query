@@ -33,7 +33,7 @@ export function QRScannerModal({
                     <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">
                         QR Scanner
                     </h3>
-                    <p className="text-[9px] font-mono text-[#00A8A8] uppercase tracking-widest">
+                    <p className="text-[9px] font-mono text-[#EAFF2B] uppercase tracking-widest">
                         Event Check-In System
                     </p>
                 </div>
@@ -47,12 +47,12 @@ export function QRScannerModal({
             </div>
 
             {/* Camera Feed */}
-            <div className="relative rounded-xl overflow-hidden border-2 border-[#00A8A8]/30">
+            <div className="relative rounded-none overflow-hidden border-2 border-[#EAFF2B]/30">
                 {isProcessing && (
                     <div className="absolute inset-0 bg-black/80 z-10 flex items-center justify-center">
                         <div className="text-center">
-                            <div className="w-12 h-12 border-4 border-[#00A8A8] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                            <p className="text-[10px] text-[#00A8A8] uppercase tracking-widest font-mono">
+                            <div className="w-12 h-12 border-4 border-[#EAFF2B] border-t-transparent rounded-sm animate-spin mx-auto mb-3" />
+                            <p className="text-[10px] text-[#EAFF2B] uppercase tracking-widest font-mono">
                                 Verifying...
                             </p>
                         </div>
@@ -81,8 +81,8 @@ export function QRScannerModal({
             </div>
 
             {/* Instructions */}
-            <div className="mt-4 bg-[#00A8A8]/10 border border-[#00A8A8]/30 rounded-lg p-4">
-                <p className="text-[9px] text-[#00A8A8] uppercase tracking-widest font-bold mb-2">
+            <div className="mt-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/30 rounded-none p-4">
+                <p className="text-[9px] text-[#EAFF2B] uppercase tracking-widest font-bold mb-2">
                     Instructions:
                 </p>
                 <ul className="text-[8px] text-gray-500 space-y-1 font-mono">

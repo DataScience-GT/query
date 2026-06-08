@@ -54,23 +54,23 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
         <div className="space-y-6">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <LiquidGlass className="rounded-lg p-6 text-center">
+                <LiquidGlass className="rounded-none p-6 text-center">
                     <p className="text-3xl font-black text-white tabular-nums">{judgeStats.length}</p>
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest font-mono mt-2">Active Judges</p>
                 </LiquidGlass>
-                <LiquidGlass className="rounded-lg p-6 text-center">
-                    <p className="text-3xl font-black text-[#00A8A8] tabular-nums">
+                <LiquidGlass className="rounded-none p-6 text-center">
+                    <p className="text-3xl font-black text-[#EAFF2B] tabular-nums">
                         {judgeStats.reduce((s, j) => s + j.count, 0)}
                     </p>
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest font-mono mt-2">Total Votes</p>
                 </LiquidGlass>
-                <LiquidGlass className="rounded-lg p-6 text-center">
+                <LiquidGlass className="rounded-none p-6 text-center">
                     <p className="text-3xl font-black text-emerald-400 tabular-nums">
                         {judgeStats.length > 0 ? formatDuration(judgeStats.reduce((s, j) => s + j.totalTime, 0) / judgeStats.reduce((s, j) => s + j.count, 0)) : '0:00'}
                     </p>
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest font-mono mt-2">Avg Time/Project</p>
                 </LiquidGlass>
-                <LiquidGlass className="rounded-lg p-6 text-center">
+                <LiquidGlass className="rounded-none p-6 text-center">
                     <p className={`text-3xl font-black tabular-nums ${judgeStats.reduce((s, j) => s + j.overtimeCount, 0) > 0 ? 'text-red-400' : 'text-gray-600'}`}>
                         {judgeStats.reduce((s, j) => s + j.overtimeCount, 0)}
                     </p>
@@ -79,10 +79,10 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
             </div>
 
             {/* Per-Judge Table */}
-            <LiquidGlass className="rounded-lg overflow-hidden">
+            <LiquidGlass className="rounded-none overflow-hidden">
                 <div className="p-6 border-b border-white/5">
                     <h2 className="text-xl font-black text-white uppercase tracking-tight">
-                        Judge <span className="text-[#00A8A8] italic">Performance</span>
+                        Judge <span className="text-[#EAFF2B] italic">Performance</span>
                     </h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -103,7 +103,7 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                                         <p className="text-sm font-bold text-white">{j.name}</p>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <span className="text-lg font-black text-[#00A8A8] tabular-nums">{j.count}</span>
+                                        <span className="text-lg font-black text-[#EAFF2B] tabular-nums">{j.count}</span>
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="text-lg font-black text-white tabular-nums">{(j.totalScore / j.count).toFixed(1)}</span>
@@ -117,7 +117,7 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                                     </td>
                                     <td className="py-4 px-6">
                                         {j.overtimeCount > 0 ? (
-                                            <span className="px-3 py-1 rounded-full text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-widest">
+                                            <span className="px-3 py-1 rounded-sm text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-widest">
                                                 {j.overtimeCount} OVERTIME
                                             </span>
                                         ) : (

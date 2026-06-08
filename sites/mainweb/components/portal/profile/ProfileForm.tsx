@@ -177,8 +177,8 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   return (
     <div className="space-y-6">
       {message && (
-        <div className={`p-4 rounded-lg border ${message.type === 'success'
-          ? 'bg-[#00A8A8]/10 border-[#00A8A8]/30 text-[#00A8A8]'
+        <div className={`p-4 rounded-none border ${message.type === 'success'
+          ? 'bg-[#EAFF2B]/10 border-[#EAFF2B]/30 text-[#EAFF2B]'
           : 'bg-red-500/10 border-red-500/30 text-red-500'
           }`}>
           <p className="text-xs uppercase tracking-widest">{message.text}</p>
@@ -187,7 +187,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="flex flex-col items-center space-y-4 mb-6 pt-2">
         <div
-          className="relative w-32 h-32 rounded-full overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
+          className="relative w-32 h-32 rounded-sm overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
         >
           {imagePreview ? (
@@ -224,7 +224,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Enter your name"
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all"
           maxLength={100}
         />
         <p className="text-[10px] text-gray-700 uppercase">Visible to all users</p>
@@ -240,7 +240,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="Tell the community about yourself..."
           rows={4}
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all resize-none"
+          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all resize-none"
           maxLength={500}
         />
         <div className="flex justify-between items-center">
@@ -258,7 +258,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           value={formData.website}
           onChange={(e) => setFormData({ ...formData, website: e.target.value })}
           placeholder="https://your-website.com"
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all"
           maxLength={500}
         />
       </div>
@@ -272,7 +272,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           value={formData.location}
           onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           placeholder="E.g. Atlanta, GA"
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all"
           maxLength={200}
         />
       </div>
@@ -285,7 +285,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           type="email"
           value={user.email}
           disabled
-          className="w-full bg-black/20 border border-white/5 rounded-lg px-4 py-3 text-gray-600 text-sm cursor-not-allowed font-mono"
+          className="w-full bg-black/20 border border-white/5 rounded-none px-4 py-3 text-gray-600 text-sm cursor-not-allowed font-mono"
         />
         <p className="text-[10px] text-gray-700 uppercase">Cannot be modified</p>
       </div>
@@ -293,7 +293,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       {isMember && (
         <div className="pt-6 mt-6 border-t border-white/10 space-y-6">
           <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-sm bg-green-500 animate-pulse"></span>
             <h3 className="text-sm font-bold text-white uppercase tracking-widest">Member Details</h3>
           </div>
 
@@ -307,7 +307,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 value={memberForm.linkedinUrl}
                 onChange={(e) => setMemberForm({ ...memberForm, linkedinUrl: e.target.value })}
                 placeholder="https://linkedin.com/in/..."
-                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
               />
             </div>
 
@@ -320,7 +320,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 value={memberForm.githubUrl}
                 onChange={(e) => setMemberForm({ ...memberForm, githubUrl: e.target.value })}
                 placeholder="https://github.com/..."
-                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
               />
             </div>
 
@@ -333,7 +333,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 value={memberForm.portfolioUrl}
                 onChange={(e) => setMemberForm({ ...memberForm, portfolioUrl: e.target.value })}
                 placeholder="https://your-portfolio.com"
-                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
               />
             </div>
           </div>
@@ -368,7 +368,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         </div>
       )}
 
-      <LiquidGlass className="bg-white/5 border border-white/10 rounded-lg p-4 mt-6">
+      <LiquidGlass className="bg-white/5 border border-white/10 rounded-none p-4 mt-6">
         <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile Tips</p>
         <ul className="text-xs text-gray-400 space-y-1">
           <li>&gt; Use a clear profile picture for better recognition</li>
@@ -381,9 +381,9 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className={`flex-1 py-3 bg-[#00A8A8] text-black font-bold uppercase text-xs tracking-widest rounded-lg transition-all ${isSubmitting
+          className={`flex-1 py-3 bg-[#EAFF2B] text-black font-bold uppercase text-xs tracking-widest rounded-none transition-all ${isSubmitting
             ? 'opacity-50 cursor-not-allowed'
-            : 'hover:bg-[#00A8A8]/80'
+            : 'hover:bg-[#EAFF2B]/80'
             }`}
         >
           {isSubmitting ? 'Updating...' : 'Save Changes'}

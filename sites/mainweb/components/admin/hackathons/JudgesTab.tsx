@@ -77,7 +77,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     <button
                         onClick={() => toggleJudging.mutate({ hackathonId, active: !judgingStatus?.active })}
                         disabled={toggleJudging.isPending}
-                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-xl transition-all disabled:opacity-50 ${
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-all disabled:opacity-50 ${
                             judgingStatus?.active
                                 ? 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20'
                                 : 'bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20'
@@ -90,19 +90,19 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15 text-left">
+                <div className="p-4 rounded-none bg-purple-500/5 border border-purple-500/15 text-left">
                     <p className="text-2xl font-black font-mono text-purple-400">{assignedJudges.length}</p>
                     <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mt-1">Assigned Judges</p>
                 </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
+                <div className="p-4 rounded-none bg-white/5 border border-white/10 text-left">
                     <p className="text-2xl font-black font-mono text-white">{allJudges?.length || 0}</p>
                     <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mt-1">Total Judges</p>
                 </div>
-                <div className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/15 text-left">
+                <div className="p-4 rounded-none bg-cyan-500/5 border border-cyan-500/15 text-left">
                     <p className="text-2xl font-black font-mono text-cyan-400">{rankings?.rankings?.length || 0}</p>
                     <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mt-1">Projects</p>
                 </div>
-                <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/15 text-left">
+                <div className="p-4 rounded-none bg-amber-500/5 border border-amber-500/15 text-left">
                     <p className="text-2xl font-black font-mono text-amber-400">
                         {rankings?.rankings?.reduce((sum, r) => sum + r.votes.length, 0) || 0}
                     </p>
@@ -116,7 +116,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     <h2 className="text-xl font-bold text-white uppercase tracking-wider">Assigned Judges</h2>
                     <button
                         onClick={() => setShowAddForm(!showAddForm)}
-                        className="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-500/20 transition-colors flex items-center gap-1.5"
+                        className="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-purple-500/20 transition-colors flex items-center gap-1.5"
                     >
                         <UserPlus className="w-3.5 h-3.5" /> Assign Judge
                     </button>
@@ -131,7 +131,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                                 <select
                                     value={selectedJudgeId}
                                     onChange={(e) => setSelectedJudgeId(e.target.value)}
-                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
+                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
                                 >
                                     <option value="">Choose a judge...</option>
                                     {unassignedJudges.map((j) => (
@@ -146,7 +146,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                                     value={assignTrack}
                                     onChange={(e) => setAssignTrack(e.target.value)}
                                     placeholder="e.g. AI, Web3"
-                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono placeholder:text-gray-600 focus:border-purple-500/50 focus:outline-none transition-colors"
+                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono placeholder:text-gray-600 focus:border-purple-500/50 focus:outline-none transition-colors"
                                 />
                             </div>
                             <button
@@ -162,7 +162,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                                     setShowAddForm(false);
                                 }}
                                 disabled={!selectedJudgeId || assignJudge.isPending}
-                                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-purple-500/20 disabled:opacity-50 whitespace-nowrap"
+                                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-purple-500/20 disabled:opacity-50 whitespace-nowrap"
                             >
                                 Assign
                             </button>
@@ -173,7 +173,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 {/* Judges Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {assignedJudges.length === 0 ? (
-                        <div className="md:col-span-2 lg:col-span-3 p-8 bg-white/[0.01] border border-dashed border-white/5 rounded-xl text-center">
+                        <div className="md:col-span-2 lg:col-span-3 p-8 bg-white/[0.01] border border-dashed border-white/5 rounded-none text-center">
                             <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">No judges assigned yet. Click "Assign Judge" to add one.</p>
                         </div>
                     ) : (
@@ -189,7 +189,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                                             alt="Judge"
                                             width={40}
                                             height={40}
-                                            className="rounded-full bg-black shrink-0"
+                                            className="rounded-sm bg-black shrink-0"
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-white font-bold text-sm truncate">{judge.user?.name || judge.name}</p>

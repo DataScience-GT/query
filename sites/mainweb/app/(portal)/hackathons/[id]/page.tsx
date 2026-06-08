@@ -73,15 +73,15 @@ export default function HackathonDetailPage() {
     return (
         <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-hidden">
             {/* Animated Ambient Background Glows */}
-            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-r from-cyan-600/10 via-purple-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse" />
-            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-r from-purple-600/10 via-cyan-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse delay-1000" />
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-r from-cyan-600/10 via-purple-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse" />
+            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-r from-purple-600/10 via-cyan-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse delay-1000" />
 
             <main className="relative z-10 max-w-7xl mx-auto py-24 px-6 md:px-12">
                 <Link
                     href="/hackathons"
                     className="inline-flex items-center gap-2 text-white/40 hover:text-cyan-300 transition-all duration-300 group -ml-2 -mt-2"
                 >
-                    <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-cyan-500/20 group-hover:border-cyan-400/40 transition-colors">
+                    <div className="p-1.5 rounded-sm bg-white/5 border border-white/10 group-hover:bg-cyan-500/20 group-hover:border-cyan-400/40 transition-colors">
                         <svg className="w-3.5 h-3.5 transform group-hover:-translate-x-1 group-hover:-translate-y-0.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </div>
                     <span className="font-medium tracking-wide">All Events</span>
@@ -92,12 +92,12 @@ export default function HackathonDetailPage() {
                     {/* Header Background Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-cyan-900/[0.03] to-transparent pointer-events-none" />
                     {/* Subtle Border Glow */}
-                    <div className="absolute inset-0 ring-1 ring-white/10 ring-inset rounded-xl opacity-0 transition-opacity duration-500 hover:opacity-100" />
+                    <div className="absolute inset-0 ring-1 ring-white/10 ring-inset rounded-none opacity-0 transition-opacity duration-500 hover:opacity-100" />
 
                     <div className="flex flex-wrap items-center gap-3 mb-6 relative z-10">
                         {/* Status Badge */}
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-105 ${conf.bg} ${conf.border} border ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'hover:shadow-lg' : ''}`}>
-                            <div className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.glow} ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'animate-pulse' : ''}`} />
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm backdrop-blur-md transition-all duration-300 hover:scale-105 ${conf.bg} ${conf.border} border ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'hover:shadow-lg' : ''}`}>
+                            <div className={`h-1.5 w-1.5 rounded-sm ${conf.dot} ${conf.glow} ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'animate-pulse' : ''}`} />
                             <span className={`text-[11px] font-semibold uppercase tracking-widest ${conf.text}`}>
                                 {conf.label}
                             </span>
@@ -105,7 +105,7 @@ export default function HackathonDetailPage() {
 
                         {/* Registration Indicator */}
                         {isRegistered && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 text-emerald-400">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                 <span className="text-[11px] font-semibold uppercase tracking-widest">Registered</span>
                             </div>
@@ -113,7 +113,7 @@ export default function HackathonDetailPage() {
 
                         {/* Theme */}
                         {hackathon.theme && (
-                            <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest px-3 py-1.5 rounded-full bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:text-white/70">
+                            <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest px-3 py-1.5 rounded-sm bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:text-white/70">
                                 {hackathon.theme}
                             </span>
                         )}
@@ -157,7 +157,7 @@ export default function HackathonDetailPage() {
                         <button
                             key={t}
                             onClick={() => setTab(t)}
-                            className={`px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1 min-w-[100px]
+                            className={`px-6 py-3 rounded-none text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1 min-w-[100px]
                                 ${tab === t
                                     ? 'bg-white/10 text-white border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] ring-2 ring-cyan-500/30'
                                     : 'text-white/40 border-transparent hover:text-white/80 hover:bg-white/5 hover:border-white/15 hover:ring-2 hover:ring-white/10'

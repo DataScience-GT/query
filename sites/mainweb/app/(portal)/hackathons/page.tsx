@@ -85,14 +85,14 @@ export default function HackathonsPage() {
   return (
     <div className="relative min-h-screen bg-[var(--bg-tertiary)] text-text-muted font-sans selection:bg-accent/30 overflow-hidden">
       {/* Ambient Background Glows */}
-      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-cyan-600/10 blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-sm bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 max-w-6xl mx-auto py-24 px-6 md:px-12">
 
         {/* Back nav */}
         <Link href="/club" className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium mb-10 group">
-          <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
+          <div className="p-1.5 rounded-sm bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
             <ChevronLeft className="w-3.5 h-3.5 transform group-hover:-translate-x-0.5 transition-transform" />
           </div>
           Club Portal
@@ -109,13 +109,13 @@ export default function HackathonsPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap items-center bg-black/40 border border-white/5 p-2 rounded-xl gap-2 mb-8">
+        <div className="flex flex-wrap items-center bg-black/40 border border-white/5 p-2 rounded-none gap-2 mb-8">
           {tabs.map((tab) => (
             <Link
               key={tab.id}
               href={`#${tab.id}`}
               onClick={() => setActiveTab(tab.id as Tab)}
-              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${activeTab === tab.id
+              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 rounded-none text-sm font-semibold transition-all ${activeTab === tab.id
                 ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                 : 'text-text-muted hover:text-white hover:bg-white/5'
                 }`}
@@ -130,7 +130,7 @@ export default function HackathonsPage() {
         {activeTab === 'browse' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Status Filter */}
-            <div className="flex flex-wrap items-center bg-black/40 border border-white/5 p-2 rounded-xl gap-2 mb-6 sm:mb-8">
+            <div className="flex flex-wrap items-center bg-black/40 border border-white/5 p-2 rounded-none gap-2 mb-6 sm:mb-8">
               {[
                 { key: 'all', label: 'All' },
                 { key: 'open', label: 'Registering' },
@@ -140,7 +140,7 @@ export default function HackathonsPage() {
                 <button
                   key={key}
                   onClick={() => setStatusFilter(key as typeof statusFilter)}
-                  className={`flex-1 min-w-[100px] px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${statusFilter === key
+                  className={`flex-1 min-w-[100px] px-4 py-2.5 rounded-none text-sm font-semibold transition-all ${statusFilter === key
                     ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                     : 'text-text-muted hover:text-white hover:bg-white/5'
                     }`}
@@ -152,7 +152,7 @@ export default function HackathonsPage() {
 
             {!hackathons || hackathons.length === 0 ? (
               <LiquidGlass className="relative z-10 max-w-lg w-full mx-auto p-12 text-center flex flex-col items-center border border-white/5">
-                <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-none flex items-center justify-center mb-6">
                   <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                 </div>
                 <h2 className="text-xl text-white font-medium mb-2">No Active Hackathons</h2>
@@ -173,16 +173,16 @@ export default function HackathonsPage() {
                     return (
                       <Link href={`/hackathons/${h.id}`} key={h.id} className="block group">
                         <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-white/5 hover:bg-white/[0.02] hover:border-white/20">
-                          <div className="relative flex flex-col h-full bg-[var(--bg-tertiary)] rounded-2xl p-6 md:p-8 overflow-hidden z-10">
+                          <div className="relative flex flex-col h-full bg-[var(--bg-tertiary)] rounded-none p-6 md:p-8 overflow-hidden z-10">
                             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                             <div className="flex flex-wrap justify-between items-start gap-3 mb-8 relative z-10">
-                              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${conf.bg} border ${conf.border} backdrop-blur-md`}>
-                                <div className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.glow} ${h.status === 'open' || h.status === 'in_progress' ? 'animate-pulse' : ''}`} />
+                              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm ${conf.bg} border ${conf.border} backdrop-blur-md`}>
+                                <div className={`h-1.5 w-1.5 rounded-sm ${conf.dot} ${conf.glow} ${h.status === 'open' || h.status === 'in_progress' ? 'animate-pulse' : ''}`} />
                                 <span className={`text-[11px] font-semibold uppercase tracking-widest ${conf.text}`}>{conf.label}</span>
                               </div>
                               {isRegistered && (
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                   <span className="text-[11px] font-semibold uppercase tracking-widest">Registered</span>
                                 </div>
@@ -220,7 +220,7 @@ export default function HackathonsPage() {
                               )}
                             </div>
 
-                            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 opacity-0 transform translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-10 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 rounded-sm bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 opacity-0 transform translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-10 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                             </div>
                           </div>
@@ -242,14 +242,14 @@ export default function HackathonsPage() {
                   <Link
                     key={reg.id}
                     href={`/hackathons/${reg.hackathonId}?tab=INFO`}
-                    className="group flex flex-col rounded-3xl border border-white/10 bg-gradient-to-b from-[#0f1115] to-black p-8 transition-all hover:border-[#00A8A8]/50 hover:shadow-[0_0_40px_rgba(0,168,168,0.15)] relative overflow-hidden"
+                    className="group flex flex-col rounded-none border border-white/10 bg-gradient-to-b from-[#000000] to-black p-8 transition-all hover:border-[#EAFF2B]/50 hover:shadow-[0_0_40px_rgba(0,168,168,0.15)] relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                      <FileCode2 className="w-24 h-24 text-[#00A8A8]" />
+                      <FileCode2 className="w-24 h-24 text-[#EAFF2B]" />
                     </div>
 
                     <div className="flex justify-between items-start mb-6 relative z-10">
-                      <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest font-bold shadow-lg ${reg.registrationStatus === "approved" ? "bg-[#00A8A8]/20 text-[#00A8A8] border border-[#00A8A8]/30 shadow-[#00A8A8]/20" :
+                      <span className={`px-3 py-1.5 rounded-none text-[10px] font-mono uppercase tracking-widest font-bold shadow-lg ${reg.registrationStatus === "approved" ? "bg-[#EAFF2B]/20 text-[#EAFF2B] border border-[#EAFF2B]/30 shadow-[#EAFF2B]/20" :
                         reg.registrationStatus === "rejected" ? "bg-red-500/20 text-red-500 border border-red-500/30 shadow-red-500/20" :
                           "bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shadow-yellow-500/20"
                         }`}>
@@ -257,11 +257,11 @@ export default function HackathonsPage() {
                       </span>
                     </div>
 
-                    <h4 className="text-2xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors mb-2 relative z-10">
+                    <h4 className="text-2xl font-black text-white italic group-hover:text-[#EAFF2B] transition-colors mb-2 relative z-10">
                       {reg.hackathon.name}
                     </h4>
                     {reg.hackathon.theme && (
-                      <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-emerald-400 text-xs font-mono uppercase mb-4 tracking-wide relative z-10 font-bold">
+                      <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#EAFF2B] to-emerald-400 text-xs font-mono uppercase mb-4 tracking-wide relative z-10 font-bold">
                         Theme: {reg.hackathon.theme}
                       </p>
                     )}
@@ -269,11 +269,11 @@ export default function HackathonsPage() {
                     <p className="text-gray-400 text-sm line-clamp-3 mb-6 flex-1 relative z-10 leading-relaxed">{reg.hackathon.description}</p>
 
                     <div className="border-t border-white/10 pt-5 mt-auto flex items-center justify-between text-xs text-gray-500 relative z-10">
-                      <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                      <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-none border border-white/5">
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                         {reg.hackathon.startDate ? new Date(reg.hackathon.startDate).toLocaleDateString() : 'TBA'}
                       </span>
-                      <span className="flex items-center gap-1 font-bold group-hover:text-[#00A8A8] transition-colors px-3 py-1.5 rounded-lg group-hover:bg-[#00A8A8]/10">
+                      <span className="flex items-center gap-1 font-bold group-hover:text-[#EAFF2B] transition-colors px-3 py-1.5 rounded-none group-hover:bg-[#EAFF2B]/10">
                         Enter Portal <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     </div>
@@ -281,15 +281,15 @@ export default function HackathonsPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
-                <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+              <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-none bg-[#000000] shadow-2xl">
+                <div className="w-20 h-20 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center mb-6">
                   <Calendar className="w-8 h-8 text-gray-500" />
                 </div>
                 <h3 className="text-2xl font-black text-white mb-3 italic">No active registrations</h3>
                 <p className="text-gray-400 mb-8 max-w-sm">You haven't registered for any upcoming hackathons yet. Browse events to get started.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
-                  className="px-8 py-4 bg-gradient-to-r from-[#00A8A8] to-emerald-600 rounded-xl text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-none text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
                 >
                   Browse Hackathons <ArrowRight className="w-4 h-4" />
                 </button>
@@ -302,15 +302,15 @@ export default function HackathonsPage() {
         {activeTab === 'projects' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {projects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-3xl bg-[#0f1115] shadow-2xl">
-                <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+              <div className="flex flex-col items-center justify-center p-16 md:p-24 text-center border border-white/10 rounded-none bg-[#000000] shadow-2xl">
+                <div className="w-20 h-20 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center mb-6">
                   <FolderGit2 className="w-8 h-8 text-gray-500" />
                 </div>
                 <h3 className="text-2xl font-black text-white mb-3 italic">No projects submitted</h3>
                 <p className="text-gray-400 max-w-sm mb-8">Join a hackathon team and submit a project to see your portfolio grow here.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
-                  className="px-8 py-4 bg-gradient-to-r from-[#00A8A8] to-emerald-600 rounded-xl text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-none text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
                 >
                   Find a Hackathon <ArrowRight className="w-4 h-4" />
                 </button>
@@ -318,15 +318,15 @@ export default function HackathonsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {projects.map((project) => (
-                  <div key={project.id} className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f1115] p-8 hover:border-[#00A8A8]/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(0,168,168,0.1)]">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div key={project.id} className="group relative overflow-hidden rounded-none border border-white/10 bg-[#000000] p-8 hover:border-[#EAFF2B]/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(0,168,168,0.1)]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#EAFF2B]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-6">
-                        <h4 className="text-3xl font-black text-white italic group-hover:text-[#00A8A8] transition-colors">{project.name}</h4>
-                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase font-bold tracking-widest border shadow-lg ${project.status === "winner" ? "border-yellow-500/40 bg-yellow-500/20 text-yellow-500 shadow-yellow-500/20" :
+                        <h4 className="text-3xl font-black text-white italic group-hover:text-[#EAFF2B] transition-colors">{project.name}</h4>
+                        <span className={`px-3 py-1.5 rounded-none text-[10px] font-mono uppercase font-bold tracking-widest border shadow-lg ${project.status === "winner" ? "border-yellow-500/40 bg-yellow-500/20 text-yellow-500 shadow-yellow-500/20" :
                           project.status === "judging" ? "border-blue-500/40 bg-blue-500/20 text-blue-500 shadow-blue-500/20" :
-                            "border-[#00A8A8]/40 bg-[#00A8A8]/20 text-[#00A8A8] shadow-[#00A8A8]/20"
+                            "border-[#EAFF2B]/40 bg-[#EAFF2B]/20 text-[#EAFF2B] shadow-[#EAFF2B]/20"
                           }`}>
                           {project.status}
                         </span>
@@ -335,12 +335,12 @@ export default function HackathonsPage() {
 
                       <div className="flex flex-wrap gap-4 border-t border-white/10 pt-6">
                         {project.githubUrl && (
-                          <Link href={project.githubUrl} target="_blank" className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95">
+                          <Link href={project.githubUrl} target="_blank" className="px-5 py-2.5 rounded-none bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95">
                             <FolderGit2 className="w-4 h-4" /> Source Code
                           </Link>
                         )}
                         {project.demoUrl && (
-                          <Link href={project.demoUrl} target="_blank" className="px-5 py-2.5 rounded-xl bg-[#00A8A8]/10 hover:bg-[#00A8A8]/20 border border-[#00A8A8]/30 text-xs font-bold text-[#00A8A8] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,168,168,0.2)]">
+                          <Link href={project.demoUrl} target="_blank" className="px-5 py-2.5 rounded-none bg-[#EAFF2B]/10 hover:bg-[#EAFF2B]/20 border border-[#EAFF2B]/30 text-xs font-bold text-[#EAFF2B] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,168,168,0.2)]">
                             <Globe className="w-4 h-4" /> Live Demo
                           </Link>
                         )}

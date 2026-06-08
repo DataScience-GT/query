@@ -18,7 +18,7 @@ export function RubricSlider({
     const getScoreColor = (v: number) => {
         if (v <= 3) return 'from-red-500 to-orange-500';
         if (v <= 6) return 'from-yellow-500 to-amber-500';
-        return 'from-emerald-500 to-teal-500';
+        return 'from-[#EAFF2B] to-teal-500';
     };
 
     const getScoreLabel = (v: number) => {
@@ -49,7 +49,7 @@ export function RubricSlider({
 
             {/* Slider Track */}
             <div className="relative h-12 flex items-center">
-                <div className="absolute inset-x-0 h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="absolute inset-x-0 h-2 bg-white/5 rounded-sm overflow-hidden">
                     <div
                         className={`h-full bg-gradient-to-r ${getScoreColor(value)} transition-all duration-150 ease-out`}
                         style={{ width: `${(value - 1) * 11.11}%` }}
@@ -65,10 +65,10 @@ export function RubricSlider({
                 />
                 {/* Thumb indicator */}
                 <div
-                    className="absolute w-6 h-6 bg-white rounded-full shadow-lg shadow-black/30 pointer-events-none transition-all duration-150 ease-out border-2 border-white"
+                    className="absolute w-6 h-6 bg-white rounded-sm shadow-lg shadow-black/30 pointer-events-none transition-all duration-150 ease-out border-2 border-white"
                     style={{ left: `calc(${(value - 1) * 11.11}% - 12px + ${(value - 1) * 0.24}%)` }}
                 >
-                    <div className={`absolute inset-1 rounded-full bg-gradient-to-br ${getScoreColor(value)}`} />
+                    <div className={`absolute inset-1 rounded-sm bg-gradient-to-br ${getScoreColor(value)}`} />
                 </div>
             </div>
 

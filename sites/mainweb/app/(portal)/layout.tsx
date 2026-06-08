@@ -4,7 +4,6 @@ export const revalidate = 0; // Disable ISR for authenticated pages
 
 import { Providers } from './providers';
 import './liquid-glass.css';
-// import './globals.css';
 
 export default function PortalLayout({
   children,
@@ -12,6 +11,10 @@ export default function PortalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Providers>{children}</Providers>
+    <Providers>
+      <div className="font-mono bg-black text-[#f5f5f7] min-h-screen">
+        {children}
+      </div>
+    </Providers>
   );
 }

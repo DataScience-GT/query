@@ -55,7 +55,7 @@ export function HackathonCard({
                 <div className="min-w-0">
                     <div className="flex items-center gap-4 mb-4">
                         <Link href={`/admin/hackathons/${hackathon.id}`}>
-                            <h3 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight hover:text-[#00A8A8] transition-colors leading-tight">{hackathon.name}</h3>
+                            <h3 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight hover:text-[#EAFF2B] transition-colors leading-tight">{hackathon.name}</h3>
                         </Link>
                     </div>
                     {hackathon.description && (
@@ -66,17 +66,17 @@ export function HackathonCard({
                     
                     {/* Modern Info Grid replacing the dot-separated list */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
-                        <div className="p-5 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                        <div className="p-5 bg-white/[0.02] border border-white/5 rounded-none hover:bg-white/[0.04] transition-colors">
                             <p className="text-xs font-mono text-gray-500 uppercase tracking-wider mb-2">Location</p>
                             <p className="text-base font-semibold text-white font-mono truncate">{hackathon.location || 'No location'}</p>
                         </div>
-                        <div className="p-5 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                        <div className="p-5 bg-white/[0.02] border border-white/5 rounded-none hover:bg-white/[0.04] transition-colors">
                             <p className="text-xs font-mono text-gray-500 uppercase tracking-wider mb-2">Duration</p>
                             <p className="text-base font-semibold text-white font-mono">
                                 {new Date(hackathon.startDate).toLocaleDateString()} – {new Date(hackathon.endDate).toLocaleDateString()}
                             </p>
                         </div>
-                        <div className="p-5 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                        <div className="p-5 bg-white/[0.02] border border-white/5 rounded-none hover:bg-white/[0.04] transition-colors">
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-xs font-mono text-gray-500 uppercase tracking-wider">Participants</p>
                                 {hackathon.maxParticipants && (
@@ -95,9 +95,9 @@ export function HackathonCard({
                     {/* Registration Progress Bar */}
                     {hackathon.maxParticipants && (
                         <div className="mt-6 space-y-2">
-                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                            <div className="h-2 w-full bg-white/5 rounded-sm overflow-hidden border border-white/5">
                                 <div 
-                                    className="h-full bg-gradient-to-r from-[#00A8A8] to-emerald-500 rounded-full transition-all duration-500" 
+                                    className="h-full bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-sm transition-all duration-500" 
                                     style={{ width: `${Math.min(100, Math.max(4, (hackathon.currentParticipants / hackathon.maxParticipants) * 100))}%` }}
                                 />
                             </div>
@@ -108,13 +108,13 @@ export function HackathonCard({
                     <div className="mt-10 pt-8 border-t border-white/5 space-y-4">
                         <div className="flex justify-between items-center">
                             <h4 className="text-xs font-mono text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#00A8A8] animate-pulse" />
+                                <span className="w-1.5 h-1.5 rounded-sm bg-[#EAFF2B] animate-pulse" />
                                 Event Itinerary Showcase
                             </h4>
                             {events && events.length > 0 && (
                                 <Link 
                                     href={`/admin/hackathons/${hackathon.id}`}
-                                    className="text-xs font-mono text-[#00A8A8] hover:underline flex items-center gap-1"
+                                    className="text-xs font-mono text-[#EAFF2B] hover:underline flex items-center gap-1"
                                 >
                                     Manage Events ({events.length}) →
                                 </Link>
@@ -126,7 +126,7 @@ export function HackathonCard({
                                 Fetching events...
                             </div>
                         ) : !events || events.length === 0 ? (
-                            <div className="p-4 bg-white/[0.01] border border-dashed border-white/5 rounded-xl text-center text-xs font-mono text-gray-600">
+                            <div className="p-4 bg-white/[0.01] border border-dashed border-white/5 rounded-none text-center text-xs font-mono text-gray-600">
                                 No events scheduled for this hackathon yet. Click Dashboard to add some!
                             </div>
                         ) : (
@@ -134,7 +134,7 @@ export function HackathonCard({
                                 {events.slice(0, 4).map((event) => {
                                     const typeColors: Record<string, { bg: string; text: string; border: string }> = {
                                         workshop: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
-                                        meal: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+                                        meal: { bg: 'bg-[#EAFF2B]/10', text: 'text-emerald-400', border: 'border-[#EAFF2B]/20' },
                                         ceremony: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' },
                                         activity: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
                                         sponsor_session: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
@@ -144,7 +144,7 @@ export function HackathonCard({
                                     return (
                                         <div 
                                             key={event.id}
-                                            className="p-4 bg-white/[0.01] border border-white/5 rounded-xl hover:bg-white/[0.03] hover:border-white/10 transition-all flex flex-col justify-between gap-3 group/item relative overflow-hidden"
+                                            className="p-4 bg-white/[0.01] border border-white/5 rounded-none hover:bg-white/[0.03] hover:border-white/10 transition-all flex flex-col justify-between gap-3 group/item relative overflow-hidden"
                                         >
                                             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent to-transparent opacity-50" />
                                             <div className="flex justify-between items-start gap-2">
@@ -180,7 +180,7 @@ export function HackathonCard({
                                     );
                                 })}
                                 {events.length > 4 && (
-                                    <div className="md:col-span-2 p-3 bg-white/[0.01] border border-white/5 rounded-xl text-center">
+                                    <div className="md:col-span-2 p-3 bg-white/[0.01] border border-white/5 rounded-none text-center">
                                         <Link 
                                             href={`/admin/hackathons/${hackathon.id}`}
                                             className="text-xs font-mono text-gray-400 hover:text-white transition-colors"
@@ -207,7 +207,7 @@ export function HackathonCard({
                                     isPublic: !hackathon.isPublic,
                                 });
                             }}
-                            className={`whitespace-nowrap px-6 py-3.5 border text-base font-semibold rounded-xl transition-colors ${hackathon.isPublic
+                            className={`whitespace-nowrap px-6 py-3.5 border text-base font-semibold rounded-none transition-colors ${hackathon.isPublic
                                 ? 'border-green-500/20 text-green-400 hover:bg-green-500/10'
                                 : 'border-red-500/20 text-red-400 hover:bg-red-500/10'
                                 }`}
@@ -220,7 +220,7 @@ export function HackathonCard({
                     <div className="flex flex-wrap items-center gap-4">
                         <button
                             onClick={onEdit}
-                            className="whitespace-nowrap px-6 py-3.5 border border-white/10 text-gray-300 text-base font-semibold rounded-xl hover:bg-white/5 hover:text-white transition-colors"
+                            className="whitespace-nowrap px-6 py-3.5 border border-white/10 text-gray-300 text-base font-semibold rounded-none hover:bg-white/5 hover:text-white transition-colors"
                         >
                             Edit
                         </button>
@@ -232,14 +232,14 @@ export function HackathonCard({
                                 }
                             }}
                             disabled={deleteMutation.isPending}
-                            className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-xl hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                            className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-50"
                         >
                             {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                         </button>
 
                         <Link
                             href={`/admin/hackathons/${hackathon.id}`}
-                            className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white text-base font-bold rounded-xl hover:shadow-[0_0_25px_rgba(0,168,168,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-all flex items-center gap-2"
+                            className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] text-white text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(0,168,168,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-all flex items-center gap-2"
                         >
                             Dashboard <span className="text-lg leading-none">→</span>
                         </Link>

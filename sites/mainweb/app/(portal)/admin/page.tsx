@@ -136,13 +136,13 @@ export default function AdminPage() {
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 via-cyan-900/10 to-transparent rounded-2xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+        <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 via-cyan-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-all duration-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
           <h1 className="text-2xl font-black text-white tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
-            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-emerald-500 italic">Manager</span>
+            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-[#EAFF2B] italic">Manager</span>
           </h1>
           <p className="text-text-muted text-sm relative z-10">Create events, generate QR codes, and track attendance for general club gatherings.</p>
         </div>
@@ -153,15 +153,15 @@ export default function AdminPage() {
         {/* Events Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center bg-black/30 border border-white/5 p-1.5 rounded-xl gap-1">
+            <div className="flex items-center bg-black/30 border border-white/5 p-1.5 rounded-none gap-1">
               {(['all', 'open', 'closed'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setStatusFilter(f)}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-all ${
+                  className={`px-4 py-2 rounded-none text-sm font-semibold capitalize transition-all ${
                     statusFilter === f
                       ? f === 'open'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        ? 'bg-[#EAFF2B]/20 text-emerald-400 border border-[#EAFF2B]/30'
                         : f === 'closed'
                         ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                         : 'bg-white/10 text-white border border-white/10'
@@ -178,7 +178,7 @@ export default function AdminPage() {
             </div>
             <button
               onClick={() => setShowCreateEvent(true)}
-              className="px-6 py-3 bg-gradient-to-r from-accent to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
+              className="px-6 py-3 bg-gradient-to-r from-accent to-[#EAFF2B] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
             >
               + New Event
             </button>
@@ -187,12 +187,12 @@ export default function AdminPage() {
           {eventsLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="animate-pulse bg-white/5 border border-white/5 rounded-2xl p-6 h-28" />
+                <div key={n} className="animate-pulse bg-white/5 border border-white/5 rounded-none p-6 h-28" />
               ))}
             </div>
           ) : !events || events.length === 0 ? (
             <LiquidGlass className="p-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+              <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                 <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
                 </svg>
@@ -212,7 +212,7 @@ export default function AdminPage() {
                   <LiquidGlass
                     key={event.id}
                     className={`p-6 hover:border-white/20 transition-all border-l-4 ${
-                      event.checkInEnabled ? 'border-l-emerald-500' : 'border-l-red-500/50'
+                      event.checkInEnabled ? 'border-l-[#EAFF2B]' : 'border-l-red-500/50'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -220,8 +220,8 @@ export default function AdminPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-bold text-white">{event.title}</h3>
                         <span
-                          className={`px-2 py-1 rounded-full text-[10px] uppercase tracking-wider font-semibold ${event.checkInEnabled
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          className={`px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold ${event.checkInEnabled
+                            ? 'bg-[#EAFF2B]/10 text-emerald-400 border border-[#EAFF2B]/20'
                             : 'bg-red-500/10 text-red-400 border border-red-500/20'
                             }`}
                         >
@@ -246,7 +246,7 @@ export default function AdminPage() {
                           generateQRCode(event.qrCode);
                           setSelectedEvent(event);
                         }}
-                        className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-xl hover:bg-accent/20 transition-colors"
+                        className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors"
                       >
                         QR Code
                       </button>
@@ -257,9 +257,9 @@ export default function AdminPage() {
                             enabled: !event.checkInEnabled,
                           })
                         }
-                        className={`px-4 py-2 border text-sm font-medium rounded-xl transition-colors ${event.checkInEnabled
+                        className={`px-4 py-2 border text-sm font-medium rounded-none transition-colors ${event.checkInEnabled
                           ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-                          : 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
+                          : 'border-[#EAFF2B]/20 text-emerald-400 hover:bg-[#EAFF2B]/10'
                           }`}
                       >
                         {event.checkInEnabled ? 'Close' : 'Open'}
@@ -270,7 +270,7 @@ export default function AdminPage() {
                             deleteEventMutation.mutate({ eventId: event.id });
                           }
                         }}
-                        className="px-4 py-2 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                        className="px-4 py-2 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 transition-colors"
                       >
                         Delete
                       </button>

@@ -59,11 +59,11 @@ export default function MemberForm({ member }: { member: Member | null | undefin
       <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
         <div className="space-y-1">
           <label className="text-[9px] uppercase tracking-widest text-gray-500">LinkedIn_URL</label>
-          <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="linkedin.com/in/..." className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-[#00A8A8]/30" />
+          <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="linkedin.com/in/..." className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-[#EAFF2B]/30" />
         </div>
         <div className="space-y-1">
           <label className="text-[9px] uppercase tracking-widest text-gray-500">GitHub_URL</label>
-          <input value={github} onChange={e => setGithub(e.target.value)} placeholder="github.com/..." className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-[#00A8A8]/30" />
+          <input value={github} onChange={e => setGithub(e.target.value)} placeholder="github.com/..." className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-[#EAFF2B]/30" />
         </div>
       </div>
 
@@ -80,10 +80,10 @@ export default function MemberForm({ member }: { member: Member | null | undefin
 
       <div>
         <label className="text-[9px] text-gray-500 uppercase mb-2 block tracking-[0.2em]">Skill_Registry</label>
-        <SkillsInterestsInput items={skills} setItems={setSkills} placeholder="Add_New_Skill" maxItems={8} accentColor="[#00A8A8]" />
+        <SkillsInterestsInput items={skills} setItems={setSkills} placeholder="Add_New_Skill" maxItems={8} accentColor="[#EAFF2B]" />
       </div>
 
-      <button type="submit" disabled={updateMember.isPending} className="w-full py-4 bg-[#00A8A8] text-white uppercase font-black text-[10px] tracking-widest transition-all shadow-[0_0_20px_rgba(0,168,168,0.2)]">
+      <button type="submit" disabled={updateMember.isPending} className="w-full py-4 bg-[#EAFF2B] text-white uppercase font-black text-[10px] tracking-widest transition-all shadow-[4px_4px_0_0_#EAFF2B]">
         {updateMember.isPending ? 'Syncing_Advanced_Data...' : 'Commit_Reconfiguration'}
       </button>
     </form>
