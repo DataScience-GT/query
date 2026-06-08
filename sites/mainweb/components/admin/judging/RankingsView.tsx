@@ -135,7 +135,7 @@ export function RankingsView({
                             a.click();
                             URL.revokeObjectURL(url);
                         }}
-                        className="px-8 py-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/40 text-[#EAFF2B] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-[#EAFF2B]/20 transition-all font-mono"
+                        className="px-8 py-4 bg-[#00E5FF]/10 border border-[#00E5FF]/40 text-[#00E5FF] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-[#00E5FF]/20 transition-all font-mono"
                     >
                         Download Results CSV
                     </button>
@@ -170,7 +170,7 @@ export function RankingsView({
             {rankings && rankings.rankings.length > 0 && (
                 <div className="mb-12">
                     <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-6">
-                        Projected <span className="text-[#EAFF2B]">Winners</span>
+                        Projected <span className="text-[#00E5FF]">Winners</span>
                     </h2>
 
                     {/* Logic Calculation */}
@@ -205,9 +205,9 @@ export function RankingsView({
                             <div className="space-y-8">
                                 {/* Scoring Method Info */}
                                 <div className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-none">
-                                    <div className="w-2 h-2 rounded-sm bg-[#EAFF2B]" />
+                                    <div className="w-2 h-2 rounded-sm bg-[#00E5FF]" />
                                     <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
-                                        Bayesian Weighted Ranking // Global Avg: <span className="text-[#EAFF2B] font-bold">{rankings.globalAvg}</span> // C=2
+                                        Bayesian Weighted Ranking // Global Avg: <span className="text-[#00E5FF] font-bold">{rankings.globalAvg}</span> // C=2
                                     </p>
                                 </div>
 
@@ -223,7 +223,7 @@ export function RankingsView({
                                             </p>
                                             <h3 className="text-xl font-black text-white uppercase mb-1">{w.project.name}</h3>
                                             <div className="flex items-end gap-3 mb-2">
-                                                <p className="text-3xl font-black text-[#EAFF2B] tabular-nums">{w.weightedScore}</p>
+                                                <p className="text-3xl font-black text-[#00E5FF] tabular-nums">{w.weightedScore}</p>
                                                 <p className="text-sm text-gray-600 font-mono tabular-nums mb-1">avg {w.avgScore}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -237,7 +237,7 @@ export function RankingsView({
                                 {/* Track Winners */}
                                 {Object.keys(trackWinners).length > 0 && (
                                     <div>
-                                        <h3 className="text-sm text-gray-400 uppercase tracking-widest mb-4 font-mono font-bold pl-2 border-l-2 border-[#EAFF2B]">
+                                        <h3 className="text-sm text-gray-400 uppercase tracking-widest mb-4 font-mono font-bold pl-2 border-l-2 border-[#00E5FF]">
                                             Track Winners (Excl. Overall)
                                         </h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -269,17 +269,17 @@ export function RankingsView({
                     <div>
                         <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Metrics Log</p>
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                            Evaluated Rankings {selectedTrack !== 'ALL' && <span className="text-[#EAFF2B]">:: {selectedTrack}</span>}
+                            Evaluated Rankings {selectedTrack !== 'ALL' && <span className="text-[#00E5FF]">:: {selectedTrack}</span>}
                         </h2>
                     </div>
-                    <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-none text-[10px] font-mono uppercase tracking-widest text-[#EAFF2B]">
+                    <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-none text-[10px] font-mono uppercase tracking-widest text-[#00E5FF]">
                         Displaying: {processedRankings.length} Nodes
                     </div>
                 </div>
 
                 {!rankings ? (
                     <div className="bg-black/40 border border-white/5 rounded-none p-24 text-center backdrop-blur-md">
-                        <p className="text-[#EAFF2B] font-mono animate-pulse uppercase tracking-[0.5em] text-xs">Awaiting Data Packet...</p>
+                        <p className="text-[#00E5FF] font-mono animate-pulse uppercase tracking-[0.5em] text-xs">Awaiting Data Packet...</p>
                     </div>
                 ) : processedRankings.length === 0 ? (
                     <div className="bg-black/40 border border-white/5 rounded-none p-24 text-center backdrop-blur-md">
@@ -295,7 +295,7 @@ export function RankingsView({
                                         <th className="px-6 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Pos</th>
                                         <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Node</th>
                                         <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em]">Identifier</th>
-                                        <th className="px-4 py-6 text-[10px] font-mono text-[#EAFF2B] uppercase tracking-[0.2em] text-right" title="Bayesian Weighted Score">Weighted</th>
+                                        <th className="px-4 py-6 text-[10px] font-mono text-[#00E5FF] uppercase tracking-[0.2em] text-right" title="Bayesian Weighted Score">Weighted</th>
                                         <th className="px-4 py-6 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-right">Avg</th>
 
                                         {/* Rubric Headers */}
@@ -325,7 +325,7 @@ export function RankingsView({
                                                     }
                                                 >
                                                     <td className="px-8 py-8">
-                                                        <span className={`text-4xl font-black italic tracking-tighter ${idx === 0 ? 'text-[#EAFF2B] drop-shadow-[0_0_15px_rgba(0,168,168,0.4)]' :
+                                                        <span className={`text-4xl font-black italic tracking-tighter ${idx === 0 ? 'text-[#00E5FF] drop-shadow-[0_0_15px_rgba(0,168,168,0.4)]' :
                                                             idx < 3 ? 'text-white/80' : 'text-gray-600'
                                                             }`}>
                                                             {String(idx + 1).padStart(2, '0')}
@@ -340,7 +340,7 @@ export function RankingsView({
                                                     <td className="px-8 py-8">
                                                         <div>
                                                             <div className="flex items-center gap-3 mb-1">
-                                                                <p className="text-xl font-bold text-white uppercase group-hover:text-[#EAFF2B] transition-colors duration-300">{r.project.name}</p>
+                                                                <p className="text-xl font-bold text-white uppercase group-hover:text-[#00E5FF] transition-colors duration-300">{r.project.name}</p>
                                                                 <div className="flex flex-wrap gap-1">
                                                                     {r.project.tracks?.map((t: string) => (
                                                                         <span key={t} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-mono text-gray-400 uppercase tracking-widest">
@@ -348,7 +348,7 @@ export function RankingsView({
                                                                         </span>
                                                                     ))}
                                                                     {r.project.challenges?.map((c: string) => (
-                                                                        <span key={c} className="px-2 py-0.5 rounded bg-[#EAFF2B]/10 border border-[#EAFF2B]/30 text-[8px] font-mono text-[#EAFF2B] uppercase tracking-widest">
+                                                                        <span key={c} className="px-2 py-0.5 rounded bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[8px] font-mono text-[#00E5FF] uppercase tracking-widest">
                                                                             {c}
                                                                         </span>
                                                                     ))}
@@ -365,7 +365,7 @@ export function RankingsView({
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-8 text-right">
-                                                        <span className={`text-3xl font-black tabular-nums text-[#EAFF2B]`}>
+                                                        <span className={`text-3xl font-black tabular-nums text-[#00E5FF]`}>
                                                             {r.displayScore}
                                                         </span>
                                                     </td>
@@ -401,16 +401,16 @@ export function RankingsView({
                                                                         {r.votes.map((v, vi) => (
                                                                             <div
                                                                                 key={vi}
-                                                                                className="relative bg-black/40 border border-white/5 p-6 rounded-none hover:border-[#EAFF2B]/20 transition-all group/vote"
+                                                                                className="relative bg-black/40 border border-white/5 p-6 rounded-none hover:border-[#00E5FF]/20 transition-all group/vote"
                                                                             >
                                                                                 <div className="flex items-center justify-between mb-4">
                                                                                     <div className="flex items-center gap-3">
-                                                                                        <div className="w-1.5 h-1.5 rounded-sm bg-[#EAFF2B]" />
+                                                                                        <div className="w-1.5 h-1.5 rounded-sm bg-[#00E5FF]" />
                                                                                         <span className="text-sm font-bold text-white uppercase tracking-tight">
                                                                                             {v.judgeName}
                                                                                         </span>
                                                                                     </div>
-                                                                                    <span className="text-3xl font-black text-[#EAFF2B] group-hover/vote:scale-110 transition-transform tabular-nums">
+                                                                                    <span className="text-3xl font-black text-[#00E5FF] group-hover/vote:scale-110 transition-transform tabular-nums">
                                                                                         {v.score}
                                                                                     </span>
                                                                                 </div>
@@ -461,10 +461,10 @@ export function RankingsView({
                     <div>
                         <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">Operations Personnel</p>
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                            Judge <span className="text-[#EAFF2B]">Roster</span>
+                            Judge <span className="text-[#00E5FF]">Roster</span>
                         </h2>
                     </div>
-                    <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-none text-[10px] font-mono uppercase tracking-widest text-[#EAFF2B]">
+                    <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-none text-[10px] font-mono uppercase tracking-widest text-[#00E5FF]">
                         Active: {judges?.filter(j => j.isActive).length || 0} Nodes
                     </div>
                 </div>
@@ -489,7 +489,7 @@ export function RankingsView({
                                                 <img
                                                     src={j.user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(j.name || 'J')}`}
                                                     alt={j.name || ''}
-                                                    className="w-10 h-10 rounded-sm border border-white/10 ring-1 ring-[#EAFF2B]/20"
+                                                    className="w-10 h-10 rounded-sm border border-white/10 ring-1 ring-[#00E5FF]/20"
                                                 />
                                                 <div>
                                                     <p className="text-sm font-bold text-white uppercase tracking-tight">{j.name}</p>
@@ -505,7 +505,7 @@ export function RankingsView({
                                                 {j.assignments
                                                     .filter((a) => a.hackathonId === selectedHackathon)
                                                     .map((a, i) => (
-                                                        <span key={i} className="px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-mono text-[#EAFF2B] uppercase tracking-widest">
+                                                        <span key={i} className="px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-mono text-[#00E5FF] uppercase tracking-widest">
                                                             {a.track || 'Unassigned'}
                                                         </span>
                                                     ))}
@@ -535,17 +535,17 @@ export function RankingsView({
             {/* Global Stats */}
             {rankings && rankings.rankings.length > 0 && (
                 <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <LiquidGlass className="rounded-none p-8 text-center group hover:border-[#EAFF2B]/20 transition-all">
-                        <p className="text-4xl font-black text-white group-hover:text-[#EAFF2B] transition-colors tabular-nums">{rankings.rankings.length}</p>
+                    <LiquidGlass className="rounded-none p-8 text-center group hover:border-[#00E5FF]/20 transition-all">
+                        <p className="text-4xl font-black text-white group-hover:text-[#00E5FF] transition-colors tabular-nums">{rankings.rankings.length}</p>
                         <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Projects Logged</p>
                     </LiquidGlass>
-                    <LiquidGlass className="rounded-none p-8 text-center group hover:border-[#EAFF2B]/20 transition-all">
-                        <p className="text-4xl font-black text-[#EAFF2B] tabular-nums">
+                    <LiquidGlass className="rounded-none p-8 text-center group hover:border-[#00E5FF]/20 transition-all">
+                        <p className="text-4xl font-black text-[#00E5FF] tabular-nums">
                             {rankings.rankings.reduce((sum: number, r: { voteCount: number }) => sum + r.voteCount, 0)}
                         </p>
                         <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Votes Aggregated</p>
                     </LiquidGlass>
-                    <LiquidGlass className="rounded-none p-8 text-center group hover:border-[#EAFF2B]/20 transition-all">
+                    <LiquidGlass className="rounded-none p-8 text-center group hover:border-[#00E5FF]/20 transition-all">
                         <p className="text-4xl font-black text-emerald-400 tabular-nums">{rankings.globalAvg}</p>
                         <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-mono mt-3">Global Avg Score</p>
                     </LiquidGlass>

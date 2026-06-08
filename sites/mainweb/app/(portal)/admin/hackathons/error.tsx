@@ -16,7 +16,7 @@ export default function AdminError({
     }, [error]);
 
     return (
-        <div className="relative min-h-screen bg-[#000000] text-gray-400 font-sans selection:bg-[#EAFF2B]/30 overflow-x-hidden flex items-center justify-center">
+        <div className="relative min-h-screen bg-[#000000] text-gray-400 font-sans selection:bg-[#00E5FF]/30 overflow-x-hidden flex items-center justify-center">
 
             <main className="relative z-10 w-full max-w-xl px-6">
                 <LiquidGlass className="p-12 text-center border-red-500/20">
@@ -41,7 +41,7 @@ export default function AdminError({
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
                             onClick={() => reset()}
-                            className="px-6 py-3 bg-[#EAFF2B] text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-white transition-colors"
+                            className="px-6 py-3 bg-[#00E5FF] text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-white transition-colors"
                         >
                             Retry Execution
                         </button>

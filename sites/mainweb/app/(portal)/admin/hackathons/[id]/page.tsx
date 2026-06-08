@@ -90,7 +90,7 @@ export default function AdminHackathonDashboard() {
       {/* DESKTOP TABS - Enhanced, Hidden on mobile */}
       <div className="hidden md:block border-b border-white/5 bg-[var(--bg-primary)]/30 relative overflow-hidden">
         {/* Tab background gradients */}
-        <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.01] via-transparent to-[#EAFF2B]/[0.01] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.01] via-transparent to-[#00E5FF]/[0.01] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => (
@@ -144,7 +144,7 @@ export default function AdminHackathonDashboard() {
           >
             {/* Active indicator bar */}
             {activeTab === tab.id && (
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-1 h-1 rounded-sm bg-accent shadow-[0_0_10px_#EAFF2B]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-1 h-1 rounded-sm bg-accent shadow-[0_0_10px_#00E5FF]" />
             )}
 
             {/* Icon container with hover effects */}

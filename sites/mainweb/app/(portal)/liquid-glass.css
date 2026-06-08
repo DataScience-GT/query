@@ -20,36 +20,36 @@
   /* ===== BORDER COLORS ===== */
   --border-subtle: #333333;
   --border-medium: #555555;
-  --border-strong: #EAFF2B;
-  --border-hover: #EAFF2B;
-  --border-accent: #EAFF2B;
+  --border-strong: #00E5FF;
+  --border-hover: #00E5FF;
+  --border-accent: #00E5FF;
 
   /* ===== ACCENT COLORS ===== */
-  --accent: #EAFF2B;
-  --accent-primary: #EAFF2B;
-  --accent-secondary: #EAFF2B;
+  --accent: #00E5FF;
+  --accent-primary: #00E5FF;
+  --accent-secondary: #00E5FF;
   --accent-hover: #000000;
   --accent-dim: rgba(234, 255, 43, 0.1);
-  --accent-glow: #EAFF2B;
-  --accent-gradient: #EAFF2B;
-  --accent-fade: #EAFF2B;
+  --accent-glow: #00E5FF;
+  --accent-gradient: #00E5FF;
+  --accent-fade: #00E5FF;
 
   /* ===== STATUS COLORS ===== */
-  --success: #EAFF2B;
-  --success-glow: #EAFF2B;
-  --warning: #EAFF2B;
-  --warning-glow: #EAFF2B;
+  --success: #00E5FF;
+  --success-glow: #00E5FF;
+  --warning: #00E5FF;
+  --warning-glow: #00E5FF;
   --danger: #ff2b2b;
   --danger-glow: #ff2b2b;
-  --info: #EAFF2B;
-  --info-glow: #EAFF2B;
+  --info: #00E5FF;
+  --info-glow: #00E5FF;
 
   /* ===== ACCENT GRADIENTS ===== */
-  --gradient-primary: linear-gradient(135deg, #EAFF2B, #EAFF2B);
-  --gradient-warm: linear-gradient(135deg, #EAFF2B, #EAFF2B);
-  --gradient-cool: linear-gradient(135deg, #EAFF2B, #EAFF2B);
-  --gradient-teal: linear-gradient(135deg, #EAFF2B, #EAFF2B);
-  --gradient-mystic: linear-gradient(135deg, #EAFF2B, #EAFF2B);
+  --gradient-primary: linear-gradient(135deg, #00E5FF, #00E5FF);
+  --gradient-warm: linear-gradient(135deg, #00E5FF, #00E5FF);
+  --gradient-cool: linear-gradient(135deg, #00E5FF, #00E5FF);
+  --gradient-teal: linear-gradient(135deg, #00E5FF, #00E5FF);
+  --gradient-mystic: linear-gradient(135deg, #00E5FF, #00E5FF);
 
   /* ===== BORDER RADIUS - Sharp ===== */
   --radius-xs: 0px;

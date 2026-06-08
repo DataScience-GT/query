@@ -137,12 +137,12 @@ export default function AdminPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="mb-6 p-5 border border-white/5 bg-gradient-to-br from-accent/5 via-cyan-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
           <h1 className="text-2xl font-black text-white tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
-            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-[#EAFF2B] italic">Manager</span>
+            Check-in <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-[#00E5FF] italic">Manager</span>
           </h1>
           <p className="text-text-muted text-sm relative z-10">Create events, generate QR codes, and track attendance for general club gatherings.</p>
         </div>
@@ -161,7 +161,7 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-none text-sm font-semibold capitalize transition-all ${
                     statusFilter === f
                       ? f === 'open'
-                        ? 'bg-[#EAFF2B]/20 text-emerald-400 border border-[#EAFF2B]/30'
+                        ? 'bg-[#00E5FF]/20 text-emerald-400 border border-[#00E5FF]/30'
                         : f === 'closed'
                         ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                         : 'bg-white/10 text-white border border-white/10'
@@ -178,7 +178,7 @@ export default function AdminPage() {
             </div>
             <button
               onClick={() => setShowCreateEvent(true)}
-              className="px-6 py-3 bg-gradient-to-r from-accent to-[#EAFF2B] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
+              className="px-6 py-3 bg-gradient-to-r from-accent to-[#00E5FF] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
             >
               + New Event
             </button>
@@ -212,7 +212,7 @@ export default function AdminPage() {
                   <LiquidGlass
                     key={event.id}
                     className={`p-6 hover:border-white/20 transition-all border-l-4 ${
-                      event.checkInEnabled ? 'border-l-[#EAFF2B]' : 'border-l-red-500/50'
+                      event.checkInEnabled ? 'border-l-[#00E5FF]' : 'border-l-red-500/50'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -221,7 +221,7 @@ export default function AdminPage() {
                         <h3 className="text-lg font-bold text-white">{event.title}</h3>
                         <span
                           className={`px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold ${event.checkInEnabled
-                            ? 'bg-[#EAFF2B]/10 text-emerald-400 border border-[#EAFF2B]/20'
+                            ? 'bg-[#00E5FF]/10 text-emerald-400 border border-[#00E5FF]/20'
                             : 'bg-red-500/10 text-red-400 border border-red-500/20'
                             }`}
                         >
@@ -259,7 +259,7 @@ export default function AdminPage() {
                         }
                         className={`px-4 py-2 border text-sm font-medium rounded-none transition-colors ${event.checkInEnabled
                           ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-                          : 'border-[#EAFF2B]/20 text-emerald-400 hover:bg-[#EAFF2B]/10'
+                          : 'border-[#00E5FF]/20 text-emerald-400 hover:bg-[#00E5FF]/10'
                           }`}
                       >
                         {event.checkInEnabled ? 'Close' : 'Open'}

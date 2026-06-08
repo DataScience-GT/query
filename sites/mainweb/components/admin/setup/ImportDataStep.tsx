@@ -30,7 +30,7 @@ export function ImportJudgesStep({
             <input ref={fileRef} type="file" accept=".csv" onChange={handleJudgesCSV} className="hidden" />
             <button
                 onClick={() => fileRef.current?.click()}
-                className="w-full px-8 py-6 border-2 border-dashed border-white/10 rounded-none text-gray-500 font-mono text-sm hover:border-[#EAFF2B]/30 hover:text-[#EAFF2B] transition-all mb-6"
+                className="w-full px-8 py-6 border-2 border-dashed border-white/10 rounded-none text-gray-500 font-mono text-sm hover:border-[#00E5FF]/30 hover:text-[#00E5FF] transition-all mb-6"
             >
                 {judgesData.length > 0 ? `${judgesData.length} judges loaded - click to re-upload` : 'Click to upload judges CSV'}
             </button>
@@ -53,7 +53,7 @@ export function ImportJudgesStep({
                                         <td className="py-2 px-3 text-gray-600 font-mono">{i + 1}</td>
                                         <td className="py-2 px-3 text-white">{j.name}</td>
                                         <td className="py-2 px-3 text-gray-400 font-mono">{j.email}</td>
-                                        <td className="py-2 px-3 text-[#EAFF2B]">{j.track || '-'}</td>
+                                        <td className="py-2 px-3 text-[#00E5FF]">{j.track || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -66,13 +66,13 @@ export function ImportJudgesStep({
                     <button
                         onClick={onImport}
                         disabled={importJudgesPending || !selectedHackathonId}
-                        className="w-full px-8 py-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/40 text-[#EAFF2B] font-bold text-sm uppercase tracking-widest rounded-none hover:bg-[#EAFF2B]/20 transition-all disabled:opacity-30 font-mono"
+                        className="w-full px-8 py-4 bg-[#00E5FF]/10 border border-[#00E5FF]/40 text-[#00E5FF] font-bold text-sm uppercase tracking-widest rounded-none hover:bg-[#00E5FF]/20 transition-all disabled:opacity-30 font-mono"
                     >
                         {importJudgesPending ? `Importing ${judgesData.length} judges...` : `Import ${judgesData.length} Judges`}
                     </button>
 
                     {importJudgesData && (
-                        <div className="mt-4 p-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none">
+                        <div className="mt-4 p-4 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none">
                             <p className="text-emerald-400 text-xs font-mono">
                                 Created: {importJudgesData.created} | Skipped: {importJudgesData.skipped}
                             </p>
@@ -115,7 +115,7 @@ export function ImportProjectsStep({
             <input ref={fileRef} type="file" accept=".csv" onChange={handleProjectsCSV} className="hidden" />
             <button
                 onClick={() => fileRef.current?.click()}
-                className="w-full px-8 py-6 border-2 border-dashed border-white/10 rounded-none text-gray-500 font-mono text-sm hover:border-[#EAFF2B]/30 hover:text-[#EAFF2B] transition-all mb-6"
+                className="w-full px-8 py-6 border-2 border-dashed border-white/10 rounded-none text-gray-500 font-mono text-sm hover:border-[#00E5FF]/30 hover:text-[#00E5FF] transition-all mb-6"
             >
                 {projectsData.length > 0 ? `${projectsData.length} projects loaded - click to re-upload` : 'Click to upload projects CSV'}
             </button>
@@ -138,7 +138,7 @@ export function ImportProjectsStep({
                                         <td className="py-2 px-3 text-gray-600 font-mono">{i + 1}</td>
                                         <td className="py-2 px-3 text-white">{p.name}</td>
                                         <td className="py-2 px-3 text-gray-400 font-mono text-[10px]">{p.teamMembers || '-'}</td>
-                                        <td className="py-2 px-3 text-[#EAFF2B]">{p.mainTrack || '-'}</td>
+                                        <td className="py-2 px-3 text-[#00E5FF]">{p.mainTrack || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -151,13 +151,13 @@ export function ImportProjectsStep({
                     <button
                         onClick={onImport}
                         disabled={importProjectsPending || !selectedHackathonId}
-                        className="w-full px-8 py-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/40 text-[#EAFF2B] font-bold text-sm uppercase tracking-widest rounded-none hover:bg-[#EAFF2B]/20 transition-all disabled:opacity-30 font-mono"
+                        className="w-full px-8 py-4 bg-[#00E5FF]/10 border border-[#00E5FF]/40 text-[#00E5FF] font-bold text-sm uppercase tracking-widest rounded-none hover:bg-[#00E5FF]/20 transition-all disabled:opacity-30 font-mono"
                     >
                         {importProjectsPending ? `Importing ${projectsData.length} projects...` : `Import ${projectsData.length} Projects (Auto-Assign Tables)`}
                     </button>
 
                     {importProjectsData && (
-                        <div className="mt-4 p-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none">
+                        <div className="mt-4 p-4 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none">
                             <p className="text-emerald-400 text-xs font-mono">
                                 Created: {importProjectsData.created} | Tables: {importProjectsData.startTable} - {importProjectsData.endTable}
                             </p>

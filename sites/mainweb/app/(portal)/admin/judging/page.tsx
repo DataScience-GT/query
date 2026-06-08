@@ -126,26 +126,26 @@ export default function AdminResultsPage() {
 
         {/* Header - Enhanced */}
         <div className="relative mb-16 p-8 border border-white/5 bg-gradient-to-br from-accent/10 via-cyan-900/8 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-accent/15 rounded-sm blur-[150px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-900/15 rounded-sm blur-[150px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-150" />
 
           <div className="relative">
             <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-none bg-gradient-to-br from-accent/20 to-[#EAFF2B]/15 border border-accent/30 shadow-[4px_4px_0_0_#EAFF2B]">
+              <div className="p-3 rounded-none bg-gradient-to-br from-accent/20 to-[#00E5FF]/15 border border-accent/30 shadow-[4px_4px_0_0_#00E5FF]">
                 <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14z" />
                 </svg>
               </div>
               <div>
-                <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
                   <Zap className="w-3 h-3" /> Hackathon Hub
                 </p>
                 <h1 className="text-6xl font-black text-white uppercase tracking-tighter mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 to-gray-400 transition-all duration-500">
                   Voting <span className="text-accent italic">Results</span>
                 </h1>
                 <p className="text-sm font-mono text-text-muted uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-sm bg-accent animate-pulse shadow-[0_0_8px_#EAFF2B]" />
+                  <span className="w-1.5 h-1.5 rounded-sm bg-accent animate-pulse shadow-[0_0_8px_#00E5FF]" />
                   Data Evaluation Layer // {selectedHackathon ? 'SYNC ACTIVE' : 'IDLE'}
                 </p>
               </div>
@@ -156,20 +156,20 @@ export default function AdminResultsPage() {
         {/* Judging Control Panel - Enhanced */}
         {selectedHackathon && (
           <LiquidGlass className={`rounded-none p-8 mb-12 relative overflow-hidden border-t-4 transition-all duration-500 ${judgingStatus?.active
-            ? 'border-[#EAFF2B] shadow-[0_0_40px_rgba(16,185,129,0.15)]'
+            ? 'border-[#00E5FF] shadow-[0_0_40px_rgba(16,185,129,0.15)]'
             : 'border-gray-700'
             }`}>
             {/* Background gradients */}
             <div className={`absolute inset-0 transition-opacity duration-500 ${judgingStatus?.active ? 'opacity-100' : 'opacity-0'}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/10 via-transparent to-transparent" />
-              <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#EAFF2B]/10 rounded-sm blur-[120px]" />
-              <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#EAFF2B]/8 rounded-sm blur-[120px]" />
+              <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#00E5FF]/10 rounded-sm blur-[120px]" />
+              <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#00E5FF]/8 rounded-sm blur-[120px]" />
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="flex items-center gap-5">
                 <div className={`w-16 h-16 rounded-none flex items-center justify-center transition-all duration-500 ${judgingStatus?.active
-                  ? 'bg-[#EAFF2B]/20 border border-[#EAFF2B]/40 shadow-[0_0_25px_rgba(16,185,129,0.3)]'
+                  ? 'bg-[#00E5FF]/20 border border-[#00E5FF]/40 shadow-[0_0_25px_rgba(16,185,129,0.3)]'
                   : 'bg-white/5 border border-white/10'
                   }`}>
                   <div className={`w-4 h-4 rounded-sm transition-all duration-500 ${judgingStatus?.active
@@ -194,7 +194,7 @@ export default function AdminResultsPage() {
                 disabled={toggleJudging.isPending}
                 className={`px-12 py-6 font-black text-lg uppercase tracking-widest transition-all rounded-none font-mono border-2 disabled:opacity-50 ${judgingStatus?.active
                   ? 'bg-red-500/10 border-red-500/40 text-red-400 hover:bg-red-500/20 hover:border-red-500/60 shadow-[0_0_30px_rgba(239,68,68,0.15)]'
-                  : 'bg-[#EAFF2B]/10 border-[#EAFF2B]/40 text-emerald-400 hover:bg-[#EAFF2B]/20 hover:border-[#EAFF2B]/60 shadow-[0_0_30px_rgba(16,185,129,0.15)]'
+                  : 'bg-[#00E5FF]/10 border-[#00E5FF]/40 text-emerald-400 hover:bg-[#00E5FF]/20 hover:border-[#00E5FF]/60 shadow-[0_0_30px_rgba(16,185,129,0.15)]'
                   }`}
               >
                 {toggleJudging.isPending ? 'Processing...' : judgingStatus?.active ? 'END JUDGING' : 'START JUDGING'}

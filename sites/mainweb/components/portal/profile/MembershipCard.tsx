@@ -30,8 +30,8 @@ export default function MembershipCard({ memberStatus, memberData }: { memberSta
   const isActive = memberStatus.isActive === true;
 
   return (
-    <LiquidGlass className="rounded-none p-6 !bg-black/60 !border-[#EAFF2B]/20">
-      <h3 className="text-[#EAFF2B] font-bold uppercase tracking-tight text-sm mb-4">Membership Status</h3>
+    <LiquidGlass className="rounded-none p-6 !bg-black/60 !border-[#00E5FF]/20">
+      <h3 className="text-[#00E5FF] font-bold uppercase tracking-tight text-sm mb-4">Membership Status</h3>
       <div className="space-y-3 font-mono">
         <div className="flex justify-between items-center text-[10px]">
           <span className="text-gray-500 uppercase tracking-widest">Status</span>

@@ -74,7 +74,7 @@ export function TeamsTab({
 
             {myTeam && (
                 <LiquidGlass className="p-8 relative overflow-hidden bg-white/[0.01] border-white/5">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#EAFF2B]/10 rounded-sm blur-[80px] pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#00E5FF]/10 rounded-sm blur-[80px] pointer-events-none" />
                     <div className="relative z-10">
                         <div className="flex items-center gap-2.5 mb-5">
                             <div className="w-2 h-2 rounded-sm bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />

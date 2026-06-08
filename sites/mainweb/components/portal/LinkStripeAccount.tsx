@@ -103,8 +103,8 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   if (isChecking) {
     return (
       <LiquidGlass className="relative h-full p-8 flex flex-col items-center justify-center text-center !bg-[#0A0A0A] border-white/5 animate-pulse">
-        <div className="w-8 h-8 rounded-sm border-2 border-[#EAFF2B] border-t-transparent animate-spin mb-4" />
-        <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#EAFF2B] animate-pulse">
+        <div className="w-8 h-8 rounded-sm border-2 border-[#00E5FF] border-t-transparent animate-spin mb-4" />
+        <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#00E5FF] animate-pulse">
           Syncing Protocols...
         </p>
       </LiquidGlass>
@@ -113,26 +113,26 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
 
   if (!isOpen) {
     return (
-      <LiquidGlass className="relative h-full p-8 hover:!border-[#EAFF2B]/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
+      <LiquidGlass className="relative h-full p-8 hover:!border-[#00E5FF]/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
 
         {/* Decorative offline gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#EAFF2B]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
         <div className="relative z-10 flex-1 flex flex-col">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-2 text-[#EAFF2B] drop-shadow-[0_0_5px_rgba(0,168,168,0.5)]">
+              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-2 text-[#00E5FF] drop-shadow-[0_0_5px_rgba(0,168,168,0.5)]">
                 Member Node
               </p>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-sm bg-[#EAFF2B]/50 animate-pulse" />
-                <h3 className="text-2xl font-bold text-gray-500 uppercase tracking-tight group-hover:text-[#EAFF2B] transition-colors">
+                <span className="w-2 h-2 rounded-sm bg-[#00E5FF]/50 animate-pulse" />
+                <h3 className="text-2xl font-bold text-gray-500 uppercase tracking-tight group-hover:text-[#00E5FF] transition-colors">
                   Inactive
                 </h3>
               </div>
             </div>
             <div className="opacity-20 group-hover:opacity-100 transition-opacity">
-              <svg className="w-8 h-8 text-[#EAFF2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              <svg className="w-8 h-8 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
             </div>
           </div>
 
@@ -144,7 +144,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
             <button
               onClick={handlePay}
               disabled={isPaying}
-              className="w-full py-4 px-4 bg-[#EAFF2B] text-black hover:bg-[#EAFF2B]/90 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 bg-[#00E5FF] text-black hover:bg-[#00E5FF]/90 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPaying ? 'Processing...' : 'Pay Membership Dues ($15)'}
             </button>
@@ -168,14 +168,14 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   }
 
   return (
-    <LiquidGlass className="h-full p-8 border-[#EAFF2B]/30 relative overflow-hidden !bg-[#0A0A0A]">
+    <LiquidGlass className="h-full p-8 border-[#00E5FF]/30 relative overflow-hidden !bg-[#0A0A0A]">
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-        <svg className="w-32 h-32 text-[#EAFF2B]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" /></svg>
+        <svg className="w-32 h-32 text-[#00E5FF]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" /></svg>
       </div>
 
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-          <p className="text-xs uppercase tracking-[0.2em] font-black text-[#EAFF2B]">
+          <p className="text-xs uppercase tracking-[0.2em] font-black text-[#00E5FF]">
             Identify Verification
           </p>
           <button
@@ -200,7 +200,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#EAFF2B] focus:outline-none focus:bg-[#EAFF2B]/5 transition-all placeholder:text-gray-800"
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#00E5FF] focus:outline-none focus:bg-[#00E5FF]/5 transition-all placeholder:text-gray-800"
                 placeholder="JOHN"
                 required
               />
@@ -213,7 +213,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#EAFF2B] focus:outline-none focus:bg-[#EAFF2B]/5 transition-all placeholder:text-gray-800"
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#00E5FF] focus:outline-none focus:bg-[#00E5FF]/5 transition-all placeholder:text-gray-800"
                 placeholder="DOE"
                 required
               />
@@ -228,7 +228,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#EAFF2B] focus:outline-none focus:bg-[#EAFF2B]/5 transition-all placeholder:text-gray-800"
+              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm font-mono focus:border-[#00E5FF] focus:outline-none focus:bg-[#00E5FF]/5 transition-all placeholder:text-gray-800"
               placeholder="ident@example.com"
               required
             />
@@ -244,7 +244,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
           <button
             type="submit"
             disabled={linkMutation.isPending}
-            className="w-full mt-2 px-4 py-3 bg-[#EAFF2B] text-black font-bold text-xs uppercase tracking-[0.2em] hover:bg-[#EAFF2B]/90 transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(0,168,168,0.3)]"
+            className="w-full mt-2 px-4 py-3 bg-[#00E5FF] text-black font-bold text-xs uppercase tracking-[0.2em] hover:bg-[#00E5FF]/90 transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(0,168,168,0.3)]"
           >
             {linkMutation.isPending ? 'Verifying...' : 'Authenticate Payment'}
           </button>

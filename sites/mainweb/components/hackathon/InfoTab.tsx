@@ -211,7 +211,7 @@ export function InfoTab({
                 <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-sm blur-[80px] pointer-events-none" />
 
                 {success && (
-                    <div className="mb-6 p-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none flex items-center gap-3">
+                    <div className="mb-6 p-4 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none flex items-center gap-3">
                         <div className="w-2 h-2 rounded-sm bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
                         <p className="text-emerald-400 text-sm font-semibold">Registration confirmed! You're in.</p>
                     </div>
@@ -219,7 +219,7 @@ export function InfoTab({
 
                 {isRegistered || success ? (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex items-center gap-3 px-6 py-3 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none w-fit">
+                        <div className="flex items-center gap-3 px-6 py-3 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none w-fit">
                             <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                             <span className="text-emerald-400 font-bold text-sm uppercase tracking-widest">Registered</span>
                         </div>

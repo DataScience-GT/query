@@ -242,14 +242,14 @@ export default function HackathonsPage() {
                   <Link
                     key={reg.id}
                     href={`/hackathons/${reg.hackathonId}?tab=INFO`}
-                    className="group flex flex-col rounded-none border border-white/10 bg-gradient-to-b from-[#000000] to-black p-8 transition-all hover:border-[#EAFF2B]/50 hover:shadow-[0_0_40px_rgba(0,168,168,0.15)] relative overflow-hidden"
+                    className="group flex flex-col rounded-none border border-white/10 bg-gradient-to-b from-[#000000] to-black p-8 transition-all hover:border-[#00E5FF]/50 hover:shadow-[0_0_40px_rgba(0,168,168,0.15)] relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                      <FileCode2 className="w-24 h-24 text-[#EAFF2B]" />
+                      <FileCode2 className="w-24 h-24 text-[#00E5FF]" />
                     </div>
 
                     <div className="flex justify-between items-start mb-6 relative z-10">
-                      <span className={`px-3 py-1.5 rounded-none text-[10px] font-mono uppercase tracking-widest font-bold shadow-lg ${reg.registrationStatus === "approved" ? "bg-[#EAFF2B]/20 text-[#EAFF2B] border border-[#EAFF2B]/30 shadow-[#EAFF2B]/20" :
+                      <span className={`px-3 py-1.5 rounded-none text-[10px] font-mono uppercase tracking-widest font-bold shadow-lg ${reg.registrationStatus === "approved" ? "bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/30 shadow-[#00E5FF]/20" :
                         reg.registrationStatus === "rejected" ? "bg-red-500/20 text-red-500 border border-red-500/30 shadow-red-500/20" :
                           "bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shadow-yellow-500/20"
                         }`}>
@@ -257,11 +257,11 @@ export default function HackathonsPage() {
                       </span>
                     </div>
 
-                    <h4 className="text-2xl font-black text-white italic group-hover:text-[#EAFF2B] transition-colors mb-2 relative z-10">
+                    <h4 className="text-2xl font-black text-white italic group-hover:text-[#00E5FF] transition-colors mb-2 relative z-10">
                       {reg.hackathon.name}
                     </h4>
                     {reg.hackathon.theme && (
-                      <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#EAFF2B] to-emerald-400 text-xs font-mono uppercase mb-4 tracking-wide relative z-10 font-bold">
+                      <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E5FF] to-emerald-400 text-xs font-mono uppercase mb-4 tracking-wide relative z-10 font-bold">
                         Theme: {reg.hackathon.theme}
                       </p>
                     )}
@@ -273,7 +273,7 @@ export default function HackathonsPage() {
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                         {reg.hackathon.startDate ? new Date(reg.hackathon.startDate).toLocaleDateString() : 'TBA'}
                       </span>
-                      <span className="flex items-center gap-1 font-bold group-hover:text-[#EAFF2B] transition-colors px-3 py-1.5 rounded-none group-hover:bg-[#EAFF2B]/10">
+                      <span className="flex items-center gap-1 font-bold group-hover:text-[#00E5FF] transition-colors px-3 py-1.5 rounded-none group-hover:bg-[#00E5FF]/10">
                         Enter Portal <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     </div>
@@ -289,7 +289,7 @@ export default function HackathonsPage() {
                 <p className="text-gray-400 mb-8 max-w-sm">You haven't registered for any upcoming hackathons yet. Browse events to get started.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
-                  className="px-8 py-4 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-none text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] rounded-none text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
                 >
                   Browse Hackathons <ArrowRight className="w-4 h-4" />
                 </button>
@@ -310,7 +310,7 @@ export default function HackathonsPage() {
                 <p className="text-gray-400 max-w-sm mb-8">Join a hackathon team and submit a project to see your portfolio grow here.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
-                  className="px-8 py-4 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-none text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] rounded-none text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,168,168,0.3)] flex items-center gap-2"
                 >
                   Find a Hackathon <ArrowRight className="w-4 h-4" />
                 </button>
@@ -318,15 +318,15 @@ export default function HackathonsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {projects.map((project) => (
-                  <div key={project.id} className="group relative overflow-hidden rounded-none border border-white/10 bg-[#000000] p-8 hover:border-[#EAFF2B]/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(0,168,168,0.1)]">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#EAFF2B]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div key={project.id} className="group relative overflow-hidden rounded-none border border-white/10 bg-[#000000] p-8 hover:border-[#00E5FF]/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(0,168,168,0.1)]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-6">
-                        <h4 className="text-3xl font-black text-white italic group-hover:text-[#EAFF2B] transition-colors">{project.name}</h4>
+                        <h4 className="text-3xl font-black text-white italic group-hover:text-[#00E5FF] transition-colors">{project.name}</h4>
                         <span className={`px-3 py-1.5 rounded-none text-[10px] font-mono uppercase font-bold tracking-widest border shadow-lg ${project.status === "winner" ? "border-yellow-500/40 bg-yellow-500/20 text-yellow-500 shadow-yellow-500/20" :
                           project.status === "judging" ? "border-blue-500/40 bg-blue-500/20 text-blue-500 shadow-blue-500/20" :
-                            "border-[#EAFF2B]/40 bg-[#EAFF2B]/20 text-[#EAFF2B] shadow-[#EAFF2B]/20"
+                            "border-[#00E5FF]/40 bg-[#00E5FF]/20 text-[#00E5FF] shadow-[#00E5FF]/20"
                           }`}>
                           {project.status}
                         </span>
@@ -340,7 +340,7 @@ export default function HackathonsPage() {
                           </Link>
                         )}
                         {project.demoUrl && (
-                          <Link href={project.demoUrl} target="_blank" className="px-5 py-2.5 rounded-none bg-[#EAFF2B]/10 hover:bg-[#EAFF2B]/20 border border-[#EAFF2B]/30 text-xs font-bold text-[#EAFF2B] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,168,168,0.2)]">
+                          <Link href={project.demoUrl} target="_blank" className="px-5 py-2.5 rounded-none bg-[#00E5FF]/10 hover:bg-[#00E5FF]/20 border border-[#00E5FF]/30 text-xs font-bold text-[#00E5FF] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,168,168,0.2)]">
                             <Globe className="w-4 h-4" /> Live Demo
                           </Link>
                         )}

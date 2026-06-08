@@ -122,7 +122,7 @@ export default function JudgePage() {
                     <div className="mt-4 flex gap-2">
                       {isRegistered ? (
                         <>
-                          <Link href={`/hackathons/${h.id}/judge`} className="flex-1 px-4 py-2 rounded-none bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-[#EAFF2B]/20 transition-colors cursor-pointer">
+                          <Link href={`/hackathons/${h.id}/judge`} className="flex-1 px-4 py-2 rounded-none bg-[#00E5FF]/10 border border-[#00E5FF]/20 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-[#00E5FF]/20 transition-colors cursor-pointer">
                             Ready to Judge
                           </Link>
                           <Link href={`/hackathons/${h.id}/participants`} className="px-3 py-2 rounded-none border border-white/5 text-text-muted hover:text-white hover:bg-white/5 transition-colors">

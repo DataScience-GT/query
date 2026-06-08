@@ -55,7 +55,7 @@ export function HackathonCard({
                 <div className="min-w-0">
                     <div className="flex items-center gap-4 mb-4">
                         <Link href={`/admin/hackathons/${hackathon.id}`}>
-                            <h3 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight hover:text-[#EAFF2B] transition-colors leading-tight">{hackathon.name}</h3>
+                            <h3 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight hover:text-[#00E5FF] transition-colors leading-tight">{hackathon.name}</h3>
                         </Link>
                     </div>
                     {hackathon.description && (
@@ -97,7 +97,7 @@ export function HackathonCard({
                         <div className="mt-6 space-y-2">
                             <div className="h-2 w-full bg-white/5 rounded-sm overflow-hidden border border-white/5">
                                 <div 
-                                    className="h-full bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-sm transition-all duration-500" 
+                                    className="h-full bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] rounded-sm transition-all duration-500" 
                                     style={{ width: `${Math.min(100, Math.max(4, (hackathon.currentParticipants / hackathon.maxParticipants) * 100))}%` }}
                                 />
                             </div>
@@ -108,13 +108,13 @@ export function HackathonCard({
                     <div className="mt-10 pt-8 border-t border-white/5 space-y-4">
                         <div className="flex justify-between items-center">
                             <h4 className="text-xs font-mono text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-sm bg-[#EAFF2B] animate-pulse" />
+                                <span className="w-1.5 h-1.5 rounded-sm bg-[#00E5FF] animate-pulse" />
                                 Event Itinerary Showcase
                             </h4>
                             {events && events.length > 0 && (
                                 <Link 
                                     href={`/admin/hackathons/${hackathon.id}`}
-                                    className="text-xs font-mono text-[#EAFF2B] hover:underline flex items-center gap-1"
+                                    className="text-xs font-mono text-[#00E5FF] hover:underline flex items-center gap-1"
                                 >
                                     Manage Events ({events.length}) →
                                 </Link>
@@ -134,7 +134,7 @@ export function HackathonCard({
                                 {events.slice(0, 4).map((event) => {
                                     const typeColors: Record<string, { bg: string; text: string; border: string }> = {
                                         workshop: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
-                                        meal: { bg: 'bg-[#EAFF2B]/10', text: 'text-emerald-400', border: 'border-[#EAFF2B]/20' },
+                                        meal: { bg: 'bg-[#00E5FF]/10', text: 'text-emerald-400', border: 'border-[#00E5FF]/20' },
                                         ceremony: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' },
                                         activity: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
                                         sponsor_session: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
@@ -239,7 +239,7 @@ export function HackathonCard({
 
                         <Link
                             href={`/admin/hackathons/${hackathon.id}`}
-                            className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] text-white text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(0,168,168,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-all flex items-center gap-2"
+                            className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] text-white text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(0,168,168,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-all flex items-center gap-2"
                         >
                             Dashboard <span className="text-lg leading-none">→</span>
                         </Link>

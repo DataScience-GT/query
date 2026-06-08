@@ -45,11 +45,11 @@ export default function AttendeesPage() {
 
         {/* Page Header */}
         <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
-          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-[#EAFF2B] transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-[#00E5FF] transition-all duration-500">
             Attendees <span className="text-accent italic font-bold">Registry</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
@@ -79,7 +79,7 @@ export default function AttendeesPage() {
             {selectedHackathon && (
               <button
                 onClick={handleDownloadCSV}
-                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/15 to-[#EAFF2B]/15 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/25 transition-all active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.15)] hover:shadow-[0_0_25px_rgba(0,168,168,0.25)]"
+                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/15 to-[#00E5FF]/15 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/25 transition-all active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.15)] hover:shadow-[0_0_25px_rgba(0,168,168,0.25)]"
               >
                 <Download className="h-4 w-4" />
                 Export CSV
@@ -93,7 +93,7 @@ export default function AttendeesPage() {
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 filter === 'all'
-                  ? 'bg-gradient-to-r from-accent to-[#EAFF2B] text-white shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 hover:scale-105 active:scale-95'
+                  ? 'bg-gradient-to-r from-accent to-[#00E5FF] text-white shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 hover:scale-105 active:scale-95'
                   : 'text-gray-400 hover:text-white hover:bg-white/5 hover:scale-105 active:scale-95'
               }`}
             >
@@ -103,8 +103,8 @@ export default function AttendeesPage() {
               onClick={() => setFilter('registered')}
               className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 filter === 'registered'
-                  ? 'bg-gradient-to-r from-[#EAFF2B] to-green-600 text-white shadow-[4px_4px_0_0_#EAFF2B] hover:shadow-xl hover:shadow-[#EAFF2B]/30 hover:scale-105 active:scale-95'
-                  : 'text-gray-400 hover:text-emerald-400 hover:bg-[#EAFF2B]/10 hover:border-[#EAFF2B]/30 hover:scale-105 active:scale-95'
+                  ? 'bg-gradient-to-r from-[#00E5FF] to-green-600 text-white shadow-[4px_4px_0_0_#00E5FF] hover:shadow-xl hover:shadow-[#00E5FF]/30 hover:scale-105 active:scale-95'
+                  : 'text-gray-400 hover:text-emerald-400 hover:bg-[#00E5FF]/10 hover:border-[#00E5FF]/30 hover:scale-105 active:scale-95'
               }`}
             >
               Registered
@@ -130,7 +130,7 @@ export default function AttendeesPage() {
               Cancelled
             </button>
             {/* Status indicator */}
-            <div className="ml-2 w-2 h-2 rounded-sm bg-accent animate-pulse shadow-[0_0_8px_#EAFF2B]" />
+            <div className="ml-2 w-2 h-2 rounded-sm bg-accent animate-pulse shadow-[0_0_8px_#00E5FF]" />
           </div>
 
           {/* Attendees List - Enhanced */}
@@ -152,7 +152,7 @@ export default function AttendeesPage() {
               </LiquidGlass>
             ) : (
               <div className="overflow-x-auto rounded-none border border-white/5 bg-black/20 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-[#EAFF2B]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-[#00E5FF]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <table className="w-full text-left">
                   <thead className="bg-black/30 border-b border-white/5">
@@ -195,7 +195,7 @@ export default function AttendeesPage() {
                             <span
                               className={`px-3 py-1 rounded-sm text-xs font-semibold ${
                                 attendee.registrationStatus === 'approved' || attendee.registrationStatus === 'checked_in'
-                                  ? 'bg-[#EAFF2B]/10 text-emerald-400 border border-[#EAFF2B]/20'
+                                  ? 'bg-[#00E5FF]/10 text-emerald-400 border border-[#00E5FF]/20'
                                   : attendee.registrationStatus === 'pending'
                                   ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                                   : attendee.registrationStatus === 'rejected'

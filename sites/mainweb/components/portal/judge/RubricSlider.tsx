@@ -18,7 +18,7 @@ export function RubricSlider({
     const getScoreColor = (v: number) => {
         if (v <= 3) return 'from-red-500 to-orange-500';
         if (v <= 6) return 'from-yellow-500 to-amber-500';
-        return 'from-[#EAFF2B] to-teal-500';
+        return 'from-[#00E5FF] to-teal-500';
     };
 
     const getScoreLabel = (v: number) => {

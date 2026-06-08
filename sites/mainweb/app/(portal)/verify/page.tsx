@@ -120,7 +120,7 @@ function VerifyContent() {
                     <svg className="w-28 h-28 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
                 </div>
 
-                <div className="relative w-24 h-24 rounded-sm bg-gradient-to-br from-accent/15 to-[#EAFF2B]/10 border border-accent/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(0,168,168,0.15)] group hover:border-accent/50 hover:shadow-[0_0_50px_rgba(0,168,168,0.25)] transition-all duration-300">
+                <div className="relative w-24 h-24 rounded-sm bg-gradient-to-br from-accent/15 to-[#00E5FF]/10 border border-accent/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(0,168,168,0.15)] group hover:border-accent/50 hover:shadow-[0_0_50px_rgba(0,168,168,0.25)] transition-all duration-300">
                     {/* Icon glow */}
                     <div className="absolute inset-0 rounded-sm bg-accent/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
                     <svg className="relative w-12 h-12 text-accent group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +130,7 @@ function VerifyContent() {
 
                 <div className="space-y-4 mb-10 text-center flex flex-col items-center relative">
                     <h1 className="text-5xl font-black text-white uppercase tracking-tighter italic relative">
-                        Enter<span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-[#EAFF2B] relative z-10">Code</span>
+                        Enter<span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-[#00E5FF] relative z-10">Code</span>
                         {/* Animated underline */}
                         <div className="absolute -bottom-3 left-0 right-0 h-[3px] bg-gradient-to-r from-accent/0 via-accent/100 to-accent/0 blur-[2px]" />
                     </h1>
@@ -151,14 +151,14 @@ function VerifyContent() {
                     )}
                     {/* Decorative particles */}
                     <div className="absolute top-2 right-10 w-1 h-1 rounded-sm bg-accent/40 animate-pulse" />
-                    <div className="absolute bottom-8 left-10 w-1 h-1 rounded-sm bg-[#EAFF2B]/40 animate-pulse delay-75" />
+                    <div className="absolute bottom-8 left-10 w-1 h-1 rounded-sm bg-[#00E5FF]/40 animate-pulse delay-75" />
                     <div className="absolute top-8 left-12 w-1 h-1 rounded-sm bg-cyan-500/40 animate-pulse delay-150" />
                 </div>
 
                 {/* 6-digit code input - Enhanced */}
                 <div className="flex gap-2 sm:gap-3 mb-8 relative" onPaste={handlePaste}>
                     {/* Background decorative elements */}
-                    <div className="absolute -inset-x-4 top-1/2 -translate-y-1/2 h-[calc(100%-1rem)] w-full bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-sm" />
+                    <div className="absolute -inset-x-4 top-1/2 -translate-y-1/2 h-[calc(100%-1rem)] w-full bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-sm" />
                     {code.map((digit, i) => (
                         <input
                             key={i}
@@ -200,7 +200,7 @@ function VerifyContent() {
                 <button
                     onClick={() => handleSubmit(code.join(''))}
                     disabled={verifying || code.some(d => d === '')}
-                    className="group relative w-full sm:w-auto px-14 py-5 bg-gradient-to-r from-accent to-[#EAFF2B] text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-all duration-300 rounded-none shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 overflow-hidden"
+                    className="group relative w-full sm:w-auto px-14 py-5 bg-gradient-to-r from-accent to-[#00E5FF] text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-all duration-300 rounded-none shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 overflow-hidden"
                 >
                     {/* Button shine effect */}
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
@@ -227,7 +227,7 @@ function VerifyContent() {
                 {/* Status indicator */}
                 <div className="flex justify-center gap-4 mt-2">
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-sm bg-[#EAFF2B] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                        <div className="w-1.5 h-1.5 rounded-sm bg-[#00E5FF] shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
                         <span className="text-gray-700/60">System Operational</span>
                     </div>
                 </div>
@@ -239,7 +239,7 @@ function VerifyContent() {
 export default function VerifyPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center font-mono text-[#EAFF2B] uppercase tracking-widest">
+            <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center font-mono text-[#00E5FF] uppercase tracking-widest">
                 Loading
             </div>
         }>

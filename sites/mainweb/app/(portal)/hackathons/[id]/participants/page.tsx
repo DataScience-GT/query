@@ -100,7 +100,7 @@ export default function ParticipantHackathonPage() {
 
                         {/* Registration Indicator */}
                         {isRegistered && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 text-emerald-400">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#00E5FF]/10 border border-[#00E5FF]/20 text-emerald-400">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                 <span className="text-[11px] font-semibold uppercase tracking-widest">Registered</span>
                             </div>
