@@ -29,7 +29,7 @@ export default function ProjectsPage() {
   const getStatusColor = (projectStatus: string) => {
     switch (projectStatus) {
       case 'submitted':
-        return 'bg-[#EAFF2B]/10 text-emerald-400 border border-[#EAFF2B]/20';
+        return 'bg-[#00E5FF]/10 text-emerald-400 border border-[#00E5FF]/20';
       case 'judging':
         return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
       case 'winner':
@@ -52,12 +52,12 @@ export default function ProjectsPage() {
 
         {/* Page Header - Enhanced */}
         <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/12 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+          <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <Zap className="w-3 h-3" /> Hackathon Hub
           </p>
-          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-[#EAFF2B] transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-[#00E5FF] transition-all duration-500">
             Projects <span className="text-accent italic font-bold">Manager</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
@@ -106,10 +106,10 @@ export default function ProjectsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {projects.map((project) => (
-                  <LiquidGlass key={project.id} className="p-5 hover:border-[#EAFF2B]/30 transition-all group">
+                  <LiquidGlass key={project.id} className="p-5 hover:border-[#00E5FF]/30 transition-all group">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-white group-hover:text-[#EAFF2B] transition-colors">
+                        <h3 className="text-lg font-bold text-white group-hover:text-[#00E5FF] transition-colors">
                           {project.name}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description || 'No description'}</p>

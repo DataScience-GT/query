@@ -46,7 +46,7 @@ export default function AdminHeader() {
               placeholder="Search events, hackathons..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-10 pr-4 bg-white/5 border border-white/10 rounded-none text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#EAFF2B]/50 focus:ring-2 focus:ring-[#EAFF2B]/20"
+              className="w-full h-9 pl-10 pr-4 bg-white/5 border border-white/10 rounded-none text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#00E5FF]/50 focus:ring-2 focus:ring-[#00E5FF]/20"
               autoFocus={showSearch}
               onBlur={() => setTimeout(() => setShowSearch(false), 200)}
             />
@@ -68,7 +68,7 @@ export default function AdminHeader() {
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5 text-gray-400" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-sm bg-[#EAFF2B]" />
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-sm bg-[#00E5FF]" />
         </button>
 
         {/* Theme toggle */}
@@ -86,7 +86,7 @@ export default function AdminHeader() {
 
         {/* Logo */}
         <Link href="/admin" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-none bg-gradient-to-br from-[#EAFF2B] to-[#EAFF2B] text-white shadow-[4px_4px_0_0_#EAFF2B]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-none bg-gradient-to-br from-[#00E5FF] to-[#00E5FF] text-white shadow-[4px_4px_0_0_#00E5FF]">
             <span className="font-black text-sm">DS</span>
           </div>
           <span className="hidden lg:block text-lg font-black text-white tracking-tight">

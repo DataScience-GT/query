@@ -40,10 +40,10 @@ export default function AdminHackathonsPage() {
                 </div>
 
                 <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                  <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+                  <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
                     <Zap className="w-3 h-3" /> Hackathon Hub
                   </p>
                   <h1 className="relative text-3xl font-black text-white tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 to-gray-400 transition-all duration-500">
@@ -56,7 +56,7 @@ export default function AdminHackathonsPage() {
                 <div className="flex items-center justify-between">
                     <button
                         onClick={() => setShowCreate(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_#EAFF2B]"
+                        className="px-6 py-3 bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_#00E5FF]"
                     >
                         + New Hackathon
                     </button>

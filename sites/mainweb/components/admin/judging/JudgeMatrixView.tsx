@@ -59,7 +59,7 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest font-mono mt-2">Active Judges</p>
                 </LiquidGlass>
                 <LiquidGlass className="rounded-none p-6 text-center">
-                    <p className="text-3xl font-black text-[#EAFF2B] tabular-nums">
+                    <p className="text-3xl font-black text-[#00E5FF] tabular-nums">
                         {judgeStats.reduce((s, j) => s + j.count, 0)}
                     </p>
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest font-mono mt-2">Total Votes</p>
@@ -82,7 +82,7 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
             <LiquidGlass className="rounded-none overflow-hidden">
                 <div className="p-6 border-b border-white/5">
                     <h2 className="text-xl font-black text-white uppercase tracking-tight">
-                        Judge <span className="text-[#EAFF2B] italic">Performance</span>
+                        Judge <span className="text-[#00E5FF] italic">Performance</span>
                     </h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -103,7 +103,7 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                                         <p className="text-sm font-bold text-white">{j.name}</p>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <span className="text-lg font-black text-[#EAFF2B] tabular-nums">{j.count}</span>
+                                        <span className="text-lg font-black text-[#00E5FF] tabular-nums">{j.count}</span>
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="text-lg font-black text-white tabular-nums">{(j.totalScore / j.count).toFixed(1)}</span>

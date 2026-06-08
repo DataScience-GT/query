@@ -143,7 +143,7 @@ export default function AdminSetupPage() {
         <AdminLayout>
             <div className="relative z-10 max-w-4xl mx-auto">
                 <div className="mb-12">
-                    <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                    <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                         <Zap className="w-3 h-3" /> Hackathon Hub
                     </p>
                     <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
@@ -239,14 +239,14 @@ export default function AdminSetupPage() {
                                 assignJudges.mutate({ hackathonId: selectedHackathonId });
                             }}
                             disabled={assignJudges.isPending || !selectedHackathonId}
-                            className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-[#EAFF2B]/10 border-2 border-accent/40 text-white font-black text-lg uppercase tracking-widest rounded-none hover:from-accent/20 hover:to-[#EAFF2B]/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+                            className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-[#00E5FF]/10 border-2 border-accent/40 text-white font-black text-lg uppercase tracking-widest rounded-none hover:from-accent/20 hover:to-[#00E5FF]/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(0,168,168,0.1)]"
                         >
                             {assignJudges.isPending ? 'Assigning...' : 'Auto-Assign All Judges'}
                         </button>
 
                         {assignJudges.data && (
                             <div className="mt-6">
-                                <div className="p-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none mb-4">
+                                <div className="p-4 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none mb-4">
                                     <p className="text-emerald-400 text-sm font-mono font-bold mb-2">
                                         Assigned {assignJudges.data.totalJudges} judges
                                     </p>

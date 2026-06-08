@@ -48,7 +48,7 @@ export function QRCodeModal({
                     <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
                         QR Protocols
                     </h3>
-                    <p className="text-sm font-mono text-[#EAFF2B] uppercase tracking-widest mt-1">
+                    <p className="text-sm font-mono text-[#00E5FF] uppercase tracking-widest mt-1">
                         {event.title}
                     </p>
                 </div>

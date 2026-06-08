@@ -198,7 +198,7 @@ function SubmitPortalContent() {
                                                 </div>
 
                                                 {currentReg.team.captainId === session?.user?.id ? (
-                                                    <p className="text-xs text-[#EAFF2B] font-mono mt-4">✓ You are the Captain</p>
+                                                    <p className="text-xs text-[#00E5FF] font-mono mt-4">✓ You are the Captain</p>
                                                 ) : (
                                                     <button
                                                         onClick={() => leaveTeam.mutate({ hackathonId: selectedHackathonId })}
@@ -289,12 +289,12 @@ function SubmitPortalContent() {
                                     )}
 
                                     {successMessage && (
-                                        <div className="p-6 mb-8 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none relative z-10 flex items-center justify-between">
+                                        <div className="p-6 mb-8 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none relative z-10 flex items-center justify-between">
                                             <p className="text-emerald-400 font-mono text-sm font-bold flex items-center gap-3">
-                                                <span className="w-2 h-2 rounded-sm bg-[#EAFF2B] animate-pulse" />
+                                                <span className="w-2 h-2 rounded-sm bg-[#00E5FF] animate-pulse" />
                                                 {successMessage}
                                             </p>
-                                            <Link href="/dashboard" className="px-4 py-2 bg-[#EAFF2B]/20 text-emerald-400 text-xs rounded hover:bg-[#EAFF2B]/30 transition-colors uppercase tracking-widest font-mono">
+                                            <Link href="/dashboard" className="px-4 py-2 bg-[#00E5FF]/20 text-emerald-400 text-xs rounded hover:bg-[#00E5FF]/30 transition-colors uppercase tracking-widest font-mono">
                                                 Return
                                             </Link>
                                         </div>
@@ -323,7 +323,7 @@ function SubmitPortalContent() {
                                                     value={projectName}
                                                     onChange={e => setProjectName(e.target.value)}
                                                     placeholder="Project Apollo"
-                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-all duration-300 focus:shadow-[4px_4px_0_0_#EAFF2B] hover:border-white/20 group"
+                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-all duration-300 focus:shadow-[4px_4px_0_0_#00E5FF] hover:border-white/20 group"
                                                 />
                                             </div>
                                             <div>
