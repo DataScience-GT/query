@@ -69,7 +69,7 @@ export const hackathonRouter = createTRPCRouter({
 
 
   getById: publicProcedure
-    .input(z.object({ id: z.string().uuid("Invalid hackathon ID") }))
+    .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
@@ -78,8 +78,9 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<HackathonItem>(cacheKey);
       if (cached) return cached;
 
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id);
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: eq(hackathons.id, input.id),
+        where: isUuid ? eq(hackathons.id, input.id) : eq(hackathons.name, input.id),
       });
 
       if (!hackathon) {

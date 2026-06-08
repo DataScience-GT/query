@@ -20,29 +20,29 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({ user, member }: ProfileHeaderProps) {
   return (
-    <div className="bg-black/60 border border-white/5 rounded-none p-8 backdrop-blur-md">
+    <div className="bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none p-8 backdrop-blur-md">
       <div className="flex items-start gap-6">
         <div className="relative group">
-          <div className="absolute -inset-2 bg-[#00E5FF]/20 rounded-sm blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -inset-2 bg-accent/20 rounded-sm blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <Image
             src={user.image || '/avatar-placeholder.png'}
             alt="Profile"
             width={96}
             height={96}
-            className="relative rounded-sm border-2 border-[#00E5FF]/30 grayscale hover:grayscale-0 transition-all object-cover"
+            className="relative rounded-sm border-2 border-accent/30 grayscale hover:grayscale-0 transition-all object-cover"
           />
         </div>
 
         <div className="flex-1">
-          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
+          <h2 className="text-3xl font-black text-[var(--text-primary)] italic uppercase tracking-tighter">
             {member ? `${member.firstName} ${member.lastName}` : user.name || 'Unknown User'}
           </h2>
-          <p className="text-[#00E5FF] text-xs uppercase tracking-widest mt-1">
+          <p className="text-accent text-xs uppercase tracking-widest mt-1">
             {user.email}
           </p>
           {member && (
-            <div className="mt-4 inline-block px-4 py-2 bg-[#00E5FF]/10 border border-[#00E5FF]/30 rounded">
-              <p className="text-[#00E5FF] text-[10px] uppercase tracking-widest font-bold">
+            <div className="mt-4 inline-block px-4 py-2 bg-accent/10 border border-accent/30 rounded">
+              <p className="text-accent text-[10px] uppercase tracking-widest font-bold">
                 Member_Type: {member.memberType || 'Standard'}
               </p>
             </div>

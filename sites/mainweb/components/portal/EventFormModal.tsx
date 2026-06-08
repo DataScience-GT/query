@@ -52,18 +52,18 @@ export function EventFormModal({
     return (
         <ModalWrapper onClose={onClose} maxWidth="2xl">
             {/* Header */}
-            <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
+            <div className="flex justify-between items-center mb-8 pb-4 border-b border-[var(--border-subtle)]">
                 <div>
-                    <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
+                    <h3 className="text-3xl font-black text-[var(--text-primary)] italic uppercase tracking-tighter">
                         Create Event
                     </h3>
-                    <p className="text-xs font-mono text-[#00E5FF] uppercase tracking-widest">
+                    <p className="text-xs font-mono text-accent uppercase tracking-widest">
                         Configure QR Protocols
                     </p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="text-gray-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
+                    className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
                 >
                     [ Close Panel ]
                 </button>
@@ -72,27 +72,27 @@ export function EventFormModal({
             <div className="space-y-6">
                 {/* Title */}
                 <div className="space-y-2">
-                    <label className="text-sm text-gray-500 uppercase tracking-widest font-mono block font-bold mb-2">
+                    <label className="text-sm text-[var(--text-subtle)] uppercase tracking-widest font-mono block font-bold mb-2">
                         Event Title Identifier
                     </label>
                     <input
                         type="text"
                         value={form.title}
                         onChange={(e) => setForm({ ...form, title: e.target.value })}
-                        className="w-full bg-black/40 border border-white/10 rounded-none px-6 py-4 text-white text-base focus:border-[#00E5FF] focus:outline-none transition-all font-mono"
+                        className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-6 py-4 text-[var(--text-primary)] text-base focus:border-accent focus:outline-none transition-all font-mono"
                         placeholder="e.g., Weekly Workshop 01"
                     />
                 </div>
 
                 {/* Description */}
                 <div className="space-y-2">
-                    <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
+                    <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono block">
                         Data Description
                     </label>
                     <textarea
                         value={form.description}
                         onChange={(e) => setForm({ ...form, description: e.target.value })}
-                        className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all resize-none font-mono"
+                        className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all resize-none font-mono"
                         rows={3}
                         placeholder="System details..."
                     />
@@ -101,27 +101,27 @@ export function EventFormModal({
                 {/* Location and Date */}
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
+                        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono block">
                             Location Node
                         </label>
                         <input
                             type="text"
                             value={form.location}
                             onChange={(e) => setForm({ ...form, location: e.target.value })}
-                            className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all font-mono"
+                            className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all font-mono"
                             placeholder="e.g., Klaus 2443"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono block">
+                        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono block">
                             Temporal Stamp
                         </label>
                         <input
                             type="datetime-local"
                             value={form.eventDate}
                             onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
-                            className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all font-mono"
+                            className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all font-mono"
                         />
                     </div>
                 </div>
@@ -130,7 +130,7 @@ export function EventFormModal({
                 <button
                     onClick={handleSubmit}
                     disabled={!isValid || isSubmitting}
-                    className="w-full px-8 py-5 bg-[#00E5FF] text-black font-black text-base uppercase tracking-[0.2em] hover:bg-[#00E5FF]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.3)] mt-6 rounded-none"
+                    className="w-full px-8 py-5 bg-accent text-black font-black text-base uppercase tracking-[0.2em] hover:bg-accent/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(16,185,129,0.3)] mt-6 rounded-none"
                 >
                     {isSubmitting ? 'Processing...' : 'INITIALIZE EVENT'}
                 </button>

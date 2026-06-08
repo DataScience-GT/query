@@ -34,23 +34,23 @@ export default function AnalyticsPage() {
   const StatCard = ({ icon: Icon, title, value, subtitle, trend }: StatCardProps) => (
     <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
       {/* Background gradients */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-[#00E5FF]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute -top-20 -right-20 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative flex items-center gap-4">
         {/* Icon container with gradient */}
-        <div className="group/icon relative flex h-14 w-14 items-center justify-center rounded-none bg-gradient-to-br from-accent/20 to-[#00E5FF]/10 text-white border border-white/10 group-hover/icon:scale-110 transition-transform duration-300">
-          <div className="absolute inset-0 rounded-none bg-gradient-to-br from-accent/30 to-[#00E5FF]/20 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300" />
-          <Icon className="h-7 w-7 relative z-10 group-hover/icon:text-white transition-colors" />
+        <div className="group/icon relative flex h-14 w-14 items-center justify-center rounded-none bg-gradient-to-br from-accent/20 to-accent/10 text-[var(--text-primary)] border border-[var(--border-subtle)] group-hover/icon:scale-110 transition-transform duration-300">
+          <div className="absolute inset-0 rounded-none bg-gradient-to-br from-accent/30 to-accent/20 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300" />
+          <Icon className="h-7 w-7 relative z-10 group-hover/icon:text-[var(--text-primary)] transition-colors" />
         </div>
         <div className="flex-1">
           <p className="text-sm text-text-muted font-medium">{title}</p>
-          <p className="text-3xl font-black text-white tracking-tight">{value}</p>
+          <p className="text-3xl font-black text-[var(--text-primary)] tracking-tight">{value}</p>
           {subtitle && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-text-muted font-mono">{subtitle}</span>
               {trend?.positive && (
-                <span className="text-xs text-emerald-400 flex items-center gap-1 group-hover/icon:gap-2 transition-all">
+                <span className="text-xs text-accent flex items-center gap-1 group-hover/icon:gap-2 transition-all">
                   <TrendingUp className="h-3 w-3 animate-in slide-in-from-bottom-2" />
                   {trend.percent}%
                 </span>
@@ -75,18 +75,18 @@ export default function AnalyticsPage() {
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Ambient Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-15%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-accent/6 via-cyan-900/12 to-purple-900/10 blur-[350px] rounded-sm" />
-          <div className="absolute bottom-[-12%] right-[-8%] w-[600px] h-[600px] bg-gradient-to-r from-emerald-900/12 via-cyan-900/10 to-indigo-900/10 blur-[300px] rounded-sm" />
+          <div className="absolute top-[-15%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-accent/6 via-emerald-900/12 to-purple-900/10 blur-[350px] rounded-sm" />
+          <div className="absolute bottom-[-12%] right-[-8%] w-[600px] h-[600px] bg-gradient-to-r from-emerald-900/12 via-emerald-900/10 to-indigo-900/10 blur-[300px] rounded-sm" />
         </div>
 
         {/* Page Header - Enhanced */}
-        <div className="relative mb-8 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#00E5FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="relative mb-8 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
-          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 to-gray-400 transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-all duration-500">
             Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
@@ -144,10 +144,10 @@ export default function AnalyticsPage() {
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <svg className="w-40 h-40 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
             </div>
-            <h2 className="text-lg font-bold text-white mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
+            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
               Registration Trend
             </h2>
-            <div className="relative h-64 bg-black/20 rounded-none flex items-center justify-center border border-white/5 overflow-hidden">
+            <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
               {/* Chart background decorations */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
               <p className="relative text-text-muted text-sm text-center z-10">Chart visualization for registration trends</p>
@@ -156,16 +156,16 @@ export default function AnalyticsPage() {
 
           {/* Event Types */}
           <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-              <svg className="w-36 h-36 text-[#00E5FF]" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 12c0 1.232-.043 2.422-.134 3.573M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M12 17.75V.188A2.02 2.02 0 009.99 0 4.02 4.02 0 005.97 2.01L4 12c0 4.17 2.96 7.7 7 9" /></svg>
+              <svg className="w-36 h-36 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 12c0 1.232-.043 2.422-.134 3.573M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M12 17.75V.188A2.02 2.02 0 009.99 0 4.02 4.02 0 005.97 2.01L4 12c0 4.17 2.96 7.7 7 9" /></svg>
             </div>
-            <h2 className="text-lg font-bold text-white mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
+            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
               Event Distribution
             </h2>
-            <div className="relative h-64 bg-black/20 rounded-none flex items-center justify-center border border-white/5 overflow-hidden">
+            <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
               {/* Chart background decorations */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/[0.02] to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
               <p className="relative text-text-muted text-sm text-center z-10">Pie chart for event type breakdown</p>
             </div>
           </LiquidGlass>
@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
             <svg className="w-32 h-32 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
           </div>
-          <h2 className="text-lg font-bold text-white mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
             Recent Activity
           </h2>
           <div className="space-y-3">
@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
                 </div>
               ))
             ) : (
-              <div className="text-text-muted text-sm text-center py-8 group-hover:text-gray-400 transition-colors">
+              <div className="text-text-muted text-sm text-center py-8 group-hover:text-[var(--text-muted)] transition-colors">
                 No recent activity to display
               </div>
             )}

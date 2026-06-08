@@ -17,7 +17,7 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-x-hidden flex items-center justify-center">
+        <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans selection:bg-emerald-500/30 overflow-x-hidden flex items-center justify-center">
             <Background className="fixed inset-0 z-0 opacity-[0.03]" />
 
             <main className="relative z-10 w-full max-w-xl px-6">
@@ -28,7 +28,7 @@ export default function Error({
                         </svg>
                     </div>
 
-                    <h2 className="text-3xl font-black text-white uppercase tracking-tight mb-4">
+                    <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-4">
                         System Failure
                     </h2>
 
@@ -43,13 +43,13 @@ export default function Error({
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
                             onClick={() => reset()}
-                            className="px-6 py-3 bg-cyan-500 text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-cyan-400 transition-colors shadow-[0_0_20px_rgba(var(--cyan-rgb),0.3)]"
+                            className="px-6 py-3 bg-emerald-500 text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(var(--cyan-rgb),0.3)]"
                         >
                             Reboot System
                         </button>
                         <Link
                             href="/hackathons"
-                            className="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-sm rounded-none hover:bg-white/10 transition-colors"
+                            className="px-6 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-sm rounded-none hover:bg-white/10 transition-colors"
                         >
                             Back to Hackathons
                         </Link>
