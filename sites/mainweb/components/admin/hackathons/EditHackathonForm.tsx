@@ -76,50 +76,50 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Name</label>
-                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors" />
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors" />
                         </div>
                         <div>
                             <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Description</label>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors resize-none" />
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors resize-none" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Location</label>
-                                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors" />
+                                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors" />
                             </div>
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Theme</label>
-                                <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors" />
+                                <input type="text" value={theme} onChange={(e) => setTheme(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Start Date</label>
-                                <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                                <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors [color-scheme:dark]" />
                             </div>
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">End Date</label>
-                                <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                                <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors [color-scheme:dark]" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Registration Deadline</label>
-                                <input type="datetime-local" value={regDeadline} onChange={(e) => setRegDeadline(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                                <input type="datetime-local" value={regDeadline} onChange={(e) => setRegDeadline(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors [color-scheme:dark]" />
                             </div>
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-gray-500 mb-2 font-mono">Max Participants</label>
-                                <input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white text-sm font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors" />
+                                <input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors" />
                             </div>
                         </div>
 
-                        {error && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg"><p className="text-red-400 text-sm font-mono">{error}</p></div>}
+                        {error && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none"><p className="text-red-400 text-sm font-mono">{error}</p></div>}
 
                         <div className="flex items-center gap-4 pt-2">
                             <button
                                 onClick={handleSubmit}
                                 disabled={updateMutation.isPending}
-                                className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-semibold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-lg shadow-[#00A8A8]/20 disabled:opacity-50"
+                                className="px-6 py-3 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] text-white font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_#EAFF2B] disabled:opacity-50"
                             >
                                 {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                             </button>

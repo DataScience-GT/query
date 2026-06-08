@@ -57,7 +57,7 @@ export function EventFormModal({
                     <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
                         Create Event
                     </h3>
-                    <p className="text-xs font-mono text-[#00A8A8] uppercase tracking-widest">
+                    <p className="text-xs font-mono text-[#EAFF2B] uppercase tracking-widest">
                         Configure QR Protocols
                     </p>
                 </div>
@@ -79,7 +79,7 @@ export function EventFormModal({
                         type="text"
                         value={form.title}
                         onChange={(e) => setForm({ ...form, title: e.target.value })}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-white text-base focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                        className="w-full bg-black/40 border border-white/10 rounded-none px-6 py-4 text-white text-base focus:border-[#EAFF2B] focus:outline-none transition-all font-mono"
                         placeholder="e.g., Weekly Workshop 01"
                     />
                 </div>
@@ -92,7 +92,7 @@ export function EventFormModal({
                     <textarea
                         value={form.description}
                         onChange={(e) => setForm({ ...form, description: e.target.value })}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all resize-none font-mono"
+                        className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all resize-none font-mono"
                         rows={3}
                         placeholder="System details..."
                     />
@@ -108,7 +108,7 @@ export function EventFormModal({
                             type="text"
                             value={form.location}
                             onChange={(e) => setForm({ ...form, location: e.target.value })}
-                            className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                            className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all font-mono"
                             placeholder="e.g., Klaus 2443"
                         />
                     </div>
@@ -121,7 +121,7 @@ export function EventFormModal({
                             type="datetime-local"
                             value={form.eventDate}
                             onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
-                            className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all font-mono"
+                            className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#EAFF2B] focus:outline-none transition-all font-mono"
                         />
                     </div>
                 </div>
@@ -130,7 +130,7 @@ export function EventFormModal({
                 <button
                     onClick={handleSubmit}
                     disabled={!isValid || isSubmitting}
-                    className="w-full px-8 py-5 bg-[#00A8A8] text-black font-black text-base uppercase tracking-[0.2em] hover:bg-[#00A8A8]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.3)] mt-6 rounded-xl"
+                    className="w-full px-8 py-5 bg-[#EAFF2B] text-black font-black text-base uppercase tracking-[0.2em] hover:bg-[#EAFF2B]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,168,168,0.3)] mt-6 rounded-none"
                 >
                     {isSubmitting ? 'Processing...' : 'INITIALIZE EVENT'}
                 </button>

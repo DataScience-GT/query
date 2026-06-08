@@ -45,8 +45,8 @@ export default function AdminHackathonDashboard() {
     <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans flex flex-col pb-32 md:pb-12">
       {/* Ambient Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-15%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/6 via-cyan-900/12 to-purple-900/10 blur-[400px] rounded-full" />
-        <div className="absolute bottom-[-12%] right-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-emerald-900/12 via-cyan-900/10 to-indigo-900/10 blur-[350px] rounded-full" />
+        <div className="absolute top-[-15%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/6 via-cyan-900/12 to-purple-900/10 blur-[400px] rounded-sm" />
+        <div className="absolute bottom-[-12%] right-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-emerald-900/12 via-cyan-900/10 to-indigo-900/10 blur-[350px] rounded-sm" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
@@ -56,7 +56,7 @@ export default function AdminHackathonDashboard() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <Link href="/admin/hackathons" className="flex items-center gap-2 text-text-muted hover:text-white transition-colors text-xs font-mono uppercase tracking-wider group w-fit" aria-label="Back to hackathons hub">
-                <div className="p-1 rounded-lg bg-white/5 border border-white/10 group-hover:bg-accent/20 group-hover:border-accent/40 transition-colors">
+                <div className="p-1 rounded-none bg-white/5 border border-white/10 group-hover:bg-accent/20 group-hover:border-accent/40 transition-colors">
                   <svg className="w-4 h-4 text-white group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 </div>
                 <span className="hidden md:inline text-white/60 group-hover:text-white transition-colors">Hackathons</span>
@@ -71,7 +71,7 @@ export default function AdminHackathonDashboard() {
               {['scanner', 'attendees'].includes(activeTab) && (
                 <Link
                   href={`/admin/hackathons/${hackathon.id}/scanner`}
-                  className="group relative px-4 py-2 rounded-xl bg-gradient-to-r from-accent/15 to-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500/25 active:scale-95 transition-all overflow-hidden"
+                  className="group relative px-4 py-2 rounded-none bg-gradient-to-r from-accent/15 to-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500/25 active:scale-95 transition-all overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   <span className="relative flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function AdminHackathonDashboard() {
       {/* DESKTOP TABS - Enhanced, Hidden on mobile */}
       <div className="hidden md:block border-b border-white/5 bg-[var(--bg-primary)]/30 relative overflow-hidden">
         {/* Tab background gradients */}
-        <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.01] via-transparent to-emerald-500/[0.01] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.01] via-transparent to-[#EAFF2B]/[0.01] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => (
@@ -144,11 +144,11 @@ export default function AdminHackathonDashboard() {
           >
             {/* Active indicator bar */}
             {activeTab === tab.id && (
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent shadow-[0_0_10px_#00A8A8]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-1 h-1 rounded-sm bg-accent shadow-[0_0_10px_#EAFF2B]" />
             )}
 
             {/* Icon container with hover effects */}
-            <div className={`p-2 rounded-xl transition-all duration-300 ${activeTab === tab.id ? 'bg-accent/10 scale-110' : 'group-hover:bg-white/5'}`}>
+            <div className={`p-2 rounded-none transition-all duration-300 ${activeTab === tab.id ? 'bg-accent/10 scale-110' : 'group-hover:bg-white/5'}`}>
               {tab.icon}
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === tab.id ? 'text-accent' : 'text-text-muted group-hover:text-gray-400'}`}>
@@ -157,7 +157,7 @@ export default function AdminHackathonDashboard() {
 
             {/* Ripple effect when active */}
             {activeTab === tab.id && (
-              <div className="absolute inset-0 rounded-xl bg-accent/5 animate-pulse" />
+              <div className="absolute inset-0 rounded-none bg-accent/5 animate-pulse" />
             )}
           </button>
         ))}
