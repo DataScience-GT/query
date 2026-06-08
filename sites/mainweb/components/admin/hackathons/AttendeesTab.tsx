@@ -186,7 +186,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                             <button
                                 onClick={() => updateHackathon.mutate({ id: hackathonId, status: 'open' })}
                                 disabled={updateHackathon.isPending}
-                                className="px-4 py-2.5 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                                className="px-4 py-2.5 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider rounded-none hover:bg-green-500/20 transition-colors disabled:opacity-50"
                             >
                                 Open Registration
                             </button>
@@ -195,7 +195,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                             <button
                                 onClick={() => updateHackathon.mutate({ id: hackathonId, status: 'closed' })}
                                 disabled={updateHackathon.isPending}
-                                className="px-4 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                                className="px-4 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider rounded-none hover:bg-red-500/20 transition-colors disabled:opacity-50"
                             >
                                 Close Registration
                             </button>
@@ -209,7 +209,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                         updateHackathon.mutate({ id: hackathonId, registrationDeadline: new Date(e.target.value) });
                                     }
                                 }}
-                                className="px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-xs font-mono focus:border-[#00A8A8]/50 focus:outline-none transition-colors [color-scheme:dark]"
+                                className="px-3 py-2 bg-black/40 border border-white/10 rounded-none text-white text-xs font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors [color-scheme:dark]"
                             />
                         </div>
                     </div>
@@ -229,7 +229,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                     <button
                         key={stat.label}
                         onClick={() => setStatusFilter(stat.filter)}
-                        className={`p-5 rounded-xl border transition-all text-left ${statusFilter === stat.filter ? `${stat.bg} ${stat.border} ring-1 ring-white/10 scale-[1.02]` : 'bg-black/20 border-white/5 hover:bg-white/[0.03] hover:border-white/10'}`}
+                        className={`p-5 rounded-none border transition-all text-left ${statusFilter === stat.filter ? `${stat.bg} ${stat.border} ring-1 ring-white/10 scale-[1.02]` : 'bg-black/20 border-white/5 hover:bg-white/[0.03] hover:border-white/10'}`}
                     >
                         <p className={`text-4xl font-black font-mono ${stat.color}`}>{stat.value}</p>
                         <p className="text-xs font-mono text-gray-500 uppercase tracking-widest mt-2">{stat.label}</p>
@@ -249,19 +249,19 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                             <span className="text-xs font-mono text-accent font-bold">{selectedIds.size} selected</span>
                             <button
                                 onClick={() => handleBulkAction('approved')}
-                                className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors flex items-center gap-1.5"
+                                className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors flex items-center gap-1.5"
                             >
                                 <Check className="w-3 h-3" /> Approve All
                             </button>
                             <button
                                 onClick={() => handleBulkAction('rejected')}
-                                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
+                                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
                             >
                                 <X className="w-3 h-3" /> Reject All
                             </button>
                             <button
                                 onClick={() => handleBulkAction('waitlisted')}
-                                className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors flex items-center gap-1.5"
+                                className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors flex items-center gap-1.5"
                             >
                                 <Clock className="w-3 h-3" /> Waitlist All
                             </button>
@@ -269,7 +269,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                     )}
                     <button
                         onClick={exportToCSV}
-                        className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-lg font-mono text-xs uppercase tracking-wider font-bold text-white flex items-center gap-2"
+                        className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-none font-mono text-xs uppercase tracking-wider font-bold text-white flex items-center gap-2"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         Export CSV
@@ -284,7 +284,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                     placeholder="Search by name, email, school, major, or response..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00A8A8]/50 transition-colors"
+                    className="w-full bg-black/30 border border-white/10 rounded-none px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#EAFF2B]/50 transition-colors"
                 />
             </div>
 
@@ -298,7 +298,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                     type="checkbox"
                                     checked={selectedIds.size === filteredAttendees.length && filteredAttendees.length > 0}
                                     onChange={selectAllVisible}
-                                    className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#00A8A8] cursor-pointer"
+                                    className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#EAFF2B] cursor-pointer"
                                 />
                             </th>
                             <th className="px-4 py-4 font-semibold w-8"></th>
@@ -323,7 +323,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                 type="checkbox"
                                                 checked={selectedIds.has(attendee.id)}
                                                 onChange={() => toggleSelect(attendee.id)}
-                                                className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#00A8A8] cursor-pointer"
+                                                className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#EAFF2B] cursor-pointer"
                                             />
                                         </td>
                                         <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
@@ -331,7 +331,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                         </td>
                                         <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>
                                             <div className="flex items-center gap-3">
-                                                <Image src={attendee.user?.image || '/avatar-placeholder.png'} alt="Avatar" width={40} height={40} className="rounded-full bg-black shrink-0" />
+                                                <Image src={attendee.user?.image || '/avatar-placeholder.png'} alt="Avatar" width={40} height={40} className="rounded-sm bg-black shrink-0" />
                                                 <div>
                                                     <p className="text-white font-bold text-base">{attendee.firstName && attendee.lastName ? `${attendee.firstName} ${attendee.lastName}` : (attendee.user?.name || 'Unknown User')}</p>
                                                     <p className="text-gray-500 text-sm font-mono">{attendee.user?.email || 'No email'}</p>
@@ -358,7 +358,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                         onClick={() => handleStatusUpdate(attendee.id, 'approved')}
                                                         disabled={updateStatus.isPending}
                                                         title="Approve"
-                                                        className="p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50 hover:scale-110"
+                                                        className="p-2 rounded-none bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50 hover:scale-110"
                                                     >
                                                         <Check className="w-3.5 h-3.5" />
                                                     </button>
@@ -368,7 +368,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                         onClick={() => handleStatusUpdate(attendee.id, 'rejected')}
                                                         disabled={updateStatus.isPending}
                                                         title="Reject"
-                                                        className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50 hover:scale-110"
+                                                        className="p-2 rounded-none bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50 hover:scale-110"
                                                     >
                                                         <X className="w-3.5 h-3.5" />
                                                     </button>
@@ -378,7 +378,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                         onClick={() => handleStatusUpdate(attendee.id, 'waitlisted')}
                                                         disabled={updateStatus.isPending}
                                                         title="Waitlist"
-                                                        className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50 hover:scale-110"
+                                                        className="p-2 rounded-none bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50 hover:scale-110"
                                                     >
                                                         <Clock className="w-3.5 h-3.5" />
                                                     </button>
@@ -454,7 +454,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                             </div>
                                                             <div>
                                                                 <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Why do you want to attend?</p>
-                                                                <div className="bg-white/5 border border-white/5 p-4 rounded-xl">
+                                                                <div className="bg-white/5 border border-white/5 p-4 rounded-none">
                                                                     <p className="text-sm text-gray-300 italic whitespace-pre-wrap leading-relaxed">
                                                                         {attendee.whyAttend ? `"${attendee.whyAttend}"` : 'No answer provided.'}
                                                                     </p>
@@ -467,21 +467,21 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                                 <button
                                                                     onClick={() => handleStatusUpdate(attendee.id, 'approved')}
                                                                     disabled={updateStatus.isPending || attendee.registrationStatus === 'approved'}
-                                                                    className="px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
+                                                                    className="px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
                                                                 >
                                                                     <Check className="w-3 h-3" /> Approve
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleStatusUpdate(attendee.id, 'rejected')}
                                                                     disabled={updateStatus.isPending || attendee.registrationStatus === 'rejected'}
-                                                                    className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
+                                                                    className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
                                                                 >
                                                                     <X className="w-3 h-3" /> Reject
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleStatusUpdate(attendee.id, 'waitlisted')}
                                                                     disabled={updateStatus.isPending || attendee.registrationStatus === 'waitlisted'}
-                                                                    className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
+                                                                    className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
                                                                 >
                                                                     <Clock className="w-3 h-3" /> Waitlist
                                                                 </button>

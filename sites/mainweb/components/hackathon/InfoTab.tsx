@@ -167,7 +167,7 @@ export function InfoTab({
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {hackathon.prizes.map((p: { place: string; amount: number; description?: string }, i: number) => (
-                            <div key={i} className="p-6 bg-[#0a0a0a]/50 border border-white/5 rounded-2xl hover:border-cyan-500/30 transition-colors group relative overflow-hidden">
+                            <div key={i} className="p-6 bg-[#0a0a0a]/50 border border-white/5 rounded-none hover:border-cyan-500/30 transition-colors group relative overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                                 <p className="text-white font-bold text-lg mb-1 relative z-10">{p.place}</p>
                                 <p className="text-white/80 font-semibold text-2xl mb-2 relative z-10">${p.amount.toLocaleString()}</p>
@@ -191,7 +191,7 @@ export function InfoTab({
             {(hackathon.registrationDeadline || hackathon.websiteUrl) && (
                 <div className="flex flex-wrap gap-4 px-2">
                     {hackathon.registrationDeadline && (
-                        <div className="flex items-center gap-2.5 text-sm font-semibold bg-white/5 border border-white/5 px-4 py-2 rounded-xl">
+                        <div className="flex items-center gap-2.5 text-sm font-semibold bg-white/5 border border-white/5 px-4 py-2 rounded-none">
                             <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <span className={deadlinePassed ? 'text-rose-400' : 'text-amber-400'}>
                                 Deadline: {formatDate(hackathon.registrationDeadline)}{deadlinePassed ? ' (Passed)' : ''}
@@ -199,7 +199,7 @@ export function InfoTab({
                         </div>
                     )}
                     {hackathon.websiteUrl && (
-                        <a href={hackathon.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 px-4 py-2 rounded-xl transition-colors">
+                        <a href={hackathon.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 px-4 py-2 rounded-none transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                             Official Website
                         </a>
@@ -208,38 +208,38 @@ export function InfoTab({
             )}
 
             <LiquidGlass className="p-8 md:p-10 bg-white/[0.01] border-white/5 mt-10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-sm blur-[80px] pointer-events-none" />
 
                 {success && (
-                    <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
+                    <div className="mb-6 p-4 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-sm bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
                         <p className="text-emerald-400 text-sm font-semibold">Registration confirmed! You're in.</p>
                     </div>
                 )}
 
                 {isRegistered || success ? (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex items-center gap-3 px-6 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl w-fit">
+                        <div className="flex items-center gap-3 px-6 py-3 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none w-fit">
                             <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                             <span className="text-emerald-400 font-bold text-sm uppercase tracking-widest">Registered</span>
                         </div>
-                        {myReg && <span className="text-white/40 text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-lg bg-white/5 border border-white/5">Status: {myReg.registrationStatus}</span>}
+                        {myReg && <span className="text-white/40 text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-none bg-white/5 border border-white/5">Status: {myReg.registrationStatus}</span>}
                     </div>
                 ) : canRegister && !deadlinePassed && !showForm ? (
                     <div className="text-center sm:text-left">
                         <h4 className="text-xl font-bold text-white mb-2">Ready to Build?</h4>
                         <p className="text-sm text-white/50 mb-6">Secure your spot in this hackathon. Capacity is limited.</p>
-                        <button onClick={() => setShowForm(true)} className="group px-8 py-4 rounded-xl bg-cyan-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-cyan-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:-translate-y-0.5 w-full sm:w-auto">
+                        <button onClick={() => setShowForm(true)} className="group px-8 py-4 rounded-none bg-cyan-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-cyan-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:-translate-y-0.5 w-full sm:w-auto">
                             Apply Now
                         </button>
                     </div>
                 ) : isFull ? (
-                    <div className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 rounded-xl inline-flex items-center gap-3">
+                    <div className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 rounded-none inline-flex items-center gap-3">
                         <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
                         <span className="text-rose-400 font-bold text-sm uppercase tracking-widest">Capacity Reached</span>
                     </div>
                 ) : (
-                    <div className="px-6 py-4 bg-white/5 border border-white/10 rounded-xl inline-flex items-center gap-3">
+                    <div className="px-6 py-4 bg-white/5 border border-white/10 rounded-none inline-flex items-center gap-3">
                         <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                         <span className="text-white/40 font-bold text-sm uppercase tracking-widest">Registration Closed</span>
                     </div>

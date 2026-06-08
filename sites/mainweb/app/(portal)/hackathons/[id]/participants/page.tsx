@@ -73,12 +73,12 @@ export default function ParticipantHackathonPage() {
     return (
         <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans selection:bg-cyan-500/30 overflow-hidden">
             {/* Ambient Background Glows */}
-            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
-            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-cyan-600/10 blur-[120px] pointer-events-none" />
+            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-sm bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
             <main className="relative z-10 max-w-5xl mx-auto py-24 px-6 md:px-12">
                 <Link href="/hackathons" className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium mb-12 group">
-                    <div className="p-1.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
+                    <div className="p-1.5 rounded-sm bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors">
                         <svg className="w-3.5 h-3.5 transform group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </div>
                     All Events
@@ -91,8 +91,8 @@ export default function ParticipantHackathonPage() {
 
                     <div className="flex flex-wrap items-center gap-3 mb-6 relative z-10">
                         {/* Status Badge */}
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${conf.bg} border ${conf.border} backdrop-blur-md`}>
-                            <div className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.glow} ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'animate-pulse' : ''}`} />
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm ${conf.bg} border ${conf.border} backdrop-blur-md`}>
+                            <div className={`h-1.5 w-1.5 rounded-sm ${conf.dot} ${conf.glow} ${hackathon.status === 'open' || hackathon.status === 'in_progress' ? 'animate-pulse' : ''}`} />
                             <span className={`text-[11px] font-semibold uppercase tracking-widest ${conf.text}`}>
                                 {conf.label}
                             </span>
@@ -100,7 +100,7 @@ export default function ParticipantHackathonPage() {
 
                         {/* Registration Indicator */}
                         {isRegistered && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 text-emerald-400">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                 <span className="text-[11px] font-semibold uppercase tracking-widest">Registered</span>
                             </div>
@@ -108,7 +108,7 @@ export default function ParticipantHackathonPage() {
 
                         {/* Theme */}
                         {hackathon.theme && (
-                            <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                            <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest px-3 py-1.5 rounded-sm bg-white/5 border border-white/10">
                                 {hackathon.theme}
                             </span>
                         )}
@@ -152,7 +152,7 @@ export default function ParticipantHackathonPage() {
                         <button
                             key={t}
                             onClick={() => setTab(t)}
-                            className={`px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1
+                            className={`px-6 py-3 rounded-none text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1
                                 ${tab === t
                                     ? 'bg-white/10 text-white border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)]'
                                     : 'text-white/40 border-transparent hover:text-white/80 hover:bg-white/5'

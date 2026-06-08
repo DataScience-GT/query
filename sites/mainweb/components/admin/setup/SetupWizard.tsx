@@ -15,14 +15,14 @@ export function SetupWizard({ activeStep, setActiveStep, steps }: StepProps) {
                 <React.Fragment key={s.num}>
                     <button
                         onClick={() => setActiveStep(s.num)}
-                        className={`flex items-center gap-3 px-5 py-3 rounded-xl border transition-all text-xs font-bold uppercase tracking-widest font-mono shrink-0 ${activeStep === s.num
-                            ? 'bg-[#00A8A8]/10 border-[#00A8A8]/40 text-white'
+                        className={`flex items-center gap-3 px-5 py-3 rounded-none border transition-all text-xs font-bold uppercase tracking-widest font-mono shrink-0 ${activeStep === s.num
+                            ? 'bg-[#EAFF2B]/10 border-[#EAFF2B]/40 text-white'
                             : s.done
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                ? 'bg-[#EAFF2B]/10 border-[#EAFF2B]/30 text-emerald-400'
                                 : 'bg-white/[0.02] border-white/5 text-gray-600'
                             }`}
                     >
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${s.done ? 'bg-emerald-500/20 text-emerald-400' : activeStep === s.num ? 'bg-[#00A8A8]/20 text-[#00A8A8]' : 'bg-white/5 text-gray-600'
+                        <span className={`w-6 h-6 rounded-sm flex items-center justify-center text-[10px] font-black shrink-0 ${s.done ? 'bg-[#EAFF2B]/20 text-emerald-400' : activeStep === s.num ? 'bg-[#EAFF2B]/20 text-[#EAFF2B]' : 'bg-white/5 text-gray-600'
                             }`}>
                             {s.done ? '\u2713' : s.num}
                         </span>

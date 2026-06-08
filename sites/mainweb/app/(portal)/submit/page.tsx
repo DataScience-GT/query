@@ -113,9 +113,9 @@ function SubmitPortalContent() {
         <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden">
             {/* Ambient Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-600/5 blur-[150px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/5 blur-[150px] animate-pulse delay-1000" />
-                <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-indigo-600/5 blur-[120px] animate-pulse delay-2000" />
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-sm bg-cyan-600/5 blur-[150px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-sm bg-purple-600/5 blur-[150px] animate-pulse delay-1000" />
+                <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-sm bg-indigo-600/5 blur-[120px] animate-pulse delay-2000" />
             </div>
 
             <main className="relative z-10 max-w-5xl mx-auto px-6 py-24 min-h-screen">
@@ -131,9 +131,9 @@ function SubmitPortalContent() {
                 <div className="w-full space-y-12">
                     {/* Welcome Header */}
                     <div className="space-y-6">
-                        <div className="inline-block px-5 py-2 border border-accent/20 rounded-full bg-accent/5 mb-2">
+                        <div className="inline-block px-5 py-2 border border-accent/20 rounded-sm bg-accent/5 mb-2">
                             <p className="text-[10px] font-mono text-accent uppercase tracking-[0.5em] font-black flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
+                                <span className="w-1.5 h-1.5 bg-accent rounded-sm animate-pulse" />
                                 Project Initialization
                             </p>
                         </div>
@@ -150,7 +150,7 @@ function SubmitPortalContent() {
                         <LiquidGlass className="p-12 text-center border-orange-500/20 transition-all duration-500 hover:border-orange-400/30 hover:bg-orange-500/5">
                             <h3 className="text-2xl font-bold text-white mb-4 animate-in fade-in slide-in-from-bottom-4">No Active Registrations</h3>
                             <p className="text-text-muted font-mono mb-8 max-w-md mx-auto">You must register for a hackathon before you can form a team or submit a project.</p>
-                            <Link href="/hackathons" className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
+                            <Link href="/hackathons" className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-none hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
                                 Browse Hackathons
                             </Link>
                         </LiquidGlass>
@@ -163,7 +163,7 @@ function SubmitPortalContent() {
                                     <div className="space-y-2 mb-6">
                                         <label className="text-[10px] font-mono text-text-muted uppercase tracking-widest font-bold ml-1">Context: Event</label>
                                         <select
-                                            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 transition-colors"
+                                            className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-accent/50 transition-colors"
                                             value={selectedHackathonId}
                                             onChange={(e) => {
                                                 setSelectedHackathonId(e.target.value);
@@ -182,7 +182,7 @@ function SubmitPortalContent() {
                                     {currentReg?.team ? (
                                         <div className="space-y-4">
                                             <h3 className="text-sm font-bold text-accent uppercase tracking-widest border-b border-white/10 pb-2">Active Squad</h3>
-                                            <div className="p-4 bg-accent/5 border border-accent/20 rounded-xl">
+                                            <div className="p-4 bg-accent/5 border border-accent/20 rounded-none">
                                                 <p className="text-white font-black text-xl tracking-tight mb-4">{currentReg.team.name}</p>
 
                                                 <div className="space-y-2">
@@ -198,12 +198,12 @@ function SubmitPortalContent() {
                                                 </div>
 
                                                 {currentReg.team.captainId === session?.user?.id ? (
-                                                    <p className="text-xs text-emerald-500 font-mono mt-4">✓ You are the Captain</p>
+                                                    <p className="text-xs text-[#EAFF2B] font-mono mt-4">✓ You are the Captain</p>
                                                 ) : (
                                                     <button
                                                         onClick={() => leaveTeam.mutate({ hackathonId: selectedHackathonId })}
                                                         disabled={leaveTeam.isPending}
-                                                        className="w-full mt-6 py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-lg hover:bg-red-500/10 transition-colors"
+                                                        className="w-full mt-6 py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors"
                                                     >
                                                         {leaveTeam.isPending ? 'Leaving...' : 'Leave Team'}
                                                     </button>
@@ -221,7 +221,7 @@ function SubmitPortalContent() {
                                                     placeholder="Awesome Team Name"
                                                     value={teamName}
                                                     onChange={e => setTeamName(e.target.value)}
-                                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
                                                 />
                                                 <button
                                                     onClick={() => {
@@ -232,7 +232,7 @@ function SubmitPortalContent() {
                                                         createTeam.mutate({ hackathonId: selectedHackathonId, name: teamName })
                                                     }}
                                                     disabled={createTeam.isPending}
-                                                    className="w-full py-3 bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all font-mono"
+                                                    className="w-full py-3 bg-white/5 border border-white/10 text-white font-bold text-xs uppercase tracking-widest rounded-none hover:bg-white/10 transition-all font-mono"
                                                 >
                                                     {createTeam.isPending ? 'Deploying...' : 'Create Team'}
                                                 </button>
@@ -250,12 +250,12 @@ function SubmitPortalContent() {
                                                     placeholder="Paste Invite ID..."
                                                     value={joinTeamId}
                                                     onChange={e => setJoinTeamId(e.target.value)}
-                                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-none text-white text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
                                                 />
                                                 <button
                                                     onClick={() => joinTeam.mutate({ hackathonId: selectedHackathonId, teamId: joinTeamId })}
                                                     disabled={joinTeam.isPending || joinTeamId.trim().length === 0}
-                                                    className="w-full py-3 bg-white/5 text-gray-400 text-xs uppercase tracking-widest rounded-xl hover:bg-white/10 hover:text-white transition-all font-mono"
+                                                    className="w-full py-3 bg-white/5 text-gray-400 text-xs uppercase tracking-widest rounded-none hover:bg-white/10 hover:text-white transition-all font-mono"
                                                 >
                                                     {joinTeam.isPending ? 'Syncing...' : 'Join Team'}
                                                 </button>
@@ -283,18 +283,18 @@ function SubmitPortalContent() {
                                     </p>
 
                                     {error && (
-                                        <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-xl relative z-10">
+                                        <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-none relative z-10">
                                             <p className="text-red-400 font-mono text-sm">{error}</p>
                                         </div>
                                     )}
 
                                     {successMessage && (
-                                        <div className="p-6 mb-8 bg-emerald-500/10 border border-emerald-500/20 rounded-xl relative z-10 flex items-center justify-between">
+                                        <div className="p-6 mb-8 bg-[#EAFF2B]/10 border border-[#EAFF2B]/20 rounded-none relative z-10 flex items-center justify-between">
                                             <p className="text-emerald-400 font-mono text-sm font-bold flex items-center gap-3">
-                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                <span className="w-2 h-2 rounded-sm bg-[#EAFF2B] animate-pulse" />
                                                 {successMessage}
                                             </p>
-                                            <Link href="/dashboard" className="px-4 py-2 bg-emerald-500/20 text-emerald-400 text-xs rounded hover:bg-emerald-500/30 transition-colors uppercase tracking-widest font-mono">
+                                            <Link href="/dashboard" className="px-4 py-2 bg-[#EAFF2B]/20 text-emerald-400 text-xs rounded hover:bg-[#EAFF2B]/30 transition-colors uppercase tracking-widest font-mono">
                                                 Return
                                             </Link>
                                         </div>
@@ -323,7 +323,7 @@ function SubmitPortalContent() {
                                                     value={projectName}
                                                     onChange={e => setProjectName(e.target.value)}
                                                     placeholder="Project Apollo"
-                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-xl text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-all duration-300 focus:shadow-[0_0_20px_rgba(0,168,168,0.2)] hover:border-white/20 group"
+                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-all duration-300 focus:shadow-[4px_4px_0_0_#EAFF2B] hover:border-white/20 group"
                                                 />
                                             </div>
                                             <div>
@@ -334,15 +334,15 @@ function SubmitPortalContent() {
                                                     onChange={e => setProjectDesc(e.target.value)}
                                                     placeholder="Explain the problem you solved and how you built it..."
                                                     rows={5}
-                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-xl text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors resize-none"
+                                                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors resize-none"
                                                 />
                                             </div>
                                         </div>
 
                                         {/* Links */}
-                                        <div className="p-6 border border-white/5 rounded-2xl bg-white/[0.02]">
+                                        <div className="p-6 border border-white/5 rounded-none bg-white/[0.02]">
                                             <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-3">
-                                                <span className="w-1.5 h-1.5 bg-text-muted rounded-full"></span>
+                                                <span className="w-1.5 h-1.5 bg-text-muted rounded-sm"></span>
                                                 External Vectors
                                             </h3>
 
@@ -354,7 +354,7 @@ function SubmitPortalContent() {
                                                         value={githubUrl}
                                                         onChange={e => setGithubUrl(e.target.value)}
                                                         placeholder="https://github.com/..."
-                                                        className="w-full px-4 py-3 bg-black/60 border border-white/5 rounded-lg text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
+                                                        className="w-full px-4 py-3 bg-black/60 border border-white/5 rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
                                                     />
                                                 </div>
                                                 <div>
@@ -364,7 +364,7 @@ function SubmitPortalContent() {
                                                         value={videoUrl}
                                                         onChange={e => setVideoUrl(e.target.value)}
                                                         placeholder="https://youtube.com/..."
-                                                        className="w-full px-4 py-3 bg-black/60 border border-white/5 rounded-lg text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
+                                                        className="w-full px-4 py-3 bg-black/60 border border-white/5 rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
                                                     />
                                                 </div>
                                                 <div>
@@ -374,7 +374,7 @@ function SubmitPortalContent() {
                                                         value={demoUrl}
                                                         onChange={e => setDemoUrl(e.target.value)}
                                                         placeholder="https://..."
-                                                        className="w-full px-4 py-3 bg-black/60 border border-white/5 rounded-lg text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
+                                                        className="w-full px-4 py-3 bg-black/60 border border-white/5 rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
                                                     />
                                                 </div>
                                             </div>
@@ -387,7 +387,7 @@ function SubmitPortalContent() {
                                             <button
                                                 type="submit"
                                                 disabled={submitProject.isPending}
-                                                className={`px-10 py-5 font-black text-lg uppercase tracking-[0.2em] transition-all flex items-center gap-3 rounded-2xl shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] hover:scale-[1.02] active:scale-[0.98] ${hasSubmitted
+                                                className={`px-10 py-5 font-black text-lg uppercase tracking-[0.2em] transition-all flex items-center gap-3 rounded-none shadow-[0_0_30px_rgba(0,168,168,0.2)] hover:shadow-[0_0_50px_rgba(0,168,168,0.4)] hover:scale-[1.02] active:scale-[0.98] ${hasSubmitted
                                                     ? 'bg-transparent border-2 border-accent text-accent hover:bg-accent hover:text-black'
                                                     : 'bg-accent text-black hover:bg-white border-2 border-transparent'
                                                     }`}

@@ -39,30 +39,30 @@ export default function AttendeesPage() {
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Animated Background Gradient */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-r from-accent/5 via-cyan-900/10 to-purple-900/10 blur-[300px] rounded-full" />
-          <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-r from-emerald-900/10 via-cyan-900/8 to-indigo-900/10 blur-[250px] rounded-full" />
+          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-r from-accent/5 via-cyan-900/10 to-purple-900/10 blur-[300px] rounded-sm" />
+          <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-r from-emerald-900/10 via-cyan-900/8 to-indigo-900/10 blur-[250px] rounded-sm" />
         </div>
 
         {/* Page Header */}
-        <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-2xl overflow-hidden group hover:border-accent/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+        <div className="relative mb-6 p-6 border border-white/5 bg-gradient-to-br from-accent/8 via-cyan-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-[#EAFF2B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
-          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-emerald-500 transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-white tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-cyan-400 group-hover:to-[#EAFF2B] transition-all duration-500">
             Attendees <span className="text-accent italic font-bold">Registry</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
             View and manage attendee registrations for events.
           </p>
           {/* Decorative Corner Accent */}
-          <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-accent/5 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-accent/5 rounded-sm blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
 
         <div className="space-y-6">
           {/* Hackathon Selector - Enhanced */}
           <div className="flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-3 bg-black/30 border border-white/5 rounded-xl p-1.5 group-hover:border-white/20 transition-colors">
+            <div className="flex items-center gap-3 bg-black/30 border border-white/5 rounded-none p-1.5 group-hover:border-white/20 transition-colors">
               <select
                 value={selectedHackathon || ''}
                 onChange={(e) => setSelectedHackathon(e.target.value || null)}
@@ -79,7 +79,7 @@ export default function AttendeesPage() {
             {selectedHackathon && (
               <button
                 onClick={handleDownloadCSV}
-                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/15 to-emerald-500/15 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-xl hover:bg-accent/25 transition-all active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.15)] hover:shadow-[0_0_25px_rgba(0,168,168,0.25)]"
+                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/15 to-[#EAFF2B]/15 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/25 transition-all active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.15)] hover:shadow-[0_0_25px_rgba(0,168,168,0.25)]"
               >
                 <Download className="h-4 w-4" />
                 Export CSV
@@ -88,12 +88,12 @@ export default function AttendeesPage() {
           </div>
 
           {/* Filters - Enhanced */}
-          <div className="flex items-center bg-black/30 border border-white/5 rounded-xl p-2.5 gap-2 overflow-x-auto animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center bg-black/30 border border-white/5 rounded-none p-2.5 gap-2 overflow-x-auto animate-in fade-in slide-in-from-bottom-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 filter === 'all'
-                  ? 'bg-gradient-to-r from-accent to-emerald-600 text-white shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 hover:scale-105 active:scale-95'
+                  ? 'bg-gradient-to-r from-accent to-[#EAFF2B] text-white shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 hover:scale-105 active:scale-95'
                   : 'text-gray-400 hover:text-white hover:bg-white/5 hover:scale-105 active:scale-95'
               }`}
             >
@@ -101,17 +101,17 @@ export default function AttendeesPage() {
             </button>
             <button
               onClick={() => setFilter('registered')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 filter === 'registered'
-                  ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-105 active:scale-95'
-                  : 'text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:scale-105 active:scale-95'
+                  ? 'bg-gradient-to-r from-[#EAFF2B] to-green-600 text-white shadow-[4px_4px_0_0_#EAFF2B] hover:shadow-xl hover:shadow-[#EAFF2B]/30 hover:scale-105 active:scale-95'
+                  : 'text-gray-400 hover:text-emerald-400 hover:bg-[#EAFF2B]/10 hover:border-[#EAFF2B]/30 hover:scale-105 active:scale-95'
               }`}
             >
               Registered
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 filter === 'pending'
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-105 active:scale-95'
                   : 'text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30 hover:scale-105 active:scale-95'
@@ -121,7 +121,7 @@ export default function AttendeesPage() {
             </button>
             <button
               onClick={() => setFilter('cancelled')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 filter === 'cancelled'
                   ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 hover:scale-105 active:scale-95'
                   : 'text-gray-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 hover:scale-105 active:scale-95'
@@ -130,7 +130,7 @@ export default function AttendeesPage() {
               Cancelled
             </button>
             {/* Status indicator */}
-            <div className="ml-2 w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_#00A8A8]" />
+            <div className="ml-2 w-2 h-2 rounded-sm bg-accent animate-pulse shadow-[0_0_8px_#EAFF2B]" />
           </div>
 
           {/* Attendees List - Enhanced */}
@@ -142,7 +142,7 @@ export default function AttendeesPage() {
               </div>
             ) : !attendees || attendees.length === 0 ? (
               <LiquidGlass className="p-16 text-center">
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+                <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
                   <svg className="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
@@ -151,9 +151,9 @@ export default function AttendeesPage() {
                 <p className="text-text-muted text-sm">Select an event to view registrations.</p>
               </LiquidGlass>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/20 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-emerald-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="overflow-x-auto rounded-none border border-white/5 bg-black/20 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-[#EAFF2B]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <table className="w-full text-left">
                   <thead className="bg-black/30 border-b border-white/5">
                     <tr>
@@ -181,7 +181,7 @@ export default function AttendeesPage() {
                               <img
                                 src={attendee.user?.image || '/avatars/default.png'}
                                 alt={attendee.user?.name || 'Attendee'}
-                                className="h-10 w-10 rounded-full border border-white/10 object-cover"
+                                className="h-10 w-10 rounded-sm border border-white/10 object-cover"
                               />
                               <div>
                                 <p className="font-medium text-white">{attendee.user?.name || `${attendee.firstName ?? ''} ${attendee.lastName ?? ''}`.trim() || 'Unknown'}</p>
@@ -193,9 +193,9 @@ export default function AttendeesPage() {
                           <td className="px-6 py-4 text-gray-400">{attendee.team?.name || 'Individual'}</td>
                           <td className="px-6 py-4">
                             <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              className={`px-3 py-1 rounded-sm text-xs font-semibold ${
                                 attendee.registrationStatus === 'approved' || attendee.registrationStatus === 'checked_in'
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  ? 'bg-[#EAFF2B]/10 text-emerald-400 border border-[#EAFF2B]/20'
                                   : attendee.registrationStatus === 'pending'
                                   ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                                   : attendee.registrationStatus === 'rejected'
