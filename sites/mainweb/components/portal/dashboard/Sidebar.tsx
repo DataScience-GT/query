@@ -46,7 +46,7 @@ export function Sidebar({
             {/* User Profile Header */}
             <div className="flex items-center gap-5 border-b border-white/5 pb-8 mb-8">
                 <div className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[#EAFF2B] to-blue-600 rounded-sm opacity-50 blur group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00E5FF] to-blue-600 rounded-sm opacity-50 blur group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
                     <Image
                         src={user.image || '/avatar-placeholder.png'}
                         alt="Avatar"
@@ -82,7 +82,7 @@ export function Sidebar({
                     >
                         <span>{tab.label}</span>
                         <span
-                            className={`h-2 w-2 rounded-sm transition-all ${activeTab === tab.key ? 'bg-[#EAFF2B]' : 'bg-transparent group-hover:bg-white/20'
+                            className={`h-2 w-2 rounded-sm transition-all ${activeTab === tab.key ? 'bg-[#00E5FF]' : 'bg-transparent group-hover:bg-white/20'
                                 }`}
                         />
                     </button>

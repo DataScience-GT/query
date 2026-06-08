@@ -31,11 +31,11 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
-          <p className="text-[10px] font-mono text-[#EAFF2B]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+          <p className="text-[10px] font-mono text-[#00E5FF]/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
           <h1 className="text-4xl font-black text-white tracking-tight uppercase italic flex items-center gap-3">
-            <Settings className="w-8 h-8 text-[#EAFF2B]" />
+            <Settings className="w-8 h-8 text-[#00E5FF]" />
             System Settings
           </h1>
           <p className="text-gray-400 mt-2 font-mono text-sm tracking-wide">
@@ -46,7 +46,7 @@ export default function AdminSettingsPage() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="group relative flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#EAFF2B] to-[#EAFF2B] rounded-none text-white font-bold tracking-wide transition-all hover:scale-105 active:scale-95 disabled:opacity-50 overflow-hidden shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)]"
+          className="group relative flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00E5FF] to-[#00E5FF] rounded-none text-white font-bold tracking-wide transition-all hover:scale-105 active:scale-95 disabled:opacity-50 overflow-hidden shadow-[0_0_20px_rgba(0,168,168,0.3)] hover:shadow-[0_0_30px_rgba(0,168,168,0.5)]"
         >
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
           {isSaving ? (
@@ -76,12 +76,12 @@ export default function AdminSettingsPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`w-full flex flex-col items-start p-4 rounded-none transition-all duration-300 ${
                 activeTab === tab.id
-                  ? 'bg-[#EAFF2B]/10 border border-[#EAFF2B]/30 shadow-[0_0_15px_rgba(0,168,168,0.15)]'
+                  ? 'bg-[#00E5FF]/10 border border-[#00E5FF]/30 shadow-[0_0_15px_rgba(0,168,168,0.15)]'
                   : 'bg-white/5 border border-transparent hover:bg-white/10'
               }`}
             >
               <div className="flex items-center gap-3 w-full">
-                <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-[#EAFF2B]' : 'text-gray-400'}`} />
+                <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-[#00E5FF]' : 'text-gray-400'}`} />
                 <span className={`font-bold ${activeTab === tab.id ? 'text-white' : 'text-gray-300'}`}>
                   {tab.label}
                 </span>
@@ -95,12 +95,12 @@ export default function AdminSettingsPage() {
         <div className="lg:col-span-3">
           <div className="bg-[#000000] border border-white/5 rounded-none p-6 md:p-8 relative overflow-hidden shadow-2xl">
             {/* Decorative background glow */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#EAFF2B]/5 rounded-sm blur-[100px] pointer-events-none" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#00E5FF]/5 rounded-sm blur-[100px] pointer-events-none" />
 
             {activeTab === 'general' && (
               <div className="space-y-8 relative z-10 animate-in fade-in duration-300">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2 border-b border-white/5 pb-4">
-                  <Server className="w-5 h-5 text-[#EAFF2B]" />
+                  <Server className="w-5 h-5 text-[#00E5FF]" />
                   System Defaults
                 </h3>
                 
@@ -111,7 +111,7 @@ export default function AdminSettingsPage() {
                       type="text"
                       value={settings.systemName}
                       onChange={(e) => setSettings({ ...settings, systemName: e.target.value })}
-                      className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-[#EAFF2B] focus:ring-1 focus:ring-[#EAFF2B] transition-all"
+                      className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] focus:ring-1 focus:ring-[#00E5FF] transition-all"
                     />
                   </div>
                   
@@ -121,7 +121,7 @@ export default function AdminSettingsPage() {
                       type="number"
                       value={settings.maxEventCapacity}
                       onChange={(e) => setSettings({ ...settings, maxEventCapacity: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-[#EAFF2B] focus:ring-1 focus:ring-[#EAFF2B] transition-all"
+                      className="w-full bg-black/50 border border-white/10 rounded-none px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] focus:ring-1 focus:ring-[#00E5FF] transition-all"
                     />
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function AdminSettingsPage() {
                         checked={settings.maintenanceMode}
                         onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
                       />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-5 after:w-5 after:transition-all peer-checked:bg-[#EAFF2B]"></div>
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00E5FF]"></div>
                     </label>
                   </div>
                 </div>
@@ -149,14 +149,14 @@ export default function AdminSettingsPage() {
             {activeTab === 'security' && (
               <div className="space-y-8 relative z-10 animate-in fade-in duration-300">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2 border-b border-white/5 pb-4">
-                  <Key className="w-5 h-5 text-[#EAFF2B]" />
+                  <Key className="w-5 h-5 text-[#00E5FF]" />
                   Security Policies
                 </h3>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-none bg-black/30 border border-white/5 transition-colors hover:border-[#EAFF2B]/30">
+                  <div className="flex items-center justify-between p-4 rounded-none bg-black/30 border border-white/5 transition-colors hover:border-[#00E5FF]/30">
                     <div className="flex gap-4 items-start">
-                      <div className="mt-1 p-2 bg-[#EAFF2B]/10 rounded-none text-[#EAFF2B]">
+                      <div className="mt-1 p-2 bg-[#00E5FF]/10 rounded-none text-[#00E5FF]">
                         <Users className="w-5 h-5" />
                       </div>
                       <div>
@@ -171,13 +171,13 @@ export default function AdminSettingsPage() {
                         checked={settings.requireEmailVerification}
                         onChange={(e) => setSettings({ ...settings, requireEmailVerification: e.target.checked })}
                       />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-5 after:w-5 after:transition-all peer-checked:bg-[#EAFF2B]"></div>
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00E5FF]"></div>
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 rounded-none bg-black/30 border border-white/5 transition-colors hover:border-[#EAFF2B]/30">
+                  <div className="flex items-center justify-between p-4 rounded-none bg-black/30 border border-white/5 transition-colors hover:border-[#00E5FF]/30">
                     <div className="flex gap-4 items-start">
-                      <div className="mt-1 p-2 bg-[#EAFF2B]/10 rounded-none text-[#EAFF2B]">
+                      <div className="mt-1 p-2 bg-[#00E5FF]/10 rounded-none text-[#00E5FF]">
                         <Globe className="w-5 h-5" />
                       </div>
                       <div>
@@ -192,7 +192,7 @@ export default function AdminSettingsPage() {
                         checked={settings.allowPublicRegistration}
                         onChange={(e) => setSettings({ ...settings, allowPublicRegistration: e.target.checked })}
                       />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-5 after:w-5 after:transition-all peer-checked:bg-[#EAFF2B]"></div>
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00E5FF]"></div>
                     </label>
                   </div>
                 </div>

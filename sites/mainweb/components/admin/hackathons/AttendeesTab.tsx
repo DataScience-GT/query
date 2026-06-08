@@ -209,7 +209,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                         updateHackathon.mutate({ id: hackathonId, registrationDeadline: new Date(e.target.value) });
                                     }
                                 }}
-                                className="px-3 py-2 bg-black/40 border border-white/10 rounded-none text-white text-xs font-mono focus:border-[#EAFF2B]/50 focus:outline-none transition-colors [color-scheme:dark]"
+                                className="px-3 py-2 bg-black/40 border border-white/10 rounded-none text-white text-xs font-mono focus:border-[#00E5FF]/50 focus:outline-none transition-colors [color-scheme:dark]"
                             />
                         </div>
                     </div>
@@ -284,7 +284,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                     placeholder="Search by name, email, school, major, or response..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-black/30 border border-white/10 rounded-none px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#EAFF2B]/50 transition-colors"
+                    className="w-full bg-black/30 border border-white/10 rounded-none px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00E5FF]/50 transition-colors"
                 />
             </div>
 
@@ -298,7 +298,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                     type="checkbox"
                                     checked={selectedIds.size === filteredAttendees.length && filteredAttendees.length > 0}
                                     onChange={selectAllVisible}
-                                    className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#EAFF2B] cursor-pointer"
+                                    className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#00E5FF] cursor-pointer"
                                 />
                             </th>
                             <th className="px-4 py-4 font-semibold w-8"></th>
@@ -323,7 +323,7 @@ export function AttendeesTab({ hackathonId, hackathonName }: { hackathonId: stri
                                                 type="checkbox"
                                                 checked={selectedIds.has(attendee.id)}
                                                 onChange={() => toggleSelect(attendee.id)}
-                                                className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#EAFF2B] cursor-pointer"
+                                                className="w-4 h-4 rounded border-white/20 bg-transparent accent-[#00E5FF] cursor-pointer"
                                             />
                                         </td>
                                         <td className="px-4 py-5" onClick={() => setExpandedRow(expandedRow === attendee.id ? null : attendee.id)}>

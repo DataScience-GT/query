@@ -22,12 +22,12 @@ export function ScanResultModal({
                 {/* Status Icon */}
                 <div
                     className={`inline-block p-6 rounded-sm ${success
-                            ? 'bg-[#EAFF2B]/10 border border-[#EAFF2B]/20'
+                            ? 'bg-[#00E5FF]/10 border border-[#00E5FF]/20'
                             : 'bg-red-500/10 border border-red-500/20'
                         }`}
                 >
                     {success ? (
-                        <svg className="w-12 h-12 text-[#EAFF2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-12 h-12 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     ) : (
@@ -45,7 +45,7 @@ export function ScanResultModal({
                     >
                         {success ? 'Check-In Success' : 'Check-In Failed'}
                     </h3>
-                    <p className="text-[10px] font-mono text-[#EAFF2B] uppercase tracking-[0.3em]">
+                    <p className="text-[10px] font-mono text-[#00E5FF] uppercase tracking-[0.3em]">
                         {success ? 'Identity Verified' : 'Access Denied'}
                     </p>
                 </div>
@@ -78,7 +78,7 @@ export function ScanResultModal({
                 <button
                     onClick={onClose}
                     className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-all rounded-none ${success
-                            ? 'bg-[#EAFF2B] text-black hover:bg-[#EAFF2B]/80 shadow-[0_0_20px_rgba(0,168,168,0.3)]'
+                            ? 'bg-[#00E5FF] text-black hover:bg-[#00E5FF]/80 shadow-[0_0_20px_rgba(0,168,168,0.3)]'
                             : 'bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20'
                         }`}
                 >

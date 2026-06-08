@@ -19,10 +19,10 @@ interface FeatureCardProps {
 
 const variantClasses = {
     admin: {
-        border: 'border-white/5 hover:border-[#EAFF2B]/30',
-        accessColor: 'text-[#EAFF2B]',
-        titleHover: 'group-hover:text-[#EAFF2B]',
-        linkColor: 'text-[#EAFF2B]',
+        border: 'border-white/5 hover:border-[#00E5FF]/30',
+        accessColor: 'text-[#00E5FF]',
+        titleHover: 'group-hover:text-[#00E5FF]',
+        linkColor: 'text-[#00E5FF]',
         hoverShadow: '',
         gradient: '',
         glow: '',
