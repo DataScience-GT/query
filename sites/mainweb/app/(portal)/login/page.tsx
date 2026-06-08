@@ -55,12 +55,12 @@ export default function Home() {
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-[#000000] via-[#000000] to-[#0a0a0a]" />;
+  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)]" />;
 
   const isRedirecting = !!session;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#000000] via-[#000000] to-[#0a0a0a] text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-hidden flex flex-col">
+    <div className="relative min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)] text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-hidden flex flex-col">
 
       {/* Animated Background */}
       <div className="absolute inset-0 z-0 overflow-hidden">

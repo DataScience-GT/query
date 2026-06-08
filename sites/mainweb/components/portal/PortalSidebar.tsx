@@ -2,35 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { LayoutDashboard, Code, ClipboardList, Users, FileText, BarChart3, Settings, LogOut, Menu, QrCode, Zap, X, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Code, ClipboardList, Users, BarChart3, Settings, LogOut, Menu, QrCode, Zap, X, Sun, Moon, Home, ShieldAlert } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { trpc } from '@/lib/trpc';
+import logo from '../../assets/images/dsgt/apple-touch-icon.png';
 
-const clubRoutes = [
-  { name: 'Events', href: '/admin', icon: LayoutDashboard },
-  { name: 'Attendees', href: '/admin/attendees', icon: Users },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
-];
+interface PortalSidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
 
-const hackathonRoutes = [
-  { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
-  { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
-  { name: 'Projects', href: '/admin/projects', icon: FileText },
-];
-
-export default function PortalSidebar() {
-  const [isOpen, setIsOpen] = useState(true);
+export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
+  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
+  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
+
   useEffect(() => {
     setMounted(true);
   }, []);
+  
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
     if (isMobileOpen) document.body.style.overflow = 'hidden';
@@ -40,18 +39,37 @@ export default function PortalSidebar() {
 
   if (pathname === '/login' || pathname === '/verify') return null;
 
+  const mainRoutes = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home, show: true },
+    { name: 'Hackathons', href: '/hackathons', icon: Zap, show: true },
+    { name: 'Club Portal', href: '/club', icon: QrCode, show: memberStatus?.isMember },
+    { name: 'Judge Portal', href: '/judge', icon: ClipboardList, show: judgeStatus?.isJudge },
+  ].filter(r => r.show);
+
+  const adminClubRoutes = [
+    { name: 'Club Hub', href: '/admin', icon: LayoutDashboard },
+    { name: 'Attendees', href: '/admin/attendees', icon: Users },
+    { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
+  ];
+
+  const adminHackathonRoutes = [
+    { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
+    { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
+  ];
+
   return (
     <>
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg-primary)]/95 backdrop-blur-xl border-b border-[var(--border-subtle)] z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-none bg-gradient-to-br from-accent to-accent text-[var(--text-primary)] shadow-[4px_4px_0_0_var(--accent)]">
-            <Code className="h-4 w-4" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-none bg-gradient-to-br from-[#00A8A8]/20 to-transparent">
+            <Image src={logo} alt="DSGT Logo" className="h-6 w-auto" width={24} height={24} />
           </div>
           <span className="text-lg font-black text-[var(--text-primary)] tracking-tight">DSGT Portal</span>
         </div>
         <button onClick={() => setIsMobileOpen(true)} className="p-2 hover:bg-white/5 rounded-none transition-colors">
-          <Menu className="h-6 w-6 text-gray-300" />
+          <Menu className="h-6 w-6 text-[var(--text-muted)]" />
         </button>
       </div>
 
@@ -66,12 +84,12 @@ export default function PortalSidebar() {
             
             <div className="w-full text-center">
               <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
-                <QrCode className="w-6 h-6 opacity-50" />
-                Club Events
+                <Code className="w-6 h-6 opacity-50" />
+                Main Navigation
               </h3>
               <div className="flex flex-col gap-3">
-                {clubRoutes.map(route => {
-                  const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
+                {mainRoutes.map(route => {
+                  const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(route.href + '/'));
                   return (
                     <Link
                       key={route.href}
@@ -89,39 +107,68 @@ export default function PortalSidebar() {
               </div>
             </div>
 
-            <div className="w-full h-px bg-white/10" />
+            {adminStatus?.isAdmin && (
+              <>
+                <div className="w-full h-px bg-white/10" />
+                <div className="w-full text-center">
+                  <h3 className="text-xs uppercase tracking-widest text-red-500 font-bold mb-6 flex flex-col items-center gap-2">
+                    <ShieldAlert className="w-6 h-6 opacity-50" />
+                    Admin: Club Events
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {adminClubRoutes.map(route => {
+                      const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
+                      return (
+                        <Link
+                          key={route.href}
+                          href={route.href}
+                          onClick={() => setIsMobileOpen(false)}
+                          className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
+                            isActive ? 'bg-red-500/10 text-red-500 border border-red-500/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                          }`}
+                        >
+                          <route.icon className="w-5 h-5" />
+                          <span className="text-lg">{route.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
 
-            <div className="w-full text-center">
-              <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
-                <Zap className="w-6 h-6 opacity-50" />
-                Hackathon Hub
-              </h3>
-              <div className="flex flex-col gap-3">
-                {hackathonRoutes.map(route => {
-                  const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
-                  return (
-                    <Link
-                      key={route.href}
-                      href={route.href}
-                      onClick={() => setIsMobileOpen(false)}
-                      className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
-                        isActive ? 'bg-accent/10 text-accent border border-accent/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
-                      }`}
-                    >
-                      <route.icon className="w-5 h-5" />
-                      <span className="text-lg">{route.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
+                <div className="w-full h-px bg-white/10 mt-6" />
+                <div className="w-full text-center mt-10">
+                  <h3 className="text-xs uppercase tracking-widest text-purple-500 font-bold mb-6 flex flex-col items-center gap-2">
+                    <Zap className="w-6 h-6 opacity-50" />
+                    Admin: Hackathon Hub
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {adminHackathonRoutes.map(route => {
+                      const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
+                      return (
+                        <Link
+                          key={route.href}
+                          href={route.href}
+                          onClick={() => setIsMobileOpen(false)}
+                          className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
+                            isActive ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                          }`}
+                        >
+                          <route.icon className="w-5 h-5" />
+                          <span className="text-lg">{route.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Mobile User Section */}
             <div className="mt-auto w-full pt-8 flex flex-col items-center gap-4">
                <div className="flex items-center gap-3 bg-white/5 px-6 py-4 rounded-sm border border-[var(--border-subtle)]">
                   <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover" />
                   <div className="text-left max-w-[150px]">
-                     <p className="text-sm font-bold text-[var(--text-primary)] truncate">{session?.user?.name || 'Admin User'}</p>
+                     <p className="text-sm font-bold text-[var(--text-primary)] truncate">{session?.user?.name || 'Guest'}</p>
                   </div>
                </div>
                <button onClick={() => signOut({ callbackUrl: '/login' })} className="flex items-center gap-2 text-red-400 hover:text-red-300 font-bold uppercase tracking-wider text-sm py-2">
@@ -150,81 +197,126 @@ export default function PortalSidebar() {
         <div className="flex h-16 items-center justify-between border-b border-[var(--border-subtle)] px-4">
           {isOpen && (
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-none bg-gradient-to-br from-accent to-accent text-[var(--text-primary)] shadow-[4px_4px_0_0_var(--accent)]">
-                <Code className="h-6 w-6" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-none bg-gradient-to-br from-[#00A8A8]/10 to-transparent">
+                <Image src={logo} alt="DSGT Logo" className="h-6 w-auto transition-transform duration-500 hover:rotate-180" width={24} height={24} />
               </div>
               <span className="text-lg font-black text-[var(--text-primary)] tracking-tight">DSGT Portal</span>
             </div>
           )}
           {!isOpen && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-none bg-gradient-to-br from-accent to-accent text-[var(--text-primary)]">
-              <Code className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-none bg-gradient-to-br from-[#00A8A8]/10 to-transparent mx-auto">
+              <Image src={logo} alt="DSGT Logo" className="h-5 w-auto transition-transform duration-500 hover:rotate-180" width={20} height={20} />
             </div>
           )}
-          <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-white/5 rounded-none transition-colors">
-            <Menu className="h-5 w-5 text-[var(--text-muted)]" />
-          </button>
+          {isOpen && (
+            <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/5 rounded-none transition-colors">
+              <Menu className="h-5 w-5 text-[var(--text-muted)] hover:text-[var(--text-primary)]" />
+            </button>
+          )}
         </div>
+        
+        {!isOpen && (
+          <div className="flex justify-center pt-2">
+            <button onClick={() => setIsOpen(true)} className="p-2 hover:bg-white/5 rounded-none transition-colors">
+              <Menu className="h-5 w-5 text-[var(--text-muted)] hover:text-[var(--text-primary)]" />
+            </button>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {/* Club Events Section */}
+          {/* Main Navigation Section */}
           <div className="mb-1">
             {isOpen && (
               <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                <QrCode className="h-3 w-3 text-accent/60 flex-shrink-0" />
-                <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">Club Events</span>
+                <Code className="h-3 w-3 text-accent/60 flex-shrink-0" />
+                <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">Portal</span>
               </div>
             )}
             {!isOpen && <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />}
             <div className="space-y-1">
-              {clubRoutes.map((route) => {
-                const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
+              {mainRoutes.map((route) => {
+                const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(route.href + '/'));
                 return (
                   <Link
                     key={route.href}
                     href={route.href}
+                    title={!isOpen ? route.name : undefined}
                     className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
                       isActive ? 'bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-accent' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
-                    {isOpen && <span className="text-sm">{route.name}</span>}
+                    {isOpen && <span className="text-sm truncate">{route.name}</span>}
                   </Link>
                 );
               })}
             </div>
           </div>
 
-          <div className={`my-3 ${isOpen ? 'border-t border-[var(--border-subtle)]' : 'w-8 h-px bg-white/10 mx-auto'}`} />
+          {adminStatus?.isAdmin && (
+            <>
+              <div className={`my-3 ${isOpen ? 'border-t border-[var(--border-subtle)]' : 'w-8 h-px bg-white/10 mx-auto'}`} />
 
-          {/* Hackathon Hub Section */}
-          <div>
-            {isOpen && (
-              <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                <Zap className="h-3 w-3 text-accent/60 flex-shrink-0" />
-                <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">Hackathon Hub</span>
+              {/* Admin Club Section */}
+              <div className="mb-4">
+                {isOpen && (
+                  <div className="flex items-center gap-2 px-3 pb-2 mb-1">
+                    <ShieldAlert className="h-3 w-3 text-red-500/60 flex-shrink-0" />
+                    <span className="text-[10px] font-mono text-red-500/60 uppercase tracking-[0.2em]">Admin: Club</span>
+                  </div>
+                )}
+                {!isOpen && <div className="w-8 h-px bg-red-500/20 mx-auto mb-3" />}
+                <div className="space-y-1">
+                  {adminClubRoutes.map((route) => {
+                    const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
+                    return (
+                      <Link
+                        key={route.href}
+                        href={route.href}
+                        title={!isOpen ? route.name : undefined}
+                        className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
+                          isActive ? 'bg-gradient-to-r from-red-500/10 to-transparent text-red-500 font-medium border-l-2 border-red-500' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-red-500' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
+                        {isOpen && <span className="text-sm truncate">{route.name}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            )}
-            {!isOpen && <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />}
-            <div className="space-y-1">
-              {hackathonRoutes.map((route) => {
-                const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
-                return (
-                  <Link
-                    key={route.href}
-                    href={route.href}
-                    className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
-                      isActive ? 'bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-accent' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
-                    {isOpen && <span className="text-sm">{route.name}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+
+              {/* Admin Hackathon Section */}
+              <div>
+                {isOpen && (
+                  <div className="flex items-center gap-2 px-3 pb-2 mb-1">
+                    <Zap className="h-3 w-3 text-purple-500/60 flex-shrink-0" />
+                    <span className="text-[10px] font-mono text-purple-500/60 uppercase tracking-[0.2em]">Admin: Hack</span>
+                  </div>
+                )}
+                {!isOpen && <div className="w-8 h-px bg-purple-500/20 mx-auto mb-3" />}
+                <div className="space-y-1">
+                  {adminHackathonRoutes.map((route) => {
+                    const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
+                    return (
+                      <Link
+                        key={route.href}
+                        href={route.href}
+                        title={!isOpen ? route.name : undefined}
+                        className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
+                          isActive ? 'bg-gradient-to-r from-purple-500/10 to-transparent text-purple-500 font-medium border-l-2 border-purple-500' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-purple-500' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
+                        {isOpen && <span className="text-sm truncate">{route.name}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </nav>
 
         {/* User section */}
@@ -234,13 +326,13 @@ export default function PortalSidebar() {
               <>
                 <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover" />
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-medium text-[var(--text-primary)] truncate">{session?.user?.name || 'Admin User'}</p>
-                  <p className="text-xs text-[var(--text-subtle)] truncate">{session?.user?.email || 'Admin'}</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)] truncate">{session?.user?.name || 'Guest'}</p>
+                  <p className="text-xs text-[var(--text-subtle)] truncate">{session?.user?.email || 'User'}</p>
                 </div>
               </>
             )}
             {!isOpen && (
-              <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-8 w-8 rounded-sm border border-[var(--border-subtle)] object-cover" />
+              <img src={session?.user?.image || '/avatars/default.png'} alt="" className="h-8 w-8 rounded-sm border border-[var(--border-subtle)] object-cover mx-auto" />
             )}
           </div>
           {isOpen && (

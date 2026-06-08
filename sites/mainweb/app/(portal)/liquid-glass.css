@@ -106,7 +106,7 @@
 }
 
 /* Light theme overrides */
-[data-theme="light"] {
+.light {
   --bg-primary: #ffffff;
   --bg-secondary: #f4f4f4;
   --bg-tertiary: #eaeaea;
