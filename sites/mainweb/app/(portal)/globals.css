@@ -44,7 +44,7 @@ html {
 
 /* Focus visible for accessibility */
 *:focus-visible {
-  outline: 2px solid #00A8A8;
+  outline: 2px solid #059669;
   outline-offset: 2px;
 }
 
@@ -138,7 +138,7 @@ p {
 /* ===== LINK STYLING ===== */
 
 a {
-  color: #00A8A8;
+  color: #059669;
   text-decoration: none;
   transition: color 0.2s ease;
 }

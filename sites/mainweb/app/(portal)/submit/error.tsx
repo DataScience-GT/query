@@ -26,7 +26,7 @@ export default function SubmitError({
                         </svg>
                     </div>
 
-                    <h2 className="text-3xl font-black text-white uppercase tracking-tight mb-4">
+                    <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-4">
                         Deployment Failure
                     </h2>
 
@@ -48,7 +48,7 @@ export default function SubmitError({
                         </button>
                         <Link
                             href="/dashboard"
-                            className="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-sm rounded-none hover:bg-white/10 transition-colors"
+                            className="px-6 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-sm rounded-none hover:bg-white/10 transition-colors"
                         >
                             Abort Deployment
                         </Link>

@@ -19,19 +19,19 @@ interface FeatureCardProps {
 
 const variantClasses = {
     admin: {
-        border: 'border-white/5 hover:border-[#00E5FF]/30',
-        accessColor: 'text-[#00E5FF]',
-        titleHover: 'group-hover:text-[#00E5FF]',
-        linkColor: 'text-[#00E5FF]',
+        border: 'border-[var(--border-subtle)] hover:border-accent/30',
+        accessColor: 'text-accent',
+        titleHover: 'group-hover:text-accent',
+        linkColor: 'text-accent',
         hoverShadow: '',
         gradient: '',
         glow: '',
     },
     member: {
-        border: 'border-white/5 hover:border-green-500/50',
+        border: 'border-[var(--border-subtle)] hover:border-green-500/50',
         accessColor: 'text-green-500',
         titleHover: 'group-hover:text-green-400',
-        linkColor: 'text-white',
+        linkColor: 'text-[var(--text-primary)]',
         hoverShadow: 'group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)]',
         gradient: 'from-green-900/10 via-transparent to-transparent',
         glow: 'bg-green-500/10 group-hover:bg-green-500/20',
@@ -46,10 +46,10 @@ const variantClasses = {
         glow: '',
     },
     default: {
-        border: 'border-white/5 hover:border-white/10',
-        accessColor: 'text-gray-500',
-        titleHover: 'group-hover:text-white',
-        linkColor: 'text-gray-400',
+        border: 'border-[var(--border-subtle)] hover:border-[var(--border-subtle)]',
+        accessColor: 'text-[var(--text-subtle)]',
+        titleHover: 'group-hover:text-[var(--text-primary)]',
+        linkColor: 'text-[var(--text-muted)]',
         hoverShadow: '',
         gradient: '',
         glow: '',
@@ -71,7 +71,7 @@ export function FeatureCard({
 
     const content = (
         <div
-            className={`relative p-8 bg-black/40 border ${classes.border} transition-all duration-300 overflow-hidden ${!disabled ? 'group-hover:translate-y-[-2px]' : ''
+            className={`relative p-8 bg-[var(--bg-primary)]/40 border ${classes.border} transition-all duration-300 overflow-hidden ${!disabled ? 'group-hover:translate-y-[-2px]' : ''
                 } ${disabled ? 'cursor-default' : ''} ${variant === 'member' ? classes.hoverShadow : ''} rounded-none flex flex-col h-full`}
         >
             {/* Background Effects for Member Variant */}
@@ -103,13 +103,13 @@ export function FeatureCard({
                 )}
 
                 {/* Title */}
-                <h3 className={`text-2xl font-bold text-white uppercase tracking-tight mb-2 ${classes.titleHover} transition-colors`}>
+                <h3 className={`text-2xl font-bold text-[var(--text-primary)] uppercase tracking-tight mb-2 ${classes.titleHover} transition-colors`}>
                     {title}
                 </h3>
 
                 {/* Description */}
                 {description && (
-                    <p className={`text-sm ${variant === 'member' ? 'text-gray-500 font-mono group-hover:text-gray-400 transition-colors' : 'text-gray-500 font-mono'} mb-6 flex-1`}>
+                    <p className={`text-sm ${variant === 'member' ? 'text-[var(--text-subtle)] font-mono group-hover:text-[var(--text-muted)] transition-colors' : 'text-[var(--text-subtle)] font-mono'} mb-6 flex-1`}>
                         {variant === 'member' && '> '}{description}
                     </p>
                 )}

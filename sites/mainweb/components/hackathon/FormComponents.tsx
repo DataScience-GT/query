@@ -13,12 +13,12 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export function FormInput({ label, required, error, className = '', ...props }: FormInputProps) {
     return (
         <div>
-            <label className="block text-[11px] uppercase tracking-widest font-semibold text-white/50 mb-2">
+            <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
                 {label}{required && ' *'}
             </label>
             <input
                 {...props}
-                className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-white text-sm font-medium placeholder:text-white/20 focus:border-cyan-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all ${error ? 'border-rose-500/50' : 'border-white/10'} ${className}`}
+                className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all ${error ? 'border-rose-500/50' : 'border-[var(--border-subtle)]'} ${className}`}
             />
             {error && <p className="mt-1.5 text-xs text-rose-400 font-medium">{error}</p>}
         </div>
@@ -34,12 +34,12 @@ interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaEle
 export function FormTextarea({ label, required, error, className = '', ...props }: FormTextareaProps) {
     return (
         <div>
-            <label className="block text-[11px] uppercase tracking-widest font-semibold text-white/50 mb-2">
+            <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
                 {label}{required && ' *'}
             </label>
             <textarea
                 {...props}
-                className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-white text-sm font-medium placeholder:text-white/20 focus:border-cyan-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all resize-none ${error ? 'border-rose-500/50' : 'border-white/10'} ${className}`}
+                className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none ${error ? 'border-rose-500/50' : 'border-[var(--border-subtle)]'} ${className}`}
             />
             {error && <p className="mt-1.5 text-xs text-rose-400 font-medium">{error}</p>}
         </div>
@@ -58,7 +58,7 @@ interface FormChipSelectProps {
 export function FormChipSelect({ label, required, options, value, onChange, allowDeselect = false }: FormChipSelectProps) {
     return (
         <div>
-            <label className="block text-[11px] uppercase tracking-widest font-semibold text-white/50 mb-2">
+            <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
                 {label}{required && ' *'}
             </label>
             <div className="flex flex-wrap gap-2.5">
@@ -68,8 +68,8 @@ export function FormChipSelect({ label, required, options, value, onChange, allo
                         type="button"
                         onClick={() => onChange(allowDeselect && value === opt ? '' : opt)}
                         className={`px-4 py-2.5 rounded-none text-sm font-bold border transition-all ${value === opt
-                            ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                            : 'bg-[#0a0a0a] border-white/10 text-white/60 hover:bg-white/5'
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                            : 'bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5'
                             }`}
                     >
                         {opt}
@@ -95,7 +95,7 @@ export function FormMultiChipSelect({ label, options, selected, onChange, noneOp
     }
     return (
         <div>
-            <label className="block text-[11px] uppercase tracking-widest font-semibold text-white/50 mb-2">{label}</label>
+            <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">{label}</label>
             <div className="flex flex-wrap gap-2.5">
                 {options.map(opt => (
                     <button
@@ -103,8 +103,8 @@ export function FormMultiChipSelect({ label, options, selected, onChange, noneOp
                         type="button"
                         onClick={() => toggle(opt)}
                         className={`px-4 py-2 rounded-none text-sm font-medium border transition-all ${selected.includes(opt)
-                            ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                            : 'bg-[#0a0a0a] border-white/10 text-white/60 hover:bg-white/5'
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                            : 'bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5'
                             }`}
                     >
                         {opt}
@@ -145,7 +145,7 @@ export function SearchableSelect({ label, required, placeholder, value, onChange
 
     return (
         <div className="relative">
-            <label className="block text-[11px] uppercase tracking-widest font-semibold text-white/50 mb-2">
+            <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
                 {label}{required && ' *'}
             </label>
             <input
@@ -155,17 +155,17 @@ export function SearchableSelect({ label, required, placeholder, value, onChange
                 onChange={(e) => { setSearch(e.target.value); if (allowCustom) onChange(e.target.value); }}
                 onBlur={() => setTimeout(() => setOpen(false), 200)}
                 placeholder={placeholder}
-                className="w-full px-4 py-3.5 bg-[#0a0a0a] border border-white/10 rounded-none text-white text-sm font-medium placeholder:text-white/20 focus:border-cyan-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                className="w-full px-4 py-3.5 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all"
             />
             {open && filtered.length > 0 && (
-                <div className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[#0e0e0e] border border-white/10 rounded-none shadow-2xl backdrop-blur-xl">
+                <div className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[#0e0e0e] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl">
                     {filtered.map(opt => (
                         <button
                             key={opt}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => handleSelect(opt)}
-                            className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors ${value === opt ? 'text-cyan-400 bg-cyan-500/5' : 'text-white/70'}`}
+                            className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors ${value === opt ? 'text-accent bg-emerald-500/5' : 'text-[var(--text-primary)]/70'}`}
                         >
                             {opt}
                         </button>
@@ -189,9 +189,9 @@ export function StepProgress({ steps, current }: StepProgressProps) {
             {steps.map((label, i) => (
                 <div key={label} className="flex-1 flex flex-col items-center gap-2">
                     <div className="w-full flex items-center">
-                        <div className={`flex-1 h-1 rounded-sm transition-all duration-500 ${i <= current ? 'bg-cyan-500' : 'bg-white/10'}`} />
+                        <div className={`flex-1 h-1 rounded-sm transition-all duration-500 ${i <= current ? 'bg-emerald-500' : 'bg-white/10'}`} />
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${i <= current ? 'text-cyan-400' : 'text-white/30'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${i <= current ? 'text-accent' : 'text-[var(--text-primary)]/30'}`}>
                         {label}
                     </span>
                 </div>
@@ -205,7 +205,7 @@ export function StepProgress({ steps, current }: StepProgressProps) {
 export function StepContainer({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="space-y-5 animate-in fade-in duration-300">
-            <h4 className="text-lg font-bold text-white tracking-tight">{title}</h4>
+            <h4 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">{title}</h4>
             {children}
         </div>
     );
@@ -242,20 +242,20 @@ export function FormNavigation({ step, totalSteps, onBack, onNext, onSubmit, onC
     return (
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-8">
             {step > 0 && (
-                <button onClick={onBack} type="button" className="w-full sm:w-auto px-6 py-4 rounded-none bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 font-bold text-sm uppercase tracking-widest transition-all">
+                <button onClick={onBack} type="button" className="w-full sm:w-auto px-6 py-4 rounded-none bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/10 font-bold text-sm uppercase tracking-widest transition-all">
                     Back
                 </button>
             )}
             {!isLastStep ? (
-                <button onClick={onNext} type="button" className="w-full sm:w-auto px-8 py-4 rounded-none bg-cyan-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-cyan-400 transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:-translate-y-0.5">
+                <button onClick={onNext} type="button" className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5">
                     Continue
                 </button>
             ) : (
-                <button onClick={onSubmit} type="button" disabled={isSubmitting} className="w-full sm:w-auto px-8 py-4 rounded-none bg-cyan-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-cyan-400 transition-all duration-300 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:-translate-y-0.5">
+                <button onClick={onSubmit} type="button" disabled={isSubmitting} className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5">
                     {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </button>
             )}
-            <button onClick={onCancel} type="button" className="w-full sm:w-auto px-6 py-4 text-white/40 hover:text-white text-sm font-bold uppercase tracking-widest transition-colors">
+            <button onClick={onCancel} type="button" className="w-full sm:w-auto px-6 py-4 text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] text-sm font-bold uppercase tracking-widest transition-colors">
                 Cancel
             </button>
         </div>

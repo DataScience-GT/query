@@ -18,7 +18,7 @@ export function RubricSlider({
     const getScoreColor = (v: number) => {
         if (v <= 3) return 'from-red-500 to-orange-500';
         if (v <= 6) return 'from-yellow-500 to-amber-500';
-        return 'from-[#00E5FF] to-teal-500';
+        return 'from-accent to-teal-500';
     };
 
     const getScoreLabel = (v: number) => {
@@ -34,14 +34,14 @@ export function RubricSlider({
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex-1 pr-4">
-                    <h3 className="text-base font-semibold text-white tracking-tight">{label}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                    <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">{label}</h3>
+                    <p className="text-xs text-[var(--text-subtle)] mt-0.5">{description}</p>
                 </div>
                 <div className="flex flex-col items-end">
                     <div className={`text-3xl font-black bg-gradient-to-r ${getScoreColor(value)} bg-clip-text text-transparent tabular-nums`}>
                         {value}
                     </div>
-                    <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                    <span className="text-[10px] text-[var(--text-subtle)] font-medium uppercase tracking-wider">
                         {getScoreLabel(value)}
                     </span>
                 </div>
@@ -80,8 +80,8 @@ export function RubricSlider({
                         onClick={() => onChange(n)}
                         className={`w-5 h-5 flex items-center justify-center text-[10px] font-medium rounded transition-all
                             ${value === n
-                                ? 'text-white bg-white/10'
-                                : 'text-gray-600 hover:text-gray-400'
+                                ? 'text-[var(--text-primary)] bg-white/10'
+                                : 'text-gray-600 hover:text-[var(--text-muted)]'
                             }`}
                     >
                         {n}

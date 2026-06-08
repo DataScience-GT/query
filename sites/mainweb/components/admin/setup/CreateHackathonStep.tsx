@@ -39,20 +39,20 @@ export function CreateHackathonStep({
 }: CreateHackathonStepProps) {
     return (
         <LiquidGlass className="rounded-none p-8">
-            <h2 className="text-xl font-black text-white uppercase tracking-tight mb-6">Create Hackathon</h2>
+            <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-6">Create Hackathon</h2>
 
             {/* Existing hackathons */}
             {hackathons && hackathons.length > 0 && (
                 <div className="mb-8">
-                    <p className="text-xs text-gray-500 font-mono uppercase tracking-widest mb-3">Or select an existing event:</p>
+                    <p className="text-xs text-[var(--text-subtle)] font-mono uppercase tracking-widest mb-3">Or select an existing event:</p>
                     <div className="flex flex-wrap gap-2">
                         {hackathons.map((h) => (
                             <button
                                 key={h.id}
                                 onClick={() => { setSelectedHackathonId(h.id); setActiveStep(2); }}
                                 className={`px-5 py-2.5 rounded-none font-bold text-xs uppercase tracking-widest transition-all border ${selectedHackathonId === h.id
-                                    ? 'bg-[#00E5FF]/10 border-[#00E5FF]/50 text-white'
-                                    : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
+                                    ? 'bg-accent/10 border-accent/50 text-[var(--text-primary)]'
+                                    : 'bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5'
                                     }`}
                             >
                                 {h.name}
@@ -73,26 +73,26 @@ export function CreateHackathonStep({
                     placeholder="Event name (e.g. Hacklytics 2026)"
                     value={hackathonName}
                     onChange={(e) => setHackathonName(e.target.value)}
-                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:outline-none focus:border-[#00E5FF]/40 transition-colors"
+                    className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:outline-none focus:border-accent/40 transition-colors"
                 />
                 <input
                     type="text"
                     placeholder="Tracks (comma-separated, e.g. Sports, Finance)"
                     value={hackathonTracks}
                     onChange={(e) => setHackathonTracks(e.target.value)}
-                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:outline-none focus:border-[#00E5FF]/40 transition-colors"
+                    className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:outline-none focus:border-accent/40 transition-colors"
                 />
                 <input
                     type="text"
                     placeholder="Challenges (comma-separated, e.g. AWS, MongoDB)"
                     value={hackathonChallenges}
                     onChange={(e) => setHackathonChallenges(e.target.value)}
-                    className="w-full px-5 py-4 bg-black/40 border border-white/10 rounded-none text-white font-mono placeholder:text-gray-600 focus:outline-none focus:border-[#00E5FF]/40 transition-colors"
+                    className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:outline-none focus:border-accent/40 transition-colors"
                 />
                 <button
                     onClick={onCreateHackathon}
                     disabled={!hackathonName.trim() || createHackathonPending}
-                    className="w-full px-8 py-4 bg-[#00E5FF]/10 border border-[#00E5FF]/40 text-[#00E5FF] font-bold text-sm uppercase tracking-widest rounded-none hover:bg-[#00E5FF]/20 transition-all disabled:opacity-30 font-mono"
+                    className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all disabled:opacity-30 font-mono"
                 >
                     {createHackathonPending ? 'Creating...' : 'Create Event'}
                 </button>

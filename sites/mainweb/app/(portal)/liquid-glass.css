@@ -20,36 +20,36 @@
   /* ===== BORDER COLORS ===== */
   --border-subtle: #333333;
   --border-medium: #555555;
-  --border-strong: #00E5FF;
-  --border-hover: #00E5FF;
-  --border-accent: #00E5FF;
+  --border-strong: #10B981;
+  --border-hover: #10B981;
+  --border-accent: #10B981;
 
   /* ===== ACCENT COLORS ===== */
-  --accent: #00E5FF;
-  --accent-primary: #00E5FF;
-  --accent-secondary: #00E5FF;
+  --accent: #10B981;
+  --accent-primary: #10B981;
+  --accent-secondary: #10B981;
   --accent-hover: #000000;
   --accent-dim: rgba(234, 255, 43, 0.1);
-  --accent-glow: #00E5FF;
-  --accent-gradient: #00E5FF;
-  --accent-fade: #00E5FF;
+  --accent-glow: #10B981;
+  --accent-gradient: #10B981;
+  --accent-fade: #10B981;
 
   /* ===== STATUS COLORS ===== */
-  --success: #00E5FF;
-  --success-glow: #00E5FF;
-  --warning: #00E5FF;
-  --warning-glow: #00E5FF;
+  --success: #10B981;
+  --success-glow: #10B981;
+  --warning: #10B981;
+  --warning-glow: #10B981;
   --danger: #ff2b2b;
   --danger-glow: #ff2b2b;
-  --info: #00E5FF;
-  --info-glow: #00E5FF;
+  --info: #10B981;
+  --info-glow: #10B981;
 
   /* ===== ACCENT GRADIENTS ===== */
-  --gradient-primary: linear-gradient(135deg, #00E5FF, #00E5FF);
-  --gradient-warm: linear-gradient(135deg, #00E5FF, #00E5FF);
-  --gradient-cool: linear-gradient(135deg, #00E5FF, #00E5FF);
-  --gradient-teal: linear-gradient(135deg, #00E5FF, #00E5FF);
-  --gradient-mystic: linear-gradient(135deg, #00E5FF, #00E5FF);
+  --gradient-primary: linear-gradient(135deg, #10B981, #10B981);
+  --gradient-warm: linear-gradient(135deg, #10B981, #10B981);
+  --gradient-cool: linear-gradient(135deg, #10B981, #10B981);
+  --gradient-teal: linear-gradient(135deg, #10B981, #10B981);
+  --gradient-mystic: linear-gradient(135deg, #10B981, #10B981);
 
   /* ===== BORDER RADIUS - Sharp ===== */
   --radius-xs: 0px;
@@ -105,10 +105,28 @@
   --duration-slower: 200ms;
 }
 
-/* Light theme overrides ignored for brutalist */
+/* Light theme overrides */
 [data-theme="light"] {
-  --bg-primary: #000000;
-  --bg-secondary: #000000;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f4f4;
+  --bg-tertiary: #eaeaea;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --text-muted: #555555;
+  --text-subtle: #777777;
+  --text-disabled: #aaaaaa;
+  --text-on-accent: #ffffff;
+  
+  --border-subtle: #dddddd;
+  --border-medium: #bbbbbb;
+
+  --accent: #059669; /* Darker emerald for better contrast on white */
+  --accent-primary: #059669;
+  --accent-secondary: #059669;
+  --accent-hover: #ffffff;
 }
 
 /* Reset */
@@ -125,7 +143,7 @@
 
 /* ===== BRUTALIST CONTAINERS ===== */
 .liquid-glass, .liquid-glass-lg {
-  background: #000000;
+  background: var(--bg-card);
   border: 2px solid var(--border-subtle);
   border-radius: 0;
   box-shadow: var(--shadow-sm);
@@ -138,7 +156,7 @@
 }
 
 .liquid-glass:hover, .liquid-glass-lg:hover {
-  background: #000000;
+  background: var(--bg-elevated);
   border-color: var(--accent);
   box-shadow: var(--shadow-lg);
   transform: translate(-2px, -2px);
@@ -193,7 +211,7 @@
 ::-webkit-scrollbar-thumb:hover { background: #fff; }
 
 select {
-  background: #000;
+  background: var(--bg-card);
   border: 2px solid var(--accent);
   border-radius: 0;
   padding: 8px 12px;

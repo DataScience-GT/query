@@ -178,7 +178,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     <div className="space-y-6">
       {message && (
         <div className={`p-4 rounded-none border ${message.type === 'success'
-          ? 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF]'
+          ? 'bg-accent/10 border-accent/30 text-accent'
           : 'bg-red-500/10 border-red-500/30 text-red-500'
           }`}>
           <p className="text-xs uppercase tracking-widest">{message.text}</p>
@@ -187,21 +187,21 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="flex flex-col items-center space-y-4 mb-6 pt-2">
         <div
-          className="relative w-32 h-32 rounded-sm overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
+          className="relative w-32 h-32 rounded-sm overflow-hidden bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] group cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
         >
           {imagePreview ? (
              
             <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <div className="w-full h-full flex items-center justify-center text-[var(--text-subtle)]">
               <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
           )}
-          <div className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-            <span className="text-white text-xs font-bold uppercase tracking-widest text-center px-2">
+          <div className={`absolute inset-0 bg-[var(--bg-primary)]/60 flex items-center justify-center transition-opacity ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <span className="text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest text-center px-2">
               {isUploadingImage ? 'Uploading...' : 'Change'}
             </span>
           </div>
@@ -216,7 +216,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
           Display Name
         </label>
         <input
@@ -224,7 +224,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Enter your name"
-          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all"
           maxLength={100}
         />
         <p className="text-[10px] text-gray-700 uppercase">Visible to all users</p>
@@ -232,7 +232,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
           Public Bio
         </label>
         <textarea
@@ -240,7 +240,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="Tell the community about yourself..."
           rows={4}
-          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all resize-none"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all resize-none"
           maxLength={500}
         />
         <div className="flex justify-between items-center">
@@ -250,7 +250,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
           Website
         </label>
         <input
@@ -258,13 +258,13 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           value={formData.website}
           onChange={(e) => setFormData({ ...formData, website: e.target.value })}
           placeholder="https://your-website.com"
-          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all"
           maxLength={500}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
           Location
         </label>
         <input
@@ -272,34 +272,34 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           value={formData.location}
           onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           placeholder="E.g. Atlanta, GA"
-          className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-[#00E5FF] focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all"
           maxLength={200}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
           Email Address
         </label>
         <input
           type="email"
           value={user.email}
           disabled
-          className="w-full bg-black/20 border border-white/5 rounded-none px-4 py-3 text-gray-600 text-sm cursor-not-allowed font-mono"
+          className="w-full bg-[var(--bg-primary)]/20 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-gray-600 text-sm cursor-not-allowed font-mono"
         />
         <p className="text-[10px] text-gray-700 uppercase">Cannot be modified</p>
       </div>
 
       {isMember && (
-        <div className="pt-6 mt-6 border-t border-white/10 space-y-6">
+        <div className="pt-6 mt-6 border-t border-[var(--border-subtle)] space-y-6">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-sm bg-green-500 animate-pulse"></span>
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Member Details</h3>
+            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Member Details</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 LinkedIn URL
               </label>
               <input
@@ -307,12 +307,12 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 value={memberForm.linkedinUrl}
                 onChange={(e) => setMemberForm({ ...memberForm, linkedinUrl: e.target.value })}
                 placeholder="https://linkedin.com/in/..."
-                className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 GitHub URL
               </label>
               <input
@@ -320,12 +320,12 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 value={memberForm.githubUrl}
                 onChange={(e) => setMemberForm({ ...memberForm, githubUrl: e.target.value })}
                 placeholder="https://github.com/..."
-                className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 Portfolio URL
               </label>
               <input
@@ -333,14 +333,14 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 value={memberForm.portfolioUrl}
                 onChange={(e) => setMemberForm({ ...memberForm, portfolioUrl: e.target.value })}
                 placeholder="https://your-portfolio.com"
-                className="w-full bg-black/40 border border-white/10 rounded-none px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2 mt-4">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 Core Skills
               </label>
               <SkillsInterestsInput
@@ -353,7 +353,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
             </div>
 
             <div className="space-y-2 mt-4">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 Interests & Focus Areas
               </label>
               <SkillsInterestsInput
@@ -368,9 +368,9 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         </div>
       )}
 
-      <LiquidGlass className="bg-white/5 border border-white/10 rounded-none p-4 mt-6">
-        <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile Tips</p>
-        <ul className="text-xs text-gray-400 space-y-1">
+      <LiquidGlass className="bg-white/5 border border-[var(--border-subtle)] rounded-none p-4 mt-6">
+        <p className="text-xs text-[var(--text-subtle)] uppercase tracking-widest mb-2">Profile Tips</p>
+        <ul className="text-xs text-[var(--text-muted)] space-y-1">
           <li>&gt; Use a clear profile picture for better recognition</li>
           <li>&gt; Keep your bio concise and professional</li>
           <li>&gt; Your email is private and used only for authentication</li>
@@ -381,9 +381,9 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className={`flex-1 py-3 bg-[#00E5FF] text-black font-bold uppercase text-xs tracking-widest rounded-none transition-all ${isSubmitting
+          className={`flex-1 py-3 bg-accent text-black font-bold uppercase text-xs tracking-widest rounded-none transition-all ${isSubmitting
             ? 'opacity-50 cursor-not-allowed'
-            : 'hover:bg-[#00E5FF]/80'
+            : 'hover:bg-accent/80'
             }`}
         >
           {isSubmitting ? 'Updating...' : 'Save Changes'}

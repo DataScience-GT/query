@@ -150,28 +150,28 @@ export function InfoTab({
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             {hackathon.description && (
-                <LiquidGlass className="p-8 bg-white/[0.01] border-white/5">
-                    <h3 className="text-[11px] uppercase tracking-widest font-bold text-cyan-400 mb-4 inline-flex items-center gap-2">
+                <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
+                    <h3 className="text-[11px] uppercase tracking-widest font-bold text-accent mb-4 inline-flex items-center gap-2">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         About
                     </h3>
-                    <p className="text-white/60 text-sm leading-relaxed whitespace-pre-wrap font-medium">{hackathon.description}</p>
+                    <p className="text-[var(--text-primary)]/60 text-sm leading-relaxed whitespace-pre-wrap font-medium">{hackathon.description}</p>
                 </LiquidGlass>
             )}
 
             {hackathon.prizes && hackathon.prizes.length > 0 && (
-                <LiquidGlass className="p-8 bg-white/[0.01] border-white/5">
-                    <h3 className="text-[11px] uppercase tracking-widest font-bold text-cyan-400 mb-6 inline-flex items-center gap-2">
+                <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
+                    <h3 className="text-[11px] uppercase tracking-widest font-bold text-accent mb-6 inline-flex items-center gap-2">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
                         Prizes
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {hackathon.prizes.map((p: { place: string; amount: number; description?: string }, i: number) => (
-                            <div key={i} className="p-6 bg-[#0a0a0a]/50 border border-white/5 rounded-none hover:border-cyan-500/30 transition-colors group relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                <p className="text-white font-bold text-lg mb-1 relative z-10">{p.place}</p>
-                                <p className="text-white/80 font-semibold text-2xl mb-2 relative z-10">${p.amount.toLocaleString()}</p>
-                                {p.description && <p className="text-white/40 text-xs relative z-10">{p.description}</p>}
+                            <div key={i} className="p-6 bg-[#0a0a0a]/50 border border-[var(--border-subtle)] rounded-none hover:border-accent/30 transition-colors group relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                <p className="text-[var(--text-primary)] font-bold text-lg mb-1 relative z-10">{p.place}</p>
+                                <p className="text-[var(--text-primary)]/80 font-semibold text-2xl mb-2 relative z-10">${p.amount.toLocaleString()}</p>
+                                {p.description && <p className="text-[var(--text-primary)]/40 text-xs relative z-10">{p.description}</p>}
                             </div>
                         ))}
                     </div>
@@ -179,19 +179,19 @@ export function InfoTab({
             )}
 
             {hackathon.rules && (
-                <LiquidGlass className="p-8 bg-white/[0.01] border-white/5">
-                    <h3 className="text-[11px] uppercase tracking-widest font-bold text-cyan-400 mb-4 inline-flex items-center gap-2">
+                <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
+                    <h3 className="text-[11px] uppercase tracking-widest font-bold text-accent mb-4 inline-flex items-center gap-2">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         Rules
                     </h3>
-                    <p className="text-white/50 text-sm leading-relaxed whitespace-pre-wrap">{hackathon.rules}</p>
+                    <p className="text-[var(--text-primary)]/50 text-sm leading-relaxed whitespace-pre-wrap">{hackathon.rules}</p>
                 </LiquidGlass>
             )}
 
             {(hackathon.registrationDeadline || hackathon.websiteUrl) && (
                 <div className="flex flex-wrap gap-4 px-2">
                     {hackathon.registrationDeadline && (
-                        <div className="flex items-center gap-2.5 text-sm font-semibold bg-white/5 border border-white/5 px-4 py-2 rounded-none">
+                        <div className="flex items-center gap-2.5 text-sm font-semibold bg-white/5 border border-[var(--border-subtle)] px-4 py-2 rounded-none">
                             <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <span className={deadlinePassed ? 'text-rose-400' : 'text-amber-400'}>
                                 Deadline: {formatDate(hackathon.registrationDeadline)}{deadlinePassed ? ' (Passed)' : ''}
@@ -199,7 +199,7 @@ export function InfoTab({
                         </div>
                     )}
                     {hackathon.websiteUrl && (
-                        <a href={hackathon.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 px-4 py-2 rounded-none transition-colors">
+                        <a href={hackathon.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm font-semibold text-accent bg-accent/10 border border-emerald-500/20 hover:bg-emerald-500/20 px-4 py-2 rounded-none transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                             Official Website
                         </a>
@@ -207,29 +207,29 @@ export function InfoTab({
                 </div>
             )}
 
-            <LiquidGlass className="p-8 md:p-10 bg-white/[0.01] border-white/5 mt-10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-sm blur-[80px] pointer-events-none" />
+            <LiquidGlass className="p-8 md:p-10 bg-white/[0.01] border-[var(--border-subtle)] mt-10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-sm blur-[80px] pointer-events-none" />
 
                 {success && (
-                    <div className="mb-6 p-4 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none flex items-center gap-3">
+                    <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-none flex items-center gap-3">
                         <div className="w-2 h-2 rounded-sm bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
-                        <p className="text-emerald-400 text-sm font-semibold">Registration confirmed! You're in.</p>
+                        <p className="text-accent text-sm font-semibold">Registration confirmed! You're in.</p>
                     </div>
                 )}
 
                 {isRegistered || success ? (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex items-center gap-3 px-6 py-3 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-none w-fit">
-                            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                            <span className="text-emerald-400 font-bold text-sm uppercase tracking-widest">Registered</span>
+                        <div className="flex items-center gap-3 px-6 py-3 bg-accent/10 border border-accent/20 rounded-none w-fit">
+                            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            <span className="text-accent font-bold text-sm uppercase tracking-widest">Registered</span>
                         </div>
-                        {myReg && <span className="text-white/40 text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-none bg-white/5 border border-white/5">Status: {myReg.registrationStatus}</span>}
+                        {myReg && <span className="text-[var(--text-primary)]/40 text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)]">Status: {myReg.registrationStatus}</span>}
                     </div>
                 ) : canRegister && !deadlinePassed && !showForm ? (
                     <div className="text-center sm:text-left">
-                        <h4 className="text-xl font-bold text-white mb-2">Ready to Build?</h4>
-                        <p className="text-sm text-white/50 mb-6">Secure your spot in this hackathon. Capacity is limited.</p>
-                        <button onClick={() => setShowForm(true)} className="group px-8 py-4 rounded-none bg-cyan-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-cyan-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:-translate-y-0.5 w-full sm:w-auto">
+                        <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">Ready to Build?</h4>
+                        <p className="text-sm text-[var(--text-primary)]/50 mb-6">Secure your spot in this hackathon. Capacity is limited.</p>
+                        <button onClick={() => setShowForm(true)} className="group px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 w-full sm:w-auto">
                             Apply Now
                         </button>
                     </div>
@@ -239,14 +239,14 @@ export function InfoTab({
                         <span className="text-rose-400 font-bold text-sm uppercase tracking-widest">Capacity Reached</span>
                     </div>
                 ) : (
-                    <div className="px-6 py-4 bg-white/5 border border-white/10 rounded-none inline-flex items-center gap-3">
-                        <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                        <span className="text-white/40 font-bold text-sm uppercase tracking-widest">Registration Closed</span>
+                    <div className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] rounded-none inline-flex items-center gap-3">
+                        <svg className="w-5 h-5 text-[var(--text-primary)]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        <span className="text-[var(--text-primary)]/40 font-bold text-sm uppercase tracking-widest">Registration Closed</span>
                     </div>
                 )}
 
                 {showForm && (
-                    <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 border-t border-white/5 relative z-10">
+                    <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 border-t border-[var(--border-subtle)] relative z-10">
 
                         <StepProgress steps={REGISTRATION_STEPS} current={step} />
 
@@ -303,9 +303,9 @@ export function InfoTab({
                                 <div className="pt-4">
                                     <label className="flex items-start gap-3 cursor-pointer group">
                                         <input type="checkbox" checked={agreeToCoC} onChange={e => setAgreeToCoC(e.target.checked)}
-                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-cyan-500 focus:ring-cyan-500/50 focus:ring-offset-0 cursor-pointer" />
-                                        <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors leading-relaxed">
-                                            I agree to the <span className="text-cyan-400 font-semibold">Code of Conduct</span> and acknowledge that my information will be used for event organization purposes. *
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I agree to the <span className="text-accent font-semibold">Code of Conduct</span> and acknowledge that my information will be used for event organization purposes. *
                                         </span>
                                     </label>
                                 </div>
