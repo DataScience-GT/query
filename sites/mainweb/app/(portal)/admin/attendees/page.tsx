@@ -13,7 +13,7 @@ export default function AttendeesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [filter, setFilter] = useState<'all' | 'checked_in' | 'pending' | 'cancelled'>('all');
+
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   const { data: eventList } = trpc.events.listAll.useQuery(undefined, { enabled: !!session });
@@ -32,7 +32,7 @@ export default function AttendeesPage() {
   const handleDownloadCSV = () => {
     if (selectedEvent) {
       // CSV export logic would go here
-      console.log('Downloading CSV for event:', selectedEvent);
+      // TODO: Implement CSV export logic
     }
   };
 

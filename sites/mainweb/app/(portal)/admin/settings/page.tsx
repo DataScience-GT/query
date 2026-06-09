@@ -73,7 +73,7 @@ export default function AdminSettingsPage() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'general' | 'security' | 'integrations')}
               className={`w-full flex flex-col items-start p-4 rounded-none transition-all duration-300 ${
                 activeTab === tab.id
                   ? 'bg-accent/10 border border-accent/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]'

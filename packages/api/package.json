@@ -39,7 +39,7 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/sanitize-html": "^2.16.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.2",
     "vitest": "^3.1.0"
   }
 }
