@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { Shield, UserPlus, Trash2, Eye, EyeOff, Gavel } from 'lucide-react';
+import { UserPlus, Gavel } from 'lucide-react';
 
 export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     const utils = trpc.useUtils();
