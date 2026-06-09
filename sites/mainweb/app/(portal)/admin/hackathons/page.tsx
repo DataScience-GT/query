@@ -8,7 +8,7 @@ import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import AdminLayout from '@/components/portal/AdminLayout';
 
 // Extracted Components
-import { getStatusMeta } from '@/components/admin/hackathons/constants';
+
 import { HackathonCard } from '@/components/admin/hackathons/HackathonCard';
 import { CreateHackathonForm } from '@/components/admin/hackathons/CreateHackathonForm';
 import { EditHackathonForm } from '@/components/admin/hackathons/EditHackathonForm';
@@ -101,12 +101,10 @@ export default function AdminHackathonsPage() {
                     ) : (
                         <div className="space-y-12">
                             {hackathons.map((h: NonNullable<typeof hackathons>[number]) => {
-                                const sm = getStatusMeta(h.status);
                                 return (
                                     <HackathonCard
                                         key={h.id}
                                         hackathon={h}
-                                        statusMeta={sm}
                                         onEdit={() => setEditingId(h.id)}
                                         onStatusChange={(_newStatus) => {
                                             utils.hackathon.listAll.invalidate();
