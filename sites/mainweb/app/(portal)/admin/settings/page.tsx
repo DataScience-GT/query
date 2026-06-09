@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Server, QrCode } from 'lucide-react';
+import { trpc } from '@/utils/trpc';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations'>('general');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Mock settings state for UI demonstration
+  // Local state for UI changes
   const [settings, setSettings] = useState({
     systemName: 'DSGT Query Engine',
     maintenanceMode: false,
@@ -17,13 +18,33 @@ export default function AdminSettingsPage() {
     allowPublicRegistration: true,
   });
 
-  const handleSave = () => {
+  const { data: dbSettings, isLoading } = trpc.settings.get.useQuery();
+  const updateSettings = trpc.settings.update.useMutation();
+
+  useEffect(() => {
+    if (dbSettings) {
+      setSettings({
+        systemName: dbSettings.systemName,
+        maintenanceMode: dbSettings.maintenanceMode,
+        requireEmailVerification: dbSettings.requireEmailVerification,
+        maxEventCapacity: dbSettings.maxEventCapacity,
+        allowPublicRegistration: dbSettings.allowPublicRegistration,
+      });
+    }
+  }, [dbSettings]);
+
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      await updateSettings.mutateAsync(settings);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    }, 800);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

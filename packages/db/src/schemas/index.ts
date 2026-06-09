@@ -7,3 +7,4 @@ export * from "./events";
 export * from "./judge";
 export * from "./stripe";
 export * from "./security";
+export * from "./settings";
