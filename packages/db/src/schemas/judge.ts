@@ -10,8 +10,18 @@ export const judges = pgTable("judge", {
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name"),
+  email: text("email"),
+  phone: text("phone"),
+  company: text("company"),
+  title: text("title"),
   specialty: text("specialty"),
-  isActive: boolean("is_active").notNull().default(true),
+  linkedinUrl: text("linkedin_url"),
+  githubUrl: text("github_url"),
+  previousExperience: text("previous_experience"),
+  dietaryRestrictions: text("dietary_restrictions").array(),
+  shirtSize: text("shirt_size"),
+  whyJudge: text("why_judge"),
+  isActive: boolean("is_active").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -27,6 +37,7 @@ export const judgeAssignments = pgTable("judge_assignment", {
     .notNull()
     .references(() => hackathons.id, { onDelete: "cascade" }),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
   isLead: boolean("is_lead").notNull().default(false),
   track: text("track"),
 }, (table) => [

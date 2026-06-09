@@ -53,6 +53,9 @@ export function InfoTab({
     const [phone, setPhone] = useState('');
     const [age, setAge] = useState('');
     const [gender, setGender] = useState('');
+    const [pronouns, setPronouns] = useState('');
+    const [race, setRace] = useState('');
+    const [underrepresented, setUnderrepresented] = useState(false);
 
     // Step 2: Academic
     const [school, setSchool] = useState('');
@@ -60,6 +63,7 @@ export function InfoTab({
     const [graduationYear, setGraduationYear] = useState('');
     const [levelOfStudy, setLevelOfStudy] = useState('');
     const [country, setCountry] = useState('United States');
+    const [firstGeneration, setFirstGeneration] = useState(false);
 
     // Step 3: Experience
     const [hackathonsAttended, setHackathonsAttended] = useState('');
@@ -73,7 +77,11 @@ export function InfoTab({
     const [dietary, setDietary] = useState<string[]>([]);
     const [emergencyContact, setEmergencyContact] = useState('');
     const [emergencyPhone, setEmergencyPhone] = useState('');
+    const [needsHardware, setNeedsHardware] = useState(false);
     const [agreeToCoC, setAgreeToCoC] = useState(false);
+    const [mlhCodeOfConduct, setMlhCodeOfConduct] = useState(false);
+    const [mlhDataSharing, setMlhDataSharing] = useState(false);
+    const [mlhInformationalEmails, setMlhInformationalEmails] = useState(false);
 
     const utils = trpc.useUtils();
     const registerMutation = trpc.hackathon.register.useMutation({
@@ -105,6 +113,8 @@ export function InfoTab({
             if (!country.trim()) { setError('Country is required.'); return false; }
         } else if (s === 3) {
             if (!agreeToCoC) { setError('You must agree to the Code of Conduct.'); return false; }
+            if (!mlhCodeOfConduct) { setError('You must agree to the MLH Code of Conduct.'); return false; }
+            if (!mlhDataSharing) { setError('You must agree to the MLH Data Sharing provision.'); return false; }
         }
         return true;
     }
@@ -143,7 +153,15 @@ export function InfoTab({
             dietaryRestrictions: dietary.length ? dietary : undefined,
             emergencyContact: emergencyContact.trim() || undefined,
             emergencyPhone: emergencyPhone.trim() || undefined,
+            needsHardware,
             agreeToCodeOfConduct: agreeToCoC,
+            mlhCodeOfConduct,
+            mlhDataSharing,
+            mlhInformationalEmails,
+            pronouns: pronouns.trim() || undefined,
+            race: race.trim() || undefined,
+            underrepresented,
+            firstGeneration,
         });
     }
 
@@ -262,6 +280,19 @@ export function InfoTab({
                                     <FormInput label="Age" required type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="21" min={13} max={120} />
                                 </div>
                                 <FormChipSelect label="Gender" options={[...GENDERS]} value={gender} onChange={setGender} allowDeselect />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
+                                    <FormInput label="Pronouns" value={pronouns} onChange={e => setPronouns(e.target.value)} placeholder="They/Them" />
+                                    <FormInput label="Race / Ethnicity" value={race} onChange={e => setRace(e.target.value)} placeholder="e.g. Asian, Hispanic, White, etc." />
+                                </div>
+                                <div className="pt-4">
+                                    <label className="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={underrepresented} onChange={e => setUnderrepresented(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I consider myself part of an underrepresented group in technology.
+                                        </span>
+                                    </label>
+                                </div>
                             </StepContainer>
                         )}
 
@@ -275,6 +306,15 @@ export function InfoTab({
                                 </div>
                                 <FormChipSelect label="Level of Study" required options={[...LEVELS_OF_STUDY]} value={levelOfStudy} onChange={setLevelOfStudy} />
                                 <FormInput label="Country" required value={country} onChange={e => setCountry(e.target.value)} placeholder="United States" />
+                                <div className="pt-4">
+                                    <label className="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={firstGeneration} onChange={e => setFirstGeneration(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I am a first-generation college student.
+                                        </span>
+                                    </label>
+                                </div>
                             </StepContainer>
                         )}
 
@@ -302,10 +342,46 @@ export function InfoTab({
                                 </div>
                                 <div className="pt-4">
                                     <label className="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={needsHardware} onChange={e => setNeedsHardware(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I require hardware provided by the hackathon to participate (e.g., laptop).
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="pt-4">
+                                    <label className="flex items-start gap-3 cursor-pointer group">
                                         <input type="checkbox" checked={agreeToCoC} onChange={e => setAgreeToCoC(e.target.checked)}
                                             className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
                                         <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                                             I agree to the <span className="text-accent font-semibold">Code of Conduct</span> and acknowledge that my information will be used for event organization purposes. *
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="pt-2">
+                                    <label className="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={mlhCodeOfConduct} onChange={e => setMlhCodeOfConduct(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I have read and agree to the <span className="text-accent font-semibold">MLH Code of Conduct</span>. *
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="pt-2">
+                                    <label className="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={mlhDataSharing} onChange={e => setMlhDataSharing(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I authorize you to share my application/registration information with Major League Hacking for event administration, ranking, and MLH administration. *
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="pt-2">
+                                    <label className="flex items-start gap-3 cursor-pointer group">
+                                        <input type="checkbox" checked={mlhInformationalEmails} onChange={e => setMlhInformationalEmails(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer" />
+                                        <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                                            I authorize MLH to send me occasional emails about relevant events, career opportunities, and community announcements.
                                         </span>
                                     </label>
                                 </div>

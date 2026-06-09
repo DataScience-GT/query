@@ -79,10 +79,14 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   phone: text("phone"),
   age: integer("age"),
   gender: text("gender"),
+  pronouns: text("pronouns"),
+  race: text("race"),
+  underrepresented: boolean("underrepresented").default(false),
 
   // Academic info
   school: text("school"),
   major: text("major"),
+  firstGeneration: boolean("first_generation").default(false),
   graduationYear: integer("graduation_year"),
   levelOfStudy: text("level_of_study", {
     enum: ["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]
@@ -101,9 +105,13 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   dietaryRestrictions: text("dietary_restrictions").array(),
   emergencyContact: text("emergency_contact"),
   emergencyPhone: text("emergency_phone"),
+  needsHardware: boolean("needs_hardware").default(false),
 
   // Consent
   agreeToCodeOfConduct: boolean("agree_to_code_of_conduct").default(false),
+  mlhCodeOfConduct: boolean("mlh_code_of_conduct").default(false),
+  mlhDataSharing: boolean("mlh_data_sharing").default(false),
+  mlhInformationalEmails: boolean("mlh_informational_emails").default(false),
 
   // Participation tracking
   checkedInAt: timestamp("checked_in_at"),

@@ -14,6 +14,7 @@ export default [
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
       "@next/next/no-img-element": "off",
+      "no-console": "off",
     },
   },
 ];

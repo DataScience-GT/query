@@ -213,12 +213,16 @@ export const hackathonRouter = createTRPCRouter({
         phone: z.string().min(1).max(30),
         age: z.number().int().min(13).max(120),
         gender: z.string().max(50).optional(),
+        pronouns: z.string().max(50).optional(),
+        race: z.string().max(100).optional(),
+        underrepresented: z.boolean().optional(),
         // Academic info
         school: z.string().min(1).max(300),
         major: z.string().min(1).max(300),
         graduationYear: z.number().int().min(2020).max(2035),
         levelOfStudy: z.enum(["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]),
         country: z.string().min(1).max(100),
+        firstGeneration: z.boolean().optional(),
         // Experience
         hackathonsAttended: z.number().int().min(0).max(100).optional(),
         resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
@@ -230,8 +234,12 @@ export const hackathonRouter = createTRPCRouter({
         dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
         emergencyContact: z.string().max(200).optional(),
         emergencyPhone: z.string().max(20).optional(),
+        needsHardware: z.boolean().optional(),
         // Consent
         agreeToCodeOfConduct: z.boolean().refine(v => v === true, { message: "You must agree to the Code of Conduct" }),
+        mlhCodeOfConduct: z.boolean().optional(),
+        mlhDataSharing: z.boolean().optional(),
+        mlhInformationalEmails: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -299,12 +307,16 @@ export const hackathonRouter = createTRPCRouter({
               phone: input.phone,
               age: input.age,
               gender: input.gender,
+              pronouns: input.pronouns,
+              race: input.race,
+              underrepresented: input.underrepresented,
               // Academic
               school: input.school,
               major: input.major,
               graduationYear: input.graduationYear,
               levelOfStudy: input.levelOfStudy,
               country: input.country,
+              firstGeneration: input.firstGeneration,
               // Experience
               hackathonsAttended: input.hackathonsAttended,
               resumeUrl: input.resumeUrl || undefined,
@@ -316,8 +328,12 @@ export const hackathonRouter = createTRPCRouter({
               dietaryRestrictions: input.dietaryRestrictions || [],
               emergencyContact: input.emergencyContact,
               emergencyPhone: input.emergencyPhone,
+              needsHardware: input.needsHardware,
               // Consent
               agreeToCodeOfConduct: input.agreeToCodeOfConduct,
+              mlhCodeOfConduct: input.mlhCodeOfConduct,
+              mlhDataSharing: input.mlhDataSharing,
+              mlhInformationalEmails: input.mlhInformationalEmails,
               registrationStatus: "approved",
             })
             .returning();

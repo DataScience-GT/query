@@ -230,6 +230,24 @@ export default function HackathonsPage() {
                   })}
               </div>
             )}
+            
+            {/* Judge Sign-Up CTA */}
+            <div className="mt-12">
+              <LiquidGlass className="relative overflow-hidden p-8 md:p-12 border border-accent/20 bg-accent/5 group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-sm blur-[80px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors duration-700" />
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="text-center md:text-left">
+                    <h3 className="text-2xl md:text-3xl font-black text-[var(--text-primary)] mb-3">Want to be a Judge?</h3>
+                    <p className="text-[var(--text-primary)]/60 max-w-xl leading-relaxed text-sm">
+                      Help evaluate amazing projects, mentor emerging developers, and be a core part of our hackathon community. We're always looking for industry professionals and experienced students to join our judging panels.
+                    </p>
+                  </div>
+                  <Link href="/judge/register" className="shrink-0 px-8 py-4 bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 whitespace-nowrap">
+                    Apply to Judge
+                  </Link>
+                </div>
+              </LiquidGlass>
+            </div>
           </div>
         )}
 

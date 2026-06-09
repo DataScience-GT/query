@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await db!.delete(auditLogs);
+  if (!db) return NextResponse.json({ error: "DB not initialized" }, { status: 500 });
+  await db.delete(auditLogs);
   return NextResponse.json({ ok: true });
 }

@@ -105,28 +105,55 @@
   --duration-slower: 200ms;
 }
 
-/* Light theme overrides */
+/* ========================================================
+   LIGHT MODE — Clean, high-contrast, easy on the eyes
+   ======================================================== */
 .light {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f4f4f4;
-  --bg-tertiary: #eaeaea;
-  --bg-card: #ffffff;
-  --bg-elevated: #ffffff;
-  
-  --text-primary: #000000;
-  --text-secondary: #333333;
-  --text-muted: #555555;
-  --text-subtle: #777777;
-  --text-disabled: #aaaaaa;
-  --text-on-accent: #ffffff;
-  
-  --border-subtle: #dddddd;
-  --border-medium: #bbbbbb;
+  /* Backgrounds: warm white → light grays */
+  --bg-primary:   #f8f9fa;
+  --bg-secondary: #f0f2f5;
+  --bg-tertiary:  #e8eaed;
+  --bg-card:      #ffffff;
+  --bg-elevated:  #ffffff;
+  --bg-glass:     rgba(255, 255, 255, 0.92);
 
-  --accent: #059669; /* Darker emerald for better contrast on white */
-  --accent-primary: #059669;
-  --accent-secondary: #059669;
-  --accent-hover: #ffffff;
+  /* Text: rich blacks and grays — very readable */
+  --text-primary:   #111827;
+  --text-secondary: #374151;
+  --text-muted:     #6b7280;
+  --text-subtle:    #9ca3af;
+  --text-disabled:  #d1d5db;
+  --text-on-accent: #ffffff;
+
+  /* Borders: soft slate grays */
+  --border-subtle: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-strong: #059669;
+  --border-hover:  #059669;
+  --border-accent: #059669;
+
+  /* Accent: deep teal-green — readable on white */
+  --accent:          #059669;
+  --accent-primary:  #059669;
+  --accent-secondary: #047857;
+  --accent-hover:    #065f46;
+  --accent-dim:      rgba(5, 150, 105, 0.08);
+  --accent-glow:     #059669;
+  --accent-gradient: #059669;
+  --accent-fade:     #059669;
+
+  /* Shadows: subtle, colored drop shadows */
+  --shadow-xs:  2px 2px 0px 0px rgba(5,150,105,0.25);
+  --shadow-sm:  3px 3px 0px 0px rgba(5,150,105,0.25);
+  --shadow-md:  5px 5px 0px 0px rgba(5,150,105,0.25);
+  --shadow-lg:  8px 8px 0px 0px rgba(5,150,105,0.20);
+  --shadow-xl:  12px 12px 0px 0px rgba(5,150,105,0.15);
+  --shadow-2xl: 16px 16px 0px 0px rgba(5,150,105,0.12);
+  --shadow-accent: 3px 3px 0px 0px rgba(5,150,105,0.3);
+
+  /* Glass card style in light mode */
+  --glass-bg:     rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(5, 150, 105, 0.3);
 }
 
 /* Reset */
@@ -205,10 +232,10 @@
 .shimmer { animation: shimmer 1s steps(2) infinite; background: #333; }
 .pulse { animation: pulse 1s steps(2) infinite; }
 
-::-webkit-scrollbar { width: 12px; height: 12px; }
-::-webkit-scrollbar-track { background: #000; border: 1px solid #333; }
-::-webkit-scrollbar-thumb { background: var(--accent); border: 2px solid #000; }
-::-webkit-scrollbar-thumb:hover { background: #fff; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); border: 1px solid var(--border-subtle); }
+::-webkit-scrollbar-thumb { background: var(--accent); border: 2px solid var(--bg-secondary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
 
 select {
   background: var(--bg-card);
@@ -233,6 +260,89 @@ button, a {
   cursor: not-allowed;
   opacity: 0.5;
   filter: grayscale(100%);
+}
+
+/* ========================================================
+   LIGHT MODE — Hardcoded dark-color overrides
+   Tailwind bg-white/5 and bg-black become visible again
+   ======================================================== */
+
+/* Sidebar and portal background surfaces */
+.light .bg-\[var\(--bg-primary\)\],
+.light [class*="bg-\[var(--bg-primary)\]"] {
+  background-color: var(--bg-primary) !important;
+}
+
+/* Cards and elevated surfaces in light mode */
+.light .liquid-glass,
+.light .liquid-glass-lg {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+}
+
+.light .liquid-glass:hover,
+.light .liquid-glass-lg:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+}
+
+/* Fix: bg-white/5 (near-invisible on dark) → slate surface on light */
+.light [class*="bg-white\/5"],
+.light [class*="bg-white/5"] {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.light [class*="bg-white\/10"] {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+/* Text colors on light backgrounds */
+.light .text-\[var\(--text-primary\)\]\/40,
+.light [class*="text-[var(--text-primary)]/40"] {
+  color: rgba(17, 24, 39, 0.5) !important;
+}
+
+/* border-[var(--border-subtle)] in light */
+.light [class*="border-\[var\(--border-subtle\)\]"] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* Fix gradient backgrounds that are hardcoded black */
+.light [class*="from-\[#000000\]"],
+.light [class*="from-black"],
+.light [class*="to-black"] {
+  --tw-gradient-from: var(--bg-secondary);
+  --tw-gradient-to: var(--bg-primary);
+}
+
+/* Sidebar in light mode */
+.light .fixed.left-0.top-0.z-40 {
+  background: var(--bg-card) !important;
+  border-right-color: var(--border-subtle) !important;
+}
+
+/* Mobile top bar in light */
+.light .fixed.top-0.left-0.right-0.h-16 {
+  background: rgba(248, 249, 250, 0.95) !important;
+  border-bottom-color: var(--border-subtle) !important;
+}
+
+/* Dividers and subtle lines */
+.light [class*="border-white\/10"],
+.light [class*="border-white/10"] {
+  border-color: var(--border-subtle) !important;
+}
+
+.light [class*="divide-white\/5"] > * + * {
+  border-color: var(--border-subtle) !important;
+}
+
+/* Force text readable on light surfaces */
+.light .text-gray-300,
+.light .text-gray-400 {
+  color: var(--text-muted) !important;
 }
 
 .container-custom { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }

@@ -5,11 +5,10 @@ import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import type { HackathonStatus } from '@/components/admin/hackathons/constants';
-import { STATUSES } from '@/components/admin/hackathons/constants';
+import type { STATUSES } from '@/components/admin/hackathons/constants';
 
 export function HackathonCard({
     hackathon,
-    statusMeta,
     onEdit,
     onStatusChange,
 }: {
@@ -25,11 +24,10 @@ export function HackathonCard({
         currentParticipants: number;
         maxParticipants?: number | null;
     };
-    statusMeta: (typeof STATUSES)[number];
     onEdit: () => void;
     onStatusChange: (s: HackathonStatus) => void;
 }) {
-    const [showStatusMenu, setShowStatusMenu] = useState(false);
+
     const utils = trpc.useUtils();
 
     const { data: events, isLoading: eventsLoading } = trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
@@ -37,7 +35,6 @@ export function HackathonCard({
     const updateMutation = trpc.hackathon.update.useMutation({
         onSuccess: () => {
             utils.hackathon.listAll.invalidate();
-            setShowStatusMenu(false);
             onStatusChange(hackathon.status);
         },
     });

@@ -380,7 +380,7 @@ export default function ClubPage() {
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">Valid Through</h4>
                   <p className="text-[var(--text-subtle)] text-sm mb-6 leading-relaxed">The date your current member profile requires a renewal check.</p>
                   <div className="inline-block px-5 py-2.5 rounded-none bg-accent/10 border border-accent/30 text-accent font-mono tracking-widest text-sm shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                    {/* @ts-ignore */}
+                    {/* @ts-expect-error memberStatus typing not exact */}
                     {memberStatus?.expiresAt ? new Date(memberStatus.expiresAt).toLocaleDateString() : 'N/A'}
                   </div>
                 </div>

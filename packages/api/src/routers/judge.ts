@@ -1479,4 +1479,96 @@ export const judgeRouter = createTRPCRouter({
 
       return projects;
     }),
+
+  register: protectedProcedure
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        name: z.string().min(1).max(200),
+        email: z.string().email().max(200),
+        phone: z.string().max(20).optional(),
+        company: z.string().max(200).optional(),
+        title: z.string().max(200).optional(),
+        specialty: z.string().max(200).optional(),
+        linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
+        githubUrl: z.string().url().max(500).optional().or(z.literal("")),
+        previousExperience: z.string().max(2000).optional(),
+        dietaryRestrictions: z.array(z.string()).optional(),
+        shirtSize: z.string().optional(),
+        whyJudge: z.string().max(2000).optional(),
+        preferredTrack: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        // Find existing judge profile or create one
+        let judge = await tx.query.judges.findFirst({
+          where: eq(judges.userId, ctx.userId),
+        });
+
+        if (judge) {
+          await tx
+            .update(judges)
+            .set({
+              name: input.name,
+              email: input.email,
+              phone: input.phone,
+              company: input.company,
+              title: input.title,
+              specialty: input.specialty,
+              linkedinUrl: input.linkedinUrl,
+              githubUrl: input.githubUrl,
+              previousExperience: input.previousExperience,
+              dietaryRestrictions: input.dietaryRestrictions || [],
+              shirtSize: input.shirtSize,
+              whyJudge: input.whyJudge,
+            })
+            .where(eq(judges.id, judge.id));
+        } else {
+          const inserted = await tx
+            .insert(judges)
+            .values({
+              userId: ctx.userId,
+              name: input.name,
+              email: input.email,
+              phone: input.phone,
+              company: input.company,
+              title: input.title,
+              specialty: input.specialty,
+              linkedinUrl: input.linkedinUrl || null,
+              githubUrl: input.githubUrl || null,
+              previousExperience: input.previousExperience,
+              dietaryRestrictions: input.dietaryRestrictions || [],
+              shirtSize: input.shirtSize,
+              whyJudge: input.whyJudge,
+              isActive: false, // Must be approved by admin
+            })
+            .returning();
+          judge = inserted[0];
+        }
+
+        // Create the hackathon assignment request
+        if (!judge) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create judge profile" });
+
+        const existingAssignment = await tx.query.judgeAssignments.findFirst({
+          where: and(
+            eq(judgeAssignments.judgeId, judge.id),
+            eq(judgeAssignments.hackathonId, input.hackathonId)
+          ),
+        });
+
+        if (existingAssignment) {
+          throw new TRPCError({ code: "CONFLICT", message: "You have already applied to judge this hackathon." });
+        }
+
+        await tx.insert(judgeAssignments).values({
+          judgeId: judge.id,
+          hackathonId: input.hackathonId,
+          track: input.preferredTrack,
+          status: "pending",
+        });
+
+        return { success: true };
+      });
+    }),
 });
