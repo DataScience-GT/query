@@ -107,7 +107,7 @@ function SubmitPortalContent() {
         return null;
     }
 
-    const activeRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(reg.hackathon.endDate) >= new Date() : true) || [];
+    const activeRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(new Date(reg.hackathon.endDate).getTime() + 12 * 60 * 60 * 1000) >= new Date() : true) || [];
 
     return (
         <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden">

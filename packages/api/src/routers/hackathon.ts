@@ -109,6 +109,7 @@ export const hackathonRouter = createTRPCRouter({
         startDate: z.date(),
         endDate: z.date(),
         registrationDeadline: z.date().optional(),
+        hackingStartTime: z.date().optional(),
         maxParticipants: z.number().int().positive().max(10000).optional(),
         prizes: z.array(
           z.object({
@@ -126,6 +127,8 @@ export const hackathonRouter = createTRPCRouter({
         message: "End date must be after start date",
       }).refine(data => !data.registrationDeadline || data.registrationDeadline <= data.startDate, {
         message: "Registration deadline must be before start date",
+      }).refine(data => !data.hackingStartTime || data.hackingStartTime >= data.startDate, {
+        message: "Hacking start time must be after or equal to hackathon start date",
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -152,6 +155,7 @@ export const hackathonRouter = createTRPCRouter({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         registrationDeadline: z.date().optional(),
+        hackingStartTime: z.date().nullable().optional(),
         maxParticipants: z.number().int().positive().max(10000).optional(),
         status: z.enum(["draft", "open", "closed", "in_progress", "completed", "cancelled"]).optional(),
         prizes: z.array(

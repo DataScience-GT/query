@@ -16,6 +16,7 @@ const mockDelete = vi.fn();
 vi.mock('@query/db', () => {
   return {
     db: {
+      transaction: vi.fn().mockImplementation((callback) => callback(db)),
       query: {
         admins: {
           findFirst: (...args: any[]) => mockFindFirst('admins', ...args),
@@ -44,6 +45,18 @@ vi.mock('@query/db', () => {
         events: {
           findFirst: (...args: any[]) => mockFindFirst('events', ...args),
           findMany: (...args: any[]) => mockFindMany('events', ...args),
+        },
+        judges: {
+          findFirst: (...args: any[]) => mockFindFirst('judges', ...args),
+          findMany: (...args: any[]) => mockFindMany('judges', ...args),
+        },
+        judgeAssignments: {
+          findFirst: (...args: any[]) => mockFindFirst('judgeAssignments', ...args),
+          findMany: (...args: any[]) => mockFindMany('judgeAssignments', ...args),
+        },
+        hackathonProjects: {
+          findFirst: (...args: any[]) => mockFindFirst('hackathonProjects', ...args),
+          findMany: (...args: any[]) => mockFindMany('hackathonProjects', ...args),
         }
       },
       insert: () => ({
@@ -82,6 +95,7 @@ vi.mock('@query/db', () => {
       status: 'status',
       isPublic: 'is_public',
       startDate: 'start_date',
+      endDate: 'end_date',
     },
     hackathonParticipants: {
       id: 'id',
@@ -103,6 +117,18 @@ vi.mock('@query/db', () => {
       qrCode: 'qr_code',
       checkInEnabled: 'check_in_enabled',
       eventDate: 'event_date',
+    },
+    judges: {
+      id: 'id',
+      userId: 'user_id',
+    },
+    judgeAssignments: {
+      judgeId: 'judge_id',
+      hackathonId: 'hackathon_id',
+    },
+    hackathonProjects: {
+      id: 'id',
+      hackathonId: 'hackathon_id',
     }
   };
 });
@@ -398,6 +424,136 @@ describe('Router Integration and Access Control Verification Suite', () => {
       const dangerousValue = "value\\' OR \\'1\\'=\\'1";
       const cleanValue = sanitizeInput(dangerousValue);
       expect(typeof cleanValue).toBe('string');
+    });
+  });
+
+  describe('7. Hackathon Teams, Judge and Project Submission Restrictions', () => {
+    it('should reject team creation if maxMembers is greater than 4', async () => {
+      const ctx = createMockCtx('user_id');
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.createTeam({
+          hackathonId: '00000000-0000-0000-0000-000000000000',
+          name: 'Super Team',
+          maxMembers: 5,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should prevent registered participants from applying to be a judge', async () => {
+      const ctx = createMockCtx('participant_user_id');
+      const hackathonId = '00000000-0000-0000-0000-000000000001';
+      mockFindFirst.mockImplementation((table) => {
+        if (table === 'hackathonParticipants') {
+          return { id: 'participant_1', userId: 'participant_user_id', hackathonId };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.judge.register({
+          hackathonId,
+          name: 'John Doe',
+          email: 'john@example.com',
+        })
+      ).rejects.toThrowError('You cannot apply to be a judge because you are registered as a participant for this hackathon.');
+    });
+
+    it('should prevent project submissions before 12 hours after the hacking begins', async () => {
+      const ctx = createMockCtx('captain_user_id');
+      const hackathonId = '00000000-0000-0000-0000-000000000001';
+      const teamId = '00000000-0000-0000-0000-000000000002';
+      
+      const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000); // 11 hours ago
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === 'hackathonParticipants') {
+          return { id: 'participant_1', userId: 'captain_user_id', hackathonId, teamId };
+        }
+        if (table === 'hackathons') {
+          return { id: hackathonId, startDate: recentStartDate, hackingStartTime: null };
+        }
+        if (table === 'hackathonTeams') {
+          return { id: teamId, captainId: 'captain_user_id', hackathonId };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: 'Awesome Project',
+          description: 'This is a long description of the awesome project.',
+        })
+      ).rejects.toThrowError('Project submission is not open yet. It starts 12 hours after the hacking begins.');
+    });
+
+    it('should prevent project edits (existing project) after 34 hours of starting hacking', async () => {
+      const ctx = createMockCtx('captain_user_id');
+      const hackathonId = '00000000-0000-0000-0000-000000000001';
+      const teamId = '00000000-0000-0000-0000-000000000002';
+      
+      const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000); // 35 hours ago
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === 'hackathonParticipants') {
+          return { id: 'participant_1', userId: 'captain_user_id', hackathonId, teamId };
+        }
+        if (table === 'hackathons') {
+          return { id: hackathonId, startDate: startDate35hAgo, hackingStartTime: null };
+        }
+        if (table === 'hackathonTeams') {
+          return { id: teamId, captainId: 'captain_user_id', hackathonId };
+        }
+        if (table === 'hackathonProjects') {
+          return { id: 'project_1', hackathonId, teamId, name: 'Old Name', description: 'Old Description' };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: 'Awesome Project',
+          description: 'This is a long description of the awesome project.',
+        })
+      ).rejects.toThrowError('Project edits are closed. Devposts must be final 34 hours after the hacking starts.');
+    });
+
+    it('should prevent project submissions more than 36 hours after hacking starts', async () => {
+      const ctx = createMockCtx('captain_user_id');
+      const hackathonId = '00000000-0000-0000-0000-000000000001';
+      const teamId = '00000000-0000-0000-0000-000000000002';
+      
+      const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000); // 37 hours ago
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === 'hackathonParticipants') {
+          return { id: 'participant_1', userId: 'captain_user_id', hackathonId, teamId };
+        }
+        if (table === 'hackathons') {
+          return { id: hackathonId, startDate: pastStartDate, hackingStartTime: null };
+        }
+        if (table === 'hackathonTeams') {
+          return { id: teamId, captainId: 'captain_user_id', hackathonId };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: 'Awesome Project',
+          description: 'This is a long description of the awesome project.',
+        })
+      ).rejects.toThrowError('Project submission closed. The submission window ended 36 hours after the hacking started.');
     });
   });
 
