@@ -19,11 +19,16 @@ const PrizeTicket: React.FC<{
 
   return (
     <div className={`flex flex-col items-center w-full max-w-[280px] group transition-all duration-500 hover:-translate-y-2`}>
-      <div className={`w-full aspect-[1.8/1] relative glass-panel flex flex-col items-center justify-center p-4 overflow-hidden border-2 ${color.border} ${color.shadow} rounded-b-none`}>
-        {/* Abstract Glow */}
-        <div className={`absolute top-0 right-0 w-40 h-40 ${color.border.replace('border-', 'bg-')}/30 blur-[50px] pointer-events-none group-hover:scale-150 transition-transform duration-700`}></div>
+      <div className={`w-full aspect-[1.8/1] relative glass-panel flex flex-col items-center justify-center p-4 overflow-hidden border-2 ${color.border} ${color.shadow} rounded-b-none bg-black/20`}>
+        {/* Ticket Background Image Watermark */}
+        <div className="absolute inset-0 z-0 opacity-40 group-hover:opacity-60 transition-opacity duration-500">
+          <Image src={`/tickets/${type}.png`} alt={`${type} ticket background`} fill className="object-cover" />
+        </div>
         
-        <div className={`w-16 h-16 md:w-24 md:h-24 relative mb-2 z-10 filter drop-shadow-[0_0_15px_currentColor] group-hover:scale-110 transition-all duration-500`}>
+        {/* Abstract Glow */}
+        <div className={`absolute top-0 right-0 w-40 h-40 ${color.border.replace('border-', 'bg-')}/30 blur-[50px] pointer-events-none group-hover:scale-150 transition-transform duration-700 z-10`}></div>
+        
+        <div className={`w-16 h-16 md:w-24 md:h-24 relative mb-2 z-20 filter drop-shadow-[0_0_15px_currentColor] group-hover:scale-110 transition-all duration-500`}>
           <Image src={image} alt={prize} fill className="object-contain" />
         </div>
       </div>
@@ -84,6 +89,49 @@ const TrackPrizeCard: React.FC<{
   </div>
 );
 
+// Cybernetic Speaker Avatar Placeholder Component
+const SpeakerAvatar: React.FC<{ colorClass: string }> = ({ colorClass }) => {
+  const glowColor = colorClass.includes('purple') ? '#9d00ff' :
+                    colorClass.includes('pink') ? '#ff007f' :
+                    colorClass.includes('lime') ? '#ccff00' : '#00f3ff';
+  
+  return (
+    <div className="w-full h-full relative bg-black/40 flex items-center justify-center">
+      <svg className="w-full h-full" viewBox="0 0 100 100" fill="none">
+        <defs>
+          <radialGradient id={`avatarGlow-${glowColor.replace('#', '')}`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={glowColor} stopOpacity="0.4" />
+            <stop offset="70%" stopColor={glowColor} stopOpacity="0.1" />
+            <stop offset="100%" stopColor={glowColor} stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id={`silhouetteGrad-${glowColor.replace('#', '')}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#1e2230" />
+            <stop offset="100%" stopColor={glowColor} stopOpacity="0.35" />
+          </linearGradient>
+        </defs>
+        
+        {/* Background glow */}
+        <circle cx="50" cy="50" r="45" fill={`url(#avatarGlow-${glowColor.replace('#', '')})`} />
+        
+        {/* Cyber circuit lines */}
+        <circle cx="50" cy="50" r="38" stroke={glowColor} strokeWidth="0.5" strokeDasharray="4 8" className="animate-pulse" style={{ transformOrigin: 'center' }} />
+        <circle cx="50" cy="50" r="32" stroke={glowColor} strokeWidth="0.25" opacity="0.5" />
+        
+        {/* Target reticle elements */}
+        <path d="M 50 8 L 50 14 M 50 86 L 50 92 M 8 50 L 14 50 M 86 50 L 92 50" stroke={glowColor} strokeWidth="1" opacity="0.6" />
+        
+        {/* Silhouette */}
+        <path d="M 50 32 C 43 32 38 37 38 44 C 38 51 43 56 50 56 C 57 56 62 51 62 44 C 62 37 57 32 50 32 Z M 50 60 C 36 60 25 70 25 80 L 75 80 C 75 70 64 60 50 60 Z" fill={`url(#silhouetteGrad-${glowColor.replace('#', '')})`} stroke={glowColor} strokeWidth="0.5" opacity="0.8" />
+        
+        {/* Digital node details */}
+        <circle cx="50" cy="44" r="1.5" fill={glowColor} />
+        <line x1="50" y1="44" x2="62" y2="44" stroke={glowColor} strokeWidth="0.5" opacity="0.5" />
+        <circle cx="62" cy="44" r="1" fill="#fff" />
+      </svg>
+    </div>
+  );
+};
+
 // Cybernetic Speaker Card Component
 const SpeakerCard: React.FC<{ name: string; title: string; company: string; image: string; colorClass: string }> = ({
   name,
@@ -96,8 +144,12 @@ const SpeakerCard: React.FC<{ name: string; title: string; company: string; imag
     <div className={`absolute -bottom-10 -right-10 w-48 h-48 ${colorClass.replace('text-', 'bg-')}/20 blur-[50px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
     
     {/* Image Container */}
-    <div className={`w-full aspect-square relative mb-6 rounded-full border-4 border-transparent group-hover:border-${colorClass.replace('text-', '')}/50 filter grayscale group-hover:grayscale-0 transition-all duration-500 overflow-hidden shadow-2xl`}>
-      <Image src={image} alt={name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+    <div className={`w-full aspect-square relative mb-6 rounded-full border-4 border-transparent group-hover:border-${colorClass.replace('text-', '')}/50 filter grayscale group-hover:grayscale-0 transition-all duration-500 overflow-hidden shadow-2xl bg-black/40`}>
+      {name === 'TBD' ? (
+        <SpeakerAvatar colorClass={colorClass} />
+      ) : (
+        <Image src={image} alt={name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+      )}
     </div>
 
     {/* Info */}
