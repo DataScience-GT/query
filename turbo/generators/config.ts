@@ -14,9 +14,7 @@ type PkgJson = {
 function sanitizeName(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.replace(/^@forge\//, "").trim();
-
 }
-
 
 async function latestVersion(pkg: string): Promise<string> {
   const res = await fetch(

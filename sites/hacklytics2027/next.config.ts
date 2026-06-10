@@ -6,8 +6,8 @@ const nextConfig = {
     // Optional: allow external domains if needed by Supabase or other images
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "**",
       },
     ],
   },
@@ -16,14 +16,13 @@ const nextConfig = {
   poweredByHeader: false, // Remove X-Powered-By header (smaller responses + security)
   experimental: {
     optimizePackageImports: [
-      'react-icons',
-      'clsx',
-      'class-variance-authority',
-      'tailwind-merge',
+      "react-icons",
+      "clsx",
+      "class-variance-authority",
+      "tailwind-merge",
     ],
   },
   reactStrictMode: true, // recommended
 };
 
 export default nextConfig;
-

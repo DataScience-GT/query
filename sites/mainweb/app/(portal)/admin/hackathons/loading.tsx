@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { LoadingScreen } from '@/components/portal/LoadingScreen';
+import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 export default function Loading() {
-    return <LoadingScreen message="Verifying Admin Clearance Levels..." />;
+  return <LoadingScreen message="Verifying Admin Clearance Levels..." />;
 }

@@ -9,7 +9,13 @@
  */
 import { auth } from "@query/auth";
 import { db } from "@query/db";
-import { judgeQueue, judgeVotes, judgingProjects, admins, judges } from "@query/db";
+import {
+  judgeQueue,
+  judgeVotes,
+  judgingProjects,
+  admins,
+  judges,
+} from "@query/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -19,7 +25,7 @@ const TICK_MS = 8_000; // push an update every 8 seconds
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ hackathonId: string }> }
+  { params }: { params: Promise<{ hackathonId: string }> },
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -61,7 +67,10 @@ export async function GET(
           avgScore: sql<number>`round(avg(${judgeVotes.score})::numeric, 2)`,
         })
         .from(judgeVotes)
-        .innerJoin(judgingProjects, eq(judgingProjects.id, judgeVotes.projectId))
+        .innerJoin(
+          judgingProjects,
+          eq(judgingProjects.id, judgeVotes.projectId),
+        )
         .where(eq(judgingProjects.hackathonId, hackathonId))
         .groupBy(judgeVotes.projectId),
 
@@ -97,7 +106,11 @@ export async function GET(
       topProjects: voteStats
         .sort((a, b) => Number(b.avgScore) - Number(a.avgScore))
         .slice(0, 10)
-        .map((v) => ({ projectId: v.projectId, votes: Number(v.voteCount), avg: Number(v.avgScore) })),
+        .map((v) => ({
+          projectId: v.projectId,
+          votes: Number(v.voteCount),
+          avg: Number(v.avgScore),
+        })),
     };
   }
 
@@ -108,7 +121,9 @@ export async function GET(
       const send = (data: unknown) => {
         if (closed) return;
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+          );
         } catch {
           closed = true;
         }
@@ -140,7 +155,11 @@ export async function GET(
       req.signal.addEventListener("abort", () => {
         closed = true;
         clearInterval(interval);
-        try { controller.close(); } catch { /* already closed */ }
+        try {
+          controller.close();
+        } catch {
+          /* already closed */
+        }
       });
     },
   });

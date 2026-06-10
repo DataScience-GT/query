@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - main
       - dev
-      - 'dependabot/**'
+      - "dependabot/**"
 
 jobs:
   create-pull-request:
@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-      
+
       - name: Create or Update PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { trpc } from '@/lib/trpc';
-import { useRouter } from 'next/navigation';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { Users, Trophy, Calendar, TrendingUp, QrCode } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { useSession } from "next-auth/react";
+import { trpc } from "@/lib/trpc";
+import { useRouter } from "next/navigation";
+import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { Users, Trophy, Calendar, TrendingUp, QrCode } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface StatCardProps {
   icon: LucideIcon;
@@ -23,14 +23,23 @@ export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(undefined, { enabled: !!session });
+  const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
+    undefined,
+    { enabled: !!session },
+  );
 
-  if (status === 'unauthenticated') {
-    router.push('/login');
+  if (status === "unauthenticated") {
+    router.push("/login");
     return null;
   }
 
-  const StatCard = ({ icon: Icon, title, value, subtitle, trend }: StatCardProps) => (
+  const StatCard = ({
+    icon: Icon,
+    title,
+    value,
+    subtitle,
+    trend,
+  }: StatCardProps) => (
     <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
       {/* Background gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -44,10 +53,14 @@ export default function AnalyticsPage() {
         </div>
         <div className="flex-1">
           <p className="text-sm text-text-muted font-medium">{title}</p>
-          <p className="text-3xl font-black text-[var(--text-primary)] tracking-tight">{value}</p>
+          <p className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
+            {value}
+          </p>
           {subtitle && (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-text-muted font-mono">{subtitle}</span>
+              <span className="text-xs text-text-muted font-mono">
+                {subtitle}
+              </span>
               {trend?.positive && (
                 <span className="text-xs text-accent flex items-center gap-1 group-hover/icon:gap-2 transition-all">
                   <TrendingUp className="h-3 w-3 animate-in slide-in-from-bottom-2" />
@@ -89,7 +102,8 @@ export default function AnalyticsPage() {
             Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
-            View comprehensive statistics across all events, hackathons, and user engagement.
+            View comprehensive statistics across all events, hackathons, and
+            user engagement.
           </p>
         </div>
 
@@ -141,7 +155,13 @@ export default function AnalyticsPage() {
           <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-              <svg className="w-40 h-40 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              <svg
+                className="w-40 h-40 text-accent"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
             </div>
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
               Registration Trend
@@ -149,7 +169,9 @@ export default function AnalyticsPage() {
             <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
               {/* Chart background decorations */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-              <p className="relative text-text-muted text-sm text-center z-10">Chart visualization for registration trends</p>
+              <p className="relative text-text-muted text-sm text-center z-10">
+                Chart visualization for registration trends
+              </p>
             </div>
           </LiquidGlass>
 
@@ -157,7 +179,14 @@ export default function AnalyticsPage() {
           <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-              <svg className="w-36 h-36 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 12c0 1.232-.043 2.422-.134 3.573M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M12 17.75V.188A2.02 2.02 0 009.99 0 4.02 4.02 0 005.97 2.01L4 12c0 4.17 2.96 7.7 7 9" /></svg>
+              <svg
+                className="w-36 h-36 text-accent"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M19.5 12c0 1.232-.043 2.422-.134 3.573M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path d="M12 17.75V.188A2.02 2.02 0 009.99 0 4.02 4.02 0 005.97 2.01L4 12c0 4.17 2.96 7.7 7 9" />
+              </svg>
             </div>
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
               Event Distribution
@@ -165,7 +194,9 @@ export default function AnalyticsPage() {
             <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
               {/* Chart background decorations */}
               <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
-              <p className="relative text-text-muted text-sm text-center z-10">Pie chart for event type breakdown</p>
+              <p className="relative text-text-muted text-sm text-center z-10">
+                Pie chart for event type breakdown
+              </p>
             </div>
           </LiquidGlass>
         </div>
@@ -174,7 +205,13 @@ export default function AnalyticsPage() {
         <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg className="w-32 h-32 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
+            <svg
+              className="w-32 h-32 text-accent"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
           </div>
           <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
             Recent Activity
@@ -182,7 +219,10 @@ export default function AnalyticsPage() {
           <div className="space-y-3">
             {isLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-none bg-white/5 animate-pulse group-hover:bg-white/[0.08] transition-colors">
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-3 rounded-none bg-white/5 animate-pulse group-hover:bg-white/[0.08] transition-colors"
+                >
                   <div className="h-10 w-10 rounded-sm bg-white/10 group-hover:bg-accent/10 transition-colors" />
                   <div className="flex-1 space-y-2">
                     <div className="h-4 w-32 bg-white/10 rounded mb-2 group-hover:bg-accent/10 transition-colors" />

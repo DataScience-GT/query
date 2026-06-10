@@ -33,10 +33,15 @@ function shuffleArray<T>(array: T[]): T[] {
  * This removes per-judge harshness/leniency bias before aggregation.
  * Returns null if fewer than 2 data points (can't compute meaningful stddev).
  */
-function zNormalize(scores: number[], globalMean: number, globalStd: number): number[] {
+function zNormalize(
+  scores: number[],
+  globalMean: number,
+  globalStd: number,
+): number[] {
   if (scores.length < 2) return scores.map(() => globalMean);
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const variance = scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
+  const variance =
+    scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
   const std = Math.sqrt(variance);
   if (std === 0) return scores.map(() => globalMean); // judge gave same score to everything
   return scores.map((v) => globalMean + ((v - mean) / std) * globalStd);
@@ -49,9 +54,19 @@ function zNormalize(scores: number[], globalMean: number, globalStd: number): nu
  */
 function buildCoverageQueues(
   judgeAssignmentsList: { judgeId: string; track: string | null }[],
-  projects: { id: string; tracks: string[] | null; challenges: string[] | null; tableNumber: number }[],
+  projects: {
+    id: string;
+    tracks: string[] | null;
+    challenges: string[] | null;
+    tableNumber: number;
+  }[],
   mainTracks: Set<string>,
-  opts: { minProjects: number; maxProjects: number; shuffle: boolean; groupSpecial: boolean }
+  opts: {
+    minProjects: number;
+    maxProjects: number;
+    shuffle: boolean;
+    groupSpecial: boolean;
+  },
 ): Map<string, string[]> {
   const queues = new Map<string, string[]>();
   for (const a of judgeAssignmentsList) queues.set(a.judgeId, []);
@@ -68,7 +83,9 @@ function buildCoverageQueues(
       ? projects.filter((p) => {
           const inTracks = p.tracks?.includes(track) ?? false;
           const inChallenges = p.challenges?.includes(track) ?? false;
-          const matchCreateX = track.toLowerCase() === "createx" && !!(p as { isCreateX?: boolean }).isCreateX;
+          const matchCreateX =
+            track.toLowerCase() === "createx" &&
+            !!(p as { isCreateX?: boolean }).isCreateX;
           return inTracks || inChallenges || matchCreateX;
         })
       : projects;
@@ -76,8 +93,12 @@ function buildCoverageQueues(
     if (isSpecial) {
       // Special judges always get their full pool
       const ordered = opts.groupSpecial ? pool : shuffleArray(pool);
-      queues.set(a.judgeId, ordered.map((p) => p.id));
-      for (const p of ordered) coverage.set(p.id, (coverage.get(p.id) ?? 0) + 1);
+      queues.set(
+        a.judgeId,
+        ordered.map((p) => p.id),
+      );
+      for (const p of ordered)
+        coverage.set(p.id, (coverage.get(p.id) ?? 0) + 1);
       eligiblePool.set(a.judgeId, []);
     } else {
       eligiblePool.set(a.judgeId, opts.shuffle ? shuffleArray(pool) : pool);
@@ -86,7 +107,7 @@ function buildCoverageQueues(
 
   // Round-robin fill: prioritize under-covered projects
   const mainJudges = judgeAssignmentsList.filter(
-    (a) => !a.track || mainTracks.has(a.track)
+    (a) => !a.track || mainTracks.has(a.track),
   );
 
   let anyChange = true;
@@ -101,10 +122,16 @@ function buildCoverageQueues(
       const assigned = new Set(queue);
       const candidate = pool
         .filter((p) => !assigned.has(p.id))
-        .sort((a, b) => (coverage.get(a.id) ?? 0) - (coverage.get(b.id) ?? 0))[0];
+        .sort(
+          (a, b) => (coverage.get(a.id) ?? 0) - (coverage.get(b.id) ?? 0),
+        )[0];
 
       if (!candidate) continue;
-      if (queue.length >= opts.minProjects && (coverage.get(candidate.id) ?? 0) > 0) continue;
+      if (
+        queue.length >= opts.minProjects &&
+        (coverage.get(candidate.id) ?? 0) > 0
+      )
+        continue;
 
       queue.push(candidate.id);
       coverage.set(candidate.id, (coverage.get(candidate.id) ?? 0) + 1);
@@ -139,7 +166,7 @@ export const judgeRouter = createTRPCRouter({
     const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
       where: and(
         eq(judges.userId, ctx.userId as string),
-        eq(judges.isActive, true)
+        eq(judges.isActive, true),
       ),
     });
 
@@ -154,7 +181,9 @@ export const judgeRouter = createTRPCRouter({
   }),
 
   getMyAssignments: isJudge.query(async ({ ctx }) => {
-    const assignments = await (ctx.db as DrizzleDB).query.judgeAssignments.findMany({
+    const assignments = await (
+      ctx.db as DrizzleDB
+    ).query.judgeAssignments.findMany({
       where: eq(judgeAssignments.judgeId, ctx.judge.id),
       with: {
         hackathon: true,
@@ -169,11 +198,13 @@ export const judgeRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       try {
-        const nextInQueue = await (ctx.db as DrizzleDB).query.judgeQueue.findFirst({
+        const nextInQueue = await (
+          ctx.db as DrizzleDB
+        ).query.judgeQueue.findFirst({
           where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
             eq(judgeQueue.hackathonId, input.hackathonId),
-            eq(judgeQueue.isCompleted, false)
+            eq(judgeQueue.isCompleted, false),
           ),
           with: {
             project: true,
@@ -192,8 +223,8 @@ export const judgeRouter = createTRPCRouter({
             and(
               eq(judgeQueue.judgeId, ctx.judge.id),
               eq(judgeQueue.hackathonId, input.hackathonId),
-              eq(judgeQueue.isCompleted, false)
-            )
+              eq(judgeQueue.isCompleted, false),
+            ),
           );
 
         return {
@@ -206,7 +237,10 @@ export const judgeRouter = createTRPCRouter({
         // getNextTable error
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "Failed to fetch next project",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to fetch next project",
         });
       }
     }),
@@ -214,7 +248,9 @@ export const judgeRouter = createTRPCRouter({
   getProjects: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const projects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
+      const projects = await (
+        ctx.db as DrizzleDB
+      ).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
@@ -254,10 +290,12 @@ export const judgeRouter = createTRPCRouter({
     }),
 
   toggleJudging: isAdmin
-    .input(z.object({
-      hackathonId: z.string().uuid(),
-      active: z.boolean(),
-    }))
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        active: z.boolean(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const [updated] = await (ctx.db as DrizzleDB)
         .update(hackathons)
@@ -278,10 +316,15 @@ export const judgeRouter = createTRPCRouter({
         scoreSoundness: z.number().min(1).max(10),
         durationSeconds: z.number().int().min(0).optional(),
         comment: z.string().max(1000).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const totalScore = input.scoreCreativity + input.scoreImpact + input.scoreScope + input.scoreClarity + input.scoreSoundness;
+      const totalScore =
+        input.scoreCreativity +
+        input.scoreImpact +
+        input.scoreScope +
+        input.scoreClarity +
+        input.scoreSoundness;
 
       // Atomic upsert: INSERT or UPDATE if judge already voted on this project
       const result = await (ctx.db as DrizzleDB)
@@ -329,10 +372,15 @@ export const judgeRouter = createTRPCRouter({
         scoreSoundness: z.number().min(1).max(10),
         durationSeconds: z.number().int().min(0).optional(),
         comment: z.string().max(1000).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const totalScore = input.scoreCreativity + input.scoreImpact + input.scoreScope + input.scoreClarity + input.scoreSoundness;
+      const totalScore =
+        input.scoreCreativity +
+        input.scoreImpact +
+        input.scoreScope +
+        input.scoreClarity +
+        input.scoreSoundness;
 
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // 1. Atomic upsert vote
@@ -388,7 +436,7 @@ export const judgeRouter = createTRPCRouter({
           where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
             eq(judgeQueue.hackathonId, queueItem.hackathonId),
-            eq(judgeQueue.isCompleted, false)
+            eq(judgeQueue.isCompleted, false),
           ),
           with: {
             project: true,
@@ -412,7 +460,7 @@ export const judgeRouter = createTRPCRouter({
     .input(
       z.object({
         queueId: z.string().uuid(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
@@ -441,7 +489,7 @@ export const judgeRouter = createTRPCRouter({
           where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
             eq(judgeQueue.hackathonId, queueItem.hackathonId),
-            eq(judgeQueue.isCompleted, false)
+            eq(judgeQueue.isCompleted, false),
           ),
           with: {
             project: true,
@@ -451,7 +499,12 @@ export const judgeRouter = createTRPCRouter({
 
         if (!nextInQueue || nextInQueue.id === input.queueId) {
           // Only this one project left — can't skip the last one
-          return { done: false, skippedToEnd: true, project: queueItem, queueId: input.queueId };
+          return {
+            done: false,
+            skippedToEnd: true,
+            project: queueItem,
+            queueId: input.queueId,
+          };
         }
 
         return {
@@ -471,7 +524,11 @@ export const judgeRouter = createTRPCRouter({
           where: eq(judgeQueue.id, input.queueId),
           with: { project: true },
         });
-        if (!queueItem) throw new TRPCError({ code: "NOT_FOUND", message: "Queue item not found" });
+        if (!queueItem)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Queue item not found",
+          });
 
         // Mark completed (no vote submitted)
         await tx
@@ -496,7 +553,11 @@ export const judgeRouter = createTRPCRouter({
           const projectTracks = queueItem.project?.tracks || [];
 
           // Build candidate list with workload info
-          const candidates: { judgeId: string; trackMatch: boolean; remaining: number }[] = [];
+          const candidates: {
+            judgeId: string;
+            trackMatch: boolean;
+            remaining: number;
+          }[] = [];
 
           for (const other of otherAssignments) {
             if (other.judgeId === ctx.judge.id) continue;
@@ -514,11 +575,13 @@ export const judgeRouter = createTRPCRouter({
             const remainingCount = await tx
               .select({ count: sql<number>`COUNT(*)` })
               .from(judgeQueue)
-              .where(and(
-                eq(judgeQueue.judgeId, other.judgeId),
-                eq(judgeQueue.hackathonId, myAssignment.hackathonId),
-                eq(judgeQueue.isCompleted, false),
-              ));
+              .where(
+                and(
+                  eq(judgeQueue.judgeId, other.judgeId),
+                  eq(judgeQueue.hackathonId, myAssignment.hackathonId),
+                  eq(judgeQueue.isCompleted, false),
+                ),
+              );
 
             // Check track match: judge's assigned track overlaps with project's tracks
             const trackMatch = other.track
@@ -579,8 +642,8 @@ export const judgeRouter = createTRPCRouter({
           .where(
             and(
               eq(judgeQueue.judgeId, ctx.judge.id),
-              eq(judgeQueue.hackathonId, input.hackathonId)
-            )
+              eq(judgeQueue.hackathonId, input.hackathonId),
+            ),
           );
 
         const completedResult = await (ctx.db as DrizzleDB)
@@ -590,8 +653,8 @@ export const judgeRouter = createTRPCRouter({
             and(
               eq(judgeQueue.judgeId, ctx.judge.id),
               eq(judgeQueue.hackathonId, input.hackathonId),
-              eq(judgeQueue.isCompleted, true)
-            )
+              eq(judgeQueue.isCompleted, true),
+            ),
           );
 
         const total = Number(totalResult[0]?.count || 0);
@@ -606,7 +669,8 @@ export const judgeRouter = createTRPCRouter({
         // getProgress error
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "Failed to fetch progress",
+          message:
+            error instanceof Error ? error.message : "Failed to fetch progress",
         });
       }
     }),
@@ -618,7 +682,9 @@ export const judgeRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof result>(cacheKey);
       if (cached) return cached;
 
-      const projects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
+      const projects = await (
+        ctx.db as DrizzleDB
+      ).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
           votes: {
@@ -652,12 +718,15 @@ export const judgeRouter = createTRPCRouter({
 
       // ─── Step 2: Compute global score distribution ─────────────────────────
       const allRawScores = [...scoresByJudge.values()].flat();
-      const globalMean = allRawScores.length > 0
-        ? allRawScores.reduce((a, b) => a + b, 0) / allRawScores.length
-        : 0;
-      const globalVariance = allRawScores.length > 0
-        ? allRawScores.reduce((s, v) => s + (v - globalMean) ** 2, 0) / allRawScores.length
-        : 1;
+      const globalMean =
+        allRawScores.length > 0
+          ? allRawScores.reduce((a, b) => a + b, 0) / allRawScores.length
+          : 0;
+      const globalVariance =
+        allRawScores.length > 0
+          ? allRawScores.reduce((s, v) => s + (v - globalMean) ** 2, 0) /
+            allRawScores.length
+          : 1;
       const globalStd = Math.sqrt(globalVariance) || 1;
 
       // ─── Step 3: Build per-judge normalized score lookup ──────────────────
@@ -670,7 +739,12 @@ export const judgeRouter = createTRPCRouter({
         rawScores.forEach((raw, i) => {
           // If same raw score appears multiple times, average the normalized values
           const existing = lookup.get(raw);
-          lookup.set(raw, existing !== undefined ? (existing + normalized[i]!) / 2 : normalized[i]!);
+          lookup.set(
+            raw,
+            existing !== undefined
+              ? (existing + normalized[i]!) / 2
+              : normalized[i]!,
+          );
         });
         normalizedScoreLookup.set(judgeId, lookup);
       }
@@ -691,13 +765,22 @@ export const judgeRouter = createTRPCRouter({
         const avgScore = voteCount > 0 ? totalScore / voteCount : 0;
 
         // Z-score normalized scores (bias-corrected)
-        const normalizedScores = project.votes.map((v) => getNormalized(v.judgeId, v.score));
-        const normalizedAvg = voteCount > 0
-          ? round2(normalizedScores.reduce((a, b) => a + b, 0) / voteCount)
-          : 0;
+        const normalizedScores = project.votes.map((v) =>
+          getNormalized(v.judgeId, v.score),
+        );
+        const normalizedAvg =
+          voteCount > 0
+            ? round2(normalizedScores.reduce((a, b) => a + b, 0) / voteCount)
+            : 0;
 
         // Per-category averages (raw)
-        const sumCat = { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
+        const sumCat = {
+          creativity: 0,
+          impact: 0,
+          scope: 0,
+          clarity: 0,
+          soundness: 0,
+        };
         project.votes.forEach((v) => {
           sumCat.creativity += v.scoreCreativity ?? 0;
           sumCat.impact += v.scoreImpact ?? 0;
@@ -706,15 +789,16 @@ export const judgeRouter = createTRPCRouter({
           sumCat.soundness += v.scoreSoundness ?? 0;
         });
 
-        const categoryAvg = voteCount > 0
-          ? {
-            creativity: round2(sumCat.creativity / voteCount),
-            impact: round2(sumCat.impact / voteCount),
-            scope: round2(sumCat.scope / voteCount),
-            clarity: round2(sumCat.clarity / voteCount),
-            soundness: round2(sumCat.soundness / voteCount),
-          }
-          : { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
+        const categoryAvg =
+          voteCount > 0
+            ? {
+                creativity: round2(sumCat.creativity / voteCount),
+                impact: round2(sumCat.impact / voteCount),
+                scope: round2(sumCat.scope / voteCount),
+                clarity: round2(sumCat.clarity / voteCount),
+                soundness: round2(sumCat.soundness / voteCount),
+              }
+            : { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
 
         return {
           project: {
@@ -743,24 +827,48 @@ export const judgeRouter = createTRPCRouter({
             scoreSoundness: v.scoreSoundness,
             comment: v.comment,
             durationSeconds: v.durationSeconds,
-            judgeName: (v as VoteWithJudge & { judge: { user?: { name?: string | null }; name?: string | null } }).judge.user?.name || (v as VoteWithJudge & { judge: { user?: { name?: string | null }; name?: string | null } }).judge.name || "Unknown",
+            judgeName:
+              (
+                v as VoteWithJudge & {
+                  judge: {
+                    user?: { name?: string | null };
+                    name?: string | null;
+                  };
+                }
+              ).judge.user?.name ||
+              (
+                v as VoteWithJudge & {
+                  judge: {
+                    user?: { name?: string | null };
+                    name?: string | null;
+                  };
+                }
+              ).judge.name ||
+              "Unknown",
           })),
         };
       });
 
       // ─── Step 5: Compute global normalized average for Bayesian prior ──────
       const votedProjects = rawRankings.filter((r) => r.voteCount > 0);
-      const globalAvg = votedProjects.length > 0
-        ? round2(votedProjects.reduce((sum, r) => sum + r.normalizedAvg, 0) / votedProjects.length)
-        : 0;
+      const globalAvg =
+        votedProjects.length > 0
+          ? round2(
+              votedProjects.reduce((sum, r) => sum + r.normalizedAvg, 0) /
+                votedProjects.length,
+            )
+          : 0;
 
       // ─── Step 6: Bayesian + Z-score combined final score ──────────────────
       // weightedScore blends normalized avg toward the global mean when few judges voted.
       const rankings = rawRankings.map((r) => {
         const n = r.voteCount;
-        const weightedScore = n > 0
-          ? round2((n / (n + C)) * r.normalizedAvg + (C / (n + C)) * globalAvg)
-          : 0;
+        const weightedScore =
+          n > 0
+            ? round2(
+                (n / (n + C)) * r.normalizedAvg + (C / (n + C)) * globalAvg,
+              )
+            : 0;
         const confidenceLevel: "NONE" | "LOW" | "MEDIUM" | "HIGH" =
           n === 0 ? "NONE" : n === 1 ? "LOW" : n === 2 ? "MEDIUM" : "HIGH";
         const scoreShift = round2(r.normalizedAvg - r.avgScore); // how much bias-correction shifted this project
@@ -772,7 +880,15 @@ export const judgeRouter = createTRPCRouter({
       rankings.sort((a, b) => b.weightedScore - a.weightedScore);
 
       // Weighted-score ties
-      const ties: { score: number; projects: { id: string; name: string; tableNumber: number; zone: string | null }[] }[] = [];
+      const ties: {
+        score: number;
+        projects: {
+          id: string;
+          name: string;
+          tableNumber: number;
+          zone: string | null;
+        }[];
+      }[] = [];
       const scoreGroups = new Map<number, typeof rankings>();
 
       rankings.forEach((r) => {
@@ -788,14 +904,25 @@ export const judgeRouter = createTRPCRouter({
         if (group.length > 1) {
           ties.push({
             score,
-            projects: group.map((g) => ({ id: g.project.id, name: g.project.name, tableNumber: g.project.tableNumber, zone: g.project.zone ?? null })),
+            projects: group.map((g) => ({
+              id: g.project.id,
+              name: g.project.name,
+              tableNumber: g.project.tableNumber,
+              zone: g.project.zone ?? null,
+            })),
           });
         }
       });
 
       // Per-category ties (only among projects with votes)
-      const categoryNames = ["creativity", "impact", "scope", "clarity", "soundness"] as const;
-      const categoryLabels: Record<typeof categoryNames[number], string> = {
+      const categoryNames = [
+        "creativity",
+        "impact",
+        "scope",
+        "clarity",
+        "soundness",
+      ] as const;
+      const categoryLabels: Record<(typeof categoryNames)[number], string> = {
         creativity: "Creativity",
         impact: "Impact",
         scope: "Scope",
@@ -803,15 +930,37 @@ export const judgeRouter = createTRPCRouter({
         soundness: "Soundness",
       };
 
-      const categoryTies: { category: string; avgScore: number; projects: { id: string; name: string; tableNumber: number; zone: string | null }[] }[] = [];
+      const categoryTies: {
+        category: string;
+        avgScore: number;
+        projects: {
+          id: string;
+          name: string;
+          tableNumber: number;
+          zone: string | null;
+        }[];
+      }[] = [];
 
       for (const cat of categoryNames) {
-        const catGroups = new Map<number, { id: string; name: string; tableNumber: number; zone: string | null }[]>();
+        const catGroups = new Map<
+          number,
+          {
+            id: string;
+            name: string;
+            tableNumber: number;
+            zone: string | null;
+          }[]
+        >();
         rankings.forEach((r) => {
           if (r.voteCount === 0) return;
           const avg = r.categoryAvg[cat];
           const existing = catGroups.get(avg);
-          const projectInfo = { id: r.project.id, name: r.project.name, tableNumber: r.project.tableNumber, zone: r.project.zone ?? null };
+          const projectInfo = {
+            id: r.project.id,
+            name: r.project.name,
+            tableNumber: r.project.tableNumber,
+            zone: r.project.zone ?? null,
+          };
           if (existing) {
             existing.push(projectInfo);
           } else {
@@ -876,7 +1025,7 @@ export const judgeRouter = createTRPCRouter({
       z.object({
         userId: z.string().min(1).max(255),
         name: z.string().max(255).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
@@ -919,13 +1068,15 @@ export const judgeRouter = createTRPCRouter({
         hackathonId: z.string().uuid(),
         isLead: z.boolean().optional(),
         track: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const existing = await (ctx.db as DrizzleDB).query.judgeAssignments.findFirst({
+      const existing = await (
+        ctx.db as DrizzleDB
+      ).query.judgeAssignments.findFirst({
         where: and(
           eq(judgeAssignments.judgeId, input.judgeId),
-          eq(judgeAssignments.hackathonId, input.hackathonId)
+          eq(judgeAssignments.hackathonId, input.hackathonId),
         ),
       });
 
@@ -952,7 +1103,9 @@ export const judgeRouter = createTRPCRouter({
       });
       const mainTracks = new Set(hackathon?.tracks ?? []);
 
-      const allProjects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
+      const allProjects = await (
+        ctx.db as DrizzleDB
+      ).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
@@ -964,7 +1117,8 @@ export const judgeRouter = createTRPCRouter({
         ? allProjects.filter((p) => {
             const inTracks = p.tracks?.includes(track) ?? false;
             const inChallenges = p.challenges?.includes(track) ?? false;
-            const matchCreateX = track.toLowerCase() === "createx" && !!p.isCreateX;
+            const matchCreateX =
+              track.toLowerCase() === "createx" && !!p.isCreateX;
             return inTracks || inChallenges || matchCreateX;
           })
         : allProjects;
@@ -981,7 +1135,7 @@ export const judgeRouter = createTRPCRouter({
             hackathonId: input.hackathonId,
             projectId: p.id,
             order: idx + 1,
-          }))
+          })),
         );
       }
 
@@ -1002,7 +1156,7 @@ export const judgeRouter = createTRPCRouter({
         tracks: z.array(z.string()).optional(),
         challenges: z.array(z.string()).optional(),
         isCreateX: z.boolean().default(false),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const result = await (ctx.db as DrizzleDB)
@@ -1028,9 +1182,9 @@ export const judgeRouter = createTRPCRouter({
             tracks: z.array(z.string()).optional(),
             challenges: z.array(z.string()).optional(),
             isCreateX: z.boolean().default(false),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const result = await (ctx.db as DrizzleDB)
@@ -1039,7 +1193,7 @@ export const judgeRouter = createTRPCRouter({
           input.projects.map((p) => ({
             ...p,
             hackathonId: input.hackathonId,
-          }))
+          })),
         )
         .returning();
 
@@ -1058,9 +1212,9 @@ export const judgeRouter = createTRPCRouter({
             name: z.string().min(1).max(255),
             email: z.string().email(),
             track: z.string().optional(),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
@@ -1096,12 +1250,13 @@ export const judgeRouter = createTRPCRouter({
             }
 
             // 3. Assign to hackathon (skip if already assigned)
-            const existingAssignment = await tx.query.judgeAssignments.findFirst({
-              where: and(
-                eq(judgeAssignments.judgeId, judge.id),
-                eq(judgeAssignments.hackathonId, input.hackathonId),
-              ),
-            });
+            const existingAssignment =
+              await tx.query.judgeAssignments.findFirst({
+                where: and(
+                  eq(judgeAssignments.judgeId, judge.id),
+                  eq(judgeAssignments.hackathonId, input.hackathonId),
+                ),
+              });
 
             if (!existingAssignment) {
               await tx.insert(judgeAssignments).values({
@@ -1114,7 +1269,9 @@ export const judgeRouter = createTRPCRouter({
             results.created++;
           } catch (e) {
             results.skipped++;
-            results.errors.push(`${j.email}: ${e instanceof Error ? e.message : 'Unknown error'}`);
+            results.errors.push(
+              `${j.email}: ${e instanceof Error ? e.message : "Unknown error"}`,
+            );
           }
         }
 
@@ -1135,14 +1292,16 @@ export const judgeRouter = createTRPCRouter({
             mainTrack: z.string().optional(),
             extraTracks: z.array(z.string()).optional(),
             isCreateX: z.boolean().default(false),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       // Get the current max table number for this hackathon
       const maxResult = await (ctx.db as DrizzleDB)
-        .select({ max: sql<number>`COALESCE(MAX(${judgingProjects.tableNumber}), 0)` })
+        .select({
+          max: sql<number>`COALESCE(MAX(${judgingProjects.tableNumber}), 0)`,
+        })
         .from(judgingProjects)
         .where(eq(judgingProjects.hackathonId, input.hackathonId));
 
@@ -1169,7 +1328,11 @@ export const judgeRouter = createTRPCRouter({
         .values(rows)
         .returning();
 
-      return { created: result.length, startTable: rows[0]?.tableNumber, endTable: rows[rows.length - 1]?.tableNumber };
+      return {
+        created: result.length,
+        startTable: rows[0]?.tableNumber,
+        endTable: rows[rows.length - 1]?.tableNumber,
+      };
     }),
 
   addMap: isAdmin
@@ -1179,7 +1342,7 @@ export const judgeRouter = createTRPCRouter({
         imageUrl: z.string().url(),
         name: z.string().max(100).optional(),
         order: z.number().min(0).default(0),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const result = await (ctx.db as DrizzleDB)
@@ -1196,7 +1359,7 @@ export const judgeRouter = createTRPCRouter({
         judgeId: z.string().uuid(),
         hackathonId: z.string().uuid(),
         shuffle: z.boolean().default(false),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       await (ctx.db as DrizzleDB)
@@ -1204,31 +1367,36 @@ export const judgeRouter = createTRPCRouter({
         .where(
           and(
             eq(judgeQueue.judgeId, input.judgeId),
-            eq(judgeQueue.hackathonId, input.hackathonId)
-          )
+            eq(judgeQueue.hackathonId, input.hackathonId),
+          ),
         );
 
       // Get judge assignment to check for track restriction
-      const assignment = await (ctx.db as DrizzleDB).query.judgeAssignments.findFirst({
+      const assignment = await (
+        ctx.db as DrizzleDB
+      ).query.judgeAssignments.findFirst({
         where: and(
           eq(judgeAssignments.judgeId, input.judgeId),
-          eq(judgeAssignments.hackathonId, input.hackathonId)
+          eq(judgeAssignments.hackathonId, input.hackathonId),
         ),
       });
 
       // Fetch all projects (or filter in query if possible, but JS filter matches assignToHackathon logic)
-      const allProjects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
+      const allProjects = await (
+        ctx.db as DrizzleDB
+      ).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
       // Filter based on track if assigned
-      let projects = (assignment?.track)
+      let projects = assignment?.track
         ? allProjects.filter((p) => {
-          const inTracks = p.tracks?.includes(assignment.track!) ?? false;
-          const inChallenges = p.challenges?.includes(assignment.track!) ?? false;
-          return inTracks || inChallenges;
-        })
+            const inTracks = p.tracks?.includes(assignment.track!) ?? false;
+            const inChallenges =
+              p.challenges?.includes(assignment.track!) ?? false;
+            return inTracks || inChallenges;
+          })
         : allProjects;
 
       if (input.shuffle) {
@@ -1242,7 +1410,7 @@ export const judgeRouter = createTRPCRouter({
             hackathonId: input.hackathonId,
             projectId: p.id,
             order: idx + 1,
-          }))
+          })),
         );
       }
 
@@ -1252,7 +1420,9 @@ export const judgeRouter = createTRPCRouter({
   remove: isAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      await (ctx.db as DrizzleDB).delete(judges).where(eq(judges.id, input.judgeId));
+      await (ctx.db as DrizzleDB)
+        .delete(judges)
+        .where(eq(judges.id, input.judgeId));
       return { success: true };
     }),
 
@@ -1271,14 +1441,18 @@ export const judgeRouter = createTRPCRouter({
          *  When true, they stay grouped in table order. */
         groupSpecial: z.boolean().default(false),
         autoCalculate: z.boolean().default(true),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         const hackathon = await tx.query.hackathons.findFirst({
           where: eq(hackathons.id, input.hackathonId),
         });
-        if (!hackathon) throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
+        if (!hackathon)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Hackathon not found",
+          });
 
         const MAIN_TRACKS = new Set(hackathon.tracks ?? []);
 
@@ -1293,7 +1467,10 @@ export const judgeRouter = createTRPCRouter({
         });
 
         if (allProjects.length === 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "No projects found for this hackathon" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "No projects found for this hackathon",
+          });
         }
 
         let minProjects = input.minProjects;
@@ -1307,34 +1484,52 @@ export const judgeRouter = createTRPCRouter({
             .where(
               and(
                 eq(hackathonParticipants.hackathonId, input.hackathonId),
-                sql`${hackathonParticipants.registrationStatus} != 'rejected'`
-              )
+                sql`${hackathonParticipants.registrationStatus} != 'rejected'`,
+              ),
             );
-          const activeRegistrations = Number(participantCountResult[0]?.count || 0);
+          const activeRegistrations = Number(
+            participantCountResult[0]?.count || 0,
+          );
 
-          const P = allProjects.length || Math.ceil(activeRegistrations / 4) || 1;
-          const mainJudgesCount = allAssignments.filter(
-            (a) => !a.track || MAIN_TRACKS.has(a.track)
-          ).length || 1;
+          const P =
+            allProjects.length || Math.ceil(activeRegistrations / 4) || 1;
+          const mainJudgesCount =
+            allAssignments.filter((a) => !a.track || MAIN_TRACKS.has(a.track))
+              .length || 40; // Default to 40 judges as requested
 
-          // Each project needs to be graded at least 3 times
-          const targetCoverage = 3;
+          // Formula: Required Grades = Max(3, Floor((Total Judges * Judging Window Hours) / (Total Projects * Avg Time Per Project)))
+          // Judging Window: 3 hours. Avg Time Per Project: 12 minutes (0.2 hours).
+          const judgingWindowHours = 3;
+          const avgTimePerProjectHours = 0.2;
+          const calculatedQuota = Math.floor(
+            (mainJudgesCount * judgingWindowHours) /
+              (P * avgTimePerProjectHours),
+          );
+
+          const targetCoverage = Math.max(3, calculatedQuota);
           const avgRequired = Math.ceil((P * targetCoverage) / mainJudgesCount);
 
-          // We assume a 3-hour judging window (180 minutes)
-          // With ~9 minutes per project evaluation, a judge can evaluate at most 20 projects.
-          minProjects = Math.max(3, Math.min(avgRequired, 20));
-          maxProjects = Math.max(minProjects + 2, Math.min(avgRequired + 2, 22));
+          // Reduce cap: Judges should not have 20 projects. Setting a more reasonable cap of 12.
+          minProjects = Math.max(3, Math.min(avgRequired, 12));
+          maxProjects = Math.max(
+            minProjects + 1,
+            Math.min(avgRequired + 1, 14),
+          );
         }
 
         // Clear existing queues
-        await tx.delete(judgeQueue).where(eq(judgeQueue.hackathonId, input.hackathonId));
+        await tx
+          .delete(judgeQueue)
+          .where(eq(judgeQueue.hackathonId, input.hackathonId));
 
         // ── Coverage-maximizing assignment ──────────────────────────────────
         // Uses buildCoverageQueues to guarantee every project is seen by at
         // least one judge before any project gets an extra judge. This replaces
         // the old random-slice approach which could leave some projects unseen.
-        const judgeList = allAssignments.map((a) => ({ judgeId: a.judgeId, track: a.track ?? null }));
+        const judgeList = allAssignments.map((a) => ({
+          judgeId: a.judgeId,
+          track: a.track ?? null,
+        }));
         const projectList = allProjects.map((p) => ({
           id: p.id,
           tracks: p.tracks ?? null,
@@ -1343,15 +1538,25 @@ export const judgeRouter = createTRPCRouter({
           isCreateX: p.isCreateX,
         }));
 
-        const queues = buildCoverageQueues(judgeList, projectList, MAIN_TRACKS, {
-          minProjects,
-          maxProjects,
-          shuffle: input.shuffle,
-          groupSpecial: input.groupSpecial,
-        });
+        const queues = buildCoverageQueues(
+          judgeList,
+          projectList,
+          MAIN_TRACKS,
+          {
+            minProjects,
+            maxProjects,
+            shuffle: input.shuffle,
+            groupSpecial: input.groupSpecial,
+          },
+        );
 
         // Build all insert rows in one pass
-        const insertRows: { judgeId: string; hackathonId: string; projectId: string; order: number }[] = [];
+        const insertRows: {
+          judgeId: string;
+          hackathonId: string;
+          projectId: string;
+          order: number;
+        }[] = [];
         for (const [judgeId, projectIds] of queues.entries()) {
           projectIds.forEach((projectId, idx) => {
             insertRows.push({
@@ -1370,15 +1575,25 @@ export const judgeRouter = createTRPCRouter({
         // Compute coverage stats for admin feedback
         const projectCoverage = new Map<string, number>();
         for (const row of insertRows) {
-          projectCoverage.set(row.projectId, (projectCoverage.get(row.projectId) ?? 0) + 1);
+          projectCoverage.set(
+            row.projectId,
+            (projectCoverage.get(row.projectId) ?? 0) + 1,
+          );
         }
         const coverageValues = [...projectCoverage.values()];
         const uncoveredCount = allProjects.length - projectCoverage.size;
-        const avgCoverage = coverageValues.length > 0
-          ? Math.round((coverageValues.reduce((a, b) => a + b, 0) / coverageValues.length) * 10) / 10
-          : 0;
-        const minCoverage = coverageValues.length > 0 ? Math.min(...coverageValues) : 0;
-        const maxCoverage = coverageValues.length > 0 ? Math.max(...coverageValues) : 0;
+        const avgCoverage =
+          coverageValues.length > 0
+            ? Math.round(
+                (coverageValues.reduce((a, b) => a + b, 0) /
+                  coverageValues.length) *
+                  10,
+              ) / 10
+            : 0;
+        const minCoverage =
+          coverageValues.length > 0 ? Math.min(...coverageValues) : 0;
+        const maxCoverage =
+          coverageValues.length > 0 ? Math.max(...coverageValues) : 0;
 
         const results = allAssignments.map((a) => ({
           judgeId: a.judgeId,
@@ -1391,7 +1606,12 @@ export const judgeRouter = createTRPCRouter({
           success: true,
           totalJudges: results.length,
           totalInsertedRows: insertRows.length,
-          coverage: { avg: avgCoverage, min: minCoverage, max: maxCoverage, uncovered: uncoveredCount },
+          coverage: {
+            avg: avgCoverage,
+            min: minCoverage,
+            max: maxCoverage,
+            uncovered: uncoveredCount,
+          },
           assignments: results,
         };
       });
@@ -1421,8 +1641,8 @@ export const judgeRouter = createTRPCRouter({
           judgingProjects,
           and(
             eq(judgingProjects.id, judgeVotes.projectId),
-            eq(judgingProjects.hackathonId, input.hackathonId)
-          )
+            eq(judgingProjects.hackathonId, input.hackathonId),
+          ),
         );
 
       const queueStats = await (ctx.db as DrizzleDB)
@@ -1447,16 +1667,18 @@ export const judgeRouter = createTRPCRouter({
 
       // Global mean across all votes
       const allScores = allVotes.map((v) => v.score);
-      const globalMean = allScores.length > 0
-        ? allScores.reduce((a, b) => a + b, 0) / allScores.length
-        : 0;
+      const globalMean =
+        allScores.length > 0
+          ? allScores.reduce((a, b) => a + b, 0) / allScores.length
+          : 0;
 
       const round2 = (n: number) => Math.round(n * 100) / 100;
 
       const analytics = [...byJudge.entries()].map(([judgeId, votes]) => {
         const scores = votes.map((v) => v.score);
         const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-        const variance = scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
+        const variance =
+          scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
         const std = Math.sqrt(variance);
 
         // Bias score: how far this judge's mean is from the global mean, in std units
@@ -1469,9 +1691,10 @@ export const judgeRouter = createTRPCRouter({
           .reduce((s, v, _, a) => s + (v.durationSeconds ?? 0) / a.length, 0);
 
         const qs = queueMap.get(judgeId);
-        const completionRate = qs && Number(qs.total) > 0
-          ? round2(Number(qs.completed) / Number(qs.total))
-          : null;
+        const completionRate =
+          qs && Number(qs.total) > 0
+            ? round2(Number(qs.completed) / Number(qs.total))
+            : null;
 
         const firstVote = votes[0];
 
@@ -1495,7 +1718,11 @@ export const judgeRouter = createTRPCRouter({
       // Sort: most votes first
       analytics.sort((a, b) => b.votesSubmitted - a.votesSubmitted);
 
-      const result = { analytics, globalMean: round2(globalMean), totalVotes: allVotes.length };
+      const result = {
+        analytics,
+        globalMean: round2(globalMean),
+        totalVotes: allVotes.length,
+      };
       ctx.cache.set(cacheKey, result, 30);
       return result;
     }),
@@ -1503,7 +1730,9 @@ export const judgeRouter = createTRPCRouter({
   getAllVotes: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const projects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
+      const projects = await (
+        ctx.db as DrizzleDB
+      ).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         with: {
           votes: {
@@ -1541,7 +1770,7 @@ export const judgeRouter = createTRPCRouter({
         shirtSize: z.string().optional(),
         whyJudge: z.string().max(2000).optional(),
         preferredTrack: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
@@ -1549,14 +1778,15 @@ export const judgeRouter = createTRPCRouter({
         const participant = await tx.query.hackathonParticipants.findFirst({
           where: and(
             eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId as string)
+            eq(hackathonParticipants.userId, ctx.userId as string),
           ),
         });
 
         if (participant) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
+            message:
+              "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
           });
         }
 
@@ -1607,17 +1837,24 @@ export const judgeRouter = createTRPCRouter({
         }
 
         // Create the hackathon assignment request
-        if (!judge) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create judge profile" });
+        if (!judge)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create judge profile",
+          });
 
         const existingAssignment = await tx.query.judgeAssignments.findFirst({
           where: and(
             eq(judgeAssignments.judgeId, judge.id),
-            eq(judgeAssignments.hackathonId, input.hackathonId)
+            eq(judgeAssignments.hackathonId, input.hackathonId),
           ),
         });
 
         if (existingAssignment) {
-          throw new TRPCError({ code: "CONFLICT", message: "You have already applied to judge this hackathon." });
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "You have already applied to judge this hackathon.",
+          });
         }
 
         await tx.insert(judgeAssignments).values({

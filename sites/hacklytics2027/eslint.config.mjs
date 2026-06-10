@@ -5,7 +5,13 @@ import reactConfig from "@query/eslint-config/react";
 /** @type {import("eslint").Linter.Config[]} */
 export default [
   {
-    ignores: [".next/**", "node_modules/**", "out/**", "public/sw.js", "scripts/**"],
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "out/**",
+      "public/sw.js",
+      "scripts/**",
+    ],
   },
   ...baseConfig,
   ...reactConfig,
@@ -14,7 +20,7 @@ export default [
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
       "react/no-unescaped-entities": "off",
-      "@next/next/no-img-element": "off"
+      "@next/next/no-img-element": "off",
     },
   },
 ];

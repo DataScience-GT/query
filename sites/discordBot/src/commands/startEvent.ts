@@ -19,7 +19,7 @@ class EventScheduler {
   static calculateDelay(hours: number, minutes: number): number {
     const now = new Date();
     const nowEST = new Date(
-      now.toLocaleString("en-US", { timeZone: this.EST_TIMEZONE })
+      now.toLocaleString("en-US", { timeZone: this.EST_TIMEZONE }),
     );
 
     const target = new Date(nowEST);
@@ -41,30 +41,31 @@ export const data = new SlashCommandBuilder()
   .setName("start")
   .setDescription("Announce or schedule an event")
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-  .addChannelOption(option =>
+  .addChannelOption((option) =>
     option
       .setName("channel")
       .setDescription("Channel where the announcement will be sent")
       .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-      .setRequired(false)
+      .setRequired(false),
   )
-  .addRoleOption(option =>
+  .addRoleOption((option) =>
     option
       .setName("role")
       .setDescription("Role to notify when the event is announced")
-      .setRequired(false)
+      .setRequired(false),
   )
-  .addStringOption(option =>
-    option
-      .setName("message")
-      .setDescription("The announcement message")
-      .setRequired(false) // Validation logic handles requirement to allow optional Role before required Message
+  .addStringOption(
+    (option) =>
+      option
+        .setName("message")
+        .setDescription("The announcement message")
+        .setRequired(false), // Validation logic handles requirement to allow optional Role before required Message
   )
-  .addStringOption(option =>
+  .addStringOption((option) =>
     option
       .setName("start_time")
       .setDescription("Scheduled start time in EST (HH:mm, 24-hour format)")
-      .setRequired(false)
+      .setRequired(false),
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -77,7 +78,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   if (!messageContent) {
     return interaction.reply({
-      content: "You initiate a start command but didn't provide a message what is wrong with you?",
+      content:
+        "You initiate a start command but didn't provide a message what is wrong with you?",
       ephemeral: true,
     });
   }
@@ -103,7 +105,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const delay = EventScheduler.calculateDelay(
       parsedTime.hours,
-      parsedTime.minutes
+      parsedTime.minutes,
     );
     setTimeout(sendAnnouncement, delay);
 

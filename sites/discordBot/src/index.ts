@@ -66,7 +66,9 @@ class Bot {
         if (command?.data && typeof command.execute === "function") {
           this.commands.push(command);
         } else {
-          console.warn(`  [WARNING] Skipping ${file}: Missing 'data' or 'execute' exports`);
+          console.warn(
+            `  [WARNING] Skipping ${file}: Missing 'data' or 'execute' exports`,
+          );
         }
       } catch (err) {
         console.error(`  [ERROR] Failed to load ${file}:`, err);
@@ -106,8 +108,12 @@ class Bot {
     }
   }
 
-  private async handleSlashCommand(interaction: CommandInteraction): Promise<void> {
-    const command = this.commands.find((c) => c.data.name === interaction.commandName);
+  private async handleSlashCommand(
+    interaction: CommandInteraction,
+  ): Promise<void> {
+    const command = this.commands.find(
+      (c) => c.data.name === interaction.commandName,
+    );
     if (!command) return;
 
     try {
@@ -126,7 +132,9 @@ class Bot {
     }
   }
 
-  private async handleSelectMenu(interaction: StringSelectMenuInteraction): Promise<void> {
+  private async handleSelectMenu(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
     const commandName = interaction.customId.split("_")[0];
     const command = this.commands.find((c) => c.data.name === commandName);
 
@@ -137,7 +145,10 @@ class Bot {
     } catch (err) {
       console.error("Select menu error:", err);
       if (!interaction.replied) {
-        await interaction.reply({ content: "[WARNING] Menu interaction failed.", ephemeral: true });
+        await interaction.reply({
+          content: "[WARNING] Menu interaction failed.",
+          ephemeral: true,
+        });
       }
     }
   }
@@ -154,33 +165,50 @@ class Bot {
 
       const role = interaction.guild?.roles.cache.get(roleId);
       if (!role) {
-        await interaction.reply({ content: "Role not found.", ephemeral: true });
+        await interaction.reply({
+          content: "Role not found.",
+          ephemeral: true,
+        });
         return;
       }
 
       try {
         if (member.roles.cache.has(roleId)) {
           await member.roles.remove(roleId);
-          await interaction.reply({ content: `Removed **${role.name}**.`, ephemeral: true });
+          await interaction.reply({
+            content: `Removed **${role.name}**.`,
+            ephemeral: true,
+          });
         } else {
           await member.roles.add(roleId);
-          await interaction.reply({ content: `Added **${role.name}**.`, ephemeral: true });
+          await interaction.reply({
+            content: `Added **${role.name}**.`,
+            ephemeral: true,
+          });
         }
       } catch {
-        await interaction.reply({ content: "Missing permissions to manage that role.", ephemeral: true });
+        await interaction.reply({
+          content: "Missing permissions to manage that role.",
+          ephemeral: true,
+        });
       }
       return;
     }
 
     // Then delegate to command handlers
-    const commandWithButton = this.commands.find((c) => typeof c.handleButton === "function");
+    const commandWithButton = this.commands.find(
+      (c) => typeof c.handleButton === "function",
+    );
     if (commandWithButton?.handleButton) {
       try {
         await commandWithButton.handleButton(interaction);
       } catch (err) {
         console.error("Button error:", err);
         if (!interaction.replied) {
-          await interaction.reply({ content: "[WARNING] Button interaction failed.", ephemeral: true });
+          await interaction.reply({
+            content: "[WARNING] Button interaction failed.",
+            ephemeral: true,
+          });
         }
       }
     }
@@ -198,15 +226,18 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-bot.start().then(() => {
-  // Start dummy HTTP server for Cloud Run health checks
-  const port = process.env.PORT || 8080;
-  const server = http.createServer((req, res) => {
-    res.writeHead(200);
-    res.end("Discord Bot is running");
+bot
+  .start()
+  .then(() => {
+    // Start dummy HTTP server for Cloud Run health checks
+    const port = process.env.PORT || 8080;
+    const server = http.createServer((req, res) => {
+      res.writeHead(200);
+      res.end("Discord Bot is running");
+    });
+    server.listen(port, () => {});
+  })
+  .catch((err) => {
+    console.error("Fatal startup error:", err);
+    process.exit(1);
   });
-  server.listen(port, () => {});
-}).catch((err) => {
-  console.error("Fatal startup error:", err);
-  process.exit(1);
-});

@@ -1,10 +1,10 @@
 {
-    "name": "@query/consts",
-    "version": "0.0.0",
-    "private": true,
-    "main": "./index.ts",
-    "types": "./index.ts",
-    "exports": {
-        ".": "./index.ts"
-    }
+  "name": "@query/consts",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  }
 }

@@ -19,28 +19,41 @@ export const hackathonRouter = createTRPCRouter({
   list: publicProcedure
     .input(
       z.object({
-        status: z.enum(["draft", "open", "closed", "in_progress", "completed", "cancelled"]).optional(),
+        status: z
+          .enum([
+            "draft",
+            "open",
+            "closed",
+            "in_progress",
+            "completed",
+            "cancelled",
+          ])
+          .optional(),
         upcoming: z.boolean().optional(),
         limit: z.number().min(1).max(100).default(20),
         offset: z.number().min(0).default(0),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
-      const cacheKey = `hackathons:list:${input.status || 'all'}:${input.upcoming ? 'upcoming' : 'all'}:${input.limit}:${input.offset}`;
+      const cacheKey = `hackathons:list:${input.status || "all"}:${input.upcoming ? "upcoming" : "all"}:${input.limit}:${input.offset}`;
 
       type DB = DrizzleDB;
-      type HackathonList = Awaited<ReturnType<DB["query"]["hackathons"]["findMany"]>>;
+      type HackathonList = Awaited<
+        ReturnType<DB["query"]["hackathons"]["findMany"]>
+      >;
       // Check cache first
       const cached = ctx.cache.get<HackathonList>(cacheKey);
       if (cached) return cached;
 
       const now = new Date();
 
-      const allHackathons = await (ctx.db as DrizzleDB).query.hackathons.findMany({
+      const allHackathons = await (
+        ctx.db as DrizzleDB
+      ).query.hackathons.findMany({
         where: and(
           eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
-          input.upcoming ? gte(hackathons.startDate, now) : undefined
+          input.upcoming ? gte(hackathons.startDate, now) : undefined,
         ),
         limit: input.limit,
         offset: input.offset,
@@ -52,26 +65,25 @@ export const hackathonRouter = createTRPCRouter({
       return allHackathons;
     }),
 
-  listAll: isAdmin
-    .query(async ({ ctx }) => {
-      const cacheKey = "hackathons:list:all";
-      
-      const fetchAll = async () => {
-        return await (ctx.db as DrizzleDB).query.hackathons.findMany({
-          orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
-        });
-      };
+  listAll: isAdmin.query(async ({ ctx }) => {
+    const cacheKey = "hackathons:list:all";
 
-      const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchAll>>>(cacheKey);
-      if (cached !== null) return cached;
+    const fetchAll = async () => {
+      return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+        orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
+      });
+    };
 
-      const allHackathons = await fetchAll();
+    const cached =
+      ctx.cache.get<Awaited<ReturnType<typeof fetchAll>>>(cacheKey);
+    if (cached !== null) return cached;
 
-      ctx.cache.set(cacheKey, allHackathons, 60);
+    const allHackathons = await fetchAll();
 
-      return allHackathons;
-    }),
+    ctx.cache.set(cacheKey, allHackathons, 60);
 
+    return allHackathons;
+  }),
 
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
@@ -79,13 +91,20 @@ export const hackathonRouter = createTRPCRouter({
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
       type DB = DrizzleDB;
-      type HackathonItem = Awaited<ReturnType<DB["query"]["hackathons"]["findFirst"]>>;
+      type HackathonItem = Awaited<
+        ReturnType<DB["query"]["hackathons"]["findFirst"]>
+      >;
       const cached = ctx.cache.get<HackathonItem>(cacheKey);
       if (cached) return cached;
 
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id);
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          input.id,
+        );
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: isUuid ? eq(hackathons.id, input.id) : eq(hackathons.name, input.id),
+        where: isUuid
+          ? eq(hackathons.id, input.id)
+          : eq(hackathons.name, input.id),
       });
 
       if (!hackathon) {
@@ -102,34 +121,51 @@ export const hackathonRouter = createTRPCRouter({
 
   create: isAdmin
     .input(
-      z.object({
-        name: z.string().min(1).max(200),
-        description: z.string().max(5000).optional(),
-        location: z.string().max(500).optional(),
-        startDate: z.date(),
-        endDate: z.date(),
-        registrationDeadline: z.date().optional(),
-        hackingStartTime: z.date().optional(),
-        maxParticipants: z.number().int().positive().max(10000).optional(),
-        prizes: z.array(
-          z.object({
-            place: z.string().max(50),
-            amount: z.number().nonnegative(),
-            description: z.string().max(500).optional(),
-          })
-        ).max(20).optional(),
-        rules: z.string().max(10000).optional(),
-        theme: z.string().max(200).optional(),
-        tracks: z.array(z.string().max(100)).max(50).optional(),
-        challenges: z.array(z.string().max(100)).max(50).optional(),
-        websiteUrl: z.string().url().max(500).optional(),
-      }).refine(data => data.endDate > data.startDate, {
-        message: "End date must be after start date",
-      }).refine(data => !data.registrationDeadline || data.registrationDeadline <= data.startDate, {
-        message: "Registration deadline must be before start date",
-      }).refine(data => !data.hackingStartTime || data.hackingStartTime >= data.startDate, {
-        message: "Hacking start time must be after or equal to hackathon start date",
-      })
+      z
+        .object({
+          name: z.string().min(1).max(200),
+          description: z.string().max(5000).optional(),
+          location: z.string().max(500).optional(),
+          startDate: z.date(),
+          endDate: z.date(),
+          registrationDeadline: z.date().optional(),
+          hackingStartTime: z.date().optional(),
+          maxParticipants: z.number().int().positive().max(10000).optional(),
+          prizes: z
+            .array(
+              z.object({
+                place: z.string().max(50),
+                amount: z.number().nonnegative(),
+                description: z.string().max(500).optional(),
+              }),
+            )
+            .max(20)
+            .optional(),
+          rules: z.string().max(10000).optional(),
+          theme: z.string().max(200).optional(),
+          tracks: z.array(z.string().max(100)).max(50).optional(),
+          challenges: z.array(z.string().max(100)).max(50).optional(),
+          websiteUrl: z.string().url().max(500).optional(),
+        })
+        .refine((data) => data.endDate > data.startDate, {
+          message: "End date must be after start date",
+        })
+        .refine(
+          (data) =>
+            !data.registrationDeadline ||
+            data.registrationDeadline <= data.startDate,
+          {
+            message: "Registration deadline must be before start date",
+          },
+        )
+        .refine(
+          (data) =>
+            !data.hackingStartTime || data.hackingStartTime >= data.startDate,
+          {
+            message:
+              "Hacking start time must be after or equal to hackathon start date",
+          },
+        ),
     )
     .mutation(async ({ ctx, input }) => {
       const [newHackathon] = await (ctx.db as DrizzleDB)
@@ -140,7 +176,7 @@ export const hackathonRouter = createTRPCRouter({
         })
         .returning();
 
-      ctx.cache.deletePattern('hackathons:*');
+      ctx.cache.deletePattern("hackathons:*");
 
       return newHackathon;
     }),
@@ -157,21 +193,33 @@ export const hackathonRouter = createTRPCRouter({
         registrationDeadline: z.date().optional(),
         hackingStartTime: z.date().nullable().optional(),
         maxParticipants: z.number().int().positive().max(10000).optional(),
-        status: z.enum(["draft", "open", "closed", "in_progress", "completed", "cancelled"]).optional(),
-        prizes: z.array(
-          z.object({
-            place: z.string().max(50),
-            amount: z.number().nonnegative(),
-            description: z.string().max(500).optional(),
-          })
-        ).max(20).optional(),
+        status: z
+          .enum([
+            "draft",
+            "open",
+            "closed",
+            "in_progress",
+            "completed",
+            "cancelled",
+          ])
+          .optional(),
+        prizes: z
+          .array(
+            z.object({
+              place: z.string().max(50),
+              amount: z.number().nonnegative(),
+              description: z.string().max(500).optional(),
+            }),
+          )
+          .max(20)
+          .optional(),
         rules: z.string().max(10000).optional(),
         theme: z.string().max(200).optional(),
         tracks: z.array(z.string().max(100)).max(50).optional(),
         challenges: z.array(z.string().max(100)).max(50).optional(),
         websiteUrl: z.string().url().max(500).optional(),
         isPublic: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;
@@ -197,7 +245,7 @@ export const hackathonRouter = createTRPCRouter({
         .returning();
 
       ctx.cache.delete(CacheKeys.hackathon(id));
-      ctx.cache.deletePattern('hackathons:*');
+      ctx.cache.deletePattern("hackathons:*");
 
       return updatedHackathon;
     }),
@@ -206,9 +254,11 @@ export const hackathonRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { hackathonId } = input;
-      await (ctx.db as DrizzleDB).delete(hackathons).where(eq(hackathons.id, hackathonId));
+      await (ctx.db as DrizzleDB)
+        .delete(hackathons)
+        .where(eq(hackathons.id, hackathonId));
       ctx.cache.delete(CacheKeys.hackathon(hackathonId));
-      ctx.cache.deletePattern('hackathons:*');
+      ctx.cache.deletePattern("hackathons:*");
       return { success: true };
     }),
 
@@ -229,7 +279,15 @@ export const hackathonRouter = createTRPCRouter({
         school: z.string().min(1).max(300),
         major: z.string().min(1).max(300),
         graduationYear: z.number().int().min(2020).max(2035),
-        levelOfStudy: z.enum(["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]),
+        levelOfStudy: z.enum([
+          "Freshman",
+          "Sophomore",
+          "Junior",
+          "Senior",
+          "Graduate",
+          "PhD",
+          "Other",
+        ]),
         country: z.string().min(1).max(100),
         firstGeneration: z.boolean().optional(),
         // Experience
@@ -245,11 +303,15 @@ export const hackathonRouter = createTRPCRouter({
         emergencyPhone: z.string().max(20).optional(),
         needsHardware: z.boolean().optional(),
         // Consent
-        agreeToCodeOfConduct: z.boolean().refine(v => v === true, { message: "You must agree to the Code of Conduct" }),
+        agreeToCodeOfConduct: z
+          .boolean()
+          .refine((v) => v === true, {
+            message: "You must agree to the Code of Conduct",
+          }),
         mlhCodeOfConduct: z.boolean().optional(),
         mlhDataSharing: z.boolean().optional(),
         mlhInformationalEmails: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       try {
@@ -272,19 +334,23 @@ export const hackathonRouter = createTRPCRouter({
             });
           }
 
-          if (hackathon.registrationDeadline && new Date() > hackathon.registrationDeadline) {
+          if (
+            hackathon.registrationDeadline &&
+            new Date() > hackathon.registrationDeadline
+          ) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "Registration deadline has passed",
             });
           }
 
-          const existingParticipant = await tx.query.hackathonParticipants.findFirst({
-            where: and(
-              eq(hackathonParticipants.hackathonId, input.hackathonId),
-              eq(hackathonParticipants.userId, ctx.userId as string)
-            ),
-          });
+          const existingParticipant =
+            await tx.query.hackathonParticipants.findFirst({
+              where: and(
+                eq(hackathonParticipants.hackathonId, input.hackathonId),
+                eq(hackathonParticipants.userId, ctx.userId as string),
+              ),
+            });
 
           if (existingParticipant) {
             throw new TRPCError({
@@ -293,7 +359,10 @@ export const hackathonRouter = createTRPCRouter({
             });
           }
 
-          if (hackathon.maxParticipants && hackathon.currentParticipants >= hackathon.maxParticipants) {
+          if (
+            hackathon.maxParticipants &&
+            hackathon.currentParticipants >= hackathon.maxParticipants
+          ) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "This hackathon is full",
@@ -355,13 +424,14 @@ export const hackathonRouter = createTRPCRouter({
             .where(eq(hackathons.id, input.hackathonId));
 
           // Invalidate all hackathon caches after successful registration
-          ctx.cache.deletePattern('hackathon*');
+          ctx.cache.deletePattern("hackathon*");
 
           return participant;
         });
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
-        const message = error instanceof Error ? error.message : "Unknown error";
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
         // Unexpected error during registration
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -375,7 +445,9 @@ export const hackathonRouter = createTRPCRouter({
     const cached = ctx.cache.get<typeof registrations>(cacheKey);
     if (cached) return cached;
 
-    const registrations = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+    const registrations = await (
+      ctx.db as DrizzleDB
+    ).query.hackathonParticipants.findMany({
       where: eq(hackathonParticipants.userId, ctx.userId as string),
       with: {
         hackathon: true,
@@ -385,7 +457,9 @@ export const hackathonRouter = createTRPCRouter({
           },
         },
       },
-      orderBy: (hackathonParticipants, { desc }) => [desc(hackathonParticipants.registeredAt)],
+      orderBy: (hackathonParticipants, { desc }) => [
+        desc(hackathonParticipants.registeredAt),
+      ],
     });
 
     ctx.cache.set(cacheKey, registrations, 30);
@@ -399,7 +473,9 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof participants>(cacheKey);
       if (cached) return cached;
 
-      const participants = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+      const participants = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
         columns: {
           id: true,
@@ -460,7 +536,9 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<typeof projects>(cacheKey);
       if (cached) return cached;
 
-      const projects = await (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
+      const projects = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonProjects.findMany({
         where: eq(hackathonProjects.hackathonId, input.hackathonId),
         with: {
           team: {
@@ -486,7 +564,9 @@ export const hackathonRouter = createTRPCRouter({
             },
           },
         },
-        orderBy: (hackathonProjects, { desc }) => [desc(hackathonProjects.submittedAt)],
+        orderBy: (hackathonProjects, { desc }) => [
+          desc(hackathonProjects.submittedAt),
+        ],
       });
 
       ctx.cache.set(cacheKey, projects, 120);
@@ -494,18 +574,16 @@ export const hackathonRouter = createTRPCRouter({
       return projects;
     }),
 
-
-
-
-
-
-
   adminGetAttendees: isAdmin
-    .input(z.object({
-      hackathonId: z.string().uuid("Invalid hackathon ID"),
-    }))
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+      }),
+    )
     .query(async ({ ctx, input }) => {
-      const attendees = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+      const attendees = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
         with: {
           user: {
@@ -514,14 +592,14 @@ export const hackathonRouter = createTRPCRouter({
               name: true,
               email: true,
               image: true,
-            }
+            },
           },
           team: {
             columns: {
               id: true,
               name: true,
-            }
-          }
+            },
+          },
         },
         orderBy: (participants, { desc }) => [desc(participants.registeredAt)],
       });
@@ -530,21 +608,34 @@ export const hackathonRouter = createTRPCRouter({
     }),
 
   updateParticipantStatus: isAdmin
-    .input(z.object({
-      hackathonId: z.string().uuid("Invalid hackathon ID"),
-      participantId: z.string().uuid("Invalid participant ID"),
-      status: z.enum(["pending", "approved", "rejected", "waitlisted", "checked_in"]),
-    }))
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        participantId: z.string().uuid("Invalid participant ID"),
+        status: z.enum([
+          "pending",
+          "approved",
+          "rejected",
+          "waitlisted",
+          "checked_in",
+        ]),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      const participant = await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
+      const participant = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonParticipants.findFirst({
         where: and(
           eq(hackathonParticipants.id, input.participantId),
-          eq(hackathonParticipants.hackathonId, input.hackathonId)
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
         ),
       });
 
       if (!participant) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Participant not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Participant not found",
+        });
       }
 
       await (ctx.db as DrizzleDB)
@@ -552,17 +643,25 @@ export const hackathonRouter = createTRPCRouter({
         .set({ registrationStatus: input.status })
         .where(eq(hackathonParticipants.id, input.participantId));
 
-      ctx.cache.deletePattern('hackathon*');
+      ctx.cache.deletePattern("hackathon*");
 
       return { success: true };
     }),
 
   batchUpdateParticipantStatus: isAdmin
-    .input(z.object({
-      hackathonId: z.string().uuid("Invalid hackathon ID"),
-      participantIds: z.array(z.string().uuid()).min(1).max(500),
-      status: z.enum(["pending", "approved", "rejected", "waitlisted", "checked_in"]),
-    }))
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        participantIds: z.array(z.string().uuid()).min(1).max(500),
+        status: z.enum([
+          "pending",
+          "approved",
+          "rejected",
+          "waitlisted",
+          "checked_in",
+        ]),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const { hackathonId, participantIds, status } = input;
 
@@ -574,13 +673,13 @@ export const hackathonRouter = createTRPCRouter({
             .where(
               and(
                 eq(hackathonParticipants.id, participantId),
-                eq(hackathonParticipants.hackathonId, hackathonId)
-              )
+                eq(hackathonParticipants.hackathonId, hackathonId),
+              ),
             );
         }
       });
 
-      ctx.cache.deletePattern('hackathon*');
+      ctx.cache.deletePattern("hackathon*");
 
       return { success: true, updated: participantIds.length };
     }),
@@ -588,7 +687,9 @@ export const hackathonRouter = createTRPCRouter({
   analytics: isAdmin
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const participants = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+      const participants = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
       });
 
@@ -608,12 +709,15 @@ export const hackathonRouter = createTRPCRouter({
       participants.forEach((p) => {
         // Status breakdown
         if (p.registrationStatus in stats.statusBreakdown) {
-          stats.statusBreakdown[p.registrationStatus as keyof typeof stats.statusBreakdown]++;
+          stats.statusBreakdown[
+            p.registrationStatus as keyof typeof stats.statusBreakdown
+          ]++;
         }
 
         // Shirt sizes
         if (p.shirtSize) {
-          stats.shirtSizes[p.shirtSize] = (stats.shirtSizes[p.shirtSize] || 0) + 1;
+          stats.shirtSizes[p.shirtSize] =
+            (stats.shirtSizes[p.shirtSize] || 0) + 1;
         }
 
         // Dietary restrictions
@@ -621,7 +725,8 @@ export const hackathonRouter = createTRPCRouter({
           p.dietaryRestrictions.forEach((restriction) => {
             const normalized = restriction.trim();
             if (normalized) {
-              stats.dietaryRestrictions[normalized] = (stats.dietaryRestrictions[normalized] || 0) + 1;
+              stats.dietaryRestrictions[normalized] =
+                (stats.dietaryRestrictions[normalized] || 0) + 1;
             }
           });
         }
@@ -631,47 +736,62 @@ export const hackathonRouter = createTRPCRouter({
     }),
 
   scanParticipantPass: isAdmin
-    .input(z.object({
-      hackathonId: z.string().uuid("Invalid hackathon ID"),
-      eventId: z.string().uuid("Invalid event ID"),
-      participantId: z.string().uuid("Invalid participant ID"),
-    }))
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        eventId: z.string().uuid("Invalid event ID"),
+        participantId: z.string().uuid("Invalid participant ID"),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // 1. Verify participant exists and belongs to this hackathon
-      const participant = await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
+      const participant = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonParticipants.findFirst({
         where: and(
           eq(hackathonParticipants.id, input.participantId),
-          eq(hackathonParticipants.hackathonId, input.hackathonId)
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
         ),
-        with: { user: true }
+        with: { user: true },
       });
 
       if (!participant) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Participant not found or not registered for this hackathon." });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "Participant not found or not registered for this hackathon.",
+        });
       }
 
       // 2. Verify event exists and belongs to this hackathon
-      const event = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst({
-        where: and(
-          eq(hackathonEvents.id, input.eventId),
-          eq(hackathonEvents.hackathonId, input.hackathonId)
-        )
-      });
+      const event = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst(
+        {
+          where: and(
+            eq(hackathonEvents.id, input.eventId),
+            eq(hackathonEvents.hackathonId, input.hackathonId),
+          ),
+        },
+      );
 
       if (!event) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
       }
 
       // 3. Check for existing check-in to prevent duplicates
-      const existingScan = await (ctx.db as DrizzleDB).query.hackathonEventAttendees.findFirst({
+      const existingScan = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonEventAttendees.findFirst({
         where: and(
           eq(hackathonEventAttendees.eventId, input.eventId),
-          eq(hackathonEventAttendees.participantId, input.participantId)
-        )
+          eq(hackathonEventAttendees.participantId, input.participantId),
+        ),
       });
 
       if (existingScan) {
-        throw new TRPCError({ code: "CONFLICT", message: `${participant.user.name || participant.user.email} is already checked into ${event.name}.` });
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `${participant.user.name || participant.user.email} is already checked into ${event.name}.`,
+        });
       }
 
       // 4. Record attendance
@@ -681,25 +801,36 @@ export const hackathonRouter = createTRPCRouter({
       });
 
       // Invalidate hackathon caches after attendance scan
-      ctx.cache.deletePattern('hackathon*');
+      ctx.cache.deletePattern("hackathon*");
 
-      return { success: true, message: `Successfully checked in ${participant.user.name || participant.user.email}!` };
+      return {
+        success: true,
+        message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
+      };
     }),
 
   createEvent: isAdmin
     .input(
-      z.object({
-        hackathonId: z.string().uuid("Invalid hackathon ID"),
-        name: z.string().min(1).max(200),
-        description: z.string().max(2000).optional(),
-        type: z.enum(["workshop", "meal", "ceremony", "activity", "sponsor_session"]),
-        location: z.string().min(1).max(500),
-        startTime: z.date(),
-        endTime: z.date(),
-        points: z.number().int().min(0).max(1000).default(0),
-      }).refine(data => data.endTime > data.startTime, {
-        message: "End time must be after start time",
-      })
+      z
+        .object({
+          hackathonId: z.string().uuid("Invalid hackathon ID"),
+          name: z.string().min(1).max(200),
+          description: z.string().max(2000).optional(),
+          type: z.enum([
+            "workshop",
+            "meal",
+            "ceremony",
+            "activity",
+            "sponsor_session",
+          ]),
+          location: z.string().min(1).max(500),
+          startTime: z.date(),
+          endTime: z.date(),
+          points: z.number().int().min(0).max(1000).default(0),
+        })
+        .refine((data) => data.endTime > data.startTime, {
+          message: "End time must be after start time",
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
@@ -707,7 +838,10 @@ export const hackathonRouter = createTRPCRouter({
       });
 
       if (!hackathon) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
       }
 
       const [newEvent] = await (ctx.db as DrizzleDB)
@@ -724,7 +858,7 @@ export const hackathonRouter = createTRPCRouter({
         })
         .returning();
 
-      ctx.cache.deletePattern('hackathon*');
+      ctx.cache.deletePattern("hackathon*");
 
       return newEvent;
     }),
@@ -735,17 +869,21 @@ export const hackathonRouter = createTRPCRouter({
         eventId: z.string().uuid("Invalid event ID"),
         name: z.string().min(1).max(200).optional(),
         description: z.string().max(2000).optional(),
-        type: z.enum(["workshop", "meal", "ceremony", "activity", "sponsor_session"]).optional(),
+        type: z
+          .enum(["workshop", "meal", "ceremony", "activity", "sponsor_session"])
+          .optional(),
         location: z.string().min(1).max(500).optional(),
         startTime: z.date().optional(),
         endTime: z.date().optional(),
         points: z.number().int().min(0).max(1000).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { eventId, ...updateData } = input;
 
-      const existing = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst({
+      const existing = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonEvents.findFirst({
         where: eq(hackathonEvents.id, eventId),
       });
 
@@ -762,17 +900,21 @@ export const hackathonRouter = createTRPCRouter({
         .where(eq(hackathonEvents.id, eventId))
         .returning();
 
-      ctx.cache.deletePattern('hackathon*');
+      ctx.cache.deletePattern("hackathon*");
 
       return updatedEvent;
     }),
 
   deleteEvent: isAdmin
-    .input(z.object({
-      eventId: z.string().uuid("Invalid event ID"),
-    }))
+    .input(
+      z.object({
+        eventId: z.string().uuid("Invalid event ID"),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      const existing = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst({
+      const existing = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonEvents.findFirst({
         where: eq(hackathonEvents.id, input.eventId),
       });
 
@@ -784,7 +926,7 @@ export const hackathonRouter = createTRPCRouter({
         .delete(hackathonEvents)
         .where(eq(hackathonEvents.id, input.eventId));
 
-      ctx.cache.deletePattern('hackathon*');
+      ctx.cache.deletePattern("hackathon*");
 
       return { success: true };
     }),
@@ -795,23 +937,26 @@ export const hackathonRouter = createTRPCRouter({
       const cacheKey = `hackathon:${input.hackathonId}:events`;
 
       const fetchEvents = async () => {
-        const eventsData = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
+        const eventsData = await (
+          ctx.db as DrizzleDB
+        ).query.hackathonEvents.findMany({
           where: eq(hackathonEvents.hackathonId, input.hackathonId),
           orderBy: (events, { asc }) => [asc(events.startTime)],
           with: {
             attendees: {
-              columns: { id: true }
-            }
-          }
+              columns: { id: true },
+            },
+          },
         });
 
-        return eventsData.map(e => ({
+        return eventsData.map((e) => ({
           ...e,
-          attendeeCount: e.attendees.length
+          attendeeCount: e.attendees.length,
         }));
       };
 
-      const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
+      const cached =
+        ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
       if (cached !== null) return cached;
 
       const events = await fetchEvents();
@@ -827,29 +972,31 @@ export const hackathonRouter = createTRPCRouter({
       return await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
         where: and(
           eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string)
+          eq(hackathonParticipants.userId, ctx.userId as string),
         ),
         with: {
           team: true,
-        }
+        },
       });
     }),
 
   getPublicProjects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const projects = await (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
+      const projects = await (
+        ctx.db as DrizzleDB
+      ).query.hackathonProjects.findMany({
         where: and(
           eq(hackathonProjects.hackathonId, input.hackathonId),
           // We only show projects that are submitted, judging, or winner. Drafts stay hidden.
-          inArray(hackathonProjects.status, ["submitted", "judging", "winner"])
+          inArray(hackathonProjects.status, ["submitted", "judging", "winner"]),
         ),
         with: {
           team: {
             columns: {
               id: true,
               name: true,
-            }
+            },
           },
         },
         orderBy: (projects, { desc }) => [desc(projects.submittedAt)],

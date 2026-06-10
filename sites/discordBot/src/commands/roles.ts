@@ -62,7 +62,7 @@ export async function execute(interaction: CommandInteraction) {
         !r.managed &&
         r.id !== guild.id &&
         r.position < botMember.roles.highest.position &&
-        !BLOCKED_ROLES.includes(r.name)
+        !BLOCKED_ROLES.includes(r.name),
     )
     .sort((a, b) => b.position - a.position)
     .first(25);
@@ -93,9 +93,11 @@ export async function execute(interaction: CommandInteraction) {
 }
 
 export async function handleButton(interaction: Interaction) {
-  if (!interaction.isButton() || !interaction.guild || !interaction.member) return;
+  if (!interaction.isButton() || !interaction.guild || !interaction.member)
+    return;
 
-  const memberRoles = (interaction.member as GuildMember).roles as GuildMemberRoleManager;
+  const memberRoles = (interaction.member as GuildMember)
+    .roles as GuildMemberRoleManager;
   const roleId = interaction.customId.replace("role_", "");
   const role = interaction.guild.roles.cache.get(roleId);
 

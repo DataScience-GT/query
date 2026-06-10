@@ -11,7 +11,11 @@ const handler = (req: Request) =>
       // Log internal errors server-side so the real cause appears in Cloud Run logs.
       // 4xx errors (BAD_REQUEST, NOT_FOUND, UNAUTHORIZED, etc.) are expected — skip them.
       if (error.code === "INTERNAL_SERVER_ERROR") {
-        console.error(`[tRPC] INTERNAL_SERVER_ERROR on ${path ?? "unknown"}:`, error.message, error.cause);
+        console.error(
+          `[tRPC] INTERNAL_SERVER_ERROR on ${path ?? "unknown"}:`,
+          error.message,
+          error.cause,
+        );
       }
     },
   });

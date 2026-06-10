@@ -10,10 +10,7 @@ export default function Mini({ children, className, ...props }: MiniProps) {
   `;
 
   return (
-    <p
-      {...props}
-      className={`${defaultClasses} ${className ?? ""}`}
-    >
+    <p {...props} className={`${defaultClasses} ${className ?? ""}`}>
       {children}
     </p>
   );

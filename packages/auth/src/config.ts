@@ -38,12 +38,12 @@ function html(params: { code: string; host: string }) {
           <table border="0" cellspacing="0" cellpadding="0" style="margin: auto;">
             <tr>
               ${code
-      .split("")
-      .map(
-        (d) =>
-          `<td style="padding: 0 4px;"><div style="width: 44px; height: 56px; background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 28px; font-weight: 700; color: ${mainColor}; line-height: 56px; text-align: center; font-family: 'Courier New', monospace;">${d}</div></td>`
-      )
-      .join("")}
+                .split("")
+                .map(
+                  (d) =>
+                    `<td style="padding: 0 4px;"><div style="width: 44px; height: 56px; background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 28px; font-weight: 700; color: ${mainColor}; line-height: 56px; text-align: center; font-family: 'Courier New', monospace;">${d}</div></td>`,
+                )
+                .join("")}
             </tr>
           </table>
         </div>
@@ -131,7 +131,9 @@ export const authConfig: NextAuthConfig = {
             throw new Error(`Email(s) could not be sent`);
           }
         } catch {
-          throw new Error("Failed to send verification email. Please try again later.");
+          throw new Error(
+            "Failed to send verification email. Please try again later.",
+          );
         }
       },
     }),
@@ -148,7 +150,7 @@ export const authConfig: NextAuthConfig = {
 
         // Add judge status to session for easier client-side checks
         const judge = await db.query.judges.findFirst({
-          where: (j, { eq }) => eq(j.userId, user.id)
+          where: (j, { eq }) => eq(j.userId, user.id),
         });
         // @ts-expect-error - custom property
         session.user.isJudge = !!judge;
@@ -156,7 +158,11 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      return url.startsWith("/") ? `${baseUrl}${url}` : (new URL(url).origin === baseUrl ? url : baseUrl);
+      return url.startsWith("/")
+        ? `${baseUrl}${url}`
+        : new URL(url).origin === baseUrl
+          ? url
+          : baseUrl;
     },
   },
   session: {

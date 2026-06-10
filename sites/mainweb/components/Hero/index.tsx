@@ -22,7 +22,10 @@ const Hero = ({ screen_width }: HeroProps) => {
   }, [screen_width]);
 
   return (
-    <section id="hero" className="relative w-full h-screen flex items-center justify-center px-8 overflow-hidden bg-[#050505]">
+    <section
+      id="hero"
+      className="relative w-full h-screen flex items-center justify-center px-8 overflow-hidden bg-[#050505]"
+    >
       {/* Background Blob - Kept your logic */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -44,13 +47,18 @@ const Hero = ({ screen_width }: HeroProps) => {
             className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-transparent"
             style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.8)" }}
           >
-            Data Science<br />
-            <span className="text-white" style={{ WebkitTextStroke: "0" }}>@ GT</span>
+            Data Science
+            <br />
+            <span className="text-white" style={{ WebkitTextStroke: "0" }}>
+              @ GT
+            </span>
           </h1>
 
           <div className="max-w-md">
             <Mini className="text-gray-400 text-lg leading-relaxed">
-              The largest student-run data science organization at Georgia Tech. We bridge the gap between classroom theory and production engineering.
+              The largest student-run data science organization at Georgia Tech.
+              We bridge the gap between classroom theory and production
+              engineering.
             </Mini>
           </div>
         </div>

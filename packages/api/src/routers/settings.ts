@@ -10,14 +10,14 @@ export const settingsRouter = createTRPCRouter({
     // If not using db yet, safely return default
     if (!ctx.db) {
       return {
-        systemName: 'DSGT Query Engine',
+        systemName: "DSGT Query Engine",
         maintenanceMode: false,
         requireEmailVerification: true,
         maxEventCapacity: 500,
         allowPublicRegistration: true,
       };
     }
-    
+
     let settings = await (ctx.db as DrizzleDB).query.systemSettings.findFirst({
       where: eq(systemSettings.id, "default"),
     });
@@ -28,7 +28,7 @@ export const settingsRouter = createTRPCRouter({
         .insert(systemSettings)
         .values({
           id: "default",
-          systemName: 'DSGT Query Engine',
+          systemName: "DSGT Query Engine",
           maintenanceMode: false,
           requireEmailVerification: true,
           maxEventCapacity: 500,
@@ -49,7 +49,7 @@ export const settingsRouter = createTRPCRouter({
         requireEmailVerification: z.boolean().optional(),
         maxEventCapacity: z.number().int().min(1).optional(),
         allowPublicRegistration: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const result = await (ctx.db as DrizzleDB)

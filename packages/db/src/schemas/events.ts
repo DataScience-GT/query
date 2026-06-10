@@ -1,4 +1,11 @@
-import { pgTable, text, timestamp, uuid, boolean, integer } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  boolean,
+  integer,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
@@ -29,8 +36,9 @@ export const eventCheckIns = pgTable("event_check_in", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  memberId: uuid("member_id")
-    .references(() => members.id, { onDelete: "set null" }),
+  memberId: uuid("member_id").references(() => members.id, {
+    onDelete: "set null",
+  }),
   checkInMethod: text("check_in_method", { enum: ["qr_code", "manual"] })
     .notNull()
     .default("qr_code"),
@@ -40,12 +48,21 @@ export const eventCheckIns = pgTable("event_check_in", {
 
 // Relations
 export const eventsRelations = relations(events, ({ one, many }) => ({
-  createdBy: one(users, { fields: [events.createdById], references: [users.id] }),
+  createdBy: one(users, {
+    fields: [events.createdById],
+    references: [users.id],
+  }),
   checkIns: many(eventCheckIns),
 }));
 
 export const eventCheckInsRelations = relations(eventCheckIns, ({ one }) => ({
-  event: one(events, { fields: [eventCheckIns.eventId], references: [events.id] }),
+  event: one(events, {
+    fields: [eventCheckIns.eventId],
+    references: [events.id],
+  }),
   user: one(users, { fields: [eventCheckIns.userId], references: [users.id] }),
-  member: one(members, { fields: [eventCheckIns.memberId], references: [members.id] }),
+  member: one(members, {
+    fields: [eventCheckIns.memberId],
+    references: [members.id],
+  }),
 }));

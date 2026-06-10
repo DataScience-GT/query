@@ -1,11 +1,11 @@
 feature:
-  - head-branch: ['^feature/', '^feat/', '^enhancement/']
+  - head-branch: ["^feature/", "^feat/", "^enhancement/"]
 bug:
-  - head-branch: ['^bug/', '^fix/', '^hotfix/']
+  - head-branch: ["^bug/", "^fix/", "^hotfix/"]
 chore:
-  - head-branch: ['^chore/', '^task/']
+  - head-branch: ["^chore/", "^task/"]
 documentation:
-  - head-branch: ['^doc/', '^docs/']
+  - head-branch: ["^doc/", "^docs/"]
 dependencies:
   - changed-files:
-    - any-glob-to-any-file: ['package.json', 'package-lock.json', 'bun.lockb']
+      - any-glob-to-any-file: ["package.json", "package-lock.json", "bun.lockb"]

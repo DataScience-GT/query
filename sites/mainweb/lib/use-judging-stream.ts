@@ -22,7 +22,10 @@ export interface JudgingSnapshot {
  */
 export function useJudgingStream(
   hackathonId: string | null | undefined,
-  { enabled = true, maxRetries = 5 }: { enabled?: boolean; maxRetries?: number } = {}
+  {
+    enabled = true,
+    maxRetries = 5,
+  }: { enabled?: boolean; maxRetries?: number } = {},
 ) {
   const [snapshot, setSnapshot] = useState<JudgingSnapshot | null>(null);
   const [connected, setConnected] = useState(false);

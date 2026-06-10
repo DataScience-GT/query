@@ -22,13 +22,7 @@ const NAV_ITEMS: { id: DocSection; label: string; icon: string }[] = [
   { id: "deployment", label: "Deployment", icon: "^" },
 ];
 
-function CodeBlock({
-  title,
-  code,
-}: {
-  title?: string;
-  code: string;
-}) {
+function CodeBlock({ title, code }: { title?: string; code: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="group mb-8 transform-gpu overflow-hidden rounded-2xl border border-white/5 bg-black/60 shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-white/10">
@@ -898,7 +892,11 @@ export default function DocsPageClient() {
                     name="members"
                     columns={[
                       { field: "id", type: "uuid", notes: "Primary key" },
-                      { field: "userId", type: "text", notes: "FK -> users.id" },
+                      {
+                        field: "userId",
+                        type: "text",
+                        notes: "FK -> users.id",
+                      },
                       {
                         field: "membershipType",
                         type: "text",
@@ -954,7 +952,11 @@ export default function DocsPageClient() {
                       { field: "githubUrl", type: "text", notes: "nullable" },
                       { field: "demoUrl", type: "text", notes: "nullable" },
                       { field: "videoUrl", type: "text", notes: "nullable" },
-                      { field: "teamId", type: "uuid", notes: "FK -> teams.id" },
+                      {
+                        field: "teamId",
+                        type: "uuid",
+                        notes: "FK -> teams.id",
+                      },
                       {
                         field: "status",
                         type: "text",
@@ -982,7 +984,8 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">&gt;&gt;</span> Design System
+                    <span className="text-yellow-500">&gt;&gt;</span> Design
+                    System
                   </h3>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="rounded-3xl border border-t-2 border-white/5 border-t-yellow-500/30 bg-black/40 p-8 shadow-lg transition-colors hover:bg-[#050505]">
@@ -1073,7 +1076,8 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">&gt;&gt;</span> Portal Pages
+                    <span className="text-yellow-500">&gt;&gt;</span> Portal
+                    Pages
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <InfoCard
@@ -1141,7 +1145,8 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">&gt;&gt;</span> Core Components
+                    <span className="text-yellow-500">&gt;&gt;</span> Core
+                    Components
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <InfoCard
@@ -1220,7 +1225,8 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">&gt;&gt;</span> CI/CD Pipeline
+                    <span className="text-red-500">&gt;&gt;</span> CI/CD
+                    Pipeline
                   </h3>
                   <CodeBlock
                     title="github actions"
@@ -1230,7 +1236,8 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">&gt;&gt;</span> Useful Commands
+                    <span className="text-red-500">&gt;&gt;</span> Useful
+                    Commands
                   </h3>
                   <CodeBlock
                     title="terminal"

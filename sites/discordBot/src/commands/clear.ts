@@ -31,22 +31,21 @@ class PermissionValidator {
 
   private static getAllowedRoles(guild: Guild): Role[] {
     return guild.roles.cache
-      .filter(role => this.REQUIRED_ROLE_NAMES.includes(role.name))
-      .map(role => role);
+      .filter((role) => this.REQUIRED_ROLE_NAMES.includes(role.name))
+      .map((role) => role);
   }
 
   private static memberHasAnyRole(member: GuildMember, roles: Role[]): boolean {
-    return roles.some(role => member.roles.cache.has(role.id));
+    return roles.some((role) => member.roles.cache.has(role.id));
   }
 }
 
 class MessageCleaner {
-  private static readonly MAX_BULK_DELETE_AGE_MS =
-    14 * 24 * 60 * 60 * 1000;
+  private static readonly MAX_BULK_DELETE_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
   static async clearMessages(
     channel: TextChannel,
-    amount: number
+    amount: number,
   ): Promise<ClearResult> {
     try {
       const messages = await this.fetchMessages(channel, amount);
@@ -60,10 +59,7 @@ class MessageCleaner {
       }
 
       const deletableMessages = this.filterDeletableMessages(messages);
-      const deletedMessages = await channel.bulkDelete(
-        deletableMessages,
-        true
-      );
+      const deletedMessages = await channel.bulkDelete(deletableMessages, true);
 
       return {
         success: true,
@@ -81,17 +77,17 @@ class MessageCleaner {
 
   private static async fetchMessages(
     channel: TextChannel,
-    limit: number
+    limit: number,
   ): Promise<Collection<string, Message>> {
     return channel.messages.fetch({ limit });
   }
 
   private static filterDeletableMessages(
-    messages: Collection<string, Message>
+    messages: Collection<string, Message>,
   ): Collection<string, Message> {
     const now = Date.now();
 
-    return messages.filter(msg => {
+    return messages.filter((msg) => {
       const messageAge = now - msg.createdTimestamp;
       return messageAge < this.MAX_BULK_DELETE_AGE_MS;
     });
@@ -111,9 +107,7 @@ class MessageCleaner {
 }
 
 class ClearCommandValidator {
-  static validateContext(
-    interaction: ChatInputCommandInteraction
-  ): {
+  static validateContext(interaction: ChatInputCommandInteraction): {
     valid: boolean;
     member?: GuildMember;
     guild?: Guild;
@@ -149,7 +143,7 @@ class ClearCommandValidator {
 
 class ClearCommandExecutor {
   static async execute(
-    interaction: ChatInputCommandInteraction
+    interaction: ChatInputCommandInteraction,
   ): Promise<void> {
     const validation = ClearCommandValidator.validateContext(interaction);
 
@@ -182,13 +176,11 @@ class ClearCommandExecutor {
         content:
           result.deletedCount > 0
             ? `Successfully deleted ${result.deletedCount} message(s).`
-            : result.error ?? "No messages deleted.",
+            : (result.error ?? "No messages deleted."),
       });
     } else {
       await interaction.editReply({
-        content:
-          result.error ??
-          "An error occurred while deleting messages.",
+        content: result.error ?? "An error occurred while deleting messages.",
       });
     }
   }
@@ -197,17 +189,17 @@ class ClearCommandExecutor {
 export const data = new SlashCommandBuilder()
   .setName("clear")
   .setDescription("Clear messages from a channel (Organizers only).")
-  .addIntegerOption(option =>
+  .addIntegerOption((option) =>
     option
       .setName("amount")
       .setDescription("Number of messages to delete (1–50).")
       .setRequired(true)
       .setMinValue(1)
-      .setMaxValue(50)
+      .setMaxValue(50),
   );
 
 export async function execute(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   await ClearCommandExecutor.execute(interaction);
 }

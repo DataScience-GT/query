@@ -10,7 +10,9 @@ type Tx = Parameters<Parameters<NonNullable<typeof db>["transaction"]>[0]>[0];
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -21,13 +23,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (!stripe || !webhookSecret) {
-    console.error("Stripe not initialized. Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET.");
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    console.error(
+      "Stripe not initialized. Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET.",
+    );
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   if (!db) {
     console.error("Database not initialized.");
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   let event: Stripe.Event;
@@ -49,7 +59,8 @@ export async function POST(req: NextRequest) {
       }
 
       // Extract customer info
-      const rawEmail = session.customer_details?.email || session.customer_email;
+      const rawEmail =
+        session.customer_details?.email || session.customer_email;
       const customerEmail = rawEmail?.toLowerCase(); // Normalize email
       const customerName = session.customer_details?.name;
       const phoneNumber = session.customer_details?.phone;
@@ -57,7 +68,10 @@ export async function POST(req: NextRequest) {
 
       if (!customerEmail) {
         console.error("No customer email in checkout session");
-        return NextResponse.json({ error: "No customer email" }, { status: 400 });
+        return NextResponse.json(
+          { error: "No customer email" },
+          { status: 400 },
+        );
       }
 
       // Check if payment already exists (idempotency)
@@ -98,25 +112,32 @@ export async function POST(req: NextRequest) {
 
       // Execute in transaction
       await db.transaction(async (tx) => {
-        await tx
-          .insert(stripePayments)
-          .values({
-            stripeSessionId: session.id,
-            stripeCustomerId: session.customer as string | null,
-            stripePaymentIntentId: session.payment_intent as string | null,
-            customerEmail, // Normalized
-            customerName,
-            amountTotal: session.amount_total,
-            currency: session.currency || "usd",
-            paymentStatus: session.payment_status as "paid" | "unpaid" | "no_payment_required",
-            linkedUserId: targetUser?.id || null,
-            linkedAt: targetUser ? new Date() : null,
-            metadata: session.metadata ? JSON.stringify(session.metadata) : null,
-          });
+        await tx.insert(stripePayments).values({
+          stripeSessionId: session.id,
+          stripeCustomerId: session.customer as string | null,
+          stripePaymentIntentId: session.payment_intent as string | null,
+          customerEmail, // Normalized
+          customerName,
+          amountTotal: session.amount_total,
+          currency: session.currency || "usd",
+          paymentStatus: session.payment_status as
+            | "paid"
+            | "unpaid"
+            | "no_payment_required",
+          linkedUserId: targetUser?.id || null,
+          linkedAt: targetUser ? new Date() : null,
+          metadata: session.metadata ? JSON.stringify(session.metadata) : null,
+        });
 
         // If user exists and paid, create/update membership
         if (targetUser && session.payment_status === "paid") {
-          await createOrUpdateMembership(tx, targetUser.id, customerName, customerEmail, phoneNumber);
+          await createOrUpdateMembership(
+            tx,
+            targetUser.id,
+            customerName,
+            customerEmail,
+            phoneNumber,
+          );
 
           // Invalidate cache
           try {
@@ -127,7 +148,6 @@ export async function POST(req: NextRequest) {
           }
         }
       });
-
     } catch (error) {
       console.error("Error processing checkout session:", error);
       return NextResponse.json({ error: "Processing failed" }, { status: 500 });
@@ -137,13 +157,12 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-
 async function createOrUpdateMembership(
   tx: Tx,
   userId: string,
   customerName: string | null | undefined,
   customerEmail: string,
-  phoneNumber: string | null | undefined
+  phoneNumber: string | null | undefined,
 ) {
   // Check if member already exists
   const existingMember = await tx.query.members.findFirst({

@@ -22,7 +22,7 @@ function createAdapter(): Adapter | undefined {
     return {
       ...baseAdapter,
       createVerificationToken: async (
-        token: VerificationToken
+        token: VerificationToken,
       ): Promise<VerificationToken> => {
         if (!db) throw new Error("Database not available");
         // Convert expires to ISO string for reliable Postgres timestamp handling
@@ -46,7 +46,11 @@ function createAdapter(): Adapter | undefined {
         if (result.rowCount === 0) {
           return null;
         }
-        const row = result.rows[0] as { identifier: string; token: string; expires: string | Date };
+        const row = result.rows[0] as {
+          identifier: string;
+          token: string;
+          expires: string | Date;
+        };
         return {
           identifier: row.identifier,
           token: row.token,

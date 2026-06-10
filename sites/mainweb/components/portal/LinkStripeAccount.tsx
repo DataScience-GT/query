@@ -1,19 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { trpc } from '@/lib/trpc';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
+import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { LiquidGlass } from "@/components/portal/LiquidGlass";
 
 interface LinkStripeAccountProps {
   onSuccess?: () => void;
 }
 
-export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps) {
+export default function LinkStripeAccount({
+  onSuccess,
+}: LinkStripeAccountProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+    firstName: "",
+    lastName: "",
+    email: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -33,16 +35,13 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
     },
     onError: () => {
       setIsChecking(false);
-    }
+    },
   });
 
   useEffect(() => {
     // Attempt to auto-link on mount
     autoLinkMutation.mutate();
   }, [autoLinkMutation]);
-
-
-
 
   const linkMutation = trpc.stripe.linkAccount.useMutation({
     onSuccess: () => {
@@ -88,7 +87,19 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
     return (
       <LiquidGlass className="h-full p-8 flex flex-col items-center justify-center text-center !bg-green-500/10 !border-green-500/30">
         <div className="w-12 h-12 rounded-sm bg-green-500/20 flex items-center justify-center mb-4">
-          <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          <svg
+            className="w-6 h-6 text-green-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
         </div>
         <p className="text-xs uppercase tracking-widest font-black mb-2 text-green-400">
           Access Granted
@@ -114,7 +125,6 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   if (!isOpen) {
     return (
       <LiquidGlass className="relative h-full p-8 hover:!border-accent/30 transition-all duration-300 flex flex-col group !bg-[#0A0A0A]">
-
         {/* Decorative offline gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -132,12 +142,25 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
               </div>
             </div>
             <div className="opacity-20 group-hover:opacity-100 transition-opacity">
-              <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              <svg
+                className="w-8 h-8 text-accent"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
             </div>
           </div>
 
           <p className="text-sm text-gray-600 font-mono mb-6 leading-relaxed">
-            Membership verification required for terminal access. Dues: $15.00/yr.
+            Membership verification required for terminal access. Dues:
+            $15.00/yr.
           </p>
 
           <div className="mt-auto space-y-3">
@@ -146,7 +169,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
               disabled={isPaying}
               className="w-full py-4 px-4 bg-accent text-black hover:bg-accent/90 text-xs font-bold tracking-[0.2em] uppercase transition-all rounded shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPaying ? 'Processing...' : 'Pay Membership Dues ($15)'}
+              {isPaying ? "Processing..." : "Pay Membership Dues ($15)"}
             </button>
 
             <button
@@ -170,7 +193,13 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
   return (
     <LiquidGlass className="h-full p-8 border-accent/30 relative overflow-hidden !bg-[#0A0A0A]">
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-        <svg className="w-32 h-32 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" /></svg>
+        <svg
+          className="w-32 h-32 text-accent"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+        </svg>
       </div>
 
       <div className="relative z-10">
@@ -187,7 +216,8 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
         </div>
 
         <p className="text-xs text-[var(--text-subtle)] mb-6 font-mono leading-relaxed">
-          Please inputs the credentials used for the transaction to verify database entry.
+          Please inputs the credentials used for the transaction to verify
+          database entry.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -199,7 +229,9 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
               <input
                 type="text"
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
                 className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-3 py-2 text-[var(--text-primary)] text-sm font-mono focus:border-accent focus:outline-none focus:bg-accent/5 transition-all placeholder:text-gray-800"
                 placeholder="JOHN"
                 required
@@ -212,7 +244,9 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
               <input
                 type="text"
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
                 className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-3 py-2 text-[var(--text-primary)] text-sm font-mono focus:border-accent focus:outline-none focus:bg-accent/5 transition-all placeholder:text-gray-800"
                 placeholder="DOE"
                 required
@@ -227,7 +261,9 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-3 py-2 text-[var(--text-primary)] text-sm font-mono focus:border-accent focus:outline-none focus:bg-accent/5 transition-all placeholder:text-gray-800"
               placeholder="ident@example.com"
               required
@@ -237,7 +273,9 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
           {error && (
             <div className="bg-red-500/5 border border-red-500/20 rounded p-3 flex items-start gap-2">
               <span className="text-red-500 text-xs">!</span>
-              <p className="text-[9px] text-red-400 font-mono leading-tight pt-0.5">{error}</p>
+              <p className="text-[9px] text-red-400 font-mono leading-tight pt-0.5">
+                {error}
+              </p>
             </div>
           )}
 
@@ -246,7 +284,7 @@ export default function LinkStripeAccount({ onSuccess }: LinkStripeAccountProps)
             disabled={linkMutation.isPending}
             className="w-full mt-2 px-4 py-3 bg-accent text-black font-bold text-xs uppercase tracking-[0.2em] hover:bg-accent/90 transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
           >
-            {linkMutation.isPending ? 'Verifying...' : 'Authenticate Payment'}
+            {linkMutation.isPending ? "Verifying..." : "Authenticate Payment"}
           </button>
         </form>
       </div>

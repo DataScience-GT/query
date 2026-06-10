@@ -80,7 +80,8 @@ html {
 }
 
 @keyframes glowPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -144,7 +145,7 @@ a {
 }
 
 a:hover {
-  color: #00D4D4;
+  color: #00d4d4;
 }
 
 /* ===== BUTTON STYLING ===== */

@@ -27,7 +27,10 @@ async function getAuth() {
 }
 
 export async function createContext(
-  opts?: Partial<FetchCreateContextFnOptions> & { clientIp?: string; req?: Request }
+  opts?: Partial<FetchCreateContextFnOptions> & {
+    clientIp?: string;
+    req?: Request;
+  },
 ) {
   let session: Session = null;
 
@@ -49,8 +52,11 @@ export async function createContext(
     session,
     userId: session?.user?.id,
     cache,
-    clientIp: opts?.clientIp || req?.headers.get("x-forwarded-for")?.split(",")[0] || 'unknown',
-    req
+    clientIp:
+      opts?.clientIp ||
+      req?.headers.get("x-forwarded-for")?.split(",")[0] ||
+      "unknown",
+    req,
   };
 }
 

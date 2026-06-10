@@ -16,7 +16,8 @@ export default function Major({
   ...props
 }: MajorProps) {
   // Support legacy values 'a'|'b' for backwards compatibility
-  const resolvedType = type === "a" ? "primary" : type === "b" ? "secondary" : type;
+  const resolvedType =
+    type === "a" ? "primary" : type === "b" ? "secondary" : type;
 
   // Tailwind colors per type for a modern dark theme (e.g., Indigo/Amber)
   const typeClasses: Record<string, string> = {
@@ -31,7 +32,10 @@ export default function Major({
   const Tag = as as ElementType;
 
   return (
-    <Tag {...props} className={`${displayClasses} ${typeClasses[resolvedType] ?? ""} ${className ?? ""}`}>
+    <Tag
+      {...props}
+      className={`${displayClasses} ${typeClasses[resolvedType] ?? ""} ${className ?? ""}`}
+    >
       {children}
     </Tag>
   );

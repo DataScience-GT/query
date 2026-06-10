@@ -5,10 +5,25 @@ import React, { useMemo, memo } from "react";
 /* ─── SVG Flower Variants ─── */
 
 // Cherry blossom — 5 rounded petals with a warm center
-const CherryBlossom: React.FC<{ size: number; color: string; opacity: number }> = ({ size, color, opacity }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" style={{ opacity }}>
+const CherryBlossom: React.FC<{
+  size: number;
+  color: string;
+  opacity: number;
+}> = ({ size, color, opacity }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    style={{ opacity }}
+  >
     <defs>
-      <radialGradient id={`cb-${color.replace('#','')}`} cx="50%" cy="50%" r="50%">
+      <radialGradient
+        id={`cb-${color.replace("#", "")}`}
+        cx="50%"
+        cy="50%"
+        r="50%"
+      >
         <stop offset="0%" stopColor={color} stopOpacity="0.9" />
         <stop offset="70%" stopColor={color} stopOpacity="0.5" />
         <stop offset="100%" stopColor={color} stopOpacity="0.1" />
@@ -21,7 +36,7 @@ const CherryBlossom: React.FC<{ size: number; color: string; opacity: number }> 
         cy="25"
         rx="14"
         ry="22"
-        fill={`url(#cb-${color.replace('#','')})`}
+        fill={`url(#cb-${color.replace("#", "")})`}
         transform={`rotate(${angle} 50 50)`}
       />
     ))}
@@ -31,10 +46,25 @@ const CherryBlossom: React.FC<{ size: number; color: string; opacity: number }> 
 );
 
 // Lotus petal — elegant elongated petals in layers
-const LotusFlower: React.FC<{ size: number; color: string; opacity: number }> = ({ size, color, opacity }) => (
-  <svg width={size} height={size} viewBox="0 0 120 120" fill="none" style={{ opacity }}>
+const LotusFlower: React.FC<{
+  size: number;
+  color: string;
+  opacity: number;
+}> = ({ size, color, opacity }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 120 120"
+    fill="none"
+    style={{ opacity }}
+  >
     <defs>
-      <radialGradient id={`lt-${color.replace('#','')}`} cx="50%" cy="30%" r="70%">
+      <radialGradient
+        id={`lt-${color.replace("#", "")}`}
+        cx="50%"
+        cy="30%"
+        r="70%"
+      >
         <stop offset="0%" stopColor="#fff" stopOpacity="0.6" />
         <stop offset="40%" stopColor={color} stopOpacity="0.7" />
         <stop offset="100%" stopColor={color} stopOpacity="0.15" />
@@ -48,7 +78,7 @@ const LotusFlower: React.FC<{ size: number; color: string; opacity: number }> = 
         cy="20"
         rx="10"
         ry="30"
-        fill={`url(#lt-${color.replace('#','')})`}
+        fill={`url(#lt-${color.replace("#", "")})`}
         transform={`rotate(${angle} 60 60)`}
       />
     ))}
@@ -71,8 +101,18 @@ const LotusFlower: React.FC<{ size: number; color: string; opacity: number }> = 
 );
 
 // Small daisy — simple 6-petal flower good for background scatter
-const SmallDaisy: React.FC<{ size: number; color: string; opacity: number }> = ({ size, color, opacity }) => (
-  <svg width={size} height={size} viewBox="0 0 60 60" fill="none" style={{ opacity }}>
+const SmallDaisy: React.FC<{
+  size: number;
+  color: string;
+  opacity: number;
+}> = ({ size, color, opacity }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 60 60"
+    fill="none"
+    style={{ opacity }}
+  >
     {[0, 60, 120, 180, 240, 300].map((angle, i) => (
       <ellipse
         key={i}
@@ -90,8 +130,18 @@ const SmallDaisy: React.FC<{ size: number; color: string; opacity: number }> = (
 );
 
 // Falling petal — single floating petal shape
-const FallingPetal: React.FC<{ size: number; color: string; opacity: number }> = ({ size, color, opacity }) => (
-  <svg width={size} height={size * 1.6} viewBox="0 0 30 48" fill="none" style={{ opacity }}>
+const FallingPetal: React.FC<{
+  size: number;
+  color: string;
+  opacity: number;
+}> = ({ size, color, opacity }) => (
+  <svg
+    width={size}
+    height={size * 1.6}
+    viewBox="0 0 30 48"
+    fill="none"
+    style={{ opacity }}
+  >
     <path
       d="M15 0 C25 8 28 20 25 32 C22 40 18 46 15 48 C12 46 8 40 5 32 C2 20 5 8 15 0Z"
       fill={color}
@@ -107,10 +157,25 @@ const FallingPetal: React.FC<{ size: number; color: string; opacity: number }> =
 );
 
 // Abstract bloom spiral — a tech-organic spiral flower
-const SpiralBloom: React.FC<{ size: number; color: string; opacity: number }> = ({ size, color, opacity }) => (
-  <svg width={size} height={size} viewBox="0 0 80 80" fill="none" style={{ opacity }}>
+const SpiralBloom: React.FC<{
+  size: number;
+  color: string;
+  opacity: number;
+}> = ({ size, color, opacity }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 80 80"
+    fill="none"
+    style={{ opacity }}
+  >
     <defs>
-      <radialGradient id={`sp-${color.replace('#','')}`} cx="50%" cy="50%" r="50%">
+      <radialGradient
+        id={`sp-${color.replace("#", "")}`}
+        cx="50%"
+        cy="50%"
+        r="50%"
+      >
         <stop offset="0%" stopColor={color} stopOpacity="0.8" />
         <stop offset="100%" stopColor={color} stopOpacity="0" />
       </radialGradient>
@@ -125,7 +190,7 @@ const SpiralBloom: React.FC<{ size: number; color: string; opacity: number }> = 
           cy={40 - len}
           rx={4 + (i % 2) * 2}
           ry={len * 0.7}
-          fill={`url(#sp-${color.replace('#','')})`}
+          fill={`url(#sp-${color.replace("#", "")})`}
           transform={`rotate(${angle} 40 40)`}
         />
       );
@@ -135,15 +200,14 @@ const SpiralBloom: React.FC<{ size: number; color: string; opacity: number }> = 
   </svg>
 );
 
-
 /* ─── Flower Data Generator ─── */
 
 interface FlowerInstance {
   id: number;
-  type: 'cherry' | 'lotus' | 'daisy' | 'petal' | 'spiral';
-  x: number;       // % from left
-  y: number;       // % from top (of total page height)
-  size: number;    // px
+  type: "cherry" | "lotus" | "daisy" | "petal" | "spiral";
+  x: number; // % from left
+  y: number; // % from top (of total page height)
+  size: number; // px
   color: string;
   opacity: number;
   rotation: number;
@@ -153,27 +217,27 @@ interface FlowerInstance {
 }
 
 const COLORS = [
-  '#ff007f', // bloom pink
-  '#ff3399', // hot pink
-  '#ff66b2', // soft pink
-  '#cc44ff', // purple
-  '#9d00ff', // deep purple
-  '#00f3ff', // cyan
-  '#66ffee', // light cyan
-  '#ccff00', // lime
-  '#ff9ecd', // rose
-  '#ffb3d9', // light rose
-  '#e0aaff', // lavender
-  '#7df9ff', // electric blue
+  "#ff007f", // bloom pink
+  "#ff3399", // hot pink
+  "#ff66b2", // soft pink
+  "#cc44ff", // purple
+  "#9d00ff", // deep purple
+  "#00f3ff", // cyan
+  "#66ffee", // light cyan
+  "#ccff00", // lime
+  "#ff9ecd", // rose
+  "#ffb3d9", // light rose
+  "#e0aaff", // lavender
+  "#7df9ff", // electric blue
 ];
 
 const DRIFT_CLASSES = [
-  'flower-drift-1',
-  'flower-drift-2',
-  'flower-drift-3',
-  'flower-drift-4',
-  'flower-sway-1',
-  'flower-sway-2',
+  "flower-drift-1",
+  "flower-drift-2",
+  "flower-drift-3",
+  "flower-drift-4",
+  "flower-sway-1",
+  "flower-sway-2",
 ];
 
 function seededRandom(seed: number) {
@@ -186,8 +250,14 @@ function seededRandom(seed: number) {
 
 function generateFlowers(count: number): FlowerInstance[] {
   const rand = seededRandom(42);
-  const types: FlowerInstance['type'][] = ['cherry', 'lotus', 'daisy', 'petal', 'spiral'];
-  
+  const types: FlowerInstance["type"][] = [
+    "cherry",
+    "lotus",
+    "daisy",
+    "petal",
+    "spiral",
+  ];
+
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     type: types[Math.floor(rand() * types.length)],
@@ -203,18 +273,30 @@ function generateFlowers(count: number): FlowerInstance[] {
   }));
 }
 
-
 /* ─── Render Component ─── */
 
-const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: FlowerInstance }) {
+const FlowerRenderer = memo(function FlowerRenderer({
+  flower,
+}: {
+  flower: FlowerInstance;
+}) {
   const svgElement = useMemo(() => {
-    const props = { size: flower.size, color: flower.color, opacity: flower.opacity };
+    const props = {
+      size: flower.size,
+      color: flower.color,
+      opacity: flower.opacity,
+    };
     switch (flower.type) {
-      case 'cherry': return <CherryBlossom {...props} />;
-      case 'lotus': return <LotusFlower {...props} />;
-      case 'daisy': return <SmallDaisy {...props} />;
-      case 'petal': return <FallingPetal {...props} />;
-      case 'spiral': return <SpiralBloom {...props} />;
+      case "cherry":
+        return <CherryBlossom {...props} />;
+      case "lotus":
+        return <LotusFlower {...props} />;
+      case "daisy":
+        return <SmallDaisy {...props} />;
+      case "petal":
+        return <FallingPetal {...props} />;
+      case "spiral":
+        return <SpiralBloom {...props} />;
     }
   }, [flower.type, flower.size, flower.color, flower.opacity]);
 
@@ -228,14 +310,13 @@ const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: Flower
         animationDelay: `${flower.animDelay}s`,
         animationDuration: `${flower.animDuration}s`,
         zIndex: 1,
-        contain: 'layout style paint',
+        contain: "layout style paint",
       }}
     >
       {svgElement}
     </div>
   );
 });
-
 
 /* ─── Main Floating Flowers Component ─── */
 
@@ -267,57 +348,87 @@ export default function FloatingFlowers({ count = 15 }: { count?: number }) {
   );
 }
 
-
 /* ─── Section Divider Flower Cluster ─── */
 // Decorative flower clusters to place between sections
 
-export function FlowerDivider({ variant = 'pink' }: { variant?: 'pink' | 'cyan' | 'lime' | 'purple' }) {
+export function FlowerDivider({
+  variant = "pink",
+}: {
+  variant?: "pink" | "cyan" | "lime" | "purple";
+}) {
   const colorMap = {
-    pink: ['#ff007f', '#ff66b2', '#ff9ecd'],
-    cyan: ['#00f3ff', '#66ffee', '#7df9ff'],
-    lime: ['#ccff00', '#b8e600', '#99cc00'],
-    purple: ['#9d00ff', '#cc44ff', '#e0aaff'],
+    pink: ["#ff007f", "#ff66b2", "#ff9ecd"],
+    cyan: ["#00f3ff", "#66ffee", "#7df9ff"],
+    lime: ["#ccff00", "#b8e600", "#99cc00"],
+    purple: ["#9d00ff", "#cc44ff", "#e0aaff"],
   };
   const colors = colorMap[variant];
 
   return (
-    <div className="relative w-full flex justify-center items-center py-8 pointer-events-none" aria-hidden="true">
+    <div
+      className="relative w-full flex justify-center items-center py-8 pointer-events-none"
+      aria-hidden="true"
+    >
       {/* Central glow */}
-      <div className={`absolute w-[300px] h-[100px] rounded-full blur-[60px] opacity-20`}
-           style={{ backgroundColor: colors[0] }} />
-      
+      <div
+        className={`absolute w-[300px] h-[100px] rounded-full blur-[60px] opacity-20`}
+        style={{ backgroundColor: colors[0] }}
+      />
+
       {/* Flower cluster */}
       <div className="relative flex items-center gap-2">
         {/* Left scatter */}
-        <div className="flower-sway-1" style={{ animationDuration: '8s' }}>
+        <div className="flower-sway-1" style={{ animationDuration: "8s" }}>
           <SmallDaisy size={20} color={colors[2]} opacity={0.4} />
         </div>
-        <div className="flower-sway-2 -mt-4" style={{ animationDuration: '10s', animationDelay: '1s' }}>
+        <div
+          className="flower-sway-2 -mt-4"
+          style={{ animationDuration: "10s", animationDelay: "1s" }}
+        >
           <FallingPetal size={14} color={colors[1]} opacity={0.5} />
         </div>
-        <div className="flower-drift-1" style={{ animationDuration: '12s', animationDelay: '0.5s' }}>
+        <div
+          className="flower-drift-1"
+          style={{ animationDuration: "12s", animationDelay: "0.5s" }}
+        >
           <CherryBlossom size={32} color={colors[0]} opacity={0.5} />
         </div>
-        
+
         {/* Center line */}
-        <div className="w-16 md:w-32 h-[1px] mx-4" style={{ background: `linear-gradient(to right, transparent, ${colors[0]}60, transparent)` }} />
-        
+        <div
+          className="w-16 md:w-32 h-[1px] mx-4"
+          style={{
+            background: `linear-gradient(to right, transparent, ${colors[0]}60, transparent)`,
+          }}
+        />
+
         {/* Center flower */}
-        <div className="flower-sway-1" style={{ animationDuration: '7s' }}>
+        <div className="flower-sway-1" style={{ animationDuration: "7s" }}>
           <LotusFlower size={45} color={colors[0]} opacity={0.6} />
         </div>
-        
+
         {/* Center line */}
-        <div className="w-16 md:w-32 h-[1px] mx-4" style={{ background: `linear-gradient(to right, transparent, ${colors[0]}60, transparent)` }} />
-        
+        <div
+          className="w-16 md:w-32 h-[1px] mx-4"
+          style={{
+            background: `linear-gradient(to right, transparent, ${colors[0]}60, transparent)`,
+          }}
+        />
+
         {/* Right scatter */}
-        <div className="flower-drift-2" style={{ animationDuration: '11s', animationDelay: '2s' }}>
+        <div
+          className="flower-drift-2"
+          style={{ animationDuration: "11s", animationDelay: "2s" }}
+        >
           <CherryBlossom size={28} color={colors[1]} opacity={0.45} />
         </div>
-        <div className="flower-sway-1 -mt-3" style={{ animationDuration: '9s', animationDelay: '1.5s' }}>
+        <div
+          className="flower-sway-1 -mt-3"
+          style={{ animationDuration: "9s", animationDelay: "1.5s" }}
+        >
           <FallingPetal size={12} color={colors[0]} opacity={0.5} />
         </div>
-        <div className="flower-sway-2" style={{ animationDuration: '10s' }}>
+        <div className="flower-sway-2" style={{ animationDuration: "10s" }}>
           <SmallDaisy size={18} color={colors[2]} opacity={0.35} />
         </div>
       </div>
@@ -325,30 +436,29 @@ export function FlowerDivider({ variant = 'pink' }: { variant?: 'pink' | 'cyan' 
   );
 }
 
-
 /* ─── Corner Flower Accent ─── */
 // For placing in corners of section cards
 
-export function FlowerAccent({ 
-  position = 'top-right', 
-  color = '#ff007f',
-  size = 40 
-}: { 
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+export function FlowerAccent({
+  position = "top-right",
+  color = "#ff007f",
+  size = 40,
+}: {
+  position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   color?: string;
   size?: number;
 }) {
   const positionClasses = {
-    'top-right': '-top-3 -right-3',
-    'top-left': '-top-3 -left-3',
-    'bottom-right': '-bottom-3 -right-3',
-    'bottom-left': '-bottom-3 -left-3',
+    "top-right": "-top-3 -right-3",
+    "top-left": "-top-3 -left-3",
+    "bottom-right": "-bottom-3 -right-3",
+    "bottom-left": "-bottom-3 -left-3",
   };
 
   return (
-    <div 
+    <div
       className={`absolute ${positionClasses[position]} pointer-events-none flower-sway-1 z-20`}
-      style={{ animationDuration: '8s' }}
+      style={{ animationDuration: "8s" }}
       aria-hidden="true"
     >
       <CherryBlossom size={size} color={color} opacity={0.5} />
@@ -356,23 +466,22 @@ export function FlowerAccent({
   );
 }
 
-
 /* ─── Vine/Trailing Flowers ─── */
 // Vertical vine of flowers for side decoration
 
-export function FlowerVine({ 
-  side = 'left', 
-  colors = ['#ff007f', '#ff66b2', '#cc44ff'],
-  flowerCount = 6 
-}: { 
-  side?: 'left' | 'right';
+export function FlowerVine({
+  side = "left",
+  colors = ["#ff007f", "#ff66b2", "#cc44ff"],
+  flowerCount = 6,
+}: {
+  side?: "left" | "right";
   colors?: string[];
   flowerCount?: number;
 }) {
-  const rand = seededRandom(side === 'left' ? 77 : 99);
-  
+  const rand = seededRandom(side === "left" ? 77 : 99);
+
   const vines = Array.from({ length: flowerCount }, (_, i) => ({
-    type: (['cherry', 'daisy', 'petal'] as const)[Math.floor(rand() * 3)],
+    type: (["cherry", "daisy", "petal"] as const)[Math.floor(rand() * 3)],
     offset: 5 + rand() * 20,
     y: (100 / flowerCount) * i + rand() * 10,
     size: 14 + rand() * 22,
@@ -382,21 +491,26 @@ export function FlowerVine({
   }));
 
   return (
-    <div 
-      className={`absolute top-0 bottom-0 ${side === 'left' ? 'left-0' : 'right-0'} w-24 pointer-events-none overflow-hidden`}
+    <div
+      className={`absolute top-0 bottom-0 ${side === "left" ? "left-0" : "right-0"} w-24 pointer-events-none overflow-hidden`}
       style={{ zIndex: 1 }}
       aria-hidden="true"
     >
       {/* Vine stem */}
-      <div 
-        className={`absolute top-0 bottom-0 ${side === 'left' ? 'left-6' : 'right-6'} w-[1px]`}
+      <div
+        className={`absolute top-0 bottom-0 ${side === "left" ? "left-6" : "right-6"} w-[1px]`}
         style={{
           background: `linear-gradient(to bottom, transparent, ${colors[0]}20, ${colors[1]}15, transparent)`,
         }}
       />
-      
+
       {vines.map((v, i) => {
-        const FlowerComponent = v.type === 'cherry' ? CherryBlossom : v.type === 'daisy' ? SmallDaisy : FallingPetal;
+        const FlowerComponent =
+          v.type === "cherry"
+            ? CherryBlossom
+            : v.type === "daisy"
+              ? SmallDaisy
+              : FallingPetal;
         return (
           <div
             key={i}
@@ -408,7 +522,11 @@ export function FlowerVine({
               animationDuration: `${8 + v.delay}s`,
             }}
           >
-            <FlowerComponent size={v.size} color={v.color} opacity={v.opacity} />
+            <FlowerComponent
+              size={v.size}
+              color={v.color}
+              opacity={v.opacity}
+            />
           </div>
         );
       })}

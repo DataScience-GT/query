@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import { useState } from "react";
+import type { KeyboardEvent } from "react";
 
 interface SkillsInterestsInputProps {
   items: string[];
@@ -18,14 +18,14 @@ export default function SkillsInterestsInput({
   maxItems,
   accentColor,
 }: SkillsInterestsInputProps) {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
+    if (e.key === "Enter" && inputValue.trim()) {
       e.preventDefault();
       if (items.length < maxItems && !items.includes(inputValue.trim())) {
         setItems([...items, inputValue.trim()]);
-        setInputValue('');
+        setInputValue("");
       }
     }
   };
