@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { sendAcceptanceEmail } from "@query/auth/email";
 import {
   hackathons,
   hackathonParticipants,
@@ -689,10 +690,24 @@ export const hackathonRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { hackathonId, participantIds } = input;
+      const db = ctx.db as DrizzleDB;
 
-      await (ctx.db as DrizzleDB).transaction(async (tx) => {
+      const hackathon = await db.query.hackathons.findFirst({
+        where: eq(hackathons.id, hackathonId),
+        columns: { name: true }
+      });
+
+      if (!hackathon) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
+      }
+
+      const participants = await db.query.hackathonParticipants.findMany({
+        where: inArray(hackathonParticipants.id, participantIds),
+        with: { user: { columns: { email: true } } }
+      });
+
+      await db.transaction(async (tx) => {
         for (const participantId of participantIds) {
-          // Update status to approved
           await tx
             .update(hackathonParticipants)
             .set({ registrationStatus: "approved", updatedAt: new Date() })
@@ -705,8 +720,20 @@ export const hackathonRouter = createTRPCRouter({
         }
       });
 
-      // TODO: Implement actual email sending with SendGrid/Resend
-      console.log(`[Email Service] Sent acceptance emails to ${participantIds.length} participants for hackathon ${hackathonId}.`);
+      for (const participant of participants) {
+        if (participant.user?.email) {
+          try {
+            await sendAcceptanceEmail({
+              email: participant.user.email,
+              hackathonName: hackathon.name,
+              host: process.env.NEXTAUTH_URL || "https://datasciencegt.org"
+            });
+            console.log(`[Email Service] Sent acceptance email to ${participant.user.email} for hackathon ${hackathon.name}.`);
+          } catch (error) {
+            console.error(`[Email Service] Failed to send acceptance email to ${participant.user.email}:`, error);
+          }
+        }
+      }
 
       ctx.cache.deletePattern("hackathon*");
 
