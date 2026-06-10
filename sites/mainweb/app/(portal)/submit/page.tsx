@@ -198,7 +198,7 @@ function SubmitPortalContent() {
                                                 </div>
 
                                                 {currentReg.team.captainId === session?.user?.id ? (
-                                                    <p className="text-xs text-accent font-mono mt-4">✓ You are the Captain</p>
+                                                    <p className="text-xs text-accent font-mono mt-4">You are the Captain</p>
                                                 ) : (
                                                     <button
                                                         onClick={() => leaveTeam.mutate({ hackathonId: selectedHackathonId })}

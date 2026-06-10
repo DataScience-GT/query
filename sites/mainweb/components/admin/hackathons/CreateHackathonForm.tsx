@@ -43,7 +43,7 @@ export function CreateHackathonForm({ onClose, onCreated }: { onClose: () => voi
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-[var(--text-primary)]">New Hackathon</h3>
-                <button onClick={onClose} className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm font-mono">✕</button>
+                <button onClick={onClose} className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm font-mono">X</button>
             </div>
 
             <div className="space-y-4">

@@ -79,7 +79,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">
-                Welcome back, {userData?.name?.split(' ')[0] ?? 'there'} 👋
+                Welcome back, {userData?.name?.split(' ')[0] ?? 'there'}
               </h1>
               <p className="text-sm text-[var(--text-muted)] mt-0.5">
                 {userData?.email ?? ''} · <span className="font-semibold text-accent">{roleLabel}</span>
