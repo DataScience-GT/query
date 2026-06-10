@@ -39,7 +39,7 @@ const AboutSection: React.FC = () => {
                   We invite hackers from across the globe to dive into the <span className="text-bloom-cyan font-bold drop-shadow-[0_0_5px_rgba(0,243,255,0.8)]">digital bloom</span>. Experience the bleeding edge of AI, machine learning, and data analytics in a high-octane environment.
                 </p>
                 <p>
-                  Tackle challenges across 5 exciting tracks, fuel your curiosity, and uncover the rewards of solving complex problems with code.
+                  Collaborate with peers, fuel your curiosity, and uncover the rewards of solving complex problems with code.
                 </p>
               </div>
             </div>
@@ -84,7 +84,7 @@ const AboutSection: React.FC = () => {
                 {[
                   "Build projects that matter",
                   "Connect with hackers",
-                  "Free food, swag, & prizes!"
+                  "Free food, swag, & networking!"
                 ].map((text, i) => (
                   <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-bloom-cyan/50 hover:bg-white/10 transition-colors group/item">
                     <span className="text-bloom-cyan font-bold group-hover/item:text-white transition-colors">0{i+1}</span>

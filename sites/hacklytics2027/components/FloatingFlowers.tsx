@@ -239,8 +239,20 @@ const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: Flower
 
 /* ─── Main Floating Flowers Component ─── */
 
-export default function FloatingFlowers({ count = 55 }: { count?: number }) {
-  const flowers = useMemo(() => generateFlowers(count), [count]);
+export default function FloatingFlowers({ count = 15 }: { count?: number }) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const activeCount = isMobile ? Math.min(count, 6) : count;
+  const flowers = useMemo(() => generateFlowers(activeCount), [activeCount]);
 
   return (
     <div
