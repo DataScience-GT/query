@@ -529,7 +529,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-[#00A8A8]">>></span> Quick Start
+                    <span className="text-[#00A8A8]">&gt;&gt;</span> Quick Start
                   </h3>
                   <CodeBlock
                     title="terminal"
@@ -982,7 +982,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">>></span> Design System
+                    <span className="text-yellow-500">&gt;&gt;</span> Design System
                   </h3>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="rounded-3xl border border-t-2 border-white/5 border-t-yellow-500/30 bg-black/40 p-8 shadow-lg transition-colors hover:bg-[#050505]">
@@ -1073,7 +1073,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">>></span> Portal Pages
+                    <span className="text-yellow-500">&gt;&gt;</span> Portal Pages
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <InfoCard
@@ -1141,7 +1141,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">>></span> Core Components
+                    <span className="text-yellow-500">&gt;&gt;</span> Core Components
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <InfoCard
@@ -1209,7 +1209,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">>></span> Environment
+                    <span className="text-red-500">&gt;&gt;</span> Environment
                     Variables
                   </h3>
                   <CodeBlock
@@ -1220,7 +1220,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">>></span> CI/CD Pipeline
+                    <span className="text-red-500">&gt;&gt;</span> CI/CD Pipeline
                   </h3>
                   <CodeBlock
                     title="github actions"
@@ -1230,7 +1230,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">>></span> Useful Commands
+                    <span className="text-red-500">&gt;&gt;</span> Useful Commands
                   </h3>
                   <CodeBlock
                     title="terminal"
