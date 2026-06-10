@@ -40,10 +40,10 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
   if (pathname === '/login' || pathname === '/verify') return null;
 
   const mainRoutes = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home, show: true },
-    { name: 'Hackathons', href: '/hackathons', icon: Zap, show: true },
-    { name: 'Club Portal', href: '/club', icon: QrCode, show: memberStatus?.isMember },
-    { name: 'Judge Portal', href: '/judge', icon: ClipboardList, show: judgeStatus?.isJudge },
+    { name: 'Dashboard', href: '/dashboard', icon: Home, show: !adminStatus?.isAdmin },
+    { name: 'Hackathons', href: '/hackathons', icon: Zap, show: !adminStatus?.isAdmin },
+    { name: 'Club Portal', href: '/club', icon: QrCode, show: memberStatus?.isMember && !adminStatus?.isAdmin },
+    { name: 'Judge Portal', href: '/judge', icon: ClipboardList, show: judgeStatus?.isJudge && !adminStatus?.isAdmin },
   ].filter(r => r.show);
 
   const adminRoutes = [
@@ -79,30 +79,32 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
 
           <div className="w-full max-w-sm flex flex-col items-center gap-10 mt-4">
             
-            <div className="w-full text-center">
-              <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
-                <Code className="w-6 h-6 opacity-50" />
-                Main Navigation
-              </h3>
-              <div className="flex flex-col gap-3">
-                {mainRoutes.map(route => {
-                  const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(route.href + '/'));
-                  return (
-                    <Link
-                      key={route.href}
-                      href={route.href}
-                      onClick={() => setIsMobileOpen(false)}
-                      className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
-                        isActive ? 'bg-accent/10 text-accent border border-accent/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
-                      }`}
-                    >
-                      <route.icon className="w-5 h-5" />
-                      <span className="text-lg">{route.name}</span>
-                    </Link>
-                  )
-                })}
+            {mainRoutes.length > 0 && (
+              <div className="w-full text-center">
+                <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
+                  <Code className="w-6 h-6 opacity-50" />
+                  Main Navigation
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {mainRoutes.map(route => {
+                    const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(route.href + '/'));
+                    return (
+                      <Link
+                        key={route.href}
+                        href={route.href}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
+                          isActive ? 'bg-accent/10 text-accent border border-accent/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                        }`}
+                      >
+                        <route.icon className="w-5 h-5" />
+                        <span className="text-lg">{route.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {adminStatus?.isAdmin && (
               <>
@@ -197,33 +199,35 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {/* Main Navigation Section */}
-          <div className="mb-1">
-            {isOpen && (
-              <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                <Code className="h-3 w-3 text-accent/60 flex-shrink-0" />
-                <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">Portal</span>
+          {mainRoutes.length > 0 && (
+            <div className="mb-1">
+              {isOpen && (
+                <div className="flex items-center gap-2 px-3 pb-2 mb-1">
+                  <Code className="h-3 w-3 text-accent/60 flex-shrink-0" />
+                  <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">Portal</span>
+                </div>
+              )}
+              {!isOpen && <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />}
+              <div className="space-y-1">
+                {mainRoutes.map((route) => {
+                  const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(route.href + '/'));
+                  return (
+                    <Link
+                      key={route.href}
+                      href={route.href}
+                      title={!isOpen ? route.name : undefined}
+                      className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
+                        isActive ? 'bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-accent' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
+                      {isOpen && <span className="text-sm truncate">{route.name}</span>}
+                    </Link>
+                  );
+                })}
               </div>
-            )}
-            {!isOpen && <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />}
-            <div className="space-y-1">
-              {mainRoutes.map((route) => {
-                const isActive = pathname === route.href || (route.href !== '/dashboard' && pathname.startsWith(route.href + '/'));
-                return (
-                  <Link
-                    key={route.href}
-                    href={route.href}
-                    title={!isOpen ? route.name : undefined}
-                    className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
-                      isActive ? 'bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-accent' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
-                    {isOpen && <span className="text-sm truncate">{route.name}</span>}
-                  </Link>
-                );
-              })}
             </div>
-          </div>
+          )}
 
           {adminStatus?.isAdmin && (
             <>
