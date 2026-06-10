@@ -47,6 +47,7 @@ export default function Dashboard() {
   const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation();
   useEffect(() => { if (session) attemptAutoLink(); }, [session, attemptAutoLink]);
   useEffect(() => { if (status === 'unauthenticated') router.push('/login'); }, [status, router]);
+  useEffect(() => { if (adminStatus?.isAdmin) router.replace('/admin'); }, [adminStatus?.isAdmin, router]);
 
   if (status === 'loading') return <LoadingScreen message="Loading dashboard..." />;
   if (!session) return null;
