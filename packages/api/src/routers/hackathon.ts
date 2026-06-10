@@ -155,15 +155,17 @@ export const hackathonRouter = createTRPCRouter({
             !data.registrationDeadline ||
             data.registrationDeadline <= data.startDate,
           {
-            message: "Registration deadline must be before start date",
+            message: "Registration deadline must be before or equal to the event start date",
           },
         )
         .refine(
           (data) =>
-            !data.hackingStartTime || data.hackingStartTime >= data.startDate,
+            !data.hackingStartTime ||
+            (data.hackingStartTime >= data.startDate &&
+              data.hackingStartTime <= data.endDate),
           {
             message:
-              "Hacking start time must be after or equal to hackathon start date",
+              "Hacking start time must be within the event window (between start date and end date)",
           },
         ),
     )
@@ -232,6 +234,36 @@ export const hackathonRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Hackathon not found",
+        });
+      }
+
+      // Merge with existing dates for partial-update validation
+      const resolvedStart = updateData.startDate ?? existing.startDate;
+      const resolvedEnd = updateData.endDate ?? existing.endDate;
+
+      if (resolvedEnd <= resolvedStart) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "End date must be after start date",
+        });
+      }
+
+      // hackingStartTime: null clears it; undefined leaves it unchanged
+      const resolvedHackingStart =
+        updateData.hackingStartTime === null
+          ? null
+          : (updateData.hackingStartTime ?? existing.hackingStartTime);
+
+      if (
+        resolvedHackingStart !== null &&
+        resolvedHackingStart !== undefined &&
+        (resolvedHackingStart < resolvedStart ||
+          resolvedHackingStart > resolvedEnd)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Hacking start time must be within the event window (between start date and end date)",
         });
       }
 
