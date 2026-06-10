@@ -207,9 +207,8 @@ function generateFlowers(count: number): FlowerInstance[] {
 /* ─── Render Component ─── */
 
 const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: FlowerInstance }) {
-  const props = { size: flower.size, color: flower.color, opacity: flower.opacity };
-  
   const svgElement = useMemo(() => {
+    const props = { size: flower.size, color: flower.color, opacity: flower.opacity };
     switch (flower.type) {
       case 'cherry': return <CherryBlossom {...props} />;
       case 'lotus': return <LotusFlower {...props} />;
@@ -217,7 +216,7 @@ const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: Flower
       case 'petal': return <FallingPetal {...props} />;
       case 'spiral': return <SpiralBloom {...props} />;
     }
-  }, [flower.type, props.size, props.color, props.opacity]);
+  }, [flower.type, flower.size, flower.color, flower.opacity]);
 
   return (
     <div

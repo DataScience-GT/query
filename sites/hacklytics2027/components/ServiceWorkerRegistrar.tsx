@@ -19,8 +19,9 @@ export default function ServiceWorkerRegistrar() {
 
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
-      .then((registration) => {})
+      .then(() => {})
       .catch((error) => {
+        // eslint-disable-next-line no-console
         console.error("[SW] Service worker registration failed:", error);
       });
   }, []);

@@ -1,9 +1,8 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { systemSettings } from "@query/db";
 import { eq } from "drizzle-orm";
-import { isSuperAdmin, isAdmin } from "../middleware/procedures";
+import { isSuperAdmin } from "../middleware/procedures";
 import type { DrizzleDB } from "@query/db";
 
 export const settingsRouter = createTRPCRouter({

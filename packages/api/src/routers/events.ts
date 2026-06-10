@@ -99,10 +99,13 @@ export const eventRouter = createTRPCRouter({
     }
 
     const now = new Date();
-    return allEvents.map(event => ({
-      ...event,
-      status: (event.checkInEnabled && event.eventDate >= new Date(now.getTime() - 24 * 60 * 60 * 1000)) ? "open" : "closed",
-    }));
+    return allEvents.map(event => {
+      const { qrCode: _qrCode, ...safeEvent } = event;
+      return {
+        ...safeEvent,
+        status: (event.checkInEnabled && event.eventDate >= new Date(now.getTime() - 24 * 60 * 60 * 1000)) ? "open" : "closed",
+      };
+    });
   }),
 
   getById: isAdmin

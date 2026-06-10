@@ -1,5 +1,5 @@
-const { chromium } = require('playwright');
-const path = require('path');
+import { chromium } from 'playwright';
+import path from 'path';
 
 // A generic script for the LLM to easily capture screenshots of any site.
 // Usage: npx ts-node scripts/capture-vision.ts [URL] [OUTPUT_PATH]
@@ -22,7 +22,8 @@ async function captureVision() {
 
     await page.screenshot({ path: outputPath, fullPage: true });
   } catch (error) {
-    console.error(`❌ Failed to capture screenshot:`, error);
+    // eslint-disable-next-line no-console
+    console.error(`Failed to capture screenshot:`, error);
   } finally {
     await browser.close();
   }

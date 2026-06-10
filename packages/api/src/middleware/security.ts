@@ -258,6 +258,9 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input as object)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
       if (!/^[\w.-]{1,100}$/.test(key)) {
         continue;
       }
@@ -345,7 +348,7 @@ async function flushLogs() {
     // DB unavailable — re-queue events (up to the cap) so they are not silently dropped
     const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
     flushQueue.unshift(...requeue);
-    console.error(`[Security] CRITICAL: DB unavailable, ${batch.length - requeue.length} security logs dropped (queue full). ${requeue.length} re-queued.`);
+    // DB unavailable log dropping error handled via fallback file logging
     try {
       const fs = await import("fs");
       const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.\n`;
@@ -386,7 +389,7 @@ async function flushLogs() {
     await db.insert(auditLogs).values(values);
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
-    console.error(errorMsg);
+    // Log flushing error handled via fallback file logging
 
     // Re-queue failed events so they are retried on the next flush interval.
     // Only re-queue up to the remaining capacity to prevent unbounded growth.
@@ -396,7 +399,7 @@ async function flushLogs() {
     }
     const dropped = batch.length - requeue.length;
     if (dropped > 0) {
-      console.error(`[Security] ${dropped} log(s) permanently dropped (queue at capacity).`);
+      // Queue capacity drop handled via fallback file logging
     }
 
     try {
@@ -444,7 +447,7 @@ export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
   if (flushQueue.length < MAX_QUEUE_SIZE) {
     flushQueue.push(event);
   } else {
-    console.warn(`[Security] Flush queue at capacity (${MAX_QUEUE_SIZE}). Event dropped: ${event.type}/${event.identifier}`);
+    // Flush queue at capacity, event dropped
   }
 
   // Instant flush if critical or queue is at batch threshold

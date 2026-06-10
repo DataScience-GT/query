@@ -12,7 +12,6 @@ const navItems = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
   const lastScrollY = useRef(0);
   const headerRef = useRef<HTMLElement>(null);
@@ -24,8 +23,6 @@ export default function Navbar() {
   useEffect(() => {
     const handleScrollEvent = () => {
       const currentScrollY = window.scrollY;
-      setScrolled(currentScrollY > 8);
-
       const isScrollingDown = currentScrollY > lastScrollY.current;
 
       if (isScrollingDown && !isClickScrolling.current && currentScrollY > 8) {

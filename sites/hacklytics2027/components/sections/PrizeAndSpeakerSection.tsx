@@ -243,12 +243,12 @@ export default function PrizeAndSpeakerSection() {
       {/* Track Prizes Grid */}
       <div className="w-full px-6 md:px-12 xl:px-24 mb-24">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
-          {trackPrizes.slice(0, 3).map((track, index) => (
+          {trackPrizes.slice(0, 3).map((track) => (
             <TrackPrizeCard key={track.trackName} {...track} />
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {trackPrizes.slice(3, 5).map((track, index) => (
+          {trackPrizes.slice(3, 5).map((track) => (
             <TrackPrizeCard key={track.trackName} {...track} />
           ))}
         </div>
@@ -268,7 +268,7 @@ export default function PrizeAndSpeakerSection() {
       {/* Speakers Grid */}
       <div className="w-full px-6 md:px-12 xl:px-24 mb-24">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {speakers.map((speaker, index) => (
+          {speakers.map((speaker) => (
             <SpeakerCard key={speaker.id} {...speaker} />
           ))}
         </div>
