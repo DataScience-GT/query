@@ -191,7 +191,7 @@ export const judgeRouter = createTRPCRouter({
           remaining: Number(remainingCount[0]?.count || 0),
         };
       } catch (error) {
-        console.error("[getNextTable] Error:", error);
+        // getNextTable error
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: error instanceof Error ? error.message : "Failed to fetch next project",
@@ -591,7 +591,7 @@ export const judgeRouter = createTRPCRouter({
           percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
         };
       } catch (error) {
-        console.error("[getProgress] Error:", error);
+        // getProgress error
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: error instanceof Error ? error.message : "Failed to fetch progress",
