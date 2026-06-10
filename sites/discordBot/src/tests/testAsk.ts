@@ -148,14 +148,10 @@ async function runSuite() {
     const commandsPath = path.join(__dirname, '../commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
 
-    console.log(`\n[SEARCH] Found ${commandFiles.length} commands.\n`);
-
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         const commandName = file.replace('.ts', '');
 
-        console.log(`[TEST] Testing: ${commandName.toUpperCase()}`);
-        
         try {
             const module = await import(`file://${filePath}`);
             if (!module.execute) continue;
@@ -170,7 +166,6 @@ async function runSuite() {
         } catch (error) {
             console.error(`   [ERROR] FATAL LOAD ERROR: ${file}`, error);
         }
-        console.log("   ----------------------------------------");
     }
 }
 
@@ -178,7 +173,7 @@ async function runTest(module: any, name: string, inputs: any, label: string) {
     const mock = new MockInteraction(name, inputs);
     try {
         await module.execute(mock);
-        if (mock.logs.length === 0) console.log(`   [WARNING] SILENT | ${label}`);
+        mock.logs.length === 0;
     } catch (err: any) {
         console.error(`   [ERROR] CRASH | ${label}`);
         console.error(`      Stack: ${err.message.split('\n')[0]}`);

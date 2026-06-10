@@ -34,9 +34,7 @@ class Bot {
       intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
     });
 
-    this.client.once("ready", () => {
-      console.log(`[SUCCESS] Bot online as ${this.client.user?.tag}`);
-    });
+    this.client.once("ready", () => {});
 
     this.client.on("interactionCreate", (i) => this.handleInteraction(i));
   }
@@ -67,7 +65,6 @@ class Bot {
 
         if (command?.data && typeof command.execute === "function") {
           this.commands.push(command);
-          console.log(`  → Loaded /${command.data.name}`);
         } else {
           console.warn(`  [WARNING] Skipping ${file}: Missing 'data' or 'execute' exports`);
         }
@@ -88,7 +85,6 @@ class Bot {
         Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, env.GUILD_ID),
         { body },
       );
-      console.log(`[SUCCESS] Registered ${body.length} slash commands`);
     } catch (err) {
       console.error("[ERROR] Failed to register commands:", err);
     }
@@ -195,12 +191,10 @@ class Bot {
 const bot = new Bot();
 
 process.on("SIGINT", () => {
-  console.log("\n[SHUTDOWN] Shutting down...");
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-  console.log("\n[TERMINATE] Terminating...");
   process.exit(0);
 });
 
@@ -211,9 +205,7 @@ bot.start().then(() => {
     res.writeHead(200);
     res.end("Discord Bot is running");
   });
-  server.listen(port, () => {
-    console.log(`Dummy HTTP server listening on port ${port}`);
-  });
+  server.listen(port, () => {});
 }).catch((err) => {
   console.error("Fatal startup error:", err);
   process.exit(1);
