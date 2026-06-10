@@ -46,16 +46,13 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
     { name: 'Judge Portal', href: '/judge', icon: ClipboardList, show: judgeStatus?.isJudge },
   ].filter(r => r.show);
 
-  const adminClubRoutes = [
+  const adminRoutes = [
     { name: 'Club Hub', href: '/admin', icon: LayoutDashboard },
+    { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
+    { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
     { name: 'Attendees', href: '/admin/attendees', icon: Users },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
-  ];
-
-  const adminHackathonRoutes = [
-    { name: 'Hackathons', href: '/admin/hackathons', icon: Code },
-    { name: 'Judging', href: '/admin/judging', icon: ClipboardList },
   ];
 
   return (
@@ -113,10 +110,10 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
                 <div className="w-full text-center">
                   <h3 className="text-xs uppercase tracking-widest text-red-500 font-bold mb-6 flex flex-col items-center gap-2">
                     <ShieldAlert className="w-6 h-6 opacity-50" />
-                    Admin: Club Events
+                    Admin Area
                   </h3>
                   <div className="flex flex-col gap-3">
-                    {adminClubRoutes.map(route => {
+                    {adminRoutes.map(route => {
                       const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
                       return (
                         <Link
@@ -125,32 +122,6 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
                           onClick={() => setIsMobileOpen(false)}
                           className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
                             isActive ? 'bg-red-500/10 text-red-500 border border-red-500/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
-                          }`}
-                        >
-                          <route.icon className="w-5 h-5" />
-                          <span className="text-lg">{route.name}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-white/10 mt-6" />
-                <div className="w-full text-center mt-10">
-                  <h3 className="text-xs uppercase tracking-widest text-purple-500 font-bold mb-6 flex flex-col items-center gap-2">
-                    <Zap className="w-6 h-6 opacity-50" />
-                    Admin: Hackathon Hub
-                  </h3>
-                  <div className="flex flex-col gap-3">
-                    {adminHackathonRoutes.map(route => {
-                      const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
-                      return (
-                        <Link
-                          key={route.href}
-                          href={route.href}
-                          onClick={() => setIsMobileOpen(false)}
-                          className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
-                            isActive ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20 font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
                           }`}
                         >
                           <route.icon className="w-5 h-5" />
@@ -258,17 +229,16 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
             <>
               <div className={`my-3 ${isOpen ? 'border-t border-[var(--border-subtle)]' : 'w-8 h-px bg-white/10 mx-auto'}`} />
 
-              {/* Admin Club Section */}
               <div className="mb-4">
                 {isOpen && (
                   <div className="flex items-center gap-2 px-3 pb-2 mb-1">
                     <ShieldAlert className="h-3 w-3 text-red-500/60 flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-red-500/60 uppercase tracking-[0.2em]">Admin: Club</span>
+                    <span className="text-[10px] font-mono text-red-500/60 uppercase tracking-[0.2em]">Admin Area</span>
                   </div>
                 )}
                 {!isOpen && <div className="w-8 h-px bg-red-500/20 mx-auto mb-3" />}
                 <div className="space-y-1">
-                  {adminClubRoutes.map((route) => {
+                  {adminRoutes.map((route) => {
                     const isActive = pathname === route.href || (route.href !== '/admin' && pathname.startsWith(route.href + '/'));
                     return (
                       <Link
@@ -280,35 +250,6 @@ export default function PortalSidebar({ isOpen, setIsOpen }: PortalSidebarProps)
                         }`}
                       >
                         <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-red-500' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
-                        {isOpen && <span className="text-sm truncate">{route.name}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Admin Hackathon Section */}
-              <div>
-                {isOpen && (
-                  <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                    <Zap className="h-3 w-3 text-purple-500/60 flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-purple-500/60 uppercase tracking-[0.2em]">Admin: Hack</span>
-                  </div>
-                )}
-                {!isOpen && <div className="w-8 h-px bg-purple-500/20 mx-auto mb-3" />}
-                <div className="space-y-1">
-                  {adminHackathonRoutes.map((route) => {
-                    const isActive = pathname === route.href || pathname.startsWith(route.href + '/');
-                    return (
-                      <Link
-                        key={route.href}
-                        href={route.href}
-                        title={!isOpen ? route.name : undefined}
-                        className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
-                          isActive ? 'bg-gradient-to-r from-purple-500/10 to-transparent text-purple-500 font-medium border-l-2 border-purple-500' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        <route.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-purple-500' : 'text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]'}`} />
                         {isOpen && <span className="text-sm truncate">{route.name}</span>}
                       </Link>
                     );
