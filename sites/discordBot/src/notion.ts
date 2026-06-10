@@ -70,7 +70,9 @@ async function getBlockChildren(blockId: string): Promise<NotionBlock[]> {
 }
 
 function extractText(block: NotionBlock): string {
-  const content = block[block.type] as { rich_text?: RichTextSegment[] } | undefined;
+  const content = block[block.type] as
+    | { rich_text?: RichTextSegment[] }
+    | undefined;
   if (!content?.rich_text?.length) return "";
 
   const text = content.rich_text
@@ -85,7 +87,9 @@ function extractText(block: NotionBlock): string {
       }
 
       if (seg.href) {
-        const url = seg.href.startsWith("/") ? `https://notion.so${seg.href}` : seg.href;
+        const url = seg.href.startsWith("/")
+          ? `https://notion.so${seg.href}`
+          : seg.href;
         return seg.plain_text.trim() === url ? url : `[${t.trim()}](${url})`;
       }
 

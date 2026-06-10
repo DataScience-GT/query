@@ -8,7 +8,8 @@ const geistMonoVar = GeistMono.variable;
 
 export const metadata: Metadata = {
   title: "DSGT | Georgia Tech",
-  description: "The largest student-run data science organization at Georgia Tech.",
+  description:
+    "The largest student-run data science organization at Georgia Tech.",
   authors: [{ name: "aamoghS" }],
 };
 
@@ -21,10 +22,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${geistSansVar} ${geistMonoVar}`}>
-      <body suppressHydrationWarning className="antialiased bg-[#050505] text-gray-400">
-        <TRPCReactProvider>
-          {children}
-        </TRPCReactProvider>
+      <body
+        suppressHydrationWarning
+        className="antialiased bg-[#050505] text-gray-400"
+      >
+        <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>
   );

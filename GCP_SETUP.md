@@ -5,6 +5,7 @@ This guide explains how to set up your local environment to work with the GCP-ho
 ## 1. Prerequisites
 
 Install the following CLI tools:
+
 - **Google Cloud CLI**: [Install gcloud](https://cloud.google.com/sdk/docs/install)
 - **Firebase CLI**: `npm install -g firebase-tools`
 
@@ -22,6 +23,7 @@ firebase login
 ```
 
 Set the default project:
+
 ```bash
 gcloud config set project dsgt-website
 firebase use dsgt-website
@@ -37,6 +39,7 @@ We manage secrets in **GCP Secret Manager**. To avoid manually copying them into
 ```
 
 This will pull the following from GCP:
+
 - `DATABASE_URL`
 - `AUTH_SECRET`
 - `STRIPE_SECRET_KEY`
@@ -54,10 +57,13 @@ pnpm dev:full
 ## 5. Troubleshooting
 
 ### Permission Denied
+
 If you get a permission error when running `sync-secrets.sh`, make it executable:
+
 ```bash
 chmod +x scripts/sync-secrets.sh
 ```
 
 ### Missing Secrets
+
 Ensure your account has the `Secret Manager Secret Accessor` role in the GCP Console for the `dsgt-website` project.

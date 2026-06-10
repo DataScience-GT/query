@@ -14,13 +14,21 @@ function getCacheControl(pathname: string): string {
   if (pathname === "/") {
     return "public, max-age=300, must-revalidate";
   }
-  if (pathname.startsWith("/hackathons") || pathname.startsWith("/events") || pathname.startsWith("/projects")) {
+  if (
+    pathname.startsWith("/hackathons") ||
+    pathname.startsWith("/events") ||
+    pathname.startsWith("/projects")
+  ) {
     return "public, max-age=3600, stale-while-revalidate=86400";
   }
   if (pathname.startsWith("/club") || pathname.startsWith("/history")) {
     return "public, max-age=1800, stale-while-revalidate=7200";
   }
-  if (pathname.match(/\.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)) {
+  if (
+    pathname.match(
+      /\.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/,
+    )
+  ) {
     return "public, max-age=31536000, immutable";
   }
   return "no-cache, no-store, must-revalidate";
@@ -73,21 +81,26 @@ export const config = {
 };
 
 // Export proxy function
-export async function proxy(req: NextRequest): Promise<Response | { headers: Record<string, string> }> {
+export async function proxy(
+  req: NextRequest,
+): Promise<Response | { headers: Record<string, string> }> {
   // Handle ETag validation - return 304 if unchanged
   if (handleETag(req)) {
     return new Response(null, {
       status: 304,
       headers: {
         "Cache-Control": "public, max-age=31536000, immutable",
-        "ETag": getETag(req.nextUrl.pathname),
+        ETag: getETag(req.nextUrl.pathname),
         "Last-Modified": getLastModified(),
-        "Vary": "Accept-Encoding, Cookie, Authorization",
-        ...securityHeaders.reduce((acc, header) => {
-          const [key, value] = header.split(": ");
-          acc[key] = value;
-          return acc;
-        }, {} as Record<string, string>),
+        Vary: "Accept-Encoding, Cookie, Authorization",
+        ...securityHeaders.reduce(
+          (acc, header) => {
+            const [key, value] = header.split(": ");
+            acc[key] = value;
+            return acc;
+          },
+          {} as Record<string, string>,
+        ),
       },
     });
   }
@@ -99,13 +112,16 @@ export async function proxy(req: NextRequest): Promise<Response | { headers: Rec
       headers: {
         "Cache-Control": "public, max-age=31536000, immutable",
         "Last-Modified": getLastModified(),
-        "ETag": getETag(req.nextUrl.pathname),
-        "Vary": "Accept-Encoding, Cookie, Authorization",
-        ...securityHeaders.reduce((acc, header) => {
-          const [key, value] = header.split(": ");
-          acc[key] = value;
-          return acc;
-        }, {} as Record<string, string>),
+        ETag: getETag(req.nextUrl.pathname),
+        Vary: "Accept-Encoding, Cookie, Authorization",
+        ...securityHeaders.reduce(
+          (acc, header) => {
+            const [key, value] = header.split(": ");
+            acc[key] = value;
+            return acc;
+          },
+          {} as Record<string, string>,
+        ),
       },
     });
   }
@@ -118,9 +134,9 @@ export async function proxy(req: NextRequest): Promise<Response | { headers: Rec
   // Build headers object
   const headers: Record<string, string> = {
     "Cache-Control": cacheControl,
-    "ETag": etag,
+    ETag: etag,
     "Last-Modified": lastModified,
-    "Vary": "Accept-Encoding, Cookie, Authorization",
+    Vary: "Accept-Encoding, Cookie, Authorization",
   };
 
   // Add security headers

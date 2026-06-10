@@ -6,10 +6,10 @@ import type { ReactNode } from "react";
 /**
  * LazySection — Uses IntersectionObserver to defer rendering of
  * off-screen sections until they're about to enter the viewport.
- * 
+ *
  * This prevents the browser from having to parse, layout, and paint
  * all below-fold sections on initial page load.
- * 
+ *
  * Once a section becomes visible, it stays rendered (no unloading).
  */
 export default function LazySection({
@@ -48,7 +48,7 @@ export default function LazySection({
       {
         rootMargin, // Start loading before it enters viewport
         threshold: 0,
-      }
+      },
     );
 
     observer.observe(el);
@@ -66,9 +66,11 @@ export default function LazySection({
         containIntrinsicSize: isVisible ? "auto" : `auto ${minHeight}`,
       }}
     >
-      {isVisible ? children : (
-        <div 
-          style={{ minHeight }} 
+      {isVisible ? (
+        children
+      ) : (
+        <div
+          style={{ minHeight }}
           aria-hidden="true"
           className="flex items-center justify-center"
         >

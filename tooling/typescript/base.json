@@ -4,9 +4,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "target": "ESNext",
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "allowJs": true,
     "resolveJsonModule": true,
     "moduleDetection": "force",
@@ -22,11 +20,5 @@
     "moduleResolution": "Bundler",
     "noEmit": true
   },
-  "exclude": [
-    "node_modules",
-    "build",
-    "dist",
-    ".next",
-    ".expo"
-  ]
+  "exclude": ["node_modules", "build", "dist", ".next", ".expo"]
 }

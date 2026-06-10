@@ -17,7 +17,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           transformer: superjson,
         }),
       ],
-    })
+    }),
   );
 
   return (
