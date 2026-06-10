@@ -6,7 +6,6 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import AdminLayout from '@/components/portal/AdminLayout';
 import { SetupWizard } from '@/components/admin/setup/SetupWizard';
 import { CreateHackathonStep } from '@/components/admin/setup/CreateHackathonStep';
 import { ImportJudgesStep, ImportProjectsStep } from '@/components/admin/setup/ImportDataStep';
@@ -140,7 +139,7 @@ export default function AdminSetupPage() {
     ];
 
     return (
-        <AdminLayout>
+        <>
             <div className="relative z-10 max-w-4xl mx-auto">
                 <div className="mb-12">
                     <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
@@ -288,6 +287,6 @@ export default function AdminSetupPage() {
                     </LiquidGlass>
                 )}
             </div>
-        </AdminLayout>
+        </>
     );
 }

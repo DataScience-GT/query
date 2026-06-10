@@ -3,18 +3,29 @@
 import { useSession } from 'next-auth/react';
 
 import { useEffect, useState } from 'react';
+import { trpc } from '@/lib/trpc';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {
+    enabled: status === 'authenticated',
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       window.location.href = '/login';
-    } else if (status === 'authenticated') {
-      setLoading(false);
+    } else if (status === 'authenticated' && !adminLoading) {
+      if (!adminStatus?.isAdmin) {
+        router.push('/dashboard');
+      } else {
+        setLoading(false);
+      }
     }
-  }, [status]);
+  }, [status, adminStatus, adminLoading, router]);
 
   if (loading) {
     return (

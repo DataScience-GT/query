@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import AdminLayout from '@/components/portal/AdminLayout';
 
 // Extracted Components
 
@@ -31,7 +30,7 @@ export default function AdminHackathonsPage() {
     }
 
     return (
-        <AdminLayout>
+        <>
             <div className="relative z-10 max-w-7xl mx-auto">
                 {/* Ambient Background */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -116,6 +115,6 @@ export default function AdminHackathonsPage() {
                     )}
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 }
