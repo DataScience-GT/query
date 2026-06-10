@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Save, Shield, Database, Users, Bell, Globe, Key, Server, QrCode } from 'lucide-react';
-import { trpc } from '@/utils/trpc';
+import { trpc } from '@/lib/trpc';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations'>('general');
