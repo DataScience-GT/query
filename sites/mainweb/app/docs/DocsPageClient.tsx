@@ -14,12 +14,12 @@ type DocSection =
   | "deployment";
 
 const NAV_ITEMS: { id: DocSection; label: string; icon: string }[] = [
-  { id: "overview", label: "Overview", icon: "◈" },
-  { id: "architecture", label: "Architecture", icon: "⬡" },
-  { id: "api", label: "API Reference", icon: "⟐" },
-  { id: "database", label: "Database", icon: "⊡" },
-  { id: "frontend", label: "Frontend", icon: "◇" },
-  { id: "deployment", label: "Deployment", icon: "▲" },
+  { id: "overview", label: "Overview", icon: "-" },
+  { id: "architecture", label: "Architecture", icon: "-" },
+  { id: "api", label: "API Reference", icon: "-" },
+  { id: "database", label: "Database", icon: "-" },
+  { id: "frontend", label: "Frontend", icon: "-" },
+  { id: "deployment", label: "Deployment", icon: "^" },
 ];
 
 function CodeBlock({
@@ -136,7 +136,7 @@ function InfoCard({
                 className="flex items-start gap-3 text-sm text-gray-400 transition-colors group-hover:text-gray-300"
               >
                 <span className="mt-0.5 text-[10px]" style={{ color: accent }}>
-                  ❖
+                  *
                 </span>
                 <span className="leading-relaxed">{item}</span>
               </li>
@@ -214,7 +214,7 @@ function SchemaTable({
       <div className="flex items-center justify-between border-b border-white/5 bg-gradient-to-r from-[#00A8A8]/10 to-transparent px-6 py-4">
         <h4 className="flex items-center gap-3 font-mono text-sm font-black tracking-widest text-white uppercase">
           <span className="text-lg leading-none text-[#00A8A8] transition-transform duration-700 group-hover:rotate-180">
-            ⊟
+            -
           </span>{" "}
           {name}
         </h4>
@@ -419,7 +419,7 @@ export default function DocsPageClient() {
                 <div className="flex w-full items-center justify-between rounded-full border border-white/10 bg-white/[0.02] py-2.5 pr-4 pl-11 font-mono text-sm text-gray-500 transition-all group-hover:border-white/20 group-hover:bg-white/5">
                   Quick Search...
                   <span className="flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2 py-0.5 font-sans text-xs text-gray-400">
-                    <kbd>⌘</kbd> <kbd>K</kbd>
+                    <kbd></kbd> <kbd>K</kbd>
                   </span>
                 </div>
               </div>
@@ -529,11 +529,11 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-[#00A8A8]">»</span> Quick Start
+                    <span className="text-[#00A8A8]">>></span> Quick Start
                   </h3>
                   <CodeBlock
                     title="terminal"
-                    code={`# 1. Install dependencies\npnpm install\n\n# 2. Set up environment variables\ncp .env.example .env\n# Fill in DATABASE_URL, NEXTAUTH_SECRET, STRIPE_SECRET_KEY, etc.\n\n# 3. Push DB schema\npnpm db:push\n\n# 4. Run development server\npnpm dev:mainweb     # → http://localhost:3000`}
+                    code={`# 1. Install dependencies\npnpm install\n\n# 2. Set up environment variables\ncp .env.example .env\n# Fill in DATABASE_URL, NEXTAUTH_SECRET, STRIPE_SECRET_KEY, etc.\n\n# 3. Push DB schema\npnpm db:push\n\n# 4. Run development server\npnpm dev:mainweb     # -> http://localhost:3000`}
                   />
                 </div>
               </div>
@@ -898,7 +898,7 @@ export default function DocsPageClient() {
                     name="members"
                     columns={[
                       { field: "id", type: "uuid", notes: "Primary key" },
-                      { field: "userId", type: "text", notes: "FK → users.id" },
+                      { field: "userId", type: "text", notes: "FK -> users.id" },
                       {
                         field: "membershipType",
                         type: "text",
@@ -930,12 +930,12 @@ export default function DocsPageClient() {
                       {
                         field: "hackathonId",
                         type: "uuid",
-                        notes: "FK → hackathons.id",
+                        notes: "FK -> hackathons.id",
                       },
                       {
                         field: "captainId",
                         type: "text",
-                        notes: "FK → users.id",
+                        notes: "FK -> users.id",
                       },
                       {
                         field: "maxMembers",
@@ -954,7 +954,7 @@ export default function DocsPageClient() {
                       { field: "githubUrl", type: "text", notes: "nullable" },
                       { field: "demoUrl", type: "text", notes: "nullable" },
                       { field: "videoUrl", type: "text", notes: "nullable" },
-                      { field: "teamId", type: "uuid", notes: "FK → teams.id" },
+                      { field: "teamId", type: "uuid", notes: "FK -> teams.id" },
                       {
                         field: "status",
                         type: "text",
@@ -982,7 +982,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">»</span> Design System
+                    <span className="text-yellow-500">>></span> Design System
                   </h3>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="rounded-3xl border border-t-2 border-white/5 border-t-yellow-500/30 bg-black/40 p-8 shadow-lg transition-colors hover:bg-[#050505]">
@@ -1073,7 +1073,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">»</span> Portal Pages
+                    <span className="text-yellow-500">>></span> Portal Pages
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <InfoCard
@@ -1141,7 +1141,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-yellow-500">»</span> Core Components
+                    <span className="text-yellow-500">>></span> Core Components
                   </h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <InfoCard
@@ -1209,7 +1209,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">»</span> Environment
+                    <span className="text-red-500">>></span> Environment
                     Variables
                   </h3>
                   <CodeBlock
@@ -1220,7 +1220,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">»</span> CI/CD Pipeline
+                    <span className="text-red-500">>></span> CI/CD Pipeline
                   </h3>
                   <CodeBlock
                     title="github actions"
@@ -1230,7 +1230,7 @@ export default function DocsPageClient() {
 
                 <div className="border-t border-white/5 pt-8">
                   <h3 className="mb-8 flex items-center gap-3 font-mono text-sm font-black tracking-[0.3em] text-white uppercase">
-                    <span className="text-red-500">»</span> Useful Commands
+                    <span className="text-red-500">>></span> Useful Commands
                   </h3>
                   <CodeBlock
                     title="terminal"

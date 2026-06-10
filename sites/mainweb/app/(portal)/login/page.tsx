@@ -163,7 +163,7 @@ export default function Home() {
                     disabled={emailSending || emailSent || !email}
                     className="px-6 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent/20 hover:border-accent/40 transition-all active:scale-95 disabled:opacity-30"
                   >
-                    {emailSent ? '✓ Sent' : emailSending ? '.·.' : 'Send'}
+                    {emailSent ? 'Sent' : emailSending ? 'Sending...' : 'Send'}
                   </button>
                 </div>
               )}
@@ -194,7 +194,7 @@ export default function Home() {
               {/* Status indicator */}
               <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
                 <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.5em] animate-pulse">
-                  {isRedirecting ? "✓ Handshake Verified" : status === 'loading' ? "• Synchronizing..." : "● Core Operational"}
+                  {isRedirecting ? "Handshake Verified" : status === 'loading' ? "Synchronizing..." : "Core Operational"}
                 </p>
                 <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">
                   <span className="flex items-center gap-1">
