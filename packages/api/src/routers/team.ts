@@ -48,7 +48,7 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db, input.hackathonId);
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
       // 1. Check if user is registered for this hackathon
       const participant = await (
         ctx.db as NonNullable<typeof ctx.db>
@@ -120,7 +120,7 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db, input.hackathonId);
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
       // 1. Verify user is registered for hackathon
       const participant = await (
         ctx.db as NonNullable<typeof ctx.db>
@@ -211,7 +211,7 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db, input.hackathonId);
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
       const participant = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.hackathonParticipants.findFirst({
@@ -301,7 +301,7 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db, input.hackathonId);
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
       const team = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.hackathonTeams.findFirst({
