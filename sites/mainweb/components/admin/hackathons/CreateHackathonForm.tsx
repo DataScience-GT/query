@@ -117,53 +117,70 @@ export function CreateHackathonForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
-              Start Date *
-            </label>
-            <input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
-            />
+        <div className="pt-4 border-t border-[var(--border-subtle)]">
+          <h4 className="text-sm font-bold text-[var(--text-primary)] mb-4 font-mono uppercase tracking-widest opacity-80">
+            Timing
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                Start Date *
+              </label>
+              <input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+              />
+              <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                Event doors open / schedule begins
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                End Date *
+              </label>
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+              />
+              <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                Event closes / everyone leaves
+              </p>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
-              End Date *
-            </label>
-            <input
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
-            />
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
-              Hacking Start Time
-            </label>
-            <input
-              type="datetime-local"
-              value={hackingStartTime}
-              onChange={(e) => setHackingStartTime(e.target.value)}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
-              Registration Deadline
-            </label>
-            <input
-              type="datetime-local"
-              value={regDeadline}
-              onChange={(e) => setRegDeadline(e.target.value)}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                Hacking Start Time
+              </label>
+              <input
+                type="datetime-local"
+                value={hackingStartTime}
+                onChange={(e) => setHackingStartTime(e.target.value)}
+                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+              />
+              <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                Defaults to Start Date; must be within event window.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                Registration Deadline
+              </label>
+              <input
+                type="datetime-local"
+                value={regDeadline}
+                onChange={(e) => setRegDeadline(e.target.value)}
+                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+              />
+              <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                Last chance for participants to sign up.
+              </p>
+            </div>
           </div>
         </div>
 
