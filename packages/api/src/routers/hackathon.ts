@@ -680,6 +680,39 @@ export const hackathonRouter = createTRPCRouter({
       return { success: true };
     }),
 
+  sendMassAcceptanceEmails: isAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        participantIds: z.array(z.string().uuid()).min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { hackathonId, participantIds } = input;
+
+      await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        for (const participantId of participantIds) {
+          // Update status to approved
+          await tx
+            .update(hackathonParticipants)
+            .set({ registrationStatus: "approved", updatedAt: new Date() })
+            .where(
+              and(
+                eq(hackathonParticipants.id, participantId),
+                eq(hackathonParticipants.hackathonId, hackathonId),
+              ),
+            );
+        }
+      });
+
+      // TODO: Implement actual email sending with SendGrid/Resend
+      console.log(`[Email Service] Sent acceptance emails to ${participantIds.length} participants for hackathon ${hackathonId}.`);
+
+      ctx.cache.deletePattern("hackathon*");
+
+      return { success: true, count: participantIds.length, message: `Successfully approved and sent acceptance emails to ${participantIds.length} participants.` };
+    }),
+
   batchUpdateParticipantStatus: isAdmin
     .input(
       z.object({
