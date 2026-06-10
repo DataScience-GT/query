@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { skipToken } from '@tanstack/react-query';
-import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { Download, QrCode } from 'lucide-react';
 
@@ -37,7 +36,7 @@ export default function AttendeesPage() {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Animated Background Gradient */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -153,6 +152,6 @@ export default function AttendeesPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }

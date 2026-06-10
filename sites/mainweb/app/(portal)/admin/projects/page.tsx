@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { Clock, AlertCircle, Zap } from 'lucide-react';
 import { skipToken } from '@tanstack/react-query';
@@ -42,7 +41,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Animated Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -138,6 +137,6 @@ export default function ProjectsPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }

@@ -6,7 +6,6 @@ import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import AdminLayout from '@/components/portal/AdminLayout';
 import { JudgingTools } from '@/components/admin/judging/JudgingTools';
 import { RoomAssignmentsView } from '@/components/admin/judging/RoomAssignmentsView';
 import { JudgeMatrixView } from '@/components/admin/judging/JudgeMatrixView';
@@ -115,7 +114,7 @@ export default function AdminResultsPage() {
   if (!mounted) return null;
 
   return (
-    <AdminLayout>
+    <>
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Animated Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -238,6 +237,6 @@ export default function AdminResultsPage() {
           />
         )}
       </div>
-    </AdminLayout>
+    </>
   );
 }

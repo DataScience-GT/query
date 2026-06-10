@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import AdminLayout from '@/components/portal/AdminLayout';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
 import { Users, Trophy, Calendar, TrendingUp, QrCode } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -71,7 +70,7 @@ export default function AnalyticsPage() {
   );
 
   return (
-    <AdminLayout>
+    <>
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Ambient Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -199,6 +198,6 @@ export default function AnalyticsPage() {
           </div>
         </LiquidGlass>
       </div>
-    </AdminLayout>
+    </>
   );
 }
