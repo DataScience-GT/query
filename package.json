@@ -11,14 +11,16 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "format": "prettier --write .",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run packages/api"
   },
   "dependencies": {
     "next": "16.2.6",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.2"
   },
   "devDependencies": {
-    "turbo": "^2.9.14"
+    "turbo": "^2.9.14",
+    "vitest": "^4.1.8"
   },
   "pnpm": {
     "overrides": {

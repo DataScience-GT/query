@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
 
         const customTokenValue = `custom:${code}`;
         const safeEmail = email.replace(/[\n\r]/g, "");
-        console.log(`[verify-email] Verifying code for ${safeEmail}`);
 
         const result = await db.transaction(async (tx) => {
             // Consume the token (DELETE + RETURNING)
@@ -67,8 +66,6 @@ export async function POST(request: NextRequest) {
                 return { error: "Code has expired. Please request a new one." };
             }
 
-            console.log(`[verify-email] Code verified for ${safeEmail}`);
-
             // Find or create user
             let user = await tx
                 .select()
@@ -87,7 +84,6 @@ export async function POST(request: NextRequest) {
                     throw new Error("Failed to create user");
                 }
                 user = firstUser;
-                console.log(`[verify-email] Created new user ${user.id}`);
             } else if (!user.emailVerified) {
                 await tx
                     .update(users)
@@ -119,7 +115,6 @@ export async function POST(request: NextRequest) {
                     provider: "nodemailer",
                     providerAccountId: email,
                 });
-                console.log(`[verify-email] Created account record for ${safeEmail}`);
             }
 
             // --- Auto-link: Link Stripe payment if matching email exists ---
@@ -193,8 +188,6 @@ export async function POST(request: NextRequest) {
                                 renewalCount: 0,
                             });
                         }
-
-                        console.log(`[verify-email] Auto-linked Stripe payment ${payment.id} for ${safeEmail}`);
                     }
                 }
             } catch (linkError) {
@@ -253,8 +246,6 @@ export async function POST(request: NextRequest) {
             expires: result.sessionExpires,
         });
 
-        const safeEmailForLog = email.replace(/[\r\n]/g, "");
-        console.log(`[verify-email] Session created for ${safeEmailForLog}`);
         return response;
     } catch (error: unknown) {
         console.error("[verify-email] Error:", error);

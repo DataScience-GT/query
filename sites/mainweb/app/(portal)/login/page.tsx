@@ -55,19 +55,19 @@ export default function Home() {
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-[#000000] via-[#050505] to-[#0a0a0a]" />;
+  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)]" />;
 
   const isRedirecting = !!session;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#000000] via-[#050505] to-[#0a0a0a] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-hidden flex flex-col">
+    <div className="relative min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)] text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-hidden flex flex-col">
 
       {/* Animated Background */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         {/* Gradient orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-[#00A8A8]/5 blur-[250px] rounded-full animate-[float_20s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#6366f1]/5 blur-[200px] rounded-full animate-[float_25s_ease-in-out_infinite_reverse]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle_at_center,rgba(0,168,168,0.08)_0%,transparent_70%)]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-accent/5 blur-[250px] rounded-sm animate-[float_20s_ease-in-out_infinite]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#6366f1]/5 blur-[200px] rounded-sm animate-[float_25s_ease-in-out_infinite_reverse]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.08)_0%,transparent_70%)]" />
 
         {/* Grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
@@ -82,7 +82,7 @@ export default function Home() {
         }} />
 
         {/* Animated scanline */}
-        <div className="absolute inset-0 bg-[linear-gradient(0deg,transparent_0%,rgba(0,168,168,0.03)_50%,transparent_100%)] animate-[scanline_8s_linear_infinite] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,transparent_0%,rgba(16,185,129,0.03)_50%,transparent_100%)] animate-[scanline_8s_linear_infinite] pointer-events-none" />
       </div>
 
       {/* Main Content */}
@@ -93,19 +93,19 @@ export default function Home() {
           <div className="space-y-12 lg:space-y-16 animate-[fadeInUp_1s_ease-out_forwards]">
             {/* Status Badge */}
             <div className="flex items-center gap-4 animate-[fadeIn_0.5s_ease-out_0.2s_forwards]">
-              <div className="h-1 w-16 bg-gradient-to-r from-[#00A8A8] via-[#14b8a6] to-[#00A8A8] rounded-full" />
+              <div className="h-1 w-16 bg-gradient-to-r from-accent via-[#14b8a6] to-accent rounded-sm" />
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-[#00A8A8]/70 uppercase tracking-[0.3em]">Query Engine</span>
-                <span className="w-1 h-1 rounded-full bg-[#00A8A8]" />
+                <span className="text-xs font-mono text-accent/70 uppercase tracking-[0.3em]">Query Engine</span>
+                <span className="w-1 h-1 rounded-sm bg-accent" />
                 <span className="text-xs font-mono text-gray-600 uppercase tracking-widest">v.2.1.0</span>
               </div>
             </div>
 
             {/* Hero Title */}
             <div className="animate-[fadeIn_0.5s_ease-out_0.3s_forwards]">
-              <h1 className="text-7xl lg:text-9xl font-black text-white leading-[0.85] tracking-tighter uppercase">
+              <h1 className="text-7xl lg:text-9xl font-black text-[var(--text-primary)] leading-[0.85] tracking-tighter uppercase">
                 Query <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] via-[#14b8a6] to-[#0891b2] italic transform -skew-x-6">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-[#14b8a6] to-[#0891b2] italic transform -skew-x-6">
                   DSGT.
                 </span>
               </h1>
@@ -113,13 +113,13 @@ export default function Home() {
 
             {/* Subtitle */}
             <div className="space-y-6 animate-[fadeIn_0.5s_ease-out_0.4s_forwards]">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-[#00A8A8]/5 border border-[#00A8A8]/20 backdrop-blur-sm">
-                <div className="w-2 h-2 rounded-full bg-[#00A8A8] animate-pulse" />
-                <span className="text-sm font-mono text-[#00A8A8]/80 uppercase tracking-widest">
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-sm bg-accent/5 border border-accent/20 backdrop-blur-sm">
+                <div className="w-2 h-2 rounded-sm bg-accent animate-pulse" />
+                <span className="text-sm font-mono text-accent/80 uppercase tracking-widest">
                   Georgia Tech Data Science Community
                 </span>
               </div>
-              <p className="text-base text-gray-400 leading-relaxed max-w-md border-l-2 border-[#00A8A8]/30 pl-5 italic font-medium">
+              <p className="text-base text-[var(--text-muted)] leading-relaxed max-w-md border-l-2 border-accent/30 pl-5 italic font-medium">
                 The collective intelligence of Georgia Tech's largest data science community.
                 Connect with peers, discover events, and contribute to groundbreaking research.
               </p>
@@ -130,7 +130,7 @@ export default function Home() {
               <button
                 onClick={handleSignIn}
                 disabled={emailSending || isRedirecting || status === 'loading'}
-                className="group w-full sm:w-auto px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-gradient-to-r hover:from-[#00A8A8] hover:via-[#14b8a6] hover:to-[#00A8A8] hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(0,168,168,0.15)] hover:shadow-[0_0_60px_rgba(0,168,168,0.3)]"
+                className="group w-full sm:w-auto px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-gradient-to-r hover:from-accent hover:via-[#14b8a6] hover:to-accent hover:text-[var(--text-primary)] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)]"
               >
                 <span className="group-hover:underline decoration-2 underline-offset-4">
                   {isRedirecting ? 'Authenticated' : 'Sign In'}
@@ -143,7 +143,7 @@ export default function Home() {
                   setShowEmailInput(true);
                 }}
                   disabled={emailSending || isRedirecting || status === 'loading'}
-                  className="w-full sm:w-auto px-8 py-6 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30"
+                  className="w-full sm:w-auto px-8 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30"
                 >
                   Email Login
                 </button>
@@ -156,14 +156,14 @@ export default function Home() {
                     onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
                     placeholder="your@email.com"
                     disabled={emailSending || emailSent}
-                    className="flex-1 sm:w-56 px-5 py-6 bg-black/60 border border-white/10 text-white font-mono text-[11px] rounded-sm focus:border-[#00A8A8]/50 focus:outline-none focus:ring-2 focus:ring-[#00A8A8]/20 placeholder:text-gray-600 disabled:opacity-30 transition-all"
+                    className="flex-1 sm:w-56 px-5 py-6 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[11px] rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-gray-600 disabled:opacity-30 transition-all"
                   />
                   <button
                     onClick={handleEmailLogin}
                     disabled={emailSending || emailSent || !email}
-                    className="px-6 py-6 border border-white/10 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-[#00A8A8]/20 hover:border-[#00A8A8]/40 transition-all active:scale-95 disabled:opacity-30"
+                    className="px-6 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent/20 hover:border-accent/40 transition-all active:scale-95 disabled:opacity-30"
                   >
-                    {emailSent ? '✓ Sent' : emailSending ? '.·.' : 'Send'}
+                    {emailSent ? 'Sent' : emailSending ? 'Sending...' : 'Send'}
                   </button>
                 </div>
               )}
@@ -173,48 +173,48 @@ export default function Home() {
           {/* Right Panel - Visual */}
           <div className="hidden lg:flex flex-col items-center justify-center relative animate-[fadeIn_0.6s_ease-out_forwards]">
             {/* Background glow */}
-            <div className="absolute w-[500px] h-[500px] bg-gradient-to-br from-[#00A8A8]/10 via-[#6366f1]/5 to-transparent blur-[150px] rounded-full animate-[pulse_8s_ease-in-out_infinite]" />
+            <div className="absolute w-[500px] h-[500px] bg-gradient-to-br from-accent/10 via-[#6366f1]/5 to-transparent blur-[150px] rounded-sm animate-[pulse_8s_ease-in-out_infinite]" />
 
             {/* Central visual */}
             <div className="relative group animate-[float_6s_ease-in-out_infinite]">
               {/* Rotating rings */}
-              <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_25s_linear_infinite]" />
-              <div className="absolute -inset-12 border border-white/5 rounded-full animate-[spin_40s_linear_infinite_reverse] opacity-40" />
-              <div className="absolute -inset-16 border border-white/5 rounded-full animate-[spin_55s_linear_infinite]" opacity-20 />
+              <div className="absolute -inset-8 border border-[var(--border-subtle)] rounded-sm animate-[spin_25s_linear_infinite]" />
+              <div className="absolute -inset-12 border border-[var(--border-subtle)] rounded-sm animate-[spin_40s_linear_infinite_reverse] opacity-40" />
+              <div className="absolute -inset-16 border border-[var(--border-subtle)] rounded-sm animate-[spin_55s_linear_infinite]" opacity-20 />
 
               {/* Central content */}
               <div className="relative z-10 p-12">
                 <img
                   src="/images/dsgt/apple-touch-icon.png"
                   alt="DSGT Logo"
-                  className="w-80 h-80 object-contain drop-shadow-[0_0_80px_rgba(0,168,168,0.3)] transition-all duration-700 group-hover:scale-110 group-hover:rotate-3"
+                  className="w-80 h-80 object-contain drop-shadow-[0_0_80px_rgba(16,185,129,0.3)] transition-all duration-700 group-hover:scale-110 group-hover:rotate-3"
                 />
               </div>
 
               {/* Status indicator */}
               <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
-                <p className="text-[10px] font-mono text-[#00A8A8]/60 uppercase tracking-[0.5em] animate-pulse">
-                  {isRedirecting ? "✓ Handshake Verified" : status === 'loading' ? "• Synchronizing..." : "● Core Operational"}
+                <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.5em] animate-pulse">
+                  {isRedirecting ? "Handshake Verified" : status === 'loading' ? "Synchronizing..." : "Core Operational"}
                 </p>
                 <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">
                   <span className="flex items-center gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${session ? 'bg-green-500 animate-pulse' : 'bg-[#00A8A8]'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-sm ${session ? 'bg-green-500 animate-pulse' : 'bg-accent'}`} />
                     <span className={session ? 'text-green-500/80' : ''}>{status.toUpperCase()}</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-[#00A8A8] rounded-full" />
+                    <div className="w-1.5 h-1.5 bg-accent rounded-sm" />
                     REGION: ATL-08
                   </span>
                   <span className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-sm animate-pulse" />
                     JUDGE: {judgeStatus?.isJudge ? 'ACTIVE' : 'OPEN'}
                   </span>
                 </div>
               </div>
 
               {/* Decorative element */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 border border-[#00A8A8]/20 rounded-full animate-[spin_10s_linear_infinite]" />
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+              <div className="absolute -top-4 -right-4 w-24 h-24 border border-accent/20 rounded-sm animate-[spin_10s_linear_infinite]" />
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 border border-[var(--border-subtle)] rounded-sm animate-[spin_15s_linear_infinite_reverse]" />
             </div>
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function Home() {
         <div className="flex justify-between items-center text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">
           <div>Internal Terminal // Auth Gateway v2.1</div>
           <div className="flex items-center gap-2">
-            <span className={`w-1.5 h-1.5 rounded-full ${isRedirecting ? 'bg-green-500' : 'bg-[#00A8A8]'}`} />
+            <span className={`w-1.5 h-1.5 rounded-sm ${isRedirecting ? 'bg-green-500' : 'bg-accent'}`} />
             <span>ACCESS NODE: 0812-ATL</span>
           </div>
         </div>

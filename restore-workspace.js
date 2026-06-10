@@ -42,7 +42,6 @@ function restore(dir) {
           const output = JSON.stringify(json, null, 2) + '\n';
           fs.ftruncateSync(fd);
           fs.writeSync(fd, output, 0);
-          console.log('Restored workspace:* in ' + fullPath);
         }
         fs.closeSync(fd);
       } catch (e) {

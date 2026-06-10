@@ -43,18 +43,18 @@ export function QRCodeModal({
     return (
         <ModalWrapper onClose={onClose} maxWidth="lg">
             {/* Header */}
-            <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
+            <div className="flex justify-between items-center mb-8 pb-6 border-b border-[var(--border-subtle)]">
                 <div>
-                    <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">
+                    <h3 className="text-3xl font-black text-[var(--text-primary)] italic uppercase tracking-tighter">
                         QR Protocols
                     </h3>
-                    <p className="text-sm font-mono text-[#00A8A8] uppercase tracking-widest mt-1">
+                    <p className="text-sm font-mono text-accent uppercase tracking-widest mt-1">
                         {event.title}
                     </p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="text-gray-500 hover:text-white transition-colors text-xs uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
+                    className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-xs uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
                 >
                     [ Close ]
                 </button>
@@ -62,7 +62,7 @@ export function QRCodeModal({
 
             <div className="space-y-8">
                 {/* QR Code Display - White background with more padding */}
-                <div className="bg-white p-8 rounded-2xl shadow-lg mx-auto max-w-sm">
+                <div className="bg-white p-8 rounded-none shadow-lg mx-auto max-w-sm">
                     {qrCodeDataURL && (
                          
                         <img
@@ -74,14 +74,14 @@ export function QRCodeModal({
                 </div>
 
                 {/* Event Info */}
-                <div className="bg-black/40 border border-white/5 rounded-xl p-6 space-y-4">
+                <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none p-6 space-y-4">
                     <div className="flex justify-between text-sm font-mono">
                         <span className="text-gray-600 uppercase">IDENT:</span>
-                        <span className="text-white">{event.title}</span>
+                        <span className="text-[var(--text-primary)]">{event.title}</span>
                     </div>
                     <div className="flex justify-between text-sm font-mono">
                         <span className="text-gray-600 uppercase">SYNC COUNT:</span>
-                        <span className="text-white">
+                        <span className="text-[var(--text-primary)]">
                             {event.currentCheckIns} {event.maxCheckIns ? `/ ${event.maxCheckIns}` : '/ Unlimited'}
                         </span>
                     </div>
@@ -97,13 +97,13 @@ export function QRCodeModal({
                 <div className="grid grid-cols-2 gap-4">
                     <button
                         onClick={onDownload}
-                        className="px-6 py-4 bg-white/5 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all rounded-xl font-mono"
+                        className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all rounded-none font-mono"
                     >
                         SAVE IMG
                     </button>
                     <button
                         onClick={handleCopyCode}
-                        className="px-6 py-4 bg-white/5 border border-white/10 text-white font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all rounded-xl font-mono"
+                        className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all rounded-none font-mono"
                     >
                         COPY VAL
                     </button>
@@ -113,7 +113,7 @@ export function QRCodeModal({
                 <button
                     onClick={handleRegenerate}
                     disabled={isRegenerating}
-                    className="w-full px-6 py-4 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-50 rounded-xl font-mono"
+                    className="w-full px-6 py-4 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-50 rounded-none font-mono"
                 >
                     {isRegenerating ? 'RENEWING...' : 'REBOOT QR SYSTEM'}
                 </button>

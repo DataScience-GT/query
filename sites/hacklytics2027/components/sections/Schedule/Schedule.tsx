@@ -69,7 +69,7 @@ export default function Schedule() {
                 >
                   All Events
                 </button>
-                {categories.map((cat: any) => (
+                {categories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
@@ -90,7 +90,7 @@ export default function Schedule() {
           <div className="lg:w-3/4 flex flex-col gap-4">
             {filtered.length > 0 ? (
               filtered.map((event, i) => {
-                const catColorClass = categories.find((c: any) => c.id === event.category)?.color || 'text-white';
+                const catColorClass = categories.find((c) => c.id === event.category)?.color || 'text-white';
                 
                 return (
                   <div

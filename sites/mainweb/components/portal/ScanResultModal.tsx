@@ -21,13 +21,13 @@ export function ScanResultModal({
             <div className="text-center space-y-8">
                 {/* Status Icon */}
                 <div
-                    className={`inline-block p-6 rounded-full ${success
-                            ? 'bg-[#00A8A8]/10 border border-[#00A8A8]/20'
+                    className={`inline-block p-6 rounded-sm ${success
+                            ? 'bg-accent/10 border border-accent/20'
                             : 'bg-red-500/10 border border-red-500/20'
                         }`}
                 >
                     {success ? (
-                        <svg className="w-12 h-12 text-[#00A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-12 h-12 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     ) : (
@@ -40,12 +40,12 @@ export function ScanResultModal({
                 {/* Title */}
                 <div>
                     <h3
-                        className={`text-3xl font-black uppercase tracking-tighter mb-2 ${success ? 'text-white' : 'text-red-400'
+                        className={`text-3xl font-black uppercase tracking-tighter mb-2 ${success ? 'text-[var(--text-primary)]' : 'text-red-400'
                             }`}
                     >
                         {success ? 'Check-In Success' : 'Check-In Failed'}
                     </h3>
-                    <p className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.3em]">
+                    <p className="text-[10px] font-mono text-accent uppercase tracking-[0.3em]">
                         {success ? 'Identity Verified' : 'Access Denied'}
                     </p>
                 </div>
@@ -53,11 +53,11 @@ export function ScanResultModal({
                 {/* Success Event Details */}
                 {success && eventTitle && (
                     <div className="space-y-3">
-                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                        <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-none p-6">
                             <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] mb-3 font-mono">
                                 Event Payload:
                             </p>
-                            <p className="text-xl text-white font-black uppercase italic tracking-tight">
+                            <p className="text-xl text-[var(--text-primary)] font-black uppercase italic tracking-tight">
                                 {eventTitle}
                             </p>
                         </div>
@@ -66,7 +66,7 @@ export function ScanResultModal({
 
                 {/* Error Message */}
                 {!success && (
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
+                    <div className="bg-red-500/5 border border-red-500/20 rounded-none p-6">
                         <p className="text-[9px] text-red-500 uppercase tracking-[0.4em] mb-3 font-mono">
                             Error Code:
                         </p>
@@ -77,8 +77,8 @@ export function ScanResultModal({
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-all rounded-lg ${success
-                            ? 'bg-[#00A8A8] text-black hover:bg-[#00A8A8]/80 shadow-[0_0_20px_rgba(0,168,168,0.3)]'
+                    className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-all rounded-none ${success
+                            ? 'bg-accent text-black hover:bg-accent/80 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
                             : 'bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20'
                         }`}
                 >

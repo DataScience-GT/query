@@ -6,13 +6,15 @@ import Image from "next/image";
 
 const navItems = [
   { name: "About", href: "/#about" },
+  // { name: "Tracks", href: "/#tracks" },
+  // { name: "Prizes", href: "/#prizes" },
+  { name: "Schedule", href: "/#schedule" },
   { name: "FAQs", href: "/#faqs" },
-  { name: "Sponsors", href: "/#sponsors" },
+  // { name: "Sponsors", href: "/#sponsors" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
   const lastScrollY = useRef(0);
   const headerRef = useRef<HTMLElement>(null);
@@ -24,8 +26,6 @@ export default function Navbar() {
   useEffect(() => {
     const handleScrollEvent = () => {
       const currentScrollY = window.scrollY;
-      setScrolled(currentScrollY > 8);
-
       const isScrollingDown = currentScrollY > lastScrollY.current;
 
       if (isScrollingDown && !isClickScrolling.current && currentScrollY > 8) {

@@ -131,11 +131,9 @@ body::before {
 @keyframes stamenPulse {
   0% {
     opacity: 0.3;
-    r: 2;
   }
   100% {
     opacity: 0.9;
-    r: 4;
   }
 }
 

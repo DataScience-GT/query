@@ -87,7 +87,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const sendAnnouncement = async () => {
     try {
       await targetChannel.send(message);
-      console.log(`Event announced in #${targetChannel.name}.`);
     } catch (err) {
       console.error("Failed to send announcement:", err);
     }
