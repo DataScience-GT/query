@@ -6,8 +6,11 @@ import Image from "next/image";
 
 const navItems = [
   { name: "About", href: "/#about" },
+  // { name: "Tracks", href: "/#tracks" },
+  // { name: "Prizes", href: "/#prizes" },
+  { name: "Schedule", href: "/#schedule" },
   { name: "FAQs", href: "/#faqs" },
-  { name: "Sponsors", href: "/#sponsors" },
+  // { name: "Sponsors", href: "/#sponsors" },
 ];
 
 export default function Navbar() {

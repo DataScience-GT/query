@@ -14,18 +14,18 @@ const FlowerBloom = memo(function FlowerBloom() {
     const rad = (angle * Math.PI) / 180;
     const perpRad = rad + Math.PI / 2;
     // Tip of the petal
-    const tx = cx + Math.cos(rad) * length;
-    const ty = cy + Math.sin(rad) * length;
+    const tx = (cx + Math.cos(rad) * length).toFixed(3);
+    const ty = (cy + Math.sin(rad) * length).toFixed(3);
     // Control points — offset perpendicular to create width/curve
-    const c1x = cx + Math.cos(rad) * (length * 0.35) + Math.cos(perpRad) * width;
-    const c1y = cy + Math.sin(rad) * (length * 0.35) + Math.sin(perpRad) * width;
-    const c2x = cx + Math.cos(rad) * (length * 0.7) + Math.cos(perpRad) * (width * curve);
-    const c2y = cy + Math.sin(rad) * (length * 0.7) + Math.sin(perpRad) * (width * curve);
+    const c1x = (cx + Math.cos(rad) * (length * 0.35) + Math.cos(perpRad) * width).toFixed(3);
+    const c1y = (cy + Math.sin(rad) * (length * 0.35) + Math.sin(perpRad) * width).toFixed(3);
+    const c2x = (cx + Math.cos(rad) * (length * 0.7) + Math.cos(perpRad) * (width * curve)).toFixed(3);
+    const c2y = (cy + Math.sin(rad) * (length * 0.7) + Math.sin(perpRad) * (width * curve)).toFixed(3);
     // Mirror side
-    const c3x = cx + Math.cos(rad) * (length * 0.7) - Math.cos(perpRad) * (width * curve);
-    const c3y = cy + Math.sin(rad) * (length * 0.7) - Math.sin(perpRad) * (width * curve);
-    const c4x = cx + Math.cos(rad) * (length * 0.35) - Math.cos(perpRad) * width;
-    const c4y = cy + Math.sin(rad) * (length * 0.35) - Math.sin(perpRad) * width;
+    const c3x = (cx + Math.cos(rad) * (length * 0.7) - Math.cos(perpRad) * (width * curve)).toFixed(3);
+    const c3y = (cy + Math.sin(rad) * (length * 0.7) - Math.sin(perpRad) * (width * curve)).toFixed(3);
+    const c4x = (cx + Math.cos(rad) * (length * 0.35) - Math.cos(perpRad) * width).toFixed(3);
+    const c4y = (cy + Math.sin(rad) * (length * 0.35) - Math.sin(perpRad) * width).toFixed(3);
 
     return `M ${cx} ${cy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty} C ${c3x} ${c3y}, ${c4x} ${c4y}, ${cx} ${cy} Z`;
   };
@@ -112,7 +112,7 @@ const FlowerBloom = memo(function FlowerBloom() {
               strokeWidth="0.5"
               style={{
                 transformOrigin: `${cx}px ${cy}px`,
-                animation: `bloomPetal 4s ease-out ${p.delay}s both, petalBreath 6s ease-in-out ${p.delay + 2}s infinite alternate`,
+                animation: `bloomPetal 4s ease-out ${p.delay}s both`,
               }}
             />
           ))}
@@ -130,7 +130,7 @@ const FlowerBloom = memo(function FlowerBloom() {
               strokeWidth="0.5"
               style={{
                 transformOrigin: `${cx}px ${cy}px`,
-                animation: `bloomPetal 3.5s ease-out ${p.delay}s both, petalBreath 5s ease-in-out ${p.delay + 2}s infinite alternate`,
+                animation: `bloomPetal 3.5s ease-out ${p.delay}s both`,
               }}
             />
           ))}
@@ -148,7 +148,7 @@ const FlowerBloom = memo(function FlowerBloom() {
               strokeWidth="0.5"
               style={{
                 transformOrigin: `${cx}px ${cy}px`,
-                animation: `bloomPetal 3s ease-out ${p.delay}s both, petalBreath 4.5s ease-in-out ${p.delay + 2}s infinite alternate`,
+                animation: `bloomPetal 3s ease-out ${p.delay}s both`,
               }}
             />
           ))}
@@ -161,8 +161,8 @@ const FlowerBloom = memo(function FlowerBloom() {
           return (
             <circle
               key={`stamen-${i}`}
-              cx={cx + Math.cos(a) * r}
-              cy={cy + Math.sin(a) * r}
+              cx={(cx + Math.cos(a) * r).toFixed(3)}
+              cy={(cy + Math.sin(a) * r).toFixed(3)}
               r={2.5 + (i % 2)}
               fill="#ccff00"
               opacity={0.6}
@@ -176,10 +176,7 @@ const FlowerBloom = memo(function FlowerBloom() {
         {/* Center pistil — bright warm glow */}
         <circle cx={cx} cy={cy} r="55" fill="url(#centerGlow)" filter="url(#bigGlow)" style={{ mixBlendMode: "screen" }} />
         <circle cx={cx} cy={cy} r="25" fill="url(#centerGlow)" opacity="0.9" style={{ mixBlendMode: "screen" }} />
-        <circle cx={cx} cy={cy} r="8" fill="white" opacity="0.9">
-          <animate attributeName="r" values="7;10;7" dur="3s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite" />
-        </circle>
+        <circle cx={cx} cy={cy} r="8" fill="white" opacity="0.9" className="animate-pulse" />
       </svg>
     </div>
   );
@@ -201,9 +198,12 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
     return { days, hours, minutes, seconds };
   }, [targetDate]);
 
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft());
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    setTimeLeft(getTimeLeft());
     const interval = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
     return () => clearInterval(interval);
   }, [getTimeLeft]);
@@ -212,7 +212,7 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
     return unit != null ? String(unit).padStart(2, "0") : "00";
   }
 
-  if (!timeLeft) {
+  if (!isMounted || !timeLeft) {
     return (
       <div className="flex flex-wrap md:flex-nowrap gap-4 md:gap-6 w-full justify-center">
         {["DAYS", "HOURS", "MINUTES", "SECONDS"].map((label, i) => (
@@ -344,9 +344,8 @@ export default function HomePage() {
             </div>
 
             {/* Glassmorphic Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-12 md:mt-16 z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mt-12 md:mt-16 z-10">
               {[
-                { label: "PRIZES", value: "$30K+", color: "text-bloom-lime" },
                 { label: "HACKERS", value: "1000+", color: "text-bloom-cyan" },
                 { label: "HOURS", value: "36", color: "text-bloom-pink" },
                 { label: "LOCATION", value: "ATLANTA", color: "text-bloom-purple" }
