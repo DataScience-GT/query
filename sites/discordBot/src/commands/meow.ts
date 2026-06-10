@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, MessageFlags } from "discord.js";
+import {
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
+  MessageFlags,
+} from "discord.js";
 
 export const data = new SlashCommandBuilder()
   .setName("meow")
@@ -21,7 +25,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   cooldownUsers.add(userId);
   setTimeout(() => cooldownUsers.delete(userId), COOLDOWN_MS);
 
-  const emoji = interaction.guild?.emojis.cache.find(e => e.name === "image");
+  const emoji = interaction.guild?.emojis.cache.find((e) => e.name === "image");
   await interaction.reply({
     content: `no more MEOWS ${emoji ?? ""}`,
   });

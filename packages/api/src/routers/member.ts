@@ -5,9 +5,16 @@ import { members, membershipHistory } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
-const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
+const nameSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
 const urlSchema = z.string().url().max(500).optional();
-const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number").optional();
+const phoneSchema = z
+  .string()
+  .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
+  .optional();
 
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -38,10 +45,12 @@ export const memberRouter = createTRPCRouter({
         linkedinUrl: urlSchema,
         githubUrl: urlSchema,
         portfolioUrl: urlSchema,
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const existingMember = await (ctx.db as DrizzleDB).query.members.findFirst({
+      const existingMember = await (
+        ctx.db as DrizzleDB
+      ).query.members.findFirst({
         where: eq(members.userId, ctx.userId!),
       });
 
@@ -156,7 +165,7 @@ export const memberRouter = createTRPCRouter({
         linkedinUrl: urlSchema,
         githubUrl: urlSchema,
         portfolioUrl: urlSchema,
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
@@ -197,17 +206,19 @@ export const memberRouter = createTRPCRouter({
         memberType: z.enum(["new", "continuous"]).optional(),
         limit: z.number().int().min(1).max(100).default(50),
         offset: z.number().int().min(0).max(10000).default(0),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
-      const cacheKey = `members:list:${input.memberType || 'all'}:${input.limit}:${input.offset}`;
+      const cacheKey = `members:list:${input.memberType || "all"}:${input.limit}:${input.offset}`;
       const cached = ctx.cache.get<typeof allMembers>(cacheKey);
       if (cached) return cached;
 
       const allMembers = await (ctx.db as DrizzleDB).query.members.findMany({
         where: and(
           eq(members.isActive, true),
-          input.memberType ? eq(members.memberType, input.memberType) : undefined
+          input.memberType
+            ? eq(members.memberType, input.memberType)
+            : undefined,
         ),
         limit: input.limit,
         offset: input.offset,
@@ -332,7 +343,9 @@ export const memberRouter = createTRPCRouter({
 
     let daysRemaining: number | null = null;
     if (expiresAt) {
-      daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      daysRemaining = Math.ceil(
+        (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
     }
 
     const result = {

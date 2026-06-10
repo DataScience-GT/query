@@ -7,7 +7,9 @@ import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 export const stripeRouter = createTRPCRouter({
   /**
@@ -19,7 +21,8 @@ export const stripeRouter = createTRPCRouter({
       if (!stripe) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
-          message: "Payment service is currently unavailable. Please try again later.",
+          message:
+            "Payment service is currently unavailable. Please try again later.",
         });
       }
 
@@ -43,7 +46,8 @@ export const stripeRouter = createTRPCRouter({
                 currency: "usd",
                 product_data: {
                   name: "DSGT Membership",
-                  description: "One year membership to Data Science at Georgia Tech",
+                  description:
+                    "One year membership to Data Science at Georgia Tech",
                   // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
                 },
                 unit_amount: 2500, // $15.00
@@ -66,13 +70,14 @@ export const stripeRouter = createTRPCRouter({
         // Check for invalid API key errors specifically if possible, but obscure all
         // Generic error for all Stripe failures - don't leak configuration status
         logSecurityEvent({
-          type: 'validation_error',
-          identifier: ctx.userId ?? 'unknown',
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
           details: `Stripe error: ${error}`,
         });
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
-          message: "Payment service is temporarily unavailable. Please try again later.",
+          message:
+            "Payment service is temporarily unavailable. Please try again later.",
         });
       }
     }),
@@ -92,7 +97,7 @@ export const stripeRouter = createTRPCRouter({
         where: and(
           eq(stripePayments.customerEmail, user.email),
           isNull(stripePayments.linkedUserId),
-          eq(stripePayments.paymentStatus, "paid")
+          eq(stripePayments.paymentStatus, "paid"),
         ),
       });
 
@@ -116,7 +121,8 @@ export const stripeRouter = createTRPCRouter({
         providedEmail: user.email,
       });
 
-      await tx.update(stripePayments)
+      await tx
+        .update(stripePayments)
         .set({
           linkedUserId: ctx.userId!,
           linkedAt: new Date(),
@@ -128,7 +134,7 @@ export const stripeRouter = createTRPCRouter({
         tx as unknown as DrizzleDB,
         ctx.userId!,
         firstName,
-        lastName
+        lastName,
       );
 
       // Invalidate cache directly
@@ -156,7 +162,7 @@ export const stripeRouter = createTRPCRouter({
       where: and(
         eq(stripePayments.customerEmail, user.email),
         isNull(stripePayments.linkedUserId),
-        eq(stripePayments.paymentStatus, "paid")
+        eq(stripePayments.paymentStatus, "paid"),
       ),
     });
 
@@ -176,7 +182,7 @@ export const stripeRouter = createTRPCRouter({
         firstName: z.string().min(1).max(100),
         lastName: z.string().min(1).max(100),
         email: z.string().email().max(255),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       return await ctx.db!.transaction(async (tx) => {
@@ -184,14 +190,15 @@ export const stripeRouter = createTRPCRouter({
           where: and(
             eq(stripePayments.customerEmail, input.email.toLowerCase()),
             isNull(stripePayments.linkedUserId),
-            eq(stripePayments.paymentStatus, "paid")
+            eq(stripePayments.paymentStatus, "paid"),
           ),
         });
 
         if (!payment) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "No payment found with that email. Please check the email you used during checkout.",
+            message:
+              "No payment found with that email. Please check the email you used during checkout.",
           });
         }
 
@@ -201,8 +208,8 @@ export const stripeRouter = createTRPCRouter({
 
         if (existingLink) {
           logSecurityEvent({
-            type: 'validation_error',
-            identifier: ctx.userId ?? 'unknown',
+            type: "validation_error",
+            identifier: ctx.userId ?? "unknown",
             details: `Attempted to link already linked payment ${payment.id}`,
           });
           throw new TRPCError({
@@ -243,13 +250,16 @@ export const stripeRouter = createTRPCRouter({
           tx as unknown as DrizzleDB,
           ctx.userId!,
           input.firstName,
-          input.lastName
+          input.lastName,
         );
 
         // Invalidate membership status cache
         ctx.cache.delete(`member:status:${ctx.userId!}`);
 
-        return { success: true, message: "Account linked successfully! You are now a member." };
+        return {
+          success: true,
+          message: "Account linked successfully! You are now a member.",
+        };
       });
     }),
 
@@ -280,7 +290,7 @@ async function createOrUpdateMembership(
   db: DrizzleDB,
   userId: string,
   firstName: string,
-  lastName: string
+  lastName: string,
 ) {
   const existingMember = await db.query.members.findFirst({
     where: eq(members.userId, userId),

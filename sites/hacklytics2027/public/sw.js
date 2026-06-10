@@ -1,24 +1,22 @@
 // Service Worker for Hacklytics 2027 — Digital Bloom
 // Implements cache-first for static assets, stale-while-revalidate for pages
 
-const CACHE_VERSION = 'hacklytics-v1';
+const CACHE_VERSION = "hacklytics-v1";
 
-const PRECACHE_URLS = [
-  '/',
-];
+const PRECACHE_URLS = ["/"];
 
 // ---------- Install: precache critical resources ----------
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()),
   );
 });
 
 // ---------- Activate: purge stale caches ----------
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
@@ -26,10 +24,10 @@ self.addEventListener('activate', (event) => {
         Promise.all(
           keys
             .filter((key) => key !== CACHE_VERSION)
-            .map((key) => caches.delete(key))
-        )
+            .map((key) => caches.delete(key)),
+        ),
       )
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -40,9 +38,10 @@ self.addEventListener('activate', (event) => {
  * Matches _next/static bundles, images, fonts, and stylesheets.
  */
 function isStaticAsset(url) {
-  if (url.pathname.includes('/_next/static/')) return true;
+  if (url.pathname.includes("/_next/static/")) return true;
 
-  const staticExtensions = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|avif|ico)$/i;
+  const staticExtensions =
+    /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|avif|ico)$/i;
   return staticExtensions.test(url.pathname);
 }
 
@@ -51,8 +50,8 @@ function isStaticAsset(url) {
  */
 function isNavigationRequest(request, url) {
   return (
-    request.mode === 'navigate' ||
-    request.headers.get('accept')?.includes('text/html')
+    request.mode === "navigate" ||
+    request.headers.get("accept")?.includes("text/html")
   );
 }
 
@@ -105,10 +104,10 @@ async function staleWhileRevalidate(request) {
   if (networkResponse) return networkResponse;
 
   // Nothing available
-  return new Response('Offline', {
+  return new Response("Offline", {
     status: 503,
-    statusText: 'Service Unavailable',
-    headers: { 'Content-Type': 'text/plain' },
+    statusText: "Service Unavailable",
+    headers: { "Content-Type": "text/plain" },
   });
 }
 
@@ -132,14 +131,14 @@ async function networkFirst(request) {
 }
 
 // ---------- Main fetch handler ----------
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
 
   // Skip non-GET requests (form submissions, etc.)
-  if (event.request.method !== 'GET') return;
+  if (event.request.method !== "GET") return;
 
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(event.request));

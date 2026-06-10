@@ -5,7 +5,12 @@ interface MinorProps extends HTMLAttributes<HTMLHeadingElement> {
   children: ReactNode;
 }
 
-export default function Minor({ type = "primary", children, className, ...props }: MinorProps) {
+export default function Minor({
+  type = "primary",
+  children,
+  className,
+  ...props
+}: MinorProps) {
   // Matching colors to the Major component
   const typeClasses = {
     primary: "text-indigo-400 drop-shadow-sm", // Replaces #74b1aa

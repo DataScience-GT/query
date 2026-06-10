@@ -4,7 +4,7 @@ import {
   StringSelectMenuBuilder,
   ActionRowBuilder,
   StringSelectMenuInteraction,
-  EmbedBuilder
+  EmbedBuilder,
 } from "discord.js";
 import { getFullGuide, GuideSections } from "../notion.js";
 
@@ -23,10 +23,12 @@ class Guide {
   }
 
   static getSelectMenuOptions(sections: GuideSections) {
-    return Object.keys(sections).slice(0, 25).map(label => ({
-      label: label.substring(0, 100),
-      value: label.substring(0, 100),
-    }));
+    return Object.keys(sections)
+      .slice(0, 25)
+      .map((label) => ({
+        label: label.substring(0, 100),
+        value: label.substring(0, 100),
+      }));
   }
 
   static formatContent(lines?: string[]): string {
@@ -51,7 +53,7 @@ export async function execute(interaction: CommandInteraction) {
     new StringSelectMenuBuilder()
       .setCustomId("guide_select")
       .setPlaceholder("Select a topic")
-      .addOptions(options)
+      .addOptions(options),
   );
 
   await interaction.editReply({
@@ -60,7 +62,9 @@ export async function execute(interaction: CommandInteraction) {
   });
 }
 
-export async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
+export async function handleSelectMenu(
+  interaction: StringSelectMenuInteraction,
+) {
   await interaction.deferUpdate();
 
   const selection = interaction.values[0];

@@ -13,12 +13,14 @@ export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
   let admin = ctx.cache.get<typeof admins.$inferSelect>(cacheKey);
 
   if (!admin) {
-    admin = (await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({ // try catch for ctx.db 
-      where: and(
-        eq(admins.userId, ctx.userId as string),
-        eq(admins.isActive, true)
-      ),
-    })) ?? null;
+    admin =
+      (await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({
+        // try catch for ctx.db
+        where: and(
+          eq(admins.userId, ctx.userId as string),
+          eq(admins.isActive, true),
+        ),
+      })) ?? null;
 
     if (admin) ctx.cache.set(cacheKey, admin, 60);
   }
@@ -56,12 +58,13 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
   let judge = ctx.cache.get<typeof judges.$inferSelect>(cacheKey);
 
   if (!judge) {
-    judge = (await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findFirst({
-      where: and(
-        eq(judges.userId, ctx.userId as string),
-        eq(judges.isActive, true)
-      ),
-    })) ?? null;
+    judge =
+      (await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findFirst({
+        where: and(
+          eq(judges.userId, ctx.userId as string),
+          eq(judges.isActive, true),
+        ),
+      })) ?? null;
 
     if (judge) ctx.cache.set(cacheKey, judge, 60);
   }

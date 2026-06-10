@@ -12,7 +12,7 @@ export default function Background(props: BackgroundProps) {
       style={{
         backgroundRepeat: "repeat",
         backgroundSize: "150px",
-        filter: "brightness(0.5)"
+        filter: "brightness(0.5)",
       }}
     >
       {/* Optional navigation background */}

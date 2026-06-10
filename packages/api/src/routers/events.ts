@@ -15,7 +15,7 @@ export const eventRouter = createTRPCRouter({
         location: z.string().max(200).optional(),
         eventDate: z.date(),
         maxCheckIns: z.number().int().positive().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const qrCode = randomUUID();
@@ -30,7 +30,7 @@ export const eventRouter = createTRPCRouter({
         .returning();
 
       // Invalidate all event-related cache entries after creation
-      ctx.cache.deletePattern('event*');
+      ctx.cache.deletePattern("event*");
 
       return newEvent;
     }),
@@ -58,24 +58,26 @@ export const eventRouter = createTRPCRouter({
 
       // Invalidate event and related caches after QR regeneration
       ctx.cache.deletePattern(`event:${input.eventId}`);
-      ctx.cache.deletePattern('event*');
+      ctx.cache.deletePattern("event*");
 
       return updatedEvent;
     }),
 
   listAll: isAdmin.query(async ({ ctx }) => {
-    const fetchEvents = () => (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
-      orderBy: (events, { desc }) => [desc(events.eventDate)],
-      with: {
-        createdBy: {
-          columns: { name: true, email: true },
+    const fetchEvents = () =>
+      (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
+        orderBy: (events, { desc }) => [desc(events.eventDate)],
+        with: {
+          createdBy: {
+            columns: { name: true, email: true },
+          },
         },
-      },
-      limit: 100,
-    });
+        limit: 100,
+      });
 
     const cacheKey = `events:list:all`;
-    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
+    const cached =
+      ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
     if (cached !== null) return cached;
 
     const allEvents = await fetchEvents();
@@ -84,26 +86,32 @@ export const eventRouter = createTRPCRouter({
   }),
 
   list: publicProcedure.query(async ({ ctx }) => {
-    const fetchEvents = () => (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
-      orderBy: (events, { desc }) => [desc(events.eventDate)],
-      limit: 50,
-    });
+    const fetchEvents = () =>
+      (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
+        orderBy: (events, { desc }) => [desc(events.eventDate)],
+        limit: 50,
+      });
 
     const cacheKey = `events:list:public`;
-    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
+    const cached =
+      ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
     let allEvents = cached;
-    
+
     if (!allEvents) {
       allEvents = await fetchEvents();
       ctx.cache.set(cacheKey, allEvents, 30);
     }
 
     const now = new Date();
-    return allEvents.map(event => {
+    return allEvents.map((event) => {
       const { qrCode: _qrCode, ...safeEvent } = event;
       return {
         ...safeEvent,
-        status: (event.checkInEnabled && event.eventDate >= new Date(now.getTime() - 24 * 60 * 60 * 1000)) ? "open" : "closed",
+        status:
+          event.checkInEnabled &&
+          event.eventDate >= new Date(now.getTime() - 24 * 60 * 60 * 1000)
+            ? "open"
+            : "closed",
       };
     });
   }),
@@ -111,7 +119,9 @@ export const eventRouter = createTRPCRouter({
   getById: isAdmin
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const event = await (ctx.db as NonNullable<typeof ctx.db>).query.events.findFirst({
+      const event = await (
+        ctx.db as NonNullable<typeof ctx.db>
+      ).query.events.findFirst({
         where: eq(events.id, input.id),
         with: {
           checkIns: {
@@ -131,7 +141,9 @@ export const eventRouter = createTRPCRouter({
                 },
               },
             },
-            orderBy: (eventCheckIns, { desc }) => [desc(eventCheckIns.checkedInAt)],
+            orderBy: (eventCheckIns, { desc }) => [
+              desc(eventCheckIns.checkedInAt),
+            ],
           },
         },
       });
@@ -151,7 +163,7 @@ export const eventRouter = createTRPCRouter({
       z.object({
         eventId: z.string().uuid(),
         enabled: z.boolean(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const [updatedEvent] = await (ctx.db as NonNullable<typeof ctx.db>)
@@ -165,7 +177,7 @@ export const eventRouter = createTRPCRouter({
 
       // Invalidate event and check-in related caches
       ctx.cache.deletePattern(`event:${input.eventId}`);
-      ctx.cache.deletePattern('event*');
+      ctx.cache.deletePattern("event*");
 
       return updatedEvent;
     }),
@@ -174,13 +186,17 @@ export const eventRouter = createTRPCRouter({
     .input(z.object({ eventId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       // Also delete associated check-ins before removing the event
-      await (ctx.db as NonNullable<typeof ctx.db>).delete(eventCheckIns).where(eq(eventCheckIns.eventId, input.eventId));
+      await (ctx.db as NonNullable<typeof ctx.db>)
+        .delete(eventCheckIns)
+        .where(eq(eventCheckIns.eventId, input.eventId));
 
-      await (ctx.db as NonNullable<typeof ctx.db>).delete(events).where(eq(events.id, input.eventId));
+      await (ctx.db as NonNullable<typeof ctx.db>)
+        .delete(events)
+        .where(eq(events.id, input.eventId));
 
       // Invalidate all event-related cache entries after deletion
       ctx.cache.deletePattern(`event:${input.eventId}`);
-      ctx.cache.deletePattern('event*');
+      ctx.cache.deletePattern("event*");
 
       return { success: true };
     }),
@@ -188,98 +204,108 @@ export const eventRouter = createTRPCRouter({
   checkIn: protectedProcedure
     .input(z.object({ qrCode: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
-        const event = await tx.query.events.findFirst({
-          where: eq(events.qrCode, input.qrCode),
-        });
-
-        if (!event) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Invalid QR code",
+      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
+        async (tx) => {
+          const event = await tx.query.events.findFirst({
+            where: eq(events.qrCode, input.qrCode),
           });
-        }
 
-        if (!event.checkInEnabled) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Check-in not enabled for this event",
-          });
-        }
+          if (!event) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Invalid QR code",
+            });
+          }
 
-        if (event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Event is full",
-          });
-        }
+          if (!event.checkInEnabled) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Check-in not enabled for this event",
+            });
+          }
 
-        const [member, existingCheckIn] = await Promise.all([
-          tx.query.members.findFirst({
-            where: eq(members.userId, ctx.userId as string),
-          }),
-          tx.query.eventCheckIns.findFirst({
-            where: and(
-              eq(eventCheckIns.eventId, event.id),
-              eq(eventCheckIns.userId, ctx.userId as string)
-            ),
-          }),
-        ]);
+          if (event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Event is full",
+            });
+          }
 
-        if (!member) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Must be a member to check in",
-          });
-        }
+          const [member, existingCheckIn] = await Promise.all([
+            tx.query.members.findFirst({
+              where: eq(members.userId, ctx.userId as string),
+            }),
+            tx.query.eventCheckIns.findFirst({
+              where: and(
+                eq(eventCheckIns.eventId, event.id),
+                eq(eventCheckIns.userId, ctx.userId as string),
+              ),
+            }),
+          ]);
 
-        if (existingCheckIn) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Already checked in",
-          });
-        }
+          if (!member) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Must be a member to check in",
+            });
+          }
 
-        await Promise.all([
-          tx.insert(eventCheckIns).values({
-            eventId: event.id,
-            userId: ctx.userId as string,
-            memberId: member.id,
-            checkInMethod: "qr_code",
-          }),
-          tx
-            .update(events)
-            .set({
-              currentCheckIns: sql`${events.currentCheckIns} + 1`,
-            })
-            .where(eq(events.id, event.id)),
-        ]);
+          if (existingCheckIn) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Already checked in",
+            });
+          }
 
-        // Invalidate event and related caches after successful check-in
-        ctx.cache.deletePattern(`event:${event.id}`);
-        ctx.cache.deletePattern('event*');
+          await Promise.all([
+            tx.insert(eventCheckIns).values({
+              eventId: event.id,
+              userId: ctx.userId as string,
+              memberId: member.id,
+              checkInMethod: "qr_code",
+            }),
+            tx
+              .update(events)
+              .set({
+                currentCheckIns: sql`${events.currentCheckIns} + 1`,
+              })
+              .where(eq(events.id, event.id)),
+          ]);
 
-        return {
-          success: true,
-          eventTitle: event.title,
-        };
-      });
+          // Invalidate event and related caches after successful check-in
+          ctx.cache.deletePattern(`event:${event.id}`);
+          ctx.cache.deletePattern("event*");
+
+          return {
+            success: true,
+            eventTitle: event.title,
+          };
+        },
+      );
     }),
 
   myEvents: protectedProcedure.query(async ({ ctx }) => {
-    const fetchCheckIns = () => (ctx.db as NonNullable<typeof ctx.db>).query.eventCheckIns.findMany({
-      where: eq(eventCheckIns.userId, ctx.userId as string),
-      with: {
-        event: {
-          columns: { id: true, title: true, description: true, location: true, eventDate: true },
+    const fetchCheckIns = () =>
+      (ctx.db as NonNullable<typeof ctx.db>).query.eventCheckIns.findMany({
+        where: eq(eventCheckIns.userId, ctx.userId as string),
+        with: {
+          event: {
+            columns: {
+              id: true,
+              title: true,
+              description: true,
+              location: true,
+              eventDate: true,
+            },
+          },
         },
-      },
-      orderBy: (eventCheckIns, { desc }) => [desc(eventCheckIns.checkedInAt)],
-      limit: 50,
-    });
+        orderBy: (eventCheckIns, { desc }) => [desc(eventCheckIns.checkedInAt)],
+        limit: 50,
+      });
 
     const cacheKey = `events:my:${ctx.userId}`;
-    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchCheckIns>>>(cacheKey);
+    const cached =
+      ctx.cache.get<Awaited<ReturnType<typeof fetchCheckIns>>>(cacheKey);
     if (cached) return cached;
 
     const checkIns = await fetchCheckIns();

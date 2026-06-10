@@ -46,7 +46,10 @@ const enforceSizeLimit = () => {
     let oldestKey: string | null = null;
     let oldestTime = Infinity;
     for (const [ip, record] of ipTrackingStore.entries()) {
-      if (now - record.firstRequest > 5 * 60 * 1000 && now < record.blockedUntil) {
+      if (
+        now - record.firstRequest > 5 * 60 * 1000 &&
+        now < record.blockedUntil
+      ) {
         if (record.firstRequest < oldestTime) {
           oldestTime = record.firstRequest;
           oldestKey = ip;
@@ -80,7 +83,8 @@ setInterval(enforceSizeLimit, 60 * 1000);
 // These thresholds are intentionally lower than the absolute limits to allow headroom
 const DDOS_CONFIG = {
   // Rate limits are configurable via environment variables
-  maxRequestsPerMinute: Number(process.env.DDOS_MAX_REQUESTS_PER_MINUTE) || 1000, // Adjusted for safe operation
+  maxRequestsPerMinute:
+    Number(process.env.DDOS_MAX_REQUESTS_PER_MINUTE) || 1000, // Adjusted for safe operation
   suspiciousThreshold: Number(process.env.DDOS_SUSPICIOUS_THRESHOLD) || 700, // Lower threshold for safety
   blockDurationMs: Number(process.env.DDOS_BLOCK_DURATION_MS) || 5 * 60 * 1000,
   burstThreshold: Number(process.env.DDOS_BURST_THRESHOLD) || 100, // Reduced for safety
@@ -115,7 +119,7 @@ export function rateLimit(
   identifier: string,
   maxTokens: number,
   refillRatePerSecond: number,
-  tokensToConsume: number = 1
+  tokensToConsume: number = 1,
 ): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
   let record = rateLimitStore.get(identifier);
@@ -170,8 +174,8 @@ export const RATE_LIMITS = {
     mutationTokens: 3,
   },
   authenticated: {
-    maxTokens: 300,  // Raised from 100 to prevent legitimate multi-step form users from being blocked
-    refillRate: 5,   // Raised from 2 to recover faster between form steps
+    maxTokens: 300, // Raised from 100 to prevent legitimate multi-step form users from being blocked
+    refillRate: 5, // Raised from 2 to recover faster between form steps
     queryTokens: 1,
     mutationTokens: 2,
   },
@@ -192,8 +196,8 @@ export const RATE_LIMITS = {
 const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [],
   allowedAttributes: {},
-  disallowedTagsMode: 'discard',
-  nonTextTags: ['style', 'script', 'textarea', 'noscript', 'option', 'xmp'],
+  disallowedTagsMode: "discard",
+  nonTextTags: ["style", "script", "textarea", "noscript", "option", "xmp"],
 };
 
 export function sanitizeInput(input: unknown, depth: number = 0): unknown {
@@ -208,7 +212,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
     return input;
   }
 
-  if (typeof input === 'string') {
+  if (typeof input === "string") {
     const sanitized = sanitizeHtml(input, SANITIZE_OPTIONS)
       .trim()
       .slice(0, 10000);
@@ -223,7 +227,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
     return sanitized;
   }
 
-  if (typeof input === 'number') {
+  if (typeof input === "number") {
     if (!Number.isFinite(input)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -233,7 +237,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
     return input;
   }
 
-  if (typeof input === 'boolean') {
+  if (typeof input === "boolean") {
     return input;
   }
 
@@ -244,10 +248,10 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
         message: "Array too large",
       });
     }
-    return input.map(item => sanitizeInput(item, depth + 1));
+    return input.map((item) => sanitizeInput(item, depth + 1));
   }
 
-  if (typeof input === 'object') {
+  if (typeof input === "object") {
     const keys = Object.keys(input as object);
     if (keys.length > 50) {
       throw new TRPCError({
@@ -258,7 +262,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input as object)) {
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
         continue;
       }
       if (!/^[\w.-]{1,100}$/.test(key)) {
@@ -292,33 +296,39 @@ function hasInjectionPattern(str: string): boolean {
     /on\w+\s*=/i,
   ];
 
-  return patterns.some(pattern => pattern.test(str));
+  return patterns.some((pattern) => pattern.test(str));
 }
 
 export function validateEmail(email: string): boolean {
-  if (typeof email !== 'string') return false;
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  if (typeof email !== "string") return false;
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   return emailRegex.test(email) && email.length <= 254;
 }
 
 export function validateUrl(url: string): boolean {
-  if (typeof url !== 'string') return false;
+  if (typeof url !== "string") return false;
   try {
     const parsed = new URL(url);
-    return ['http:', 'https:'].includes(parsed.protocol) && url.length <= 2048;
+    return ["http:", "https:"].includes(parsed.protocol) && url.length <= 2048;
   } catch {
     return false;
   }
 }
 
 export function validateUUID(uuid: string): boolean {
-  if (typeof uuid !== 'string') return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (typeof uuid !== "string") return false;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
 
 export type SecurityEvent = {
-  type: 'rate_limit' | 'injection_attempt' | 'auth_failure' | 'validation_error';
+  type:
+    | "rate_limit"
+    | "injection_attempt"
+    | "auth_failure"
+    | "validation_error";
   identifier: string;
   details?: string;
   timestamp: number;
@@ -329,7 +339,7 @@ const MAX_LOG_SIZE = 1000;
 
 import { db, auditLogs } from "@query/db";
 
-const flushQueue: Omit<SecurityEvent, 'timestamp'>[] = [];
+const flushQueue: Omit<SecurityEvent, "timestamp">[] = [];
 const FLUSH_INTERVAL = 5000;
 // Keep batch size small enough that PG parameter count (5 cols × N rows) never approaches the 65535 limit
 const MAX_BATCH_SIZE = 25;
@@ -352,7 +362,12 @@ async function flushLogs() {
     try {
       const fs = await import("fs");
       const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.\n`;
-      fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
+      fs.appendFile(
+        "packages/api/src/.security-errors.log",
+        errorLog,
+        { encoding: "utf8" },
+        () => {},
+      );
     } catch {
       // Ignore fs errors
     }
@@ -360,19 +375,33 @@ async function flushLogs() {
   }
 
   try {
-    const values = batch.map(event => {
-      const safeDetails = event.details ? event.details.replace(/(password|token|secret)=[^&]*/gi, '$1=***') : undefined;
-      const severity = event.type === 'injection_attempt' ? 'critical' :
-        event.type === 'auth_failure' ? 'warn' : 'info';
+    const values = batch.map((event) => {
+      const safeDetails = event.details
+        ? event.details.replace(/(password|token|secret)=[^&]*/gi, "$1=***")
+        : undefined;
+      const severity =
+        event.type === "injection_attempt"
+          ? "critical"
+          : event.type === "auth_failure"
+            ? "warn"
+            : "info";
 
       // identifier can be a raw userId UUID, 'user:UUID', or an IP address
       let resolvedUserId: string | null = null;
-      if (event.identifier.startsWith('user:')) {
-        resolvedUserId = event.identifier.split(':')[1] ?? null;
-      } else if (event.identifier.startsWith('ip-') || event.identifier.includes('.') || event.identifier.includes(':')) {
+      if (event.identifier.startsWith("user:")) {
+        resolvedUserId = event.identifier.split(":")[1] ?? null;
+      } else if (
+        event.identifier.startsWith("ip-") ||
+        event.identifier.includes(".") ||
+        event.identifier.includes(":")
+      ) {
         // IP address — no userId
         resolvedUserId = null;
-      } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(event.identifier)) {
+      } else if (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          event.identifier,
+        )
+      ) {
         // Raw UUID — treat as userId
         resolvedUserId = event.identifier;
       }
@@ -405,7 +434,12 @@ async function flushLogs() {
     try {
       const fs = await import("fs");
       const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
-      fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
+      fs.appendFile(
+        "packages/api/src/.security-errors.log",
+        errorLog,
+        { encoding: "utf8" },
+        () => {},
+      );
     } catch {
       // Ignore fs errors
     }
@@ -417,12 +451,12 @@ setInterval(() => {
   void flushLogs();
 }, FLUSH_INTERVAL);
 
-export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
+export function logSecurityEvent(event: Omit<SecurityEvent, "timestamp">) {
   const now = Date.now();
 
   // Deduplicate rate_limit events: suppress repeat logs for the same identifier
   // within the cooldown window to prevent audit log storms under heavy rate limiting.
-  if (event.type === 'rate_limit') {
+  if (event.type === "rate_limit") {
     const lastLogged = rateLimitLogCooldown.get(event.identifier);
     if (lastLogged && now - lastLogged < RATE_LIMIT_LOG_COOLDOWN_MS) {
       return; // Suppressed — already logged recently for this identifier
@@ -432,7 +466,8 @@ export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
     // Prune cooldown map periodically to prevent memory leak
     if (rateLimitLogCooldown.size > 10000) {
       for (const [id, ts] of rateLimitLogCooldown.entries()) {
-        if (now - ts > RATE_LIMIT_LOG_COOLDOWN_MS) rateLimitLogCooldown.delete(id);
+        if (now - ts > RATE_LIMIT_LOG_COOLDOWN_MS)
+          rateLimitLogCooldown.delete(id);
       }
     }
   }
@@ -451,17 +486,23 @@ export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
   }
 
   // Instant flush if critical or queue is at batch threshold
-  if (event.type === 'injection_attempt' || flushQueue.length >= MAX_BATCH_SIZE) {
+  if (
+    event.type === "injection_attempt" ||
+    flushQueue.length >= MAX_BATCH_SIZE
+  ) {
     void flushLogs();
   }
 }
 
 export function getRecentSecurityEvents(minutes: number = 60): SecurityEvent[] {
   const cutoff = Date.now() - minutes * 60 * 1000;
-  return securityLog.filter(e => e.timestamp > cutoff);
+  return securityLog.filter((e) => e.timestamp > cutoff);
 }
 
-export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter?: number } {
+export function ddosProtection(clientIp: string): {
+  allowed: boolean;
+  retryAfter?: number;
+} {
   const now = Date.now();
 
   // Get or create IP record
@@ -480,7 +521,7 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
   // Check if IP is blocked
   if (record.isBlocked && now < record.blockedUntil) {
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       identifier: clientIp,
       details: `Blocked IP attempted access`,
     });
@@ -501,13 +542,16 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
   record.requests++;
 
   // Check for burst (too many requests in short window)
-  if (elapsed < DDOS_CONFIG.burstWindowMs && record.requests > DDOS_CONFIG.burstThreshold) {
+  if (
+    elapsed < DDOS_CONFIG.burstWindowMs &&
+    record.requests > DDOS_CONFIG.burstThreshold
+  ) {
     record.suspiciousActivity++;
     record.isBlocked = true;
     record.blockedUntil = now + DDOS_CONFIG.blockDurationMs;
 
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       identifier: clientIp,
       details: `Burst attack detected: ${record.requests} requests in ${elapsed}ms`,
     });
@@ -525,7 +569,7 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
     record.blockedUntil = now + DDOS_CONFIG.blockDurationMs;
 
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       identifier: clientIp,
       details: `Sustained attack: ${record.requests} requests/minute`,
     });
@@ -544,7 +588,10 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
   return { allowed: true };
 }
 
-export function validateRequestSize(payload: unknown, maxSizeBytes: number = 1024 * 100): boolean {
+export function validateRequestSize(
+  payload: unknown,
+  maxSizeBytes: number = 1024 * 100,
+): boolean {
   try {
     const jsonString = JSON.stringify(payload);
     return new TextEncoder().encode(jsonString).length <= maxSizeBytes;
