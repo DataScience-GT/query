@@ -13,6 +13,7 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
     const [location, setLocation] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [hackingStartTime, setHackingStartTime] = useState('');
     const [regDeadline, setRegDeadline] = useState('');
     const [maxParticipants, setMaxParticipants] = useState('');
     const [theme, setTheme] = useState('');
@@ -26,6 +27,7 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
             setLocation(hackathon.location || '');
             setStartDate(toInputDate(hackathon.startDate));
             setEndDate(toInputDate(hackathon.endDate));
+            setHackingStartTime(hackathon.hackingStartTime ? toInputDate(hackathon.hackingStartTime) : '');
             setRegDeadline(hackathon.registrationDeadline ? toInputDate(hackathon.registrationDeadline) : '');
             setMaxParticipants(hackathon.maxParticipants?.toString() || '');
             setTheme(hackathon.theme || '');
@@ -48,6 +50,7 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
             location: location.trim() || undefined,
             startDate: startDate ? new Date(startDate) : undefined,
             endDate: endDate ? new Date(endDate) : undefined,
+            hackingStartTime: hackingStartTime ? new Date(hackingStartTime) : null,
             registrationDeadline: regDeadline ? new Date(regDeadline) : undefined,
             maxParticipants: maxParticipants ? parseInt(maxParticipants) : undefined,
             theme: theme.trim() || undefined,
@@ -104,12 +107,21 @@ export function EditHackathonForm({ hackathonId, onClose, onSaved }: { hackathon
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
+                                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Hacking Start Time</label>
+                                <input type="datetime-local" value={hackingStartTime} onChange={(e) => setHackingStartTime(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
+                            </div>
+                            <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Registration Deadline</label>
                                 <input type="datetime-local" value={regDeadline} onChange={(e) => setRegDeadline(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
                             </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Max Participants</label>
                                 <input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors" />
+                            </div>
+                            <div>
+                                {/* empty cell for layout */}
                             </div>
                         </div>
 

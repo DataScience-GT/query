@@ -141,7 +141,7 @@ export function TeamsTab({
                             <div>
                                 <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-3">Capacity</label>
                                 <div className="flex gap-2">
-                                    {[2, 3, 4, 5, 6].map((n) => (
+                                    {[2, 3, 4].map((n) => (
                                         <button key={n} onClick={() => setMaxMembers(n)} className={`w-12 h-12 rounded-none text-sm font-bold border transition-all ${maxMembers === n ? 'bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/40 hover:bg-white/5'}`}>{n}</button>
                                     ))}
                                 </div>

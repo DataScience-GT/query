@@ -12,6 +12,7 @@ export const hackathons = pgTable("hackathon", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   registrationDeadline: timestamp("registration_deadline"),
+  hackingStartTime: timestamp("hacking_start_time"),
   maxParticipants: integer("max_participants"),
   currentParticipants: integer("current_participants").notNull().default(0),
   status: text("status", { enum: ["draft", "open", "closed", "in_progress", "completed", "cancelled"] })
