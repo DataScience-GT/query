@@ -8,7 +8,6 @@ import QRCode from 'qrcode';
 import { QRCodeModal } from '@/components/portal/QRCodeModal';
 import { EventFormModal } from '@/components/portal/EventFormModal';
 import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import AdminLayout from '@/components/portal/AdminLayout';
 import { QrCode } from 'lucide-react';
 
 
@@ -115,7 +114,7 @@ export default function AdminPage() {
   };
 
   return (
-    <AdminLayout>
+    <>
       {showCreateEvent && (
         <EventFormModal
           onClose={() => setShowCreateEvent(false)}
@@ -282,6 +281,6 @@ export default function AdminPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }
