@@ -57,7 +57,6 @@ export function ScheduleTab({ hackathonId, isRegistered }: { hackathonId: string
                     </LiquidGlass>
                 )}
             </div>
-
             <div className="lg:col-span-2 space-y-4">
                 <LiquidGlass className="p-8 md:p-10 bg-white/[0.01] border-[var(--border-subtle)]">
                     <div className="flex items-center justify-between mb-10 pb-6 border-b border-[var(--border-subtle)]">
