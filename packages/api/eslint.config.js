@@ -7,4 +7,11 @@ export default [
       "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
+  {
+    files: ["src/.internal-tests/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-namespace": "off",
+    },
+  },
 ];

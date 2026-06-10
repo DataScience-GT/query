@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import React, { useState, useEffect, useMemo, memo } from "react";
 import HomeSections from "@/components/HomeSections";
 import { FlowerDivider, FlowerAccent } from "@/components/FloatingFlowers";

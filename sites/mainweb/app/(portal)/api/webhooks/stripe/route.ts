@@ -98,8 +98,7 @@ export async function POST(req: NextRequest) {
 
       // Execute in transaction
       await db.transaction(async (tx) => {
-        // Save payment record
-        const [payment] = await tx
+        await tx
           .insert(stripePayments)
           .values({
             stripeSessionId: session.id,
@@ -113,8 +112,7 @@ export async function POST(req: NextRequest) {
             linkedUserId: targetUser?.id || null,
             linkedAt: targetUser ? new Date() : null,
             metadata: session.metadata ? JSON.stringify(session.metadata) : null,
-          })
-          .returning();
+          });
 
         // If user exists and paid, create/update membership
         if (targetUser && session.payment_status === "paid") {

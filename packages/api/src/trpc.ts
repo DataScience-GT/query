@@ -1,22 +1,29 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import type { TRPCDefaultErrorShape } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import type { Context } from "./context";
 import { rateLimit, RATE_LIMITS, sanitizeInput, logSecurityEvent, ddosProtection, validateRequestSize } from "./middleware/security";
 
+export const errorFormatter = ({ shape, error }: {
+  shape: TRPCDefaultErrorShape;
+  error: TRPCError;
+}) => {
+  const isDev = process.env.NODE_ENV === 'development';
+  return {
+    ...shape,
+    message: error.code === 'INTERNAL_SERVER_ERROR' && !isDev ? 'An unexpected error occurred' : shape.message,
+    data: {
+      ...shape.data,
+      zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+      stack: isDev ? shape.data.stack : undefined, // Mask stack in production
+    },
+  };
+};
+
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
-    const isDev = process.env.NODE_ENV === 'development';
-    return {
-      ...shape,
-      data: {
-        ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
-        stack: isDev ? shape.data.stack : undefined, // Mask stack in production
-      },
-    };
-  },
+  errorFormatter,
 });
 
 export const createTRPCRouter = t.router;
@@ -55,6 +62,21 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
     sanitizeInput(rawInput);
   }
 
+  return next();
+});
+
+const enforceContentType = t.middleware(async ({ ctx, next, type }) => {
+  if (type === 'mutation' && ctx.req) {
+    const contentType = ctx.req.headers.get('content-type') || '';
+    const isJson = contentType.toLowerCase().includes('application/json');
+    const isMultipart = contentType.toLowerCase().includes('multipart/form-data');
+    if (contentType && !isJson && !isMultipart) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid Content-Type for mutation request",
+      });
+    }
+  }
   return next();
 });
 
@@ -145,6 +167,7 @@ const cacheInvalidationMiddleware = t.middleware(async ({ ctx, next, type, path 
 
 export const publicProcedure = t.procedure
   .use(sanitizeInputs)
+  .use(enforceContentType)
   .use(async ({ ctx, next, type }) => {
     // DDoS Protection - check IP-based limits first
     const ddosCheck = ddosProtection(ctx.clientIp);
@@ -212,22 +235,26 @@ export const protectedProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
+  .use(enforceContentType)
   .use(cacheInvalidationMiddleware);
 
 export const uploadProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(uploadSanitizeInputs)
+  .use(enforceContentType)
   .use(cacheInvalidationMiddleware);
 
 export const judgeProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
+  .use(enforceContentType)
   .use(cacheInvalidationMiddleware);
 
 export const adminProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
+  .use(enforceContentType)
   .use(cacheInvalidationMiddleware);

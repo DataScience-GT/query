@@ -55,12 +55,17 @@ export const hackathonRouter = createTRPCRouter({
   listAll: isAdmin
     .query(async ({ ctx }) => {
       const cacheKey = "hackathons:list:all";
-      const cached = ctx.cache.get<any>(cacheKey);
+      
+      const fetchAll = async () => {
+        return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+          orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
+        });
+      };
+
+      const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchAll>>>(cacheKey);
       if (cached !== null) return cached;
 
-      const allHackathons = await (ctx.db as DrizzleDB).query.hackathons.findMany({
-        orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
-      });
+      const allHackathons = await fetchAll();
 
       ctx.cache.set(cacheKey, allHackathons, 60);
 
@@ -353,7 +358,7 @@ export const hackathonRouter = createTRPCRouter({
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.error("[hackathon.register] Unexpected error during registration:", error);
+        // Unexpected error during registration
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Registration failed: ${message}`,
@@ -784,23 +789,28 @@ export const hackathonRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
       const cacheKey = `hackathon:${input.hackathonId}:events`;
-      const cached = ctx.cache.get<any>(cacheKey);
+
+      const fetchEvents = async () => {
+        const eventsData = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
+          where: eq(hackathonEvents.hackathonId, input.hackathonId),
+          orderBy: (events, { asc }) => [asc(events.startTime)],
+          with: {
+            attendees: {
+              columns: { id: true }
+            }
+          }
+        });
+
+        return eventsData.map(e => ({
+          ...e,
+          attendeeCount: e.attendees.length
+        }));
+      };
+
+      const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
       if (cached !== null) return cached;
 
-      const eventsData = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
-        where: eq(hackathonEvents.hackathonId, input.hackathonId),
-        orderBy: (events, { asc }) => [asc(events.startTime)],
-        with: {
-          attendees: {
-            columns: { id: true }
-          }
-        }
-      });
-
-      const events = eventsData.map(e => ({
-        ...e,
-        attendeeCount: e.attendees.length
-      }));
+      const events = await fetchEvents();
 
       ctx.cache.set(cacheKey, events, 60);
 

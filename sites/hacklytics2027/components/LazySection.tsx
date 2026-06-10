@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState, useEffect, ReactNode } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 
 /**
  * LazySection — Uses IntersectionObserver to defer rendering of

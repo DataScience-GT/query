@@ -18,7 +18,7 @@ export default function AdminSettingsPage() {
     allowPublicRegistration: true,
   });
 
-  const { data: dbSettings, isLoading } = trpc.settings.get.useQuery();
+  const { data: dbSettings } = trpc.settings.get.useQuery();
   const updateSettings = trpc.settings.update.useMutation();
 
   useEffect(() => {

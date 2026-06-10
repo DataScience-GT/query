@@ -19,7 +19,7 @@ async function getAuth() {
     try {
       authModule = await import("@query/auth");
     } catch (error) {
-      console.warn("Auth module not available:", error);
+      // Auth module not available
       authModule = { auth: async () => null };
     }
   }
@@ -40,7 +40,7 @@ export async function createContext(
       const auth = await getAuth();
       session = await auth();
     } catch (error) {
-      console.warn("Failed to fetch auth session:", error);
+      // Failed to fetch auth session
     }
   }
 

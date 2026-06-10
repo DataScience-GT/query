@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { stripePayments, userAccountLinks, members } from "@query/db";
+import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
@@ -61,7 +62,7 @@ export const stripeRouter = createTRPCRouter({
 
         return { url: session.url };
       } catch (error: unknown) {
-        console.error("Stripe Checkout Error:", error);
+        // Stripe Checkout Error
         // Check for invalid API key errors specifically if possible, but obscure all
         // Generic error for all Stripe failures - don't leak configuration status
         logSecurityEvent({
@@ -124,7 +125,7 @@ export const stripeRouter = createTRPCRouter({
         .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(
-        tx as unknown as NonNullable<typeof import("@query/db").db>,
+        tx as unknown as DrizzleDB,
         ctx.userId!,
         firstName,
         lastName
@@ -239,7 +240,7 @@ export const stripeRouter = createTRPCRouter({
           .where(eq(stripePayments.id, payment.id));
 
         await createOrUpdateMembership(
-          tx as unknown as NonNullable<typeof import("@query/db").db>,
+          tx as unknown as DrizzleDB,
           ctx.userId!,
           input.firstName,
           input.lastName
@@ -276,7 +277,7 @@ export const stripeRouter = createTRPCRouter({
 });
 
 async function createOrUpdateMembership(
-  db: NonNullable<typeof import("@query/db").db>,
+  db: DrizzleDB,
   userId: string,
   firstName: string,
   lastName: string

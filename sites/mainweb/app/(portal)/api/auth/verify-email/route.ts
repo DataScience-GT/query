@@ -246,7 +246,6 @@ export async function POST(request: NextRequest) {
             expires: result.sessionExpires,
         });
 
-        const safeEmailForLog = email.replace(/[\r\n]/g, "");
         return response;
     } catch (error: unknown) {
         console.error("[verify-email] Error:", error);
