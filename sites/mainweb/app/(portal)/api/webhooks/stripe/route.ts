@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
     try {
       // Check for amounts greater than $100 (10000 cents)
       if (session.amount_total && session.amount_total > 10000) {
-        console.log(`Ignoring payment of ${session.amount_total} cents (>${10000})`);
         return NextResponse.json({ received: true });
       }
 
@@ -67,7 +66,6 @@ export async function POST(req: NextRequest) {
       });
 
       if (existingPayment) {
-        console.log(`Payment already processed: ${session.id}`);
         // If payment exists, verify membership was created too
         if (existingPayment.linkedUserId) {
           try {
@@ -100,8 +98,7 @@ export async function POST(req: NextRequest) {
 
       // Execute in transaction
       await db.transaction(async (tx) => {
-        // Save payment record
-        const [payment] = await tx
+        await tx
           .insert(stripePayments)
           .values({
             stripeSessionId: session.id,
@@ -115,8 +112,7 @@ export async function POST(req: NextRequest) {
             linkedUserId: targetUser?.id || null,
             linkedAt: targetUser ? new Date() : null,
             metadata: session.metadata ? JSON.stringify(session.metadata) : null,
-          })
-          .returning();
+          });
 
         // If user exists and paid, create/update membership
         if (targetUser && session.payment_status === "paid") {
@@ -130,8 +126,6 @@ export async function POST(req: NextRequest) {
             console.warn("Failed to invalidate cache inside webhook", e);
           }
         }
-
-        console.log(`Stripe payment recorded: ${payment?.id} for ${customerEmail} (Linked to: ${targetUser?.id || 'Unlinked'})`);
       });
 
     } catch (error) {
@@ -179,8 +173,6 @@ async function createOrUpdateMembership(
         phoneNumber: phoneNumber || existingMember.phoneNumber, // Update phone if provided
       })
       .where(eq(members.id, existingMember.id));
-
-    console.log(`Membership renewed for user ${userId}`);
   } else {
     // Create new membership
     await tx.insert(members).values({
@@ -194,7 +186,5 @@ async function createOrUpdateMembership(
       renewalCount: 0,
       phoneNumber: phoneNumber || null,
     });
-
-    console.log(`New membership created for user ${userId}`);
   }
 }

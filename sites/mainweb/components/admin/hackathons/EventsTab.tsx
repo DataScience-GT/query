@@ -125,16 +125,16 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
     return (
         <div className="animate-in fade-in zoom-in-95 duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tight">Events</h2>
-                    <p className="text-xs text-gray-500 font-mono mt-1">
+                    <h2 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight">Events</h2>
+                    <p className="text-xs text-[var(--text-subtle)] font-mono mt-1">
                         {events?.length || 0} event{events?.length !== 1 ? 's' : ''} scheduled
                     </p>
                 </div>
                 <button
                     onClick={openCreate}
-                    className="px-5 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(0,168,168,0.2)] hover:shadow-[0_0_30px_rgba(0,168,168,0.3)]"
+                    className="px-5 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-bold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]"
                 >
                     + New Event
                 </button>
@@ -142,15 +142,15 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
             {/* Create / Edit Form */}
             {(showCreate || editingId) && (
-                <LiquidGlass className="p-6 mb-6 border-t-4 border-t-[#00A8A8]/50">
-                    <h3 className="text-lg font-bold text-white mb-4">
+                <LiquidGlass className="p-6 mb-6 border-t-4 border-t-accent/50">
+                    <h3 className="text-lg font-bold text-[var(--text-primary)] mb-4">
                         {editingId ? 'Edit Event' : 'Create Event'}
                     </h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Name + Type Row */}
                         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
                             <div>
-                                <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                     Event Name
                                 </label>
                                 <input
@@ -159,17 +159,17 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                                     placeholder="e.g. Opening Ceremony"
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00A8A8]/50 transition-colors"
+                                    className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                     Type
                                 </label>
                                 <select
                                     value={form.type}
                                     onChange={(e) => setForm({ ...form, type: e.target.value as EventType })}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00A8A8]/50 transition-colors min-w-[160px]"
+                                    className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors min-w-[160px]"
                                 >
                                     {EVENT_TYPES.map((t) => (
                                         <option key={t.value} value={t.value}>
@@ -182,7 +182,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
                         {/* Description */}
                         <div>
-                            <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                            <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                 Description
                             </label>
                             <textarea
@@ -190,14 +190,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                                 placeholder="Optional description..."
                                 rows={2}
-                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00A8A8]/50 transition-colors resize-none"
+                                className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors resize-none"
                             />
                         </div>
 
                         {/* Location + Points Row */}
                         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
                             <div>
-                                <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                     Location
                                 </label>
                                 <input
@@ -206,11 +206,11 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     value={form.location}
                                     onChange={(e) => setForm({ ...form, location: e.target.value })}
                                     placeholder="e.g. Room 101, Main Hall"
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00A8A8]/50 transition-colors"
+                                    className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                     Points
                                 </label>
                                 <input
@@ -219,7 +219,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     max={1000}
                                     value={form.points}
                                     onChange={(e) => setForm({ ...form, points: parseInt(e.target.value) || 0 })}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00A8A8]/50 transition-colors min-w-[120px]"
+                                    className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors min-w-[120px]"
                                 />
                             </div>
                         </div>
@@ -227,7 +227,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                         {/* Start / End Times */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                     Start Time
                                 </label>
                                 <input
@@ -235,11 +235,11 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     required
                                     value={form.startTime}
                                     onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00A8A8]/50 transition-colors"
+                                    className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-mono text-[#00A8A8] uppercase tracking-widest font-bold block mb-1.5">
+                                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
                                     End Time
                                 </label>
                                 <input
@@ -247,14 +247,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     required
                                     value={form.endTime}
                                     onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00A8A8]/50 transition-colors"
+                                    className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors"
                                 />
                             </div>
                         </div>
 
                         {/* Error */}
                         {error && (
-                            <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                            <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-none text-red-400 text-sm">
                                 {error.message}
                             </div>
                         )}
@@ -264,7 +264,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                             <button
                                 type="submit"
                                 disabled={isPending}
-                                className="px-6 py-3 bg-gradient-to-r from-[#00A8A8] to-emerald-500 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50 shadow-[0_0_20px_rgba(0,168,168,0.2)]"
+                                className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-bold text-sm rounded-none active:scale-[0.98] transition-transform disabled:opacity-50 shadow-[4px_4px_0_0_var(--accent)]"
                             >
                                 {isPending ? 'Saving...' : editingId ? 'Save Changes' : 'Create Event'}
                             </button>
@@ -275,7 +275,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     setEditingId(null);
                                     setForm(emptyForm);
                                 }}
-                                className="px-6 py-3 border border-white/10 text-gray-400 font-medium text-sm rounded-xl hover:bg-white/5 hover:text-white transition-colors"
+                                className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-muted)] font-medium text-sm rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
                             >
                                 Cancel
                             </button>
@@ -291,10 +291,10 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 </div>
             ) : !events || events.length === 0 ? (
                 <LiquidGlass className="p-16 text-center">
-                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10">
+                    <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
                         <svg className="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
-                    <h3 className="text-white font-semibold mb-1">No events yet</h3>
+                    <h3 className="text-[var(--text-primary)] font-semibold mb-1">No events yet</h3>
                     <p className="text-text-muted text-sm font-mono">Create workshops, meals, ceremonies and more.</p>
                 </LiquidGlass>
             ) : (
@@ -308,14 +308,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                         return (
                             <LiquidGlass
                                 key={event.id}
-                                className={`p-5 transition-all ${isActive ? 'border-[#00A8A8]/40 bg-[#00A8A8]/5' : 'hover:border-white/20'}`}
+                                className={`p-5 transition-all ${isActive ? 'border-accent/40 bg-accent/5' : 'hover:border-white/20'}`}
                             >
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     {/* Left: Info */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${typeMeta.color} ${typeMeta.bg}`}>
-                                                <span className={`w-2 h-2 rounded-full ${typeMeta.dot}`} />
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-xs font-bold ${typeMeta.color} ${typeMeta.bg}`}>
+                                                <span className={`w-2 h-2 rounded-sm ${typeMeta.dot}`} />
                                                 {typeMeta.label}
                                             </span>
                                             {event.points > 0 && (
@@ -324,11 +324,11 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                                 </span>
                                             )}
                                         </div>
-                                        <h4 className="text-white font-bold text-base truncate">{event.name}</h4>
+                                        <h4 className="text-[var(--text-primary)] font-bold text-base truncate">{event.name}</h4>
                                         {event.description && (
-                                            <p className="text-gray-500 text-sm mt-1 line-clamp-1">{event.description}</p>
+                                            <p className="text-[var(--text-subtle)] text-sm mt-1 line-clamp-1">{event.description}</p>
                                         )}
-                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500 font-mono">
+                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[var(--text-subtle)] font-mono">
                                             <span className="flex items-center gap-1">
                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                 {event.location}
@@ -345,7 +345,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                     <div className="flex items-center gap-2 shrink-0">
                                         <button
                                             onClick={() => openEdit(event)}
-                                            className="px-4 py-2.5 border border-white/10 text-gray-400 text-sm font-medium rounded-xl hover:bg-white/5 hover:text-white transition-colors"
+                                            className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
                                         >
                                             Edit
                                         </button>
@@ -354,13 +354,13 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                                 <button
                                                     onClick={() => deleteMutation.mutate({ eventId: event.id })}
                                                     disabled={deleteMutation.isPending}
-                                                    className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold rounded-xl hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                                                    className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold rounded-none hover:bg-red-500/30 transition-colors disabled:opacity-50"
                                                 >
                                                     {deleteMutation.isPending ? '...' : 'Confirm'}
                                                 </button>
                                                 <button
                                                     onClick={() => setDeleteConfirm(null)}
-                                                    className="px-4 py-2.5 border border-white/10 text-gray-500 text-sm rounded-xl hover:bg-white/5 transition-colors"
+                                                    className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-sm rounded-none hover:bg-white/5 transition-colors"
                                                 >
                                                     No
                                                 </button>
@@ -368,7 +368,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                         ) : (
                                             <button
                                                 onClick={() => setDeleteConfirm(event.id)}
-                                                className="px-4 py-2.5 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-xl hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                                                className="px-4 py-2.5 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors"
                                             >
                                                 Delete
                                             </button>

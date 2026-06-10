@@ -5,8 +5,34 @@ import {
     hackathonTeams,
     hackathonParticipants,
     hackathonProjects,
+    hackathons,
 } from "@query/db";
 import { eq, and } from "drizzle-orm";
+
+async function checkTeamEditWindow(db: any, hackathonId: string) {
+    const hackathon = await db.query.hackathons.findFirst({
+        where: eq(hackathons.id, hackathonId),
+    });
+    if (!hackathon) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });
+    }
+    const now = new Date();
+    const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
+    const startEdit = new Date(baseTime.getTime() + 12 * 60 * 60 * 1000);
+    const endEdit = new Date(baseTime.getTime() + 34 * 60 * 60 * 1000);
+    if (now < startEdit) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Team creation and editing is not open yet. It starts 12 hours after the hacking begins.",
+        });
+    }
+    if (now > endEdit) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Team creation and editing is closed. It ends 34 hours after the hacking begins.",
+        });
+    }
+}
 
 export const teamRouter = createTRPCRouter({
     createTeam: protectedProcedure
@@ -15,10 +41,11 @@ export const teamRouter = createTRPCRouter({
                 hackathonId: z.string().uuid("Invalid hackathon ID"),
                 name: z.string().min(1, "Team name is required").max(100),
                 description: z.string().max(500).optional(),
-                maxMembers: z.number().int().min(2).max(10).default(4),
+                maxMembers: z.number().int().min(2).max(4).default(4),
             })
         )
         .mutation(async ({ ctx, input }) => {
+            await checkTeamEditWindow(ctx.db, input.hackathonId);
             // 1. Check if user is registered for this hackathon
             const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
@@ -85,6 +112,7 @@ export const teamRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            await checkTeamEditWindow(ctx.db, input.hackathonId);
             // 1. Verify user is registered for hackathon
             const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
@@ -161,6 +189,7 @@ export const teamRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            await checkTeamEditWindow(ctx.db, input.hackathonId);
             const participant = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonParticipants.findFirst({
                 where: and(
                     eq(hackathonParticipants.hackathonId, input.hackathonId),
@@ -230,6 +259,7 @@ export const teamRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            await checkTeamEditWindow(ctx.db, input.hackathonId);
             const team = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findFirst({
                 where: and(
                     eq(hackathonTeams.id, input.teamId),
@@ -297,6 +327,53 @@ export const teamRouter = createTRPCRouter({
                 throw new TRPCError({ code: "NOT_FOUND", message: "You are not registered for this hackathon." });
             }
 
+            // 1.5. Verify hackathon is not past the submission window
+            const hackathon = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathons.findFirst({
+                where: eq(hackathons.id, input.hackathonId),
+            });
+
+            if (!hackathon) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });
+            }
+
+            const now = new Date();
+            const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
+            const startSubmission = new Date(baseTime.getTime() + 12 * 60 * 60 * 1000);
+            const devpostFinalDeadline = new Date(baseTime.getTime() + 34 * 60 * 60 * 1000);
+            const hardDeadline = new Date(baseTime.getTime() + 36 * 60 * 60 * 1000);
+
+            if (now < startSubmission) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Project submission is not open yet. It starts 12 hours after the hacking begins.",
+                });
+            }
+
+            if (now > hardDeadline) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Project submission closed. The submission window ended 36 hours after the hacking started.",
+                });
+            }
+
+            // Fetch existing project to check for edit restrictions
+            let existingProject;
+            if (input.teamId) {
+                existingProject = await (ctx.db as NonNullable<typeof ctx.db>).query.hackathonProjects.findFirst({
+                    where: and(
+                        eq(hackathonProjects.hackathonId, input.hackathonId),
+                        eq(hackathonProjects.teamId, input.teamId)
+                    )
+                });
+            }
+
+            if (existingProject && now > devpostFinalDeadline) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+                });
+            }
+
             // Validate team ownership to prevent IDOR attacks
             // Use teamId from participant record instead of nested team object
             if (input.teamId) {
@@ -328,17 +405,6 @@ export const teamRouter = createTRPCRouter({
 
             try {
                 return await (ctx.db as NonNullable<typeof ctx.db>).transaction(async (tx) => {
-                    // Check if there is already a project for this team/user
-                    let existingProject;
-                    if (input.teamId) {
-                        existingProject = await tx.query.hackathonProjects.findFirst({
-                            where: and(
-                                eq(hackathonProjects.hackathonId, input.hackathonId),
-                                eq(hackathonProjects.teamId, input.teamId)
-                            )
-                        });
-                    }
-
                     // We clean up empty strings to be null
                     const githubUrl = input.githubUrl === '' ? undefined : input.githubUrl;
                     const demoUrl = input.demoUrl === '' ? undefined : input.demoUrl;

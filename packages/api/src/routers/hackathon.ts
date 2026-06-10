@@ -55,12 +55,17 @@ export const hackathonRouter = createTRPCRouter({
   listAll: isAdmin
     .query(async ({ ctx }) => {
       const cacheKey = "hackathons:list:all";
-      const cached = ctx.cache.get<any>(cacheKey);
+      
+      const fetchAll = async () => {
+        return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+          orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
+        });
+      };
+
+      const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchAll>>>(cacheKey);
       if (cached !== null) return cached;
 
-      const allHackathons = await (ctx.db as DrizzleDB).query.hackathons.findMany({
-        orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
-      });
+      const allHackathons = await fetchAll();
 
       ctx.cache.set(cacheKey, allHackathons, 60);
 
@@ -69,7 +74,7 @@ export const hackathonRouter = createTRPCRouter({
 
 
   getById: publicProcedure
-    .input(z.object({ id: z.string().uuid("Invalid hackathon ID") }))
+    .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       // Check cache first
       const cacheKey = CacheKeys.hackathon(input.id);
@@ -78,8 +83,9 @@ export const hackathonRouter = createTRPCRouter({
       const cached = ctx.cache.get<HackathonItem>(cacheKey);
       if (cached) return cached;
 
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id);
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: eq(hackathons.id, input.id),
+        where: isUuid ? eq(hackathons.id, input.id) : eq(hackathons.name, input.id),
       });
 
       if (!hackathon) {
@@ -103,6 +109,7 @@ export const hackathonRouter = createTRPCRouter({
         startDate: z.date(),
         endDate: z.date(),
         registrationDeadline: z.date().optional(),
+        hackingStartTime: z.date().optional(),
         maxParticipants: z.number().int().positive().max(10000).optional(),
         prizes: z.array(
           z.object({
@@ -120,6 +127,8 @@ export const hackathonRouter = createTRPCRouter({
         message: "End date must be after start date",
       }).refine(data => !data.registrationDeadline || data.registrationDeadline <= data.startDate, {
         message: "Registration deadline must be before start date",
+      }).refine(data => !data.hackingStartTime || data.hackingStartTime >= data.startDate, {
+        message: "Hacking start time must be after or equal to hackathon start date",
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -146,6 +155,7 @@ export const hackathonRouter = createTRPCRouter({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         registrationDeadline: z.date().optional(),
+        hackingStartTime: z.date().nullable().optional(),
         maxParticipants: z.number().int().positive().max(10000).optional(),
         status: z.enum(["draft", "open", "closed", "in_progress", "completed", "cancelled"]).optional(),
         prizes: z.array(
@@ -212,12 +222,16 @@ export const hackathonRouter = createTRPCRouter({
         phone: z.string().min(1).max(30),
         age: z.number().int().min(13).max(120),
         gender: z.string().max(50).optional(),
+        pronouns: z.string().max(50).optional(),
+        race: z.string().max(100).optional(),
+        underrepresented: z.boolean().optional(),
         // Academic info
         school: z.string().min(1).max(300),
         major: z.string().min(1).max(300),
         graduationYear: z.number().int().min(2020).max(2035),
         levelOfStudy: z.enum(["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]),
         country: z.string().min(1).max(100),
+        firstGeneration: z.boolean().optional(),
         // Experience
         hackathonsAttended: z.number().int().min(0).max(100).optional(),
         resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
@@ -229,8 +243,12 @@ export const hackathonRouter = createTRPCRouter({
         dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
         emergencyContact: z.string().max(200).optional(),
         emergencyPhone: z.string().max(20).optional(),
+        needsHardware: z.boolean().optional(),
         // Consent
         agreeToCodeOfConduct: z.boolean().refine(v => v === true, { message: "You must agree to the Code of Conduct" }),
+        mlhCodeOfConduct: z.boolean().optional(),
+        mlhDataSharing: z.boolean().optional(),
+        mlhInformationalEmails: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -298,12 +316,16 @@ export const hackathonRouter = createTRPCRouter({
               phone: input.phone,
               age: input.age,
               gender: input.gender,
+              pronouns: input.pronouns,
+              race: input.race,
+              underrepresented: input.underrepresented,
               // Academic
               school: input.school,
               major: input.major,
               graduationYear: input.graduationYear,
               levelOfStudy: input.levelOfStudy,
               country: input.country,
+              firstGeneration: input.firstGeneration,
               // Experience
               hackathonsAttended: input.hackathonsAttended,
               resumeUrl: input.resumeUrl || undefined,
@@ -315,9 +337,13 @@ export const hackathonRouter = createTRPCRouter({
               dietaryRestrictions: input.dietaryRestrictions || [],
               emergencyContact: input.emergencyContact,
               emergencyPhone: input.emergencyPhone,
+              needsHardware: input.needsHardware,
               // Consent
               agreeToCodeOfConduct: input.agreeToCodeOfConduct,
-              registrationStatus: "approved",
+              mlhCodeOfConduct: input.mlhCodeOfConduct,
+              mlhDataSharing: input.mlhDataSharing,
+              mlhInformationalEmails: input.mlhInformationalEmails,
+              registrationStatus: "pending",
             })
             .returning();
 
@@ -336,6 +362,7 @@ export const hackathonRouter = createTRPCRouter({
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         const message = error instanceof Error ? error.message : "Unknown error";
+        // Unexpected error during registration
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Registration failed: ${message}`,
@@ -766,23 +793,28 @@ export const hackathonRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
       const cacheKey = `hackathon:${input.hackathonId}:events`;
-      const cached = ctx.cache.get<any>(cacheKey);
+
+      const fetchEvents = async () => {
+        const eventsData = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
+          where: eq(hackathonEvents.hackathonId, input.hackathonId),
+          orderBy: (events, { asc }) => [asc(events.startTime)],
+          with: {
+            attendees: {
+              columns: { id: true }
+            }
+          }
+        });
+
+        return eventsData.map(e => ({
+          ...e,
+          attendeeCount: e.attendees.length
+        }));
+      };
+
+      const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
       if (cached !== null) return cached;
 
-      const eventsData = await (ctx.db as DrizzleDB).query.hackathonEvents.findMany({
-        where: eq(hackathonEvents.hackathonId, input.hackathonId),
-        orderBy: (events, { asc }) => [asc(events.startTime)],
-        with: {
-          attendees: {
-            columns: { id: true }
-          }
-        }
-      });
-
-      const events = eventsData.map(e => ({
-        ...e,
-        attendeeCount: e.attendees.length
-      }));
+      const events = await fetchEvents();
 
       ctx.cache.set(cacheKey, events, 60);
 

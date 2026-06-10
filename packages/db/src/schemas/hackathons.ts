@@ -12,6 +12,7 @@ export const hackathons = pgTable("hackathon", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   registrationDeadline: timestamp("registration_deadline"),
+  hackingStartTime: timestamp("hacking_start_time"),
   maxParticipants: integer("max_participants"),
   currentParticipants: integer("current_participants").notNull().default(0),
   status: text("status", { enum: ["draft", "open", "closed", "in_progress", "completed", "cancelled"] })
@@ -79,10 +80,14 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   phone: text("phone"),
   age: integer("age"),
   gender: text("gender"),
+  pronouns: text("pronouns"),
+  race: text("race"),
+  underrepresented: boolean("underrepresented").default(false),
 
   // Academic info
   school: text("school"),
   major: text("major"),
+  firstGeneration: boolean("first_generation").default(false),
   graduationYear: integer("graduation_year"),
   levelOfStudy: text("level_of_study", {
     enum: ["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]
@@ -101,9 +106,13 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   dietaryRestrictions: text("dietary_restrictions").array(),
   emergencyContact: text("emergency_contact"),
   emergencyPhone: text("emergency_phone"),
+  needsHardware: boolean("needs_hardware").default(false),
 
   // Consent
   agreeToCodeOfConduct: boolean("agree_to_code_of_conduct").default(false),
+  mlhCodeOfConduct: boolean("mlh_code_of_conduct").default(false),
+  mlhDataSharing: boolean("mlh_data_sharing").default(false),
+  mlhInformationalEmails: boolean("mlh_informational_emails").default(false),
 
   // Participation tracking
   checkedInAt: timestamp("checked_in_at"),
@@ -115,8 +124,10 @@ export const hackathonParticipants = pgTable("hackathon_participant", {
   index("participant_hackathon_id_idx").on(table.hackathonId),
   index("participant_user_id_idx").on(table.userId),
   index("participant_team_id_idx").on(table.teamId),
-  // Compound for quick check "is this user in this hackathon?"
-  index("participant_hackathon_user_idx").on(table.hackathonId, table.userId),
+  // Enforce one registration per user per hackathon at the DB level.
+  // This prevents duplicates even under concurrent requests that race
+  // past the application-level findFirst check inside the transaction.
+  unique("unique_participant_per_hackathon").on(table.hackathonId, table.userId),
 ]);
 
 // Project submissions

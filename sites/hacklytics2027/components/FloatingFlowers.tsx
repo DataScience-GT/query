@@ -207,9 +207,8 @@ function generateFlowers(count: number): FlowerInstance[] {
 /* ─── Render Component ─── */
 
 const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: FlowerInstance }) {
-  const props = { size: flower.size, color: flower.color, opacity: flower.opacity };
-  
   const svgElement = useMemo(() => {
+    const props = { size: flower.size, color: flower.color, opacity: flower.opacity };
     switch (flower.type) {
       case 'cherry': return <CherryBlossom {...props} />;
       case 'lotus': return <LotusFlower {...props} />;
@@ -217,7 +216,7 @@ const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: Flower
       case 'petal': return <FallingPetal {...props} />;
       case 'spiral': return <SpiralBloom {...props} />;
     }
-  }, [flower.type, props.size, props.color, props.opacity]);
+  }, [flower.type, flower.size, flower.color, flower.opacity]);
 
   return (
     <div
@@ -240,8 +239,20 @@ const FlowerRenderer = memo(function FlowerRenderer({ flower }: { flower: Flower
 
 /* ─── Main Floating Flowers Component ─── */
 
-export default function FloatingFlowers({ count = 55 }: { count?: number }) {
-  const flowers = useMemo(() => generateFlowers(count), [count]);
+export default function FloatingFlowers({ count = 15 }: { count?: number }) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const activeCount = isMobile ? Math.min(count, 6) : count;
+  const flowers = useMemo(() => generateFlowers(activeCount), [activeCount]);
 
   return (
     <div

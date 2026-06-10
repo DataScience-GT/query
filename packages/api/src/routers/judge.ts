@@ -10,6 +10,7 @@ import {
   hackathonMaps,
   hackathons,
   users,
+  hackathonParticipants,
 } from "@query/db";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
@@ -25,6 +26,104 @@ function shuffleArray<T>(array: T[]): T[] {
     result[j] = temp;
   }
   return result;
+}
+
+/**
+ * Z-score normalizes a judge's scores relative to their own mean/stddev.
+ * This removes per-judge harshness/leniency bias before aggregation.
+ * Returns null if fewer than 2 data points (can't compute meaningful stddev).
+ */
+function zNormalize(scores: number[], globalMean: number, globalStd: number): number[] {
+  if (scores.length < 2) return scores.map(() => globalMean);
+  const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const variance = scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
+  const std = Math.sqrt(variance);
+  if (std === 0) return scores.map(() => globalMean); // judge gave same score to everything
+  return scores.map((v) => globalMean + ((v - mean) / std) * globalStd);
+}
+
+/**
+ * Coverage-maximizing round-robin assignment.
+ * Guarantees every project is seen at least `minCoverage` times before
+ * any project gets an extra judge. Respects track constraints.
+ */
+function buildCoverageQueues(
+  judgeAssignmentsList: { judgeId: string; track: string | null }[],
+  projects: { id: string; tracks: string[] | null; challenges: string[] | null; tableNumber: number }[],
+  mainTracks: Set<string>,
+  opts: { minProjects: number; maxProjects: number; shuffle: boolean; groupSpecial: boolean }
+): Map<string, string[]> {
+  const queues = new Map<string, string[]>();
+  for (const a of judgeAssignmentsList) queues.set(a.judgeId, []);
+
+  // Coverage counter: projectId -> how many judges are assigned
+  const coverage = new Map<string, number>(projects.map((p) => [p.id, 0]));
+
+  // For each judge, determine their eligible project pool
+  const eligiblePool = new Map<string, typeof projects>();
+  for (const a of judgeAssignmentsList) {
+    const track = a.track;
+    const isSpecial = track ? !mainTracks.has(track) : false;
+    const pool = track
+      ? projects.filter((p) => {
+          const inTracks = p.tracks?.includes(track) ?? false;
+          const inChallenges = p.challenges?.includes(track) ?? false;
+          const matchCreateX = track.toLowerCase() === "createx" && !!(p as { isCreateX?: boolean }).isCreateX;
+          return inTracks || inChallenges || matchCreateX;
+        })
+      : projects;
+
+    if (isSpecial) {
+      // Special judges always get their full pool
+      const ordered = opts.groupSpecial ? pool : shuffleArray(pool);
+      queues.set(a.judgeId, ordered.map((p) => p.id));
+      for (const p of ordered) coverage.set(p.id, (coverage.get(p.id) ?? 0) + 1);
+      eligiblePool.set(a.judgeId, []);
+    } else {
+      eligiblePool.set(a.judgeId, opts.shuffle ? shuffleArray(pool) : pool);
+    }
+  }
+
+  // Round-robin fill: prioritize under-covered projects
+  const mainJudges = judgeAssignmentsList.filter(
+    (a) => !a.track || mainTracks.has(a.track)
+  );
+
+  let anyChange = true;
+  while (anyChange) {
+    anyChange = false;
+    for (const a of mainJudges) {
+      const queue = queues.get(a.judgeId)!;
+      if (queue.length >= opts.maxProjects) continue;
+      const pool = eligiblePool.get(a.judgeId)!;
+
+      // Find the next project with the lowest coverage that isn't already in this queue
+      const assigned = new Set(queue);
+      const candidate = pool
+        .filter((p) => !assigned.has(p.id))
+        .sort((a, b) => (coverage.get(a.id) ?? 0) - (coverage.get(b.id) ?? 0))[0];
+
+      if (!candidate) continue;
+      if (queue.length >= opts.minProjects && (coverage.get(candidate.id) ?? 0) > 0) continue;
+
+      queue.push(candidate.id);
+      coverage.set(candidate.id, (coverage.get(candidate.id) ?? 0) + 1);
+      anyChange = true;
+    }
+  }
+
+  // Shift/rotate the generated queues to stagger sequences and reduce judge bias
+  for (let i = 0; i < judgeAssignmentsList.length; i++) {
+    const judgeId = judgeAssignmentsList[i].judgeId;
+    const q = queues.get(judgeId);
+    if (q && q.length > 1) {
+      const offset = i % q.length;
+      const rotated = [...q.slice(offset), ...q.slice(0, offset)];
+      queues.set(judgeId, rotated);
+    }
+  }
+
+  return queues;
 }
 
 export const judgeRouter = createTRPCRouter({
@@ -104,7 +203,7 @@ export const judgeRouter = createTRPCRouter({
           remaining: Number(remainingCount[0]?.count || 0),
         };
       } catch (error) {
-        console.error("[getNextTable] Error:", error);
+        // getNextTable error
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: error instanceof Error ? error.message : "Failed to fetch next project",
@@ -504,7 +603,7 @@ export const judgeRouter = createTRPCRouter({
           percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
         };
       } catch (error) {
-        console.error("[getProgress] Error:", error);
+        // getProgress error
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: error instanceof Error ? error.message : "Failed to fetch progress",
@@ -538,17 +637,66 @@ export const judgeRouter = createTRPCRouter({
 
       const round2 = (n: number) => Math.round(n * 100) / 100;
 
-      // Bayesian average confidence threshold
-      // C=2 means: with 2 judges you get a 50/50 blend of actual vs global avg
-      const C = 2;
+      // ─── Step 1: Collect all raw scores grouped by judge ──────────────────
+      // We need per-judge score distributions to perform Z-score normalization,
+      // which eliminates the "harsh judge / lenient judge" bias problem.
+      type VoteWithJudge = (typeof projects)[number]["votes"][number];
+      const scoresByJudge = new Map<string, number[]>();
+      for (const project of projects) {
+        for (const v of project.votes) {
+          const existing = scoresByJudge.get(v.judgeId) ?? [];
+          existing.push(v.score);
+          scoresByJudge.set(v.judgeId, existing);
+        }
+      }
 
-      // First pass: compute raw stats for each project
+      // ─── Step 2: Compute global score distribution ─────────────────────────
+      const allRawScores = [...scoresByJudge.values()].flat();
+      const globalMean = allRawScores.length > 0
+        ? allRawScores.reduce((a, b) => a + b, 0) / allRawScores.length
+        : 0;
+      const globalVariance = allRawScores.length > 0
+        ? allRawScores.reduce((s, v) => s + (v - globalMean) ** 2, 0) / allRawScores.length
+        : 1;
+      const globalStd = Math.sqrt(globalVariance) || 1;
+
+      // ─── Step 3: Build per-judge normalized score lookup ──────────────────
+      // For each judge, map their raw score index to a Z-normalized score.
+      const normalizedScoreLookup = new Map<string, Map<number, number>>();
+      for (const [judgeId, rawScores] of scoresByJudge.entries()) {
+        const normalized = zNormalize(rawScores, globalMean, globalStd);
+        // Map raw score value -> normalized value (index-based, preserves order)
+        const lookup = new Map<number, number>();
+        rawScores.forEach((raw, i) => {
+          // If same raw score appears multiple times, average the normalized values
+          const existing = lookup.get(raw);
+          lookup.set(raw, existing !== undefined ? (existing + normalized[i]!) / 2 : normalized[i]!);
+        });
+        normalizedScoreLookup.set(judgeId, lookup);
+      }
+
+      const getNormalized = (judgeId: string, rawScore: number): number => {
+        const lookup = normalizedScoreLookup.get(judgeId);
+        return lookup?.get(rawScore) ?? rawScore;
+      };
+
+      // ─── Step 4: Build raw + normalized stats per project ─────────────────
+      const C = 2; // Bayesian confidence weight
+
       const rawRankings = projects.map((project) => {
-        const totalScore = project.votes.reduce((sum, v) => sum + v.score, 0);
         const voteCount = project.votes.length;
+
+        // Raw scores (unadjusted)
+        const totalScore = project.votes.reduce((sum, v) => sum + v.score, 0);
         const avgScore = voteCount > 0 ? totalScore / voteCount : 0;
 
-        // Per-category averages
+        // Z-score normalized scores (bias-corrected)
+        const normalizedScores = project.votes.map((v) => getNormalized(v.judgeId, v.score));
+        const normalizedAvg = voteCount > 0
+          ? round2(normalizedScores.reduce((a, b) => a + b, 0) / voteCount)
+          : 0;
+
+        // Per-category averages (raw)
         const sumCat = { creativity: 0, impact: 0, scope: 0, clarity: 0, soundness: 0 };
         project.votes.forEach((v) => {
           sumCat.creativity += v.scoreCreativity ?? 0;
@@ -583,42 +731,44 @@ export const judgeRouter = createTRPCRouter({
           totalScore,
           voteCount,
           avgScore: round2(avgScore),
+          normalizedAvg,
           categoryAvg,
-          votes: project.votes.map((v) => ({
+          votes: project.votes.map((v, i) => ({
             score: v.score,
+            normalizedScore: round2(normalizedScores[i] ?? v.score),
             scoreCreativity: v.scoreCreativity,
             scoreImpact: v.scoreImpact,
             scoreScope: v.scoreScope,
             scoreClarity: v.scoreClarity,
             scoreSoundness: v.scoreSoundness,
-
             comment: v.comment,
             durationSeconds: v.durationSeconds,
-            judgeName: v.judge.user?.name || v.judge.name || "Unknown",
+            judgeName: (v as VoteWithJudge & { judge: { user?: { name?: string | null }; name?: string | null } }).judge.user?.name || (v as VoteWithJudge & { judge: { user?: { name?: string | null }; name?: string | null } }).judge.name || "Unknown",
           })),
         };
       });
 
-      // Compute global average (across all projects that have at least 1 vote)
+      // ─── Step 5: Compute global normalized average for Bayesian prior ──────
       const votedProjects = rawRankings.filter((r) => r.voteCount > 0);
       const globalAvg = votedProjects.length > 0
-        ? round2(votedProjects.reduce((sum, r) => sum + r.avgScore, 0) / votedProjects.length)
+        ? round2(votedProjects.reduce((sum, r) => sum + r.normalizedAvg, 0) / votedProjects.length)
         : 0;
 
-      // Second pass: compute Bayesian weighted score and confidence level
-      // weightedScore = (n / (n + C)) * avgScore + (C / (n + C)) * globalAvg
+      // ─── Step 6: Bayesian + Z-score combined final score ──────────────────
+      // weightedScore blends normalized avg toward the global mean when few judges voted.
       const rankings = rawRankings.map((r) => {
         const n = r.voteCount;
         const weightedScore = n > 0
-          ? round2((n / (n + C)) * r.avgScore + (C / (n + C)) * globalAvg)
+          ? round2((n / (n + C)) * r.normalizedAvg + (C / (n + C)) * globalAvg)
           : 0;
         const confidenceLevel: "NONE" | "LOW" | "MEDIUM" | "HIGH" =
           n === 0 ? "NONE" : n === 1 ? "LOW" : n === 2 ? "MEDIUM" : "HIGH";
+        const scoreShift = round2(r.normalizedAvg - r.avgScore); // how much bias-correction shifted this project
 
-        return { ...r, weightedScore, confidenceLevel };
+        return { ...r, weightedScore, confidenceLevel, scoreShift };
       });
 
-      // Sort by weighted score (fair ranking)
+      // Sort by weighted score desc
       rankings.sort((a, b) => b.weightedScore - a.weightedScore);
 
       // Weighted-score ties
@@ -796,13 +946,33 @@ export const judgeRouter = createTRPCRouter({
         })
         .returning();
 
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: { tracks: true },
+      });
+      const mainTracks = new Set(hackathon?.tracks ?? []);
+
       const allProjects = await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
         where: eq(judgingProjects.hackathonId, input.hackathonId),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
-      // Auto-assign all projects - judges choose what to judge
-      const assignedProjects = allProjects;
+      // Filter by track if assigned (fixes bug: previously assigned ALL projects regardless of track)
+      const track = input.track ?? null;
+      const isSpecial = track ? !mainTracks.has(track) : false;
+      const eligibleProjects = track
+        ? allProjects.filter((p) => {
+            const inTracks = p.tracks?.includes(track) ?? false;
+            const inChallenges = p.challenges?.includes(track) ?? false;
+            const matchCreateX = track.toLowerCase() === "createx" && !!p.isCreateX;
+            return inTracks || inChallenges || matchCreateX;
+          })
+        : allProjects;
+
+      // Special judges always get their full pool; main track judges get a shuffled subset
+      const assignedProjects = isSpecial
+        ? eligibleProjects
+        : shuffleArray(eligibleProjects);
 
       if (assignedProjects.length > 0) {
         await (ctx.db as DrizzleDB).insert(judgeQueue).values(
@@ -1100,28 +1270,23 @@ export const judgeRouter = createTRPCRouter({
         /** When false (default), special-label/sponsor judge projects are randomized.
          *  When true, they stay grouped in table order. */
         groupSpecial: z.boolean().default(false),
+        autoCalculate: z.boolean().default(true),
       })
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // 1. Get Hackathon for dynamic tracks
         const hackathon = await tx.query.hackathons.findFirst({
           where: eq(hackathons.id, input.hackathonId),
         });
+        if (!hackathon) throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
 
-        if (!hackathon) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
-        }
+        const MAIN_TRACKS = new Set(hackathon.tracks ?? []);
 
-        const MAIN_TRACKS = new Set(hackathon.tracks || []);
-
-        // 2. Get all judge assignments for this hackathon
         const allAssignments = await tx.query.judgeAssignments.findMany({
           where: eq(judgeAssignments.hackathonId, input.hackathonId),
           with: { judge: true },
         });
 
-        // 2. Get all projects for this hackathon
         const allProjects = await tx.query.judgingProjects.findMany({
           where: eq(judgingProjects.hackathonId, input.hackathonId),
           orderBy: [asc(judgingProjects.tableNumber)],
@@ -1131,67 +1296,208 @@ export const judgeRouter = createTRPCRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: "No projects found for this hackathon" });
         }
 
-        // 3. Clear existing queue for all judges in this hackathon
-        await tx
-          .delete(judgeQueue)
-          .where(eq(judgeQueue.hackathonId, input.hackathonId));
+        let minProjects = input.minProjects;
+        let maxProjects = input.maxProjects;
 
-        const results: { judgeId: string; judgeName: string | null; track: string | null; assignedCount: number }[] = [];
-
-        for (const assignment of allAssignments) {
-          const track = assignment.track;
-          const isSpecialLabel = track ? !MAIN_TRACKS.has(track) : false;
-
-          // Find matching projects for this judge's track
-          const matchingProjects = track
-            ? allProjects.filter((p) => {
-              const inTracks = p.tracks?.includes(track) ?? false;
-              const inChallenges = p.challenges?.includes(track) ?? false;
-              const matchCreateX = track.toLowerCase() === "createx" && p.isCreateX;
-              return inTracks || inChallenges || matchCreateX;
-            })
-            : allProjects; // No track = general judge, gets from full pool
-
-          if (matchingProjects.length === 0) continue;
-
-          let assignedProjects: typeof matchingProjects;
-
-          if (isSpecialLabel) {
-            // Special label / sponsor judges get ALL matching projects
-            // Randomized by default, unless groupSpecial is toggled on
-            assignedProjects = input.groupSpecial ? matchingProjects : shuffleArray(matchingProjects);
-          } else {
-            // Main track judges (or unassigned) get min–max projects
-            const pool = input.shuffle ? shuffleArray(matchingProjects) : matchingProjects;
-            const count = Math.min(Math.max(pool.length, input.minProjects), input.maxProjects);
-            assignedProjects = pool.slice(0, Math.min(count, pool.length));
-          }
-
-          if (assignedProjects.length > 0) {
-            await tx.insert(judgeQueue).values(
-              assignedProjects.map((p, idx) => ({
-                judgeId: assignment.judgeId,
-                hackathonId: input.hackathonId,
-                projectId: p.id,
-                order: idx + 1,
-              }))
+        if (input.autoCalculate) {
+          // Count active registered participants
+          const participantCountResult = await tx
+            .select({ count: sql<number>`count(*)` })
+            .from(hackathonParticipants)
+            .where(
+              and(
+                eq(hackathonParticipants.hackathonId, input.hackathonId),
+                sql`${hackathonParticipants.registrationStatus} != 'rejected'`
+              )
             );
-          }
+          const activeRegistrations = Number(participantCountResult[0]?.count || 0);
 
-          results.push({
-            judgeId: assignment.judgeId,
-            judgeName: assignment.judge.name,
-            track: track,
-            assignedCount: assignedProjects.length,
+          const P = allProjects.length || Math.ceil(activeRegistrations / 4) || 1;
+          const mainJudgesCount = allAssignments.filter(
+            (a) => !a.track || MAIN_TRACKS.has(a.track)
+          ).length || 1;
+
+          // Each project needs to be graded at least 3 times
+          const targetCoverage = 3;
+          const avgRequired = Math.ceil((P * targetCoverage) / mainJudgesCount);
+
+          // We assume a 3-hour judging window (180 minutes)
+          // With ~9 minutes per project evaluation, a judge can evaluate at most 20 projects.
+          minProjects = Math.max(3, Math.min(avgRequired, 20));
+          maxProjects = Math.max(minProjects + 2, Math.min(avgRequired + 2, 22));
+        }
+
+        // Clear existing queues
+        await tx.delete(judgeQueue).where(eq(judgeQueue.hackathonId, input.hackathonId));
+
+        // ── Coverage-maximizing assignment ──────────────────────────────────
+        // Uses buildCoverageQueues to guarantee every project is seen by at
+        // least one judge before any project gets an extra judge. This replaces
+        // the old random-slice approach which could leave some projects unseen.
+        const judgeList = allAssignments.map((a) => ({ judgeId: a.judgeId, track: a.track ?? null }));
+        const projectList = allProjects.map((p) => ({
+          id: p.id,
+          tracks: p.tracks ?? null,
+          challenges: p.challenges ?? null,
+          tableNumber: p.tableNumber,
+          isCreateX: p.isCreateX,
+        }));
+
+        const queues = buildCoverageQueues(judgeList, projectList, MAIN_TRACKS, {
+          minProjects,
+          maxProjects,
+          shuffle: input.shuffle,
+          groupSpecial: input.groupSpecial,
+        });
+
+        // Build all insert rows in one pass
+        const insertRows: { judgeId: string; hackathonId: string; projectId: string; order: number }[] = [];
+        for (const [judgeId, projectIds] of queues.entries()) {
+          projectIds.forEach((projectId, idx) => {
+            insertRows.push({
+              judgeId,
+              hackathonId: input.hackathonId,
+              projectId,
+              order: idx + 1,
+            });
           });
         }
+
+        if (insertRows.length > 0) {
+          await tx.insert(judgeQueue).values(insertRows);
+        }
+
+        // Compute coverage stats for admin feedback
+        const projectCoverage = new Map<string, number>();
+        for (const row of insertRows) {
+          projectCoverage.set(row.projectId, (projectCoverage.get(row.projectId) ?? 0) + 1);
+        }
+        const coverageValues = [...projectCoverage.values()];
+        const uncoveredCount = allProjects.length - projectCoverage.size;
+        const avgCoverage = coverageValues.length > 0
+          ? Math.round((coverageValues.reduce((a, b) => a + b, 0) / coverageValues.length) * 10) / 10
+          : 0;
+        const minCoverage = coverageValues.length > 0 ? Math.min(...coverageValues) : 0;
+        const maxCoverage = coverageValues.length > 0 ? Math.max(...coverageValues) : 0;
+
+        const results = allAssignments.map((a) => ({
+          judgeId: a.judgeId,
+          judgeName: a.judge.name,
+          track: a.track ?? null,
+          assignedCount: queues.get(a.judgeId)?.length ?? 0,
+        }));
 
         return {
           success: true,
           totalJudges: results.length,
+          totalInsertedRows: insertRows.length,
+          coverage: { avg: avgCoverage, min: minCoverage, max: maxCoverage, uncovered: uncoveredCount },
           assignments: results,
         };
       });
+    }),
+
+  /** Per-judge scoring analytics for bias detection and performance review. */
+  getJudgeAnalytics: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const cacheKey = `hackathon:${input.hackathonId}:judge-analytics`;
+      const cached = ctx.cache.get<unknown>(cacheKey);
+      if (cached) return cached;
+
+      // Fetch votes for this hackathon via an explicit join.
+      const allVotes = await (ctx.db as DrizzleDB)
+        .select({
+          judgeId: judgeVotes.judgeId,
+          projectId: judgeVotes.projectId,
+          score: judgeVotes.score,
+          durationSeconds: judgeVotes.durationSeconds,
+          judgeName: judges.name,
+          judgeUserId: judges.userId,
+        })
+        .from(judgeVotes)
+        .innerJoin(judges, eq(judges.id, judgeVotes.judgeId))
+        .innerJoin(
+          judgingProjects,
+          and(
+            eq(judgingProjects.id, judgeVotes.projectId),
+            eq(judgingProjects.hackathonId, input.hackathonId)
+          )
+        );
+
+      const queueStats = await (ctx.db as DrizzleDB)
+        .select({
+          judgeId: judgeQueue.judgeId,
+          total: sql<number>`count(*)`,
+          completed: sql<number>`sum(case when ${judgeQueue.isCompleted} then 1 else 0 end)`,
+        })
+        .from(judgeQueue)
+        .where(eq(judgeQueue.hackathonId, input.hackathonId))
+        .groupBy(judgeQueue.judgeId);
+
+      const queueMap = new Map(queueStats.map((q) => [q.judgeId, q]));
+
+      // Group votes by judgeId
+      const byJudge = new Map<string, typeof allVotes>();
+      for (const vote of allVotes) {
+        const list = byJudge.get(vote.judgeId) ?? [];
+        list.push(vote);
+        byJudge.set(vote.judgeId, list);
+      }
+
+      // Global mean across all votes
+      const allScores = allVotes.map((v) => v.score);
+      const globalMean = allScores.length > 0
+        ? allScores.reduce((a, b) => a + b, 0) / allScores.length
+        : 0;
+
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+
+      const analytics = [...byJudge.entries()].map(([judgeId, votes]) => {
+        const scores = votes.map((v) => v.score);
+        const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const variance = scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
+        const std = Math.sqrt(variance);
+
+        // Bias score: how far this judge's mean is from the global mean, in std units
+        const biasScore = round2((mean - globalMean) / (std || 1));
+        const biasLabel: "strict" | "neutral" | "lenient" =
+          biasScore < -0.5 ? "strict" : biasScore > 0.5 ? "lenient" : "neutral";
+
+        const avgDuration = votes
+          .filter((v) => v.durationSeconds != null)
+          .reduce((s, v, _, a) => s + (v.durationSeconds ?? 0) / a.length, 0);
+
+        const qs = queueMap.get(judgeId);
+        const completionRate = qs && Number(qs.total) > 0
+          ? round2(Number(qs.completed) / Number(qs.total))
+          : null;
+
+        const firstVote = votes[0];
+
+        return {
+          judgeId,
+          name: firstVote?.judgeName ?? "Unknown",
+          votesSubmitted: scores.length,
+          mean: round2(mean),
+          std: round2(std),
+          min: Math.min(...scores),
+          max: Math.max(...scores),
+          biasScore,
+          biasLabel,
+          avgDurationSeconds: avgDuration > 0 ? round2(avgDuration) : null,
+          completionRate,
+          queueTotal: qs ? Number(qs.total) : null,
+          queueCompleted: qs ? Number(qs.completed) : null,
+        };
+      });
+
+      // Sort: most votes first
+      analytics.sort((a, b) => b.votesSubmitted - a.votesSubmitted);
+
+      const result = { analytics, globalMean: round2(globalMean), totalVotes: allVotes.length };
+      ctx.cache.set(cacheKey, result, 30);
+      return result;
     }),
 
   getAllVotes: isAdmin
@@ -1216,5 +1522,112 @@ export const judgeRouter = createTRPCRouter({
       });
 
       return projects;
+    }),
+
+  register: protectedProcedure
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        name: z.string().min(1).max(200),
+        email: z.string().email().max(200),
+        phone: z.string().max(20).optional(),
+        company: z.string().max(200).optional(),
+        title: z.string().max(200).optional(),
+        specialty: z.string().max(200).optional(),
+        linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
+        githubUrl: z.string().url().max(500).optional().or(z.literal("")),
+        previousExperience: z.string().max(2000).optional(),
+        dietaryRestrictions: z.array(z.string()).optional(),
+        shirtSize: z.string().optional(),
+        whyJudge: z.string().max(2000).optional(),
+        preferredTrack: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        // Check if user is registered as a participant for this hackathon
+        const participant = await tx.query.hackathonParticipants.findFirst({
+          where: and(
+            eq(hackathonParticipants.hackathonId, input.hackathonId),
+            eq(hackathonParticipants.userId, ctx.userId as string)
+          ),
+        });
+
+        if (participant) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
+          });
+        }
+
+        // Find existing judge profile or create one
+        let judge = await tx.query.judges.findFirst({
+          where: eq(judges.userId, ctx.userId),
+        });
+
+        if (judge) {
+          await tx
+            .update(judges)
+            .set({
+              name: input.name,
+              email: input.email,
+              phone: input.phone,
+              company: input.company,
+              title: input.title,
+              specialty: input.specialty,
+              linkedinUrl: input.linkedinUrl,
+              githubUrl: input.githubUrl,
+              previousExperience: input.previousExperience,
+              dietaryRestrictions: input.dietaryRestrictions || [],
+              shirtSize: input.shirtSize,
+              whyJudge: input.whyJudge,
+            })
+            .where(eq(judges.id, judge.id));
+        } else {
+          const inserted = await tx
+            .insert(judges)
+            .values({
+              userId: ctx.userId,
+              name: input.name,
+              email: input.email,
+              phone: input.phone,
+              company: input.company,
+              title: input.title,
+              specialty: input.specialty,
+              linkedinUrl: input.linkedinUrl || null,
+              githubUrl: input.githubUrl || null,
+              previousExperience: input.previousExperience,
+              dietaryRestrictions: input.dietaryRestrictions || [],
+              shirtSize: input.shirtSize,
+              whyJudge: input.whyJudge,
+              isActive: false, // Must be approved by admin
+            })
+            .returning();
+          judge = inserted[0];
+        }
+
+        // Create the hackathon assignment request
+        if (!judge) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create judge profile" });
+
+        const existingAssignment = await tx.query.judgeAssignments.findFirst({
+          where: and(
+            eq(judgeAssignments.judgeId, judge.id),
+            eq(judgeAssignments.hackathonId, input.hackathonId)
+          ),
+        });
+
+        if (existingAssignment) {
+          throw new TRPCError({ code: "CONFLICT", message: "You have already applied to judge this hackathon." });
+        }
+
+        await tx.insert(judgeAssignments).values({
+          judgeId: judge.id,
+          hackathonId: input.hackathonId,
+          track: input.preferredTrack,
+          status: "pending",
+        });
+
+        return { success: true };
+      });
     }),
 });

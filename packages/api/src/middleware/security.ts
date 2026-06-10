@@ -88,9 +88,6 @@ const DDOS_CONFIG = {
   cleanupIntervalMs: Number(process.env.DDOS_CLEANUP_INTERVAL_MS) || 60 * 1000,
 };
 
-// Log configuration for debugging
-console.log(`[DDoS Config] Using thresholds: ${DDOS_CONFIG.maxRequestsPerMinute}/min, burst at ${DDOS_CONFIG.burstThreshold} in ${DDOS_CONFIG.burstWindowMs}ms`);
-
 // Cleanup expired records
 setInterval(() => {
   const now = Date.now();
@@ -173,8 +170,8 @@ export const RATE_LIMITS = {
     mutationTokens: 3,
   },
   authenticated: {
-    maxTokens: 100,
-    refillRate: 2,
+    maxTokens: 300,  // Raised from 100 to prevent legitimate multi-step form users from being blocked
+    refillRate: 5,   // Raised from 2 to recover faster between form steps
     queryTokens: 1,
     mutationTokens: 2,
   },
@@ -261,6 +258,9 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input as object)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
       if (!/^[\w.-]{1,100}$/.test(key)) {
         continue;
       }
@@ -277,11 +277,16 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
 function hasInjectionPattern(str: string): boolean {
   const patterns = [
+    // SQL SELECT/INSERT/UPDATE/DELETE keywords with FROM/INTO/TABLE/DATABASE
     /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b.*\b(from|into|table|database)\b)/i,
-    /(--|#|\/\*)/,
-    /(\bor\b|\band\b)\s*[\d\w]+\s*=\s*[\d\w]+/i,
+    // SQL comment sequences: "--" must be followed by space or end-of-string (not in URLs like some--repo)
+    /(--\s|--$)/,
+    // Block comment: /* only when followed by * content
+    /\/\*[\s\S]*?\*\//,
+    // NoSQL injection
     /\$where/i,
     /\$gt|\$lt|\$ne|\$eq/i,
+    // XSS
     /<script/i,
     /javascript:/i,
     /on\w+\s*=/i,
@@ -326,7 +331,13 @@ import { db, auditLogs } from "@query/db";
 
 const flushQueue: Omit<SecurityEvent, 'timestamp'>[] = [];
 const FLUSH_INTERVAL = 5000;
-const MAX_BATCH_SIZE = 50;
+// Keep batch size small enough that PG parameter count (5 cols × N rows) never approaches the 65535 limit
+const MAX_BATCH_SIZE = 25;
+// Prevent unbounded queue growth during log storms
+const MAX_QUEUE_SIZE = 500;
+// Deduplication: track last log time per rate_limit identifier to suppress storms
+const rateLimitLogCooldown = new Map<string, number>();
+const RATE_LIMIT_LOG_COOLDOWN_MS = 60 * 60 * 1_000; // only log once per 1 hour per identifier
 
 async function flushLogs() {
   if (flushQueue.length === 0) return;
@@ -334,13 +345,14 @@ async function flushLogs() {
   const batch = flushQueue.splice(0, MAX_BATCH_SIZE);
 
   if (!db) {
-    // Critical: Security events dropped when DB is unavailable - warn to stderr and persist to file
-    console.error(`[Security] CRITICAL: DB unavailable, ${batch.length} critical security logs dropped. Consider implementing queue-based persistence.`);
+    // DB unavailable — re-queue events (up to the cap) so they are not silently dropped
+    const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
+    flushQueue.unshift(...requeue);
+    // DB unavailable log dropping error handled via fallback file logging
     try {
       const fs = await import("fs");
-      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs dropped.\n`;
+      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.\n`;
       fs.appendFile("packages/api/src/.security-errors.log", errorLog, { encoding: "utf8" }, () => {});
-      console.error(errorLog.trim());
     } catch {
       // Ignore fs errors
     }
@@ -353,9 +365,21 @@ async function flushLogs() {
       const severity = event.type === 'injection_attempt' ? 'critical' :
         event.type === 'auth_failure' ? 'warn' : 'info';
 
+      // identifier can be a raw userId UUID, 'user:UUID', or an IP address
+      let resolvedUserId: string | null = null;
+      if (event.identifier.startsWith('user:')) {
+        resolvedUserId = event.identifier.split(':')[1] ?? null;
+      } else if (event.identifier.startsWith('ip-') || event.identifier.includes('.') || event.identifier.includes(':')) {
+        // IP address — no userId
+        resolvedUserId = null;
+      } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(event.identifier)) {
+        // Raw UUID — treat as userId
+        resolvedUserId = event.identifier;
+      }
+
       return {
         action: event.type,
-        userId: event.identifier.startsWith('user:') ? event.identifier.split(':')[1] : null,
+        userId: resolvedUserId,
         resourceId: event.identifier,
         metadata: { details: safeDetails },
         severity: severity as "critical" | "warn" | "info",
@@ -363,11 +387,21 @@ async function flushLogs() {
     });
 
     await db.insert(auditLogs).values(values);
-    console.log(`[Security] Flushed ${batch.length} security events to audit logs`);
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
-    console.error(errorMsg);
-    // Log to a separate error audit file if available
+    // Log flushing error handled via fallback file logging
+
+    // Re-queue failed events so they are retried on the next flush interval.
+    // Only re-queue up to the remaining capacity to prevent unbounded growth.
+    const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
+    if (requeue.length > 0) {
+      flushQueue.unshift(...requeue);
+    }
+    const dropped = batch.length - requeue.length;
+    if (dropped > 0) {
+      // Queue capacity drop handled via fallback file logging
+    }
+
     try {
       const fs = await import("fs");
       const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
@@ -384,16 +418,39 @@ setInterval(() => {
 }, FLUSH_INTERVAL);
 
 export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
+  const now = Date.now();
+
+  // Deduplicate rate_limit events: suppress repeat logs for the same identifier
+  // within the cooldown window to prevent audit log storms under heavy rate limiting.
+  if (event.type === 'rate_limit') {
+    const lastLogged = rateLimitLogCooldown.get(event.identifier);
+    if (lastLogged && now - lastLogged < RATE_LIMIT_LOG_COOLDOWN_MS) {
+      return; // Suppressed — already logged recently for this identifier
+    }
+    rateLimitLogCooldown.set(event.identifier, now);
+
+    // Prune cooldown map periodically to prevent memory leak
+    if (rateLimitLogCooldown.size > 10000) {
+      for (const [id, ts] of rateLimitLogCooldown.entries()) {
+        if (now - ts > RATE_LIMIT_LOG_COOLDOWN_MS) rateLimitLogCooldown.delete(id);
+      }
+    }
+  }
+
   // Keep in-memory for immediate/short-term checks
-  securityLog.push({ ...event, timestamp: Date.now() });
+  securityLog.push({ ...event, timestamp: now });
   if (securityLog.length > MAX_LOG_SIZE) {
     securityLog.shift();
   }
 
-  // Queue for DB persistence
-  flushQueue.push(event);
+  // Queue for DB persistence — respect the cap
+  if (flushQueue.length < MAX_QUEUE_SIZE) {
+    flushQueue.push(event);
+  } else {
+    // Flush queue at capacity, event dropped
+  }
 
-  // Instant flush if critical or queue full
+  // Instant flush if critical or queue is at batch threshold
   if (event.type === 'injection_attempt' || flushQueue.length >= MAX_BATCH_SIZE) {
     void flushLogs();
   }

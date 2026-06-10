@@ -45,9 +45,9 @@ export function JudgingTools({
                             <button
                                 key={h.id}
                                 onClick={() => setSelectedHackathon(h.id)}
-                                className={`px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-300 border ${selectedHackathon === h.id
-                                    ? 'bg-[#00A8A8]/10 border-[#00A8A8]/50 text-white shadow-[0_0_20px_rgba(0,168,168,0.1)]'
-                                    : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
+                                className={`px-8 py-4 rounded-none font-bold text-sm uppercase tracking-widest transition-all duration-300 border ${selectedHackathon === h.id
+                                    ? 'bg-accent/10 border-accent/50 text-[var(--text-primary)] shadow-[0_0_20px_rgba(16,185,129,0.1)]'
+                                    : 'bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5'
                                     }`}
                             >
                                 {h.name}
@@ -66,9 +66,9 @@ export function JudgingTools({
                             <button
                                 key={mode}
                                 onClick={() => setViewMode(mode)}
-                                className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 border font-mono ${viewMode === mode
-                                    ? 'bg-[#00A8A8]/10 border-[#00A8A8]/50 text-white shadow-[0_0_20px_rgba(0,168,168,0.1)]'
-                                    : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-white hover:bg-white/5'
+                                className={`px-6 py-3 rounded-none font-bold text-xs uppercase tracking-widest transition-all duration-300 border font-mono ${viewMode === mode
+                                    ? 'bg-accent/10 border-accent/50 text-[var(--text-primary)] shadow-[0_0_20px_rgba(16,185,129,0.1)]'
+                                    : 'bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5'
                                     }`}
                             >
                                 {mode === 'results' ? 'Results' : mode === 'rooms' ? 'Room Assignments' : 'Judge Performance'}
@@ -88,9 +88,9 @@ export function JudgingTools({
                                 <button
                                     key={cat}
                                     onClick={() => setSelectedCategory(cat)}
-                                    className={`px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedCategory === cat
-                                        ? 'bg-white/10 border-white/20 text-white shadow-lg'
-                                        : 'bg-white/[0.02] border-white/5 text-gray-600 hover:text-gray-400 hover:bg-white/5'
+                                    className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedCategory === cat
+                                        ? 'bg-white/10 border-white/20 text-[var(--text-primary)] shadow-lg'
+                                        : 'bg-white/[0.02] border-[var(--border-subtle)] text-gray-600 hover:text-[var(--text-muted)] hover:bg-white/5'
                                         }`}
                                 >
                                     {cat}
@@ -109,9 +109,9 @@ export function JudgingTools({
                                 <button
                                     key={track}
                                     onClick={() => setSelectedTrack(track)}
-                                    className={`px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedTrack === track
-                                        ? 'bg-[#00A8A8]/20 border-[#00A8A8]/50 text-white shadow-lg'
-                                        : 'bg-white/[0.02] border-white/5 text-gray-600 hover:text-gray-400 hover:bg-white/5'
+                                    className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${selectedTrack === track
+                                        ? 'bg-accent/20 border-accent/50 text-[var(--text-primary)] shadow-lg'
+                                        : 'bg-white/[0.02] border-[var(--border-subtle)] text-gray-600 hover:text-[var(--text-muted)] hover:bg-white/5'
                                         }`}
                                 >
                                     {track}

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   authors: [{ name: "DSGT" }],
   openGraph: {
     title: "Hacklytics 2027: Digital Bloom",
-    description: "The premier data science hackathon. 36 hours. $30k+ in prizes. Join us in Atlanta.",
+    description: "The premier data science hackathon. 36 hours. Join us in Atlanta.",
     type: "website",
     locale: "en_US",
   },
@@ -43,7 +43,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${robotoMono.variable} ${spaceGrotesk.variable} font-sans`} suppressHydrationWarning>
         <Navbar />
-        <FloatingFlowers count={55} />
+        <FloatingFlowers count={15} />
         {children}
         <ServiceWorkerRegistrar />
       </body>
