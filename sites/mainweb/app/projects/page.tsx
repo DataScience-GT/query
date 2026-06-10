@@ -63,13 +63,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-400/30 overflow-x-hidden">
-
       <Navbar
         screen_width={windowWidth}
         page="other"
         className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
       />
-
       <main className="relative z-10 pt-44 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
 
         {/* BREADCRUMB NAVIGATION */}
@@ -145,7 +143,6 @@ export default function ProjectsPage() {
           </div>
         </section>
       </main>
-
       <Footer screen_width={windowWidth} className="relative z-10 border-t border-white/5 opacity-40" />
     </div>
   );

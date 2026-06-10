@@ -13,7 +13,6 @@ export function AnalyticsTab({ hackathonId }: { hackathonId: string }) {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <h2 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-wider mb-2">Registration Overview</h2>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <LiquidGlass className="p-6 border-l-4 border-l-blue-500">
                     <p className="text-xs text-[var(--text-subtle)] uppercase font-mono tracking-widest mb-1">Total Registers</p>
@@ -32,7 +31,6 @@ export function AnalyticsTab({ hackathonId }: { hackathonId: string }) {
                     </div>
                 </LiquidGlass>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <LiquidGlass className="p-6">
                     <h3 className="text-sm border-b border-[var(--border-subtle)] pb-2 text-[var(--text-primary)] uppercase font-bold tracking-widest mb-4">Shirt Sizes</h3>

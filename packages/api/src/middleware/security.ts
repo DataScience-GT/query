@@ -88,9 +88,6 @@ const DDOS_CONFIG = {
   cleanupIntervalMs: Number(process.env.DDOS_CLEANUP_INTERVAL_MS) || 60 * 1000,
 };
 
-// Log configuration for debugging
-console.log(`[DDoS Config] Using thresholds: ${DDOS_CONFIG.maxRequestsPerMinute}/min, burst at ${DDOS_CONFIG.burstThreshold} in ${DDOS_CONFIG.burstWindowMs}ms`);
-
 // Cleanup expired records
 setInterval(() => {
   const now = Date.now();
@@ -387,7 +384,6 @@ async function flushLogs() {
     });
 
     await db.insert(auditLogs).values(values);
-    console.log(`[Security] Flushed ${batch.length} security events to audit logs`);
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
     console.error(errorMsg);

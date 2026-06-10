@@ -334,7 +334,7 @@ export const hackathonRouter = createTRPCRouter({
               mlhCodeOfConduct: input.mlhCodeOfConduct,
               mlhDataSharing: input.mlhDataSharing,
               mlhInformationalEmails: input.mlhInformationalEmails,
-              registrationStatus: "approved",
+              registrationStatus: "pending",
             })
             .returning();
 
