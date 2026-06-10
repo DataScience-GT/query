@@ -35,7 +35,7 @@ export default function AdminHackathonDashboard() {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'attendees', label: 'Applications', icon: <IconUsers className="w-5 h-5" /> },
-    { id: 'events', label: 'Events', icon: <IconCalendar className="w-5 h-5" /> },
+    { id: 'events', label: 'Hackathon Events', icon: <IconCalendar className="w-5 h-5" /> },
     { id: 'scanner', label: 'Scan', icon: <IconScanner className="w-5 h-5" /> },
     { id: 'analytics', label: 'Stats', icon: <IconChart className="w-5 h-5" /> },
     { id: 'judges', label: 'Judges', icon: <Gavel className="w-5 h-5" /> },
