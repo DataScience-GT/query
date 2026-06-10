@@ -10,6 +10,7 @@ import {
   hackathonMaps,
   hackathons,
   users,
+  hackathonParticipants,
 } from "@query/db";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
@@ -108,6 +109,17 @@ function buildCoverageQueues(
       queue.push(candidate.id);
       coverage.set(candidate.id, (coverage.get(candidate.id) ?? 0) + 1);
       anyChange = true;
+    }
+  }
+
+  // Shift/rotate the generated queues to stagger sequences and reduce judge bias
+  for (let i = 0; i < judgeAssignmentsList.length; i++) {
+    const judgeId = judgeAssignmentsList[i].judgeId;
+    const q = queues.get(judgeId);
+    if (q && q.length > 1) {
+      const offset = i % q.length;
+      const rotated = [...q.slice(offset), ...q.slice(0, offset)];
+      queues.set(judgeId, rotated);
     }
   }
 
@@ -1258,6 +1270,7 @@ export const judgeRouter = createTRPCRouter({
         /** When false (default), special-label/sponsor judge projects are randomized.
          *  When true, they stay grouped in table order. */
         groupSpecial: z.boolean().default(false),
+        autoCalculate: z.boolean().default(true),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -1283,6 +1296,37 @@ export const judgeRouter = createTRPCRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: "No projects found for this hackathon" });
         }
 
+        let minProjects = input.minProjects;
+        let maxProjects = input.maxProjects;
+
+        if (input.autoCalculate) {
+          // Count active registered participants
+          const participantCountResult = await tx
+            .select({ count: sql<number>`count(*)` })
+            .from(hackathonParticipants)
+            .where(
+              and(
+                eq(hackathonParticipants.hackathonId, input.hackathonId),
+                sql`${hackathonParticipants.registrationStatus} != 'rejected'`
+              )
+            );
+          const activeRegistrations = Number(participantCountResult[0]?.count || 0);
+
+          const P = allProjects.length || Math.ceil(activeRegistrations / 4) || 1;
+          const mainJudgesCount = allAssignments.filter(
+            (a) => !a.track || MAIN_TRACKS.has(a.track)
+          ).length || 1;
+
+          // Each project needs to be graded at least 3 times
+          const targetCoverage = 3;
+          const avgRequired = Math.ceil((P * targetCoverage) / mainJudgesCount);
+
+          // We assume a 3-hour judging window (180 minutes)
+          // With ~9 minutes per project evaluation, a judge can evaluate at most 20 projects.
+          minProjects = Math.max(3, Math.min(avgRequired, 20));
+          maxProjects = Math.max(minProjects + 2, Math.min(avgRequired + 2, 22));
+        }
+
         // Clear existing queues
         await tx.delete(judgeQueue).where(eq(judgeQueue.hackathonId, input.hackathonId));
 
@@ -1300,8 +1344,8 @@ export const judgeRouter = createTRPCRouter({
         }));
 
         const queues = buildCoverageQueues(judgeList, projectList, MAIN_TRACKS, {
-          minProjects: input.minProjects,
-          maxProjects: input.maxProjects,
+          minProjects,
+          maxProjects,
           shuffle: input.shuffle,
           groupSpecial: input.groupSpecial,
         });
@@ -1501,6 +1545,21 @@ export const judgeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        // Check if user is registered as a participant for this hackathon
+        const participant = await tx.query.hackathonParticipants.findFirst({
+          where: and(
+            eq(hackathonParticipants.hackathonId, input.hackathonId),
+            eq(hackathonParticipants.userId, ctx.userId as string)
+          ),
+        });
+
+        if (participant) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
+          });
+        }
+
         // Find existing judge profile or create one
         let judge = await tx.query.judges.findFirst({
           where: eq(judges.userId, ctx.userId),
