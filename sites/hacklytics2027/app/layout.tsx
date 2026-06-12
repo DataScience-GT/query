@@ -49,7 +49,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Navbar />
-        <FloatingFlowers count={15} />
+        <FloatingFlowers count={10} />
         {children}
         <Footer />
         <ServiceWorkerRegistrar />

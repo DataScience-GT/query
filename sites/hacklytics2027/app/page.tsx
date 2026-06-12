@@ -109,7 +109,10 @@ const FlowerBloom = memo(function FlowerBloom() {
       <svg
         viewBox="0 0 800 800"
         className="w-full h-full"
-        style={{ animation: "bloomSpin 200s linear infinite" }}
+        style={{
+          animation: "bloomSpin 200s linear infinite",
+          willChange: "transform",
+        }}
       >
         <defs>
           {/* Outer petal gradient: pink → purple tip */}

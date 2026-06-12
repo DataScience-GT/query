@@ -1,29 +1,40 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { FlowerAccent } from "../FloatingFlowers";
 
-const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
-  title,
-  content,
-  num,
-}) => {
+const FAQCard: React.FC<{
+  title: string;
+  content: React.ReactNode;
+  num: string;
+}> = ({ title, content, num }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
-      className={`glass-card transition-all duration-500 overflow-hidden ${isOpen ? "border-bloom-cyan/50 shadow-[0_0_20px_rgba(0,243,255,0.15)]" : "hover:border-white/30 hover:-translate-y-1"} cursor-pointer mb-4`}
+      className={`glass-card transition-all duration-500 overflow-hidden ${
+        isOpen
+          ? "border-bloom-cyan/50 shadow-[0_0_20px_rgba(0,243,255,0.15)]"
+          : "hover:border-white/30 hover:-translate-y-1"
+      } cursor-pointer mb-4`}
       onClick={() => setIsOpen(!isOpen)}
     >
       <div className="flex justify-between items-center p-6 md:p-8 relative z-10">
         <div className="flex items-center gap-6">
           <span
-            className={`font-mono text-xs md:text-sm tracking-widest font-bold ${isOpen ? "text-bloom-pink drop-shadow-[0_0_5px_currentColor]" : "text-gray-400"}`}
+            className={`font-mono text-xs md:text-sm tracking-widest font-bold ${
+              isOpen
+                ? "text-bloom-pink drop-shadow-[0_0_5px_currentColor]"
+                : "text-gray-400"
+            }`}
           >
             {num}
           </span>
           <h3
-            className={`font-sans text-xl md:text-2xl font-bold tracking-tight ${isOpen ? "text-white" : "text-gray-300"} transition-colors`}
+            className={`font-sans text-xl md:text-2xl font-bold tracking-tight ${
+              isOpen ? "text-white" : "text-gray-300"
+            } transition-colors`}
           >
             {title}
           </h3>
@@ -31,7 +42,11 @@ const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
 
         {/* Expand/Collapse Icon */}
         <div
-          className={`flex-shrink-0 transition-transform duration-500 ${isOpen ? "rotate-45 text-bloom-cyan drop-shadow-[0_0_5px_currentColor]" : "text-gray-400"}`}
+          className={`flex-shrink-0 transition-transform duration-500 ${
+            isOpen
+              ? "rotate-45 text-bloom-cyan drop-shadow-[0_0_5px_currentColor]"
+              : "text-gray-400"
+          }`}
         >
           <svg
             width="24"
@@ -50,12 +65,14 @@ const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
       </div>
 
       <div
-        className={`grid transition-all duration-500 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+        className={`grid transition-all duration-500 ease-in-out ${
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
       >
         <div className="overflow-hidden relative z-10">
-          <p className="font-mono text-sm text-gray-300 leading-relaxed p-6 pt-0 md:pl-[5.5rem] md:pr-8">
+          <div className="font-mono text-sm text-gray-300 leading-relaxed p-6 pt-0 md:pl-[5.5rem] md:pr-8">
             {content}
-          </p>
+          </div>
         </div>
       </div>
     </div>
@@ -63,7 +80,61 @@ const FAQCard: React.FC<{ title: string; content: string; num: string }> = ({
 };
 
 export default function FAQ() {
-  const faqItems = [
+  const faqItems: { title: string; content: React.ReactNode }[] = [
+    {
+      title: "What is the MLH Code of Conduct?",
+      content: (
+        <span>
+          All participants, sponsors, volunteers, and staff are expected to
+          follow the{" "}
+          <Link
+            href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-bloom-cyan underline hover:text-white transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            MLH Code of Conduct
+          </Link>
+          . Hacklytics 2027 is an MLH Member Event. Harassment of any kind is
+          not tolerated. If you experience or witness a violation, please report
+          it to an organizer or contact MLH directly at incidents@mlh.io or
+          +1 409 202 6060.
+        </span>
+      ),
+    },
+    {
+      title: "What information does the registration form collect?",
+      content: (
+        <span>
+          To participate in an MLH Member Event, our registration form collects
+          the following information: your first &amp; last name, age (must be
+          18+), phone number, school, level of study, country of residence,
+          graduation year, major/field of study, gender, and race/ethnicity. You
+          will also be asked to agree to the{" "}
+          <Link
+            href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-bloom-cyan underline hover:text-white transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            MLH Code of Conduct
+          </Link>
+          , the{" "}
+          <Link
+            href="https://mlh.io/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-bloom-cyan underline hover:text-white transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            MLH Privacy Policy
+          </Link>
+          , and to receive MLH communications.
+        </span>
+      ),
+    },
     {
       title: "What if I forgot to register?",
       content:
