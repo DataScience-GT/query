@@ -5,6 +5,7 @@ import { Roboto_Mono, Space_Grotesk } from "next/font/google";
 import Navbar from "../components/Navbar";
 import FloatingFlowers from "../components/FloatingFlowers";
 import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
+import Footer from "../components/Footer";
 
 // Techy, Brutalist fonts
 const robotoMono = Roboto_Mono({
@@ -50,6 +51,7 @@ export default function RootLayout({
         <Navbar />
         <FloatingFlowers count={15} />
         {children}
+        <Footer />
         <ServiceWorkerRegistrar />
       </body>
     </html>
