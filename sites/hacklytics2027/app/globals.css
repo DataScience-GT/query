@@ -41,9 +41,10 @@ body {
     radial-gradient(circle at 85% 30%, rgba(0, 243, 255, 0.05), transparent 40%),
     radial-gradient(circle at 50% 80%, rgba(157, 0, 255, 0.03), transparent 50%),
     linear-gradient(180deg, #030408 0%, #0a0a0f 100%);
+  /* Removed background-attachment:fixed — it forces a full-page repaint on
+     every scroll event, which is the primary cause of scroll jank. */
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-family-sans);
   overflow-x: hidden;
@@ -315,7 +316,7 @@ body::before {
   contain: layout style;
 }
 
-/* GPU layer promotion for animated flower elements */
+/* GPU layer promotion for animated flower elements and bloom spinner */
 .flower-drift-1,
 .flower-drift-2,
 .flower-drift-3,
@@ -324,6 +325,14 @@ body::before {
 .flower-sway-2 {
   transform: translateZ(0);
   backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* bloomSpin: promote the hero SVG to its own compositor layer so the GPU
+   handles the rotation without triggering main-thread paint. */
+[style*="bloomSpin"] {
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* Respect user preference for reduced motion — pauses all flower animations */
