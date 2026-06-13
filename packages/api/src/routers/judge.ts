@@ -154,31 +154,51 @@ function buildCoverageQueues(
 }
 
 export const judgeRouter = createTRPCRouter({
-  isJudge: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = CacheKeys.judge(ctx.userId as string);
-    const cached = ctx.cache.get<{
-      isJudge: boolean;
-      judgeId: string | null;
-      name: string | null;
-    }>(cacheKey);
-    if (cached) return cached;
+  isJudge: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      let hackathonId = input?.hackathonId;
+      if (!hackathonId) {
+        const latest = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+          orderBy: (h, { desc }) => [desc(h.startDate)],
+          columns: { id: true },
+        });
+        hackathonId = latest?.id;
+      }
 
-    const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
-      where: and(
-        eq(judges.userId, ctx.userId as string),
-        eq(judges.isActive, true),
-      ),
-    });
+      if (!hackathonId) {
+        return {
+          isJudge: false,
+          judgeId: null,
+          name: null,
+        };
+      }
 
-    const result = {
-      isJudge: !!judge,
-      judgeId: judge?.id || null,
-      name: judge?.name || null,
-    };
-    ctx.cache.set(cacheKey, result, 60);
+      const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:${hackathonId}`;
+      const cached = ctx.cache.get<{
+        isJudge: boolean;
+        judgeId: string | null;
+        name: string | null;
+      }>(cacheKey);
+      if (cached) return cached;
 
-    return result;
-  }),
+      const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
+        where: and(
+          eq(judges.userId, ctx.userId as string),
+          eq(judges.hackathonId, hackathonId),
+          eq(judges.isActive, true),
+        ),
+      });
+
+      const result = {
+        isJudge: !!judge,
+        judgeId: judge?.id || null,
+        name: judge?.name || null,
+      };
+      ctx.cache.set(cacheKey, result, 60);
+
+      return result;
+    }),
 
   getMyAssignments: isJudge.query(async ({ ctx }) => {
     const assignments = await (
@@ -1024,6 +1044,7 @@ export const judgeRouter = createTRPCRouter({
     .input(
       z.object({
         userId: z.string().min(1).max(255),
+        hackathonId: z.string().uuid(),
         name: z.string().max(255).optional(),
       }),
     )
@@ -1040,13 +1061,16 @@ export const judgeRouter = createTRPCRouter({
       }
 
       const existing = await (ctx.db as DrizzleDB).query.judges.findFirst({
-        where: eq(judges.userId, input.userId),
+        where: and(
+          eq(judges.userId, input.userId),
+          eq(judges.hackathonId, input.hackathonId),
+        ),
       });
 
       if (existing) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "User is already a judge",
+          message: "User is already a judge for this hackathon",
         });
       }
 
@@ -1054,7 +1078,9 @@ export const judgeRouter = createTRPCRouter({
         .insert(judges)
         .values({
           userId: input.userId,
+          hackathonId: input.hackathonId,
           name: input.name || user.name,
+          isActive: true, // Manually created judges are active by default
         })
         .returning();
 
@@ -1236,15 +1262,23 @@ export const judgeRouter = createTRPCRouter({
               user = newUser as NonNullable<typeof newUser>;
             }
 
-            // 2. Find or create judge record
+            // 2. Find or create judge record for this hackathon
             let judge = await tx.query.judges.findFirst({
-              where: eq(judges.userId, user.id),
+              where: and(
+                eq(judges.userId, user.id),
+                eq(judges.hackathonId, input.hackathonId),
+              ),
             });
 
             if (!judge) {
               const [newJudge] = await tx
                 .insert(judges)
-                .values({ userId: user.id, name: j.name })
+                .values({
+                  userId: user.id,
+                  hackathonId: input.hackathonId,
+                  name: j.name,
+                  isActive: true,
+                })
                 .returning();
               judge = newJudge as NonNullable<typeof newJudge>;
             }
@@ -1790,9 +1824,12 @@ export const judgeRouter = createTRPCRouter({
           });
         }
 
-        // Find existing judge profile or create one
+        // Find existing judge profile or create one for this hackathon
         let judge = await tx.query.judges.findFirst({
-          where: eq(judges.userId, ctx.userId),
+          where: and(
+            eq(judges.userId, ctx.userId),
+            eq(judges.hackathonId, input.hackathonId),
+          ),
         });
 
         if (judge) {
@@ -1818,6 +1855,7 @@ export const judgeRouter = createTRPCRouter({
             .insert(judges)
             .values({
               userId: ctx.userId,
+              hackathonId: input.hackathonId,
               name: input.name,
               email: input.email,
               phone: input.phone,

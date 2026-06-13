@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { db, stripePayments, users, members } from "@query/db";
-import { eq } from "drizzle-orm";
+import { db, stripePayments, users, members, hackathons } from "@query/db";
+import { eq, and, desc } from "drizzle-orm";
 import { cache } from "@query/api";
 
 // Type for the transaction object
@@ -42,11 +42,23 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
 
-  try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  if (
+    process.env.STRIPE_SECRET_KEY?.startsWith("mk_") ||
+    process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_mock")
+  ) {
+    try {
+      event = JSON.parse(body) as Stripe.Event;
+    } catch (err) {
+      console.error("Failed to parse mock webhook JSON body:", err);
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+  } else {
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
   }
 
   if (event.type === "checkout.session.completed") {
@@ -164,9 +176,21 @@ async function createOrUpdateMembership(
   customerEmail: string,
   phoneNumber: string | null | undefined,
 ) {
-  // Check if member already exists
+  const latest = await tx.query.hackathons.findFirst({
+    orderBy: [desc(hackathons.startDate)],
+    columns: { id: true },
+  });
+
+  if (!latest) {
+    throw new Error("No hackathon found for membership assignment");
+  }
+
+  // Check if member already exists for this hackathon
   const existingMember = await tx.query.members.findFirst({
-    where: eq(members.userId, userId),
+    where: and(
+      eq(members.userId, userId),
+      eq(members.hackathonId, latest.id),
+    ),
   });
 
   const now = new Date();
@@ -196,6 +220,7 @@ async function createOrUpdateMembership(
     // Create new membership
     await tx.insert(members).values({
       userId,
+      hackathonId: latest.id,
       firstName,
       lastName,
       memberType: "new",

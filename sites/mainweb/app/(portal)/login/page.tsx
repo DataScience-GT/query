@@ -117,7 +117,7 @@ export default function Home() {
 
             {/* Hero Title */}
             <div className="animate-[fadeIn_0.5s_ease-out_0.3s_forwards]">
-              <h1 className="text-7xl lg:text-9xl font-black text-[var(--text-primary)] leading-[0.85] tracking-tighter uppercase">
+              <h1 className="text-7xl lg:text-9xl font-black text-[var(--text-primary)] leading-[0.85] tracking-wider font-oswald uppercase">
                 Query <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-[#14b8a6] to-[#0891b2] italic transform -skew-x-6">
                   DSGT.

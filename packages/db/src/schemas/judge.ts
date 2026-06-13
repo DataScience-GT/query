@@ -7,6 +7,7 @@ import {
   integer,
   index,
   uniqueIndex,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
@@ -18,8 +19,10 @@ export const judges = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     userId: text("user_id")
       .notNull()
-      .unique()
       .references(() => users.id, { onDelete: "cascade" }),
+    hackathonId: uuid("hackathon_id")
+      .notNull()
+      .references(() => hackathons.id, { onDelete: "cascade" }),
     name: text("name"),
     email: text("email"),
     phone: text("phone"),
@@ -36,7 +39,11 @@ export const judges = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("judge_user_id_idx").on(table.userId)],
+  (table) => [
+    index("judge_user_id_idx").on(table.userId),
+    index("judge_hackathon_id_idx").on(table.hackathonId),
+    unique("unique_judge_per_hackathon").on(table.userId, table.hackathonId),
+  ],
 );
 
 export const judgeAssignments = pgTable(
@@ -171,6 +178,10 @@ export const judgesRelations = relations(judges, ({ one, many }) => ({
   user: one(users, {
     fields: [judges.userId],
     references: [users.id],
+  }),
+  hackathon: one(hackathons, {
+    fields: [judges.hackathonId],
+    references: [hackathons.id],
   }),
   assignments: many(judgeAssignments),
   votes: many(judgeVotes),
