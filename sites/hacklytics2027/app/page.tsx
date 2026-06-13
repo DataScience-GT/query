@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
 import HomeSections from "@/components/HomeSections";
 import { FlowerDivider, FlowerAccent } from "@/components/FloatingFlowers";
+import HacklyticsDashboard from "@/components/HacklyticsDashboard";
 
 // Digital Bloom — A real SVG flower with organic petals
 const FlowerBloom = memo(function FlowerBloom() {
@@ -513,6 +514,7 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+            <HacklyticsDashboard />
           </div>
         </div>
 
