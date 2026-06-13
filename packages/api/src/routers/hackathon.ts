@@ -403,7 +403,10 @@ export const hackathonRouter = createTRPCRouter({
           }
 
           const member = await tx.query.members.findFirst({
-            where: eq(members.userId, ctx.userId as string),
+            where: and(
+              eq(members.userId, ctx.userId as string),
+              eq(members.hackathonId, input.hackathonId),
+            ),
           });
 
           const [participant] = await tx

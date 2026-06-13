@@ -149,7 +149,7 @@ export default function Dashboard() {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">
+              <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
                 Welcome back, {userData?.name?.split(" ")[0] ?? "there"}
               </h1>
               <p className="text-sm text-[var(--text-muted)] mt-0.5">
@@ -172,7 +172,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Hackathons — always visible */}
           <Link href="/hackathons" className="group">
-            <LiquidGlass className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
+            <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
               <div className="flex items-center justify-between">
                 <div className="p-2.5 rounded-sm bg-accent/10 border border-accent/20 group-hover:bg-accent/20 transition-colors">
                   <Zap className="w-5 h-5 text-accent" />
@@ -193,7 +193,7 @@ export default function Dashboard() {
           {/* Club Portal — members only */}
           {memberStatus?.isMember ? (
             <Link href="/club" className="group">
-              <LiquidGlass className="p-6 h-full flex flex-col gap-3 hover:border-emerald-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-emerald-500/40 transition-all">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
                     <QrCode className="w-5 h-5 text-emerald-500" />
@@ -212,7 +212,7 @@ export default function Dashboard() {
             </Link>
           ) : (
             <div className="group">
-              <LiquidGlass className="p-6 h-full flex flex-col gap-3 opacity-60 border-dashed">
+              <LiquidGlass printed className="p-6 h-full flex flex-col gap-3 opacity-60 border-dashed">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                     <QrCode className="w-5 h-5 text-[var(--text-subtle)]" />
@@ -233,7 +233,7 @@ export default function Dashboard() {
           {/* Judge Portal — judges only */}
           {judgeStatus?.isJudge && (
             <Link href="/judge" className="group">
-              <LiquidGlass className="p-6 h-full flex flex-col gap-3 hover:border-purple-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-purple-500/40 transition-all">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-purple-500/10 border border-purple-500/20 group-hover:bg-purple-500/20 transition-colors">
                     <Gavel className="w-5 h-5 text-purple-400" />
@@ -255,7 +255,7 @@ export default function Dashboard() {
           {/* Admin Panel — admins only */}
           {adminStatus?.isAdmin && (
             <Link href="/admin" className="group">
-              <LiquidGlass className="p-6 h-full flex flex-col gap-3 hover:border-red-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-red-500/40 transition-all">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-red-500/10 border border-red-500/20 group-hover:bg-red-500/20 transition-colors">
                     <Shield className="w-5 h-5 text-red-500" />
@@ -277,7 +277,7 @@ export default function Dashboard() {
 
         {/* ── MEMBERSHIP CTA (non-members) ───────────────── */}
         {!memberStatus?.isMember && !adminStatus?.isAdmin && (
-          <LiquidGlass className="p-6">
+          <LiquidGlass printed holographic className="p-6 border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-yellow-500/5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-sm bg-amber-500/10 border border-amber-500/20 flex-shrink-0">
@@ -307,7 +307,7 @@ export default function Dashboard() {
         {/* ── MY HACKATHONS ───────────────────────────────── */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-[var(--text-primary)] tracking-tight">
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
               My Hackathons
             </h2>
             <Link
@@ -335,7 +335,7 @@ export default function Dashboard() {
                   href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=SCHEDULE`}
                   className="group block"
                 >
-                  <LiquidGlass className="p-5 flex flex-col gap-3 hover:border-accent/40 transition-all h-full">
+                  <LiquidGlass printed holographic className="p-5 flex flex-col gap-3 hover:border-accent/40 transition-all h-full">
                     <div className="flex items-start justify-between gap-3">
                       <h4 className="font-bold text-[var(--text-primary)] group-hover:text-accent transition-colors leading-tight text-sm">
                         {reg.hackathon.name}
@@ -360,7 +360,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <LiquidGlass className="p-8 text-center flex flex-col items-center gap-3">
+            <LiquidGlass printed className="p-8 text-center flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
                 <Zap className="w-5 h-5 text-[var(--text-subtle)]" />
               </div>
@@ -390,7 +390,7 @@ export default function Dashboard() {
                     href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=INFO`}
                     className="group block"
                   >
-                    <LiquidGlass className="p-5 flex items-center justify-between gap-3 opacity-60 hover:opacity-100 transition-opacity">
+                    <LiquidGlass printed className="p-5 flex items-center justify-between gap-3 opacity-60 hover:opacity-100 transition-opacity">
                       <div>
                         <p className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest mb-1">
                           Past Event

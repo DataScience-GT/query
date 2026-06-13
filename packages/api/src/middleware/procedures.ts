@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../trpc";
-import { admins, judges } from "@query/db";
+import { admins, judges, judgingProjects, judgeQueue } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
 
@@ -50,18 +50,59 @@ export const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
 });
 
 /**
- * Middleware that verifies the current user is an active judge.
- * Result is cached for 60s per user to avoid a DB round-trip on every request.
+ * Middleware that verifies the current user is an active judge for a specific hackathon.
+ * Result is cached for 60s per user per hackathon to avoid a DB round-trip on every request.
  */
-export const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
-  const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:role`;
+export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput }) => {
+  const db = ctx.db as NonNullable<typeof ctx.db>;
+
+  // Try to resolve hackathonId from rawInput
+  const rawInput = await getRawInput();
+  let hackathonId: string | undefined;
+  if (rawInput && typeof rawInput === "object") {
+    const inputObj = rawInput as Record<string, unknown>;
+    if (typeof inputObj.hackathonId === "string") {
+      hackathonId = inputObj.hackathonId;
+    } else if (typeof inputObj.projectId === "string") {
+      const project = await db.query.judgingProjects.findFirst({
+        where: eq(judgingProjects.id, inputObj.projectId),
+        columns: { hackathonId: true },
+      });
+      hackathonId = project?.hackathonId;
+    } else if (typeof inputObj.queueId === "string") {
+      const queue = await db.query.judgeQueue.findFirst({
+        where: eq(judgeQueue.id, inputObj.queueId),
+        columns: { hackathonId: true },
+      });
+      hackathonId = queue?.hackathonId;
+    }
+  }
+
+  // Fallback to the latest hackathon if not specified in input
+  if (!hackathonId) {
+    const latest = await db.query.hackathons.findFirst({
+      orderBy: (h, { desc }) => [desc(h.startDate)],
+      columns: { id: true },
+    });
+    hackathonId = latest?.id;
+  }
+
+  if (!hackathonId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "No hackathon context found for judging",
+    });
+  }
+
+  const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:${hackathonId}:role`;
   let judge = ctx.cache.get<typeof judges.$inferSelect>(cacheKey);
 
   if (!judge) {
     judge =
-      (await (ctx.db as NonNullable<typeof ctx.db>).query.judges.findFirst({
+      (await db.query.judges.findFirst({
         where: and(
           eq(judges.userId, ctx.userId as string),
+          eq(judges.hackathonId, hackathonId),
           eq(judges.isActive, true),
         ),
       })) ?? null;
@@ -72,7 +113,7 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next }) => {
   if (!judge) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Judge access required",
+      message: "Judge access required for this hackathon",
     });
   }
 
