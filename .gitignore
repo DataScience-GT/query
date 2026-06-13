@@ -84,6 +84,10 @@ fix.js
 .claude/skills/react-doctor/SKILL.md
 .agents/skills/react-doctor/SKILL.md
 
+# Graphify local-only files
+graphify-out/cache/
+graphify-out/cost.json
+
 # Git commit restriction
 # To restrict commits to 'aamoghS' only:
 # 1. Enable branch protection on 'main' branch in GitHub Settings
