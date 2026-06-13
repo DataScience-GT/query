@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members } from "@query/db";
+import { stripePayments, userAccountLinks, members, hackathons } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, desc } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import Stripe from "stripe";
 
@@ -35,6 +35,44 @@ export const stripeRouter = createTRPCRouter({
           code: "PRECONDITION_FAILED",
           message: "User must have an email address to checkout.",
         });
+      }
+
+      // Check if we are running in development with a mock key
+      if (process.env.STRIPE_SECRET_KEY?.startsWith("mk_")) {
+        const sessionId = `cs_mock_${Math.random().toString(36).substring(2, 15)}`;
+        const nameParts = (user.name || "Member").split(" ");
+        const firstName = nameParts[0] || "Member";
+        const lastName = nameParts.slice(1).join(" ") || "Member";
+
+        await ctx.db!.transaction(async (tx) => {
+          await tx.insert(stripePayments).values({
+            stripeSessionId: sessionId,
+            stripeCustomerId: "cus_mock_123",
+            stripePaymentIntentId: "pi_mock_123",
+            customerEmail: user.email!.toLowerCase(),
+            customerName: user.name || "Member",
+            amountTotal: 2500,
+            currency: "usd",
+            paymentStatus: "paid",
+            linkedUserId: ctx.userId!,
+            linkedAt: new Date(),
+            metadata: JSON.stringify({ userId: ctx.userId! }),
+          });
+
+          await createOrUpdateMembership(
+            tx as unknown as DrizzleDB,
+            ctx.userId!,
+            firstName,
+            lastName,
+          );
+        });
+
+        // Invalidate cache
+        ctx.cache.delete(`member:${ctx.userId!}`);
+        ctx.cache.delete(`member:status:${ctx.userId!}`);
+
+        const mockUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}payment=success&session_id=${sessionId}`;
+        return { url: mockUrl };
       }
 
       try {
@@ -292,8 +330,20 @@ async function createOrUpdateMembership(
   firstName: string,
   lastName: string,
 ) {
+  const latest = await db.query.hackathons.findFirst({
+    orderBy: [desc(hackathons.startDate)],
+    columns: { id: true },
+  });
+
+  if (!latest) {
+    throw new Error("No hackathon found for membership assignment");
+  }
+
   const existingMember = await db.query.members.findFirst({
-    where: eq(members.userId, userId),
+    where: and(
+      eq(members.userId, userId),
+      eq(members.hackathonId, latest.id),
+    ),
   });
 
   const now = new Date();
@@ -315,6 +365,7 @@ async function createOrUpdateMembership(
   } else {
     await db.insert(members).values({
       userId,
+      hackathonId: latest.id,
       firstName,
       lastName,
       memberType: "new",

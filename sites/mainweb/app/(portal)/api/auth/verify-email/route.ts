@@ -9,8 +9,9 @@ import {
   userAccountLinks,
   members,
   verificationTokens,
+  hackathons,
 } from "@query/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, desc } from "drizzle-orm";
 import { rateLimit, cache } from "@query/api";
 
 /**
@@ -175,8 +176,20 @@ export async function POST(request: NextRequest) {
             const oneYearFromNow = new Date(now);
             oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
+            const latest = await tx.query.hackathons.findFirst({
+              orderBy: [desc(hackathons.startDate)],
+              columns: { id: true },
+            });
+
+            if (!latest) {
+              throw new Error("No hackathon found for membership assignment");
+            }
+
             const existingMember = await tx.query.members.findFirst({
-              where: eq(members.userId, user.id),
+              where: and(
+                eq(members.userId, user.id),
+                eq(members.hackathonId, latest.id),
+              ),
             });
 
             if (existingMember) {
@@ -194,6 +207,7 @@ export async function POST(request: NextRequest) {
             } else {
               await tx.insert(members).values({
                 userId: user.id,
+                hackathonId: latest.id,
                 firstName,
                 lastName,
                 memberType: "new",

@@ -1,6 +1,18 @@
 /* DSGT Portal - Minimalist Developer Aesthetic (SaaS/Vercel-inspired) */
 
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Bebas+Neue&family=Cormorant+Garamond:wght@600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@500;600;700&family=Sora:wght@500;600;700;800&family=Teko:wght@500;600;700&display=swap");
+
 :root {
+  /* ===== COMMON GROUND DESIGN SYSTEM INSPIRATION ===== */
+  --font-bebas: "Bebas Neue", sans-serif;
+  --font-oswald: "Oswald", sans-serif;
+  --font-barlow: "Barlow Condensed", sans-serif;
+  --font-cormorant: "Cormorant Garamond", serif;
+  --font-sora: "Sora", sans-serif;
+  --font-teko: "Teko", sans-serif;
+
+  --print-grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.84' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.72'/%3E%3C/svg%3E");
+
   /* ===== BACKGROUND COLORS ===== */
   --bg-primary: #0a0a0a;
   --bg-secondary: #121212;
@@ -437,3 +449,101 @@ a {
 .m-xl { margin: var(--space-xl); }
 .m-2xl { margin: var(--space-2xl); }
 .m-3xl { margin: var(--space-3xl); }
+
+/* ===== COMMON GROUND INSPIRATION STYLES ===== */
+
+.font-bebas {
+  font-family: var(--font-bebas), sans-serif;
+}
+
+.font-oswald {
+  font-family: var(--font-oswald), sans-serif;
+}
+
+.font-barlow {
+  font-family: var(--font-barlow), sans-serif;
+}
+
+.font-cormorant {
+  font-family: var(--font-cormorant), serif;
+}
+
+.font-sora {
+  font-family: var(--font-sora), sans-serif;
+}
+
+.font-teko {
+  font-family: var(--font-teko), sans-serif;
+}
+
+/* Print grain overlay card */
+.card-printed {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.card-printed::before {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.16;
+  background-image: var(--print-grain-texture);
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+}
+
+.card-printed:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
+}
+
+.card-printed > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Holographic sheen card */
+.card-holographic {
+  position: relative;
+}
+
+.card-holographic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(200, 160, 255, 0.06) 25%,
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(0, 168, 168, 0.08) 40%,
+      rgba(139, 92, 246, 0.08) 50%,
+      rgba(0, 168, 168, 0.08) 60%,
+      rgba(255, 255, 255, 0) 70%
+    );
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 300ms ease, background-position 300ms ease;
+}
+
+.card-holographic:hover::after {
+  opacity: 1;
+  background-position: 100% 100%;
+}
+
