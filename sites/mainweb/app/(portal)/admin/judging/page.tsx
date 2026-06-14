@@ -244,7 +244,7 @@ export default function AdminResultsPage() {
                 disabled={toggleJudging.isPending}
                 className={`px-12 py-6 font-black text-lg uppercase tracking-widest transition-all rounded-none font-mono border-2 disabled:opacity-50 ${
                   judgingStatus?.active
-                    ? "bg-red-500/10 border-red-500/40 text-red-400 hover:bg-red-500/20 hover:border-red-500/60 shadow-[0_0_30px_rgba(239,68,68,0.15)]"
+                    ? "bg-amber-500/10 border-amber-500/40 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.1)]"
                     : "bg-accent/10 border-accent/40 text-accent hover:bg-accent/20 hover:border-accent/60 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
                 }`}
               >
