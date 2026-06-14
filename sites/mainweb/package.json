@@ -47,7 +47,7 @@
     "@query/eslint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
-    "@tailwindcss/postcss": "^4.3.0",
+    "@tailwindcss/postcss": "^4.3.1",
     "@types/minimatch": "^6.0.0",
     "@types/node": "^22.15.32",
     "@types/qrcode": "^1.5.5",
