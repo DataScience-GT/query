@@ -175,7 +175,7 @@ export default function AdminPage() {
                       ? f === "open"
                         ? "bg-accent/20 text-accent border border-accent/30"
                         : f === "closed"
-                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                          ? "bg-white/5 text-[var(--text-secondary)] border border-[var(--border-subtle)]"
                           : "bg-white/10 text-[var(--text-primary)] border border-[var(--border-subtle)]"
                       : "text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
                   }`}
@@ -239,7 +239,7 @@ export default function AdminPage() {
                     className={`p-6 hover:border-white/20 transition-all border-l-4 ${
                       event.checkInEnabled
                         ? "border-l-accent"
-                        : "border-l-red-500/50"
+                        : "border-l-[var(--border-subtle)]"
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -252,7 +252,7 @@ export default function AdminPage() {
                             className={`px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold ${
                               event.checkInEnabled
                                 ? "bg-accent/10 text-accent border border-accent/20"
-                                : "bg-red-500/10 text-red-400 border border-red-500/20"
+                                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"
                             }`}
                           >
                             {event.checkInEnabled ? "Open" : "Closed"}
@@ -295,7 +295,7 @@ export default function AdminPage() {
                           }
                           className={`px-4 py-2 border text-sm font-medium rounded-none transition-colors ${
                             event.checkInEnabled
-                              ? "border-red-500/20 text-red-400 hover:bg-red-500/10"
+                              ? "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5"
                               : "border-accent/20 text-accent hover:bg-accent/10"
                           }`}
                         >
@@ -307,7 +307,7 @@ export default function AdminPage() {
                               deleteEventMutation.mutate({ eventId: event.id });
                             }
                           }}
-                          className="px-4 py-2 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                          className="px-4 py-2 border border-[var(--border-subtle)] text-[var(--text-secondary)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
                         >
                           Delete
                         </button>

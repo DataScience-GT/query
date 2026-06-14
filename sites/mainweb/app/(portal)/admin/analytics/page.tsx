@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
                 </span>
               )}
               {trend?.negative && (
-                <span className="text-xs text-red-400 flex items-center gap-1">
+                <span className="text-xs text-amber-500 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3 rotate-180" />
                   {trend.percent}%
                 </span>

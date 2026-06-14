@@ -41,25 +41,25 @@ export default function AttendeesPage() {
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Animated Background Gradient */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-r from-red-900/10 via-red-900/5 to-transparent blur-[300px] rounded-sm" />
-          <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-r from-red-900/10 via-red-900/8 to-transparent blur-[250px] rounded-sm" />
+          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-r from-accent/5 via-accent/2 to-transparent blur-[300px] rounded-sm" />
+          <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-r from-accent/5 via-accent/4 to-transparent blur-[250px] rounded-sm" />
         </div>
 
         {/* Page Header */}
-        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-red-500/5 via-red-900/10 to-transparent rounded-none overflow-hidden group hover:border-red-500/20 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-red-500/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
+        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-accent-dim to-transparent rounded-none overflow-hidden group hover:border-accent/25 transition-all duration-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <p className="text-[10px] font-mono text-accent/80 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-red-500 group-hover:via-red-400 group-hover:to-red-500 transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-all duration-500">
             Attendees{" "}
-            <span className="text-red-500 italic font-bold">Registry</span>
+            <span className="text-accent italic font-bold">Registry</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
             View and manage attendee registrations for club events.
           </p>
           {/* Decorative Corner Accent */}
-          <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-red-500/5 rounded-sm blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-accent/5 rounded-sm blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
 
         <div className="space-y-6">
@@ -82,7 +82,7 @@ export default function AttendeesPage() {
             {selectedEvent && (
               <button
                 onClick={handleDownloadCSV}
-                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-red-500/10 to-red-500/10 border border-red-500/25 hover:border-red-500/40 text-red-500 text-sm font-medium rounded-none hover:bg-red-500/20 transition-all active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.15)] hover:shadow-[0_0_25px_rgba(239,68,68,0.25)]"
+                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/10 to-accent/10 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-all active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.1)] hover:shadow-[0_0_25px_rgba(0,168,168,0.2)]"
               >
                 <Download className="h-4 w-4" />
                 Export CSV
@@ -94,7 +94,7 @@ export default function AttendeesPage() {
           <div className="space-y-4">
             {isLoading ? (
               <div className="py-12 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-red-900/5 to-transparent animate-pulse" />
+                <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-accent-fade to-transparent animate-pulse" />
                 <p className="relative text-text-muted font-mono text-sm animate-pulse">
                   Loading event check-ins...
                 </p>
@@ -125,8 +125,8 @@ export default function AttendeesPage() {
               </LiquidGlass>
             ) : (
               <div className="overflow-x-auto rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)]/20 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-red-500/[0.02] via-transparent to-red-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-500/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <table className="w-full text-left">
                   <thead className="bg-[var(--bg-primary)]/30 border-b border-[var(--border-subtle)]">
                     <tr>
@@ -173,7 +173,7 @@ export default function AttendeesPage() {
                           {attendee.user?.email}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-3 py-1 rounded-sm text-xs font-semibold bg-red-500/10 text-red-500 border border-red-500/20">
+                          <span className="px-3 py-1 rounded-sm text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             Checked In
                           </span>
                         </td>
