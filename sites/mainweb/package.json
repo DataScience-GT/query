@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "16.2.6",
-    "@next/eslint-plugin-next": "16.2.6",
+    "@next/eslint-plugin-next": "16.2.9",
     "@query/eslint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",

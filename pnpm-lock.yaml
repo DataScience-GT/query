@@ -187,8 +187,8 @@ importers:
         version: 19.0.0(react@19.2.7)
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: 16.2.6
-        version: 16.2.6
+        specifier: 16.2.9
+        version: 16.2.9
       '@query/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
@@ -279,8 +279,8 @@ importers:
         version: 3.6.0
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: 16.2.6
-        version: 16.2.6
+        specifier: 16.2.9
+        version: 16.2.9
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
@@ -409,8 +409,8 @@ importers:
         specifier: 16.2.6
         version: 16.2.6
       '@next/eslint-plugin-next':
-        specifier: 16.2.6
-        version: 16.2.6
+        specifier: 16.2.9
+        version: 16.2.9
       '@query/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
@@ -481,8 +481,8 @@ importers:
         specifier: 9.17.0
         version: 9.17.0
       '@next/eslint-plugin-next':
-        specifier: 16.2.6
-        version: 16.2.6
+        specifier: 16.2.9
+        version: 16.2.9
       '@typescript-eslint/eslint-plugin':
         specifier: 8.26.1
         version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.17.0(jiti@2.7.0))(typescript@6.0.2))(eslint@9.17.0(jiti@2.7.0))(typescript@6.0.2)
@@ -583,8 +583,8 @@ importers:
         version: 4.0.0
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: 16.2.6
-        version: 16.2.6
+        specifier: 16.2.9
+        version: 16.2.9
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -1417,8 +1417,8 @@ packages:
   '@next/env@16.2.6':
     resolution: {integrity: sha512-gd8HoHN4ufj73WmR3JmVolrpJR47ILK6LouP5xElPglaVxir6e1a7VzvTvDWkOoPXT9rkkTzyCxBu4yeZfZwcw==}
 
-  '@next/eslint-plugin-next@16.2.6':
-    resolution: {integrity: sha512-Z8l6o4JWKUl755x4R+wogD86KPeU+Ckw4K+SYG4kHeOJtRenDeK+OSbGcqZpDtbwn9DsJVdir2UxmwXuinUbUw==}
+  '@next/eslint-plugin-next@16.2.9':
+    resolution: {integrity: sha512-UZi8+YT/MLgTC9nrrn2Xd4lBYv1B7lVmtWHfPcthAI5Tt/C1LuDe6DfmtCtJ+WQod3ksY4VrKSvk3oMVAnL7qw==}
 
   '@next/swc-darwin-arm64@16.2.6':
     resolution: {integrity: sha512-ZJGkkcNfYgrrMkqOdZ7zoLa1TOy0qpcMfk/z4Mh/FKUz40gVO+HNQWqmLxf67Z5WB64DRp0dhEbyHfel+6sJUg==}
@@ -5692,7 +5692,7 @@ snapshots:
 
   '@next/env@16.2.6': {}
 
-  '@next/eslint-plugin-next@16.2.6':
+  '@next/eslint-plugin-next@16.2.9':
     dependencies:
       fast-glob: 3.3.1
 
