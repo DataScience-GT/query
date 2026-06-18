@@ -21,6 +21,7 @@ import {
   Moon,
   Home,
   ShieldAlert,
+  UserCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { trpc } from "@/lib/trpc";
@@ -91,6 +92,12 @@ export default function PortalSidebar({
       icon: ClipboardList,
       show: judgeStatus?.isJudge && !adminStatus?.isAdmin,
     },
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: UserCircle,
+      show: !adminStatus?.isAdmin,
+    },
   ].filter((r) => r.show);
 
   const adminRoutes = [
@@ -133,7 +140,7 @@ export default function PortalSidebar({
         <div className="md:hidden fixed inset-0 z-50 bg-[var(--bg-primary)]/98 backdrop-blur-3xl flex flex-col items-center pt-20 pb-10 px-6 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="absolute top-4 right-4 p-3 bg-white/5 rounded-sm hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 p-3 bg-[var(--bg-secondary)] rounded-sm hover:bg-[var(--bg-elevated)] transition-colors"
           >
             <X className="w-6 h-6 text-[var(--text-primary)]" />
           </button>
@@ -159,7 +166,7 @@ export default function PortalSidebar({
                         className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
                           isActive
                             ? "bg-accent/10 text-accent border border-accent/20 font-bold"
-                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5"
+                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                         }`}
                       >
                         <route.icon className="w-5 h-5" />
@@ -173,9 +180,9 @@ export default function PortalSidebar({
 
             {adminStatus?.isAdmin && (
               <>
-                <div className="w-full h-px bg-white/10" />
+                <div className="w-full h-px bg-[var(--border-subtle)]" />
                 <div className="w-full text-center">
-                  <h3 className="text-xs uppercase tracking-widest text-red-500 font-bold mb-6 flex flex-col items-center gap-2">
+                  <h3 className="text-xs uppercase tracking-widest text-[var(--text-subtle)] font-bold mb-6 flex flex-col items-center gap-2">
                     <ShieldAlert className="w-6 h-6 opacity-50" />
                     Admin Area
                   </h3>
@@ -192,8 +199,8 @@ export default function PortalSidebar({
                           onClick={() => setIsMobileOpen(false)}
                           className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
                             isActive
-                              ? "bg-red-500/10 text-red-500 border border-red-500/20 font-bold"
-                              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5"
+                              ? "bg-accent/10 text-accent border border-accent/20 font-bold"
+                              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                           }`}
                         >
                           <route.icon className="w-5 h-5" />
@@ -208,7 +215,7 @@ export default function PortalSidebar({
 
             {/* Mobile User Section */}
             <div className="mt-auto w-full pt-8 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3 bg-white/5 px-6 py-4 rounded-sm border border-[var(--border-subtle)]">
+              <div className="flex items-center gap-3 bg-[var(--bg-secondary)] px-6 py-4 rounded-sm border border-[var(--border-subtle)]">
                 <img
                   src={session?.user?.image || "/avatars/default.png"}
                   alt=""
@@ -222,7 +229,7 @@ export default function PortalSidebar({
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex items-center gap-2 text-red-400 hover:text-red-300 font-bold uppercase tracking-wider text-sm py-2"
+                className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold uppercase tracking-wider text-sm py-2"
               >
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>
@@ -329,7 +336,7 @@ export default function PortalSidebar({
                       className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
                         isActive
                           ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
-                          : "text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]"
+                          : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                       }`}
                     >
                       <route.icon
@@ -348,20 +355,20 @@ export default function PortalSidebar({
           {adminStatus?.isAdmin && (
             <>
               <div
-                className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-white/10 mx-auto"}`}
+                className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}
               />
 
               <div className="mb-4">
                 {isOpen && (
                   <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                    <ShieldAlert className="h-3 w-3 text-red-500/60 flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-red-500/60 uppercase tracking-[0.2em]">
+                    <ShieldAlert className="h-3 w-3 text-[var(--text-subtle)] flex-shrink-0" />
+                    <span className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-[0.2em]">
                       Admin Area
                     </span>
                   </div>
                 )}
                 {!isOpen && (
-                  <div className="w-8 h-px bg-red-500/20 mx-auto mb-3" />
+                  <div className="w-8 h-px bg-[var(--border-medium)] mx-auto mb-3" />
                 )}
                 <div className="space-y-1">
                   {adminRoutes.map((route) => {
@@ -376,12 +383,12 @@ export default function PortalSidebar({
                         title={!isOpen ? route.name : undefined}
                         className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
                           isActive
-                            ? "bg-gradient-to-r from-red-500/10 to-transparent text-red-500 font-medium border-l-2 border-red-500"
-                            : "text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-primary)]"
+                            ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
+                              : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         <route.icon
-                          className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-red-500" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
+                          className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-accent" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
                         />
                         {isOpen && (
                           <span className="text-sm truncate">{route.name}</span>
@@ -397,7 +404,7 @@ export default function PortalSidebar({
 
         {/* User section */}
         <div className="border-t border-[var(--border-subtle)] px-3 py-4">
-          <div className="flex items-center gap-3 rounded-none bg-white/5 p-3">
+          <div className="flex items-center gap-3 rounded-none bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-3">
             {isOpen && (
               <>
                 <img
@@ -442,7 +449,7 @@ export default function PortalSidebar({
               )}
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex w-full items-center gap-3 rounded-none px-3 py-3 text-[var(--text-subtle)] hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                className="flex w-full items-center gap-3 rounded-none px-3 py-3 text-[var(--text-subtle)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="text-sm font-semibold">Log out</span>
