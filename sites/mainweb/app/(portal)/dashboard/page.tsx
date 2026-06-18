@@ -49,7 +49,7 @@ function StatusBadge({ status }: { status: string }) {
     },
     rejected: {
       label: "Rejected",
-      color: "text-red-500    bg-red-500/10    border-red-500/20",
+      color: "text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-medium)]",
       icon: <XCircle className="w-3 h-3" />,
     },
   };
@@ -118,7 +118,7 @@ export default function Dashboard() {
       ? "Member"
       : "Guest";
   const roleDot = adminStatus?.isAdmin
-    ? "bg-red-500"
+    ? "bg-[var(--accent)]"
     : memberStatus?.isMember
       ? "bg-emerald-500"
       : "bg-amber-500";
@@ -162,7 +162,7 @@ export default function Dashboard() {
           {/* Sign out */}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="self-start sm:self-auto px-5 py-2.5 rounded-sm border border-red-500/20 bg-red-500/5 text-red-500/70 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all text-xs font-bold uppercase tracking-widest"
+            className="self-start sm:self-auto px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-all text-xs font-bold uppercase tracking-widest"
           >
             Sign Out
           </button>
@@ -255,12 +255,12 @@ export default function Dashboard() {
           {/* Admin Panel — admins only */}
           {adminStatus?.isAdmin && (
             <Link href="/admin" className="group">
-              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-red-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
                 <div className="flex items-center justify-between">
-                  <div className="p-2.5 rounded-sm bg-red-500/10 border border-red-500/20 group-hover:bg-red-500/20 transition-colors">
-                    <Shield className="w-5 h-5 text-red-500" />
+                  <div className="p-2.5 rounded-sm bg-accent/10 border border-accent/20 group-hover:bg-accent/20 transition-colors">
+                    <Shield className="w-5 h-5 text-accent" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-red-500 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-all" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">

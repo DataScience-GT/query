@@ -121,42 +121,42 @@
    LIGHT MODE
    ======================================================== */
 .light {
-  --bg-primary: #fafafa;
-  --bg-secondary: #f4f4f5;
-  --bg-tertiary: #fbfbfb;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #f9fafb;
   --bg-card: #ffffff;
   --bg-elevated: #ffffff;
   --bg-glass: #ffffff;
 
   --text-primary: #09090b;
-  --text-secondary: #71717a;
-  --text-muted: #a1a1aa;
-  --text-subtle: #d4d4d8;
-  --text-disabled: #e4e4e7;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --text-subtle: #a1a1aa;
+  --text-disabled: #d4d4d8;
   --text-on-accent: #ffffff;
 
   --border-subtle: #e4e4e7;
-  --border-medium: #d4d4d8;
+  --border-medium: #d1d5db;
   --border-strong: #00A8A8;
-  --border-hover: #a1a1aa;
+  --border-hover: #9ca3af;
   --border-accent: #00A8A8;
 
-  --accent: #00A8A8;
-  --accent-primary: #00A8A8;
-  --accent-secondary: #008f8f;
-  --accent-hover: #007676;
-  --accent-dim: rgba(0, 168, 168, 0.05);
-  --accent-glow: rgba(0, 168, 168, 0.05);
-  --accent-gradient: linear-gradient(135deg, #00A8A8, #008f8f);
-  --accent-fade: rgba(0, 168, 168, 0.02);
+  --accent: #007a7a;
+  --accent-primary: #007a7a;
+  --accent-secondary: #006060;
+  --accent-hover: #005050;
+  --accent-dim: rgba(0, 122, 122, 0.08);
+  --accent-glow: rgba(0, 122, 122, 0.06);
+  --accent-gradient: linear-gradient(135deg, #007a7a, #006060);
+  --accent-fade: rgba(0, 122, 122, 0.03);
 
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-accent: 0 4px 6px -1px rgba(0, 168, 168, 0.1);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.07);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+  --shadow-accent: 0 4px 6px -1px rgba(0, 122, 122, 0.12);
 
   --glass-bg: #ffffff;
   --glass-border: #e4e4e7;
@@ -351,6 +351,11 @@ a {
    LIGHT MODE OVERRIDES
    ======================================================== */
 
+.light body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 .light .bg-\[var\(--bg-primary\)\],
 .light [class*="bg-\[var(--bg-primary)\]"] {
   background-color: var(--bg-primary) !important;
@@ -370,13 +375,22 @@ a {
   border-color: var(--border-medium);
 }
 
+/* Fix hardcoded white/opacity patterns for light mode */
 .light [class*="bg-white\/5"],
 .light [class*="bg-white/5"] {
-  background-color: rgba(0, 0, 0, 0.02) !important;
+  background-color: var(--bg-secondary) !important;
 }
 
-.light [class*="bg-white\/10"] {
-  background-color: rgba(0, 0, 0, 0.04) !important;
+.light [class*="bg-white\/10"],
+.light [class*="bg-white/10"] {
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* Fix dark hardcoded text colors */
+.light .text-gray-300,
+.light .text-gray-400 {
+  color: var(--text-secondary) !important;
 }
 
 .light .text-\[var\(--text-primary\)\]\/40,
@@ -384,25 +398,9 @@ a {
   color: rgba(9, 9, 11, 0.4) !important;
 }
 
+/* Fix hardcoded borders */
 .light [class*="border-\[var\(--border-subtle\)\]"] {
   border-color: var(--border-subtle) !important;
-}
-
-.light [class*="from-\[#000000\]"],
-.light [class*="from-black"],
-.light [class*="to-black"] {
-  --tw-gradient-from: var(--bg-secondary);
-  --tw-gradient-to: var(--bg-primary);
-}
-
-.light .fixed.left-0.top-0.z-40 {
-  background: var(--bg-card) !important;
-  border-right-color: var(--border-subtle) !important;
-}
-
-.light .fixed.top-0.left-0.right-0.h-16 {
-  background: rgba(250, 250, 250, 0.95) !important;
-  border-bottom-color: var(--border-subtle) !important;
 }
 
 .light [class*="border-white\/10"],
@@ -414,9 +412,40 @@ a {
   border-color: var(--border-subtle) !important;
 }
 
-.light .text-gray-300,
-.light .text-gray-400 {
-  color: var(--text-secondary) !important;
+/* Fix dark gradient backgrounds */
+.light [class*="from-\[#000000\]"],
+.light [class*="from-black"],
+.light [class*="to-black"] {
+  --tw-gradient-from: var(--bg-secondary);
+  --tw-gradient-to: var(--bg-primary);
+}
+
+/* Fix sidebar */
+.light .fixed.left-0.top-0.z-40 {
+  background: var(--bg-card) !important;
+  border-right-color: var(--border-subtle) !important;
+  box-shadow: 1px 0 0 var(--border-subtle);
+}
+
+/* Fix mobile top bar */
+.light .fixed.top-0.left-0.right-0.h-16 {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-bottom-color: var(--border-subtle) !important;
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+
+/* Fix backdrop-blur panels */
+.light [class*="bg-\[var\(--bg-primary\)\]\/95"],
+.light [class*="bg-\[var\(--bg-primary\)\]\/98"] {
+  background: rgba(255, 255, 255, 0.97) !important;
+}
+
+/* Input and select focus */
+.light input:focus,
+.light textarea:focus,
+.light select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 122, 0.1) !important;
 }
 
 .container-custom {
