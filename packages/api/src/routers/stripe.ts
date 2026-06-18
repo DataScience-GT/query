@@ -121,9 +121,168 @@ export const stripeRouter = createTRPCRouter({
     }),
 
   /**
+   * Create a Stripe PaymentIntent for embedded/modal checkout
+   * Returns client_secret for use with Stripe Payment Element
+   */
+  createPaymentIntent: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (!stripe) {
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is currently unavailable. Please try again later.",
+        });
+      }
+
+      const user = await ctx.db!.query.users.findFirst({
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
+      });
+
+      if (!user?.email) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "User must have an email address to checkout.",
+        });
+      }
+
+      // Dev/mock mode
+      if (process.env.STRIPE_SECRET_KEY?.startsWith("mk_")) {
+        return {
+          clientSecret: "mock_pi_secret",
+          publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
+          isMock: true,
+        };
+      }
+
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: 1500, // $15.00 in cents
+          currency: "usd",
+          receipt_email: user.email,
+          description: "DSGT Annual Membership ($15/yr)",
+          metadata: {
+            userId: ctx.userId!,
+            userEmail: user.email,
+            type: "membership",
+          },
+          automatic_payment_methods: { enabled: true },
+        });
+
+        return {
+          clientSecret: paymentIntent.client_secret!,
+          publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
+          isMock: false,
+        };
+      } catch (error: unknown) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `Stripe PaymentIntent error: ${error}`,
+        });
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is temporarily unavailable. Please try again later.",
+        });
+      }
+    }),
+
+  /**
+   * Called by the frontend after PaymentIntent succeeds client-side.
+   * Verifies with Stripe, records the payment in DB, and activates membership.
+   */
+  confirmMembershipAfterPayment: protectedProcedure
+    .input(z.object({ paymentIntentId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!stripe) {
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service unavailable.",
+        });
+      }
+
+      // Verify with Stripe that payment actually succeeded
+      const pi = await stripe.paymentIntents.retrieve(input.paymentIntentId);
+      if (pi.status !== "succeeded") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Payment not yet complete (status: ${pi.status}). Please wait and try again.`,
+        });
+      }
+
+      // Ensure the intent was for this user (guard against replay attacks)
+      if (pi.metadata?.userId && pi.metadata.userId !== ctx.userId) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `PaymentIntent userId mismatch: ${pi.metadata.userId} vs ${ctx.userId}`,
+        });
+        throw new TRPCError({ code: "FORBIDDEN", message: "Payment mismatch." });
+      }
+
+      const user = await ctx.db!.query.users.findFirst({
+        where: eq((await import("@query/db")).users.id, ctx.userId!),
+      });
+
+      const nameParts = (user?.name || "Member").split(" ");
+      const firstName = nameParts[0] ?? "Member";
+      const lastName = nameParts.slice(1).join(" ") || "Member";
+
+      // Check if already processed (idempotent)
+      const existing = await ctx.db!.query.stripePayments.findFirst({
+        where: eq(stripePayments.stripePaymentIntentId, pi.id),
+      });
+
+      if (!existing) {
+        await ctx.db!.transaction(async (tx) => {
+          await tx.insert(stripePayments).values({
+            stripeSessionId: `pi_${pi.id}`,
+            stripeCustomerId: typeof pi.customer === "string" ? pi.customer : (pi.customer?.id ?? ""),
+            stripePaymentIntentId: pi.id,
+            customerEmail: (pi.receipt_email ?? user?.email ?? "").toLowerCase(),
+            customerName: user?.name ?? "Member",
+            amountTotal: pi.amount,
+            currency: pi.currency,
+            paymentStatus: "paid",
+            linkedUserId: ctx.userId!,
+            linkedAt: new Date(),
+            metadata: JSON.stringify(pi.metadata ?? {}),
+          });
+
+          await createOrUpdateMembership(
+            tx as unknown as DrizzleDB,
+            ctx.userId!,
+            firstName,
+            lastName,
+          );
+        });
+      } else if (!existing.linkedUserId) {
+        // Payment exists but wasn't linked — link it now
+        await ctx.db!.update(stripePayments)
+          .set({ linkedUserId: ctx.userId!, linkedAt: new Date(), updatedAt: new Date() })
+          .where(eq(stripePayments.id, existing.id));
+        await createOrUpdateMembership(ctx.db! as DrizzleDB, ctx.userId!, firstName, lastName);
+      }
+
+      ctx.cache.delete(`member:${ctx.userId!}`);
+      ctx.cache.delete(`member:status:${ctx.userId!}`);
+
+      return { success: true };
+    }),
+
+
+  /**
    * Attempt to auto-link a Stripe payment matching the user's email
    */
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
+    // Basic rate limit to prevent loop hammering (max 1 request per 10 seconds per user)
+    const rateLimitKey = `rl:autolink:${ctx.userId!}`;
+    if (ctx.cache.get(rateLimitKey)) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Too many requests. Please wait a moment before trying again.",
+      });
+    }
+    ctx.cache.set(rateLimitKey, true, 10);
+
     return await ctx.db!.transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId!),
