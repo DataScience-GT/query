@@ -2,8 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePortalContext } from "@/lib/use-portal-context";
+import { useState } from "react";
 import QRCode from "qrcode";
 import { QRCodeModal } from "@/components/portal/QRCodeModal";
 import { EventFormModal } from "@/components/portal/EventFormModal";
@@ -23,8 +23,7 @@ type Event = {
 };
 
 export default function AdminPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { data: session } = useSession();
   const utils = trpc.useUtils();
 
   const [showCreateEvent, setShowCreateEvent] = useState(false);
@@ -32,13 +31,10 @@ export default function AdminPage() {
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const { data: adminStatus, isLoading: adminLoading } =
-    trpc.admin.isAdmin.useQuery(undefined, {
-      enabled: !!session,
-    });
+  const { data: portalContext } = usePortalContext();
   const { data: events, isLoading: eventsLoading } =
     trpc.events.listAll.useQuery(undefined, {
-      enabled: !!session && adminStatus?.isAdmin,
+      enabled: !!session && !!portalContext?.isAdmin,
     });
 
   type StatusFilter = "all" | "open" | "closed";
@@ -74,18 +70,6 @@ export default function AdminPage() {
       setSelectedEvent(updatedEvent);
     },
   });
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (
-      status === "authenticated" &&
-      !adminLoading &&
-      !adminStatus?.isAdmin
-    ) {
-      router.push("/dashboard");
-    }
-  }, [status, adminStatus, adminLoading, router]);
 
   const generateQRCode = async (qrCode: string) => {
     try {

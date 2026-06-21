@@ -230,7 +230,12 @@ export const CacheKeys = {
   events: () => `events:list`,
   judge: (userId: string) => `judge:${userId}`,
   member: (userId: string) => `member:${userId}`,
+  portalContext: (userId: string) => `user:${userId}:portal`,
 } as const;
+
+export const invalidatePortalContext = (userId: string) => {
+  cache.delete(CacheKeys.portalContext(userId));
+};
 
 // Cache invalidation helpers
 export const invalidateUser = (userId: string) => {

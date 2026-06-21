@@ -13,8 +13,6 @@ export const metadata: Metadata = {
   authors: [{ name: "aamoghS" }],
 };
 
-import { TRPCReactProvider } from "@/lib/trpc-provider";
-
 export default function RootLayout({
   children,
 }: {
@@ -26,7 +24,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className="antialiased bg-[#050505] text-gray-400"
       >
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        {children}
       </body>
     </html>
   );

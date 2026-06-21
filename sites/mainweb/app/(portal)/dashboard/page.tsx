@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Image from "next/image";
@@ -72,20 +73,16 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const { data: portalContext } = usePortalContext();
   const { data: userData } = trpc.user.me.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
     enabled: !!session,
   });
   const { data: myRegs, isLoading: loadingRegs } =
     trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+
+  const memberStatus = portalContext?.member;
+  const isAdmin = portalContext?.isAdmin ?? false;
+  const isJudge = portalContext?.isJudge ?? false;
 
   const now = new Date();
   const activeRegs =
@@ -105,19 +102,19 @@ export default function Dashboard() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
   useEffect(() => {
-    if (adminStatus?.isAdmin) router.replace("/admin");
-  }, [adminStatus?.isAdmin, router]);
+    if (isAdmin) router.replace("/admin");
+  }, [isAdmin, router]);
 
   if (status === "loading")
     return <LoadingScreen message="Loading dashboard..." />;
   if (!session) return null;
 
-  const roleLabel = adminStatus?.isAdmin
+  const roleLabel = isAdmin
     ? "Admin"
     : memberStatus?.isMember
       ? "Member"
       : "Guest";
-  const roleDot = adminStatus?.isAdmin
+  const roleDot = isAdmin
     ? "bg-[var(--accent)]"
     : memberStatus?.isMember
       ? "bg-emerald-500"
@@ -231,7 +228,7 @@ export default function Dashboard() {
           )}
 
           {/* Judge Portal — judges only */}
-          {judgeStatus?.isJudge && (
+          {isJudge && (
             <Link href="/judge" className="group">
               <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-purple-500/40 transition-all">
                 <div className="flex items-center justify-between">
@@ -253,7 +250,7 @@ export default function Dashboard() {
           )}
 
           {/* Admin Panel — admins only */}
-          {adminStatus?.isAdmin && (
+          {isAdmin && (
             <Link href="/admin" className="group">
               <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
                 <div className="flex items-center justify-between">
@@ -276,7 +273,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── MEMBERSHIP CTA (non-members) ───────────────── */}
-        {!memberStatus?.isMember && !adminStatus?.isAdmin && (
+        {!memberStatus?.isMember && !isAdmin && (
           <LiquidGlass printed holographic className="p-6 border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-yellow-500/5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
               <div className="flex items-start gap-4">

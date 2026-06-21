@@ -1,8 +1,22 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { ModalWrapper } from "./ModalWrapper";
-import { Scanner } from "@yudiel/react-qr-scanner";
+
+const Scanner = dynamic(
+  () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[350px] flex items-center justify-center bg-[var(--bg-secondary)]">
+        <p className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+          Starting camera...
+        </p>
+      </div>
+    ),
+  },
+);
 
 interface QRScannerModalProps {
   onClose: () => void;

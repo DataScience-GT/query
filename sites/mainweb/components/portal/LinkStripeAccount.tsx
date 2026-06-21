@@ -1,10 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { trpc } from "@/lib/trpc";
+import { useInvalidatePortalContext } from "@/lib/use-portal-context";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { StripePaymentModal } from "@/components/portal/StripePaymentModal";
 import { CreditCard, Link as LinkIcon } from "lucide-react";
+
+const StripePaymentModal = dynamic(
+  () =>
+    import("@/components/portal/StripePaymentModal").then(
+      (mod) => mod.StripePaymentModal,
+    ),
+  { ssr: false },
+);
 
 interface LinkStripeAccountProps {
   onSuccess?: () => void;
@@ -28,6 +37,7 @@ export default function LinkStripeAccount({
   } | null>(null);
 
   const utils = trpc.useUtils();
+  const invalidatePortalContext = useInvalidatePortalContext();
 
   // Auto-link on mount
   const autoLinkMutation = trpc.stripe.attemptAutoLink.useMutation({
@@ -88,9 +98,8 @@ export default function LinkStripeAccount({
   const handlePaymentSuccess = () => {
     setShowModal(false);
     setPaymentData(null);
-    // confirmMembershipAfterPayment already created the membership server-side.
-    // Just mark success and refresh the member status cache.
     setSuccess(true);
+    invalidatePortalContext();
     utils.member.checkStatus.invalidate();
     onSuccess?.();
   };

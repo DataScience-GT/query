@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
@@ -24,16 +25,13 @@ export default function AdminResultsPage() {
     "results",
   );
 
-  // Check if admin
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
+  const { data: portalContext } = usePortalContext();
 
   // Get hackathons
   const { data: hackathons } = trpc.hackathon.list.useQuery(
     {},
     {
-      enabled: !!session && !!adminStatus?.isAdmin,
+      enabled: !!session && !!portalContext?.isAdmin,
     },
   );
 
@@ -45,7 +43,7 @@ export default function AdminResultsPage() {
 
   // Get judges
   const { data: judges } = trpc.judge.list.useQuery(undefined, {
-    enabled: !!session && !!adminStatus?.isAdmin,
+    enabled: !!session && !!portalContext?.isAdmin,
   });
 
   // Judging active status

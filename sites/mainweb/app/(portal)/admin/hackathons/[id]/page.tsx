@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
@@ -21,15 +22,13 @@ export default function AdminHackathonDashboard() {
   const hackathonId = params?.id as string;
   const [activeTab, setActiveTab] = useState<Tab>("attendees");
 
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
+  const { data: portalContext, isLoading: portalLoading } = usePortalContext();
   const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery(
     { id: hackathonId },
-    { enabled: !!hackathonId && !!adminStatus?.isAdmin },
+    { enabled: !!hackathonId && !!portalContext?.isAdmin },
   );
 
-  if (status === "loading" || isLoading || !adminStatus?.isAdmin) {
+  if (status === "loading" || portalLoading || isLoading || !portalContext?.isAdmin) {
     return <LoadingScreen message="Loading..." />;
   }
 

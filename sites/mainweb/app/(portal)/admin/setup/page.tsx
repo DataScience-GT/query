@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { SetupWizard } from "@/components/admin/setup/SetupWizard";
@@ -54,16 +55,13 @@ export default function AdminSetupPage() {
   const [judgesAssigned, setJudgesAssigned] = useState(false);
 
   // Admin check
-  const { data: adminStatus, isLoading: adminLoading } =
-    trpc.admin.isAdmin.useQuery(undefined, {
-      enabled: !!session,
-    });
+  const { data: portalContext, isLoading: portalLoading } = usePortalContext();
 
   const { data: hackathons, refetch: refetchHackathons } =
     trpc.hackathon.list.useQuery(
       {},
       {
-        enabled: !!session && !!adminStatus?.isAdmin,
+        enabled: !!session && !!portalContext?.isAdmin,
       },
     );
 
@@ -97,18 +95,6 @@ export default function AdminSetupPage() {
   });
 
   useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (
-      status === "authenticated" &&
-      !adminLoading &&
-      !adminStatus?.isAdmin
-    ) {
-      router.push("/dashboard");
-    }
-  }, [status, adminStatus, adminLoading, router]);
 
   // Parse judges CSV: name,email,track
   const handleJudgesCSV = (e: React.ChangeEvent<HTMLInputElement>) => {

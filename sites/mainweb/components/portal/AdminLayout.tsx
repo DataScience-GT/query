@@ -1,10 +1,9 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-
 import { useEffect, useState } from "react";
-import { trpc } from "@/lib/trpc";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { usePortalContext } from "@/lib/use-portal-context";
 
 export default function AdminLayout({
   children,
@@ -15,22 +14,19 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const { data: adminStatus, isLoading: adminLoading } =
-    trpc.admin.isAdmin.useQuery(undefined, {
-      enabled: status === "authenticated",
-    });
+  const { data: portalContext, isLoading: portalLoading } = usePortalContext();
 
   useEffect(() => {
     if (status === "unauthenticated") {
       window.location.href = "/login";
-    } else if (status === "authenticated" && !adminLoading) {
-      if (!adminStatus?.isAdmin) {
+    } else if (status === "authenticated" && !portalLoading) {
+      if (!portalContext?.isAdmin) {
         router.push("/dashboard");
       } else {
         setLoading(false);
       }
     }
-  }, [status, adminStatus, adminLoading, router]);
+  }, [status, portalContext?.isAdmin, portalLoading, router]);
 
   if (loading) {
     return (
