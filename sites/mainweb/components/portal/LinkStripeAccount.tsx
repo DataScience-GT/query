@@ -290,9 +290,9 @@ export default function LinkStripeAccount({
           publishableKey={paymentData.publishableKey}
           isMock={paymentData.isMock}
           onSuccess={handlePaymentSuccess}
-          onConfirmPayment={(paymentIntentId) =>
-            confirmMutation.mutateAsync({ paymentIntentId })
-          }
+          onConfirmPayment={async (paymentIntentId) => {
+            await confirmMutation.mutateAsync({ paymentIntentId });
+          }}
           onClose={() => {
             setShowModal(false);
             setPaymentData(null);
