@@ -3,8 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, uploadProcedure } from "../trpc";
 import { users, userProfiles } from "@query/db";
 import { eq } from "drizzle-orm";
-import { imageSize } from "image-size";
 import { CacheKeys } from "../middleware/cache";
+import type { DrizzleDB } from "@query/db";
+import { fetchPortalContext } from "../services/portal-context";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -47,6 +48,26 @@ export const userRouter = createTRPCRouter({
     };
 
     ctx.cache.set(cacheKey, result, 120);
+    return result;
+  }),
+
+  getPortalContext: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.userId as string;
+    const cacheKey = CacheKeys.portalContext(userId);
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchPortalContext>>>(
+      cacheKey,
+    );
+    if (cached) return cached;
+
+    if (!ctx.db) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Database unavailable",
+      });
+    }
+
+    const result = await fetchPortalContext(ctx.db as DrizzleDB, userId);
+    ctx.cache.set(cacheKey, result, 300);
     return result;
   }),
 
@@ -128,6 +149,7 @@ export const userRouter = createTRPCRouter({
       const buffer = Buffer.from(base64Data, "base64");
 
       try {
+        const { imageSize } = await import("image-size");
         const dimensions = imageSize(buffer);
         if (!dimensions.width || !dimensions.height) {
           throw new TRPCError({

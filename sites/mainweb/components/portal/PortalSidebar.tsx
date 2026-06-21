@@ -23,7 +23,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
 interface PortalSidebarProps {
@@ -41,15 +41,7 @@ export default function PortalSidebar({
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, {
-    enabled: !!session,
-  });
+  const { data: portalContext } = usePortalContext();
 
   useEffect(() => {
     setMounted(true);
@@ -71,25 +63,25 @@ export default function PortalSidebar({
       name: "Dashboard",
       href: "/dashboard",
       icon: Home,
-      show: !adminStatus?.isAdmin,
+      show: !portalContext?.isAdmin,
     },
     {
       name: "Hackathons",
       href: "/hackathons",
       icon: Zap,
-      show: !adminStatus?.isAdmin,
+      show: !portalContext?.isAdmin,
     },
     {
       name: "Club Portal",
       href: "/club",
       icon: QrCode,
-      show: memberStatus?.isMember && !adminStatus?.isAdmin,
+      show: portalContext?.member.isMember && !portalContext?.isAdmin,
     },
     {
       name: "Judge Portal",
       href: "/judge",
       icon: ClipboardList,
-      show: judgeStatus?.isJudge && !adminStatus?.isAdmin,
+      show: portalContext?.isJudge && !portalContext?.isAdmin,
     },
     {
       name: "Settings",
@@ -176,7 +168,7 @@ export default function PortalSidebar({
               </div>
             )}
 
-            {adminStatus?.isAdmin && (
+            {portalContext?.isAdmin && (
               <>
                 <div className="w-full h-px bg-[var(--border-subtle)]" />
                 <div className="w-full text-center">
@@ -350,7 +342,7 @@ export default function PortalSidebar({
             </div>
           )}
 
-          {adminStatus?.isAdmin && (
+          {portalContext?.isAdmin && (
             <>
               <div
                 className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}

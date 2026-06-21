@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
-import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
+import { usePortalContext } from "@/lib/use-portal-context";
 
 // DSGT Query - Premium Landing Page
 // Ultra-modern, standout UI/UX
@@ -16,12 +16,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, {
-    enabled: !!session,
-  });
+  const { data: portalContext } = usePortalContext();
 
   useEffect(() => {
     setMounted(true);
@@ -30,7 +25,7 @@ export default function Home() {
   useEffect(() => {
     if (session) {
       const redirectTimeout = setTimeout(() => {
-        if (judgeStatus?.isJudge && !adminStatus?.isAdmin) {
+        if (portalContext?.isJudge && !portalContext?.isAdmin) {
           router.push("/judge");
         } else {
           router.push("/dashboard");
@@ -39,7 +34,7 @@ export default function Home() {
 
       return () => clearTimeout(redirectTimeout);
     }
-  }, [status, session, router, judgeStatus, adminStatus]);
+  }, [status, session, router, portalContext?.isJudge, portalContext?.isAdmin]);
 
   const handleEmailLogin = async () => {
     if (!email) return;
@@ -235,7 +230,7 @@ export default function Home() {
                   </span>
                   <span className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 bg-purple-500 rounded-sm animate-pulse" />
-                    JUDGE: {judgeStatus?.isJudge ? "ACTIVE" : "OPEN"}
+                    JUDGE: {portalContext?.isJudge ? "ACTIVE" : "OPEN"}
                   </span>
                 </div>
               </div>
