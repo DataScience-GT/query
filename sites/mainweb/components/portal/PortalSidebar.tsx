@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Users,
   BarChart3,
-  Settings,
   LogOut,
   Menu,
   QrCode,
@@ -96,7 +95,7 @@ export default function PortalSidebar({
       name: "Settings",
       href: "/settings",
       icon: UserCircle,
-      show: !adminStatus?.isAdmin,
+      show: true,
     },
   ].filter((r) => r.show);
 
@@ -106,7 +105,6 @@ export default function PortalSidebar({
     { name: "Judging", href: "/admin/judging", icon: ClipboardList },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
   return (

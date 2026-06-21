@@ -34,6 +34,7 @@ export default function SettingsPage() {
 
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
   const updateProfile = trpc.user.updateProfile.useMutation();
+  const utils = trpc.useUtils();
 
   const [form, setForm] = useState({
     name: "",
@@ -68,6 +69,7 @@ export default function SettingsPage() {
         website: form.website || undefined,
         location: form.location || undefined,
       });
+      await utils.user.me.invalidate();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
@@ -174,6 +176,22 @@ export default function SettingsPage() {
                         placeholder="Your full name"
                         className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
                       />
+                    </div>
+
+                    {/* Email (read-only from Google) */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                        <Mail className="w-3.5 h-3.5" /> Email
+                      </label>
+                      <input
+                        type="email"
+                        value={userData?.email || ""}
+                        readOnly
+                        className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-muted)] cursor-not-allowed text-sm"
+                      />
+                      <p className="text-[10px] text-[var(--text-subtle)] font-mono">
+                        Managed by your Google account
+                      </p>
                     </div>
 
                     {/* Location */}
