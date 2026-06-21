@@ -10,7 +10,7 @@ import {
   hackathonParticipants,
 } from "@query/db";
 import { eq, and, count, gte, inArray } from "drizzle-orm";
-import { CacheKeys } from "../middleware/cache";
+import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
 import type { DrizzleDB } from "@query/db";
 
@@ -161,6 +161,7 @@ export const adminRouter = createTRPCRouter({
       // Invalidate admin caches after creation
       ctx.cache.deletePattern(`${CacheKeys.admin(input.userId)}*`);
       ctx.cache.delete(`admins:list`);
+      invalidatePortalContext(input.userId);
 
       return newAdmin;
     }),
@@ -211,6 +212,7 @@ export const adminRouter = createTRPCRouter({
       // Bust the affected user's admin cache so next request re-checks
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
+      invalidatePortalContext(targetAdmin.userId);
 
       return updatedAdmin;
     }),
@@ -238,6 +240,7 @@ export const adminRouter = createTRPCRouter({
 
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
+      invalidatePortalContext(targetAdmin.userId);
 
       return { success: true };
     }),

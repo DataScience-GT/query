@@ -40,6 +40,7 @@ const t = initTRPC.context<Context>().create({
 });
 
 export const createTRPCRouter = t.router;
+export const mergeRouters = t.mergeRouters;
 
 const requiresDb = t.middleware(async ({ ctx, next }) => {
   if (!ctx.db) {

@@ -4,6 +4,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory, hackathons } from "@query/db";
 import { eq, and, desc } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
+import { invalidatePortalContext } from "../middleware/cache";
 
 const nameSchema = z
   .string()
@@ -131,6 +132,8 @@ export const memberRouter = createTRPCRouter({
         startDate: membershipStartDate,
         endDate: membershipEndDate,
       });
+
+      invalidatePortalContext(ctx.userId!);
 
       return newMember;
     }),

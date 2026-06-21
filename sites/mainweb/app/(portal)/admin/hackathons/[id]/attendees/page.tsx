@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
 import { useParams, useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -15,8 +16,7 @@ export default function AdminAttendeeViewer() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const { data: adminStatus, isLoading: adminLoading } =
-    trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
+  const { data: portalContext, isLoading: portalLoading } = usePortalContext();
   const { data: hackathon, isLoading: loadingHackathon } =
     trpc.hackathon.getById.useQuery(
       { id: hackathonId },
@@ -25,7 +25,7 @@ export default function AdminAttendeeViewer() {
   const { data: attendees, isLoading: loadingAttendees, refetch } =
     trpc.hackathon.adminGetAttendees.useQuery(
       { hackathonId },
-      { enabled: !!hackathonId && !!adminStatus?.isAdmin },
+      { enabled: !!hackathonId && !!portalContext?.isAdmin },
     );
 
   const massAcceptMutation = trpc.hackathon.sendMassAcceptanceEmails.useMutation({
@@ -39,14 +39,14 @@ export default function AdminAttendeeViewer() {
 
   if (
     authStatus === "loading" ||
-    adminLoading ||
+    portalLoading ||
     loadingHackathon ||
     loadingAttendees
   ) {
     return <LoadingScreen message="Loading Attendee Data..." />;
   }
 
-  if (!session || !adminStatus?.isAdmin || !hackathon) {
+  if (!session || !portalContext?.isAdmin || !hackathon) {
     router.push("/dashboard");
     return null;
   }

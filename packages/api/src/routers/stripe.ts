@@ -5,11 +5,31 @@ import { stripePayments, userAccountLinks, members, hackathons } from "@query/db
 import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
-import Stripe from "stripe";
+import { invalidatePortalContext } from "../middleware/cache";
+import type Stripe from "stripe";
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
+let stripeClient: Stripe | null | undefined;
+
+async function getStripe(): Promise<Stripe | null> {
+  if (stripeClient !== undefined) return stripeClient;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    stripeClient = null;
+    return stripeClient;
+  }
+  const { default: StripeSDK } = await import("stripe");
+  stripeClient = new StripeSDK(key);
+  return stripeClient;
+}
+
+function clearMembershipCaches(
+  cache: { delete: (key: string) => boolean; deletePattern: (pattern: string) => number },
+  userId: string,
+) {
+  cache.delete(`member:${userId}`);
+  cache.deletePattern(`member:status:${userId}*`);
+  invalidatePortalContext(userId);
+}
 
 export const stripeRouter = createTRPCRouter({
   /**
@@ -18,6 +38,7 @@ export const stripeRouter = createTRPCRouter({
   createCheckoutSession: protectedProcedure
     .input(z.object({ returnUrl: z.string().url() }))
     .mutation(async ({ ctx, input }) => {
+      const stripe = await getStripe();
       if (!stripe) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
@@ -68,8 +89,7 @@ export const stripeRouter = createTRPCRouter({
         });
 
         // Invalidate cache
-        ctx.cache.delete(`member:${ctx.userId!}`);
-        ctx.cache.delete(`member:status:${ctx.userId!}`);
+        clearMembershipCaches(ctx.cache, ctx.userId!);
 
         const mockUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}payment=success&session_id=${sessionId}`;
         return { url: mockUrl };
@@ -126,6 +146,7 @@ export const stripeRouter = createTRPCRouter({
    */
   createPaymentIntent: protectedProcedure
     .mutation(async ({ ctx }) => {
+      const stripe = await getStripe();
       if (!stripe) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
@@ -192,6 +213,7 @@ export const stripeRouter = createTRPCRouter({
   confirmMembershipAfterPayment: protectedProcedure
     .input(z.object({ paymentIntentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const stripe = await getStripe();
       if (!stripe) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
@@ -262,8 +284,7 @@ export const stripeRouter = createTRPCRouter({
         await createOrUpdateMembership(ctx.db! as DrizzleDB, ctx.userId!, firstName, lastName);
       }
 
-      ctx.cache.delete(`member:${ctx.userId!}`);
-      ctx.cache.delete(`member:status:${ctx.userId!}`);
+      clearMembershipCaches(ctx.cache, ctx.userId!);
 
       return { success: true };
     }),
@@ -334,8 +355,7 @@ export const stripeRouter = createTRPCRouter({
         lastName,
       );
 
-      // Invalidate cache directly
-      ctx.cache.delete(`member:status:${ctx.userId!}`);
+      clearMembershipCaches(ctx.cache, ctx.userId!);
 
       return { success: true };
     });
@@ -450,8 +470,7 @@ export const stripeRouter = createTRPCRouter({
           input.lastName,
         );
 
-        // Invalidate membership status cache
-        ctx.cache.delete(`member:status:${ctx.userId!}`);
+        clearMembershipCaches(ctx.cache, ctx.userId!);
 
         return {
           success: true,
