@@ -267,7 +267,7 @@ export default function Dashboard() {
                     Admin Panel
                   </h3>
                   <p className="text-sm text-[var(--text-muted)] mt-1">
-                    Manage events, attendees, analytics, and settings.
+                    Manage events, attendees, and analytics.
                   </p>
                 </div>
               </LiquidGlass>

@@ -12,4 +12,3 @@ export {
 } from "./schemas/hackathons";
 export { events, eventCheckIns } from "./schemas/events";
 export { auditLogs, securitySeverityEnum } from "./schemas/security";
-export { systemSettings } from "./schemas/settings";
