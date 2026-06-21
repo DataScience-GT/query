@@ -90,7 +90,7 @@ importers:
     dependencies:
       '@auth/drizzle-adapter':
         specifier: 1.7.1
-        version: 1.7.1(nodemailer@8.0.5)
+        version: 1.7.1(nodemailer@9.0.1)
       '@query/db':
         specifier: workspace:*
         version: link:../db
@@ -102,10 +102,10 @@ importers:
         version: 10.2.3
       next-auth:
         specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
+        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@9.0.1)(react@19.2.7)
       nodemailer:
-        specifier: 8.0.5
-        version: 8.0.5
+        specifier: 9.0.1
+        version: 9.0.1
     devDependencies:
       '@query/tsconfig':
         specifier: workspace:*
@@ -147,7 +147,7 @@ importers:
         version: 10.2.3
       next-auth:
         specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
+        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@9.0.1)(react@19.2.7)
       pg:
         specifier: 8.21.0
         version: 8.21.0
@@ -336,11 +336,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       '@stripe/react-stripe-js':
-        specifier: ^6.6.0
-        version: 6.6.0(@stripe/stripe-js@9.8.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
+        specifier: ^3.7.0
+        version: 3.10.0(@stripe/stripe-js@5.10.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
       '@stripe/stripe-js':
-        specifier: ^9.8.0
-        version: 9.8.0
+        specifier: ^5.8.0
+        version: 5.10.0
       '@tanstack/react-query':
         specifier: ^5.90.12
         version: 5.90.12(react@19.2.7)
@@ -379,7 +379,7 @@ importers:
         version: 16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
       next-auth:
         specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
+        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@9.0.1)(react@19.2.7)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
@@ -2170,15 +2170,15 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@stripe/react-stripe-js@6.6.0':
-    resolution: {integrity: sha512-utODPiu2/JGjCnh5BX1M1F2uyjCwDKum4Bo8CeWdTCNOlzM0980YadzBMe7YoIwjfu3uadX4PMe3L2SderejqA==}
+  '@stripe/react-stripe-js@3.10.0':
+    resolution: {integrity: sha512-UPqHZwMwDzGSax0ZI7XlxR3tZSpgIiZdk3CiwjbTK978phwR/fFXeAXQcN/h8wTAjR4ZIAzdlI9DbOqJhuJdeg==}
     peerDependencies:
-      '@stripe/stripe-js': '>=9.5.0 <10.0.0'
+      '@stripe/stripe-js': '>=1.44.1 <8.0.0'
       react: '>=16.8.0 <20.0.0'
       react-dom: '>=16.8.0 <20.0.0'
 
-  '@stripe/stripe-js@9.8.0':
-    resolution: {integrity: sha512-DHJpol/98VKyojNSYmpkB5vOMnlf87hPe0wPxyaYTNiTMk5QjKMXDfSZLwGctYIXAgAWDFeRABc8lFAj0BELyw==}
+  '@stripe/stripe-js@5.10.0':
+    resolution: {integrity: sha512-PTigkxMdMUP6B5ISS7jMqJAKhgrhZwjprDqR1eATtFfh0OpKVNp110xiH+goeVdrJ29/4LeZJR4FaHHWstsu0A==}
     engines: {node: '>=12.16'}
 
   '@swc/helpers@0.5.15':
@@ -3912,8 +3912,8 @@ packages:
   node-releases@2.0.38:
     resolution: {integrity: sha512-3qT/88Y3FbH/Kx4szpQQ4HzUbVrHPKTLVpVocKiLfoYvw9XSGOX2FmD2d6DrXbVYyAQTF2HeF6My8jmzx7/CRw==}
 
-  nodemailer@8.0.5:
-    resolution: {integrity: sha512-0PF8Yb1yZuQfQbq+5/pZJrtF6WQcjTd5/S4JOHs9PGFxuTqoB/icwuB44pOdURHJbRKX1PPoJZtY7R4VUoCC8w==}
+  nodemailer@9.0.1:
+    resolution: {integrity: sha512-Gwv8SQewT616ZM/URn0H54b8PWo/Wum7md3EW2aWy1lO27+WZCX+Xyak3J+NlmHUjDh5ME+uesJUDRbR3Ye8Bw==}
     engines: {node: '>=6.0.0'}
 
   normalize-range@0.1.2:
@@ -4859,7 +4859,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@auth/core@0.37.1(nodemailer@8.0.5)':
+  '@auth/core@0.37.1(nodemailer@9.0.1)':
     dependencies:
       '@panva/hkdf': 1.2.1
       '@types/cookie': 0.6.0
@@ -4869,9 +4869,9 @@ snapshots:
       preact: 10.11.3
       preact-render-to-string: 5.2.3(preact@10.11.3)
     optionalDependencies:
-      nodemailer: 8.0.5
+      nodemailer: 9.0.1
 
-  '@auth/core@0.41.0(nodemailer@8.0.5)':
+  '@auth/core@0.41.0(nodemailer@9.0.1)':
     dependencies:
       '@panva/hkdf': 1.2.1
       jose: 6.2.3
@@ -4879,11 +4879,11 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
-      nodemailer: 8.0.5
+      nodemailer: 9.0.1
 
-  '@auth/drizzle-adapter@1.7.1(nodemailer@8.0.5)':
+  '@auth/drizzle-adapter@1.7.1(nodemailer@9.0.1)':
     dependencies:
-      '@auth/core': 0.37.1(nodemailer@8.0.5)
+      '@auth/core': 0.37.1(nodemailer@9.0.1)
     transitivePeerDependencies:
       - '@simplewebauthn/browser'
       - '@simplewebauthn/server'
@@ -6335,14 +6335,14 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@stripe/react-stripe-js@6.6.0(@stripe/stripe-js@9.8.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)':
+  '@stripe/react-stripe-js@3.10.0(@stripe/stripe-js@5.10.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@stripe/stripe-js': 9.8.0
+      '@stripe/stripe-js': 5.10.0
       prop-types: 15.8.1
       react: 19.2.7
       react-dom: 19.0.0(react@19.2.7)
 
-  '@stripe/stripe-js@9.8.0': {}
+  '@stripe/stripe-js@5.10.0': {}
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -8308,13 +8308,13 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next-auth@5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7):
+  next-auth@5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@9.0.1)(react@19.2.7):
     dependencies:
-      '@auth/core': 0.41.0(nodemailer@8.0.5)
+      '@auth/core': 0.41.0(nodemailer@9.0.1)
       next: 16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
       react: 19.2.7
     optionalDependencies:
-      nodemailer: 8.0.5
+      nodemailer: 9.0.1
 
   next-themes@0.4.6(react-dom@19.0.0(react@19.2.7))(react@19.2.7):
     dependencies:
@@ -8358,7 +8358,7 @@ snapshots:
 
   node-releases@2.0.38: {}
 
-  nodemailer@8.0.5: {}
+  nodemailer@9.0.1: {}
 
   normalize-range@0.1.2: {}
 
