@@ -25,7 +25,7 @@ export default function AnalyticsPage() {
 
   const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
     undefined,
-    { enabled: !!session },
+    { enabled: !!session, refetchInterval: 5000 },
   );
 
   if (status === "unauthenticated") {

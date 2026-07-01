@@ -31,10 +31,32 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "appearance" | "account">("profile");
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
   const updateProfile = trpc.user.updateProfile.useMutation();
+  const updateProfileImage = trpc.user.updateProfileImage.useMutation();
   const utils = trpc.useUtils();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Image = reader.result as string;
+        await updateProfileImage.mutateAsync({ base64Image });
+        await utils.user.me.invalidate();
+        setIsUploadingImage(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (e) {
+      console.error(e);
+      setIsUploadingImage(false);
+    }
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -140,25 +162,42 @@ export default function SettingsPage() {
                 <div className="space-y-8 animate-in fade-in duration-200">
                   {/* Avatar */}
                   <div className="flex items-center gap-5">
-                    <div className="relative flex-shrink-0">
-                      <Image
-                        src={userData?.image || "/avatar-placeholder.png"}
-                        alt="Avatar"
-                        width={72}
-                        height={72}
-                        className="rounded-full border-2 border-[var(--border-medium)] object-cover h-[72px] w-[72px]"
+                    <label className="relative flex-shrink-0 cursor-pointer group">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={isUploadingImage}
                       />
-                      <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-[var(--bg-card)] bg-emerald-500 flex items-center justify-center">
+                      <div className="relative h-[72px] w-[72px] rounded-full overflow-hidden border-2 border-[var(--border-medium)] group-hover:border-accent transition-colors">
+                        <Image
+                          src={userData?.image || "/avatar-placeholder.png"}
+                          alt="Avatar"
+                          width={72}
+                          height={72}
+                          className={`object-cover h-full w-full ${isUploadingImage ? 'opacity-50' : ''}`}
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-white text-xs font-bold">Edit</span>
+                        </div>
+                        {isUploadingImage && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-sm animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-[var(--bg-card)] bg-emerald-500 flex items-center justify-center z-10">
                         <CheckCircle className="w-2.5 h-2.5 text-white" />
                       </span>
-                    </div>
+                    </label>
                     <div>
                       <p className="text-sm font-bold text-[var(--text-primary)]">
                         {userData?.name || "Your Name"}
                       </p>
                       <p className="text-xs text-[var(--text-muted)] mt-0.5">{userData?.email}</p>
                       <p className="text-[10px] text-[var(--text-subtle)] mt-1.5 font-mono">
-                        Profile photo is synced from your Google account
+                        Click on your avatar to upload a new profile picture. Max 2MB (jpg/png/webp).
                       </p>
                     </div>
                   </div>
