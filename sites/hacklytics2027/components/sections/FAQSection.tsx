@@ -1,219 +1,135 @@
 "use client";
-
 import React, { useState } from "react";
 import Link from "next/link";
-import { FlowerAccent } from "../FloatingFlowers";
 
-const FAQCard: React.FC<{
-  title: string;
-  content: React.ReactNode;
-  num: string;
-}> = ({ title, content, num }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const faqItems: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "What is a data science hackathon?",
+    a: "A datathon focuses on data science and machine learning. You can use any datasets, languages, APIs, or algorithms to create visualizations, develop models, or derive actionable insights.",
+  },
+  {
+    q: "Who can register?",
+    a: "Any student currently enrolled at a university who is 18 or older. For any discrepancies, reach out to our team.",
+  },
+  {
+    q: "How many people per team?",
+    a: "Maximum of 4 members. You're also allowed to work solo or with fewer members.",
+  },
+  {
+    q: "Is the event free?",
+    a: "100% free. We provide all meals, snacks, caffeine, swag, and cloud credits during the event.",
+  },
+  {
+    q: "Can you participate virtually?",
+    a: "No — Hacklytics 2027 is fully in-person. Sponsors want to see you build and innovate in real time!",
+  },
+  {
+    q: "What if I don't have a team?",
+    a: "Many participants come without teams. We host a team-building event right after the opening ceremony, and you can find teammates on our Discord.",
+  },
+  {
+    q: "What if I forgot to register?",
+    a: "We will have a limited number of walk-ins starting at 6:00 PM on the first day. First come, first served.",
+  },
+  {
+    q: "What information does registration collect?",
+    a: (
+      <>
+        Name, age (18+), phone, school, level of study, country, graduation year, major, gender, and race/ethnicity. You&apos;ll also agree to the{" "}
+        <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" className="text-bloom-purple hover:text-white transition-colors underline underline-offset-4">
+          MLH Code of Conduct
+        </Link>{" "}
+        and{" "}
+        <Link href="https://mlh.io/privacy" target="_blank" className="text-bloom-purple hover:text-white transition-colors underline underline-offset-4">
+          MLH Privacy Policy
+        </Link>.
+      </>
+    ),
+  },
+  {
+    q: "What is the MLH Code of Conduct?",
+    a: (
+      <>
+        All participants are expected to follow the{" "}
+        <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" className="text-bloom-purple hover:text-white transition-colors underline underline-offset-4">
+          MLH Code of Conduct
+        </Link>. Harassment of any kind is not tolerated. Contact MLH at incidents@mlh.io or +1 409 202 6060.
+      </>
+    ),
+  },
+];
+
+const FAQItem: React.FC<{ q: string; a: React.ReactNode; num: string }> = ({ q, a, num }) => {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div
-      className={`glass-card transition-all duration-500 overflow-hidden ${
-        isOpen
-          ? "border-bloom-cyan/50 shadow-[0_0_20px_rgba(0,243,255,0.15)]"
-          : "hover:border-white/30 hover:-translate-y-1"
-      } cursor-pointer mb-4`}
-      onClick={() => setIsOpen(!isOpen)}
-    >
-      <div className="flex justify-between items-center p-6 md:p-8 relative z-10">
-        <div className="flex items-center gap-6">
-          <span
-            className={`font-mono text-xs md:text-sm tracking-widest font-bold ${
-              isOpen
-                ? "text-bloom-pink drop-shadow-[0_0_5px_currentColor]"
-                : "text-gray-400"
-            }`}
-          >
+    <div className={`border-b border-white/5 transition-colors duration-500 ${open ? "border-white/20 bg-white/[0.01]" : "hover:bg-white/[0.02]"}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-start justify-between gap-6 py-8 px-4 md:px-6 text-left group"
+        aria-expanded={open}
+      >
+        <div className="flex items-start gap-6 md:gap-10">
+          <span className="font-mono text-xs text-white/20 mt-1 shrink-0 group-hover:text-bloom-purple transition-colors duration-500">
             {num}
           </span>
-          <h3
-            className={`font-sans text-xl md:text-2xl font-bold tracking-tight ${
-              isOpen ? "text-white" : "text-gray-300"
-            } transition-colors`}
-          >
-            {title}
-          </h3>
+          <span className={`font-sans text-lg md:text-2xl font-light tracking-wide transition-colors duration-500 ${open ? "text-white" : "text-white/70 group-hover:text-white"}`}>
+            {q}
+          </span>
         </div>
-
-        {/* Expand/Collapse Icon */}
-        <div
-          className={`flex-shrink-0 transition-transform duration-500 ${
-            isOpen
-              ? "rotate-45 text-bloom-cyan drop-shadow-[0_0_5px_currentColor]"
-              : "text-gray-400"
-          }`}
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
+        {/* Plus / minus icon */}
+        <div className={`shrink-0 mt-1 text-white/20 group-hover:text-white transition-transform duration-500 ${open ? "rotate-45 text-bloom-purple" : ""}`}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         </div>
-      </div>
+      </button>
 
-      <div
-        className={`grid transition-all duration-500 ease-in-out ${
-          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        }`}
-      >
-        <div className="overflow-hidden relative z-10">
-          <div className="font-mono text-sm text-gray-300 leading-relaxed p-6 pt-0 md:pl-[5.5rem] md:pr-8">
-            {content}
-          </div>
+      {/* Answer */}
+      <div className={`grid transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? "grid-rows-[1fr] opacity-100 pb-8" : "grid-rows-[0fr] opacity-0"}`}>
+        <div className="overflow-hidden">
+          <p className="font-sans text-base md:text-lg text-white/50 leading-[1.8] font-light pl-4 md:pl-24 pr-4 md:pr-12">
+            {a}
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default function FAQ() {
-  const faqItems: { title: string; content: React.ReactNode }[] = [
-    {
-      title: "What is the MLH Code of Conduct?",
-      content: (
-        <span>
-          All participants, sponsors, volunteers, and staff are expected to
-          follow the{" "}
-          <Link
-            href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-bloom-cyan underline hover:text-white transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            MLH Code of Conduct
-          </Link>
-          . Hacklytics 2027 is an MLH Member Event. Harassment of any kind is
-          not tolerated. If you experience or witness a violation, please report
-          it to an organizer or contact MLH directly at incidents@mlh.io or
-          +1 409 202 6060.
-        </span>
-      ),
-    },
-    {
-      title: "What information does the registration form collect?",
-      content: (
-        <span>
-          To participate in an MLH Member Event, our registration form collects
-          the following information: your first &amp; last name, age (must be
-          18+), phone number, school, level of study, country of residence,
-          graduation year, major/field of study, gender, and race/ethnicity. You
-          will also be asked to agree to the{" "}
-          <Link
-            href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-bloom-cyan underline hover:text-white transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            MLH Code of Conduct
-          </Link>
-          , the{" "}
-          <Link
-            href="https://mlh.io/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-bloom-cyan underline hover:text-white transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            MLH Privacy Policy
-          </Link>
-          , and to receive MLH communications.
-        </span>
-      ),
-    },
-    {
-      title: "What if I forgot to register?",
-      content:
-        "We will have a limited day of walk-ins starting at 6:00PM on the first day of the event. First come, first served.",
-    },
-    {
-      title: "Who can register?",
-      content:
-        "Any student currently enrolled in a University above the age of 18. For any discrepancies, please reach out to our team.",
-    },
-    {
-      title: "Where and when is it held?",
-      content:
-        "February 26th - February 28th, 2027 at the Klaus Advanced Computing Building, Georgia Tech Campus.",
-    },
-    {
-      title: "Can you participate virtually?",
-      content:
-        "No, Hacklytics 2027 is fully in-person this year. Sponsors want to see you build and innovate in real time!",
-    },
-    {
-      title: "What is a data science hackathon?",
-      content:
-        "A datathon focuses on data science and machine learning. You can use any datasets, languages, APIs, or algorithms to create visualizations, develop models, or derive actionable insights.",
-    },
-    {
-      title: "How many people per team?",
-      content:
-        "Maximum of 4 members per team. You're also allowed to work solo or with fewer members.",
-    },
-    {
-      title: "What if I don't have a team?",
-      content:
-        "Many participants come without teams. We host a team-building event right after the opening ceremony, and you can also find teammates on our Discord.",
-    },
-    {
-      title: "Is the event free?",
-      content:
-        "100% free! We provide all meals, snacks, caffeine, swag, and cloud credits during the event.",
-    },
-  ];
-
+export default function FAQSection() {
   return (
-    <section
-      id="faqs"
-      className="section-anchor scroll-mt-24 text-white relative"
-    >
-      <div className="flex flex-col lg:flex-row w-full gap-8 px-4 md:px-12 xl:px-24 mb-16">
-        {/* Left Sidebar Header */}
-        <div className="lg:w-1/3 glass-panel p-8 md:p-12 xl:p-16 relative overflow-hidden flex flex-col justify-between min-h-[400px] hover:border-bloom-purple/50 transition-colors duration-500 group">
-          <FlowerAccent position="top-right" color="#ff007f" size={45} />
-          <FlowerAccent position="bottom-left" color="#9d00ff" size={35} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-bloom-pink/20 blur-[100px] pointer-events-none mix-blend-screen group-hover:scale-110 transition-transform duration-700"></div>
+    <section id="faqs" className="section-anchor text-white relative">
+      <div className="section-wrap max-w-5xl mx-auto py-24 md:py-32 px-6">
 
-          <div className="relative z-10">
-            <span className="font-mono text-sm text-bloom-lime tracking-widest uppercase mb-4 block font-bold">
-              Information
-            </span>
-            <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter uppercase mb-6 drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-br from-white to-bloom-pink bloom-text-glow">
-              FAQ
-            </h1>
-            <p className="font-mono text-sm text-gray-300 leading-relaxed uppercase tracking-wide">
-              Everything you need to know about{" "}
-              <span className="text-bloom-cyan font-bold drop-shadow-[0_0_5px_currentColor]">
-                Hacklytics 2027
-              </span>
-              . Can't find the answer? Hit us up on Discord.
-            </p>
-          </div>
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-[1px] bg-gradient-to-r from-bloom-purple to-transparent" />
+          <span className="font-mono text-xs text-bloom-purple uppercase tracking-[0.4em]">Information</span>
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-20">
+          <h2 className="font-sans font-medium text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] text-white leading-[0.9] tracking-[-0.03em]">
+            FAQ
+          </h2>
+          <p className="font-sans text-base text-white/40 max-w-xs leading-relaxed md:text-right font-light">
+            Can&apos;t find the answer?{" "}
+            <br className="hidden md:block" />
+            <Link href="https://discord.gg/hacklytics" target="_blank" className="text-white hover:text-bloom-purple transition-colors underline underline-offset-4">
+              Hit us up on Discord
+            </Link>.
+          </p>
         </div>
 
-        {/* Right Accordion Area */}
-        <div className="lg:w-2/3 flex flex-col">
-          {faqItems.map((item, index) => (
-            <FAQCard
-              key={index}
-              num={String(index + 1).padStart(2, "0")}
-              title={item.title}
-              content={item.content}
+        {/* Accordion */}
+        <div className="border-t border-white/5">
+          {faqItems.map((item, i) => (
+            <FAQItem
+              key={i}
+              num={String(i + 1).padStart(2, "0")}
+              q={item.q}
+              a={item.a}
             />
           ))}
         </div>
