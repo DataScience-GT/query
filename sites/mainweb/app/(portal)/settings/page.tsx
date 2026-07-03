@@ -43,14 +43,64 @@ export default function SettingsPage() {
     if (!file) return;
 
     setIsUploadingImage(true);
+    
     try {
+      // 1. Read file as Data URL
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64Image = reader.result as string;
-        await updateProfileImage.mutateAsync({ base64Image });
-        await utils.user.me.invalidate();
+        try {
+          const originalBase64 = reader.result as string;
+          
+          // 2. Client-side compression via Canvas to avoid overkilling the database
+          const img = new window.Image();
+          img.src = originalBase64;
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+
+          // Max dimensions for an avatar
+          const MAX_SIZE = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Could not get canvas context");
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to WebP at 80% quality
+          const compressedBase64 = canvas.toDataURL("image/webp", 0.8);
+
+          // 3. Upload the tiny payload
+          await updateProfileImage.mutateAsync({ base64Image: compressedBase64 });
+          await utils.user.me.invalidate();
+        } catch (err) {
+          console.error("Failed to process and upload image:", err);
+          // Optional: show a toast notification here
+        } finally {
+          setIsUploadingImage(false);
+        }
+      };
+      
+      reader.onerror = () => {
+        console.error("FileReader failed");
         setIsUploadingImage(false);
       };
+
       reader.readAsDataURL(file);
     } catch (e) {
       console.error(e);

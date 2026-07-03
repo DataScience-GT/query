@@ -1,125 +1,71 @@
 "use client";
 import React from "react";
-import { FlowerAccent } from "../FloatingFlowers";
 
 const AboutSection: React.FC = () => {
   return (
-    <section
-      id="about"
-      className="section-anchor scroll-mt-24 text-white relative"
-    >
-      <div className="w-full flex flex-col gap-6 md:gap-8 px-4 md:px-12 xl:px-24 mb-16">
-        {/* Section Header */}
-        <div className="w-full p-8 md:p-16 glass-panel relative overflow-hidden group hover:border-bloom-cyan/50 transition-colors duration-500">
-          {/* Abstract bloom glow */}
-          <div className="absolute top-1/2 right-[10%] -translate-y-1/2 w-[300px] h-[300px] bg-bloom-pink/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen group-hover:scale-110 transition-transform duration-700"></div>
-          <FlowerAccent position="top-right" color="#ff66b2" size={50} />
-          <FlowerAccent position="bottom-left" color="#cc44ff" size={38} />
+    <section id="about" className="section-anchor text-white relative">
+      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
 
-          <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter uppercase mb-4 relative z-10 drop-shadow-lg">
-            About
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-cyan to-bloom-lime bloom-text-glow">
-              The Event
-            </span>
-          </h1>
+        {/* Section label */}
+        <div className="flex items-center gap-4 mb-16 md:mb-24">
+          <div className="w-12 h-[1px] bg-gradient-to-r from-bloom-cyan to-transparent" />
+          <span className="font-mono text-xs text-bloom-cyan uppercase tracking-[0.4em]">About</span>
         </div>
 
-        {/* 2-Column Layout */}
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 w-full">
-          {/* Left Column: Main Story Card */}
-          <div className="flex-[3] glass-panel p-8 md:p-12 xl:p-16 relative group transition-all duration-500 hover:border-bloom-pink/50 hover:shadow-[0_0_30px_rgba(255,0,127,0.15)]">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-bloom-purple/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-bloom-purple/20 transition-colors"></div>
-            <div className="relative z-10">
-              <h2 className="font-sans text-3xl md:text-5xl font-bold text-white mb-8 tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-bloom-pink transition-all duration-500">
-                A Hub of Innovation
-              </h2>
+        {/* Main layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-20">
 
-              <div className="space-y-6 text-gray-300 font-mono text-sm md:text-base leading-relaxed relative z-10">
-                <p>
-                  <span className="text-white font-bold text-lg">
-                    Hacklytics
-                  </span>{" "}
-                  is a{" "}
-                  <span className="bg-bloom-pink/10 text-bloom-pink px-2 py-1 rounded-md border border-bloom-pink/30 uppercase tracking-widest text-xs font-bold shadow-[0_0_10px_rgba(255,0,127,0.2)]">
-                    36-hour data science hackathon
-                  </span>{" "}
-                  hosted by Data Science @ GT.
-                </p>
-                <p>
-                  We invite hackers from across the globe to dive into the{" "}
-                  <span className="text-bloom-cyan font-bold drop-shadow-[0_0_5px_rgba(0,243,255,0.8)]">
-                    digital bloom
-                  </span>
-                  . Experience the bleeding edge of AI, machine learning, and
-                  data analytics in a high-octane environment.
-                </p>
-                <p>
-                  Collaborate with peers, fuel your curiosity, and uncover the
-                  rewards of solving complex problems with code.
-                </p>
-              </div>
+          {/* Left: headline + copy */}
+          <div className="lg:col-span-3 flex flex-col justify-center">
+            <h2 className="font-sans font-medium text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] text-white mb-10 leading-[0.9] tracking-[-0.03em]">
+              A Hub of<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-cyan to-bloom-cyan/50">
+                Innovation
+              </span>
+            </h2>
+
+            <div className="space-y-8 font-sans text-lg md:text-xl lg:text-2xl text-white/50 leading-[1.6] max-w-xl font-light">
+              <p>
+                <strong className="text-white font-normal">Hacklytics</strong> is a 36-hour data science hackathon hosted by Data Science @ GT — the premier event of its kind in the Southeast.
+              </p>
+              <p>
+                We invite hackers from across the globe to dive into the <em className="text-white/80 not-italic font-normal">digital bloom</em> — the bleeding edge of AI, machine learning, and data analytics in a high-octane environment.
+              </p>
             </div>
           </div>
 
-          {/* Right Column: Stacked Info Cards */}
-          <div className="flex-[2] flex flex-col gap-6 md:gap-8">
-            {/* Where & When Card */}
-            <div className="glass-panel p-8 md:p-10 relative overflow-hidden group transition-all duration-500 hover:border-bloom-lime/50 hover:shadow-[0_0_30px_rgba(204,255,0,0.1)] flex-1">
-              <FlowerAccent position="top-right" color="#ccff00" size={30} />
-              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-bloom-lime/10 rounded-full blur-[40px] pointer-events-none"></div>
-
-              <h3 className="font-sans text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-bloom-lime to-white mb-6 tracking-tighter uppercase flex items-center gap-4">
-                <span className="w-8 h-[2px] bg-gradient-to-r from-bloom-lime to-transparent"></span>
-                Where & When?
-              </h3>
-
-              <div className="font-mono text-white space-y-6 relative z-10">
-                <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors">
-                  <span className="text-xs text-bloom-lime uppercase tracking-widest font-bold mb-1">
-                    Date
-                  </span>
-                  <span className="text-lg">Feb. 26 - 28, 2027</span>
-                </div>
-                <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors">
-                  <span className="text-xs text-bloom-cyan uppercase tracking-widest font-bold mb-1">
-                    Location
-                  </span>
-                  <span className="text-lg">Klaus Advanced Computing</span>
-                  <span className="text-gray-400 text-sm mt-1">
-                    Georgia Tech Campus
-                  </span>
-                </div>
+          {/* Right: Glass Cards */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            
+            {/* When & Where Card */}
+            <div className="p-8 md:p-10 rounded-3xl border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:bg-white/[0.03] transition-colors duration-500 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              <span className="font-mono text-[10px] text-bloom-lime uppercase tracking-[0.3em] block mb-6">When & Where</span>
+              <div className="space-y-2">
+                <span className="block font-sans text-2xl md:text-3xl font-medium text-white tracking-tight">Feb. 26 – 28, 2027</span>
+                <span className="block font-sans text-base text-white/60 pt-2">Klaus Advanced Computing Building</span>
+                <span className="block font-mono text-[10px] text-white/30 uppercase tracking-[0.2em] pt-1">Georgia Tech Campus · Atlanta</span>
               </div>
             </div>
 
-            {/* Why Join Us Card */}
-            <div className="glass-panel p-8 md:p-10 relative overflow-hidden group transition-all duration-500 hover:border-bloom-cyan/50 hover:shadow-[0_0_30px_rgba(0,243,255,0.15)] flex-1">
-              <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-bloom-cyan/10 rounded-full blur-[40px] pointer-events-none"></div>
-
-              <h3 className="font-sans text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-bloom-cyan to-white mb-6 tracking-tighter uppercase flex items-center gap-4">
-                <span className="w-8 h-[2px] bg-gradient-to-r from-bloom-cyan to-transparent"></span>
-                Why Join Us?
-              </h3>
-
-              <div className="space-y-3 text-gray-200 font-mono text-sm relative z-10">
+            {/* Why Join Card */}
+            <div className="p-8 md:p-10 rounded-3xl border border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl hover:bg-white/[0.03] transition-colors duration-500 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              <span className="font-mono text-[10px] text-bloom-pink uppercase tracking-[0.3em] block mb-6">Why Join?</span>
+              <ul className="space-y-5">
                 {[
                   "Build projects that matter",
-                  "Connect with hackers",
-                  "Free food, swag, & networking!",
+                  "Connect with 1,000+ hackers",
+                  "Free food, swag & networking",
                 ].map((text, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-bloom-cyan/50 hover:bg-white/10 transition-colors group/item"
-                  >
-                    <span className="text-bloom-cyan font-bold group-hover/item:text-white transition-colors">
-                      0{i + 1}
-                    </span>
-                    <p className="uppercase tracking-wide font-bold">{text}</p>
-                  </div>
+                  <li key={i} className="flex items-center gap-4 group cursor-default">
+                    <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center bg-white/5 group-hover:border-bloom-pink/50 group-hover:bg-bloom-pink/10 transition-all duration-300">
+                      <span className="font-mono text-[10px] text-white/50 group-hover:text-bloom-pink transition-colors">0{i + 1}</span>
+                    </div>
+                    <span className="font-sans text-base text-white/60 group-hover:text-white transition-colors duration-300">{text}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
+
           </div>
         </div>
       </div>
