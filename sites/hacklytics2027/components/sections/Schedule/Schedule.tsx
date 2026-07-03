@@ -2,8 +2,22 @@
 import React, { useState } from "react";
 import { scheduleData, categories } from "./data";
 
+const categoryColors: Record<string, string> = {
+  general:  "var(--bloom-cyan)",
+  food:     "var(--bloom-lime)",
+  workshop: "var(--bloom-pink)",
+  activity: "var(--bloom-purple)",
+};
+
+const categoryDots: Record<string, string> = {
+  general:  "bg-bloom-cyan",
+  food:     "bg-bloom-lime",
+  workshop: "bg-bloom-pink",
+  activity: "bg-bloom-purple",
+};
+
 export default function Schedule() {
-  const [selectedDay, setSelectedDay] = useState("Friday");
+  const [selectedDay, setSelectedDay]           = useState("Friday");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const days = ["Friday", "Saturday", "Sunday"];
@@ -11,166 +25,130 @@ export default function Schedule() {
   const filtered =
     selectedCategory === "all"
       ? scheduleData[selectedDay]
-      : scheduleData[selectedDay]?.filter(
-          (e) => e.category === selectedCategory,
-        ) || [];
+      : scheduleData[selectedDay]?.filter((e) => e.category === selectedCategory) ?? [];
 
   return (
-    <section
-      id="schedule"
-      className="section-anchor scroll-mt-24 text-white py-12 md:py-24 relative"
-    >
-      <div className="container mx-auto px-6 md:px-12 xl:px-24 max-w-7xl">
+    <section id="schedule" className="section-anchor text-white">
+      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32">
+
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-bloom-lime/20 blur-[100px] pointer-events-none mix-blend-screen animate-pulse"></div>
-          <h1 className="font-sans text-5xl md:text-8xl font-bold tracking-tighter uppercase relative z-10 drop-shadow-xl">
-            Event
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-bloom-lime to-white bloom-text-glow">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="h-px w-12 bg-gradient-to-r from-bloom-lime to-transparent" />
+          <span className="font-mono text-[10px] text-bloom-lime uppercase tracking-[0.4em] font-medium">Schedule</span>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16">
+          <h2 className="font-sans font-medium text-5xl md:text-7xl lg:text-[6rem] text-white leading-[0.9] tracking-[-0.03em]">
+            Event<br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-bloom-lime to-white/60">
               Timeline
             </span>
-          </h1>
-          <div className="mt-8 md:mt-0 font-mono text-sm text-gray-300 uppercase tracking-widest max-w-sm border-l-2 border-bloom-lime pl-4 drop-shadow-md">
+          </h2>
+          <p className="font-sans text-sm text-white/40 max-w-xs leading-relaxed md:text-right font-light">
             36 hours of intense building, learning, and collaborating.
+          </p>
+        </div>
+
+        {/* Controls row */}
+        <div className="flex flex-col sm:flex-row gap-6 sm:items-center sm:justify-between mb-12">
+
+          {/* Day tabs */}
+          <div className="flex gap-2 p-1.5 border border-white/[0.05] rounded-2xl bg-white/[0.02] backdrop-blur-xl w-fit">
+            {days.map((day) => (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`font-mono text-[10px] sm:text-xs uppercase tracking-[0.2em] px-6 py-3 rounded-xl transition-all duration-300 ${
+                  selectedDay === day
+                    ? "bg-white/[0.08] text-white font-medium border border-white/[0.1] shadow-lg"
+                    : "text-white/40 hover:text-white hover:bg-white/[0.04] border border-transparent"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
+          {/* Category filter pills */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`font-mono text-[10px] uppercase tracking-[0.2em] px-5 py-2.5 rounded-full border transition-all duration-300 ${
+                selectedCategory === "all"
+                  ? "border-white/[0.15] text-white bg-white/[0.08] shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                  : "border-white/[0.05] text-white/40 hover:text-white hover:bg-white/[0.04]"
+              }`}
+            >
+              All
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`font-mono text-[10px] uppercase tracking-[0.2em] px-5 py-2.5 rounded-full border transition-all duration-300 flex items-center gap-2 ${
+                  selectedCategory === cat.id
+                    ? "border-white/[0.15] text-white bg-white/[0.08] shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                    : "border-white/[0.05] text-white/40 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${categoryDots[cat.id]} shadow-[0_0_8px_currentColor]`} style={{ color: categoryColors[cat.id] }} />
+                {cat.name}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Controls Sidebar */}
-          <div className="lg:w-1/4 flex flex-col gap-6">
-            {/* Day Selector */}
-            <div className="flex flex-col glass-panel p-6">
-              <h3 className="font-sans text-xl font-bold uppercase mb-4 text-white drop-shadow-[0_0_5px_currentColor]">
-                Select Day
-              </h3>
-              <div className="flex flex-col gap-2">
-                {days.map((day) => (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedDay(day)}
-                    className={`text-left px-4 py-3 rounded-lg font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
-                      selectedDay === day
-                        ? "bg-bloom-lime/20 text-bloom-lime font-bold border border-bloom-lime/50 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
-                        : "text-gray-400 hover:bg-white/10 hover:text-white border border-transparent"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Timeline */}
+        {filtered.length > 0 ? (
+          <div className="relative mt-8">
+            {/* Vertical line */}
+            <div className="absolute left-6 md:left-[11.5rem] top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-white/[0.1] to-transparent hidden sm:block" />
 
-            {/* Filter */}
-            <div className="flex flex-col glass-panel p-6">
-              <h3 className="font-sans text-xl font-bold uppercase mb-4 text-white drop-shadow-[0_0_5px_currentColor]">
-                Filters
-              </h3>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => setSelectedCategory("all")}
-                  className={`text-left px-4 py-3 rounded-lg font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
-                    selectedCategory === "all"
-                      ? "bg-white/10 text-white font-bold border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                      : "text-gray-500 hover:text-white hover:bg-white/5 border border-transparent"
-                  }`}
-                >
-                  All Events
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`text-left px-4 py-3 rounded-lg font-mono text-sm uppercase tracking-widest transition-all duration-300 ${
-                      selectedCategory === cat.id
-                        ? `bg-${cat.color.replace("text-", "")}/20 ${cat.color} font-bold border border-${cat.color.replace("text-", "")}/50 shadow-[0_0_15px_currentColor]`
-                        : `${cat.color} opacity-70 hover:opacity-100 hover:bg-white/5 border border-transparent`
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Schedule List */}
-          <div className="lg:w-3/4 flex flex-col gap-4">
-            {filtered.length > 0 ? (
-              filtered.map((event, i) => {
-                const catColorClass =
-                  categories.find((c) => c.id === event.category)?.color ||
-                  "text-white";
-
+            <div className="flex flex-col gap-4 relative z-10">
+              {filtered.map((event, i) => {
+                const color = categoryColors[event.category] ?? "#fff";
+                const dot   = categoryDots[event.category] ?? "bg-white";
                 return (
-                  <div
-                    key={i}
-                    className={`group glass-panel p-6 transition-all duration-500 hover:-translate-y-1 hover:border-${catColorClass.replace("text-", "")}/50 flex flex-col md:flex-row gap-6 md:items-center relative overflow-hidden`}
-                  >
-                    {/* Glowing Left Border */}
-                    <div
-                      className={`absolute top-0 left-0 w-1.5 h-full ${catColorClass.replace("text-", "bg-")} shadow-[0_0_10px_currentColor] opacity-70 group-hover:opacity-100 transition-opacity`}
-                    ></div>
-
-                    {/* Background Glow on Hover */}
-                    <div
-                      className={`absolute top-1/2 -translate-y-1/2 left-0 w-32 h-32 ${catColorClass.replace("text-", "bg-")}/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}
-                    ></div>
+                  <div key={i} className="relative flex flex-col md:flex-row gap-6 md:gap-8 pl-6 sm:pl-16 md:pl-0 py-6 pr-6 group bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.05] rounded-2xl backdrop-blur-2xl transition-all duration-500">
+                    {/* Dot on the line */}
+                    <div className={`hidden sm:block absolute left-[calc(1.5rem-4px)] md:left-[calc(11.5rem-4px)] top-1/2 -translate-y-1/2 w-[9px] h-[9px] rounded-full ${dot} shadow-[0_0_10px_currentColor] opacity-40 group-hover:opacity-100 transition-all duration-500`} style={{ color }} />
 
                     {/* Time */}
-                    <div className="w-48 flex-shrink-0 relative z-10">
-                      <span
-                        className={`font-mono text-sm tracking-widest uppercase font-bold drop-shadow-[0_0_5px_currentColor] ${catColorClass}`}
-                      >
+                    <div className="md:w-44 md:text-right shrink-0 md:pr-10 md:py-1">
+                      <span className="font-mono text-xs text-white/40 group-hover:text-white/70 transition-colors duration-500 uppercase tracking-[0.2em]">
                         {event.time}
                       </span>
                     </div>
 
-                    {/* Details */}
-                    <div className="flex-grow relative z-10">
-                      <h3 className="font-sans text-2xl font-bold uppercase tracking-tight text-white mb-2 drop-shadow-md">
-                        {event.eventName}
-                      </h3>
-                      <div className="flex items-center gap-2 font-mono text-xs text-gray-300 uppercase tracking-widest">
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="drop-shadow-[0_0_3px_currentColor]"
+                    {/* Event info */}
+                    <div className="flex-1 min-w-0 md:pl-10 md:border-l md:border-white/[0.05] transition-colors duration-500 group-hover:border-white/[0.15]">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-sans font-medium text-lg md:text-xl text-white/90 group-hover:text-white transition-colors duration-500 leading-tight">
+                            {event.eventName}
+                          </h3>
+                          {event.location !== "TBA" && (
+                            <p className="font-sans text-sm text-white/40 mt-2 font-light">{event.location}</p>
+                          )}
+                        </div>
+                        <span
+                          className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border border-white/[0.05] group-hover:border-white/[0.15] bg-white/[0.02] group-hover:bg-white/[0.05] transition-all duration-500"
+                          style={{ color }}
                         >
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
-                          <circle cx="12" cy="9" r="2.5"></circle>
-                        </svg>
-                        <span>{event.location}</span>
+                          {event.category}
+                        </span>
                       </div>
-                    </div>
-
-                    {/* Category Label */}
-                    <div className="hidden md:block flex-shrink-0 relative z-10">
-                      <span
-                        className={`px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest border border-white/10 bg-white/5 ${catColorClass}`}
-                      >
-                        {event.category}
-                      </span>
                     </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="p-12 text-center glass-panel">
-                <div className="font-mono text-sm text-gray-400 uppercase tracking-widest mb-4">
-                  No Data Found
-                </div>
-                <h3 className="font-sans text-2xl font-bold text-white uppercase tracking-tight drop-shadow-md">
-                  Try adjusting filters
-                </h3>
-              </div>
-            )}
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="py-24 mt-8 text-center border border-white/[0.05] rounded-3xl bg-white/[0.01] backdrop-blur-xl">
+            <p className="font-mono text-[10px] text-white/30 uppercase tracking-[0.3em] mb-4">No events found</p>
+            <p className="font-sans text-sm text-white/40 font-light">Try adjusting your filters</p>
+          </div>
+        )}
       </div>
     </section>
   );
