@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter } from "../../trpc";
+import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import {
   judges,
   judgeAssignments,
