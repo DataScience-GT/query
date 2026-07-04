@@ -7,6 +7,7 @@ import { eq, and, isNull, desc } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import { invalidatePortalContext } from "../middleware/cache";
 import type Stripe from "stripe";
+import crypto from "crypto";
 
 let stripeClient: Stripe | null | undefined;
 
@@ -60,7 +61,7 @@ export const stripeRouter = createTRPCRouter({
 
       // Check if we are running in development with a mock key
       if (process.env.STRIPE_SECRET_KEY?.startsWith("mk_")) {
-        const sessionId = `cs_mock_${Math.random().toString(36).substring(2, 15)}`;
+        const sessionId = `cs_mock_${crypto.randomUUID().replace(/-/g, "")}`;
         const nameParts = (user.name || "Member").split(" ");
         const firstName = nameParts[0] || "Member";
         const lastName = nameParts.slice(1).join(" ") || "Member";

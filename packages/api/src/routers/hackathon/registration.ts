@@ -4,15 +4,9 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trp
 import {
   hackathons,
   hackathonParticipants,
-  hackathonProjects,
-  hackathonTeams,
   members,
-  hackathonEvents,
-  hackathonEventAttendees,
 } from "@query/db";
-import { eq, and, gte, sql, inArray } from "drizzle-orm";
-import { isAdmin } from "../../middleware/procedures";
-import { CacheKeys } from "../../middleware/cache";
+import { eq, and, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
 export const hackathonRegistrationRouter = createTRPCRouter({

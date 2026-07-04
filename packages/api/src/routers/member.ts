@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { members, membershipHistory, hackathons } from "@query/db";
-import { eq, and, desc } from "drizzle-orm";
+import { members, membershipHistory } from "@query/db";
+import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { invalidatePortalContext } from "../middleware/cache";
 

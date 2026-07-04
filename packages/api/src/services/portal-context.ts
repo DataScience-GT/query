@@ -1,4 +1,4 @@
-import { admins, members, judges, hackathons } from "@query/db";
+import { admins, members, judges } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {

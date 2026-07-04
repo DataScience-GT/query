@@ -1,16 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
+import { createTRPCRouter, publicProcedure } from "../../trpc";
 import {
   hackathons,
-  hackathonParticipants,
-  hackathonProjects,
-  hackathonTeams,
-  members,
-  hackathonEvents,
-  hackathonEventAttendees,
 } from "@query/db";
-import { eq, and, gte, sql, inArray } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";

@@ -23,6 +23,20 @@ export async function sendAcceptanceEmail({
   const backgroundColor = "#0f172a";
   const textColor = "#f8fafc";
 
+  const safeHackathonName = hackathonName
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  const safeHost = host
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
   const html = `
 <body style="background: ${backgroundColor}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: ${backgroundColor}; max-width: 600px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);">
@@ -36,13 +50,13 @@ export async function sendAcceptanceEmail({
         </div>
         <h2 style="color: ${textColor}; font-size: 20px; font-weight: 400; margin-bottom: 16px;">You're Accepted!</h2>
         <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
-          Congratulations! You have been accepted to participate in <strong>${hackathonName}</strong>.
+          Congratulations! You have been accepted to participate in <strong>${safeHackathonName}</strong>.
         </p>
         <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
-          Head over to the <a href="${host}/hackathons" style="color: ${mainColor}; text-decoration: none; font-weight: 600;">Hackathon Hub</a> to view the event details, find a team, and get ready to build!
+          Head over to the <a href="${safeHost}/hackathons" style="color: ${mainColor}; text-decoration: none; font-weight: 600;">Hackathon Hub</a> to view the event details, find a team, and get ready to build!
         </p>
         <div style="margin: 32px auto;">
-          <a href="${host}/hackathons" style="display: inline-block; padding: 12px 24px; background: ${mainColor}; color: #020617; text-decoration: none; font-weight: 600; border-radius: 6px;">Go to Hackathon Hub</a>
+          <a href="${safeHost}/hackathons" style="display: inline-block; padding: 12px 24px; background: ${mainColor}; color: #020617; text-decoration: none; font-weight: 600; border-radius: 6px;">Go to Hackathon Hub</a>
         </div>
       </td>
     </tr>
