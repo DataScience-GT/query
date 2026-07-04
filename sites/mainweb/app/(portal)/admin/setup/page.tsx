@@ -32,7 +32,7 @@ function parseCSV(text: string): string[][] {
 }
 
 export default function AdminSetupPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -55,7 +55,7 @@ export default function AdminSetupPage() {
   const [judgesAssigned, setJudgesAssigned] = useState(false);
 
   // Admin check
-  const { data: portalContext, isLoading: portalLoading } = usePortalContext();
+  const { data: portalContext } = usePortalContext();
 
   const { data: hackathons, refetch: refetchHackathons } =
     trpc.hackathon.list.useQuery(
