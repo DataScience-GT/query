@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, isAdmin } from "../../trpc";
+import { createTRPCRouter } from "../../trpc";
+import { isAdmin } from "../../middleware/procedures";
 import {
   hackathons,
   hackathonParticipants,
