@@ -17,7 +17,7 @@ import { Gavel } from "lucide-react";
 type Tab = "events" | "scanner" | "attendees" | "analytics" | "judges";
 
 export default function AdminHackathonDashboard() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const params = useParams();
   const hackathonId = params?.id as string;
   const [activeTab, setActiveTab] = useState<Tab>("attendees");

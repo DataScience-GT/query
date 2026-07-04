@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
-  FaFire, FaMapMarkedAlt, FaBrain, FaTrophy, 
-  FaTerminal, FaRobot, FaPlay, FaVolumeUp
+  FaFire, FaMapMarkedAlt, FaBrain, 
+  FaRobot, FaPlay, FaVolumeUp
 } from "react-icons/fa";
 import { FiCheckCircle, FiLock, FiAward } from "react-icons/fi";
 
@@ -48,12 +48,11 @@ const TRIVIA_QUESTIONS: TriviaQuestion[] = [
 ];
 
 export default function HacklyticsDashboard() {
-  const [activeTab, setActiveTab] = useState<"map" | "quiz" | "trophy" | "advisor">("map");
+  const [activeTab, setActiveTab] = useState<"map" | "quiz" | "advisor">("map");
   
   // Gamification state
   const [streak, setStreak] = useState(0);
   const [score, setScore] = useState(0);
-  const [completedQuizIds, setCompletedQuizIds] = useState<number[]>([]);
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -61,7 +60,6 @@ export default function HacklyticsDashboard() {
   
   // Audio status (Sick-Sense Audio Briefing style)
   const [isPlayingBriefing, setIsPlayingBriefing] = useState(false);
-  const [briefingText, setBriefingText] = useState("");
   
   // Advisor agent state
   const [activeAgent, setActiveAgent] = useState<"scout" | "analyst" | "advisor">("advisor");
@@ -71,19 +69,16 @@ export default function HacklyticsDashboard() {
       text: "Hello Hacker! I am your AI Advisor Agent. Ready to optimize your Hacklytics 2027 experience. Ask me anything about tracks, schedules, or strategies!" 
     }
   ]);
-  const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
   // Load stats from localStorage on mount
   useEffect(() => {
     const savedStreak = localStorage.getItem("hacker_streak");
     const savedScore = localStorage.getItem("hacker_score");
-    const savedQuizzes = localStorage.getItem("hacker_quizzes");
     const savedAchievements = localStorage.getItem("hacker_achievements");
 
     if (savedStreak) setStreak(parseInt(savedStreak));
     if (savedScore) setScore(parseInt(savedScore));
-    if (savedQuizzes) setCompletedQuizIds(JSON.parse(savedQuizzes));
     if (savedAchievements) setUnlockedAchievements(JSON.parse(savedAchievements));
   }, []);
 
@@ -186,7 +181,6 @@ export default function HacklyticsDashboard() {
     }
 
     const text = "Active scout agents report: Sickness outbreak risk in Klaus Advanced Computing is extremely low, but hacker density is surging. Analyst metrics project over one thousand hackers incoming. Advisory recommendations: Ensure your team has a data storyteller, and keep drinking plenty of water during the 36-hour sprint. Stay safe and happy hacking!";
-    setBriefingText(text);
     setIsPlayingBriefing(true);
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -271,7 +265,6 @@ export default function HacklyticsDashboard() {
           {[
             { id: "map", label: "Outbreak Heatmap", icon: <FaMapMarkedAlt />, color: "border-bloom-cyan text-bloom-cyan" },
             { id: "quiz", label: "Trivia & Quizzes", icon: <FaBrain />, color: "border-bloom-lime text-bloom-lime" },
-            { id: "trophy", label: "Achievements", icon: <FaTrophy />, color: "border-bloom-pink text-bloom-pink" },
             { id: "advisor", label: "Multi-Agent AI", icon: <FaRobot />, color: "border-bloom-purple text-bloom-purple" }
           ].map((tab) => (
             <button
@@ -452,65 +445,6 @@ export default function HacklyticsDashboard() {
                     Next Question
                   </button>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* 3. ACHIEVEMENTS */}
-          {activeTab === "trophy" && (
-            <div className="flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-mono font-bold text-bloom-pink flex items-center gap-2">
-                  <FaTrophy className="w-5 h-5" />
-                  HACKATHON TROPHY ROOM
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 font-mono uppercase">
-                  Complete tasks, explore the portal, and unlock digital certificates!
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                {achievements.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`p-4 rounded-xl border transition-all duration-300 flex items-start gap-4 relative overflow-hidden ${
-                      item.unlocked
-                        ? "bg-bloom-pink/5 border-bloom-pink/40 shadow-[0_0_15px_rgba(255,0,127,0.1)]"
-                        : "bg-white/2 border-white/5 opacity-50"
-                    }`}
-                  >
-                    <div className={`p-3 rounded-lg border ${
-                      item.unlocked
-                        ? "bg-bloom-pink/15 border-bloom-pink/30 text-bloom-pink"
-                        : "bg-white/5 border-white/10 text-gray-500"
-                    }`}>
-                      {item.icon}
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-mono font-bold text-white uppercase flex items-center gap-2">
-                        {item.name}
-                        {item.unlocked && <FiCheckCircle className="text-bloom-lime w-4 h-4" />}
-                      </h4>
-                      <p className="text-xs text-gray-400 mt-1 leading-snug">{item.desc}</p>
-                    </div>
-
-                    {!item.unlocked && (
-                      <div className="absolute right-4 top-4 text-gray-600">
-                        <FiLock className="w-4 h-4" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 bg-white/5 rounded-xl border border-white/5 mt-auto flex justify-between items-center">
-                <span className="text-xs text-gray-400 font-mono">
-                  ACHIEVEMENTS UNLOCKED:
-                </span>
-                <span className="text-sm font-bold font-mono text-bloom-pink">
-                  {unlockedAchievements.length} / {achievements.length} Complete
-                </span>
               </div>
             </div>
           )}

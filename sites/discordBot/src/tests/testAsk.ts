@@ -214,7 +214,6 @@ async function runTest(module: any, name: string, inputs: any, label: string) {
   const mock = new MockInteraction(name, inputs);
   try {
     await module.execute(mock);
-    mock.logs.length === 0;
   } catch (err: any) {
     console.error(`   [ERROR] CRASH | ${label}`);
     console.error(`      Stack: ${err.message.split("\n")[0]}`);
