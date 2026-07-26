@@ -101,8 +101,8 @@ importers:
         specifier: 10.2.3
         version: 10.2.3
       next-auth:
-        specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
+        specifier: 5.0.0-beta.32
+        version: 5.0.0-beta.32(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
       nodemailer:
         specifier: 8.0.5
         version: 8.0.5
@@ -146,8 +146,8 @@ importers:
         specifier: 10.2.3
         version: 10.2.3
       next-auth:
-        specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
+        specifier: 5.0.0-beta.32
+        version: 5.0.0-beta.32(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
       pg:
         specifier: 8.21.0
         version: 8.21.0
@@ -378,8 +378,8 @@ importers:
         specifier: 16.2.6
         version: 16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
       next-auth:
-        specifier: 5.0.0-beta.30
-        version: 5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
+        specifier: 5.0.0-beta.32
+        version: 5.0.0-beta.32(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
@@ -621,12 +621,12 @@ packages:
       nodemailer:
         optional: true
 
-  '@auth/core@0.41.0':
-    resolution: {integrity: sha512-Wd7mHPQ/8zy6Qj7f4T46vg3aoor8fskJm6g2Zyj064oQ3+p0xNZXAV60ww0hY+MbTesfu29kK14Zk5d5JTazXQ==}
+  '@auth/core@0.41.3':
+    resolution: {integrity: sha512-sJ3JMHHkXMD3aOjopv7mOBTO1Ocw4b0fAEXJBz6k7YHLpYQI6C40jCUPc5fNvUKxXRXNE1/sRISA15UrwWJBTw==}
     peerDependencies:
       '@simplewebauthn/browser': ^9.0.1
       '@simplewebauthn/server': ^9.0.2
-      nodemailer: ^6.8.0
+      nodemailer: ^7.0.7 || ^8.0.5
     peerDependenciesMeta:
       '@simplewebauthn/browser':
         optional: true
@@ -718,11 +718,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.25.12':
     resolution: {integrity: sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==}
@@ -3641,8 +3641,8 @@ packages:
   jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
-  jose@6.2.3:
-    resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
+  jose@6.2.4:
+    resolution: {integrity: sha512-N8acGzVsQy6M/fjFcxtysNc4Q379TcM5dM/qKkNtsHFji88yANnXTr7BLeP75iPnFwBfQzM/jg2BZ9+HZrHCZA==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -3859,13 +3859,13 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
-  next-auth@5.0.0-beta.30:
-    resolution: {integrity: sha512-+c51gquM3F6nMVmoAusRJ7RIoY0K4Ts9HCCwyy/BRoe4mp3msZpOzYMyb5LAYc1wSo74PMQkGDcaghIO7W6Xjg==}
+  next-auth@5.0.0-beta.32:
+    resolution: {integrity: sha512-CGlChIEWZ6LltNVxrE5yiySMID+Idpmry47JYA5lLwgD8Sx02a8M65VL0TWVz9nbnOioS/tCW/rP/0+mE7Qp4Q==}
     peerDependencies:
       '@simplewebauthn/browser': ^9.0.1
       '@simplewebauthn/server': ^9.0.2
       next: ^14.0.0-0 || ^15.0.0 || ^16.0.0
-      nodemailer: ^7.0.7
+      nodemailer: ^7.0.7 || ^8.0.5
       react: ^18.2.0 || ^19.0.0
     peerDependenciesMeta:
       '@simplewebauthn/browser':
@@ -4871,10 +4871,10 @@ snapshots:
     optionalDependencies:
       nodemailer: 8.0.5
 
-  '@auth/core@0.41.0(nodemailer@8.0.5)':
+  '@auth/core@0.41.3(nodemailer@8.0.5)':
     dependencies:
       '@panva/hkdf': 1.2.1
-      jose: 6.2.3
+      jose: 6.2.4
       oauth4webapi: 3.8.6
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
@@ -8138,7 +8138,7 @@ snapshots:
 
   jose@5.10.0: {}
 
-  jose@6.2.3: {}
+  jose@6.2.4: {}
 
   js-tokens@4.0.0: {}
 
@@ -8308,9 +8308,9 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next-auth@5.0.0-beta.30(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7):
+  next-auth@5.0.0-beta.32(next@16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(nodemailer@8.0.5)(react@19.2.7):
     dependencies:
-      '@auth/core': 0.41.0(nodemailer@8.0.5)
+      '@auth/core': 0.41.3(nodemailer@8.0.5)
       next: 16.2.6(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)
       react: 19.2.7
     optionalDependencies:
