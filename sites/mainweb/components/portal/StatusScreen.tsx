@@ -76,11 +76,11 @@ const variantConfig = {
 
 const actionVariantClasses = {
   primary:
-    "px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.1)]",
+    "px-12 py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.1)]",
   danger:
-    "px-8 py-3 border border-red-500/20 text-red-500 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-red-500/10 transition-all",
+    "px-8 py-3 border border-red-500/20 text-red-500 font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-red-500/10 transition-ui",
   default:
-    "px-8 py-3 border border-[var(--border-subtle)] text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-white/5 transition-all",
+    "px-8 py-3 border border-[var(--border-subtle)] text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-white/5 transition-ui",
 };
 
 export function StatusScreen({
@@ -130,6 +130,7 @@ export function StatusScreen({
 
       {onAction && (
         <button
+          type="button"
           onClick={onAction}
           className={actionVariantClasses[actionVariant]}
         >

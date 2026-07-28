@@ -52,6 +52,7 @@ export function QRScannerModal({
           </p>
         </div>
         <button
+          type="button"
           onClick={handleClose}
           disabled={isProcessing}
           className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"

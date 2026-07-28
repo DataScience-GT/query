@@ -49,6 +49,7 @@ export function ZoneMapModal({ isOpen, onClose }: ZoneMapModalProps) {
           </p>
         </div>
         <button
+          type="button"
           onClick={onClose}
           className="w-10 h-10 rounded-sm bg-white/5 border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)] flex items-center justify-center transition-colors"
         >
@@ -76,9 +77,10 @@ export function ZoneMapModal({ isOpen, onClose }: ZoneMapModalProps) {
       >
         {ZONE_MAPS.map((zone, idx) => (
           <button
+            type="button"
             key={zone.id}
             onClick={() => setActiveIndex(idx)}
-            className={`px-3 py-1.5 rounded-none text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-none text-xs font-bold whitespace-nowrap transition-ui ${
               idx === activeIndex
                 ? "bg-accent text-[var(--text-primary)] shadow-lg shadow-[var(--accent)]/30"
                 : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)] border border-[var(--border-subtle)]"
@@ -112,9 +114,10 @@ export function ZoneMapModal({ isOpen, onClose }: ZoneMapModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          type="button"
           onClick={() => setActiveIndex(Math.max(0, activeIndex - 1))}
           disabled={activeIndex === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)] text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)] text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-ui"
         >
           <svg
             className="w-4 h-4"
@@ -135,18 +138,19 @@ export function ZoneMapModal({ isOpen, onClose }: ZoneMapModalProps) {
           {ZONE_MAPS.map((_, idx) => (
             <div
               key={idx}
-              className={`w-2 h-2 rounded-sm transition-all ${
+              className={`w-2 h-2 rounded-sm transition-ui ${
                 idx === activeIndex ? "bg-accent scale-125" : "bg-white/20"
               }`}
             />
           ))}
         </div>
         <button
+          type="button"
           onClick={() =>
             setActiveIndex(Math.min(ZONE_MAPS.length - 1, activeIndex + 1))
           }
           disabled={activeIndex === ZONE_MAPS.length - 1}
-          className="flex items-center gap-2 px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)] text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)] text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-ui"
         >
           Next
           <svg
@@ -178,8 +182,9 @@ export function ViewMapButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center justify-center gap-2 px-5 py-3 rounded-none bg-white/[0.05] border border-[var(--border-subtle)] text-sm font-medium text-gray-300 hover:text-[var(--text-primary)] hover:bg-white/10 active:scale-[0.98] transition-all ${className}`}
+      className={`flex items-center justify-center gap-2 px-5 py-3 rounded-none bg-white/[0.05] border border-[var(--border-subtle)] text-sm font-medium text-gray-300 hover:text-[var(--text-primary)] hover:bg-white/10 active:scale-[0.98] transition-ui ${className}`}
     >
       <svg
         className="w-5 h-5 text-accent"

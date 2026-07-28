@@ -16,9 +16,8 @@
     "@auth/drizzle-adapter": "1.7.1",
     "@query/db": "workspace:*",
     "drizzle-orm": "0.45.2",
-    "minimatch": "10.2.3",
-    "next-auth": "5.0.0-beta.30",
-    "nodemailer": "8.0.5"
+    "next-auth": "5.0.0-beta.32",
+    "nodemailer": "^9.0.1"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
@@ -26,10 +25,10 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/node": "^20",
-    "@typescript-eslint/eslint-plugin": "^8.24.1",
-    "@typescript-eslint/parser": "^8.24.1",
-    "@typescript-eslint/utils": "^8.24.1",
-    "eslint": "^9.30.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "@typescript-eslint/utils": "^8.59.2",
+    "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.5",
     "typescript": "^6.0.2"
   }

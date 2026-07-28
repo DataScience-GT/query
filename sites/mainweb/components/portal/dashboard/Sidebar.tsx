@@ -52,7 +52,7 @@ export function Sidebar({
             alt="Avatar"
             width={56}
             height={56}
-            className="relative rounded-sm border border-black bg-[var(--bg-primary)] object-cover h-14 w-14 transition-all duration-300"
+            className="relative rounded-sm border border-black bg-[var(--bg-primary)] object-cover h-14 w-14 transition-ui duration-300"
           />
         </div>
         <div className="space-y-1">
@@ -74,9 +74,10 @@ export function Sidebar({
       <nav className="space-y-2">
         {tabs.map((tab) => (
           <button
+            type="button"
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
-            className={`w-full group flex items-center justify-between px-6 py-4 rounded-none text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
+            className={`w-full group flex items-center justify-between px-6 py-4 rounded-none text-sm font-bold tracking-widest transition-ui duration-200 border border-transparent
               ${
                 activeTab === tab.key
                   ? "bg-white/[0.03] text-[var(--text-primary)] border-[var(--border-subtle)] shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
@@ -85,7 +86,7 @@ export function Sidebar({
           >
             <span>{tab.label}</span>
             <span
-              className={`h-2 w-2 rounded-sm transition-all ${
+              className={`h-2 w-2 rounded-sm transition-ui ${
                 activeTab === tab.key
                   ? "bg-accent"
                   : "bg-transparent group-hover:bg-white/20"
@@ -98,8 +99,9 @@ export function Sidebar({
       {/* Sign Out */}
       <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
         <button
+          type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full py-4 px-6 rounded-none bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-mono text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
+          className="w-full py-4 px-6 rounded-none bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-ui font-mono text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
         >
           <span className="w-2 h-2 bg-red-500/40 rounded-sm group-hover:bg-red-500 transition-colors" />
           Terminate Session

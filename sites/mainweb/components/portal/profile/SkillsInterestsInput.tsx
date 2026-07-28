@@ -60,7 +60,7 @@ export default function SkillsInterestsInput({
         onKeyDown={handleKeyDown}
         maxLength={50}
         disabled={items.length >= maxItems}
-        className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent/50 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent/50 focus:outline-none transition-ui disabled:opacity-50 disabled:cursor-not-allowed"
         placeholder={items.length >= maxItems ? `Limit reached` : placeholder}
       />
       <p className="text-[10px] text-gray-600 mt-1">

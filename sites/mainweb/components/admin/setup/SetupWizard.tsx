@@ -14,8 +14,9 @@ export function SetupWizard({ activeStep, setActiveStep, steps }: StepProps) {
       {steps.map((s, i) => (
         <React.Fragment key={s.num}>
           <button
+            type="button"
             onClick={() => setActiveStep(s.num)}
-            className={`flex items-center gap-3 px-5 py-3 rounded-none border transition-all text-xs font-bold uppercase tracking-widest font-mono shrink-0 ${
+            className={`flex items-center gap-3 px-5 py-3 rounded-none border transition-ui text-xs font-bold uppercase tracking-widest font-mono shrink-0 ${
               activeStep === s.num
                 ? "bg-accent/10 border-accent/40 text-[var(--text-primary)]"
                 : s.done

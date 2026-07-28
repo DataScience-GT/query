@@ -100,8 +100,9 @@ export function ScanResultModal({
 
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
-          className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-all rounded-none ${
+          className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-ui rounded-none ${
             success
               ? "bg-accent text-black hover:bg-accent/80 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
               : "bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20"

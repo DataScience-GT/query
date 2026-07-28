@@ -252,15 +252,19 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+        <label
+          htmlFor="display-name"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Display Name
         </label>
         <input
+          id="display-name"
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Enter your name"
-          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui"
           maxLength={100}
         />
         <p className="text-[10px] text-gray-700 uppercase">
@@ -269,15 +273,19 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+        <label
+          htmlFor="public-bio"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Public Bio
         </label>
         <textarea
+          id="public-bio"
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="Tell the community about yourself..."
           rows={4}
-          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all resize-none"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui resize-none"
           maxLength={500}
         />
         <div className="flex justify-between items-center">
@@ -291,42 +299,54 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+        <label
+          htmlFor="website"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Website
         </label>
         <input
+          id="website"
           type="url"
           value={formData.website}
           onChange={(e) =>
             setFormData({ ...formData, website: e.target.value })
           }
           placeholder="https://your-website.com"
-          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui"
           maxLength={500}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+        <label
+          htmlFor="location"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Location
         </label>
         <input
+          id="location"
           type="text"
           value={formData.location}
           onChange={(e) =>
             setFormData({ ...formData, location: e.target.value })
           }
           placeholder="E.g. Atlanta, GA"
-          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui"
           maxLength={200}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+        <label
+          htmlFor="email-address"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Email Address
         </label>
         <input
+          id="email-address"
           type="email"
           value={user.email}
           disabled
@@ -348,47 +368,59 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+              <label
+                htmlFor="linkedin-url"
+                className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 LinkedIn URL
               </label>
               <input
+                id="linkedin-url"
                 type="url"
                 value={memberForm.linkedinUrl}
                 onChange={(e) =>
                   setMemberForm({ ...memberForm, linkedinUrl: e.target.value })
                 }
                 placeholder="https://linkedin.com/in/..."
-                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-ui"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+              <label
+                htmlFor="github-url"
+                className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 GitHub URL
               </label>
               <input
+                id="github-url"
                 type="url"
                 value={memberForm.githubUrl}
                 onChange={(e) =>
                   setMemberForm({ ...memberForm, githubUrl: e.target.value })
                 }
                 placeholder="https://github.com/..."
-                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-ui"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+              <label
+                htmlFor="portfolio-url"
+                className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 Portfolio URL
               </label>
               <input
+                id="portfolio-url"
                 type="url"
                 value={memberForm.portfolioUrl}
                 onChange={(e) =>
                   setMemberForm({ ...memberForm, portfolioUrl: e.target.value })
                 }
                 placeholder="https://your-portfolio.com"
-                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-ui"
               />
             </div>
           </div>
@@ -438,9 +470,10 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="flex gap-3 pt-4">
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className={`flex-1 py-3 bg-accent text-black font-bold uppercase text-xs tracking-widest rounded-none transition-all ${
+          className={`flex-1 py-3 bg-accent text-black font-bold uppercase text-xs tracking-widest rounded-none transition-ui ${
             isSubmitting
               ? "opacity-50 cursor-not-allowed"
               : "hover:bg-accent/80"

@@ -46,6 +46,14 @@ function statusConfig(s: string) {
       glow: string;
     }
   > = {
+    draft: {
+      label: "Not Published",
+      dot: "bg-white/40",
+      text: "text-[var(--text-primary)]/60",
+      bg: "bg-white/5",
+      border: "border-[var(--border-subtle)]",
+      glow: "",
+    },
     open: {
       label: "Registering",
       dot: "bg-emerald-400",
@@ -101,6 +109,13 @@ function statusConfig(s: string) {
 
 type TabType = "INFO" | "SCHEDULE" | "PROJECTS" | "TEAMS";
 
+const TABS: { id: TabType; label: string }[] = [
+  { id: "INFO", label: "Info & Register" },
+  { id: "SCHEDULE", label: "Schedule & QR" },
+  { id: "PROJECTS", label: "Project Gallery" },
+  { id: "TEAMS", label: "Find Teams" },
+];
+
 export default function HackathonDetailPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
@@ -110,10 +125,16 @@ export default function HackathonDetailPage() {
 
   const tabParam = searchParams.get("tab") as TabType | null;
   const [tab, setTab] = useState<TabType>(
-    tabParam && ["INFO", "SCHEDULE", "PROJECTS", "TEAMS"].includes(tabParam)
-      ? tabParam
-      : "INFO",
+    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "INFO",
   );
+
+  // Keep the tab in the URL so refreshing, sharing and Back all work.
+  const selectTab = (next: TabType) => {
+    setTab(next);
+    const qs = new URLSearchParams(searchParams.toString());
+    qs.set("tab", next);
+    router.replace(`?${qs.toString()}`, { scroll: false });
+  };
 
   const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery({
     id: hackathonId,
@@ -137,8 +158,8 @@ export default function HackathonDetailPage() {
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-emerald-500/30 overflow-hidden">
       {/* Animated Ambient Background Glows */}
-      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-r from-emerald-600/10 via-purple-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-r from-purple-600/10 via-emerald-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse delay-1000" />
+      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-r from-emerald-600/10 via-purple-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse motion-reduce:animate-none" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-r from-purple-600/10 via-emerald-600/8 to-indigo-600/10 blur-[120px] pointer-events-none animate-pulse delay-1000 motion-reduce:animate-none" />
 
       <main className="relative z-10 max-w-7xl mx-auto py-24 px-6 md:px-12">
         <Link
@@ -164,11 +185,12 @@ export default function HackathonDetailPage() {
         </Link>
 
         {/* Header Card */}
-        <LiquidGlass className="p-8 md:p-12 mb-8 relative overflow-hidden bg-white/[0.01] border-[var(--border-subtle)] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)]">
+        <LiquidGlass className="group p-8 md:p-12 mb-8 relative overflow-hidden bg-white/[0.01] border-[var(--border-subtle)] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] transition-shadow duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)]">
           {/* Header Background Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-emerald-900/[0.03] to-transparent pointer-events-none" />
-          {/* Subtle Border Glow */}
-          <div className="absolute inset-0 ring-1 ring-white/10 ring-inset rounded-none opacity-0 transition-opacity duration-500 hover:opacity-100" />
+          {/* Subtle Border Glow. group-hover, not hover: the card content sits
+              above this layer at z-10, so a bare hover: never fired. */}
+          <div className="absolute inset-0 ring-1 ring-white/10 ring-inset rounded-none opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
 
           <div className="flex flex-wrap items-center gap-3 mb-6 relative z-10">
             {/* Status Badge */}
@@ -289,31 +311,39 @@ export default function HackathonDetailPage() {
         </LiquidGlass>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none snap-x relative z-10 w-full">
-          {(["INFO", "SCHEDULE", "PROJECTS", "TEAMS"] as const).map((t) => (
+        <div
+          role="tablist"
+          aria-label="Hackathon sections"
+          className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none snap-x relative z-10 w-full"
+        >
+          {TABS.map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-6 py-3 rounded-none text-xs font-semibold uppercase tracking-widest transition-all border whitespace-nowrap snap-start flex-1 min-w-[100px]
+              key={t.id}
+              type="button"
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={tab === t.id}
+              aria-controls={`panel-${t.id}`}
+              onClick={() => selectTab(t.id)}
+              className={`px-6 py-3 rounded-none text-xs font-semibold uppercase tracking-widest transition-[color,background-color,border-color,box-shadow] duration-200 border whitespace-nowrap snap-start flex-1 min-w-[100px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70
                                 ${
-                                  tab === t
+                                  tab === t.id
                                     ? "bg-white/10 text-[var(--text-primary)] border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] ring-2 ring-emerald-500/30"
-                                    : "text-[var(--text-primary)]/40 border-transparent hover:text-[var(--text-primary)]/80 hover:bg-white/5 hover:border-white/15 hover:ring-2 hover:ring-white/10"
+                                    : "text-[var(--text-primary)]/40 border-transparent hover:text-[var(--text-primary)]/80 hover:bg-white/5 hover:border-white/15"
                                 }`}
             >
-              {t === "INFO"
-                ? "Info & Register"
-                : t === "SCHEDULE"
-                  ? "Schedule & QR"
-                  : t === "PROJECTS"
-                    ? "Project Gallery"
-                    : "Find Teams"}
+              {t.label}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div className="relative z-10">
+        <div
+          role="tabpanel"
+          id={`panel-${tab}`}
+          aria-labelledby={`tab-${tab}`}
+          className="relative z-10"
+        >
           {tab === "INFO" ? (
             <InfoTab
               hackathon={hackathon}
