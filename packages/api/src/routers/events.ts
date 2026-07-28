@@ -250,6 +250,15 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
+          // Org events have no registration status of their own; an active
+          // membership is the equivalent gate.
+          if (!member.isActive) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Your membership is not active",
+            });
+          }
+
           if (existingCheckIn) {
             throw new TRPCError({
               code: "CONFLICT",

@@ -26,6 +26,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Replaces `transition-all`, which animates every animatable property —
+   including layout ones like width and height, causing avoidable jank.
+   Lists only what the UI actually transitions. Pair with `duration-*` as usual. */
+@utility transition-ui {
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke,
+    box-shadow, transform, opacity, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
 @layer components {
   /* Glass UI Utilities */
   .glass {

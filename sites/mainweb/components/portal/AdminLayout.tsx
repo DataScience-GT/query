@@ -40,7 +40,7 @@ export default function AdminLayout({
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)] dark:bg-darkBlue/80 text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-x-hidden flex flex-col md:flex-row">
-      <div className="flex-1 transition-all duration-300 w-full">
+      <div className="flex-1 transition-ui duration-300 w-full">
         <div className="p-4 md:p-6">{children}</div>
       </div>
     </div>

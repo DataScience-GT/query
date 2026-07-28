@@ -10,31 +10,67 @@ import {
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
-async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
+const HOUR = 60 * 60 * 1000;
+
+/** All hackathon milestones, as hour offsets from the hacking start time. */
+const TEAM_WINDOW_OPEN_HOURS = 12;
+const TEAM_WINDOW_CLOSE_HOURS = 34;
+const SUBMISSION_HARD_DEADLINE_HOURS = 36;
+/** Rosters freeze 12h before the hard submission deadline, i.e. at +24h. */
+const LEAVE_LOCK_HOURS = SUBMISSION_HARD_DEADLINE_HOURS - 12;
+
+export function computeTeamWindow(baseTime: Date, now: Date) {
+  const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
+
+  const opensAt = at(TEAM_WINDOW_OPEN_HOURS);
+  const closesAt = at(TEAM_WINDOW_CLOSE_HOURS);
+  const leaveLocksAt = at(LEAVE_LOCK_HOURS);
+
+  const isOpen = now >= opensAt && now <= closesAt;
+
+  return {
+    opensAt,
+    closesAt,
+    leaveLocksAt,
+    isOpen,
+    canCreate: isOpen,
+    canJoin: isOpen,
+    // Leaving shuts earlier than the rest of the window so rosters are stable
+    // through the final crunch and judging.
+    canLeave: isOpen && now < leaveLocksAt,
+  };
+}
+
+async function loadTeamWindow(db: DrizzleDB, hackathonId: string) {
   const hackathon = await db.query.hackathons.findFirst({
     where: eq(hackathons.id, hackathonId),
   });
   if (!hackathon) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });
   }
-  const now = new Date();
   const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
-  const startEdit = new Date(baseTime.getTime() + 12 * 60 * 60 * 1000);
-  const endEdit = new Date(baseTime.getTime() + 34 * 60 * 60 * 1000);
-  if (now < startEdit) {
+  return computeTeamWindow(baseTime, new Date());
+}
+
+async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
+  const window = await loadTeamWindow(db, hackathonId);
+  const now = new Date();
+
+  if (now < window.opensAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
         "Team creation and editing is not open yet. It starts 12 hours after the hacking begins.",
     });
   }
-  if (now > endEdit) {
+  if (now > window.closesAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
         "Team creation and editing is closed. It ends 34 hours after the hacking begins.",
     });
   }
+  return window;
 }
 
 export const teamRouter = createTRPCRouter({
@@ -211,7 +247,19 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+      const window = await checkTeamEditWindow(
+        ctx.db as DrizzleDB,
+        input.hackathonId,
+      );
+
+      if (!window.canLeave) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Teams are locked. You cannot leave a team within 12 hours of the project deadline.",
+        });
+      }
+
       const participant = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.hackathonParticipants.findFirst({
@@ -564,6 +612,13 @@ export const teamRouter = createTRPCRouter({
           message: `Failed to submit project: ${message}`,
         });
       }
+    }),
+
+  /** Lets the UI disable team actions instead of letting the mutation fail. */
+  window: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      return await loadTeamWindow(ctx.db as DrizzleDB, input.hackathonId);
     }),
 
   list: protectedProcedure

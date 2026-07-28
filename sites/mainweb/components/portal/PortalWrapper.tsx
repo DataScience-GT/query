@@ -21,7 +21,7 @@ export default function PortalWrapper({
         <PortalSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       )}
       <div
-        className={`flex-1 w-full transition-all duration-300 ${isAuthPage ? "" : isSidebarOpen ? "md:pl-64 pt-16 md:pt-0" : "md:pl-20 pt-16 md:pt-0"}`}
+        className={`flex-1 w-full transition-ui duration-300 ${isAuthPage ? "" : isSidebarOpen ? "md:pl-64 pt-16 md:pt-0" : "md:pl-20 pt-16 md:pt-0"}`}
       >
         {children}
       </div>

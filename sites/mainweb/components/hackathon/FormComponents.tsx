@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useId } from "react";
 
 // ── Reusable Form Primitives ── //
 
@@ -17,18 +17,31 @@ export function FormInput({
   className = "",
   ...props
 }: FormInputProps) {
+  const autoId = useId();
+  const id = props.id ?? autoId;
+  const errorId = `${id}-error`;
+
   return (
     <div>
-      <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
+      <label
+        htmlFor={id}
+        className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2"
+      >
         {label}
         {required && " *"}
       </label>
       <input
         {...props}
-        className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
+        id={id}
+        required={required}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
       />
       {error && (
-        <p className="mt-1.5 text-xs text-rose-400 font-medium">{error}</p>
+        <p id={errorId} className="mt-1.5 text-xs text-rose-400 font-medium">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -48,18 +61,31 @@ export function FormTextarea({
   className = "",
   ...props
 }: FormTextareaProps) {
+  const autoId = useId();
+  const id = props.id ?? autoId;
+  const errorId = `${id}-error`;
+
   return (
     <div>
-      <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
+      <label
+        htmlFor={id}
+        className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2"
+      >
         {label}
         {required && " *"}
       </label>
       <textarea
         {...props}
-        className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
+        id={id}
+        required={required}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui resize-none ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
       />
       {error && (
-        <p className="mt-1.5 text-xs text-rose-400 font-medium">{error}</p>
+        <p id={errorId} className="mt-1.5 text-xs text-rose-400 font-medium">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -82,19 +108,31 @@ export function FormChipSelect({
   onChange,
   allowDeselect = false,
 }: FormChipSelectProps) {
+  const groupId = useId();
+
   return (
     <div>
-      <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
+      {/* A chip group is a set of buttons, not a single control, so it gets a
+          labelled group rather than a <label> with nothing to point at. */}
+      <span
+        id={groupId}
+        className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2"
+      >
         {label}
         {required && " *"}
-      </label>
-      <div className="flex flex-wrap gap-2.5">
+      </span>
+      <div
+        role="group"
+        aria-labelledby={groupId}
+        className="flex flex-wrap gap-2.5"
+      >
         {options.map((opt) => (
           <button
             key={opt}
             type="button"
+            aria-pressed={value === opt}
             onClick={() => onChange(allowDeselect && value === opt ? "" : opt)}
-            className={`px-4 py-2.5 rounded-none text-sm font-bold border transition-all ${
+            className={`px-4 py-2.5 rounded-none text-sm font-bold border transition-ui ${
               value === opt
                 ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                 : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5"
@@ -134,18 +172,28 @@ export function FormMultiChipSelect({
         : [...selected, opt],
     );
   }
+  const groupId = useId();
+
   return (
     <div>
-      <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
+      <span
+        id={groupId}
+        className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2"
+      >
         {label}
-      </label>
-      <div className="flex flex-wrap gap-2.5">
+      </span>
+      <div
+        role="group"
+        aria-labelledby={groupId}
+        className="flex flex-wrap gap-2.5"
+      >
         {options.map((opt) => (
           <button
             key={opt}
             type="button"
+            aria-pressed={selected.includes(opt)}
             onClick={() => toggle(opt)}
-            className={`px-4 py-2 rounded-none text-sm font-medium border transition-all ${
+            className={`px-4 py-2 rounded-none text-sm font-medium border transition-ui ${
               selected.includes(opt)
                 ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                 : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5"
@@ -198,14 +246,26 @@ export function SearchableSelect({
     [onChange],
   );
 
+  const inputId = useId();
+  const listId = `${inputId}-listbox`;
+
   return (
     <div className="relative">
-      <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2">
+      <label
+        htmlFor={inputId}
+        className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-2"
+      >
         {label}
         {required && " *"}
       </label>
       <input
+        id={inputId}
         type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        required={required}
         value={open ? search : value}
         onFocus={() => {
           setOpen(true);
@@ -217,14 +277,20 @@ export function SearchableSelect({
         }}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         placeholder={placeholder}
-        className="w-full px-4 py-3.5 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all"
+        className="w-full px-4 py-3.5 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[#0e0e0e] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl">
+        <div
+          id={listId}
+          role="listbox"
+          className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[#0e0e0e] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl"
+        >
           {filtered.map((opt) => (
             <button
               key={opt}
               type="button"
+              role="option"
+              aria-selected={value === opt}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(opt)}
               className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors ${value === opt ? "text-accent bg-emerald-500/5" : "text-[var(--text-primary)]/70"}`}
@@ -252,7 +318,7 @@ export function StepProgress({ steps, current }: StepProgressProps) {
         <div key={label} className="flex-1 flex flex-col items-center gap-2">
           <div className="w-full flex items-center">
             <div
-              className={`flex-1 h-1 rounded-sm transition-all duration-500 ${i <= current ? "bg-emerald-500" : "bg-white/10"}`}
+              className={`flex-1 h-1 rounded-sm transition-ui duration-500 ${i <= current ? "bg-emerald-500" : "bg-white/10"}`}
             />
           </div>
           <span
@@ -337,7 +403,7 @@ export function FormNavigation({
         <button
           onClick={onBack}
           type="button"
-          className="w-full sm:w-auto px-6 py-4 rounded-none bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/10 font-bold text-sm uppercase tracking-widest transition-all"
+          className="w-full sm:w-auto px-6 py-4 rounded-none bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/10 font-bold text-sm uppercase tracking-widest transition-ui"
         >
           Back
         </button>
@@ -346,7 +412,7 @@ export function FormNavigation({
         <button
           onClick={onNext}
           type="button"
-          className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
+          className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
         >
           Continue
         </button>
@@ -355,7 +421,7 @@ export function FormNavigation({
           onClick={onSubmit}
           type="button"
           disabled={isSubmitting}
-          className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
+          className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
         >
           {isSubmitting ? "Submitting..." : "Submit Application"}
         </button>

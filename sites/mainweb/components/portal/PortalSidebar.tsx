@@ -118,6 +118,7 @@ export default function PortalSidebar({
           </span>
         </div>
         <button
+          type="button"
           onClick={() => setIsMobileOpen(true)}
           className="p-2 hover:bg-white/5 rounded-none transition-colors"
         >
@@ -129,6 +130,7 @@ export default function PortalSidebar({
       {isMobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-[var(--bg-primary)]/98 backdrop-blur-3xl flex flex-col items-center pt-20 pb-10 px-6 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
           <button
+            type="button"
             onClick={() => setIsMobileOpen(false)}
             className="absolute top-4 right-4 p-3 bg-[var(--bg-secondary)] rounded-sm hover:bg-[var(--bg-elevated)] transition-colors"
           >
@@ -153,7 +155,7 @@ export default function PortalSidebar({
                         key={route.href}
                         href={route.href}
                         onClick={() => setIsMobileOpen(false)}
-                        className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
+                        className={`flex items-center justify-center gap-3 py-4 rounded-none transition-ui ${
                           isActive
                             ? "bg-accent/10 text-accent border border-accent/20 font-bold"
                             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
@@ -187,7 +189,7 @@ export default function PortalSidebar({
                           key={route.href}
                           href={route.href}
                           onClick={() => setIsMobileOpen(false)}
-                          className={`flex items-center justify-center gap-3 py-4 rounded-none transition-all ${
+                          className={`flex items-center justify-center gap-3 py-4 rounded-none transition-ui ${
                             isActive
                               ? "bg-accent/10 text-accent border border-accent/20 font-bold"
                               : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
@@ -218,6 +220,7 @@ export default function PortalSidebar({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold uppercase tracking-wider text-sm py-2"
               >
@@ -226,6 +229,7 @@ export default function PortalSidebar({
 
               {mounted && (
                 <button
+                  type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold uppercase tracking-wider text-sm py-2"
                 >
@@ -244,7 +248,7 @@ export default function PortalSidebar({
 
       {/* DESKTOP SIDEBAR */}
       <div
-        className={`hidden md:flex flex-col fixed left-0 top-0 z-40 h-screen border-r border-[var(--border-subtle)] bg-[var(--bg-primary)] dark:bg-darkBlue/80 backdrop-blur-3xl transition-all duration-300 ${isOpen ? "w-64" : "w-20"}`}
+        className={`hidden md:flex flex-col fixed left-0 top-0 z-40 h-screen border-r border-[var(--border-subtle)] bg-[var(--bg-primary)] dark:bg-darkBlue/80 backdrop-blur-3xl transition-ui duration-300 ${isOpen ? "w-64" : "w-20"}`}
       >
         {/* Header */}
         <div className="flex h-16 items-center justify-between border-b border-[var(--border-subtle)] px-4">
@@ -277,6 +281,7 @@ export default function PortalSidebar({
           )}
           {isOpen && (
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="p-2 hover:bg-white/5 rounded-none transition-colors"
             >
@@ -288,6 +293,7 @@ export default function PortalSidebar({
         {!isOpen && (
           <div className="flex justify-center pt-2">
             <button
+              type="button"
               onClick={() => setIsOpen(true)}
               className="p-2 hover:bg-white/5 rounded-none transition-colors"
             >
@@ -323,7 +329,7 @@ export default function PortalSidebar({
                       key={route.href}
                       href={route.href}
                       title={!isOpen ? route.name : undefined}
-                      className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
+                      className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-ui ${
                         isActive
                           ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
                           : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
@@ -371,10 +377,10 @@ export default function PortalSidebar({
                         key={route.href}
                         href={route.href}
                         title={!isOpen ? route.name : undefined}
-                        className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-all ${
+                        className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-ui ${
                           isActive
                             ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
-                              : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                            : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         <route.icon
@@ -424,6 +430,7 @@ export default function PortalSidebar({
             <div className="mt-3 flex flex-col gap-2 w-full">
               {mounted && (
                 <button
+                  type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="flex w-full items-center gap-3 rounded-none px-3 py-3 text-[var(--text-subtle)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
                 >
@@ -438,6 +445,7 @@ export default function PortalSidebar({
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="flex w-full items-center gap-3 rounded-none px-3 py-3 text-[var(--text-subtle)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >

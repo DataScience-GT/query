@@ -53,6 +53,7 @@ export function QRCodeModal({
           </p>
         </div>
         <button
+          type="button"
           onClick={onClose}
           className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-xs uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
         >
@@ -102,14 +103,16 @@ export function QRCodeModal({
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-4">
           <button
+            type="button"
             onClick={onDownload}
-            className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all rounded-none font-mono"
+            className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-ui rounded-none font-mono"
           >
             SAVE IMG
           </button>
           <button
+            type="button"
             onClick={handleCopyCode}
-            className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all rounded-none font-mono"
+            className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-ui rounded-none font-mono"
           >
             COPY VAL
           </button>
@@ -117,9 +120,10 @@ export function QRCodeModal({
 
         {/* Regenerate Button */}
         <button
+          type="button"
           onClick={handleRegenerate}
           disabled={isRegenerating}
-          className="w-full px-6 py-4 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-50 rounded-none font-mono"
+          className="w-full px-6 py-4 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 transition-ui disabled:opacity-50 rounded-none font-mono"
         >
           {isRegenerating ? "RENEWING..." : "REBOOT QR SYSTEM"}
         </button>

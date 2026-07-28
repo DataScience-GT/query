@@ -52,12 +52,13 @@ export function CreateHackathonStep({
           <div className="flex flex-wrap gap-2">
             {hackathons.map((h) => (
               <button
+                type="button"
                 key={h.id}
                 onClick={() => {
                   setSelectedHackathonId(h.id);
                   setActiveStep(2);
                 }}
-                className={`px-5 py-2.5 rounded-none font-bold text-xs uppercase tracking-widest transition-all border ${
+                className={`px-5 py-2.5 rounded-none font-bold text-xs uppercase tracking-widest transition-ui border ${
                   selectedHackathonId === h.id
                     ? "bg-accent/10 border-accent/50 text-[var(--text-primary)]"
                     : "bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
@@ -80,6 +81,7 @@ export function CreateHackathonStep({
       <div className="space-y-4 max-w-md">
         <input
           type="text"
+          aria-label="Event name"
           placeholder="Event name (e.g. Hacklytics 2026)"
           value={hackathonName}
           onChange={(e) => setHackathonName(e.target.value)}
@@ -87,6 +89,7 @@ export function CreateHackathonStep({
         />
         <input
           type="text"
+          aria-label="Tracks, comma-separated"
           placeholder="Tracks (comma-separated, e.g. Sports, Finance)"
           value={hackathonTracks}
           onChange={(e) => setHackathonTracks(e.target.value)}
@@ -94,15 +97,17 @@ export function CreateHackathonStep({
         />
         <input
           type="text"
+          aria-label="Challenges, comma-separated"
           placeholder="Challenges (comma-separated, e.g. AWS, MongoDB)"
           value={hackathonChallenges}
           onChange={(e) => setHackathonChallenges(e.target.value)}
           className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:outline-none focus:border-accent/40 transition-colors"
         />
         <button
+          type="button"
           onClick={onCreateHackathon}
           disabled={!hackathonName.trim() || createHackathonPending}
-          className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all disabled:opacity-30 font-mono"
+          className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-30 font-mono"
         >
           {createHackathonPending ? "Creating..." : "Create Event"}
         </button>

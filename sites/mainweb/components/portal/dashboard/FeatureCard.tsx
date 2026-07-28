@@ -70,7 +70,7 @@ export function FeatureCard({
 
   const content = (
     <div
-      className={`relative p-8 bg-[var(--bg-primary)]/40 border ${classes.border} transition-all duration-300 overflow-hidden ${
+      className={`relative p-8 bg-[var(--bg-primary)]/40 border ${classes.border} transition-ui duration-300 overflow-hidden ${
         !disabled ? "group-hover:translate-y-[-2px]" : ""
       } ${disabled ? "cursor-default" : ""} ${variant === "member" ? classes.hoverShadow : ""} rounded-none flex flex-col h-full`}
     >
@@ -81,7 +81,7 @@ export function FeatureCard({
             className={`absolute inset-0 bg-gradient-to-br ${classes.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
           />
           <div
-            className={`absolute -right-10 -top-10 w-40 h-40 ${classes.glow} rounded-sm blur-3xl transition-all duration-500`}
+            className={`absolute -right-10 -top-10 w-40 h-40 ${classes.glow} rounded-sm blur-3xl transition-ui duration-500`}
           />
         </>
       )}
@@ -89,7 +89,7 @@ export function FeatureCard({
       {/* Icon */}
       {icon && (
         <div
-          className={`absolute top-0 right-0 p-4 ${variant === "member" ? "p-5 opacity-20 group-hover:opacity-40 transform group-hover:scale-105 group-hover:rotate-3" : "opacity-10 group-hover:opacity-20"} transition-all duration-300`}
+          className={`absolute top-0 right-0 p-4 ${variant === "member" ? "p-5 opacity-20 group-hover:opacity-40 transform group-hover:scale-105 group-hover:rotate-3" : "opacity-10 group-hover:opacity-20"} transition-ui duration-300`}
         >
           {icon}
         </div>
@@ -130,7 +130,7 @@ export function FeatureCard({
         {/* Action Link */}
         {!disabled && !statusBadge && (
           <div
-            className={`mt-auto inline-flex items-center gap-3 text-sm font-mono ${classes.linkColor} ${variant === "member" ? "bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-none group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-all" : ""}`}
+            className={`mt-auto inline-flex items-center gap-3 text-sm font-mono ${classes.linkColor} ${variant === "member" ? "bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-none group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-ui" : ""}`}
           >
             <span
               className={`${variant === "member" ? "group-hover:text-green-300 transition-colors font-bold tracking-wider" : ""}`}

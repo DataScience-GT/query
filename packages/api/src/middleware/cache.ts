@@ -219,6 +219,19 @@ export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max
  */
 export const cacheStats = cache.exportStats();
 
+/**
+ * TTL (seconds) for state an admin can flip mid-event — hackathon status,
+ * registration deadlines, capacity.
+ *
+ * This cache lives in a single Node process, and App Hosting runs up to 10
+ * instances (see apphosting.yaml). A mutation only clears the cache on the
+ * instance that served it, so every other instance keeps serving stale data
+ * until its own entry expires. Keeping this short bounds that window to a few
+ * seconds instead of a couple of minutes. Cross-instance correctness needs a
+ * shared cache; this only limits the blast radius.
+ */
+export const VOLATILE_TTL = 5;
+
 // Cache key builders for consistency
 export const CacheKeys = {
   user: (userId: string) => `user:${userId}`,

@@ -45,9 +45,10 @@ export function JudgingTools({
           <div className="flex flex-wrap gap-3">
             {hackathons.map((h) => (
               <button
+                type="button"
                 key={h.id}
                 onClick={() => setSelectedHackathon(h.id)}
-                className={`px-8 py-4 rounded-none font-bold text-sm uppercase tracking-widest transition-all duration-300 border ${
+                className={`px-8 py-4 rounded-none font-bold text-sm uppercase tracking-widest transition-ui duration-300 border ${
                   selectedHackathon === h.id
                     ? "bg-accent/10 border-accent/50 text-[var(--text-primary)] shadow-[0_0_20px_rgba(16,185,129,0.1)]"
                     : "bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
@@ -69,9 +70,10 @@ export function JudgingTools({
           <div className="flex flex-wrap gap-3">
             {(["results", "rooms", "judges"] as const).map((mode) => (
               <button
+                type="button"
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-6 py-3 rounded-none font-bold text-xs uppercase tracking-widest transition-all duration-300 border font-mono ${
+                className={`px-6 py-3 rounded-none font-bold text-xs uppercase tracking-widest transition-ui duration-300 border font-mono ${
                   viewMode === mode
                     ? "bg-accent/10 border-accent/50 text-[var(--text-primary)] shadow-[0_0_20px_rgba(16,185,129,0.1)]"
                     : "bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
@@ -98,9 +100,10 @@ export function JudgingTools({
             <div className="flex flex-wrap gap-3">
               {categories.map((cat) => (
                 <button
+                  type="button"
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${
+                  className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-ui duration-300 border ${
                     selectedCategory === cat
                       ? "bg-white/10 border-white/20 text-[var(--text-primary)] shadow-lg"
                       : "bg-white/[0.02] border-[var(--border-subtle)] text-gray-600 hover:text-[var(--text-muted)] hover:bg-white/5"
@@ -122,9 +125,10 @@ export function JudgingTools({
             <div className="flex flex-wrap gap-3">
               {tracks.map((track) => (
                 <button
+                  type="button"
                   key={track}
                   onClick={() => setSelectedTrack(track)}
-                  className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-all duration-300 border ${
+                  className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-ui duration-300 border ${
                     selectedTrack === track
                       ? "bg-accent/20 border-accent/50 text-[var(--text-primary)] shadow-lg"
                       : "bg-white/[0.02] border-[var(--border-subtle)] text-gray-600 hover:text-[var(--text-muted)] hover:bg-white/5"

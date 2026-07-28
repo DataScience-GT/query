@@ -45,7 +45,7 @@ export function HackathonCard({
   });
 
   return (
-    <LiquidGlass className="p-10 md:p-12 hover:border-white/20 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+    <LiquidGlass className="p-10 md:p-12 hover:border-white/20 transition-ui shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
       <div className="flex flex-col gap-10">
         {/* Info Section */}
         <div className="min-w-0">
@@ -113,7 +113,7 @@ export function HackathonCard({
             <div className="mt-6 space-y-2">
               <div className="h-2 w-full bg-white/5 rounded-sm overflow-hidden border border-[var(--border-subtle)]">
                 <div
-                  className="h-full bg-gradient-to-r from-accent to-accent rounded-sm transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-accent to-accent rounded-sm transition-ui duration-500"
                   style={{
                     width: `${Math.min(100, Math.max(4, (hackathon.currentParticipants / hackathon.maxParticipants) * 100))}%`,
                   }}
@@ -190,7 +190,7 @@ export function HackathonCard({
                   return (
                     <div
                       key={event.id}
-                      className="p-4 bg-white/[0.01] border border-[var(--border-subtle)] rounded-none hover:bg-white/[0.03] hover:border-[var(--border-subtle)] transition-all flex flex-col justify-between gap-3 group/item relative overflow-hidden"
+                      className="p-4 bg-white/[0.01] border border-[var(--border-subtle)] rounded-none hover:bg-white/[0.03] hover:border-[var(--border-subtle)] transition-ui flex flex-col justify-between gap-3 group/item relative overflow-hidden"
                     >
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent to-transparent opacity-50" />
                       <div className="flex justify-between items-start gap-2">
@@ -285,6 +285,7 @@ export function HackathonCard({
             {/* Replaced Status Dropdown with just Hidden/Public toggle */}
 
             <button
+              type="button"
               onClick={() => {
                 updateMutation.mutate({
                   id: hackathon.id,
@@ -304,6 +305,7 @@ export function HackathonCard({
           {/* Right group: Dashboard + Edit */}
           <div className="flex flex-wrap items-center gap-4">
             <button
+              type="button"
               onClick={onEdit}
               className="whitespace-nowrap px-6 py-3.5 border border-[var(--border-subtle)] text-gray-300 text-base font-semibold rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
             >
@@ -311,6 +313,7 @@ export function HackathonCard({
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 if (
                   confirm(
@@ -328,7 +331,7 @@ export function HackathonCard({
 
             <Link
               href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
-              className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-all flex items-center gap-2"
+              className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-ui flex items-center gap-2"
             >
               Dashboard <span className="text-lg leading-none">→</span>
             </Link>

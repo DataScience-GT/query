@@ -22,7 +22,9 @@ export function LiquidGlass({
   const printedClass = printed ? "card-printed" : "";
 
   return (
-    <Component className={`${baseClass} ${holoClass} ${printedClass} ${className}`}>
+    <Component
+      className={`${baseClass} ${holoClass} ${printedClass} ${className}`}
+    >
       {children}
     </Component>
   );
