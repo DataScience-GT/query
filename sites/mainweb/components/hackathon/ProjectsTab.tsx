@@ -48,7 +48,7 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
       {projects.map((project) => (
         <LiquidGlass
           key={project.id}
-          className="p-1 group flex flex-col h-full hover:-translate-y-1 transition-all duration-500 bg-white/[0.01] border-[var(--border-subtle)] hover:border-white/20 hover:shadow-[0_20px_40px_-15px_rgba(52,211,153,0.15)]"
+          className="p-1 group flex flex-col h-full hover:-translate-y-1 transition-ui duration-500 bg-white/[0.01] border-[var(--border-subtle)] hover:border-white/20 hover:shadow-[0_20px_40px_-15px_rgba(52,211,153,0.15)]"
         >
           <div className="flex-1 relative flex flex-col bg-[#0a0a0a] rounded-none p-6 md:p-8 overflow-hidden z-10">
             {/* Hover Gradient Overlay */}
@@ -116,7 +116,7 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
                     href={project.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-sm bg-white/5 border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] hover:bg-white/10 transition-all"
+                    className="w-8 h-8 rounded-sm bg-white/5 border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] hover:bg-white/10 transition-ui"
                   >
                     <svg
                       className="w-4 h-4"
@@ -136,7 +136,7 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
                     href={project.demoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-sm bg-accent/10 border border-emerald-500/20 flex items-center justify-center text-accent hover:bg-emerald-500/20 hover:text-emerald-300 transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                    className="w-8 h-8 rounded-sm bg-accent/10 border border-emerald-500/20 flex items-center justify-center text-accent hover:bg-emerald-500/20 hover:text-emerald-300 transition-ui shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                   >
                     <svg
                       className="w-4 h-4"

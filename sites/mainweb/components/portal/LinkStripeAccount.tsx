@@ -24,7 +24,11 @@ export default function LinkStripeAccount({
 }: LinkStripeAccountProps) {
   const [showModal, setShowModal] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
-  const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "" });
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -58,12 +62,13 @@ export default function LinkStripeAccount({
     if (autoLinkFired.current) return;
     autoLinkFired.current = true;
     autoLinkMutation.mutate();
-  // autoLinkMutation ref is stable — intentionally omitted from deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // autoLinkMutation ref is stable — intentionally omitted from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Server-side confirm after payment
-  const confirmMutation = trpc.stripe.confirmMembershipAfterPayment.useMutation();
+  const confirmMutation =
+    trpc.stripe.confirmMembershipAfterPayment.useMutation();
 
   // Create Payment Intent (for modal)
   const createIntentMutation = trpc.stripe.createPaymentIntent.useMutation({
@@ -115,8 +120,18 @@ export default function LinkStripeAccount({
     return (
       <LiquidGlass className="h-full p-8 flex flex-col items-center justify-center text-center !bg-emerald-500/[0.07] !border-emerald-500/30">
         <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-4">
-          <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          <svg
+            className="w-6 h-6 text-emerald-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         </div>
         <p className="text-xs uppercase tracking-widest font-black mb-2 text-emerald-400">
@@ -150,41 +165,58 @@ export default function LinkStripeAccount({
             Link Existing Payment
           </p>
           <button
-            onClick={() => { setShowLinkForm(false); setError(null); }}
-            className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] text-xs uppercase tracking-widest font-mono hover:bg-[var(--bg-secondary)] px-3 py-1.5 rounded-sm transition-all"
+            type="button"
+            onClick={() => {
+              setShowLinkForm(false);
+              setError(null);
+            }}
+            className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] text-xs uppercase tracking-widest font-mono hover:bg-[var(--bg-secondary)] px-3 py-1.5 rounded-sm transition-ui"
           >
             [ Back ]
           </button>
         </div>
 
         <p className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed">
-          Enter the name and email you used when paying through Stripe to link your existing payment.
+          Enter the name and email you used when paying through Stripe to link
+          your existing payment.
         </p>
 
         <form onSubmit={handleLinkSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+              <label
+                htmlFor="first-name"
+                className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 First Name
               </label>
               <input
+                id="first-name"
                 type="text"
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 text-[var(--text-primary)] text-sm focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-all"
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 text-[var(--text-primary)] text-sm focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-ui"
                 placeholder="John"
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+              <label
+                htmlFor="last-name"
+                className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 Last Name
               </label>
               <input
+                id="last-name"
                 type="text"
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 text-[var(--text-primary)] text-sm focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-all"
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 text-[var(--text-primary)] text-sm focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-ui"
                 placeholder="Doe"
                 required
               />
@@ -192,14 +224,20 @@ export default function LinkStripeAccount({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+            <label
+              htmlFor="payment-email"
+              className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+            >
               Payment Email
             </label>
             <input
+              id="payment-email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 text-[var(--text-primary)] text-sm focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-all"
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 text-[var(--text-primary)] text-sm focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-ui"
               placeholder="you@example.com"
               required
             />
@@ -214,7 +252,7 @@ export default function LinkStripeAccount({
           <button
             type="submit"
             disabled={linkMutation.isPending}
-            className="w-full mt-1 px-4 py-3 bg-[var(--accent)] text-white font-bold text-xs uppercase tracking-[0.2em] hover:opacity-90 transition-all disabled:opacity-50 rounded-sm"
+            className="w-full mt-1 px-4 py-3 bg-[var(--accent)] text-white font-bold text-xs uppercase tracking-[0.2em] hover:opacity-90 transition-ui disabled:opacity-50 rounded-sm"
           >
             {linkMutation.isPending ? "Verifying…" : "Link Payment"}
           </button>
@@ -226,7 +264,7 @@ export default function LinkStripeAccount({
   // ── Default card ─────────────────────────────────────────────────────────
   return (
     <>
-      <LiquidGlass className="relative h-full p-8 hover:!border-[var(--accent)]/30 transition-all duration-300 flex flex-col group">
+      <LiquidGlass className="relative h-full p-8 hover:!border-[var(--accent)]/30 transition-ui duration-300 flex flex-col group">
         {/* Decorative glow */}
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-inherit" />
 
@@ -251,15 +289,18 @@ export default function LinkStripeAccount({
 
           <p className="text-sm text-[var(--text-muted)] mb-6 leading-relaxed">
             Membership verification required for portal access.{" "}
-            <span className="font-bold text-[var(--text-primary)]">$15.00 / year</span>
+            <span className="font-bold text-[var(--text-primary)]">
+              $15.00 / year
+            </span>
           </p>
 
           <div className="mt-auto space-y-2.5">
             {/* Primary: open Stripe modal */}
             <button
+              type="button"
               onClick={handleOpenModal}
               disabled={createIntentMutation.isPending}
-              className="w-full py-3.5 px-4 bg-[var(--accent)] text-white hover:opacity-90 text-xs font-bold tracking-[0.15em] uppercase transition-all rounded-sm shadow-[0_4px_14px_rgba(0,168,168,0.25)] hover:shadow-[0_4px_20px_rgba(0,168,168,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 bg-[var(--accent)] text-white hover:opacity-90 text-xs font-bold tracking-[0.15em] uppercase transition-ui rounded-sm shadow-[0_4px_14px_rgba(0,168,168,0.25)] hover:shadow-[0_4px_20px_rgba(0,168,168,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {createIntentMutation.isPending ? (
                 <>
@@ -276,8 +317,9 @@ export default function LinkStripeAccount({
 
             {/* Secondary: link existing */}
             <button
+              type="button"
               onClick={() => setShowLinkForm(true)}
-              className="w-full py-2.5 px-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] hover:border-[var(--border-medium)] text-xs font-bold tracking-[0.15em] uppercase transition-all rounded-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] hover:border-[var(--border-medium)] text-xs font-bold tracking-[0.15em] uppercase transition-ui rounded-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center gap-2"
             >
               <LinkIcon className="w-3.5 h-3.5" />
               Link Existing Payment

@@ -5,6 +5,17 @@ import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { toInputDate } from "@/components/admin/hackathons/constants";
 
+const HACKATHON_STATUSES = [
+  "draft",
+  "open",
+  "closed",
+  "in_progress",
+  "completed",
+  "cancelled",
+] as const;
+
+type HackathonStatus = (typeof HACKATHON_STATUSES)[number];
+
 export function EditHackathonForm({
   hackathonId,
   onClose,
@@ -27,6 +38,7 @@ export function EditHackathonForm({
   const [regDeadline, setRegDeadline] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
   const [theme, setTheme] = useState("");
+  const [status, setStatus] = useState<HackathonStatus>("draft");
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
@@ -49,6 +61,7 @@ export function EditHackathonForm({
       );
       setMaxParticipants(hackathon.maxParticipants?.toString() || "");
       setTheme(hackathon.theme || "");
+      setStatus(hackathon.status as HackathonStatus);
       setLoaded(true);
     }
   }, [hackathon, loaded]);
@@ -57,6 +70,15 @@ export function EditHackathonForm({
     onSuccess: () => onSaved(),
     onError: (e) => setError(e.message),
   });
+
+  // Escape closes the dialog. The backdrop handles pointers; this covers keyboards.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   function handleSubmit() {
     if (!name.trim()) {
@@ -75,6 +97,7 @@ export function EditHackathonForm({
       registrationDeadline: regDeadline ? new Date(regDeadline) : undefined,
       maxParticipants: maxParticipants ? parseInt(maxParticipants) : undefined,
       theme: theme.trim() || undefined,
+      status,
     });
   }
 
@@ -90,19 +113,32 @@ export function EditHackathonForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Decorative backdrop. Clicking it closes the modal, but it is not a
+          control — keyboard users get Escape instead (see the effect above). */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 bg-[var(--bg-primary)]/70 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-hackathon-title"
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
         <LiquidGlass className="p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-[var(--text-primary)]">
+            <h3
+              id="edit-hackathon-title"
+              className="text-lg font-bold text-[var(--text-primary)]"
+            >
               Edit Hackathon
             </h3>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close edit hackathon dialog"
               className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm font-mono"
             >
               X
@@ -111,10 +147,41 @@ export function EditHackathonForm({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="edit-status"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
+                Status
+              </label>
+              <select
+                id="edit-status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as HackathonStatus)}
+                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+              >
+                {HACKATHON_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              {status !== "open" && (
+                <p className="text-[11px] text-amber-400/80 mt-2 font-mono">
+                  Participants can only register while status is
+                  &quot;open&quot;.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-name"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 Name
               </label>
               <input
+                id="edit-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -122,10 +189,14 @@ export function EditHackathonForm({
               />
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="edit-description"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 Description
               </label>
               <textarea
+                id="edit-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -134,10 +205,14 @@ export function EditHackathonForm({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                <label
+                  htmlFor="edit-location"
+                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                >
                   Location
                 </label>
                 <input
+                  id="edit-location"
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -145,10 +220,14 @@ export function EditHackathonForm({
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                <label
+                  htmlFor="edit-theme"
+                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                >
                   Theme
                 </label>
                 <input
+                  id="edit-theme"
                   type="text"
                   value={theme}
                   onChange={(e) => setTheme(e.target.value)}
@@ -158,38 +237,97 @@ export function EditHackathonForm({
             </div>
 
             <div className="pt-2">
-              <p className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-primary)] mb-4 font-mono opacity-80">Timing</p>
+              <p className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-primary)] mb-4 font-mono opacity-80">
+                Timing
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Start Date</label>
-                  <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">Event doors open / schedule begins</p>
+                  <label
+                    htmlFor="edit-start-date"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Start Date
+                  </label>
+                  <input
+                    id="edit-start-date"
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                  />
+                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                    Event doors open / schedule begins
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">End Date</label>
-                  <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">Event closes / everyone leaves</p>
+                  <label
+                    htmlFor="edit-end-date"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    End Date
+                  </label>
+                  <input
+                    id="edit-end-date"
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                  />
+                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                    Event closes / everyone leaves
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Hacking Start Time</label>
-                  <input type="datetime-local" value={hackingStartTime} onChange={(e) => setHackingStartTime(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">Defaults to Start Date; must be within event window. Clear to reset.</p>
+                  <label
+                    htmlFor="edit-hacking-start-time"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Hacking Start Time
+                  </label>
+                  <input
+                    id="edit-hacking-start-time"
+                    type="datetime-local"
+                    value={hackingStartTime}
+                    onChange={(e) => setHackingStartTime(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                  />
+                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                    Defaults to Start Date; must be within event window. Clear
+                    to reset.
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">Registration Deadline</label>
-                  <input type="datetime-local" value={regDeadline} onChange={(e) => setRegDeadline(e.target.value)} className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]" />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">Last chance for participants to sign up.</p>
+                  <label
+                    htmlFor="edit-registration-deadline"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Registration Deadline
+                  </label>
+                  <input
+                    id="edit-registration-deadline"
+                    type="datetime-local"
+                    value={regDeadline}
+                    onChange={(e) => setRegDeadline(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                  />
+                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                    Last chance for participants to sign up.
+                  </p>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="edit-max-participants"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 Max Participants
               </label>
               <input
+                id="edit-max-participants"
                 type="number"
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(e.target.value)}
@@ -205,6 +343,7 @@ export function EditHackathonForm({
 
             <div className="flex items-center gap-4 pt-2">
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={updateMutation.isPending}
                 className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] disabled:opacity-50"
@@ -212,6 +351,7 @@ export function EditHackathonForm({
                 {updateMutation.isPending ? "Saving..." : "Save Changes"}
               </button>
               <button
+                type="button"
                 onClick={onClose}
                 className="px-4 py-3 text-[var(--text-subtle)] hover:text-[var(--text-primary)] text-sm font-mono transition-colors"
               >

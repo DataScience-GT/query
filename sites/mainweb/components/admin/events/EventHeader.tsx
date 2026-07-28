@@ -16,7 +16,7 @@ export function EventHeader() {
       </div>
       <Link
         href="/admin/hackathons"
-        className="px-6 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm font-bold uppercase tracking-widest rounded-none hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-2 font-mono"
+        className="px-6 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm font-bold uppercase tracking-widest rounded-none hover:bg-white/10 hover:border-white/30 transition-ui flex items-center gap-2 font-mono"
       >
         <span className="w-2 h-2 rounded-sm bg-accent animate-pulse" />
         Open QR Scanner

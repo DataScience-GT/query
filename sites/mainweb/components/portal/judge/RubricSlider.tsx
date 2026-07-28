@@ -57,7 +57,7 @@ export function RubricSlider({
       <div className="relative h-12 flex items-center">
         <div className="absolute inset-x-0 h-2 bg-white/5 rounded-sm overflow-hidden">
           <div
-            className={`h-full bg-gradient-to-r ${getScoreColor(value)} transition-all duration-150 ease-out`}
+            className={`h-full bg-gradient-to-r ${getScoreColor(value)} transition-ui duration-150 ease-out`}
             style={{ width: `${(value - 1) * 11.11}%` }}
           />
         </div>
@@ -71,7 +71,7 @@ export function RubricSlider({
         />
         {/* Thumb indicator */}
         <div
-          className="absolute w-6 h-6 bg-white rounded-sm shadow-lg shadow-black/30 pointer-events-none transition-all duration-150 ease-out border-2 border-white"
+          className="absolute w-6 h-6 bg-white rounded-sm shadow-lg shadow-black/30 pointer-events-none transition-ui duration-150 ease-out border-2 border-white"
           style={{
             left: `calc(${(value - 1) * 11.11}% - 12px + ${(value - 1) * 0.24}%)`,
           }}
@@ -86,9 +86,10 @@ export function RubricSlider({
       <div className="flex justify-between px-0.5 mt-1">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
           <button
+            type="button"
             key={n}
             onClick={() => onChange(n)}
-            className={`w-5 h-5 flex items-center justify-center text-[10px] font-medium rounded transition-all
+            className={`w-5 h-5 flex items-center justify-center text-[10px] font-medium rounded transition-ui
                             ${
                               value === n
                                 ? "text-[var(--text-primary)] bg-white/10"

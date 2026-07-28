@@ -43,14 +43,13 @@ function CheckoutForm({
       return;
     }
 
-    const { error: confirmError, paymentIntent } =
-      await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.href,
-        },
-        redirect: "if_required",
-      });
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+      },
+      redirect: "if_required",
+    });
 
     if (confirmError) {
       setError(confirmError.message ?? "Payment failed. Please try again.");
@@ -63,7 +62,10 @@ function CheckoutForm({
         setProcessing(false);
         setTimeout(() => onSuccess(), 1200);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Confirmation failed. Contact support.";
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Confirmation failed. Contact support.";
         setError(msg);
         setProcessing(false);
       }
@@ -77,13 +79,27 @@ function CheckoutForm({
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-4">
         <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center animate-in zoom-in-75 duration-300">
-          <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          <svg
+            className="w-8 h-8 text-emerald-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         </div>
         <div className="text-center">
-          <p className="text-base font-bold text-[var(--text-primary)]">Payment Successful!</p>
-          <p className="text-sm text-[var(--text-muted)] mt-1">Activating your membership…</p>
+          <p className="text-base font-bold text-[var(--text-primary)]">
+            Payment Successful!
+          </p>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Activating your membership…
+          </p>
         </div>
       </div>
     );
@@ -99,7 +115,9 @@ function CheckoutForm({
 
       {error && (
         <div className="flex items-start gap-2.5 px-4 py-3 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-medium)]">
-          <span className="text-[var(--text-muted)] text-sm mt-0.5 flex-shrink-0">!</span>
+          <span className="text-[var(--text-muted)] text-sm mt-0.5 flex-shrink-0">
+            !
+          </span>
           <p className="text-sm text-[var(--text-muted)]">{error}</p>
         </div>
       )}
@@ -109,14 +127,14 @@ function CheckoutForm({
           type="button"
           onClick={onCancel}
           disabled={processing}
-          className="flex-1 px-5 py-3 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all text-sm font-bold uppercase tracking-widest disabled:opacity-40"
+          className="flex-1 px-5 py-3 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-ui text-sm font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!stripe || processing}
-          className="flex-[2] px-5 py-3 rounded-sm bg-[var(--accent)] text-white font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-[2] px-5 py-3 rounded-sm bg-[var(--accent)] text-white font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {processing ? (
             <>
@@ -158,7 +176,8 @@ export function StripePaymentModal({
   onClose,
   onConfirmPayment,
 }: StripePaymentModalProps) {
-  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+  const [stripePromise, setStripePromise] =
+    useState<Promise<Stripe | null> | null>(null);
 
   useEffect(() => {
     if (!isMock && publishableKey) {
@@ -183,6 +202,61 @@ export function StripePaymentModal({
     };
   }, [handleKeyDown]);
 
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+
+  const options: StripeElementsOptions = useMemo(
+    () => ({
+      clientSecret,
+      appearance: {
+        theme: isLight ? "stripe" : "night",
+        variables: {
+          colorPrimary: isLight ? "#007a7a" : "#00A8A8",
+          colorBackground: isLight ? "#ffffff" : "#121212",
+          colorText: isLight ? "#09090b" : "#ededed",
+          colorTextSecondary: isLight ? "#71717a" : "#a1a1aa",
+          colorDanger: "#ef4444",
+          fontFamily: "'Inter', 'Geist Sans', system-ui, sans-serif",
+          borderRadius: "4px",
+          spacingUnit: "4px",
+          colorIconCardError: "#ef4444",
+        },
+        rules: {
+          ".Input": {
+            border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
+            backgroundColor: isLight ? "#f9fafb" : "#0a0a0a",
+            boxShadow: "none",
+          },
+          ".Input:focus": {
+            border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
+            boxShadow: isLight
+              ? "0 0 0 2px rgba(0,122,122,0.12)"
+              : "0 0 0 2px rgba(0,168,168,0.15)",
+          },
+          ".Label": {
+            fontWeight: "600",
+            fontSize: "11px",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: isLight ? "#71717a" : "#a1a1a1",
+          },
+          ".Tab": {
+            border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
+            backgroundColor: isLight ? "#ffffff" : "#121212",
+          },
+          ".Tab--selected": {
+            border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
+            backgroundColor: isLight
+              ? "rgba(0,122,122,0.06)"
+              : "rgba(0,168,168,0.08)",
+          },
+        },
+      },
+    }),
+    [clientSecret, isLight],
+  );
+
+  // Early returns must stay below every hook call so the hook order is stable.
   // Mock mode — skip real Stripe Elements
   if (isMock) {
     return (
@@ -192,8 +266,11 @@ export function StripePaymentModal({
             🧪 Dev mock mode — no real charge will occur
           </p>
           <button
-            onClick={() => { setTimeout(onSuccess, 500); }}
-            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-white font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-all"
+            type="button"
+            onClick={() => {
+              setTimeout(onSuccess, 500);
+            }}
+            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-white font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui"
           >
             Simulate Successful Payment
           </button>
@@ -202,63 +279,16 @@ export function StripePaymentModal({
     );
   }
 
-  const { resolvedTheme } = useTheme();
-  const isLight = resolvedTheme === "light";
-
-  const options: StripeElementsOptions = useMemo(() => ({
-    clientSecret,
-    appearance: {
-      theme: isLight ? "stripe" : "night",
-      variables: {
-        colorPrimary: isLight ? "#007a7a" : "#00A8A8",
-        colorBackground: isLight ? "#ffffff" : "#121212",
-        colorText: isLight ? "#09090b" : "#ededed",
-        colorTextSecondary: isLight ? "#71717a" : "#a1a1aa",
-        colorDanger: "#ef4444",
-        fontFamily: "'Inter', 'Geist Sans', system-ui, sans-serif",
-        borderRadius: "4px",
-        spacingUnit: "4px",
-        colorIconCardError: "#ef4444",
-      },
-      rules: {
-        ".Input": {
-          border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
-          backgroundColor: isLight ? "#f9fafb" : "#0a0a0a",
-          boxShadow: "none",
-        },
-        ".Input:focus": {
-          border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
-          boxShadow: isLight
-            ? "0 0 0 2px rgba(0,122,122,0.12)"
-            : "0 0 0 2px rgba(0,168,168,0.15)",
-        },
-        ".Label": {
-          fontWeight: "600",
-          fontSize: "11px",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          color: isLight ? "#71717a" : "#a1a1a1",
-        },
-        ".Tab": {
-          border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
-          backgroundColor: isLight ? "#ffffff" : "#121212",
-        },
-        ".Tab--selected": {
-          border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
-          backgroundColor: isLight
-            ? "rgba(0,122,122,0.06)"
-            : "rgba(0,168,168,0.08)",
-        },
-      },
-    },
-  }), [clientSecret, isLight]);
-
   if (!stripePromise) return null;
 
   return (
     <ModalShell onClose={onClose}>
       <Elements stripe={stripePromise} options={options}>
-        <CheckoutForm onSuccess={onSuccess} onCancel={onClose} onConfirmPayment={onConfirmPayment} />
+        <CheckoutForm
+          onSuccess={onSuccess}
+          onCancel={onClose}
+          onConfirmPayment={onConfirmPayment}
+        />
       </Elements>
     </ModalShell>
   );
@@ -288,18 +318,33 @@ function ModalShell({
           <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-sm bg-[var(--accent-dim)] border border-[var(--border-accent)]/30 flex items-center justify-center">
-                <svg className="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                <svg
+                  className="w-5 h-5 text-[var(--accent)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                  />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">DSGT Membership</p>
-                <p className="text-xs text-[var(--text-muted)]">$15.00 / year · Secure checkout</p>
+                <p className="text-sm font-bold text-[var(--text-primary)]">
+                  DSGT Membership
+                </p>
+                <p className="text-xs text-[var(--text-muted)]">
+                  $15.00 / year · Secure checkout
+                </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-sm text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all"
+              className="p-2 rounded-sm text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-ui"
               aria-label="Close"
             >
               <X className="w-4 h-4" />

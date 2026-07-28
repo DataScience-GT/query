@@ -15,6 +15,10 @@ export function TeamsTab({
   myTeamId: string | null;
 }) {
   const { data: teams, isLoading } = trpc.team.list.useQuery({ hackathonId });
+  const { data: teamWindow } = trpc.team.window.useQuery(
+    { hackathonId },
+    { enabled: isRegistered },
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamDesc, setTeamDesc] = useState("");
@@ -61,6 +65,29 @@ export function TeamsTab({
   const myTeam = teams?.find((t) => t.id === myTeamId);
   const otherTeams = teams?.filter((t) => t.id !== myTeamId) ?? [];
 
+  // Until the teamWindow loads, assume closed so nothing is offered that would fail.
+  const canCreate = teamWindow?.canCreate ?? false;
+  const windowAllowsJoin = teamWindow?.canJoin ?? false;
+  const canLeave = teamWindow?.canLeave ?? false;
+
+  const fmt = (d: Date | string) =>
+    new Date(d).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  const windowNotice = !teamWindow
+    ? null
+    : !teamWindow.isOpen && new Date() < new Date(teamWindow.opensAt)
+      ? `Team creation opens ${fmt(teamWindow.opensAt)}.`
+      : !teamWindow.isOpen
+        ? `Team creation closed ${fmt(teamWindow.closesAt)}.`
+        : !teamWindow.canLeave
+          ? `Teams are locked. Leaving closed ${fmt(teamWindow.leaveLocksAt)}, 12 hours before the project deadline.`
+          : null;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {!isRegistered && (
@@ -81,6 +108,12 @@ export function TeamsTab({
           <p className="text-amber-400 text-sm font-medium">
             Register for this hackathon first to create or join teams.
           </p>
+        </div>
+      )}
+
+      {isRegistered && windowNotice && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-none">
+          <p className="text-amber-400 text-sm font-medium">{windowNotice}</p>
         </div>
       )}
 
@@ -177,14 +210,20 @@ export function TeamsTab({
                 {myTeam.currentMembers} / {myTeam.maxMembers} Members
               </span>
               <button
+                type="button"
                 onClick={() => {
                   setError("");
                   leaveTeam.mutate({ hackathonId });
                 }}
-                disabled={leaveTeam.isPending}
-                className="px-5 py-2.5 rounded-none bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                disabled={leaveTeam.isPending || !canLeave}
+                title={canLeave ? undefined : (windowNotice ?? undefined)}
+                className="px-5 py-2.5 rounded-none bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {leaveTeam.isPending ? "Leaving..." : "Leave Team"}
+                {leaveTeam.isPending
+                  ? "Leaving..."
+                  : canLeave
+                    ? "Leave Team"
+                    : "Teams Locked"}
               </button>
             </div>
           </div>
@@ -193,10 +232,22 @@ export function TeamsTab({
 
       {isRegistered && !myTeamId && (
         <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
-          {!showCreate ? (
+          {!canCreate ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10 rounded-none bg-white/[0.02] border border-dashed border-[var(--border-subtle)]">
+              <span className="text-[var(--text-primary)]/40 font-bold text-sm uppercase tracking-widest">
+                Team Creation Closed
+              </span>
+              {windowNotice && (
+                <span className="text-[var(--text-primary)]/30 text-xs font-medium px-6 text-center">
+                  {windowNotice}
+                </span>
+              )}
+            </div>
+          ) : !showCreate ? (
             <button
+              type="button"
               onClick={() => setShowCreate(true)}
-              className="w-full group flex flex-col items-center justify-center gap-3 py-10 rounded-none bg-emerald-500/5 border border-dashed border-accent/30 hover:bg-accent/10 hover:border-emerald-500/50 transition-all"
+              className="w-full group flex flex-col items-center justify-center gap-3 py-10 rounded-none bg-emerald-500/5 border border-dashed border-accent/30 hover:bg-accent/10 hover:border-emerald-500/50 transition-ui"
             >
               <div className="w-12 h-12 rounded-sm bg-accent/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
                 <svg
@@ -223,34 +274,48 @@ export function TeamsTab({
                 New Team Details
               </h3>
 
+              {/* The design uses the placeholder as the visible label, so the
+                  accessible name has to come from aria-label. */}
               <input
                 type="text"
+                aria-label="Team name"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="Team Name"
                 maxLength={100}
-                className="w-full px-5 py-4 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                className="w-full px-5 py-4 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
               />
 
               <textarea
+                aria-label="Team description"
                 value={teamDesc}
                 onChange={(e) => setTeamDesc(e.target.value)}
                 placeholder="What are you building? What skills are you looking for?"
                 maxLength={1000}
                 rows={4}
-                className="w-full px-5 py-4 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none"
+                className="w-full px-5 py-4 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui resize-none"
               />
 
               <div>
-                <label className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-3">
+                <span
+                  id="team-capacity-label"
+                  className="block text-[11px] uppercase tracking-widest font-semibold text-[var(--text-primary)]/50 mb-3"
+                >
                   Capacity
-                </label>
-                <div className="flex gap-2">
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby="team-capacity-label"
+                  className="flex gap-2"
+                >
                   {[2, 3, 4].map((n) => (
                     <button
+                      type="button"
                       key={n}
+                      aria-pressed={maxMembers === n}
+                      aria-label={`${n} members`}
                       onClick={() => setMaxMembers(n)}
-                      className={`w-12 h-12 rounded-none text-sm font-bold border transition-all ${maxMembers === n ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/40 hover:bg-white/5"}`}
+                      className={`w-12 h-12 rounded-none text-sm font-bold border transition-ui ${maxMembers === n ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/40 hover:bg-white/5"}`}
                     >
                       {n}
                     </button>
@@ -260,6 +325,7 @@ export function TeamsTab({
 
               <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-[var(--border-subtle)]">
                 <button
+                  type="button"
                   onClick={() => {
                     setError("");
                     createTeam.mutate({
@@ -270,11 +336,12 @@ export function TeamsTab({
                     });
                   }}
                   disabled={!teamName.trim() || createTeam.isPending}
-                  className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
+                  className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
                 >
                   {createTeam.isPending ? "Processing..." : "Create Team"}
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowCreate(false);
                     setError("");
@@ -335,12 +402,17 @@ export function TeamsTab({
         <div className="space-y-4">
           {otherTeams.map((team) => {
             const isFull = team.currentMembers >= team.maxMembers;
-            const canJoin = isRegistered && !myTeamId && team.isOpen && !isFull;
+            const canJoin =
+              isRegistered &&
+              !myTeamId &&
+              team.isOpen &&
+              !isFull &&
+              windowAllowsJoin;
 
             return (
               <LiquidGlass
                 key={team.id}
-                className="p-6 relative overflow-hidden bg-white/[0.01] border-[var(--border-subtle)] hover:border-accent/30 transition-all hover:bg-white/[0.02] group"
+                className="p-6 relative overflow-hidden bg-white/[0.01] border-[var(--border-subtle)] hover:border-accent/30 transition-ui hover:bg-white/[0.02] group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
@@ -386,12 +458,12 @@ export function TeamsTab({
                                   alt=""
                                   width={32}
                                   height={32}
-                                  className="rounded-sm border-2 border-[#0a0a0a] shadow-sm relative z-10 hover:z-20 transition-all hover:scale-110"
+                                  className="rounded-sm border-2 border-[#0a0a0a] shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
                                 />
                               ) : (
                                 <div
                                   key={p.id}
-                                  className="w-8 h-8 rounded-sm bg-white/10 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/60 shadow-sm relative z-10 hover:z-20 transition-all hover:scale-110"
+                                  className="w-8 h-8 rounded-sm bg-white/10 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/60 shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
                                 >
                                   {(p.user.name?.[0] ?? "?").toUpperCase()}
                                 </div>
@@ -411,12 +483,13 @@ export function TeamsTab({
 
                   {canJoin && (
                     <button
+                      type="button"
                       onClick={() => {
                         setError("");
                         joinTeam.mutate({ hackathonId, teamId: team.id });
                       }}
                       disabled={joinTeam.isPending}
-                      className="flex-shrink-0 group/btn px-6 py-3 rounded-none bg-accent/10 border border-accent/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all disabled:opacity-50 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                      className="flex-shrink-0 group/btn px-6 py-3 rounded-none bg-accent/10 border border-accent/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-ui disabled:opacity-50 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                     >
                       <span className="text-accent font-bold text-xs uppercase tracking-widest group-hover/btn:text-emerald-300 transition-colors">
                         {joinTeam.isPending ? "Joining..." : "Join Team"}

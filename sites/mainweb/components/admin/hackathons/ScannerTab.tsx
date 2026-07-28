@@ -107,7 +107,10 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         </div>
 
         <div className="space-y-4 mb-8">
-          <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold">
+          <label
+            htmlFor="target-event"
+            className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold"
+          >
             Target Event
           </label>
           {isLoading ? (
@@ -116,6 +119,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
             </div>
           ) : (
             <select
+              id="target-event"
               className="w-full bg-accent/5 border border-accent/30 rounded-none px-4 py-4 text-[var(--text-primary)] focus:outline-none focus:border-accent transition-colors font-medium text-lg shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]"
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
@@ -133,9 +137,10 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         </div>
 
         <button
+          type="button"
           onClick={() => setShowScanner(true)}
           disabled={!selectedEventId || showScanner}
-          className="w-full h-32 md:h-40 bg-accent text-black font-black text-xl uppercase tracking-[0.2em] rounded-none hover:bg-white transition-all active:scale-95 disabled:opacity-30 disabled:scale-100 shadow-[0_0_50px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-2 group"
+          className="w-full h-32 md:h-40 bg-accent text-black font-black text-xl uppercase tracking-[0.2em] rounded-none hover:bg-white transition-ui active:scale-95 disabled:opacity-30 disabled:scale-100 shadow-[0_0_50px_rgba(16,185,129,0.3)] flex flex-col items-center justify-center gap-2 group"
         >
           <svg
             className="w-10 h-10 mb-2 group-hover:scale-110 transition-transform"

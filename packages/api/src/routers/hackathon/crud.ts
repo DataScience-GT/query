@@ -6,7 +6,7 @@ import {
 } from "@query/db";
 import { eq, and, gte } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
-import { CacheKeys } from "../../middleware/cache";
+import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
 export const hackathonCrudRouter = createTRPCRouter({
@@ -54,7 +54,7 @@ export const hackathonCrudRouter = createTRPCRouter({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
       });
 
-      ctx.cache.set(cacheKey, allHackathons, 60);
+      ctx.cache.set(cacheKey, allHackathons, VOLATILE_TTL);
 
       return allHackathons;
     }),
@@ -75,7 +75,7 @@ export const hackathonCrudRouter = createTRPCRouter({
 
     const allHackathons = await fetchAll();
 
-    ctx.cache.set(cacheKey, allHackathons, 60);
+    ctx.cache.set(cacheKey, allHackathons, VOLATILE_TTL);
 
     return allHackathons;
   }),
@@ -110,7 +110,7 @@ export const hackathonCrudRouter = createTRPCRouter({
         });
       }
 
-      ctx.cache.set(cacheKey, hackathon, 120);
+      ctx.cache.set(cacheKey, hackathon, VOLATILE_TTL);
 
       return hackathon;
     }),
@@ -143,6 +143,9 @@ export const hackathonCrudRouter = createTRPCRouter({
           tracks: z.array(z.string().max(100)).max(50).optional(),
           challenges: z.array(z.string().max(100)).max(50).optional(),
           websiteUrl: z.string().url().max(500).optional(),
+          // Draft keeps the hackathon invisible to participants; open lets them
+          // register straight away without a second trip to the admin panel.
+          status: z.enum(["draft", "open"]).default("draft"),
         })
         .refine((data) => data.endDate > data.startDate, {
           message: "End date must be after start date",
@@ -171,7 +174,6 @@ export const hackathonCrudRouter = createTRPCRouter({
         .insert(hackathons)
         .values({
           ...input,
-          status: "draft",
         })
         .returning();
 

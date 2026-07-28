@@ -179,6 +179,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
           </p>
         </div>
         <button
+          type="button"
           onClick={openCreate}
           className="px-5 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-bold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]"
         >
@@ -196,10 +197,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             {/* Name + Type Row */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
               <div>
-                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+                <label
+                  htmlFor="event-name"
+                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                >
                   Event Name
                 </label>
                 <input
+                  id="event-name"
                   type="text"
                   required
                   value={form.name}
@@ -209,10 +214,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+                <label
+                  htmlFor="type"
+                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                >
                   Type
                 </label>
                 <select
+                  id="type"
                   value={form.type}
                   onChange={(e) =>
                     setForm({ ...form, type: e.target.value as EventType })
@@ -230,10 +239,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
             {/* Description */}
             <div>
-              <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+              <label
+                htmlFor="description"
+                className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+              >
                 Description
               </label>
               <textarea
+                id="description"
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
@@ -247,10 +260,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             {/* Location + Points Row */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
               <div>
-                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+                <label
+                  htmlFor="location"
+                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                >
                   Location
                 </label>
                 <input
+                  id="location"
                   type="text"
                   required
                   value={form.location}
@@ -262,10 +279,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+                <label
+                  htmlFor="points"
+                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                >
                   Points
                 </label>
                 <input
+                  id="points"
                   type="number"
                   min={0}
                   max={1000}
@@ -281,10 +302,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             {/* Start / End Times */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+                <label
+                  htmlFor="start-time"
+                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                >
                   Start Time
                 </label>
                 <input
+                  id="start-time"
                   type="datetime-local"
                   required
                   value={form.startTime}
@@ -295,10 +320,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5">
+                <label
+                  htmlFor="end-time"
+                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                >
                   End Time
                 </label>
                 <input
+                  id="end-time"
                   type="datetime-local"
                   required
                   value={form.endTime}
@@ -388,7 +417,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             return (
               <LiquidGlass
                 key={event.id}
-                className={`p-5 transition-all ${isActive ? "border-accent/40 bg-accent/5" : "hover:border-white/20"}`}
+                className={`p-5 transition-ui ${isActive ? "border-accent/40 bg-accent/5" : "hover:border-white/20"}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* Left: Info */}
@@ -471,6 +500,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     <button
+                      type="button"
                       onClick={() => openEdit(event)}
                       className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
                     >
@@ -479,6 +509,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                     {deleteConfirm === event.id ? (
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() =>
                             deleteMutation.mutate({ eventId: event.id })
                           }
@@ -488,6 +519,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                           {deleteMutation.isPending ? "..." : "Confirm"}
                         </button>
                         <button
+                          type="button"
                           onClick={() => setDeleteConfirm(null)}
                           className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-sm rounded-none hover:bg-white/5 transition-colors"
                         >
@@ -496,6 +528,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                       </div>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => setDeleteConfirm(event.id)}
                         className="px-4 py-2.5 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors"
                       >

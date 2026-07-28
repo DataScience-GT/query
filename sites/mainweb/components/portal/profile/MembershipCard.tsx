@@ -32,7 +32,10 @@ export default function MembershipCard({
         <p className="text-xs text-[var(--text-muted)] mb-4 italic font-mono uppercase">
           Unregistered Node
         </p>
-        <button className="w-full py-3 border border-amber-500/30 text-amber-500 uppercase text-[10px] tracking-widest hover:bg-amber-500 hover:text-black transition-all">
+        <button
+          type="button"
+          className="w-full py-3 border border-amber-500/30 text-amber-500 uppercase text-[10px] tracking-widest hover:bg-amber-500 hover:text-black transition-ui"
+        >
           Authorize Access
         </button>
       </LiquidGlass>

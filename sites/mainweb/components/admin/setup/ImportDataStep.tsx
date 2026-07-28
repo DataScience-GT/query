@@ -49,8 +49,9 @@ export function ImportJudgesStep({
         className="hidden"
       />
       <button
+        type="button"
         onClick={() => fileRef.current?.click()}
-        className="w-full px-8 py-6 border-2 border-dashed border-[var(--border-subtle)] rounded-none text-[var(--text-subtle)] font-mono text-sm hover:border-accent/30 hover:text-accent transition-all mb-6"
+        className="w-full px-8 py-6 border-2 border-dashed border-[var(--border-subtle)] rounded-none text-[var(--text-subtle)] font-mono text-sm hover:border-accent/30 hover:text-accent transition-ui mb-6"
       >
         {judgesData.length > 0
           ? `${judgesData.length} judges loaded - click to re-upload`
@@ -97,9 +98,10 @@ export function ImportJudgesStep({
           </div>
 
           <button
+            type="button"
             onClick={onImport}
             disabled={importJudgesPending || !selectedHackathonId}
-            className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all disabled:opacity-30 font-mono"
+            className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-30 font-mono"
           >
             {importJudgesPending
               ? `Importing ${judgesData.length} judges...`
@@ -169,8 +171,9 @@ export function ImportProjectsStep({
         className="hidden"
       />
       <button
+        type="button"
         onClick={() => fileRef.current?.click()}
-        className="w-full px-8 py-6 border-2 border-dashed border-[var(--border-subtle)] rounded-none text-[var(--text-subtle)] font-mono text-sm hover:border-accent/30 hover:text-accent transition-all mb-6"
+        className="w-full px-8 py-6 border-2 border-dashed border-[var(--border-subtle)] rounded-none text-[var(--text-subtle)] font-mono text-sm hover:border-accent/30 hover:text-accent transition-ui mb-6"
       >
         {projectsData.length > 0
           ? `${projectsData.length} projects loaded - click to re-upload`
@@ -219,9 +222,10 @@ export function ImportProjectsStep({
           </div>
 
           <button
+            type="button"
             onClick={onImport}
             disabled={importProjectsPending || !selectedHackathonId}
-            className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all disabled:opacity-30 font-mono"
+            className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-30 font-mono"
           >
             {importProjectsPending
               ? `Importing ${projectsData.length} projects...`

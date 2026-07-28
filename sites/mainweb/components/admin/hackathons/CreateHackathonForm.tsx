@@ -20,6 +20,7 @@ export function CreateHackathonForm({
   const [regDeadline, setRegDeadline] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
   const [theme, setTheme] = useState("");
+  const [status, setStatus] = useState<"draft" | "open">("draft");
   const [error, setError] = useState("");
 
   const createMutation = trpc.hackathon.create.useMutation({
@@ -45,6 +46,7 @@ export function CreateHackathonForm({
         : undefined,
       maxParticipants: maxParticipants ? parseInt(maxParticipants) : undefined,
       theme: theme.trim() || undefined,
+      status,
     });
   }
 
@@ -56,6 +58,7 @@ export function CreateHackathonForm({
           New Hackathon
         </h3>
         <button
+          type="button"
           onClick={onClose}
           className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm font-mono"
         >
@@ -65,10 +68,14 @@ export function CreateHackathonForm({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+          <label
+            htmlFor="create-name"
+            className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+          >
             Name *
           </label>
           <input
+            id="create-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -78,10 +85,14 @@ export function CreateHackathonForm({
         </div>
 
         <div>
-          <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+          <label
+            htmlFor="create-description"
+            className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+          >
             Description
           </label>
           <textarea
+            id="create-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What's this hackathon about?"
@@ -92,10 +103,14 @@ export function CreateHackathonForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+            <label
+              htmlFor="create-location"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
               Location
             </label>
             <input
+              id="create-location"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -104,16 +119,42 @@ export function CreateHackathonForm({
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+            <label
+              htmlFor="create-theme"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
               Theme
             </label>
             <input
+              id="create-theme"
               type="text"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
               placeholder="Data for Good"
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="create-visibility"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
+              Visibility
+            </label>
+            <select
+              id="create-visibility"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as "draft" | "open")}
+              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+            >
+              <option value="draft">Draft — hidden, nobody can register</option>
+              <option value="open">Open — registration live immediately</option>
+            </select>
+            <p className="text-[11px] text-[var(--text-subtle)] mt-2 font-mono">
+              Draft hackathons show as &quot;Registration Closed&quot; to
+              participants until you open them.
+            </p>
           </div>
         </div>
 
@@ -123,10 +164,14 @@ export function CreateHackathonForm({
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="create-start-date"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 Start Date *
               </label>
               <input
+                id="create-start-date"
                 type="datetime-local"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -137,10 +182,14 @@ export function CreateHackathonForm({
               </p>
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="create-end-date"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 End Date *
               </label>
               <input
+                id="create-end-date"
                 type="datetime-local"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -154,10 +203,14 @@ export function CreateHackathonForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="create-hacking-start-time"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 Hacking Start Time
               </label>
               <input
+                id="create-hacking-start-time"
                 type="datetime-local"
                 value={hackingStartTime}
                 onChange={(e) => setHackingStartTime(e.target.value)}
@@ -168,10 +221,14 @@ export function CreateHackathonForm({
               </p>
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+              <label
+                htmlFor="create-registration-deadline"
+                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              >
                 Registration Deadline
               </label>
               <input
+                id="create-registration-deadline"
                 type="datetime-local"
                 value={regDeadline}
                 onChange={(e) => setRegDeadline(e.target.value)}
@@ -186,10 +243,14 @@ export function CreateHackathonForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+            <label
+              htmlFor="create-max-participants"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
               Max Participants
             </label>
             <input
+              id="create-max-participants"
               type="number"
               value={maxParticipants}
               onChange={(e) => setMaxParticipants(e.target.value)}
@@ -208,6 +269,7 @@ export function CreateHackathonForm({
 
         <div className="flex items-center gap-4 pt-2">
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={createMutation.isPending}
             className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] disabled:opacity-50"
@@ -215,6 +277,7 @@ export function CreateHackathonForm({
             {createMutation.isPending ? "Creating..." : "Create Hackathon"}
           </button>
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-3 text-[var(--text-subtle)] hover:text-[var(--text-primary)] text-sm font-mono transition-colors"
           >

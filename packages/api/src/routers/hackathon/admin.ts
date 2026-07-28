@@ -266,6 +266,18 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
+      // 1b. Only accepted participants may check in. Pending and waitlisted
+      // registrations are not yet admitted; rejected ones never are.
+      if (
+        participant.registrationStatus !== "approved" &&
+        participant.registrationStatus !== "checked_in"
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `${participant.user.name || participant.user.email} is not accepted for this hackathon (status: ${participant.registrationStatus}).`,
+        });
+      }
+
       // 2. Verify event exists and belongs to this hackathon
       const event = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst(
         {

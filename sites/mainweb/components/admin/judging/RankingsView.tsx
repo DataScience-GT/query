@@ -129,6 +129,7 @@ export function RankingsView({
       {rankings && rankings.rankings.length > 0 && (
         <div className="flex justify-end mb-6">
           <button
+            type="button"
             onClick={() => {
               const sorted = [...rankings.rankings].sort(
                 (a, b) => b.weightedScore - a.weightedScore,
@@ -181,7 +182,7 @@ export function RankingsView({
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-xs uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all font-mono"
+            className="px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-xs uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui font-mono"
           >
             Download Results CSV
           </button>
@@ -490,7 +491,7 @@ export function RankingsView({
                     return (
                       <React.Fragment key={r.project.id}>
                         <tr
-                          className={`group cursor-pointer transition-all duration-300 ${
+                          className={`group cursor-pointer transition-ui duration-300 ${
                             isTied
                               ? "bg-yellow-500/[0.03]"
                               : "hover:bg-[var(--bg-primary)]/40"
@@ -636,7 +637,7 @@ export function RankingsView({
                                     {r.votes.map((v, vi) => (
                                       <div
                                         key={vi}
-                                        className="relative bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] p-6 rounded-none hover:border-accent/20 transition-all group/vote"
+                                        className="relative bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] p-6 rounded-none hover:border-accent/20 transition-ui group/vote"
                                       >
                                         <div className="flex items-center justify-between mb-4">
                                           <div className="flex items-center gap-3">
@@ -838,7 +839,7 @@ export function RankingsView({
       {/* Global Stats */}
       {rankings && rankings.rankings.length > 0 && (
         <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <LiquidGlass className="rounded-none p-8 text-center group hover:border-accent/20 transition-all">
+          <LiquidGlass className="rounded-none p-8 text-center group hover:border-accent/20 transition-ui">
             <p className="text-4xl font-black text-[var(--text-primary)] group-hover:text-accent transition-colors tabular-nums">
               {rankings.rankings.length}
             </p>
@@ -846,7 +847,7 @@ export function RankingsView({
               Projects Logged
             </p>
           </LiquidGlass>
-          <LiquidGlass className="rounded-none p-8 text-center group hover:border-accent/20 transition-all">
+          <LiquidGlass className="rounded-none p-8 text-center group hover:border-accent/20 transition-ui">
             <p className="text-4xl font-black text-accent tabular-nums">
               {rankings.rankings.reduce(
                 (sum: number, r: { voteCount: number }) => sum + r.voteCount,
@@ -857,7 +858,7 @@ export function RankingsView({
               Votes Aggregated
             </p>
           </LiquidGlass>
-          <LiquidGlass className="rounded-none p-8 text-center group hover:border-accent/20 transition-all">
+          <LiquidGlass className="rounded-none p-8 text-center group hover:border-accent/20 transition-ui">
             <p className="text-4xl font-black text-accent tabular-nums">
               {rankings.globalAvg}
             </p>
@@ -865,7 +866,7 @@ export function RankingsView({
               Global Avg Score
             </p>
           </LiquidGlass>
-          <LiquidGlass className="rounded-none p-8 text-center group hover:border-yellow-500/20 transition-all">
+          <LiquidGlass className="rounded-none p-8 text-center group hover:border-yellow-500/20 transition-ui">
             <p
               className={`text-4xl font-black tabular-nums ${rankings.ties.length > 0 ? "text-yellow-500 animate-pulse" : "text-gray-600"}`}
             >

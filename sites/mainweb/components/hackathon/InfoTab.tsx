@@ -420,8 +420,9 @@ export function InfoTab({
               Secure your spot in this hackathon. Capacity is limited.
             </p>
             <button
+              type="button"
               onClick={() => setShowForm(true)}
-              className="group px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 w-full sm:w-auto"
+              className="group px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 w-full sm:w-auto"
             >
               Apply Now
             </button>

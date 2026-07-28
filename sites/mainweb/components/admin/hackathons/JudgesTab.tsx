@@ -96,6 +96,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             </div>
           </div>
           <button
+            type="button"
             onClick={() =>
               toggleJudging.mutate({
                 hackathonId,
@@ -103,7 +104,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               })
             }
             disabled={toggleJudging.isPending}
-            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-all disabled:opacity-50 ${
+            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-ui disabled:opacity-50 ${
               judgingStatus?.active
                 ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
                 : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
@@ -158,6 +159,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             Assigned Judges
           </h2>
           <button
+            type="button"
             onClick={() => setShowAddForm(!showAddForm)}
             className="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-purple-500/20 transition-colors flex items-center gap-1.5"
           >
@@ -170,10 +172,14 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
           <LiquidGlass className="p-6 mb-4 border-[var(--border-subtle)]">
             <div className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1">
-                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                <label
+                  htmlFor="select-judge"
+                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                >
                   Select Judge
                 </label>
                 <select
+                  id="select-judge"
                   value={selectedJudgeId}
                   onChange={(e) => setSelectedJudgeId(e.target.value)}
                   className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
@@ -187,10 +193,14 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 </select>
               </div>
               <div className="w-40">
-                <label className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+                <label
+                  htmlFor="track"
+                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                >
                   Track
                 </label>
                 <input
+                  id="track"
                   type="text"
                   value={assignTrack}
                   onChange={(e) => setAssignTrack(e.target.value)}
@@ -199,6 +209,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 />
               </div>
               <button
+                type="button"
                 onClick={() => {
                   if (!selectedJudgeId) return;
                   assignJudge.mutate({
@@ -239,7 +250,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               return (
                 <LiquidGlass
                   key={judge.id}
-                  className="p-5 border-[var(--border-subtle)] hover:border-purple-500/20 transition-all"
+                  className="p-5 border-[var(--border-subtle)] hover:border-purple-500/20 transition-ui"
                 >
                   <div className="flex items-start gap-3">
                     <Image

@@ -63,20 +63,28 @@ export default function MemberForm({
     >
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+          <label
+            htmlFor="legal-first-name"
+            className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+          >
             Legal_First_Name
           </label>
           <input
+            id="legal-first-name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded p-3 text-sm text-[var(--text-primary)] outline-none"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+          <label
+            htmlFor="legal-last-name"
+            className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+          >
             Legal_Last_Name
           </label>
           <input
+            id="legal-last-name"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded p-3 text-sm text-[var(--text-primary)] outline-none"
@@ -85,10 +93,14 @@ export default function MemberForm({
       </div>
 
       <div className="space-y-1">
-        <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+        <label
+          htmlFor="contact-phone-node"
+          className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+        >
           Contact_Phone_Node
         </label>
         <input
+          id="contact-phone-node"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="+1 (000) 000-0000"
@@ -98,10 +110,14 @@ export default function MemberForm({
 
       <div className="grid grid-cols-2 gap-4 border-t border-[var(--border-subtle)] pt-4">
         <div className="space-y-1">
-          <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+          <label
+            htmlFor="linkedin-url"
+            className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+          >
             LinkedIn_URL
           </label>
           <input
+            id="linkedin-url"
             value={linkedin}
             onChange={(e) => setLinkedin(e.target.value)}
             placeholder="linkedin.com/in/..."
@@ -109,10 +125,14 @@ export default function MemberForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+          <label
+            htmlFor="github-url"
+            className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+          >
             GitHub_URL
           </label>
           <input
+            id="github-url"
             value={github}
             onChange={(e) => setGithub(e.target.value)}
             placeholder="github.com/..."
@@ -123,20 +143,28 @@ export default function MemberForm({
 
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2 space-y-1">
-          <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+          <label
+            htmlFor="university"
+            className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+          >
             University
           </label>
           <input
+            id="university"
             value={school}
             onChange={(e) => setSchool(e.target.value)}
             className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded p-3 text-sm text-[var(--text-primary)] outline-none"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]">
+          <label
+            htmlFor="class-year"
+            className="text-[9px] uppercase tracking-widest text-[var(--text-subtle)]"
+          >
             Class_Year
           </label>
           <input
+            id="class-year"
             type="number"
             value={gradYear}
             onChange={(e) => setGradYear(e.target.value)}
@@ -161,7 +189,7 @@ export default function MemberForm({
       <button
         type="submit"
         disabled={updateMember.isPending}
-        className="w-full py-4 bg-accent text-[var(--text-primary)] uppercase font-black text-[10px] tracking-widest transition-all shadow-[4px_4px_0_0_var(--accent)]"
+        className="w-full py-4 bg-accent text-[var(--text-primary)] uppercase font-black text-[10px] tracking-widest transition-ui shadow-[4px_4px_0_0_var(--accent)]"
       >
         {updateMember.isPending
           ? "Syncing_Advanced_Data..."

@@ -26,13 +26,28 @@ export function ScheduleTab({
       </div>
     );
 
-  const qrData = myRecord
-    ? JSON.stringify({
-        type: "CHECK_IN",
-        hackathonId,
-        participantId: myRecord.id,
-      })
-    : null;
+  // Only accepted participants get a pass. Pending and waitlisted registrations
+  // are not admitted yet, so the scanner would reject their code anyway.
+  const isAccepted =
+    myRecord?.registrationStatus === "approved" ||
+    myRecord?.registrationStatus === "checked_in";
+
+  const qrData =
+    myRecord && isAccepted
+      ? JSON.stringify({
+          type: "CHECK_IN",
+          hackathonId,
+          participantId: myRecord.id,
+        })
+      : null;
+
+  const passPlaceholder = !isRegistered
+    ? "Registration Required"
+    : myRecord?.registrationStatus === "waitlisted"
+      ? "Waitlisted — pass issued if a spot opens"
+      : myRecord?.registrationStatus === "rejected"
+        ? "Registration not accepted"
+        : "Awaiting approval — pass appears once accepted";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -74,7 +89,7 @@ export function ScheduleTab({
                 />
               </svg>
               <span className="text-xs font-semibold uppercase text-center px-6">
-                Registration Required
+                {passPlaceholder}
               </span>
             </div>
           )}
