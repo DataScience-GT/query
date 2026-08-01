@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Background from "@/components/Background";
 import Link from "next/link";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { useChunkErrorRecovery } from "@/lib/chunk-error";
 
 export default function Error({
   error,
@@ -12,6 +13,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isChunkError = useChunkErrorRecovery(error);
   useEffect(() => {
     console.error("Hackathon Detail Page Error:", error);
   }, [error]);
@@ -54,7 +56,7 @@ export default function Error({
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => reset()}
+              onClick={() => (isChunkError ? window.location.reload() : reset())}
               className="px-6 py-3 bg-emerald-500 text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(var(--cyan-rgb),0.3)]"
             >
               Reboot System

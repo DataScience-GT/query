@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { useChunkErrorRecovery } from "@/lib/chunk-error";
 
 export default function SubmitError({
   error,
@@ -11,6 +12,7 @@ export default function SubmitError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isChunkError = useChunkErrorRecovery(error);
   useEffect(() => {
     console.error("Submission Portal Error:", error);
   }, [error]);
@@ -51,7 +53,7 @@ export default function SubmitError({
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => reset()}
+              onClick={() => (isChunkError ? window.location.reload() : reset())}
               className="px-6 py-3 bg-accent text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-white transition-colors"
             >
               Restart Sequence

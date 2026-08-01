@@ -145,9 +145,6 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.21.0)(postgres@3.4.3)
-      minimatch:
-        specifier: 10.2.3
-        version: 10.2.3
       next-auth:
         specifier: 5.0.0-beta.32
         version: 5.0.0-beta.32(next@16.2.11(@playwright/test@1.60.0)(@types/node@22.15.32)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7))(react@19.2.7)
@@ -572,9 +569,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: 4.0.0
         version: 4.0.0
-      minimatch:
-        specifier: 10.2.3
-        version: 10.2.3
       next:
         specifier: 16.2.11
         version: 16.2.11(@playwright/test@1.60.0)(@types/node@22.15.32)(babel-plugin-react-compiler@1.0.0)(react-dom@19.0.0(react@19.2.7))(react@19.2.7)

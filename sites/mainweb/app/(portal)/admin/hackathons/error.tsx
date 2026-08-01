@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { useChunkErrorRecovery } from "@/lib/chunk-error";
 
 export default function AdminError({
   error,
@@ -11,6 +12,9 @@ export default function AdminError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // A stale chunk after a deploy cannot be fixed by reset() — this reloads.
+  const isChunkError = useChunkErrorRecovery(error);
+
   useEffect(() => {
     console.error("Admin Hackathons Error:", error);
   }, [error]);
@@ -36,12 +40,22 @@ export default function AdminError({
           </div>
 
           <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-4">
-            Admin Protocol Error
+            {isChunkError ? "New Version Available" : "Admin Protocol Error"}
           </h2>
 
           <p className="text-sm font-mono text-[var(--text-muted)] mb-8">
-            The admin module encountered a critical fault during execution.
-            Please verify your clearance and try again.
+            {isChunkError ? (
+              <>
+                The app was updated while this tab was open, so part of the old
+                version is no longer on the server. Reloading picks up the new
+                build — your data is unaffected.
+              </>
+            ) : (
+              <>
+                The admin module encountered a critical fault during execution.
+                Please verify your clearance and try again.
+              </>
+            )}
             <br />
             <br />
             <span className="text-red-400/80 text-xs bg-red-500/10 px-3 py-1 rounded border border-red-500/10">
@@ -51,10 +65,13 @@ export default function AdminError({
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => reset()}
+              type="button"
+              onClick={() =>
+                isChunkError ? window.location.reload() : reset()
+              }
               className="px-6 py-3 bg-accent text-black font-black uppercase tracking-widest text-sm rounded-none hover:bg-white transition-colors"
             >
-              Retry Execution
+              {isChunkError ? "Reload Page" : "Retry Execution"}
             </button>
             <Link
               href="/dashboard"

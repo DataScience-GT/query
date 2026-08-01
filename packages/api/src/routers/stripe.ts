@@ -39,8 +39,10 @@ export const stripeRouter = createTRPCRouter({
   createCheckoutSession: protectedProcedure
     .input(z.object({ returnUrl: z.string().url() }))
     .mutation(async ({ ctx, input }) => {
-      const stripe = await getStripe();
-      if (!stripe) {
+      // Check key presence up front — cheap, and keeps the original error
+      // precedence without paying for the Stripe SDK import.
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
           message:
@@ -59,8 +61,9 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Check if we are running in development with a mock key
-      if (process.env.STRIPE_SECRET_KEY?.startsWith("mk_")) {
+      // Mock mode short-circuits before getStripe(), so a development key never
+      // dynamically imports and instantiates the real Stripe SDK.
+      if (stripeKey.startsWith("mk_")) {
         const sessionId = `cs_mock_${crypto.randomUUID().replace(/-/g, "")}`;
         const nameParts = (user.name || "Member").split(" ");
         const firstName = nameParts[0] || "Member";
@@ -94,6 +97,15 @@ export const stripeRouter = createTRPCRouter({
 
         const mockUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}payment=success&session_id=${sessionId}`;
         return { url: mockUrl };
+      }
+
+      const stripe = await getStripe();
+      if (!stripe) {
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message:
+            "Payment service is currently unavailable. Please try again later.",
+        });
       }
 
       try {
