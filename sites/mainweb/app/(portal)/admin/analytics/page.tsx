@@ -19,27 +19,14 @@ interface StatCardProps {
   };
 }
 
-export default function AnalyticsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
-    undefined,
-    { enabled: !!session, refetchInterval: 5000 },
-  );
-
-  if (status === "unauthenticated") {
-    router.push("/login");
-    return null;
-  }
-
-  const StatCard = ({
-    icon: Icon,
-    title,
-    value,
-    subtitle,
-    trend,
-  }: StatCardProps) => (
+function StatCard({
+  icon: Icon,
+  title,
+  value,
+  subtitle,
+  trend,
+}: StatCardProps) {
+  return (
     <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
       {/* Background gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -81,6 +68,21 @@ export default function AnalyticsPage() {
       </div>
     </LiquidGlass>
   );
+}
+
+export default function AnalyticsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
+    undefined,
+    { enabled: !!session, refetchInterval: 5000 },
+  );
+
+  if (status === "unauthenticated") {
+    router.push("/login");
+    return null;
+  }
 
   return (
     <>

@@ -1,8 +1,12 @@
+import { randomInt } from "node:crypto";
+
 // Shared judge scoring / queue utilities
 export function shuffleArray<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    // CSPRNG so judging order cannot be predicted or reproduced by a team
+    // that knows when their project was queued.
+    const j = randomInt(0, i + 1);
     const temp = result[i] as T;
     result[i] = result[j] as T;
     result[j] = temp;

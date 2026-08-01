@@ -56,6 +56,10 @@ export default function Home() {
     signIn("google", { callbackUrl: "/dashboard" });
   };
 
+  const handleGithubSignIn = () => {
+    signIn("github", { callbackUrl: "/dashboard" });
+  };
+
   if (!mounted)
     return (
       <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)]" />
@@ -138,13 +142,30 @@ export default function Home() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center gap-5 animate-[fadeIn_0.5s_ease-out_0.5s_forwards]">
               <button
+                type="button"
                 onClick={handleSignIn}
                 disabled={emailSending || isRedirecting || status === "loading"}
                 className="group w-full sm:w-auto px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-gradient-to-r hover:from-accent hover:via-[#14b8a6] hover:to-accent hover:text-[var(--text-primary)] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)]"
               >
                 <span className="group-hover:underline decoration-2 underline-offset-4">
-                  {isRedirecting ? "Authenticated" : "Sign In"}
+                  {isRedirecting ? "Authenticated" : "Sign in with Google"}
                 </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGithubSignIn}
+                disabled={emailSending || isRedirecting || status === "loading"}
+                className="group w-full sm:w-auto px-10 py-6 flex items-center justify-center gap-2.5 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  className="w-4 h-4 fill-current"
+                >
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+                </svg>
+                Sign in with GitHub
               </button>
 
               {!showEmailInput ? (

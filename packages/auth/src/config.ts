@@ -1,8 +1,10 @@
 import type { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
 import EmailProvider from "next-auth/providers/nodemailer";
 import { db } from "@query/db";
 import { sql } from "drizzle-orm";
+import { randomInt } from "node:crypto";
 
 function html(params: { code: string; host: string }) {
   const { code, host } = params;
@@ -72,7 +74,14 @@ export const authConfig: NextAuthConfig = {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       allowDangerousEmailAccountLinking: true,
-      checks: [],
+      // PKCE + state are the CSRF protection on the OAuth callback. They were
+      // previously disabled (`checks: []`), which combined with
+      // allowDangerousEmailAccountLinking let a forged callback attach an
+      // attacker's identity to an existing account. If sign-in starts failing
+      // with "State cookie was missing", the real cause is cookie/host
+      // configuration (AUTH_URL must match the public origin) — fix that rather
+      // than emptying this array again.
+      checks: ["pkce", "state"],
       authorization: {
         params: {
           prompt: "consent",
@@ -81,6 +90,23 @@ export const authConfig: NextAuthConfig = {
         },
       },
     }),
+    // GitHub is optional: only registered when credentials are configured, so
+    // deployments without a GitHub OAuth app keep working unchanged.
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+      ? [
+          GitHubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET,
+            // Matches the Google provider: a member who first signed in with
+            // Google can also use GitHub on the same verified email instead of
+            // hitting OAuthAccountNotLinked.
+            allowDangerousEmailAccountLinking: true,
+            // GitHub omits the email from the profile unless this scope is
+            // requested, and the adapter requires an email.
+            authorization: { params: { scope: "read:user user:email" } },
+          }),
+        ]
+      : []),
     EmailProvider({
       server: {
         host: process.env.EMAIL_SERVER_HOST as string,
@@ -94,8 +120,10 @@ export const authConfig: NextAuthConfig = {
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
       // 6-digit code flow — no magic link, user types the code.
       sendVerificationRequest: async ({ identifier, provider }) => {
-        // Generate a 6-digit numeric code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate a 6-digit numeric code. This code is the sole factor for
+        // email sign-in, so it must come from a CSPRNG — Math.random() is
+        // predictable from observed outputs and would let codes be guessed.
+        const code = randomInt(100000, 1000000).toString();
         const customToken = `custom:${code}`;
         const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
