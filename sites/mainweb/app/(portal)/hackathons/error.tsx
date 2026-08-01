@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { useChunkErrorRecovery } from "@/lib/chunk-error";
 
 export default function Error({
   error,
@@ -11,6 +12,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isChunkError = useChunkErrorRecovery(error);
   useEffect(() => {
     // Log the error to an error reporting service
     console.error("Hackathons Page Error:", error);
@@ -52,7 +54,7 @@ export default function Error({
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => reset()}
+              onClick={() => (isChunkError ? window.location.reload() : reset())}
               className="px-6 py-3 bg-emerald-500 text-[var(--bg-primary)] font-black uppercase tracking-widest text-sm rounded-none hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]"
             >
               Reboot System
