@@ -1,15 +1,14 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { trpc } from '@/lib/trpc';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
-import { QRCodeModal } from '@/components/portal/QRCodeModal';
-import { EventFormModal } from '@/components/portal/EventFormModal';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { QrCode } from 'lucide-react';
-
+import { useSession } from "next-auth/react";
+import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
+import { useState } from "react";
+import QRCode from "qrcode";
+import { QRCodeModal } from "@/components/portal/QRCodeModal";
+import { EventFormModal } from "@/components/portal/EventFormModal";
+import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { QrCode } from "lucide-react";
 
 type Event = {
   id: string;
@@ -24,24 +23,22 @@ type Event = {
 };
 
 export default function AdminPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { data: session } = useSession();
   const utils = trpc.useUtils();
 
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
-  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
+  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const { data: adminStatus, isLoading: adminLoading } = trpc.admin.isAdmin.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const { data: events, isLoading: eventsLoading } = trpc.events.listAll.useQuery(undefined, {
-    enabled: !!session && adminStatus?.isAdmin,
-  });
+  const { data: portalContext } = usePortalContext();
+  const { data: events, isLoading: eventsLoading } =
+    trpc.events.listAll.useQuery(undefined, {
+      enabled: !!session && !!portalContext?.isAdmin,
+    });
 
-  type StatusFilter = 'all' | 'open' | 'closed';
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  type StatusFilter = "all" | "open" | "closed";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const createEventMutation = trpc.events.create.useMutation({
     onSuccess: (newEvent) => {
@@ -74,29 +71,26 @@ export default function AdminPage() {
     },
   });
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && !adminLoading && !adminStatus?.isAdmin) {
-      router.push('/dashboard');
-    }
-  }, [status, adminStatus, adminLoading, router]);
-
   const generateQRCode = async (qrCode: string) => {
     try {
       const url = await QRCode.toDataURL(qrCode, {
         width: 400,
         margin: 3,
-        color: { dark: '#000000', light: '#ffffff' },
+        color: { dark: "#000000", light: "#ffffff" },
       });
       setQrCodeDataURL(url);
       setShowQRCode(qrCode);
     } catch (err) {
-      console.error('Error generating QR code:', err);
+      console.error("Error generating QR code:", err);
     }
   };
 
-  const handleCreateEvent = (formData: { title: string; description: string; location: string; eventDate: string }) => {
+  const handleCreateEvent = (formData: {
+    title: string;
+    description: string;
+    location: string;
+    eventDate: string;
+  }) => {
     createEventMutation.mutate({
       title: formData.title,
       description: formData.description || undefined,
@@ -107,8 +101,8 @@ export default function AdminPage() {
   };
 
   const downloadQRCode = () => {
-    const link = document.createElement('a');
-    link.download = `${selectedEvent?.title || 'event'}-qr.png`;
+    const link = document.createElement("a");
+    link.download = `${selectedEvent?.title || "event"}-qr.png`;
     link.href = qrCodeDataURL;
     link.click();
   };
@@ -129,7 +123,9 @@ export default function AdminPage() {
           qrCodeDataURL={qrCodeDataURL}
           onClose={() => setShowQRCode(null)}
           onDownload={downloadQRCode}
-          onRegenerate={() => regenerateQRMutation.mutate({ eventId: selectedEvent.id })}
+          onRegenerate={() =>
+            regenerateQRMutation.mutate({ eventId: selectedEvent.id })
+          }
           isRegenerating={regenerateQRMutation.isPending}
         />
       )}
@@ -141,37 +137,38 @@ export default function AdminPage() {
             <QrCode className="w-3 h-3" /> Club Events
           </p>
           <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
-            Check-in <span className="text-accent italic font-bold">Manager</span>
+            Check-in{" "}
+            <span className="text-accent italic font-bold">Manager</span>
           </h1>
-          <p className="text-text-muted text-sm relative z-10">Create events, generate QR codes, and track attendance for general club gatherings.</p>
+          <p className="text-text-muted text-sm relative z-10">
+            Create events, generate QR codes, and track attendance for general
+            club gatherings.
+          </p>
         </div>
-
-
-
 
         {/* Events Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] p-1.5 rounded-none gap-1">
-              {(['all', 'open', 'closed'] as const).map((f) => (
+              {(["all", "open", "closed"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setStatusFilter(f)}
                   className={`px-4 py-2 rounded-none text-sm font-semibold capitalize transition-all ${
                     statusFilter === f
-                      ? f === 'open'
-                        ? 'bg-accent/20 text-accent border border-accent/30'
-                        : f === 'closed'
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        : 'bg-white/10 text-[var(--text-primary)] border border-[var(--border-subtle)]'
-                      : 'text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                      ? f === "open"
+                        ? "bg-accent/20 text-accent border border-accent/30"
+                        : f === "closed"
+                          ? "bg-white/5 text-[var(--text-secondary)] border border-[var(--border-subtle)]"
+                          : "bg-white/10 text-[var(--text-primary)] border border-[var(--border-subtle)]"
+                      : "text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
                   }`}
                 >
-                  {f === 'all'
+                  {f === "all"
                     ? `All (${events?.length ?? 0})`
-                    : f === 'open'
-                    ? `Open (${events?.filter((e) => e.checkInEnabled).length ?? 0})`
-                    : `Closed (${events?.filter((e) => !e.checkInEnabled).length ?? 0})`}
+                    : f === "open"
+                      ? `Open (${events?.filter((e) => e.checkInEnabled).length ?? 0})`
+                      : `Closed (${events?.filter((e) => !e.checkInEnabled).length ?? 0})`}
                 </button>
               ))}
             </div>
@@ -186,97 +183,122 @@ export default function AdminPage() {
           {eventsLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="animate-pulse bg-white/5 border border-[var(--border-subtle)] rounded-none p-6 h-28" />
+                <div
+                  key={n}
+                  className="animate-pulse bg-white/5 border border-[var(--border-subtle)] rounded-none p-6 h-28"
+                />
               ))}
             </div>
           ) : !events || events.length === 0 ? (
             <LiquidGlass className="p-16 text-center">
               <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
-                <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-8 h-8 text-gray-600"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
                 </svg>
               </div>
-              <h3 className="text-[var(--text-primary)] font-semibold mb-1">No events yet</h3>
-              <p className="text-[var(--text-subtle)] text-sm font-mono">Create your first event to get started.</p>
+              <h3 className="text-[var(--text-primary)] font-semibold mb-1">
+                No events yet
+              </h3>
+              <p className="text-[var(--text-subtle)] text-sm font-mono">
+                Create your first event to get started.
+              </p>
             </LiquidGlass>
           ) : (
             <div className="space-y-4">
               {events
                 .filter((e) =>
-                  statusFilter === 'all' ? true :
-                  statusFilter === 'open' ? e.checkInEnabled :
-                  !e.checkInEnabled
+                  statusFilter === "all"
+                    ? true
+                    : statusFilter === "open"
+                      ? e.checkInEnabled
+                      : !e.checkInEnabled,
                 )
                 .map((event) => (
                   <LiquidGlass
                     key={event.id}
                     className={`p-6 hover:border-white/20 transition-all border-l-4 ${
-                      event.checkInEnabled ? 'border-l-accent' : 'border-l-red-500/50'
+                      event.checkInEnabled
+                        ? "border-l-accent"
+                        : "border-l-[var(--border-subtle)]"
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-[var(--text-primary)]">{event.title}</h3>
-                        <span
-                          className={`px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold ${event.checkInEnabled
-                            ? 'bg-accent/10 text-accent border border-accent/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-bold text-[var(--text-primary)]">
+                            {event.title}
+                          </h3>
+                          <span
+                            className={`px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold ${
+                              event.checkInEnabled
+                                ? "bg-accent/10 text-accent border border-accent/20"
+                                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"
                             }`}
-                        >
-                          {event.checkInEnabled ? 'Open' : 'Closed'}
-                        </span>
+                          >
+                            {event.checkInEnabled ? "Open" : "Closed"}
+                          </span>
+                        </div>
+                        {event.description && (
+                          <p className="text-text-muted text-sm mb-3">
+                            {event.description}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-4 text-xs text-[var(--text-subtle)] font-mono">
+                          <span>{event.location || "No location"}</span>
+                          <span>•</span>
+                          <span>
+                            {new Date(event.eventDate).toLocaleDateString()}
+                          </span>
+                          <span>•</span>
+                          <span className="text-accent">
+                            {event.currentCheckIns} check-ins
+                          </span>
+                        </div>
                       </div>
-                      {event.description && (
-                        <p className="text-text-muted text-sm mb-3">{event.description}</p>
-                      )}
-                      <div className="flex flex-wrap gap-4 text-xs text-[var(--text-subtle)] font-mono">
-                        <span>{event.location || 'No location'}</span>
-                        <span>•</span>
-                        <span>{new Date(event.eventDate).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span className="text-accent">{event.currentCheckIns} check-ins</span>
-                      </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => {
-                          generateQRCode(event.qrCode);
-                          setSelectedEvent(event);
-                        }}
-                        className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors"
-                      >
-                        QR Code
-                      </button>
-                      <button
-                        onClick={() =>
-                          toggleCheckInMutation.mutate({
-                            eventId: event.id,
-                            enabled: !event.checkInEnabled,
-                          })
-                        }
-                        className={`px-4 py-2 border text-sm font-medium rounded-none transition-colors ${event.checkInEnabled
-                          ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-                          : 'border-accent/20 text-accent hover:bg-accent/10'
-                          }`}
-                      >
-                        {event.checkInEnabled ? 'Close' : 'Open'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Delete this event?')) {
-                            deleteEventMutation.mutate({ eventId: event.id });
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            generateQRCode(event.qrCode);
+                            setSelectedEvent(event);
+                          }}
+                          className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors"
+                        >
+                          QR Code
+                        </button>
+                        <button
+                          onClick={() =>
+                            toggleCheckInMutation.mutate({
+                              eventId: event.id,
+                              enabled: !event.checkInEnabled,
+                            })
                           }
-                        }}
-                        className="px-4 py-2 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                      >
-                        Delete
-                      </button>
+                          className={`px-4 py-2 border text-sm font-medium rounded-none transition-colors ${
+                            event.checkInEnabled
+                              ? "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5"
+                              : "border-accent/20 text-accent hover:bg-accent/10"
+                          }`}
+                        >
+                          {event.checkInEnabled ? "Close" : "Open"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm("Delete this event?")) {
+                              deleteEventMutation.mutate({ eventId: event.id });
+                            }
+                          }}
+                          className="px-4 py-2 border border-[var(--border-subtle)] text-[var(--text-secondary)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </LiquidGlass>
-              ))}
+                  </LiquidGlass>
+                ))}
             </div>
           )}
         </div>

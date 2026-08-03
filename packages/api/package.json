@@ -18,7 +18,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts"
   },
   "dependencies": {
     "@query/auth": "workspace:*",
@@ -30,7 +30,6 @@
     "@trpc/server": "^11.15.1",
     "drizzle-orm": "0.45.2",
     "image-size": "2.0.2",
-    "minimatch": "10.2.3",
     "sanitize-html": "2.17.4",
     "stripe": "^22.0.0",
     "superjson": "2.2.3",

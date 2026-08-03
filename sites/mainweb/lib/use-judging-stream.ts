@@ -22,7 +22,10 @@ export interface JudgingSnapshot {
  */
 export function useJudgingStream(
   hackathonId: string | null | undefined,
-  { enabled = true, maxRetries = 5 }: { enabled?: boolean; maxRetries?: number } = {}
+  {
+    enabled = true,
+    maxRetries = 5,
+  }: { enabled?: boolean; maxRetries?: number } = {},
 ) {
   const [snapshot, setSnapshot] = useState<JudgingSnapshot | null>(null);
   const [connected, setConnected] = useState(false);
@@ -34,8 +37,12 @@ export function useJudgingStream(
     if (!enabled || !hackathonId) return;
 
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    // onerror can fire after unmount (closing the socket can trigger it), which
+    // would schedule a reconnect the cleanup has already run past.
+    let cancelled = false;
 
     function connect() {
+      if (cancelled) return;
       const es = new EventSource(`/api/judge-stream/${hackathonId}`);
       esRef.current = es;
 
@@ -55,8 +62,9 @@ export function useJudgingStream(
       };
 
       es.onerror = () => {
-        setConnected(false);
         es.close();
+        if (cancelled) return;
+        setConnected(false);
 
         if (retryCount.current < maxRetries) {
           // Exponential backoff: 2s, 4s, 8s …
@@ -72,6 +80,7 @@ export function useJudgingStream(
     connect();
 
     return () => {
+      cancelled = true;
       esRef.current?.close();
       if (retryTimer) clearTimeout(retryTimer);
     };

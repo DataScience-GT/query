@@ -16,14 +16,14 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22.23.1"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build
-        run: pnpm turbo run build
+      - name: Build Hacklytics 2027
+        run: pnpm turbo run build --filter=hacklytics2027
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -32,3 +32,4 @@ jobs:
           target: hacklytics
           channelId: live
           projectId: dsgt-website
+          entryPoint: "."

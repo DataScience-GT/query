@@ -5,7 +5,11 @@ interface SectionProps extends HTMLAttributes<HTMLDivElement> {
   makefull?: boolean;
 }
 
-export default function Section({ children, makefull = false, ...rest }: SectionProps) {
+export default function Section({
+  children,
+  makefull = false,
+  ...rest
+}: SectionProps) {
   return (
     <div
       className={`relative w-full h-auto py-10 ${

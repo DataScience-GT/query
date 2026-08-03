@@ -1,16 +1,23 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { admins, users, events, eventCheckIns, hackathons, hackathonParticipants } from "@query/db";
+import {
+  admins,
+  users,
+  events,
+  eventCheckIns,
+  hackathons,
+  hackathonParticipants,
+} from "@query/db";
 import { eq, and, count, gte, inArray } from "drizzle-orm";
-import { CacheKeys } from "../middleware/cache";
+import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
 import type { DrizzleDB } from "@query/db";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.userId) {
-      throw new TRPCError ({
+      throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Cannot create an admin",
       });
@@ -32,7 +39,7 @@ export const adminRouter = createTRPCRouter({
     const admin = await (ctx.db as DrizzleDB).query.admins.findFirst({
       where: and(
         eq(admins.userId, ctx.userId as string),
-        eq(admins.isActive, true)
+        eq(admins.isActive, true),
       ),
     });
 
@@ -51,17 +58,21 @@ export const adminRouter = createTRPCRouter({
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const [
-      participantsResult,
-      eventsResult,
-      hackathonsResult,
-      checkinsResult
-    ] = await Promise.all([
-      (ctx.db as DrizzleDB).select({ count: count() }).from(hackathonParticipants),
-      (ctx.db as DrizzleDB).select({ count: count() }).from(events),
-      (ctx.db as DrizzleDB).select({ count: count() }).from(hackathons).where(inArray(hackathons.status, ["open", "in_progress"])),
-      (ctx.db as DrizzleDB).select({ count: count() }).from(eventCheckIns).where(gte(eventCheckIns.checkedInAt, startOfToday)),
-    ]);
+    const [participantsResult, eventsResult, hackathonsResult, checkinsResult] =
+      await Promise.all([
+        (ctx.db as DrizzleDB)
+          .select({ count: count() })
+          .from(hackathonParticipants),
+        (ctx.db as DrizzleDB).select({ count: count() }).from(events),
+        (ctx.db as DrizzleDB)
+          .select({ count: count() })
+          .from(hackathons)
+          .where(inArray(hackathons.status, ["open", "in_progress"])),
+        (ctx.db as DrizzleDB)
+          .select({ count: count() })
+          .from(eventCheckIns)
+          .where(gte(eventCheckIns.checkedInAt, startOfToday)),
+      ]);
 
     return {
       totalParticipants: participantsResult[0]?.count ?? 0,
@@ -72,23 +83,25 @@ export const adminRouter = createTRPCRouter({
   }),
 
   list: isAdmin.query(async ({ ctx }) => {
-    const fetchAdmins = () => (ctx.db as DrizzleDB).query.admins.findMany({
-      with: {
-        user: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
+    const fetchAdmins = () =>
+      (ctx.db as DrizzleDB).query.admins.findMany({
+        with: {
+          user: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
           },
         },
-      },
-      orderBy: (admins, { desc }) => [desc(admins.createdAt)],
-      limit: 100,
-    });
+        orderBy: (admins, { desc }) => [desc(admins.createdAt)],
+        limit: 100,
+      });
 
     const cacheKey = `admins:list`;
-    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchAdmins>>>(cacheKey);
+    const cached =
+      ctx.cache.get<Awaited<ReturnType<typeof fetchAdmins>>>(cacheKey);
     if (cached) return cached;
 
     const allAdmins = await fetchAdmins();
@@ -103,7 +116,7 @@ export const adminRouter = createTRPCRouter({
         userId: z.string().min(1).max(255),
         role: z.enum(["super_admin", "admin", "moderator"]),
         permissions: z.array(z.string().max(100)).max(50).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       // Parallel check: user exists AND not already admin
@@ -122,7 +135,10 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
       if (existingAdmin) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "User is already an admin" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User is already an admin",
+        });
       }
 
       const result = await (ctx.db as DrizzleDB)
@@ -136,12 +152,16 @@ export const adminRouter = createTRPCRouter({
 
       const newAdmin = result[0];
       if (!newAdmin) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create admin" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create admin",
+        });
       }
 
       // Invalidate admin caches after creation
       ctx.cache.deletePattern(`${CacheKeys.admin(input.userId)}*`);
       ctx.cache.delete(`admins:list`);
+      invalidatePortalContext(input.userId);
 
       return newAdmin;
     }),
@@ -153,7 +173,7 @@ export const adminRouter = createTRPCRouter({
         role: z.enum(["super_admin", "admin", "moderator"]).optional(),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         isActive: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
@@ -164,23 +184,35 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
       }
       if (targetAdmin.userId === ctx.userId && input.isActive === false) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot deactivate your own admin account" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot deactivate your own admin account",
+        });
       }
 
       const result = await (ctx.db as DrizzleDB)
         .update(admins)
-        .set({ role: input.role, permissions: input.permissions, isActive: input.isActive, updatedAt: new Date() })
+        .set({
+          role: input.role,
+          permissions: input.permissions,
+          isActive: input.isActive,
+          updatedAt: new Date(),
+        })
         .where(eq(admins.id, input.adminId))
         .returning();
 
       const updatedAdmin = result[0];
       if (!updatedAdmin) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update admin" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update admin",
+        });
       }
 
       // Bust the affected user's admin cache so next request re-checks
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
+      invalidatePortalContext(targetAdmin.userId);
 
       return updatedAdmin;
     }),
@@ -196,13 +228,19 @@ export const adminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
       }
       if (targetAdmin.userId === ctx.userId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot remove your own admin account" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot remove your own admin account",
+        });
       }
 
-      await (ctx.db as DrizzleDB).delete(admins).where(eq(admins.id, input.adminId));
+      await (ctx.db as DrizzleDB)
+        .delete(admins)
+        .where(eq(admins.id, input.adminId));
 
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
+      invalidatePortalContext(targetAdmin.userId);
 
       return { success: true };
     }),
