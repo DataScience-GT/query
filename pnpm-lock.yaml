@@ -164,6 +164,9 @@ importers:
       '@types/pg':
         specifier: ^8.10.9
         version: 8.20.0
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
       drizzle-kit:
         specifier: 0.31.10
         version: 0.31.10

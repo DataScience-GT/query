@@ -95,3 +95,8 @@ graphify-out/cost.json
 # 3. Set "Required status checks" or use "Branch restrictions" to limit who can push
 # Or use pre-receive hook on GitHub with: git config commit.gpgsign true
 # Then enforce via GitHub branch protection rules
+
+# Turbo/tsc build caches (declared as task outputs in turbo.json).
+# `*.tsbuildinfo` above does not match these, so they were tracked and every
+# build dirtied the working tree.
+.cache/

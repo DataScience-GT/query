@@ -10,16 +10,22 @@ import type Stripe from "stripe";
 import crypto from "crypto";
 
 let stripeClient: Stripe | null | undefined;
+let stripeClientKey: string | undefined;
 
 async function getStripe(): Promise<Stripe | null> {
-  if (stripeClient !== undefined) return stripeClient;
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    stripeClient = null;
-    return stripeClient;
-  }
+
+  // Only a successfully constructed client is memoized, and only for the key it
+  // was built from. Previously a single call made before the environment was
+  // populated cached `null` for the lifetime of the process, so every later
+  // request returned "payment service unavailable" even once the key was
+  // present — the failure was permanent and only a restart cleared it.
+  if (!key) return null;
+  if (stripeClient && stripeClientKey === key) return stripeClient;
+
   const { default: StripeSDK } = await import("stripe");
   stripeClient = new StripeSDK(key);
+  stripeClientKey = key;
   return stripeClient;
 }
 
@@ -121,7 +127,10 @@ export const stripeRouter = createTRPCRouter({
                     "One year membership to Data Science at Georgia Tech",
                   // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
                 },
-                unit_amount: 2500, // $15.00
+                // $15.00 — matches createPaymentIntent (1500) and the portal UI
+                // ("$15.00 / year"). This was 2500, so the hosted-checkout path
+                // charged $25 for the same membership.
+                unit_amount: 1500,
               },
               quantity: 1,
             },
@@ -159,8 +168,8 @@ export const stripeRouter = createTRPCRouter({
    */
   createPaymentIntent: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const stripe = await getStripe();
-      if (!stripe) {
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
           message: "Payment service is currently unavailable. Please try again later.",
@@ -178,13 +187,23 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Dev/mock mode
-      if (process.env.STRIPE_SECRET_KEY?.startsWith("mk_")) {
+      // Dev/mock mode short-circuits before getStripe(), matching
+      // createCheckoutSession. This previously ran *after* getStripe(), so a
+      // mock key still constructed a real Stripe SDK instance.
+      if (stripeKey.startsWith("mk_")) {
         return {
           clientSecret: "mock_pi_secret",
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
         };
+      }
+
+      const stripe = await getStripe();
+      if (!stripe) {
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is currently unavailable. Please try again later.",
+        });
       }
 
       try {
