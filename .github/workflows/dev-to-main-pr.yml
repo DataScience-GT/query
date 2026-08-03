@@ -1,0 +1,29 @@
+name: Auto PR dev to main
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create or Update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head dev \
+            --title "Sync: dev to main" \
+            --body "Automated PR tracking changes from \`dev\` into \`main\`." \
+            --reviewer aamoghS \
+            --assignee aamoghS \
+            --label ":arrow_heading_down: pull" || true

@@ -1,7 +1,12 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "ui": "tui",
+  "ui": "stream",
   "tasks": {
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"]
+    },
     "topo": {
       "dependsOn": ["^topo"]
     },
@@ -34,9 +39,6 @@
     "clean": {
       "cache": false
     },
-    "//#clean": {
-      "cache": false
-    },
     "push": {
       "cache": false,
       "interactive": true
@@ -55,7 +57,35 @@
     "DATABASE_URL",
     "NEXTAUTH_SECRET",
     "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
-    "STRIPE_SECRET_KEY"
+    "STRIPE_SECRET_KEY",
+    "DISCORD_BOT_TOKEN",
+    "DISCORD_CLIENT_ID",
+    "GUILD_ID",
+    "NOTION_TOKEN",
+    "NOTION_GUIDE_PAGE_ID",
+    "ROLE_ANNOUNCEMENTS_ID",
+    "ROLE_WORKSHOPS_ID",
+    "ROLE_SPONSORS_ID",
+    "ROLE_FOOD_ID",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "EMAIL_SERVER_HOST",
+    "EMAIL_SERVER_PORT",
+    "EMAIL_SERVER_USER",
+    "EMAIL_SERVER_PASSWORD",
+    "EMAIL_FROM",
+    "AUTH_URL",
+    "NEXTAUTH_URL",
+    "STRIPE_WEBHOOK_SECRET",
+    "DDOS_MAX_REQUESTS_PER_MINUTE",
+    "DDOS_SUSPICIOUS_THRESHOLD",
+    "DDOS_BLOCK_DURATION_MS",
+    "DDOS_BURST_THRESHOLD",
+    "DDOS_BURST_WINDOW_MS",
+    "DDOS_CLEANUP_INTERVAL_MS",
+    "CRON_SECRET"
   ],
   "globalPassThroughEnv": ["NODE_ENV", "CI", "npm_lifecycle_event"]
 }

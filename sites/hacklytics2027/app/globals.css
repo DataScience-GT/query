@@ -1,0 +1,146 @@
+/* app/globals.css — Digital Bloom Theme */
+@import "tailwindcss";
+
+@theme inline {
+  --color-bloom-pink: var(--bloom-pink);
+  --color-bloom-cyan: var(--bloom-cyan);
+  --color-bloom-lime: var(--bloom-lime);
+  --color-bloom-purple: var(--bloom-purple);
+  --color-gridline: var(--color-gridline);
+}
+
+:root {
+  --color-bg: #030305;
+  --color-text: #f0f0f2;
+  --color-gridline: rgba(255, 255, 255, 0.05);
+
+  --bloom-pink:   #ff2d78;
+  --bloom-cyan:   #00e5ff;
+  --bloom-lime:   #c8ff00;
+  --bloom-purple: #9b00ff;
+
+  --font-family-mono: "Roboto Mono", monospace;
+  --font-family-sans: "Space Grotesk", sans-serif;
+
+  --navbar-height: 72px;
+}
+
+/* ─── Base ─── */
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--bloom-cyan);
+  color: var(--color-bg);
+}
+
+/* ─── Typography ─── */
+.font-display {
+  font-family: var(--font-family-sans);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+/* ─── Glass Surfaces — used sparingly ─── */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Navbar glass — slightly more opaque */
+.glass-nav {
+  background: rgba(5, 5, 8, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ─── Glow utilities — used intentionally, not everywhere ─── */
+.glow-pink   { box-shadow: 0 0 32px rgba(255, 45, 120, 0.35); }
+.glow-cyan   { box-shadow: 0 0 32px rgba(0, 229, 255, 0.35); }
+.glow-lime   { box-shadow: 0 0 32px rgba(200, 255, 0, 0.3); }
+.glow-purple { box-shadow: 0 0 32px rgba(155, 0, 255, 0.3); }
+
+.text-glow-cyan {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+}
+.text-glow-pink {
+  text-shadow: 0 0 20px rgba(255, 45, 120, 0.5);
+}
+
+/* ─── Layout ─── */
+.section-wrap {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+@media (min-width: 768px) {
+  .section-wrap { padding-left: 3rem; padding-right: 3rem; }
+}
+@media (min-width: 1280px) {
+  .section-wrap { padding-left: 5rem; padding-right: 5rem; }
+}
+
+
+
+/* ─── Backward-compat shims for unrewritten components ─── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+}
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+}
+.hover-bloom-glow:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+}
+.bloom-text-glow {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+}
+
+
+/* ─── Accent line — thin colored rule used for section punctuation ─── */
+.accent-line {
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  border-radius: 1px;
+}
+
+/* ─── Section anchor offset for fixed navbar ─── */
+.section-anchor {
+  scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* ─── Divider ─── */
+.bloom-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent
+  );
+  margin: 0;
+}
+
+

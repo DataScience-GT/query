@@ -1,0 +1,69 @@
+version: "1"
+rules:
+  - base: main
+    upstream: dev
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: dev
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: feature/member-site
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: hackaton/refactor
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: portal/admin
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: unit-2-home
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: aamoghS-patch-1
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+  - base: revert-126-feature/member-site
+    upstream: main
+    reviewers:
+      - aamoghS
+    assignees:
+      - aamoghS
+    conflictReviewers:
+      - aamoghS
+
+label: ":arrow_heading_down: pull"
+conflictLabel: "merge-conflict"

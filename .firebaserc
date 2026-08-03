@@ -5,10 +5,9 @@
   "targets": {
     "dsgt-website": {
       "hosting": {
-        "judging": ["dsgt-judging"],
-        "portal": ["dsgt-portal"],
-        "mainweb": ["dsgt-website"],
-        "hacklytics-2": ["hacklytics-2"]
+        "hacklytics": [
+          "hacklytics2027"
+        ]
       }
     }
   }

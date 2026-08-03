@@ -1,10 +1,10 @@
-import { ReactNode, HTMLAttributes, JSX } from "react";
+import type { ReactNode, HTMLAttributes, ElementType } from "react";
 
 interface MajorProps extends HTMLAttributes<HTMLElement> {
   type?: "primary" | "secondary" | "a" | "b";
-  as?: keyof JSX.IntrinsicElements;
+  as?: ElementType;
   compact?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export default function Major({
@@ -16,7 +16,8 @@ export default function Major({
   ...props
 }: MajorProps) {
   // Support legacy values 'a'|'b' for backwards compatibility
-  const resolvedType = type === "a" ? "primary" : type === "b" ? "secondary" : type;
+  const resolvedType =
+    type === "a" ? "primary" : type === "b" ? "secondary" : type;
 
   // Tailwind colors per type for a modern dark theme (e.g., Indigo/Amber)
   const typeClasses: Record<string, string> = {
@@ -28,10 +29,13 @@ export default function Major({
     ? `text-lg md:text-xl lg:text-xl font-semibold leading-snug tracking-normal m-0`
     : `uppercase text-4xl md:text-5xl lg:text-6xl font-extrabold text-center leading-tight tracking-wide my-4`;
 
-  const Tag = as as React.ElementType;
+  const Tag = as as ElementType;
 
   return (
-    <Tag {...props} className={`${displayClasses} ${typeClasses[resolvedType] ?? ""} ${className ?? ""}`}>
+    <Tag
+      {...props}
+      className={`${displayClasses} ${typeClasses[resolvedType] ?? ""} ${className ?? ""}`}
+    >
       {children}
     </Tag>
   );

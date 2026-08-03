@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
+/* The site is dark by default. This `body` rule is unlayered, so it outranks
+   every Tailwind utility regardless of specificity — the `bg-[#050505]` class
+   on <body> in app/layout.tsx can never win against it. Keep the two in sync;
+   the portal's `.light body` / `.dark body` rules take it from here. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050505;
+  --foreground: #9ca3af;
 }
 
 @theme inline {
@@ -10,13 +14,50 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-accent: var(--accent);
+
+  /* Neutrals point at variables instead of literals so Tailwind emits
+     color-mix(..., var(--ui-*), ...) for every opacity variant. That makes the
+     `bg-white/5`, `border-white/10`, `text-white` and `text-gray-*` utilities
+     already spread across the portal follow the active theme instead of
+     staying hardcoded dark. */
+  --color-white: var(--ui-white);
+  --color-black: var(--ui-black);
+  --color-gray-200: var(--ui-gray-200);
+  --color-gray-300: var(--ui-gray-300);
+  --color-gray-400: var(--ui-gray-400);
+  --color-gray-500: var(--ui-gray-500);
+  --color-gray-600: var(--ui-gray-600);
+  --color-gray-700: var(--ui-gray-700);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark is the default everywhere, including the marketing pages, which never
+   receive the `light` class (next-themes only mounts inside the portal). */
+:root {
+  --ui-white: #ffffff;
+  --ui-black: #000000;
+  --ui-gray-200: #e5e7eb;
+  --ui-gray-300: #d1d5db;
+  --ui-gray-400: #9ca3af;
+  --ui-gray-500: #6b7280;
+  --ui-gray-600: #4b5563;
+  --ui-gray-700: #374151;
+  --ui-scrim: rgba(0, 0, 0, 0.6);
+}
+
+/* The ramp inverts rather than shifting: in dark mode a higher gray number
+   means dimmer, in light mode it means lighter, so the visual hierarchy each
+   utility was picked for is preserved. */
+.light {
+  --ui-white: #09090b;
+  --ui-black: #ffffff;
+  --ui-gray-200: #18181b;
+  --ui-gray-300: #3f3f46;
+  --ui-gray-400: #52525b;
+  --ui-gray-500: #63636d;
+  --ui-gray-600: #71717a;
+  --ui-gray-700: #8b8b95;
+  --ui-scrim: rgba(9, 9, 11, 0.45);
 }
 
 body {
@@ -25,52 +66,65 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Glass UI Utilities */
-.glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Replaces `transition-all`, which animates every animatable property —
+   including layout ones like width and height, causing avoidable jank.
+   Lists only what the UI actually transitions. Pair with `duration-*` as usual. */
+@utility transition-ui {
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke,
+    box-shadow, transform, opacity, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
-.glass-dark {
-  background: rgba(10, 10, 10, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
+@layer components {
+  /* Glass UI Utilities */
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
 
-.glass-card {
-  background: rgba(15, 15, 15, 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 4px 30px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
+  .glass-dark {
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
 
-.glass-card:hover {
-  background: rgba(20, 20, 20, 0.6);
-  border-color: rgba(0, 168, 168, 0.3);
-}
+  .glass-card {
+    background: rgba(15, 15, 15, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
 
-.glass-navbar {
-  background: rgba(8, 8, 8, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
+  .glass-card:hover {
+    background: rgba(20, 20, 20, 0.6);
+    border-color: rgba(0, 168, 168, 0.3);
+  }
 
-.glass-section {
-  background: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
+  .glass-navbar {
+    background: rgba(8, 8, 8, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
 
-.glass-teal {
-  background: rgba(0, 168, 168, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 168, 168, 0.2);
+  .glass-section {
+    background: rgba(255, 255, 255, 0.01);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .glass-teal {
+    background: rgba(0, 168, 168, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 168, 168, 0.2);
+  }
 }

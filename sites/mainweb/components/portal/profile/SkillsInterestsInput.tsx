@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { useState, KeyboardEvent } from 'react';
+import { useState } from "react";
+import type { KeyboardEvent } from "react";
 
 interface SkillsInterestsInputProps {
   items: string[];
@@ -17,14 +18,14 @@ export default function SkillsInterestsInput({
   maxItems,
   accentColor,
 }: SkillsInterestsInputProps) {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
+    if (e.key === "Enter" && inputValue.trim()) {
       e.preventDefault();
       if (items.length < maxItems && !items.includes(inputValue.trim())) {
         setItems([...items, inputValue.trim()]);
-        setInputValue('');
+        setInputValue("");
       }
     }
   };
@@ -59,7 +60,7 @@ export default function SkillsInterestsInput({
         onKeyDown={handleKeyDown}
         maxLength={50}
         disabled={items.length >= maxItems}
-        className="w-full bg-black/40 border border-white/10 rounded px-4 py-3 text-white text-sm focus:border-[#00A8A8]/50 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent/50 focus:outline-none transition-ui disabled:opacity-50 disabled:cursor-not-allowed"
         placeholder={items.length >= maxItems ? `Limit reached` : placeholder}
       />
       <p className="text-[10px] text-gray-600 mt-1">

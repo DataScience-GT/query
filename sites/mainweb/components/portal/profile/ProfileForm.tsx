@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { trpc } from '@/lib/trpc';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import SkillsInterestsInput from './SkillsInterestsInput';
+import { useState, useRef, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import SkillsInterestsInput from "./SkillsInterestsInput";
 
 interface ProfileFormProps {
   user: {
@@ -21,10 +21,10 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   const utils = trpc.useUtils();
 
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    bio: user.bio || '',
-    website: user.website || '',
-    location: user.location || '',
+    name: user.name || "",
+    bio: user.bio || "",
+    website: user.website || "",
+    location: user.location || "",
   });
 
   const { data: memberStatus } = trpc.member.checkStatus.useQuery();
@@ -35,9 +35,9 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   });
 
   const [memberForm, setMemberForm] = useState({
-    linkedinUrl: '',
-    githubUrl: '',
-    portfolioUrl: '',
+    linkedinUrl: "",
+    githubUrl: "",
+    portfolioUrl: "",
     skills: [] as string[],
     interests: [] as string[],
   });
@@ -45,32 +45,40 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   useEffect(() => {
     if (memberData) {
       setMemberForm({
-        linkedinUrl: memberData.linkedinUrl || '',
-        githubUrl: memberData.githubUrl || '',
-        portfolioUrl: memberData.portfolioUrl || '',
+        linkedinUrl: memberData.linkedinUrl || "",
+        githubUrl: memberData.githubUrl || "",
+        portfolioUrl: memberData.portfolioUrl || "",
         skills: memberData.skills || [],
         interests: memberData.interests || [],
       });
     }
   }, [memberData]);
 
-  const [imagePreview, setImagePreview] = useState<string | null>(user.image || null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    user.image || null,
+  );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const updateProfile = trpc.user.updateProfile.useMutation({
     onSuccess: () => {
-      setMessage({ type: 'success', text: 'Profile updated successfully' });
+      setMessage({ type: "success", text: "Profile updated successfully" });
       utils.user.me.invalidate();
       setIsSubmitting(false);
 
       setTimeout(() => setMessage(null), 3000);
     },
     onError: (error) => {
-      setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to update profile",
+      });
       setIsSubmitting(false);
     },
   });
@@ -80,20 +88,29 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       utils.member.me.invalidate();
     },
     onError: (error) => {
-      setMessage({ type: 'error', text: error.message || 'Failed to update member profile' });
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to update member profile",
+      });
       setIsSubmitting(false);
-    }
+    },
   });
 
   const updateProfileImage = trpc.user.updateProfileImage.useMutation({
     onSuccess: () => {
-      setMessage({ type: 'success', text: 'Profile image updated successfully' });
+      setMessage({
+        type: "success",
+        text: "Profile image updated successfully",
+      });
       utils.user.me.invalidate();
       setIsUploadingImage(false);
       setTimeout(() => setMessage(null), 3000);
     },
     onError: (error) => {
-      setMessage({ type: 'error', text: error.message || 'Failed to update profile image' });
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to update profile image",
+      });
       setIsUploadingImage(false);
     },
   });
@@ -102,8 +119,8 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Please select an image file' });
+    if (!file.type.startsWith("image/")) {
+      setMessage({ type: "error", text: "Please select an image file" });
       return;
     }
 
@@ -112,7 +129,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         const MAX_SIZE = 512;
         let width = img.width;
         let height = img.height;
@@ -131,16 +148,16 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
           setIsUploadingImage(false);
-          setMessage({ type: 'error', text: 'Failed to process image' });
+          setMessage({ type: "error", text: "Failed to process image" });
           return;
         }
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+        const base64Image = canvas.toDataURL("image/jpeg", 0.8);
         setImagePreview(base64Image);
 
         updateProfileImage.mutate({ base64Image });
@@ -149,7 +166,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     };
     reader.readAsDataURL(file);
     // Reset file input so same file can be selected again if needed
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = () => {
@@ -169,7 +186,8 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         githubUrl: memberForm.githubUrl || undefined,
         portfolioUrl: memberForm.portfolioUrl || undefined,
         skills: memberForm.skills.length > 0 ? memberForm.skills : undefined,
-        interests: memberForm.interests.length > 0 ? memberForm.interests : undefined,
+        interests:
+          memberForm.interests.length > 0 ? memberForm.interests : undefined,
       });
     }
   };
@@ -177,32 +195,50 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   return (
     <div className="space-y-6">
       {message && (
-        <div className={`p-4 rounded-lg border ${message.type === 'success'
-          ? 'bg-[#00A8A8]/10 border-[#00A8A8]/30 text-[#00A8A8]'
-          : 'bg-red-500/10 border-red-500/30 text-red-500'
-          }`}>
+        <div
+          className={`p-4 rounded-none border ${
+            message.type === "success"
+              ? "bg-accent/10 border-accent/30 text-accent"
+              : "bg-red-500/10 border-red-500/30 text-red-500"
+          }`}
+        >
           <p className="text-xs uppercase tracking-widest">{message.text}</p>
         </div>
       )}
 
       <div className="flex flex-col items-center space-y-4 mb-6 pt-2">
         <div
-          className="relative w-32 h-32 rounded-full overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
+          className="relative w-32 h-32 rounded-sm overflow-hidden bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] group cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
         >
           {imagePreview ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+            <img
+              src={imagePreview}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
-              <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <div className="w-full h-full flex items-center justify-center text-[var(--text-subtle)]">
+              <svg
+                className="w-12 h-12"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
               </svg>
             </div>
           )}
-          <div className={`absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-            <span className="text-white text-xs font-bold uppercase tracking-widest text-center px-2">
-              {isUploadingImage ? 'Uploading...' : 'Change'}
+          <div
+            className={`absolute inset-0 bg-[var(--bg-primary)]/60 flex items-center justify-center transition-opacity ${isUploadingImage ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+          >
+            <span className="text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest text-center px-2">
+              {isUploadingImage ? "Uploading..." : "Change"}
             </span>
           </div>
         </div>
@@ -216,131 +252,182 @@ export default function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label
+          htmlFor="display-name"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Display Name
         </label>
         <input
+          id="display-name"
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Enter your name"
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui"
           maxLength={100}
         />
-        <p className="text-[10px] text-gray-700 uppercase">Visible to all users</p>
+        <p className="text-[10px] text-gray-700 uppercase">
+          Visible to all users
+        </p>
       </div>
 
-
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label
+          htmlFor="public-bio"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Public Bio
         </label>
         <textarea
+          id="public-bio"
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="Tell the community about yourself..."
           rows={4}
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all resize-none"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui resize-none"
           maxLength={500}
         />
         <div className="flex justify-between items-center">
-          <p className="text-[10px] text-gray-700 uppercase">Visible on your profile</p>
-          <p className="text-[10px] text-gray-600 font-mono">{formData.bio.length}/500</p>
+          <p className="text-[10px] text-gray-700 uppercase">
+            Visible on your profile
+          </p>
+          <p className="text-[10px] text-gray-600 font-mono">
+            {formData.bio.length}/500
+          </p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label
+          htmlFor="website"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Website
         </label>
         <input
+          id="website"
           type="url"
           value={formData.website}
-          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, website: e.target.value })
+          }
           placeholder="https://your-website.com"
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui"
           maxLength={500}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label
+          htmlFor="location"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Location
         </label>
         <input
+          id="location"
           type="text"
           value={formData.location}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, location: e.target.value })
+          }
           placeholder="E.g. Atlanta, GA"
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[#00A8A8] focus:outline-none transition-all"
+          className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui"
           maxLength={200}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+        <label
+          htmlFor="email-address"
+          className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+        >
           Email Address
         </label>
         <input
+          id="email-address"
           type="email"
           value={user.email}
           disabled
-          className="w-full bg-black/20 border border-white/5 rounded-lg px-4 py-3 text-gray-600 text-sm cursor-not-allowed font-mono"
+          className="w-full bg-[var(--bg-primary)]/20 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-gray-600 text-sm cursor-not-allowed font-mono"
         />
-        <p className="text-[10px] text-gray-700 uppercase">Cannot be modified</p>
+        <p className="text-[10px] text-gray-700 uppercase">
+          Cannot be modified
+        </p>
       </div>
 
       {isMember && (
-        <div className="pt-6 mt-6 border-t border-white/10 space-y-6">
+        <div className="pt-6 mt-6 border-t border-[var(--border-subtle)] space-y-6">
           <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Member Details</h3>
+            <span className="w-2 h-2 rounded-sm bg-green-500 animate-pulse"></span>
+            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+              Member Details
+            </h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label
+                htmlFor="linkedin-url"
+                className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 LinkedIn URL
               </label>
               <input
+                id="linkedin-url"
                 type="url"
                 value={memberForm.linkedinUrl}
-                onChange={(e) => setMemberForm({ ...memberForm, linkedinUrl: e.target.value })}
+                onChange={(e) =>
+                  setMemberForm({ ...memberForm, linkedinUrl: e.target.value })
+                }
                 placeholder="https://linkedin.com/in/..."
-                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-ui"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label
+                htmlFor="github-url"
+                className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 GitHub URL
               </label>
               <input
+                id="github-url"
                 type="url"
                 value={memberForm.githubUrl}
-                onChange={(e) => setMemberForm({ ...memberForm, githubUrl: e.target.value })}
+                onChange={(e) =>
+                  setMemberForm({ ...memberForm, githubUrl: e.target.value })
+                }
                 placeholder="https://github.com/..."
-                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-ui"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label
+                htmlFor="portfolio-url"
+                className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono"
+              >
                 Portfolio URL
               </label>
               <input
+                id="portfolio-url"
                 type="url"
                 value={memberForm.portfolioUrl}
-                onChange={(e) => setMemberForm({ ...memberForm, portfolioUrl: e.target.value })}
+                onChange={(e) =>
+                  setMemberForm({ ...memberForm, portfolioUrl: e.target.value })
+                }
                 placeholder="https://your-portfolio.com"
-                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-green-500/50 focus:outline-none transition-all"
+                className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-green-500/50 focus:outline-none transition-ui"
               />
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2 mt-4">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 Core Skills
               </label>
               <SkillsInterestsInput
@@ -353,12 +440,14 @@ export default function ProfileForm({ user }: ProfileFormProps) {
             </div>
 
             <div className="space-y-2 mt-4">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+              <label className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
                 Interests & Focus Areas
               </label>
               <SkillsInterestsInput
                 items={memberForm.interests}
-                setItems={(interests) => setMemberForm({ ...memberForm, interests })}
+                setItems={(interests) =>
+                  setMemberForm({ ...memberForm, interests })
+                }
                 placeholder="E.g., Open Source, Machine Learning..."
                 maxItems={10}
                 accentColor="purple-500"
@@ -368,9 +457,11 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         </div>
       )}
 
-      <LiquidGlass className="bg-white/5 border border-white/10 rounded-lg p-4 mt-6">
-        <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Profile Tips</p>
-        <ul className="text-xs text-gray-400 space-y-1">
+      <LiquidGlass className="bg-white/5 border border-[var(--border-subtle)] rounded-none p-4 mt-6">
+        <p className="text-xs text-[var(--text-subtle)] uppercase tracking-widest mb-2">
+          Profile Tips
+        </p>
+        <ul className="text-xs text-[var(--text-muted)] space-y-1">
           <li>&gt; Use a clear profile picture for better recognition</li>
           <li>&gt; Keep your bio concise and professional</li>
           <li>&gt; Your email is private and used only for authentication</li>
@@ -379,14 +470,16 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="flex gap-3 pt-4">
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className={`flex-1 py-3 bg-[#00A8A8] text-black font-bold uppercase text-xs tracking-widest rounded-lg transition-all ${isSubmitting
-            ? 'opacity-50 cursor-not-allowed'
-            : 'hover:bg-[#00A8A8]/80'
-            }`}
+          className={`flex-1 py-3 bg-accent text-black font-bold uppercase text-xs tracking-widest rounded-none transition-ui ${
+            isSubmitting
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-accent/80"
+          }`}
         >
-          {isSubmitting ? 'Updating...' : 'Save Changes'}
+          {isSubmitting ? "Updating..." : "Save Changes"}
         </button>
       </div>
     </div>

@@ -1,46 +1,43 @@
-'use client';
+"use client";
 
-import { SessionProvider } from 'next-auth/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink } from '@trpc/client';
-import { useState } from 'react';
-import superjson from 'superjson';
-import { trpc } from '@/lib/trpc';
+import type { ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink } from "@trpc/client";
+import { useState } from "react";
+import superjson from "superjson";
+import { trpc } from "@/lib/trpc";
+import { createAppQueryClient } from "@/lib/query-client";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+
+function AppThemeProvider({
+  children,
+  ...props
+}: React.ComponentProps<typeof NextThemesProvider> & { children: ReactNode }) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
-
-
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000, // 1 minute
-      },
-    },
-  }));
+  const [queryClient] = useState(() => createAppQueryClient());
 
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: '/api/trpc',
+          url: "/api/trpc",
           transformer: superjson,
-          headers() {
-            return {
-              // Cookies are automatically sent by the browser
-            };
-          },
         }),
       ],
-    })
+    }),
   );
 
   return (
-    <SessionProvider basePath="/api/auth">
-      <QueryClientProvider client={queryClient}>
+    <AppThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <SessionProvider basePath="/api/auth">
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          {children}
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </trpc.Provider>
-      </QueryClientProvider>
-    </SessionProvider>
+      </SessionProvider>
+    </AppThemeProvider>
   );
 }

@@ -1,11 +1,15 @@
-import { ReactNode, HTMLAttributes } from "react";
+import type { ReactNode, HTMLAttributes } from "react";
 
 interface SectionProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   makefull?: boolean;
 }
 
-export default function Section({ children, makefull = false, ...rest }: SectionProps) {
+export default function Section({
+  children,
+  makefull = false,
+  ...rest
+}: SectionProps) {
   return (
     <div
       className={`relative w-full h-auto py-10 ${

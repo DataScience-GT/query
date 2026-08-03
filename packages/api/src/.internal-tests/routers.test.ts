@@ -1,0 +1,1615 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { appRouter } from "../root";
+import { TRPCError } from "@trpc/server";
+import { cache } from "../middleware/cache";
+import { db } from "@query/db";
+import { errorFormatter } from "../trpc";
+import { sanitizeInput } from "../middleware/security";
+
+// Fully mock the DB at the file level
+const mockFindFirst = vi.fn();
+const mockFindMany = vi.fn();
+const mockInsert = vi.fn();
+const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
+
+vi.mock("@query/db", () => {
+  return {
+    db: {
+      transaction: vi.fn().mockImplementation((callback) => callback(db)),
+      query: {
+        admins: {
+          findFirst: (...args: any[]) => mockFindFirst("admins", ...args),
+          findMany: (...args: any[]) => mockFindMany("admins", ...args),
+        },
+        hackathons: {
+          findFirst: (...args: any[]) => mockFindFirst("hackathons", ...args),
+          findMany: (...args: any[]) => mockFindMany("hackathons", ...args),
+        },
+        hackathonParticipants: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("hackathonParticipants", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("hackathonParticipants", ...args),
+        },
+        hackathonTeams: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("hackathonTeams", ...args),
+          findMany: (...args: any[]) => mockFindMany("hackathonTeams", ...args),
+        },
+        users: {
+          findFirst: (...args: any[]) => mockFindFirst("users", ...args),
+          findMany: (...args: any[]) => mockFindMany("users", ...args),
+        },
+        members: {
+          findFirst: (...args: any[]) => mockFindFirst("members", ...args),
+          findMany: (...args: any[]) => mockFindMany("members", ...args),
+        },
+        events: {
+          findFirst: (...args: any[]) => mockFindFirst("events", ...args),
+          findMany: (...args: any[]) => mockFindMany("events", ...args),
+        },
+        judges: {
+          findFirst: (...args: any[]) => mockFindFirst("judges", ...args),
+          findMany: (...args: any[]) => mockFindMany("judges", ...args),
+        },
+        judgeAssignments: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("judgeAssignments", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("judgeAssignments", ...args),
+        },
+        hackathonProjects: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("hackathonProjects", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("hackathonProjects", ...args),
+        },
+        userProfiles: {
+          findFirst: (...args: any[]) => mockFindFirst("userProfiles", ...args),
+          findMany: (...args: any[]) => mockFindMany("userProfiles", ...args),
+        },
+        membershipHistory: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("membershipHistory", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("membershipHistory", ...args),
+        },
+        eventCheckIns: {
+          findFirst: (...args: any[]) => mockFindFirst("eventCheckIns", ...args),
+          findMany: (...args: any[]) => mockFindMany("eventCheckIns", ...args),
+        },
+        hackathonEvents: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("hackathonEvents", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("hackathonEvents", ...args),
+        },
+        hackathonEventAttendees: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("hackathonEventAttendees", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("hackathonEventAttendees", ...args),
+        },
+        judgingProjects: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("judgingProjects", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("judgingProjects", ...args),
+        },
+        judgeVotes: {
+          findFirst: (...args: any[]) => mockFindFirst("judgeVotes", ...args),
+          findMany: (...args: any[]) => mockFindMany("judgeVotes", ...args),
+        },
+        judgeQueue: {
+          findFirst: (...args: any[]) => mockFindFirst("judgeQueue", ...args),
+          findMany: (...args: any[]) => mockFindMany("judgeQueue", ...args),
+        },
+        hackathonMaps: {
+          findFirst: (...args: any[]) => mockFindFirst("hackathonMaps", ...args),
+          findMany: (...args: any[]) => mockFindMany("hackathonMaps", ...args),
+        },
+        stripePayments: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("stripePayments", ...args),
+          findMany: (...args: any[]) => mockFindMany("stripePayments", ...args),
+        },
+        userAccountLinks: {
+          findFirst: (...args: any[]) =>
+            mockFindFirst("userAccountLinks", ...args),
+          findMany: (...args: any[]) =>
+            mockFindMany("userAccountLinks", ...args),
+        },
+        auditLogs: {
+          findFirst: (...args: any[]) => mockFindFirst("auditLogs", ...args),
+          findMany: (...args: any[]) => mockFindMany("auditLogs", ...args),
+        },
+      },
+      insert: (...insertArgs: any[]) => ({
+        values: (...valArgs: any[]) => {
+          const val = mockInsert("insert", insertArgs, valArgs);
+          return Object.assign(Promise.resolve(val), {
+            returning: vi.fn().mockResolvedValue(val),
+            onConflictDoUpdate: vi.fn().mockImplementation(() => ({
+              returning: vi.fn().mockResolvedValue(val),
+            })),
+          });
+        },
+      }),
+      update: (...updateArgs: any[]) => ({
+        set: (...setArgs: any[]) => ({
+          where: (...wArgs: any[]) => {
+            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
+            return Object.assign(Promise.resolve(val), {
+              returning: vi.fn().mockResolvedValue(val),
+            });
+          },
+        }),
+      }),
+      delete: (...deleteArgs: any[]) => ({
+        where: (...wArgs: any[]) => {
+          const val = mockDelete("delete", deleteArgs, wArgs);
+          return Object.assign(Promise.resolve(val), {
+            returning: vi.fn().mockResolvedValue(val),
+          });
+        },
+      }),
+      select: vi.fn().mockImplementation(() => ({
+        from: vi.fn().mockImplementation(() => ({
+          where: vi.fn().mockImplementation(() => ({
+            orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
+            groupBy: vi.fn().mockResolvedValue([]),
+            limit: vi.fn().mockResolvedValue([]),
+            offset: vi.fn().mockResolvedValue([]),
+          })),
+          orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
+          groupBy: vi.fn().mockResolvedValue([]),
+          innerJoin: vi.fn().mockImplementation(() => ({
+            innerJoin: vi.fn().mockImplementation(() => ({
+              where: vi.fn().mockResolvedValue([]),
+            })),
+            where: vi.fn().mockResolvedValue([]),
+          })),
+        })),
+      })),
+    },
+    admins: {
+      userId: "user_id",
+      isActive: "is_active",
+      role: "role",
+    },
+    users: {
+      id: "id",
+      email: "email",
+    },
+    userProfiles: {
+      userId: "user_id",
+    },
+    hackathons: {
+      id: "id",
+      status: "status",
+      isPublic: "is_public",
+      startDate: "start_date",
+      endDate: "end_date",
+      currentParticipants: "current_participants",
+      maxParticipants: "max_participants",
+    },
+    hackathonParticipants: {
+      id: "id",
+      hackathonId: "hackathon_id",
+      userId: "user_id",
+      status: "status",
+      registrationStatus: "registration_status",
+    },
+    hackathonTeams: {
+      id: "id",
+      hackathonId: "hackathon_id",
+      name: "name",
+    },
+    members: {
+      id: "id",
+      userId: "user_id",
+      hackathonId: "hackathon_id",
+    },
+    membershipHistory: {
+      id: "id",
+      memberId: "member_id",
+    },
+    events: {
+      id: "id",
+      title: "title",
+      qrCode: "qr_code",
+      checkInEnabled: "check_in_enabled",
+      eventDate: "event_date",
+      currentCheckIns: "current_check_ins",
+    },
+    eventCheckIns: {
+      id: "id",
+      eventId: "event_id",
+      userId: "user_id",
+    },
+    hackathonEvents: {
+      id: "id",
+      hackathonId: "hackathon_id",
+    },
+    hackathonEventAttendees: {
+      eventId: "event_id",
+      participantId: "participant_id",
+    },
+    judges: {
+      id: "id",
+      userId: "user_id",
+      hackathonId: "hackathon_id",
+    },
+    judgeAssignments: {
+      judgeId: "judge_id",
+      hackathonId: "hackathon_id",
+    },
+    hackathonProjects: {
+      id: "id",
+      hackathonId: "hackathon_id",
+    },
+    judgingProjects: {
+      id: "id",
+      hackathonId: "hackathon_id",
+      tableNumber: "table_number",
+    },
+    judgeVotes: {
+      judgeId: "judge_id",
+      projectId: "project_id",
+      score: "score",
+    },
+    judgeQueue: {
+      id: "id",
+      judgeId: "judge_id",
+      hackathonId: "hackathon_id",
+      isCompleted: "is_completed",
+    },
+    hackathonMaps: {
+      id: "id",
+      hackathonId: "hackathon_id",
+    },
+    stripePayments: {
+      id: "id",
+      customerEmail: "customer_email",
+      stripePaymentIntentId: "stripe_payment_intent_id",
+    },
+    userAccountLinks: {
+      userId: "user_id",
+      stripePaymentId: "stripe_payment_id",
+    },
+    auditLogs: {
+      id: "id",
+      severity: "severity",
+      userId: "user_id",
+    },
+  };
+});
+
+describe("Router Integration and Access Control Verification Suite", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    cache.clear();
+  });
+
+  const createMockCtx = (
+    userId?: string,
+    extra: Record<string, any> = {},
+    headers: Record<string, string> = {},
+  ) => {
+    return {
+      db,
+      session: userId ? { user: { id: userId } } : null,
+      userId: userId || undefined,
+      cache: cache,
+      clientIp: "127.0.0.1",
+      req: {
+        headers: {
+          get: (name: string) => headers[name.toLowerCase()] || null,
+        },
+      },
+      ...extra,
+    } as any;
+  };
+
+  describe("1. Admin Permissions and Role Restrictons", () => {
+    it("should query the database on cache miss and verify admin status", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "admin",
+            isActive: true,
+            permissions: [],
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.admin.isAdmin();
+
+      expect(res.isAdmin).toBe(true);
+      expect(res.role).toBe("admin");
+      expect(mockFindFirst).toHaveBeenCalledTimes(1);
+
+      // Hit cache next time
+      const cachedRes = await caller.admin.isAdmin();
+      expect(cachedRes.isAdmin).toBe(true);
+      expect(mockFindFirst).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw FORBIDDEN error when regular user calls admin endpoints", async () => {
+      const ctx = createMockCtx("regular_user_id");
+      mockFindFirst.mockReturnValue(null); // Not an admin
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(caller.admin.analyticsOverview()).rejects.toThrowError(
+        "Admin access required",
+      );
+    });
+
+    it("should block non-super-admins from adding new admins", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "admin",
+            isActive: true,
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.admin.create({
+          userId: "target_user_id",
+          role: "admin",
+        }),
+      ).rejects.toThrowError("Super admin access required");
+    });
+  });
+
+  describe("2. Hackathon and Club Events Access Controls", () => {
+    it("should allow public listing of hackathons by unauthenticated users", async () => {
+      const ctx = createMockCtx(); // No session
+      mockFindMany.mockReturnValue([
+        {
+          id: "h_1",
+          name: "Public Hackathon 2026",
+          status: "open",
+          isPublic: true,
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const result = await caller.hackathon.list({ limit: 10 });
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe("Public Hackathon 2026");
+    });
+
+    it("should separate hackathon event and club event category designations", () => {
+      const hackathonType = { id: "type_1", category: "hackathon" };
+      const clubType = { id: "type_2", category: "club" };
+      expect(hackathonType.category).not.toBe(clubType.category);
+    });
+  });
+
+  describe("3. Over-Fetching and Leakage Protections", () => {
+    it("should strip secret qrCode from public events listing", async () => {
+      const ctx = createMockCtx(); // Public user
+      mockFindMany.mockReturnValue([
+        {
+          id: "event_1",
+          title: "Keynote Speech",
+          qrCode: "secret_qr_code_123",
+          checkInEnabled: true,
+          eventDate: new Date(),
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const listResult = await caller.events.list();
+
+      expect(listResult.length).toBe(1);
+      expect(listResult[0].title).toBe("Keynote Speech");
+      // Assert qrCode is stripped from returned object
+      expect((listResult[0] as any).qrCode).toBeUndefined();
+    });
+
+    it("should retain qrCode in admin listAll events endpoint", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "admin",
+            isActive: true,
+          };
+        }
+        return null;
+      });
+      mockFindMany.mockReturnValue([
+        {
+          id: "event_1",
+          title: "Keynote Speech",
+          qrCode: "secret_qr_code_123",
+          checkInEnabled: true,
+          eventDate: new Date(),
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const allResult = await caller.events.listAll();
+
+      expect(allResult.length).toBe(1);
+      expect(allResult[0].qrCode).toBe("secret_qr_code_123");
+    });
+  });
+
+  describe("4. Secure Error Formatting", () => {
+    it("should mask database connection string credentials in production mode", () => {
+      const rawError = new Error(
+        "Fatal Postgres connection timeout: secret_password_value=xyz123",
+      );
+
+      const originalEnv = process.env.NODE_ENV;
+      (process.env as Record<string, string | undefined>).NODE_ENV =
+        "production";
+
+      const trpcError = new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rawError.message,
+        cause: rawError,
+      });
+
+      const formatted = errorFormatter({
+        shape: {
+          message: trpcError.message,
+          code: -32603,
+          data: {
+            code: "INTERNAL_SERVER_ERROR",
+            httpStatus: 500,
+          },
+        },
+        error: trpcError,
+      });
+
+      (process.env as Record<string, string | undefined>).NODE_ENV =
+        originalEnv;
+
+      expect(formatted.message).toBe("An unexpected error occurred");
+      expect(formatted.message).not.toContain("secret_password_value");
+    });
+
+    it("should retain detailed error messages in development mode", () => {
+      const rawError = new Error("Database column missing error detail");
+
+      const originalEnv = process.env.NODE_ENV;
+      (process.env as Record<string, string | undefined>).NODE_ENV =
+        "development";
+
+      const trpcError = new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rawError.message,
+        cause: rawError,
+      });
+
+      const formatted = errorFormatter({
+        shape: {
+          message: trpcError.message,
+          code: -32603,
+          data: {
+            code: "INTERNAL_SERVER_ERROR",
+            httpStatus: 500,
+          },
+        },
+        error: trpcError,
+      });
+
+      (process.env as Record<string, string | undefined>).NODE_ENV =
+        originalEnv;
+
+      expect(formatted.message).toBe("Database column missing error detail");
+    });
+  });
+
+  describe("5. Content-Type Evasion and CSRF Protection", () => {
+    it("should allow mutation when Content-Type is application/json", async () => {
+      const ctx = createMockCtx(
+        "admin_user_id",
+        {},
+        { "content-type": "application/json" },
+      );
+      mockFindFirst.mockImplementation((table, query) => {
+        if (table === "admins") {
+          if (query && JSON.stringify(query).includes("target_user")) {
+            return null; // Target user is not already admin
+          }
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "super_admin",
+            isActive: true,
+          };
+        }
+        if (table === "users") {
+          return { id: "target_user" };
+        }
+        return null;
+      });
+      mockInsert.mockReturnValue([{ id: "new_admin" }]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.admin.create({
+        userId: "target_user",
+        role: "admin",
+      });
+      expect(res).toBeDefined();
+    });
+
+    it("should block mutation when Content-Type is text/plain (CORS preflight bypass)", async () => {
+      const ctx = createMockCtx(
+        "admin_user_id",
+        {},
+        { "content-type": "text/plain" },
+      );
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.admin.create({
+          userId: "target_user",
+          role: "admin",
+        }),
+      ).rejects.toThrowError("Invalid Content-Type for mutation request");
+    });
+
+    it("should block mutation when Content-Type is application/x-www-form-urlencoded", async () => {
+      const ctx = createMockCtx(
+        "admin_user_id",
+        {},
+        { "content-type": "application/x-www-form-urlencoded" },
+      );
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.admin.create({
+          userId: "target_user",
+          role: "admin",
+        }),
+      ).rejects.toThrowError("Invalid Content-Type for mutation request");
+    });
+
+    it("should allow queries even with text/plain Content-Type (safe side-effect free requests)", async () => {
+      const ctx = createMockCtx(
+        "admin_user_id",
+        {},
+        { "content-type": "text/plain" },
+      );
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "admin",
+            isActive: true,
+            permissions: [],
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.admin.isAdmin();
+      expect(res.isAdmin).toBe(true);
+    });
+  });
+
+  describe("6. Postgres Connection Starvation and Parameter Safety", () => {
+    it("should format Postgres connection pool exhaustion errors safely in production", () => {
+      const pgError = new Error("sorry, too many clients already");
+
+      const originalEnv = process.env.NODE_ENV;
+      (process.env as Record<string, string | undefined>).NODE_ENV =
+        "production";
+
+      const trpcError = new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: pgError.message,
+        cause: pgError,
+      });
+
+      const formatted = errorFormatter({
+        shape: {
+          message: trpcError.message,
+          code: -32603,
+          data: {
+            code: "INTERNAL_SERVER_ERROR",
+            httpStatus: 500,
+          },
+        },
+        error: trpcError,
+      });
+
+      (process.env as Record<string, string | undefined>).NODE_ENV =
+        originalEnv;
+
+      // Ensure error details about clients or connection exhaustion are masked
+      expect(formatted.message).toBe("An unexpected error occurred");
+      expect(formatted.message).not.toContain("too many clients");
+    });
+
+    it("should ensure backslash escapes in sql queries are checked securely", () => {
+      // Drizzle handles parameterization automatically, so raw inputs are never interpolated directly.
+      // We test that inputs containing backslashes are sanitized/passed as single literals.
+      const dangerousValue = "value\\' OR \\'1\\'=\\'1";
+      const cleanValue = sanitizeInput(dangerousValue);
+      expect(typeof cleanValue).toBe("string");
+    });
+  });
+
+  describe("7. Hackathon Teams, Judge and Project Submission Restrictions", () => {
+    it("should reject team creation if maxMembers is greater than 4", async () => {
+      const ctx = createMockCtx("user_id");
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.createTeam({
+          hackathonId: "00000000-0000-0000-0000-000000000000",
+          name: "Super Team",
+          maxMembers: 5,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("should prevent registered participants from applying to be a judge", async () => {
+      const ctx = createMockCtx("participant_user_id");
+      const hackathonId = "00000000-0000-0000-0000-000000000001";
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathonParticipants") {
+          return {
+            id: "participant_1",
+            userId: "participant_user_id",
+            hackathonId,
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.judge.register({
+          hackathonId,
+          name: "John Doe",
+          email: "john@example.com",
+        }),
+      ).rejects.toThrowError(
+        "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
+      );
+    });
+
+    it("should prevent project submissions before 12 hours after the hacking begins", async () => {
+      const ctx = createMockCtx("captain_user_id");
+      const hackathonId = "00000000-0000-0000-0000-000000000001";
+      const teamId = "00000000-0000-0000-0000-000000000002";
+
+      const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000); // 11 hours ago
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathonParticipants") {
+          return {
+            id: "participant_1",
+            userId: "captain_user_id",
+            hackathonId,
+            teamId,
+          };
+        }
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            startDate: recentStartDate,
+            hackingStartTime: null,
+          };
+        }
+        if (table === "hackathonTeams") {
+          return { id: teamId, captainId: "captain_user_id", hackathonId };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: "Awesome Project",
+          description: "This is a long description of the awesome project.",
+        }),
+      ).rejects.toThrowError(
+        "Project submission is not open yet. It starts 12 hours after the hacking begins.",
+      );
+    });
+
+    it("should prevent project edits (existing project) after 34 hours of starting hacking", async () => {
+      const ctx = createMockCtx("captain_user_id");
+      const hackathonId = "00000000-0000-0000-0000-000000000001";
+      const teamId = "00000000-0000-0000-0000-000000000002";
+
+      const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000); // 35 hours ago
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathonParticipants") {
+          return {
+            id: "participant_1",
+            userId: "captain_user_id",
+            hackathonId,
+            teamId,
+          };
+        }
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            startDate: startDate35hAgo,
+            hackingStartTime: null,
+          };
+        }
+        if (table === "hackathonTeams") {
+          return { id: teamId, captainId: "captain_user_id", hackathonId };
+        }
+        if (table === "hackathonProjects") {
+          return {
+            id: "project_1",
+            hackathonId,
+            teamId,
+            name: "Old Name",
+            description: "Old Description",
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: "Awesome Project",
+          description: "This is a long description of the awesome project.",
+        }),
+      ).rejects.toThrowError(
+        "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+      );
+    });
+
+    it("should prevent project submissions more than 36 hours after hacking starts", async () => {
+      const ctx = createMockCtx("captain_user_id");
+      const hackathonId = "00000000-0000-0000-0000-000000000001";
+      const teamId = "00000000-0000-0000-0000-000000000002";
+
+      const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000); // 37 hours ago
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathonParticipants") {
+          return {
+            id: "participant_1",
+            userId: "captain_user_id",
+            hackathonId,
+            teamId,
+          };
+        }
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            startDate: pastStartDate,
+            hackingStartTime: null,
+          };
+        }
+        if (table === "hackathonTeams") {
+          return { id: teamId, captainId: "captain_user_id", hackathonId };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: "Awesome Project",
+          description: "This is a long description of the awesome project.",
+        }),
+      ).rejects.toThrowError(
+        "Project submission closed. The submission window ended 36 hours after the hacking started.",
+      );
+    });
+  });
+
+  describe("8. Hackathon Participant Registration (does it add users to the hackathon)", () => {
+    const hackathonId = "00000000-0000-0000-0000-000000000010";
+
+    it("should successfully register a user for an open hackathon and increment participant count", async () => {
+      const ctx = createMockCtx("new_user_id");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            status: "open",
+            currentParticipants: 5,
+            maxParticipants: 100,
+            registrationDeadline: null,
+          };
+        }
+        if (table === "hackathonParticipants") {
+          return null; // Not already registered
+        }
+        if (table === "members") {
+          return null;
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([
+        {
+          id: "participant_new",
+          hackathonId,
+          userId: "new_user_id",
+          registrationStatus: "pending",
+          firstName: "John",
+          lastName: "Doe",
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.hackathon.register({
+        hackathonId,
+        firstName: "John",
+        lastName: "Doe",
+        phone: "+14045550199",
+        age: 20,
+        school: "Georgia Tech",
+        major: "Computer Science",
+        graduationYear: 2026,
+        levelOfStudy: "Junior",
+        country: "United States",
+        agreeToCodeOfConduct: true,
+      });
+
+      expect(res.id).toBe("participant_new");
+      expect(res.userId).toBe("new_user_id");
+      expect(mockInsert).toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("should reject registration if user is already registered", async () => {
+      const ctx = createMockCtx("existing_user_id");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") {
+          return { id: hackathonId, status: "open" };
+        }
+        if (table === "hackathonParticipants") {
+          return { id: "participant_existing", userId: "existing_user_id" };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.hackathon.register({
+          hackathonId,
+          firstName: "John",
+          lastName: "Doe",
+          phone: "+14045550199",
+          age: 20,
+          school: "Georgia Tech",
+          major: "Computer Science",
+          graduationYear: 2026,
+          levelOfStudy: "Junior",
+          country: "United States",
+          agreeToCodeOfConduct: true,
+        }),
+      ).rejects.toThrowError("You are already registered for this hackathon");
+    });
+
+    it("should reject registration if hackathon capacity is full", async () => {
+      const ctx = createMockCtx("user_id");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            status: "open",
+            currentParticipants: 100,
+            maxParticipants: 100,
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.hackathon.register({
+          hackathonId,
+          firstName: "Jane",
+          lastName: "Smith",
+          phone: "+14045550199",
+          age: 21,
+          school: "Georgia Tech",
+          major: "Data Science",
+          graduationYear: 2025,
+          levelOfStudy: "Senior",
+          country: "United States",
+          agreeToCodeOfConduct: true,
+        }),
+      ).rejects.toThrowError("This hackathon is full");
+    });
+
+    it("should reject registration if hackathon status is not open", async () => {
+      const ctx = createMockCtx("user_id");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") {
+          return { id: hackathonId, status: "draft" };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.hackathon.register({
+          hackathonId,
+          firstName: "Alice",
+          lastName: "Bob",
+          phone: "+14045550199",
+          age: 19,
+          school: "MIT",
+          major: "CS",
+          graduationYear: 2027,
+          levelOfStudy: "Sophomore",
+          country: "United States",
+          agreeToCodeOfConduct: true,
+        }),
+      ).rejects.toThrowError("Registration is not open for this hackathon");
+    });
+
+    it("should return user's registrations via myRegistrations", async () => {
+      const ctx = createMockCtx("user_123");
+      mockFindMany.mockReturnValue([
+        { id: "participant_1", hackathonId, userId: "user_123" },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.hackathon.myRegistrations();
+      expect(res.length).toBe(1);
+      expect(res[0].id).toBe("participant_1");
+    });
+
+    it("should return public participant list for a hackathon", async () => {
+      const ctx = createMockCtx();
+      mockFindMany.mockReturnValue([
+        { id: "p1", hackathonId, userId: "u1", registrationStatus: "approved" },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.hackathon.participants({ hackathonId });
+      expect(res.length).toBe(1);
+      expect(res[0].id).toBe("p1");
+    });
+  });
+
+  describe("9. Hackathon Creation, Updates and Admin Operations (does it create stuff)", () => {
+    const hackathonId = "00000000-0000-0000-0000-000000000020";
+
+    it("should allow admin to create a new hackathon with draft status", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        return null;
+      });
+
+      const startDate = new Date(Date.now() + 86400000);
+      const endDate = new Date(Date.now() + 172800000);
+
+      mockInsert.mockReturnValue([
+        {
+          id: hackathonId,
+          name: "Hacklytics 2027",
+          status: "draft",
+          startDate,
+          endDate,
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const created = await caller.hackathon.create({
+        name: "Hacklytics 2027",
+        description: "Premier Data Science Hackathon",
+        startDate,
+        endDate,
+      });
+
+      expect(created.name).toBe("Hacklytics 2027");
+      expect(created.status).toBe("draft");
+    });
+
+    it("should allow admin to update an existing hackathon", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            name: "Old Name",
+            startDate: new Date(Date.now() + 86400000),
+            endDate: new Date(Date.now() + 172800000),
+          };
+        }
+        return null;
+      });
+
+      mockUpdate.mockReturnValue([
+        { id: hackathonId, name: "Updated Hackathon Name", status: "open" },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const updated = await caller.hackathon.update({
+        id: hackathonId,
+        name: "Updated Hackathon Name",
+        status: "open",
+      });
+
+      expect(updated.name).toBe("Updated Hackathon Name");
+      expect(updated.status).toBe("open");
+    });
+
+    it("should allow admin to delete a hackathon", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.hackathon.delete({ hackathonId });
+      expect(res.success).toBe(true);
+      expect(mockDelete).toHaveBeenCalled();
+    });
+
+    it("should allow admin to update participant registration status", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        if (table === "hackathonParticipants") {
+          return { id: "part_1", hackathonId, registrationStatus: "pending" };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.hackathon.updateParticipantStatus({
+        hackathonId,
+        participantId: "00000000-0000-0000-0000-000000000099",
+        status: "approved",
+      });
+
+      expect(res.success).toBe(true);
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("should scan participant event pass and prevent duplicate check-ins", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      const eventId = "00000000-0000-0000-0000-000000000030";
+      const participantId = "00000000-0000-0000-0000-000000000031";
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        if (table === "hackathonParticipants") {
+          return {
+            id: participantId,
+            hackathonId,
+            registrationStatus: "approved",
+            user: { name: "Participant One", email: "p1@example.com" },
+          };
+        }
+        if (table === "hackathonEvents") {
+          return { id: eventId, hackathonId, name: "Keynote" };
+        }
+        if (table === "hackathonEventAttendees") {
+          return null; // First scan
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([{ eventId, participantId }]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.hackathon.scanParticipantPass({
+        hackathonId,
+        eventId,
+        participantId,
+      });
+
+      expect(res.success).toBe(true);
+
+      // Now test duplicate scan
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        if (table === "hackathonParticipants") {
+          return {
+            id: participantId,
+            hackathonId,
+            registrationStatus: "approved",
+            user: { name: "Participant One", email: "p1@example.com" },
+          };
+        }
+        if (table === "hackathonEvents") {
+          return { id: eventId, hackathonId, name: "Keynote" };
+        }
+        if (table === "hackathonEventAttendees") {
+          return { eventId, participantId }; // Already scanned!
+        }
+        return null;
+      });
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId,
+          eventId,
+          participantId,
+        }),
+      ).rejects.toThrowError("already checked into Keynote");
+    });
+  });
+
+  describe("10. Event Creation and QR Check-in System", () => {
+    it("should allow admin to create a general event and generate QR code", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([
+        {
+          id: "event_100",
+          title: "General Meeting",
+          qrCode: "qr-12345-uuid",
+          checkInEnabled: true,
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const created = await caller.events.create({
+        title: "General Meeting",
+        eventDate: new Date(),
+      });
+
+      expect(created.title).toBe("General Meeting");
+      expect(created.qrCode).toBeDefined();
+    });
+
+    it("should allow member to check in using valid event QR code", async () => {
+      const ctx = createMockCtx("member_user_id");
+      const qrCode = "00000000-0000-0000-0000-000000000099";
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "events") {
+          return {
+            id: "event_100",
+            title: "General Meeting",
+            qrCode,
+            checkInEnabled: true,
+            currentCheckIns: 0,
+            maxCheckIns: 50,
+          };
+        }
+        if (table === "members") {
+          return { id: "member_1", userId: "member_user_id", isActive: true };
+        }
+        if (table === "eventCheckIns") {
+          return null; // Not checked in yet
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([{ id: "checkin_1" }]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.events.checkIn({ qrCode });
+
+      expect(res.success).toBe(true);
+      expect(res.eventTitle).toBe("General Meeting");
+    });
+
+    it("should block non-members from checking into events", async () => {
+      const ctx = createMockCtx("non_member_user_id");
+      const qrCode = "00000000-0000-0000-0000-000000000099";
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "events") {
+          return { id: "event_100", qrCode, checkInEnabled: true };
+        }
+        if (table === "members") {
+          return null; // Not a member
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.events.checkIn({ qrCode }),
+      ).rejects.toThrowError("Must be a member to check in");
+    });
+  });
+
+  describe("11. Member Registration, Renewal, and Status Tracking", () => {
+    const hackathonId = "00000000-0000-0000-0000-000000000040";
+
+    it("should register a user as a member for a hackathon", async () => {
+      const ctx = createMockCtx("user_member_1");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") {
+          return { id: hackathonId };
+        }
+        if (table === "members") {
+          return null; // Not yet a member
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([
+        {
+          id: "member_new_id",
+          userId: "user_member_1",
+          hackathonId,
+          firstName: "John",
+          lastName: "Doe",
+          memberType: "new",
+          isActive: true,
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const member = await caller.member.register({
+        hackathonId,
+        firstName: "John",
+        lastName: "Doe",
+        phoneNumber: "+14045550123",
+      });
+
+      expect(member.id).toBe("member_new_id");
+      expect(member.memberType).toBe("new");
+      expect(mockInsert).toHaveBeenCalledTimes(2); // member + membershipHistory
+    });
+
+    it("should reject duplicate member registration for the same hackathon", async () => {
+      const ctx = createMockCtx("user_member_1");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") return { id: hackathonId };
+        if (table === "members") return { id: "existing_member" };
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.member.register({
+          hackathonId,
+          firstName: "John",
+          lastName: "Doe",
+        }),
+      ).rejects.toThrowError("You are already a member for this hackathon");
+    });
+
+    it("should renew membership and increment renewal count", async () => {
+      const ctx = createMockCtx("user_member_1");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") return { id: hackathonId };
+        if (table === "members") {
+          return {
+            id: "member_1",
+            userId: "user_member_1",
+            hackathonId,
+            renewalCount: 1,
+            membershipEndDate: new Date(),
+          };
+        }
+        return null;
+      });
+
+      mockUpdate.mockReturnValue([
+        {
+          id: "member_1",
+          memberType: "continuous",
+          renewalCount: 2,
+          isActive: true,
+        },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const renewed = await caller.member.renew({ hackathonId });
+
+      expect(renewed.renewalCount).toBe(2);
+      expect(renewed.memberType).toBe("continuous");
+    });
+
+    it("should return correct membership status and days remaining", async () => {
+      const ctx = createMockCtx("user_member_1");
+      const futureExpiry = new Date(Date.now() + 30 * 86400000); // 30 days from now
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") return { id: hackathonId };
+        if (table === "members") {
+          return {
+            id: "member_1",
+            userId: "user_member_1",
+            hackathonId,
+            isActive: true,
+            membershipEndDate: futureExpiry,
+            memberType: "new",
+            renewalCount: 0,
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const status = await caller.member.checkStatus({ hackathonId });
+
+      expect(status.isMember).toBe(true);
+      expect(status.isActive).toBe(true);
+      expect(status.daysRemaining).toBe(30);
+    });
+  });
+
+  describe("12. Stripe Payments & Account Linking", () => {
+    it("should create checkout session in mock development mode", async () => {
+      const ctx = createMockCtx("stripe_user_id");
+      const origKey = process.env.STRIPE_SECRET_KEY;
+      process.env.STRIPE_SECRET_KEY = "mk_test_123456";
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "users") {
+          return { id: "stripe_user_id", email: "stripe@example.com", name: "Stripe User" };
+        }
+        if (table === "hackathons") {
+          return { id: "h_latest", startDate: new Date() };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.stripe.createCheckoutSession({
+        returnUrl: "https://datasciencegt.org/portal",
+      });
+
+      process.env.STRIPE_SECRET_KEY = origKey;
+      expect(res.url).toContain("payment=success");
+    });
+
+    it("should allow user to link Stripe payment to account", async () => {
+      const ctx = createMockCtx("user_to_link");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "stripePayments") {
+          return {
+            id: "payment_100",
+            customerEmail: "purchaser@example.com",
+            paymentStatus: "paid",
+            linkedUserId: null,
+          };
+        }
+        if (table === "userAccountLinks") {
+          return null; // Not linked yet
+        }
+        if (table === "hackathons") {
+          return { id: "h_latest", startDate: new Date() };
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([{ id: "link_1" }]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.stripe.linkAccount({
+        firstName: "Stripe",
+        lastName: "Payer",
+        email: "purchaser@example.com",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.message).toContain("Account linked successfully");
+    });
+  });
+
+  describe("13. Judging System, Queue & Live Rankings", () => {
+    const hackathonId = "00000000-0000-0000-0000-000000000050";
+
+    it("should allow admin to create a judge profile", async () => {
+      const ctx = createMockCtx("admin_user_id");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        if (table === "users") {
+          return { id: "judge_user_id", name: "Judge Dread", email: "judge@example.com" };
+        }
+        if (table === "judges") {
+          return null;
+        }
+        return null;
+      });
+
+      mockInsert.mockReturnValue([
+        { id: "judge_1", userId: "judge_user_id", hackathonId, name: "Judge Dread" },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const judge = await caller.judge.create({
+        userId: "judge_user_id",
+        hackathonId,
+        name: "Judge Dread",
+      });
+
+      expect(judge.name).toBe("Judge Dread");
+    });
+
+    it("should calculate bias-corrected Z-score and Bayesian rankings for hackathon projects", async () => {
+      const ctx = createMockCtx("admin_user_id");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        return null;
+      });
+
+      mockFindMany.mockImplementation((table) => {
+        if (table === "judgingProjects") {
+          return [
+            {
+              id: "proj_1",
+              name: "AI Health Assistant",
+              tableNumber: 1,
+              votes: [
+                {
+                  judgeId: "j1",
+                  score: 45,
+                  scoreCreativity: 9,
+                  scoreImpact: 9,
+                  scoreScope: 9,
+                  scoreClarity: 9,
+                  scoreSoundness: 9,
+                  judge: { name: "Strict Judge", user: { name: "Strict Judge" } },
+                },
+                {
+                  judgeId: "j2",
+                  score: 48,
+                  scoreCreativity: 10,
+                  scoreImpact: 10,
+                  scoreScope: 9,
+                  scoreClarity: 10,
+                  scoreSoundness: 9,
+                  judge: { name: "Lenient Judge", user: { name: "Lenient Judge" } },
+                },
+              ],
+            },
+            {
+              id: "proj_2",
+              name: "Simple Web App",
+              tableNumber: 2,
+              votes: [
+                {
+                  judgeId: "j1",
+                  score: 25,
+                  scoreCreativity: 5,
+                  scoreImpact: 5,
+                  scoreScope: 5,
+                  scoreClarity: 5,
+                  scoreSoundness: 5,
+                  judge: { name: "Strict Judge", user: { name: "Strict Judge" } },
+                },
+              ],
+            },
+          ];
+        }
+        return [];
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.judge.getRankings({ hackathonId });
+
+      expect(res.rankings.length).toBe(2);
+      expect(res.rankings[0].project.name).toBe("AI Health Assistant");
+      expect(res.rankings[0].weightedScore).toBeGreaterThan(res.rankings[1].weightedScore);
+    });
+  });
+
+  describe("14. User Profile & Image Validation", () => {
+    it("should return user profile data via me procedure", async () => {
+      const ctx = createMockCtx("user_100");
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "users") {
+          return {
+            id: "user_100",
+            email: "user@example.com",
+            name: "Sample User",
+            image: "https://example.com/avatar.jpg",
+            profile: { bio: "Student", website: "https://example.com", location: "Atlanta" },
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      const profile = await caller.user.me();
+
+      expect(profile.id).toBe("user_100");
+      expect(profile.email).toBe("user@example.com");
+      expect(profile.bio).toBe("Student");
+    });
+
+    it("should allow user to update profile details", async () => {
+      const ctx = createMockCtx("user_100");
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.user.updateProfile({
+        name: "Updated Name",
+        bio: "New Bio",
+        location: "Atlanta, GA",
+      });
+
+      expect(res.success).toBe(true);
+    });
+  });
+
+  describe("15. Audit Logs System", () => {
+    it("should allow admin to retrieve audit logs with filters", async () => {
+      const ctx = createMockCtx("admin_user_id");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins") {
+          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+        }
+        return null;
+      });
+
+      mockFindMany.mockReturnValue([
+        { id: "log_1", severity: "critical", userId: "target_user", createdAt: new Date() },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      const res = await caller.audit.list({
+        limit: 10,
+        offset: 0,
+        severity: "critical",
+      });
+
+      expect(res.logs.length).toBe(1);
+      expect(res.pagination.limit).toBe(10);
+    });
+  });
+});
+

@@ -1,5 +1,5 @@
 export * from "drizzle-orm";
-export { db } from "./client";
+export { db, type DrizzleDB } from "./client";
 export * from "./schemas";
 export { users, accounts, sessions, verificationTokens } from "./schemas/auth";
 export { admins } from "./schemas/admins";
@@ -8,10 +8,8 @@ export {
   hackathons,
   hackathonParticipants,
   hackathonTeams,
-  hackathonProjects
+  hackathonProjects,
 } from "./schemas/hackathons";
-export {
-  events,
-  eventCheckIns
-} from "./schemas/events";
+export { events, eventCheckIns } from "./schemas/events";
 export { auditLogs, securitySeverityEnum } from "./schemas/security";
+export { systemSettings } from "./schemas/settings";

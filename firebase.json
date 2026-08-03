@@ -1,29 +1,67 @@
 {
-    "hosting": [
+  "hosting": [
+    {
+      "site": "dsgt-portal",
+      "public": "sites/portal/public",
+      "cleanUrls": true,
+      "rewrites": [
         {
-            "site": "dsgt-portal",
-            "public": "sites/portal/public",
-            "cleanUrls": true,
-            "rewrites": [
-                {
-                    "source": "**",
-                    "run": {
-                        "serviceId": "portal",
-                        "region": "us-central1"
-                    }
-                }
-            ]
-        },
-        {
-            "site": "dsgt-website",
-            "public": "sites/mainweb/out",
-            "cleanUrls": true,
-            "trailingSlash": true
-        },
-        {
-            "site": "hacklytics-2",
-            "public": "sites/hacklytics2026/out",
-            "cleanUrls": true
+          "source": "**",
+          "run": {
+            "serviceId": "portal",
+            "region": "us-central1"
+          }
         }
-    ]
+      ]
+    },
+    {
+      "site": "dsgt-website",
+      "public": "sites/mainweb/out",
+      "cleanUrls": true,
+      "trailingSlash": true
+    },
+    {
+      "target": "hacklytics",
+      "public": "sites/hacklytics2027/out",
+      "cleanUrls": true,
+      "trailingSlash": true,
+      "headers": [
+        {
+          "source": "**/*.@(js|css|woff|woff2|ttf|eot|otf|jpg|jpeg|png|gif|webp|avif|ico|svg)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600, s-maxage=86400"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        },
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -1,7 +1,9 @@
-'use client';
+"use client";
 
-import { LoadingScreen } from '@/components/portal/LoadingScreen';
+import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 export default function Loading() {
-    return <LoadingScreen message="Initializing Project Deployment Sequence..." />;
+  return (
+    <LoadingScreen message="Initializing Project Deployment Sequence..." />
+  );
 }

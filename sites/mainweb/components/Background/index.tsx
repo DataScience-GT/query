@@ -2,7 +2,7 @@
 
 import React from "react";
 
-interface BackgroundProps extends React.HTMLAttributes<HTMLDivElement> {}
+type BackgroundProps = React.HTMLAttributes<HTMLDivElement>;
 
 export default function Background(props: BackgroundProps) {
   return (
@@ -12,7 +12,7 @@ export default function Background(props: BackgroundProps) {
       style={{
         backgroundRepeat: "repeat",
         backgroundSize: "150px",
-        filter: "brightness(0.5)"
+        filter: "brightness(0.5)",
       }}
     >
       {/* Optional navigation background */}

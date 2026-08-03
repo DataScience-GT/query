@@ -1,13 +1,13 @@
 # Monorepo - app is in sites/portal
 
 scripts:
-  buildCommand: pnpm --filter web build && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
+  buildCommand: pnpm install && pnpm turbo run build --filter=web && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
   runCommand: node sites/mainweb/.next/standalone/sites/mainweb/server.js
 
 runConfig:
   runtime: nodejs20
   concurrency: 80
-  cpu: 1
+  cpu: 2
   memoryMiB: 1024
   minInstances: 0
   maxInstances: 10
@@ -31,9 +31,7 @@ env:
     value: https://datasciencegt.org
   - variable: NEXTAUTH_URL
     value: https://datasciencegt.org
-    # Stripe Configuration
   - variable: STRIPE_SECRET_KEY
-    # Project Number identifier (safe to commit) used for robust resolution
     secret: projects/672446353769/secrets/STRIPE_SECRET_KEY
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     secret: projects/672446353769/secrets/NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -41,7 +39,6 @@ env:
     secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production
-    # Email Provider (Magic Link Login via Gmail)
   - variable: EMAIL_SERVER_HOST
     value: smtp.gmail.com
   - variable: EMAIL_SERVER_PORT
@@ -52,3 +49,5 @@ env:
     secret: projects/672446353769/secrets/EMAIL_SERVER_PASSWORD
   - variable: EMAIL_FROM
     value: datascience.gt@gmail.com
+  - variable: CRON_SECRET
+    secret: CRON_SECRET

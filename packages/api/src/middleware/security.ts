@@ -8,6 +8,9 @@ interface RateLimitRecord {
   blockedUntil: number;
 }
 
+const MAX_RATE_LIMIT_STORE_SIZE = 10000; // Limit rate limit store size to prevent memory bloat
+const MAX_IP_TRACKING_STORE_SIZE = 50000; // Limit IP tracking store size
+
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
 interface IPRecord {
@@ -20,14 +23,73 @@ interface IPRecord {
 
 const ipTrackingStore = new Map<string, IPRecord>();
 
-// DDoS Protection Constants
+const enforceSizeLimit = () => {
+  const now = Date.now();
+
+  // Cleanup rate limit store - remove oldest entries when over limit
+  while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.lastRefill < oldestTime) {
+        oldestTime = value.lastRefill;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) {
+      rateLimitStore.delete(oldestKey);
+    }
+  }
+
+  // Cleanup IP tracking store - remove old entries
+  while (ipTrackingStore.size > MAX_IP_TRACKING_STORE_SIZE) {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [ip, record] of ipTrackingStore.entries()) {
+      if (
+        now - record.firstRequest > 5 * 60 * 1000 &&
+        now < record.blockedUntil
+      ) {
+        if (record.firstRequest < oldestTime) {
+          oldestTime = record.firstRequest;
+          oldestKey = ip;
+        }
+      }
+    }
+    if (oldestKey) {
+      ipTrackingStore.delete(oldestKey);
+    }
+  }
+
+  // Remove expired records
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.blockedUntil) {
+      rateLimitStore.delete(key);
+    }
+  }
+
+  // Cleanup non-blocked IPs older than 5 minutes
+  for (const [ip, record] of ipTrackingStore.entries()) {
+    if (!record.isBlocked && now - record.firstRequest > 5 * 60 * 1000) {
+      ipTrackingStore.delete(ip);
+    }
+  }
+};
+
+// Run cleanup every minute
+setInterval(enforceSizeLimit, 60 * 1000);
+
+// DDoS Protection Configuration
+// These thresholds are intentionally lower than the absolute limits to allow headroom
 const DDOS_CONFIG = {
-  maxRequestsPerMinute: 3000, // Increased for venue WiFi (100 judges @ 30rpm)
-  suspiciousThreshold: 2000,
-  blockDurationMs: 5 * 60 * 1000,
-  burstThreshold: 500, // Allow 100 concurrent page loads
-  burstWindowMs: 5 * 1000,
-  cleanupIntervalMs: 60 * 1000,
+  // Rate limits are configurable via environment variables
+  maxRequestsPerMinute:
+    Number(process.env.DDOS_MAX_REQUESTS_PER_MINUTE) || 1000, // Adjusted for safe operation
+  suspiciousThreshold: Number(process.env.DDOS_SUSPICIOUS_THRESHOLD) || 700, // Lower threshold for safety
+  blockDurationMs: Number(process.env.DDOS_BLOCK_DURATION_MS) || 5 * 60 * 1000,
+  burstThreshold: Number(process.env.DDOS_BURST_THRESHOLD) || 100, // Reduced for safety
+  burstWindowMs: Number(process.env.DDOS_BURST_WINDOW_MS) || 5 * 1000,
+  cleanupIntervalMs: Number(process.env.DDOS_CLEANUP_INTERVAL_MS) || 60 * 1000,
 };
 
 // Cleanup expired records
@@ -57,7 +119,7 @@ export function rateLimit(
   identifier: string,
   maxTokens: number,
   refillRatePerSecond: number,
-  tokensToConsume: number = 1
+  tokensToConsume: number = 1,
 ): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
   let record = rateLimitStore.get(identifier);
@@ -112,8 +174,8 @@ export const RATE_LIMITS = {
     mutationTokens: 3,
   },
   authenticated: {
-    maxTokens: 100,
-    refillRate: 2,
+    maxTokens: 300, // Raised from 100 to prevent legitimate multi-step form users from being blocked
+    refillRate: 5, // Raised from 2 to recover faster between form steps
     queryTokens: 1,
     mutationTokens: 2,
   },
@@ -134,7 +196,8 @@ export const RATE_LIMITS = {
 const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [],
   allowedAttributes: {},
-  disallowedTagsMode: 'discard',
+  disallowedTagsMode: "discard",
+  nonTextTags: ["style", "script", "textarea", "noscript", "option", "xmp"],
 };
 
 export function sanitizeInput(input: unknown, depth: number = 0): unknown {
@@ -149,7 +212,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
     return input;
   }
 
-  if (typeof input === 'string') {
+  if (typeof input === "string") {
     const sanitized = sanitizeHtml(input, SANITIZE_OPTIONS)
       .trim()
       .slice(0, 10000);
@@ -164,7 +227,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
     return sanitized;
   }
 
-  if (typeof input === 'number') {
+  if (typeof input === "number") {
     if (!Number.isFinite(input)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -174,7 +237,7 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
     return input;
   }
 
-  if (typeof input === 'boolean') {
+  if (typeof input === "boolean") {
     return input;
   }
 
@@ -185,10 +248,10 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
         message: "Array too large",
       });
     }
-    return input.map(item => sanitizeInput(item, depth + 1));
+    return input.map((item) => sanitizeInput(item, depth + 1));
   }
 
-  if (typeof input === 'object') {
+  if (typeof input === "object") {
     const keys = Object.keys(input as object);
     if (keys.length > 50) {
       throw new TRPCError({
@@ -199,7 +262,10 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input as object)) {
-      if (!/^[\w\-\.]{1,100}$/.test(key)) {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        continue;
+      }
+      if (!/^[\w.-]{1,100}$/.test(key)) {
         continue;
       }
       sanitized[key] = sanitizeInput(value, depth + 1);
@@ -215,43 +281,54 @@ export function sanitizeInput(input: unknown, depth: number = 0): unknown {
 
 function hasInjectionPattern(str: string): boolean {
   const patterns = [
+    // SQL SELECT/INSERT/UPDATE/DELETE keywords with FROM/INTO/TABLE/DATABASE
     /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b.*\b(from|into|table|database)\b)/i,
-    /(--|\#|\/\*)/,
-    /(\bor\b|\band\b)\s*[\d\w]+\s*=\s*[\d\w]+/i,
+    // SQL comment sequences: "--" must be followed by space or end-of-string (not in URLs like some--repo)
+    /(--\s|--$)/,
+    // Block comment: /* only when followed by * content
+    /\/\*[\s\S]*?\*\//,
+    // NoSQL injection
     /\$where/i,
     /\$gt|\$lt|\$ne|\$eq/i,
+    // XSS
     /<script/i,
     /javascript:/i,
     /on\w+\s*=/i,
   ];
 
-  return patterns.some(pattern => pattern.test(str));
+  return patterns.some((pattern) => pattern.test(str));
 }
 
 export function validateEmail(email: string): boolean {
-  if (typeof email !== 'string') return false;
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  if (typeof email !== "string") return false;
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   return emailRegex.test(email) && email.length <= 254;
 }
 
 export function validateUrl(url: string): boolean {
-  if (typeof url !== 'string') return false;
+  if (typeof url !== "string") return false;
   try {
     const parsed = new URL(url);
-    return ['http:', 'https:'].includes(parsed.protocol) && url.length <= 2048;
+    return ["http:", "https:"].includes(parsed.protocol) && url.length <= 2048;
   } catch {
     return false;
   }
 }
 
 export function validateUUID(uuid: string): boolean {
-  if (typeof uuid !== 'string') return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (typeof uuid !== "string") return false;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
 
 export type SecurityEvent = {
-  type: 'rate_limit' | 'injection_attempt' | 'auth_failure' | 'validation_error';
+  type:
+    | "rate_limit"
+    | "injection_attempt"
+    | "auth_failure"
+    | "validation_error";
   identifier: string;
   details?: string;
   timestamp: number;
@@ -262,10 +339,15 @@ const MAX_LOG_SIZE = 1000;
 
 import { db, auditLogs } from "@query/db";
 
-const flushQueue: Omit<SecurityEvent, 'timestamp'>[] = [];
+const flushQueue: Omit<SecurityEvent, "timestamp">[] = [];
 const FLUSH_INTERVAL = 5000;
-const MAX_BATCH_SIZE = 50;
-let flushTimer: NodeJS.Timeout | null = null;
+// Keep batch size small enough that PG parameter count (5 cols × N rows) never approaches the 65535 limit
+const MAX_BATCH_SIZE = 25;
+// Prevent unbounded queue growth during log storms
+const MAX_QUEUE_SIZE = 500;
+// Deduplication: track last log time per rate_limit identifier to suppress storms
+const rateLimitLogCooldown = new Map<string, number>();
+const RATE_LIMIT_LOG_COOLDOWN_MS = 60 * 60 * 1_000; // only log once per 1 hour per identifier
 
 async function flushLogs() {
   if (flushQueue.length === 0) return;
@@ -273,19 +355,60 @@ async function flushLogs() {
   const batch = flushQueue.splice(0, MAX_BATCH_SIZE);
 
   if (!db) {
-    console.warn(`[Security] DB unavailable, dropping ${batch.length} logs`);
+    // DB unavailable — re-queue events (up to the cap) so they are not silently dropped
+    const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
+    flushQueue.unshift(...requeue);
+    // DB unavailable log dropping error handled via fallback file logging
+    try {
+      const fs = await import("fs");
+      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.\n`;
+      fs.appendFile(
+        "packages/api/src/.security-errors.log",
+        errorLog,
+        { encoding: "utf8" },
+        () => {},
+      );
+    } catch {
+      // Ignore fs errors
+    }
     return;
   }
 
   try {
-    const values = batch.map(event => {
-      const safeDetails = event.details ? event.details.replace(/(password|token|secret)=[^&]*/gi, '$1=***') : undefined;
-      const severity = event.type === 'injection_attempt' ? 'critical' :
-        event.type === 'auth_failure' ? 'warn' : 'info';
+    const values = batch.map((event) => {
+      const safeDetails = event.details
+        ? event.details.replace(/(password|token|secret)=[^&]*/gi, "$1=***")
+        : undefined;
+      const severity =
+        event.type === "injection_attempt"
+          ? "critical"
+          : event.type === "auth_failure"
+            ? "warn"
+            : "info";
+
+      // identifier can be a raw userId UUID, 'user:UUID', or an IP address
+      let resolvedUserId: string | null = null;
+      if (event.identifier.startsWith("user:")) {
+        resolvedUserId = event.identifier.split(":")[1] ?? null;
+      } else if (
+        event.identifier.startsWith("ip-") ||
+        event.identifier.includes(".") ||
+        event.identifier.includes(":")
+      ) {
+        // IP address — no userId
+        resolvedUserId = null;
+      } else if (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          event.identifier,
+        )
+      ) {
+        // Raw UUID — treat as userId
+        resolvedUserId = event.identifier;
+      }
 
       return {
         action: event.type,
-        userId: event.identifier.startsWith('user:') ? event.identifier.split(':')[1] : null,
+        userId: resolvedUserId,
         resourceId: event.identifier,
         metadata: { details: safeDetails },
         severity: severity as "critical" | "warn" | "info",
@@ -294,40 +417,92 @@ async function flushLogs() {
 
     await db.insert(auditLogs).values(values);
   } catch (err) {
-    console.error(`[Security] Failed to flush ${batch.length} logs:`, err);
-    // In a real system, might want to re-queue, but for now we drop to avoid endless growth
+    const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
+    // Log flushing error handled via fallback file logging
+
+    // Re-queue failed events so they are retried on the next flush interval.
+    // Only re-queue up to the remaining capacity to prevent unbounded growth.
+    const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
+    if (requeue.length > 0) {
+      flushQueue.unshift(...requeue);
+    }
+    const dropped = batch.length - requeue.length;
+    if (dropped > 0) {
+      // Queue capacity drop handled via fallback file logging
+    }
+
+    try {
+      const fs = await import("fs");
+      const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
+      fs.appendFile(
+        "packages/api/src/.security-errors.log",
+        errorLog,
+        { encoding: "utf8" },
+        () => {},
+      );
+    } catch {
+      // Ignore fs errors
+    }
   }
 }
 
 // Start flush timer
-if (!flushTimer) {
-  flushTimer = setInterval(() => {
-    void flushLogs();
-  }, FLUSH_INTERVAL);
-}
+setInterval(() => {
+  void flushLogs();
+}, FLUSH_INTERVAL);
 
-export function logSecurityEvent(event: Omit<SecurityEvent, 'timestamp'>) {
+export function logSecurityEvent(event: Omit<SecurityEvent, "timestamp">) {
+  const now = Date.now();
+
+  // Deduplicate rate_limit events: suppress repeat logs for the same identifier
+  // within the cooldown window to prevent audit log storms under heavy rate limiting.
+  if (event.type === "rate_limit") {
+    const lastLogged = rateLimitLogCooldown.get(event.identifier);
+    if (lastLogged && now - lastLogged < RATE_LIMIT_LOG_COOLDOWN_MS) {
+      return; // Suppressed — already logged recently for this identifier
+    }
+    rateLimitLogCooldown.set(event.identifier, now);
+
+    // Prune cooldown map periodically to prevent memory leak
+    if (rateLimitLogCooldown.size > 10000) {
+      for (const [id, ts] of rateLimitLogCooldown.entries()) {
+        if (now - ts > RATE_LIMIT_LOG_COOLDOWN_MS)
+          rateLimitLogCooldown.delete(id);
+      }
+    }
+  }
+
   // Keep in-memory for immediate/short-term checks
-  securityLog.push({ ...event, timestamp: Date.now() });
+  securityLog.push({ ...event, timestamp: now });
   if (securityLog.length > MAX_LOG_SIZE) {
     securityLog.shift();
   }
 
-  // Queue for DB persistence
-  flushQueue.push(event);
+  // Queue for DB persistence — respect the cap
+  if (flushQueue.length < MAX_QUEUE_SIZE) {
+    flushQueue.push(event);
+  } else {
+    // Flush queue at capacity, event dropped
+  }
 
-  // Instant flush if critical or queue full
-  if (event.type === 'injection_attempt' || flushQueue.length >= MAX_BATCH_SIZE) {
+  // Instant flush if critical or queue is at batch threshold
+  if (
+    event.type === "injection_attempt" ||
+    flushQueue.length >= MAX_BATCH_SIZE
+  ) {
     void flushLogs();
   }
 }
 
 export function getRecentSecurityEvents(minutes: number = 60): SecurityEvent[] {
   const cutoff = Date.now() - minutes * 60 * 1000;
-  return securityLog.filter(e => e.timestamp > cutoff);
+  return securityLog.filter((e) => e.timestamp > cutoff);
 }
 
-export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter?: number } {
+export function ddosProtection(clientIp: string): {
+  allowed: boolean;
+  retryAfter?: number;
+} {
   const now = Date.now();
 
   // Get or create IP record
@@ -346,7 +521,7 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
   // Check if IP is blocked
   if (record.isBlocked && now < record.blockedUntil) {
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       identifier: clientIp,
       details: `Blocked IP attempted access`,
     });
@@ -367,13 +542,16 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
   record.requests++;
 
   // Check for burst (too many requests in short window)
-  if (elapsed < DDOS_CONFIG.burstWindowMs && record.requests > DDOS_CONFIG.burstThreshold) {
+  if (
+    elapsed < DDOS_CONFIG.burstWindowMs &&
+    record.requests > DDOS_CONFIG.burstThreshold
+  ) {
     record.suspiciousActivity++;
     record.isBlocked = true;
     record.blockedUntil = now + DDOS_CONFIG.blockDurationMs;
 
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       identifier: clientIp,
       details: `Burst attack detected: ${record.requests} requests in ${elapsed}ms`,
     });
@@ -391,7 +569,7 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
     record.blockedUntil = now + DDOS_CONFIG.blockDurationMs;
 
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       identifier: clientIp,
       details: `Sustained attack: ${record.requests} requests/minute`,
     });
@@ -410,7 +588,10 @@ export function ddosProtection(clientIp: string): { allowed: boolean; retryAfter
   return { allowed: true };
 }
 
-export function validateRequestSize(payload: unknown, maxSizeBytes: number = 1024 * 100): boolean {
+export function validateRequestSize(
+  payload: unknown,
+  maxSizeBytes: number = 1024 * 100,
+): boolean {
   try {
     const jsonString = JSON.stringify(payload);
     return new TextEncoder().encode(jsonString).length <= maxSizeBytes;

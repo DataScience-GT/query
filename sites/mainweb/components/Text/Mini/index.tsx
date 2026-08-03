@@ -1,4 +1,4 @@
-import { ReactNode, HTMLAttributes } from "react";
+import type { ReactNode, HTMLAttributes } from "react";
 
 interface MiniProps extends HTMLAttributes<HTMLParagraphElement> {
   children: ReactNode;
@@ -10,10 +10,7 @@ export default function Mini({ children, className, ...props }: MiniProps) {
   `;
 
   return (
-    <p
-      {...props}
-      className={`${defaultClasses} ${className ?? ""}`}
-    >
+    <p {...props} className={`${defaultClasses} ${className ?? ""}`}>
       {children}
     </p>
   );

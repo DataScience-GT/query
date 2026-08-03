@@ -1,7 +1,8 @@
 "use client";
 
-import { ReactNode, HTMLAttributes } from "react";
-import Image, { StaticImageData } from "next/image";
+import type { ReactNode, HTMLAttributes } from "react";
+import type { StaticImageData } from "next/image";
+import Image from "next/image";
 
 interface TeamCardProps extends HTMLAttributes<HTMLDivElement> {
   img: string | StaticImageData;

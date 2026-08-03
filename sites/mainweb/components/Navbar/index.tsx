@@ -12,7 +12,11 @@ interface NavbarProps {
   className?: string;
 }
 
-export default function Navbar({ screen_width: _screen_width, page, className = "" }: NavbarProps) {
+export default function Navbar({
+  screen_width: _screen_width,
+  page,
+  className = "",
+}: NavbarProps) {
   const [windowWidth, setWindowWidth] = useState(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,10 +41,13 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
   const homeMenuItems = [
     { name: "About", to: "about", link: false },
     { name: "Bootcamp", to: "bootcamp", link: false },
-    { name: "Hacklytics", to: "golden-byte", link: false },
+    { name: "Hacklytics", to: "/hackathons", link: false },
     { name: "Projects", to: "projects", link: false },
     { name: "Get Involved", to: "getinvolved", link: false },
     { name: "Team", to: "/team", link: true },
+    { name: "Events", to: "/events", link: false },
+    { name: "History", to: "/history", link: false },
+    { name: "Status", to: "/status", link: false },
   ];
 
   const otherPageMenuItems = [
@@ -48,6 +55,9 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
     { name: "Bootcamp", to: "/bootcamp", link: true },
     { name: "Team", to: "/team", link: true },
     { name: "Projects", to: "/projects", link: true },
+    { name: "Events", to: "/events", link: true },
+    { name: "History", to: "/history", link: true },
+    { name: "Status", to: "/status", link: true },
   ];
 
   const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
@@ -55,10 +65,11 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
   type MenuItem = { name: string; to: string; link: boolean };
 
   const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
-    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${isMobile
-      ? "text-gray-300 hover:text-white text-xl font-bold"
-      : "text-gray-400 hover:text-[#00A8A8]"
-      }`;
+    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${
+      isMobile
+        ? "text-gray-300 hover:text-white text-xl font-bold"
+        : "text-gray-400 hover:text-[#00A8A8]"
+    }`;
 
     if (item.link) {
       return (
@@ -92,12 +103,17 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-all ${className}`}>
+      <nav
+        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-all ${className}`}
+      >
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
-
           {/* Logo Section */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 group" onClick={() => setMenuOpen(false)}>
+            <Link
+              href="/"
+              className="flex items-center gap-3 group"
+              onClick={() => setMenuOpen(false)}
+            >
               <Image
                 src={logo}
                 alt="DSGT Logo"
@@ -105,7 +121,9 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
                 width={32}
                 height={32}
               />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">DSGT</span>
+              <span className="text-white text-xl font-bold tracking-tighter uppercase">
+                DSGT
+              </span>
             </Link>
           </div>
 
@@ -128,17 +146,26 @@ export default function Navbar({ screen_width: _screen_width, page, className = 
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Toggle Menu"
             >
-              <span className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`} />
-              <span className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : "w-5"}`} />
-              <span className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`} />
+              <span
+                className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
+              />
+              <span
+                className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
+              />
+              <span
+                className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
+              />
             </button>
           )}
         </div>
       </nav>
 
       <div
-        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${menuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
-          }`}
+        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
+          menuOpen
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0 pointer-events-none"
+        }`}
       >
         {/* Subtle grid pattern for better aesthetic on the full-screen mobile menu */}
         <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>

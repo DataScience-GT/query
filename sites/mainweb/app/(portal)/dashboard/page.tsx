@@ -1,499 +1,415 @@
-'use client';
+"use client";
 
-import { useSession, signOut } from 'next-auth/react';
-import { trpc } from '@/lib/trpc';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Background from '@/components/portal/Background';
-import Link from 'next/link';
-import LinkStripeAccount from '@/components/portal/LinkStripeAccount';
-import ProfileForm from '@/components/portal/profile/ProfileForm';
-import { LiquidGlass } from '@/components/portal/LiquidGlass';
-import { LoadingScreen } from '@/components/portal/LoadingScreen';
+import { useSession, signOut } from "next-auth/react";
+import { trpc } from "@/lib/trpc";
+import { usePortalContext } from "@/lib/use-portal-context";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
+import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import {
+  Zap,
+  QrCode,
+  Shield,
+  Users,
+  ArrowRight,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Gavel,
+} from "lucide-react";
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<
+    string,
+    { label: string; color: string; icon: React.ReactNode }
+  > = {
+    approved: {
+      label: "Approved",
+      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      icon: <CheckCircle className="w-3 h-3" />,
+    },
+    checked_in: {
+      label: "Checked In",
+      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      icon: <CheckCircle className="w-3 h-3" />,
+    },
+    waitlisted: {
+      label: "Waitlisted",
+      color: "text-amber-500  bg-amber-500/10  border-amber-500/20",
+      icon: <Clock className="w-3 h-3" />,
+    },
+    pending: {
+      label: "Pending",
+      color: "text-amber-500  bg-amber-500/10  border-amber-500/20",
+      icon: <Clock className="w-3 h-3" />,
+    },
+    rejected: {
+      label: "Rejected",
+      color: "text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-medium)]",
+      icon: <XCircle className="w-3 h-3" />,
+    },
+  };
+  const cfg = map[status] ?? {
+    label: status,
+    color:
+      "text-[var(--text-subtle)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]",
+    icon: <AlertCircle className="w-3 h-3" />,
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border ${cfg.color}`}
+    >
+      {cfg.icon} {cfg.label}
+    </span>
+  );
+}
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [mode, setMode] = useState<'DASHBOARD' | 'PROFILE'>('DASHBOARD');
 
-  const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
-  const { data: memberStatus } = trpc.member.checkStatus.useQuery(undefined, { enabled: !!session });
-  const { data: adminStatus } = trpc.admin.isAdmin.useQuery(undefined, { enabled: !!session });
-  const { data: judgeStatus } = trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
+  const { data: portalContext } = usePortalContext();
+  const { data: userData } = trpc.user.me.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const { data: myRegs, isLoading: loadingRegs } =
+    trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
 
-  const { data: myRegs, isLoading: loadingRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+  const memberStatus = portalContext?.member;
+  const isAdmin = portalContext?.isAdmin ?? false;
+  const isJudge = portalContext?.isJudge ?? false;
 
   const now = new Date();
-  const activeRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(reg.hackathon.endDate) >= now : true) || [];
-  const pastRegs = myRegs?.filter(reg => reg.hackathon.endDate ? new Date(reg.hackathon.endDate) < now : false) || [];
+  const activeRegs =
+    myRegs?.filter((r) =>
+      r.hackathon.endDate ? new Date(r.hackathon.endDate) >= now : true,
+    ) ?? [];
+  const pastRegs =
+    myRegs?.filter((r) =>
+      r.hackathon.endDate ? new Date(r.hackathon.endDate) < now : false,
+    ) ?? [];
 
-  // Auto-link Stripe payment by email on login
   const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation();
   useEffect(() => {
     if (session) attemptAutoLink();
   }, [session, attemptAutoLink]);
-
   useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login');
+    if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
+  useEffect(() => {
+    if (isAdmin) router.replace("/admin");
+  }, [isAdmin, router]);
 
-  if (status === 'loading') return <LoadingScreen message="Syncing Identity..." />;
-
+  if (status === "loading")
+    return <LoadingScreen message="Loading dashboard..." />;
   if (!session) return null;
 
+  const roleLabel = isAdmin
+    ? "Admin"
+    : memberStatus?.isMember
+      ? "Member"
+      : "Guest";
+  const roleDot = isAdmin
+    ? "bg-[var(--accent)]"
+    : memberStatus?.isMember
+      ? "bg-emerald-500"
+      : "bg-amber-500";
+
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
-      <Background className="fixed inset-0 z-0 opacity-[0.03]" />
+    <div className="min-h-screen bg-[var(--bg-tertiary)]">
+      {/* Ambient glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[5%]  w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
+      </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-12 gap-8 py-20 px-6">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-8">
+        {/* ── HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
+          {/* User identity */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Image
+                src={userData?.image || "/avatar-placeholder.png"}
+                alt="Avatar"
+                width={56}
+                height={56}
+                className="rounded-full border-2 border-[var(--border-subtle)] object-cover h-14 w-14"
+              />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[var(--bg-tertiary)] ${roleDot}`}
+              />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+                Welcome back, {userData?.name?.split(" ")[0] ?? "there"}
+              </h1>
+              <p className="text-sm text-[var(--text-muted)] mt-0.5">
+                {userData?.email ?? ""} ·{" "}
+                <span className="font-semibold text-accent">{roleLabel}</span>
+              </p>
+            </div>
+          </div>
 
-        {/* SIDEBAR */}
-        <div className="lg:col-span-4 space-y-4">
-          <LiquidGlass className="p-6 relative overflow-visible">
+          {/* Sign out */}
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="self-start sm:self-auto px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-all text-xs font-bold uppercase tracking-widest"
+          >
+            Sign Out
+          </button>
+        </div>
 
-            {/* User Profile Header */}
-            <div className="flex items-center gap-5 border-b border-white/5 pb-8 mb-8">
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00A8A8] to-blue-600 rounded-full opacity-50 blur group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                <Image
-                  src={userData?.image || '/avatar-placeholder.png'}
-                  alt="Avatar"
-                  width={56}
-                  height={56}
-                  className="relative rounded-full border border-black bg-black object-cover h-14 w-14 transition-all duration-300"
-                />
+        {/* ── ROLE TILES ─────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Hackathons — always visible */}
+          <Link href="/hackathons" className="group">
+            <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-sm bg-accent/10 border border-accent/20 group-hover:bg-accent/20 transition-colors">
+                  <Zap className="w-5 h-5 text-accent" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-all" />
               </div>
-              <div className="space-y-1">
-                <p className="text-white font-bold uppercase tracking-tight text-base font-mono">{userData?.name || 'GUEST'}</p>
-                <div className="flex items-center gap-2">
-                  <div className={`h-2 w-2 rounded-full ${adminStatus?.isAdmin ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`}></div>
-                  <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">
-                    {adminStatus?.isAdmin ? 'ADMIN' : memberStatus?.isMember ? 'MEMBER' : 'GUEST'}
+              <div>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  Hackathon Hub
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] mt-1">
+                  Browse and register for upcoming hackathons.
+                </p>
+              </div>
+            </LiquidGlass>
+          </Link>
+
+          {/* Club Portal — members only */}
+          {memberStatus?.isMember ? (
+            <Link href="/club" className="group">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-emerald-500/40 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
+                    <QrCode className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Club Portal
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    Access club events, check-ins, and resources.
+                  </p>
+                </div>
+              </LiquidGlass>
+            </Link>
+          ) : (
+            <div className="group">
+              <LiquidGlass printed className="p-6 h-full flex flex-col gap-3 opacity-60 border-dashed">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                    <QrCode className="w-5 h-5 text-[var(--text-subtle)]" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Club Portal
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    Membership required. Pay dues to unlock access.
+                  </p>
+                </div>
+              </LiquidGlass>
+            </div>
+          )}
+
+          {/* Judge Portal — judges only */}
+          {isJudge && (
+            <Link href="/judge" className="group">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-purple-500/40 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-sm bg-purple-500/10 border border-purple-500/20 group-hover:bg-purple-500/20 transition-colors">
+                    <Gavel className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Judge Portal
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    Score projects and manage your judging queue.
+                  </p>
+                </div>
+              </LiquidGlass>
+            </Link>
+          )}
+
+          {/* Admin Panel — admins only */}
+          {isAdmin && (
+            <Link href="/admin" className="group">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-sm bg-accent/10 border border-accent/20 group-hover:bg-accent/20 transition-colors">
+                    <Shield className="w-5 h-5 text-accent" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-all" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Admin Panel
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    Manage events, attendees, and analytics.
+                  </p>
+                </div>
+              </LiquidGlass>
+            </Link>
+          )}
+        </div>
+
+        {/* ── MEMBERSHIP CTA (non-members) ───────────────── */}
+        {!memberStatus?.isMember && !isAdmin && (
+          <LiquidGlass printed holographic className="p-6 border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-yellow-500/5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-sm bg-amber-500/10 border border-amber-500/20 flex-shrink-0">
+                  <Users className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Become a Member
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    Join DSGT as a full member for{" "}
+                    <span className="text-[var(--text-primary)] font-semibold">
+                      $15/year
+                    </span>{" "}
+                    to unlock the Club Portal, event check-ins, and member-only
+                    resources.
                   </p>
                 </div>
               </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="space-y-2">
-              <button
-                onClick={() => setMode('DASHBOARD')}
-                className={`w-full group flex items-center justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
-                  ${mode === 'DASHBOARD'
-                    ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
-                    : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
-                  }`}
-              >
-                <span>OVERVIEW</span>
-                <span className={`h-2 w-2 rounded-full transition-all ${mode === 'DASHBOARD' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
-              </button>
-
-              <button
-                onClick={() => setMode('PROFILE')}
-                className={`w-full group flex items-center justify-between px-6 py-4 rounded-xl text-sm font-bold tracking-widest transition-all duration-200 border border-transparent
-                  ${mode === 'PROFILE'
-                    ? 'bg-white/[0.03] text-white border-white/5 shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]'
-                    : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
-                  }`}
-              >
-                <span>VIEW DOSSIER</span>
-                <span className={`h-2 w-2 rounded-full transition-all ${mode === 'PROFILE' ? 'bg-[#00A8A8]' : 'bg-transparent group-hover:bg-white/20'}`}></span>
-              </button>
-            </nav>
-
-            <div className="mt-8 pt-8 border-t border-white/5">
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="w-full py-4 px-6 rounded-xl bg-red-500/[0.05] border border-red-500/10 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-mono text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 group"
-              >
-                <span className="w-2 h-2 bg-red-500/40 rounded-full group-hover:bg-red-500 transition-colors"></span>
-                Terminate Session
-              </button>
+              <div className="flex-shrink-0">
+                <LinkStripeAccount />
+              </div>
             </div>
           </LiquidGlass>
-        </div>
+        )}
 
-        {/* MAIN CONTENT */}
-        <div className="lg:col-span-8 flex flex-col">
-          <LiquidGlass className="p-8 min-h-[600px] flex flex-col relative overflow-hidden">
+        {/* ── MY HACKATHONS ───────────────────────────────── */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+              My Hackathons
+            </h2>
+            <Link
+              href="/hackathons"
+              className="text-xs text-accent hover:underline font-semibold flex items-center gap-1"
+            >
+              Browse all <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
 
-            {/* Decorative Top Line */}
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A8A8]/20 to-transparent"></div>
-
-            <div className="flex justify-between items-end mb-12 relative z-10">
-              <div>
-                <p className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-2 font-mono">System View</p>
-                <h2 className="text-3xl md:text-4xl font-black text-white italic uppercase tracking-tighter">
-                  {mode === 'PROFILE' ? 'Identity Dossier' : 'Central Operations'}
-                </h2>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/5">
-                <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${memberStatus?.isMember || adminStatus?.isAdmin ? 'bg-[#00A8A8]' : 'bg-yellow-500'}`} />
-                <span className="text-[9px] font-mono text-gray-400 uppercase tracking-wider">
-                  {mode === 'PROFILE' ? 'EDITING' : 'ACTIVE'}
-                </span>
-              </div>
+          {loadingRegs ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-36 rounded-sm bg-[var(--bg-secondary)] animate-pulse border border-[var(--border-subtle)]"
+                />
+              ))}
             </div>
-
-            <div className={`flex-1 flex flex-col relative z-10 ${mode === 'DASHBOARD' ? 'justify-center' : ''}`}>
-
-              {mode === 'PROFILE' ? (
-                /* PROFILE EDITOR VIEW */
-                <div className="animate-in fade-in zoom-in-95 duration-300">
-                  <ProfileForm user={{
-                    id: userData?.id || '',
-                    name: userData?.name,
-                    email: userData?.email || '',
-                    image: userData?.image,
-                    bio: userData?.bio,
-                    website: userData?.website,
-                    location: userData?.location,
-                  }} />
-                </div>
-              ) : (
-                /* DASHBOARD TILES VIEW */
-                <div className="grid grid-cols-1 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
-
-                  {adminStatus?.isAdmin ? (
-                    /* ADMIN VIEW */
-                    <div className="space-y-6">
-                      <Link href="/admin" className="block group">
-                        <div className="relative p-8 bg-black/40 border border-white/5 hover:border-[#00A8A8]/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg">
-                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <svg className="w-24 h-24 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" /></svg>
-                          </div>
-
-                          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-[#00A8A8]">
-                            Node Access Level 5
-                          </p>
-                          <h3 className="text-3xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors">
-                            Admin Control Panel
-                          </h3>
-                          <p className="text-base text-gray-500 font-mono">
-                            Manage hackathons, view judge queues, and configure system parameters.
-                          </p>
-
-                          <div className="mt-8 flex items-center gap-2 text-[10px] font-mono text-[#00A8A8] opacity-60 group-hover:opacity-100 transition-opacity">
-                            <span>INITIATE SESSION</span>
-                            <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                          </div>
-                        </div>
-                      </Link>
-
-                      <Link href="/admin-hackathons/analytics" className="block group">
-                        <div className="relative p-8 bg-black/40 border border-white/5 hover:border-blue-500/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg">
-                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <svg className="w-24 h-24 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
-                          </div>
-
-                          <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-blue-500">
-                            Node Access Level 4
-                          </p>
-                          <h3 className="text-3xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-blue-400 transition-colors">
-                            Admin Analytics Node
-                          </h3>
-                          <p className="text-base text-gray-500 font-mono">
-                            View real-time registration statistics, dietary restrictions, and t-shirt sizes.
-                          </p>
-
-                          <div className="mt-8 flex items-center gap-2 text-[10px] font-mono text-blue-500 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <span>INITIATE TELEMETRY</span>
-                            <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                          </div>
-                        </div>
-                      </Link>
-
-                      {judgeStatus?.isJudge && (
-                        <Link href="/judge" className="block group">
-                          <div className="relative p-8 bg-black/40 border border-white/5 hover:border-purple-500/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg group-hover:shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-500" />
-
-                            <div className="relative z-10">
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                                <p className="text-xs uppercase tracking-[0.2em] font-bold text-purple-400">
-                                  Judge Access
-                                </p>
-                              </div>
-                              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-purple-400 transition-colors">
-                                Judge Portal
-                              </h3>
-                              <p className="text-sm text-gray-500 font-mono mb-6 group-hover:text-gray-400 transition-colors">
-                                &gt; Access judging queue, score projects, and track your progress.
-                              </p>
-
-                              <div className="inline-flex items-center gap-3 text-sm font-mono text-white bg-purple-500/10 border border-purple-500/20 px-6 py-3 rounded-lg group-hover:bg-purple-500/20 group-hover:border-purple-500/40 transition-all">
-                                <span className="group-hover:text-purple-300 transition-colors font-bold tracking-wider">OPEN JUDGE VIEW</span>
-                                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      )}
+          ) : activeRegs.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {activeRegs.map((reg) => (
+                <Link
+                  key={reg.id}
+                  href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=SCHEDULE`}
+                  className="group block"
+                >
+                  <LiquidGlass printed holographic className="p-5 flex flex-col gap-3 hover:border-accent/40 transition-all h-full">
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="font-bold text-[var(--text-primary)] group-hover:text-accent transition-colors leading-tight text-sm">
+                        {reg.hackathon.name}
+                      </h4>
+                      <StatusBadge status={reg.registrationStatus} />
                     </div>
-                  ) : (
-                    /* MEMBER VIEW */
-                    <div className="space-y-6">
-                      {judgeStatus?.isJudge && (
-                        <Link href="/judge" className="block group">
-                          <div className="relative p-8 bg-black/40 border border-white/5 hover:border-purple-500/30 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] rounded-lg group-hover:shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-500" />
+                    {reg.hackathon.theme && (
+                      <p className="text-[11px] text-accent/80 font-mono uppercase tracking-wider">
+                        Theme: {reg.hackathon.theme}
+                      </p>
+                    )}
+                    <div className="mt-auto flex items-center justify-between text-[11px] text-[var(--text-subtle)]">
+                      <span>
+                        {reg.team ? `Team: ${reg.team.name}` : "No team yet"}
+                      </span>
+                      <span className="flex items-center gap-1 font-semibold text-accent group-hover:gap-2 transition-all">
+                        View <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </LiquidGlass>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <LiquidGlass printed className="p-8 text-center flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
+                <Zap className="w-5 h-5 text-[var(--text-subtle)]" />
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                You haven't registered for any hackathons yet.
+              </p>
+              <Link
+                href="/hackathons"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+              >
+                Browse Hackathons <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </LiquidGlass>
+          )}
 
-                            <div className="relative z-10">
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                                <p className="text-xs uppercase tracking-[0.2em] font-bold text-purple-400">
-                                  Judge Access
-                                </p>
-                              </div>
-                              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-purple-400 transition-colors">
-                                Judge Portal
-                              </h3>
-                              <p className="text-sm text-gray-500 font-mono mb-6 group-hover:text-gray-400 transition-colors">
-                                &gt; Access judging queue, score projects, and track your progress.
-                              </p>
-
-                              <div className="inline-flex items-center gap-3 text-sm font-mono text-white bg-purple-500/10 border border-purple-500/20 px-6 py-3 rounded-lg group-hover:bg-purple-500/20 group-hover:border-purple-500/40 transition-all">
-                                <span className="group-hover:text-purple-300 transition-colors font-bold tracking-wider">OPEN JUDGE VIEW</span>
-                                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {memberStatus?.isMember ? (
-                          <Link href="/club" className="block group h-full">
-                            <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-green-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] rounded-lg">
-
-                              {/* Background Gradients */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-green-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                              <div className="absolute -right-10 -top-10 w-40 h-40 bg-green-500/10 rounded-full blur-3xl group-hover:bg-green-500/20 transition-all duration-500" />
-
-                              <div className="absolute top-0 right-0 p-5 opacity-20 group-hover:opacity-40 transition-opacity duration-300 transform group-hover:scale-105 group-hover:rotate-3">
-                                <svg className="w-24 h-24 text-green-500" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z" /></svg>
-                              </div>
-
-                              <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                  <p className="text-xs uppercase tracking-[0.2em] font-bold text-green-500">
-                                    Access Granted
-                                  </p>
-                                </div>
-
-                                <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-green-400 transition-colors">
-                                  Member Terminal
-                                </h3>
-                                <p className="text-sm text-gray-500 font-mono mb-8 group-hover:text-gray-400 transition-colors">
-                                  &gt; Initialize connection to club resources, voting protocols, and event registries.
-                                </p>
-
-                                <div className="inline-flex items-center gap-3 text-sm font-mono text-white bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-lg group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-all">
-                                  <span className="group-hover:text-green-300 transition-colors font-bold tracking-wider">ENTER SYSTEM</span>
-                                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                </div>
-                              </div>
-                            </div>
-                          </Link>
-                        ) : (
-                          <div className="h-full">
-                            <LinkStripeAccount />
-                          </div>
-                        )}
-
-                        {/* NEW SUBMISSION PORTAL TILE (HIDDEN UNTIL READY)
-                        <Link href="/submit" className="block group h-full">
-                          <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-yellow-500/50 transition-all duration-300 overflow-hidden group-hover:translate-y-[-2px] flex flex-col group-hover:shadow-[0_0_30px_rgba(234,179,8,0.15)] rounded-lg">
-                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-all duration-500" />
-
-                            <div className="absolute top-0 right-0 p-5 opacity-20 group-hover:opacity-40 transition-opacity duration-300 transform group-hover:scale-105 group-hover:-rotate-3">
-                              <svg className="w-24 h-24 text-yellow-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
-                            </div>
-
-                            <div className="relative z-10">
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                                <p className="text-xs uppercase tracking-[0.2em] font-bold text-yellow-500">
-                                  Action Required
-                                </p>
-                              </div>
-
-                              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-yellow-400 transition-colors">
-                                Submission Portal
-                              </h3>
-                              <p className="text-sm text-gray-500 font-mono mb-8 group-hover:text-gray-400 transition-colors">
-                                &gt; Form your team and submit your final project details to the judging queue.
-                              </p>
-
-                              <div className="inline-flex items-center gap-3 text-sm font-mono text-white bg-yellow-500/10 border border-yellow-500/20 px-6 py-3 rounded-lg group-hover:bg-yellow-500/20 group-hover:border-yellow-500/40 transition-all">
-                                <span className="group-hover:text-yellow-300 transition-colors font-bold tracking-wider">DEPLOY PROJECT</span>
-                                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                        */}
-
-                        {/* HACKATHON REGISTRATIONS */}
-                        {loadingRegs ? (
-                          <div className="relative h-full p-8 bg-black/40 border border-white/5 rounded-lg flex items-center justify-center animate-pulse">
-                            <span className="text-gray-500 text-sm font-mono">Loading events...</span>
-                          </div>
-                        ) : activeRegs.length > 0 ? (
-                          activeRegs.map((reg) => (
-                            <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=SCHEDULE`} className="block group h-full">
-                              <div className="relative h-full p-8 bg-black/40 border border-[#00A8A8]/10 hover:border-[#00A8A8]/30 transition-all duration-300 flex flex-col rounded-lg hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(0,168,168,0.15)] overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-duration-500" />
-
-                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                  <svg className="w-16 h-16 text-[#00A8A8]" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
-                                </div>
-
-                                <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-[#00A8A8]">
-                                  Registered Event
-                                </p>
-                                <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-[#00A8A8] transition-colors truncate relative z-10">
-                                  {reg.hackathon.name}
-                                </h3>
-
-                                <div className="space-y-2 mb-6 flex-1 relative z-10 mt-2">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Status</span>
-                                    <span className={`text-xs font-bold uppercase tracking-widest ${reg.registrationStatus === 'approved' || reg.registrationStatus === 'checked_in' ? 'text-green-500' :
-                                      reg.registrationStatus === 'waitlisted' ? 'text-yellow-500' :
-                                        reg.registrationStatus === 'rejected' ? 'text-red-500' :
-                                          'text-gray-400'
-                                      }`}>
-                                      {reg.registrationStatus.replace(/_/g, ' ')}
-                                    </span>
-                                  </div>
-
-                                  {reg.team ? (
-                                    <>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Team</span>
-                                        <span className="text-xs text-white tracking-widest truncate max-w-[120px]">
-                                          {reg.team.name}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Project</span>
-                                        <span className={`text-xs uppercase tracking-widest ${reg.team.projects && reg.team.projects.length > 0 ? 'text-[#00A8A8] font-bold' : 'text-gray-500'
-                                          }`}>
-                                          {reg.team.projects && reg.team.projects.length > 0 ? reg.team.projects[0]?.status : 'No Project'}
-                                        </span>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-2">
-                                      <span className="text-xs text-gray-500 uppercase tracking-widest font-mono">Team</span>
-                                      <span className="text-xs text-gray-500 uppercase tracking-widest">
-                                        Solo / Unassigned
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded bg-black border border-white/10 self-start group-hover:border-[#00A8A8]/30 transition-colors relative z-10">
-                                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400 group-hover:text-white transition-colors">Enter Portal</span>
-                                  <svg className="w-3 h-3 text-[#00A8A8] transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                </div>
-                              </div>
-                            </Link>
-                          ))
-                        ) : (
-                          <Link href="/hackathons" className="block group h-full">
-                            <div className="relative h-full p-8 bg-black/40 border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col rounded-lg">
-                              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <svg className="w-20 h-20 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
-                              </div>
-
-                              <p className="text-xs uppercase tracking-[0.2em] font-bold mb-3 text-gray-500 group-hover:text-gray-400 transition-colors">
-                                Discover More
-                              </p>
-                              <h3 className="text-2xl font-bold text-white uppercase tracking-tight mb-2">
-                                Browse Events
-                              </h3>
-                              <p className="text-sm text-gray-500 font-mono mb-6 flex-1">
-                                You are not currently registered for any active events. Discover and join upcoming hackathons from the global registry.
-                              </p>
-
-                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-white/10 self-start group-hover:bg-white/5 transition-colors">
-                                <span className="text-[10px] font-mono text-white font-bold uppercase tracking-wider">Explore Directory</span>
-                                <svg className="w-3 h-3 text-gray-400 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                              </div>
-                            </div>
-                          </Link>
-                        )}
+          {/* Past events */}
+          {!loadingRegs && pastRegs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-[var(--text-subtle)] uppercase tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
+                Past Events
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {pastRegs.map((reg) => (
+                  <Link
+                    key={reg.id}
+                    href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=INFO`}
+                    className="group block"
+                  >
+                    <LiquidGlass printed className="p-5 flex items-center justify-between gap-3 opacity-60 hover:opacity-100 transition-opacity">
+                      <div>
+                        <p className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest mb-1">
+                          Past Event
+                        </p>
+                        <h4 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-accent transition-colors">
+                          {reg.hackathon.name}
+                        </h4>
                       </div>
-
-                      {/* PAST HACKATHONS */}
-                      {!loadingRegs && pastRegs.length > 0 && (
-                        <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                          <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-3">
-                            <span className="w-2 h-2 rounded-full bg-gray-500"></span>
-                            Past Events
-                          </h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {pastRegs.map((reg) => (
-                              <Link key={reg.id} href={`/hackathons?id=${reg.hackathonId}&tab=OVERVIEW`} className="block group h-full">
-                                <div className="relative h-full p-6 bg-black/40 border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col rounded-lg opacity-70 hover:opacity-100">
-                                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" /></svg>
-                                  </div>
-
-                                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold mb-2 text-gray-500">
-                                    Attended Event
-                                  </p>
-                                  <h3 className="text-xl font-bold text-gray-300 uppercase tracking-tight mb-2 group-hover:text-white transition-colors truncate relative z-10">
-                                    {reg.hackathon.name}
-                                  </h3>
-
-                                  <div className="space-y-2 mb-4 flex-1 relative z-10 mt-2">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Status</span>
-                                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                                        {reg.registrationStatus.replace(/_/g, ' ')}
-                                      </span>
-                                    </div>
-
-                                    {reg.team ? (
-                                      <div className="flex items-center justify-between mt-1">
-                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Team</span>
-                                        <span className="text-[10px] text-gray-400 tracking-widest truncate max-w-[120px]">
-                                          {reg.team.name}
-                                        </span>
-                                      </div>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-white/5 self-start group-hover:bg-white/5 transition-colors relative z-10">
-                                    <span className="text-[9px] font-mono text-gray-500 group-hover:text-gray-300 font-bold uppercase tracking-wider">View Details</span>
-                                    <svg className="w-3 h-3 text-gray-500 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                  </div>
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                </div>
-              )}
-
+                      <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                        <StatusBadge status={reg.registrationStatus} />
+                        <span className="text-[10px] text-[var(--text-subtle)] group-hover:text-accent transition-colors flex items-center gap-1">
+                          Details <ArrowRight className="w-2.5 h-2.5" />
+                        </span>
+                      </div>
+                    </LiquidGlass>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </LiquidGlass>
+          )}
         </div>
-      </main >
-    </div >
+      </div>
+    </div>
   );
 }

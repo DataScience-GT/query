@@ -1,9 +1,9 @@
 {
-  "extends": "@query/tsconfig/base.json",
+  "extends": "../../tooling/typescript/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"],
+  "include": ["src", "src/.internal-tests/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,5 +1,10 @@
 packages:
-  - 'apps/*'
-  - 'sites/*'      # Add this line
-  - 'packages/*'
-  - 'tooling/*'
+  - apps/*
+  - sites/*
+  - packages/*
+  - tooling/*
+  - packages/api
+  - packages/auth
+  - packages/db
+  - packages/consts
+  - packages/ui

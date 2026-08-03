@@ -3,25 +3,41 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, uploadProcedure } from "../trpc";
 import { users, userProfiles } from "@query/db";
 import { eq } from "drizzle-orm";
-import { imageSize } from "image-size";
+import { CacheKeys } from "../middleware/cache";
+import type { DrizzleDB } from "@query/db";
+import { fetchPortalContext } from "../services/portal-context";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    const user = await ctx.db!.query.users.findFirst({
-      where: eq(users.id, ctx.userId!),
+    const cacheKey = CacheKeys.userProfile(ctx.userId as string);
+    const cached = ctx.cache.get<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      image: string | null;
+      bio: string | null | undefined;
+      website: string | null | undefined;
+      location: string | null | undefined;
+    }>(cacheKey);
+    if (cached) return cached;
+
+    const user = await (
+      ctx.db as NonNullable<typeof ctx.db>
+    ).query.users.findFirst({
+      where: eq(users.id, ctx.userId as string),
+      columns: { id: true, email: true, name: true, image: true },
       with: {
-        profile: true,
+        profile: {
+          columns: { bio: true, website: true, location: true },
+        },
       },
     });
 
     if (!user) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found"
-      });
+      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     }
 
-    return {
+    const result = {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -30,6 +46,29 @@ export const userRouter = createTRPCRouter({
       website: user.profile?.website,
       location: user.profile?.location,
     };
+
+    ctx.cache.set(cacheKey, result, 120);
+    return result;
+  }),
+
+  getPortalContext: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.userId as string;
+    const cacheKey = CacheKeys.portalContext(userId);
+    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchPortalContext>>>(
+      cacheKey,
+    );
+    if (cached) return cached;
+
+    if (!ctx.db) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Database unavailable",
+      });
+    }
+
+    const result = await fetchPortalContext(ctx.db as DrizzleDB, userId);
+    ctx.cache.set(cacheKey, result, 300);
+    return result;
   }),
 
   updateProfile: protectedProcedure
@@ -40,63 +79,63 @@ export const userRouter = createTRPCRouter({
         bio: z.string().max(500).optional(),
         website: z.string().url().max(500).optional(),
         location: z.string().max(200).optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.name !== undefined || input.image !== undefined) {
-        await ctx.db!
-          .update(users)
-          .set({
-            name: input.name,
-            image: input.image,
-          })
-          .where(eq(users.id, ctx.userId!));
-      }
-      if (input.bio !== undefined || input.website !== undefined || input.location !== undefined) {
-        const existingProfile = await ctx.db!.query.userProfiles.findFirst({
-          where: eq(userProfiles.userId, ctx.userId!),
-        });
+      const { name, image, bio, website, location } = input;
 
-        if (existingProfile) {
-          await ctx.db!
-            .update(userProfiles)
-            .set({
-              bio: input.bio !== undefined ? input.bio : existingProfile.bio,
-              website: input.website !== undefined ? input.website : existingProfile.website,
-              location: input.location !== undefined ? input.location : existingProfile.location,
-              updatedAt: new Date(),
-            })
-            .where(eq(userProfiles.userId, ctx.userId!));
-        } else {
-          await ctx.db!.insert(userProfiles).values({
-            userId: ctx.userId!,
-            bio: input.bio,
-            website: input.website,
-            location: input.location,
-          });
-        }
+      // Run user update and profile upsert in parallel when both are needed
+      const ops: Promise<unknown>[] = [];
+
+      if (name !== undefined || image !== undefined) {
+        ops.push(
+          (ctx.db as NonNullable<typeof ctx.db>)
+            .update(users)
+            .set({ name, image })
+            .where(eq(users.id, ctx.userId as string)),
+        );
       }
 
-      const updatedUser = await ctx.db!.query.users.findFirst({
-        where: eq(users.id, ctx.userId!),
-        with: {
-          profile: true,
-        },
-      });
+      if (
+        bio !== undefined ||
+        website !== undefined ||
+        location !== undefined
+      ) {
+        // Use upsert instead of check-then-insert (eliminates one round-trip)
+        ops.push(
+          (ctx.db as NonNullable<typeof ctx.db>)
+            .insert(userProfiles)
+            .values({ userId: ctx.userId as string, bio, website, location })
+            .onConflictDoUpdate({
+              target: userProfiles.userId,
+              set: {
+                bio: bio ?? undefined,
+                website: website ?? undefined,
+                location: location ?? undefined,
+                updatedAt: new Date(),
+              },
+            }),
+        );
+      }
 
-      ctx.cache.deletePattern(`user:${ctx.userId}*`);
-      ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
+      await Promise.all(ops);
 
-      return { success: true, user: updatedUser };
+      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
+
+      return { success: true };
     }),
 
   updateProfileImage: uploadProcedure
     .input(
       z.object({
-        base64Image: z.string()
-          .regex(/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/]+={0,2}$/, "Invalid image format")
-          .max(2 * 1024 * 1024), // Approx 2MB
-      })
+        base64Image: z
+          .string()
+          .regex(
+            /^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/]+={0,2}$/,
+            "Invalid image format",
+          )
+          .max(2 * 1024 * 1024),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const base64Data = input.base64Image.split(",")[1];
@@ -110,6 +149,7 @@ export const userRouter = createTRPCRouter({
       const buffer = Buffer.from(base64Data, "base64");
 
       try {
+        const { imageSize } = await import("image-size");
         const dimensions = imageSize(buffer);
         if (!dimensions.width || !dimensions.height) {
           throw new TRPCError({
@@ -117,21 +157,19 @@ export const userRouter = createTRPCRouter({
             message: "Invalid image dimensions. File may be corrupt.",
           });
         }
-
-        // Prevent image bombs: 2000x2000 max resolution
         if (dimensions.width > 2000 || dimensions.height > 2000) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
+            message:
+              "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
           });
         }
-
-        // Validate image type using image-size instead of manual magic bytes
-        const allowedTypes = ['jpg', 'jpeg', 'png', 'webp'];
+        const allowedTypes = ["jpg", "jpeg", "png", "webp"];
         if (!dimensions.type || !allowedTypes.includes(dimensions.type)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Malicious payload detected: File signature does not match expected image formats.",
+            message:
+              "Malicious payload detected: File signature does not match expected image formats.",
           });
         }
       } catch (err) {
@@ -142,15 +180,12 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db!
+      await (ctx.db as NonNullable<typeof ctx.db>)
         .update(users)
-        .set({
-          image: input.base64Image,
-        })
-        .where(eq(users.id, ctx.userId!));
+        .set({ image: input.base64Image })
+        .where(eq(users.id, ctx.userId as string));
 
-      ctx.cache.deletePattern(`user:${ctx.userId}*`);
-      ctx.cache.deletePattern(`query:user.*:${ctx.userId}`);
+      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
 
       return { success: true };
     }),
