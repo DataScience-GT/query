@@ -2,11 +2,11 @@ name: "CodeQL Advanced Security Analysis"
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   schedule:
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,37 +29,37 @@ jobs:
       contents: read
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v3
-      with:
-        version: 9
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
 
-    - name: Setup Node
-      uses: actions/setup-node@v6
-      with:
-        node-version: '20'
-        cache: 'pnpm'
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
 
-    - name: Install dependencies
-      run: pnpm install
+      - name: Install dependencies
+        run: pnpm install
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
-      with:
-        languages: javascript-typescript
-        build-mode: none
-        # Standard robust query suites catch XSS, SQLi, Logic flaws, etc.
-        queries: security-extended,security-and-quality
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          # Standard robust query suites catch XSS, SQLi, Logic flaws, etc.
+          queries: security-extended,security-and-quality
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
-      with:
-        category: "/language:javascript-typescript"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:javascript-typescript"
 
   dependency-review:
     name: Dependency Security Review
@@ -72,15 +72,15 @@ jobs:
       pull-requests: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-    - name: Dependency Review
-      uses: actions/dependency-review-action@v4
-      with:
-        fail-on-severity: high
-        comment-summary-in-pr: always
-        vulnerability-check: true
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+          vulnerability-check: true
 
   security-summary:
     name: Security Analysis Summary
@@ -89,9 +89,9 @@ jobs:
     if: always()
 
     steps:
-    - name: Generate Summary
-      run: |
-        echo "# Security Analysis Complete 🛡️" >> $GITHUB_STEP_SUMMARY
-        echo "The advanced CodeQL analysis and Dependency Review have finished." >> $GITHUB_STEP_SUMMARY
-        echo "All findings have been uploaded directly to the GitHub Security tab." >> $GITHUB_STEP_SUMMARY
-        echo "View detailed results at: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY
+      - name: Generate Summary
+        run: |
+          echo "# Security Analysis Complete 🛡️" >> $GITHUB_STEP_SUMMARY
+          echo "The advanced CodeQL analysis and Dependency Review have finished." >> $GITHUB_STEP_SUMMARY
+          echo "All findings have been uploaded directly to the GitHub Security tab." >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results at: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY

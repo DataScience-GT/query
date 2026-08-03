@@ -1,6 +1,4 @@
-/* app/globals.css - Cybernetic Digital Bloom Theme */
-
-/* This must be the first line. It imports all of Tailwind's styles. */
+/* app/globals.css — Digital Bloom Theme */
 @import "tailwindcss";
 
 @theme inline {
@@ -12,89 +10,30 @@
 }
 
 :root {
-  /* Cybernetic Theme Base */
-  --color-bg: #030408;
-  --color-text: #f5f5f7;
-  --color-gridline: rgba(255, 255, 255, 0.05); /* very subtle if needed */
-  
-  /* Digital Bloom Glowing Accent Colors */
-  --bloom-pink: #ff007f;
-  --bloom-cyan: #00f3ff;
-  --bloom-lime: #ccff00;
-  --bloom-purple: #9d00ff;
+  --color-bg: #030305;
+  --color-text: #f0f0f2;
+  --color-gridline: rgba(255, 255, 255, 0.05);
 
-  /* Font Configurations */
-  --font-family-mono: 'Roboto Mono', monospace;
-  --font-family-sans: 'Space Grotesk', sans-serif;
+  --bloom-pink:   #ff2d78;
+  --bloom-cyan:   #00e5ff;
+  --bloom-lime:   #c8ff00;
+  --bloom-purple: #9b00ff;
 
-  /* Layout */
-  --navbar-height: 80px;
+  --font-family-mono: "Roboto Mono", monospace;
+  --font-family-sans: "Space Grotesk", sans-serif;
+
+  --navbar-height: 72px;
 }
+
+/* ─── Base ─── */
+html { scroll-behavior: smooth; }
 
 body {
   background-color: var(--color-bg);
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(255, 0, 127, 0.05), transparent 40%),
-    radial-gradient(circle at 85% 30%, rgba(0, 243, 255, 0.05), transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(157, 0, 255, 0.03), transparent 50%),
-    linear-gradient(180deg, #030408 0%, #0a0a0f 100%);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-family-sans);
   overflow-x: hidden;
-  position: relative;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(circle at center, transparent 0%, #030408 100%);
-  z-index: -1;
-  pointer-events: none;
-}
-
-@layer utilities {
-  .bg-noise {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.05;
-    pointer-events: none;
-  }
-
-  /* Glassmorphism Panels */
-  .glass-panel {
-    background: rgba(11, 12, 16, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    border-radius: 24px;
-  }
-
-  .glass-navbar {
-    background: rgba(11, 12, 16, 0.7);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 24px;
-  }
-
-  .glass-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Digital Bloom Glow Effects */
-  .bloom-glow-pink { box-shadow: 0 0 20px rgba(255, 0, 127, 0.4), 0 0 40px rgba(255, 0, 127, 0.2); }
-  .bloom-glow-cyan { box-shadow: 0 0 20px rgba(0, 243, 255, 0.4), 0 0 40px rgba(0, 243, 255, 0.2); }
-  .bloom-glow-lime { box-shadow: 0 0 20px rgba(204, 255, 0, 0.4), 0 0 40px rgba(204, 255, 0, 0.2); }
-  .bloom-text-glow { text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.4); }
-
-  /* Hover effects */
-  .hover-bloom-glow:hover {
-    border-color: var(--bloom-cyan);
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.2);
-  }
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
@@ -102,210 +41,106 @@ body::before {
   color: var(--color-bg);
 }
 
-/* ─── Flower Bloom Animations ─── */
-@keyframes bloomPetal {
-  0% {
-    transform: scale(0) rotate(30deg);
-    opacity: 0;
-  }
-  60% {
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
+/* ─── Typography ─── */
+.font-display {
+  font-family: var(--font-family-sans);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
 }
 
-@keyframes petalBreath {
-  0% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  100% {
-    transform: scale(1.06);
-    filter: brightness(1.25);
-  }
+/* ─── Glass Surfaces — used sparingly ─── */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-@keyframes stamenPulse {
-  0% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0.9;
-  }
+/* Navbar glass — slightly more opaque */
+.glass-nav {
+  background: rgba(5, 5, 8, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-@keyframes bloomSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* ─── Glow utilities — used intentionally, not everywhere ─── */
+.glow-pink   { box-shadow: 0 0 32px rgba(255, 45, 120, 0.35); }
+.glow-cyan   { box-shadow: 0 0 32px rgba(0, 229, 255, 0.35); }
+.glow-lime   { box-shadow: 0 0 32px rgba(200, 255, 0, 0.3); }
+.glow-purple { box-shadow: 0 0 32px rgba(155, 0, 255, 0.3); }
+
+.text-glow-cyan {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+}
+.text-glow-pink {
+  text-shadow: 0 0 20px rgba(255, 45, 120, 0.5);
 }
 
-/* ─── Floating Flower Animations ─── */
-
-/* Drift patterns — gentle floating movement across the screen */
-@keyframes flowerDrift1 {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: var(--flower-opacity, 0.3);
-  }
-  25% {
-    transform: translate(15px, -20px) rotate(15deg) scale(1.05);
-  }
-  50% {
-    transform: translate(-10px, -35px) rotate(-10deg) scale(0.95);
-    opacity: calc(var(--flower-opacity, 0.3) * 1.3);
-  }
-  75% {
-    transform: translate(20px, -15px) rotate(20deg) scale(1.02);
-  }
-  100% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: var(--flower-opacity, 0.3);
-  }
+/* ─── Layout ─── */
+.section-wrap {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+@media (min-width: 768px) {
+  .section-wrap { padding-left: 3rem; padding-right: 3rem; }
+}
+@media (min-width: 1280px) {
+  .section-wrap { padding-left: 5rem; padding-right: 5rem; }
 }
 
-@keyframes flowerDrift2 {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  20% {
-    transform: translate(-20px, 10px) rotate(-15deg);
-  }
-  40% {
-    transform: translate(10px, 25px) rotate(10deg);
-  }
-  60% {
-    transform: translate(25px, -5px) rotate(25deg);
-  }
-  80% {
-    transform: translate(-15px, -20px) rotate(-5deg);
-  }
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
+
+
+/* ─── Backward-compat shims for unrewritten components ─── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+}
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+}
+.hover-bloom-glow:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+}
+.bloom-text-glow {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
 }
 
-@keyframes flowerDrift3 {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-  }
-  33% {
-    transform: translate(30px, -25px) rotate(20deg) scale(1.08);
-  }
-  66% {
-    transform: translate(-25px, 15px) rotate(-15deg) scale(0.92);
-  }
+
+/* ─── Accent line — thin colored rule used for section punctuation ─── */
+.accent-line {
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  border-radius: 1px;
 }
 
-@keyframes flowerDrift4 {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-    opacity: var(--flower-opacity, 0.3);
-  }
-  50% {
-    transform: translateY(-40px) rotate(180deg);
-    opacity: calc(var(--flower-opacity, 0.3) * 1.5);
-  }
-}
-
-/* Sway patterns — gentle rocking like in a breeze */
-@keyframes flowerSway1 {
-  0%, 100% {
-    transform: rotate(-5deg) translateX(0);
-  }
-  25% {
-    transform: rotate(8deg) translateX(5px);
-  }
-  50% {
-    transform: rotate(-3deg) translateX(-3px);
-  }
-  75% {
-    transform: rotate(6deg) translateX(4px);
-  }
-}
-
-@keyframes flowerSway2 {
-  0%, 100% {
-    transform: rotate(3deg) scale(1);
-  }
-  33% {
-    transform: rotate(-8deg) scale(1.05);
-  }
-  66% {
-    transform: rotate(5deg) scale(0.97);
-  }
-}
-
-/* Shimmer — subtle glow pulse for flowers */
-@keyframes flowerShimmer {
-  0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 2px currentColor);
-  }
-  50% {
-    filter: brightness(1.3) drop-shadow(0 0 8px currentColor);
-  }
-}
-
-/* Animation classes */
-.flower-drift-1 {
-  animation: flowerDrift1 var(--flower-duration, 20s) ease-in-out infinite;
-}
-.flower-drift-2 {
-  animation: flowerDrift2 var(--flower-duration, 22s) ease-in-out infinite;
-}
-.flower-drift-3 {
-  animation: flowerDrift3 var(--flower-duration, 18s) ease-in-out infinite;
-}
-.flower-drift-4 {
-  animation: flowerDrift4 var(--flower-duration, 25s) ease-in-out infinite;
-}
-.flower-sway-1 {
-  animation: flowerSway1 var(--flower-duration, 8s) ease-in-out infinite;
-}
-.flower-sway-2 {
-  animation: flowerSway2 var(--flower-duration, 10s) ease-in-out infinite;
-}
-
-/* ─── Performance Optimizations ─── */
-
-/* Off-screen sections: skip layout/paint until scrolled into view */
+/* ─── Section anchor offset for fixed navbar ─── */
 .section-anchor {
+  scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
   content-visibility: auto;
   contain-intrinsic-size: auto 600px;
 }
 
-/* Containment for glass panels to isolate reflow cascades */
-.glass-panel,
-.glass-card {
-  contain: layout style;
+/* ─── Divider ─── */
+.bloom-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent
+  );
+  margin: 0;
 }
 
-/* GPU layer promotion for animated flower elements */
-.flower-drift-1,
-.flower-drift-2,
-.flower-drift-3,
-.flower-drift-4,
-.flower-sway-1,
-.flower-sway-2 {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
 
-/* Respect user preference for reduced motion — pauses all flower animations */
-@media (prefers-reduced-motion: reduce) {
-  .flower-drift-1,
-  .flower-drift-2,
-  .flower-drift-3,
-  .flower-drift-4,
-  .flower-sway-1,
-  .flower-sway-2 {
-    animation: none !important;
-  }
-  
-  /* Also reduce the hero bloom spin */
-  [style*="bloomSpin"] {
-    animation: none !important;
-  }
-}

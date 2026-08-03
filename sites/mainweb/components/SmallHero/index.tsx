@@ -16,17 +16,16 @@ export default function SmallHero({
   const text = desc || description;
 
   return (
-    <div
-      {...rest}
-      className="relative w-full h-auto z-10 animate-fadeIn"
-    >
+    <div {...rest} className="relative w-full h-auto z-10 animate-fadeIn">
       <div className="relative flex w-full max-w-[1600px] mx-auto p-10 pb-0">
         <div className="flex flex-col w-4/5 sm:w-full">
           {/* Title */}
-          <h1 className="text-[4em] font-bold text-transparent text-left font-sans 
+          <h1
+            className="text-[4em] font-bold text-transparent text-left font-sans 
                          relative tracking-normal 
                          [text-shadow:2px_2px_rgb(229,230,219)]
-                         [-webkit-text-stroke:1.5px_rgb(229,230,219)]">
+                         [-webkit-text-stroke:1.5px_rgb(229,230,219)]"
+          >
             {title}
           </h1>
 
