@@ -26,6 +26,7 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/pg": "^8.10.9",
+    "dotenv": "^16.6.1",
     "drizzle-kit": "0.31.10",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
