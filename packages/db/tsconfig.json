@@ -13,6 +13,6 @@
     },
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "**/dist"]
 }
