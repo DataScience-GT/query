@@ -209,7 +209,7 @@ export default function PortalSidebar({
             <div className="mt-auto w-full pt-8 flex flex-col items-center gap-4">
               <div className="flex items-center gap-3 bg-[var(--bg-secondary)] px-6 py-4 rounded-sm border border-[var(--border-subtle)]">
                 <img
-                  src={session?.user?.image || "/avatars/default.png"}
+                  src={session?.user?.image || "/avatars/default.svg"}
                   alt=""
                   className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover"
                 />
@@ -404,7 +404,7 @@ export default function PortalSidebar({
             {isOpen && (
               <>
                 <img
-                  src={session?.user?.image || "/avatars/default.png"}
+                  src={session?.user?.image || "/avatars/default.svg"}
                   alt=""
                   className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover"
                 />
@@ -420,7 +420,7 @@ export default function PortalSidebar({
             )}
             {!isOpen && (
               <img
-                src={session?.user?.image || "/avatars/default.png"}
+                src={session?.user?.image || "/avatars/default.svg"}
                 alt=""
                 className="h-8 w-8 rounded-sm border border-[var(--border-subtle)] object-cover mx-auto"
               />

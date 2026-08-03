@@ -71,7 +71,7 @@ export function RubricSlider({
         />
         {/* Thumb indicator */}
         <div
-          className="absolute w-6 h-6 bg-white rounded-sm shadow-lg shadow-black/30 pointer-events-none transition-ui duration-150 ease-out border-2 border-white"
+          className="absolute w-6 h-6 bg-[#ffffff] rounded-sm shadow-lg shadow-black/30 pointer-events-none transition-ui duration-150 ease-out border-2 border-[#ffffff]"
           style={{
             left: `calc(${(value - 1) * 11.11}% - 12px + ${(value - 1) * 0.24}%)`,
           }}

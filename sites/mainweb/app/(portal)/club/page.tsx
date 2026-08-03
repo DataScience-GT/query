@@ -361,7 +361,7 @@ export default function ClubPage() {
                       className="relative pl-8 md:pl-12 group"
                     >
                       <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-sm border-2 border-accent bg-[var(--bg-primary)] group-hover:bg-accent group-hover:scale-125 transition-all shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 md:p-8 rounded-none border border-[var(--border-subtle)] bg-gradient-to-r from-[#000000] to-black group-hover:border-accent/30 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 md:p-8 rounded-none border border-[var(--border-subtle)] bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-primary)] group-hover:border-accent/30 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all gap-4">
                         <div>
                           <h4 className="text-xl font-bold text-[var(--text-primary)] mb-3 group-hover:text-accent transition-colors">
                             {checkIn.event.title}

@@ -50,7 +50,7 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
           key={project.id}
           className="p-1 group flex flex-col h-full hover:-translate-y-1 transition-ui duration-500 bg-white/[0.01] border-[var(--border-subtle)] hover:border-white/20 hover:shadow-[0_20px_40px_-15px_rgba(52,211,153,0.15)]"
         >
-          <div className="flex-1 relative flex flex-col bg-[#0a0a0a] rounded-none p-6 md:p-8 overflow-hidden z-10">
+          <div className="flex-1 relative flex flex-col bg-[var(--bg-input)] rounded-none p-6 md:p-8 overflow-hidden z-10">
             {/* Hover Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 

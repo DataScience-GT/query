@@ -213,10 +213,7 @@ export default function Home() {
               {/* Rotating rings */}
               <div className="absolute -inset-8 border border-[var(--border-subtle)] rounded-sm animate-[spin_25s_linear_infinite]" />
               <div className="absolute -inset-12 border border-[var(--border-subtle)] rounded-sm animate-[spin_40s_linear_infinite_reverse] opacity-40" />
-              <div
-                className="absolute -inset-16 border border-[var(--border-subtle)] rounded-sm animate-[spin_55s_linear_infinite]"
-                opacity-20
-              />
+              <div className="absolute -inset-16 border border-[var(--border-subtle)] rounded-sm animate-[spin_55s_linear_infinite] opacity-20" />
 
               {/* Central content */}
               <div className="relative z-10 p-12">

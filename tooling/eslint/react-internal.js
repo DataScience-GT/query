@@ -29,7 +29,10 @@ export const config = [
     plugins: {
       "react-hooks": pluginReactHooks,
     },
-    settings: { react: { version: "detect" } },
+    // Pinned rather than "detect": eslint-plugin-react's version detection
+    // calls context.getFilename(), removed in ESLint 10, which crashes every
+    // rule that checks the React version (react/display-name and friends).
+    settings: { react: { version: "19.0" } },
     rules: {
       ...pluginReactHooks.configs.recommended.rules,
       // React scope no longer necessary with new JSX transform.
