@@ -9,8 +9,8 @@
     "./email": "./src/email.ts"
   },
   "scripts": {
-    "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.7.1",

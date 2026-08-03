@@ -1,185 +1,418 @@
-/* app/globals.css — Hacklytics 2027 · Swiss editorial system
-   Paper stock, ink type, one gold rule. No glass, no glow, no blur. */
+/* app/globals.css — Digital Bloom Theme */
 @import "tailwindcss";
 
 @theme inline {
-  --color-paper: var(--paper);
-  --color-paper-2: var(--paper-2);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-navy: var(--navy);
-  --color-gold: var(--gold);
-  --color-gold-hot: var(--gold-hot);
-  --color-gold-deep: var(--gold-deep);
-  --color-rule: var(--rule);
-
-  /* legacy tokens — kept so unmounted components don't render invisible */
-  --color-bloom-pink: var(--gold-hot);
-  --color-bloom-cyan: var(--navy);
-  --color-bloom-lime: var(--gold);
-  --color-bloom-purple: var(--navy);
+  --color-bloom-pink: var(--bloom-pink);
+  --color-bloom-cyan: var(--bloom-cyan);
+  --color-bloom-lime: var(--bloom-lime);
+  --color-bloom-purple: var(--bloom-purple);
+  --color-gridline: var(--color-gridline);
 }
 
 :root {
-  --paper: #f2efe9;
-  --paper-2: #e6e1d6;
-  --ink: #101010;
-  --ink-soft: #55524b;
-  --navy: #003057;
-  --gold: #b3a369;
-  --gold-hot: #eaaa00;  /* on ink only — 1.8:1 on paper */
-  --gold-deep: #7a5c00; /* gold for type on paper — 5.4:1 */
-  --rule: rgba(16, 16, 16, 0.16);
-  --rule-strong: rgba(16, 16, 16, 0.85);
+  --color-bg: #030305;
+  --color-text: #f0f0f2;
+  --color-gridline: rgba(255, 255, 255, 0.05);
 
-  --font-family-mono: var(--font-mono), ui-monospace, monospace;
-  --font-family-sans: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
+  --bloom-pink:   #ff2d78;
+  --bloom-cyan:   #00e5ff;
+  --bloom-lime:   #c8ff00;
+  --bloom-purple: #9b00ff;
 
-  --navbar-height: 58px;
-  --gutter: 1.25rem;
+  --font-family-mono: "Roboto Mono", monospace;
+  --font-family-sans: "Space Grotesk", sans-serif;
+
+  --navbar-height: 72px;
 }
 
-@media (min-width: 768px) {
-  :root { --gutter: 2.5rem; --navbar-height: 64px; }
-}
-
-/* ─── Base ─────────────────────────────────────────────────────────────── */
-html {
-  scroll-behavior: smooth;
-  background: var(--paper);
-}
+/* ─── Base ─── */
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: var(--paper);
-  color: var(--ink);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: var(--font-family-sans);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background-color: var(--ink);
-  color: var(--paper);
+  background-color: var(--bloom-cyan);
+  color: var(--color-bg);
 }
 
-/* Ink ring + paper halo, so focus stays visible on paper AND on ink surfaces */
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--paper);
-}
-
-/* ─── Type ─────────────────────────────────────────────────────────────── */
-.display {
+/* ─── Typography ─── */
+.font-display {
   font-family: var(--font-family-sans);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: -0.045em;
-  line-height: 0.82;
-  font-feature-settings: "ss01";
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
 }
 
-.mono-label {
-  font-family: var(--font-family-mono);
-  font-weight: 500;
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  line-height: 1;
+/* ─── Glass Surfaces — used sparingly ─── */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.tabular { font-variant-numeric: tabular-nums; }
-
-.lede {
-  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
-  line-height: 1.45;
-  letter-spacing: -0.012em;
+/* Navbar glass — slightly more opaque */
+.glass-nav {
+  background: rgba(5, 5, 8, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-.dropcap::first-letter {
-  float: left;
-  font-weight: 800;
-  font-size: 4.6em;
-  line-height: 0.74;
-  padding: 0.06em 0.1em 0 0;
-  color: var(--ink);
+/* ─── Glow utilities — used intentionally, not everywhere ─── */
+.glow-pink   { box-shadow: 0 0 32px rgba(255, 45, 120, 0.35); }
+.glow-cyan   { box-shadow: 0 0 32px rgba(0, 229, 255, 0.35); }
+.glow-lime   { box-shadow: 0 0 32px rgba(200, 255, 0, 0.3); }
+.glow-purple { box-shadow: 0 0 32px rgba(155, 0, 255, 0.3); }
+
+.text-glow-cyan {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+}
+.text-glow-pink {
+  text-shadow: 0 0 20px rgba(255, 45, 120, 0.5);
 }
 
-/* ─── Rules & structure ────────────────────────────────────────────────── */
-.rule-t { border-top: 1px solid var(--rule); }
-.rule-b { border-bottom: 1px solid var(--rule); }
-.rule-heavy-t { border-top: 2px solid var(--ink); }
-.rule-heavy-b { border-bottom: 2px solid var(--ink); }
-
-.wrap {
-  width: 100%;
-  margin-inline: auto;
-  max-width: 88rem;
-  padding-inline: var(--gutter);
+/* ─── Layout ─── */
+.section-wrap {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+@media (min-width: 768px) {
+  .section-wrap { padding-left: 3rem; padding-right: 3rem; }
+}
+@media (min-width: 1280px) {
+  .section-wrap { padding-left: 5rem; padding-right: 5rem; }
 }
 
-/* Visible column rules — the page shows its own grid */
-.gridlines {
+
+
+/* ─── Backward-compat shims for unrewritten components ─── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+}
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+}
+.hover-bloom-glow:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+}
+.bloom-text-glow {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+}
+
+
+/* ─── Accent line — thin colored rule used for section punctuation ─── */
+.accent-line {
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  border-radius: 1px;
+}
+
+/* ─── Section anchor offset for fixed navbar ─── */
+.section-anchor {
+  scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* ─── Pixel flora — Terraria-style sprite layer ─── */
+.pixelated { image-rendering: pixelated; }
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-3.5deg); }
+  50%      { transform: rotate(3.5deg); }
+}
+/* No will-change here on purpose: there are ~100 of these on the page and
+   promoting each to its own compositor layer costs far more than it saves. */
+.animate-sway { animation: sway ease-in-out infinite; }
+
+/* Off-screen flora stops animating entirely — set by an IntersectionObserver
+   on the row wrapper. Compositing a sway nobody can see is pure waste. */
+[data-anim="paused"] .animate-sway,
+[data-anim="paused"] .animate-drift,
+[data-anim="paused"] .animate-bob { animation-play-state: paused; }
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0);       opacity: 0; }
+  12%  { opacity: 0.9; }
+  50%  { transform: translate3d(16px, -46px, 0); opacity: 0.55; }
+  88%  { opacity: 0.75; }
+  100% { transform: translate3d(-12px, -96px, 0); opacity: 0; }
+}
+.animate-drift { animation: drift linear infinite; }
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.animate-bob { animation: bob 3s ease-in-out infinite; }
+
+/* Chunky notched frame — the Terraria inventory-slot look, drawn with shadows
+   so it stays crisp at any size and needs no image asset. The notched corners
+   come from the cross-shaped shadow stack: no corner pixels are painted. */
+.pixel-frame {
+  position: relative;
+  border-radius: 0;
+  --pixel-edge: rgba(255, 255, 255, 0.2);
+  --pixel-glow: rgba(0, 229, 255, 0);
+  box-shadow:
+    0 -4px 0 0 var(--pixel-edge),
+    0  4px 0 0 var(--pixel-edge),
+    -4px 0 0 0 var(--pixel-edge),
+    4px  0 0 0 var(--pixel-edge),
+    0 0 26px var(--pixel-glow),
+    0 0 30px rgba(0, 0, 0, 0.55) inset;
+  transition: box-shadow 200ms steps(3), background-color 200ms linear;
+}
+.pixel-frame:hover { --pixel-edge: rgba(0, 229, 255, 0.6); --pixel-glow: rgba(0, 229, 255, 0.3); }
+
+/* Neon tints — pair with .pixel-frame */
+.pixel-cyan   { --pixel-edge: rgba(0, 229, 255, 0.55);  --pixel-glow: rgba(0, 229, 255, 0.22); }
+.pixel-pink   { --pixel-edge: rgba(255, 45, 120, 0.55); --pixel-glow: rgba(255, 45, 120, 0.22); }
+.pixel-lime   { --pixel-edge: rgba(200, 255, 0, 0.5);   --pixel-glow: rgba(200, 255, 0, 0.2); }
+.pixel-purple { --pixel-edge: rgba(155, 0, 255, 0.55);  --pixel-glow: rgba(155, 0, 255, 0.24); }
+.pixel-cyan:hover   { --pixel-edge: rgba(0, 229, 255, 0.95);  --pixel-glow: rgba(0, 229, 255, 0.45); }
+.pixel-pink:hover   { --pixel-edge: rgba(255, 45, 120, 0.95); --pixel-glow: rgba(255, 45, 120, 0.45); }
+.pixel-lime:hover   { --pixel-edge: rgba(200, 255, 0, 0.9);   --pixel-glow: rgba(200, 255, 0, 0.4); }
+.pixel-purple:hover { --pixel-edge: rgba(155, 0, 255, 0.95);  --pixel-glow: rgba(155, 0, 255, 0.45); }
+
+/* Solid neon slab button — chunky, no radius, steps() so it feels 8-bit */
+.pixel-btn {
+  position: relative;
+  border-radius: 0;
+  background: var(--btn-bg, #00e5ff);
+  color: #04040a;
+  box-shadow:
+    0 -4px 0 0 rgba(255, 255, 255, 0.35),
+    0  4px 0 0 rgba(0, 0, 0, 0.6),
+    0 0 28px var(--btn-glow, rgba(0, 229, 255, 0.5));
+  transition: transform 120ms steps(2), box-shadow 160ms steps(2), filter 160ms linear;
+}
+.pixel-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
+.pixel-btn:active { transform: translateY(2px); }
+
+/* Neon text glow, tuned per accent */
+.neon-cyan   { color: #00e5ff; text-shadow: 0 0 8px rgba(0, 229, 255, 0.65), 0 0 22px rgba(0, 229, 255, 0.35); }
+.neon-pink   { color: #ff2d78; text-shadow: 0 0 8px rgba(255, 45, 120, 0.65), 0 0 22px rgba(255, 45, 120, 0.35); }
+.neon-lime   { color: #c8ff00; text-shadow: 0 0 8px rgba(200, 255, 0, 0.6), 0 0 22px rgba(200, 255, 0, 0.3); }
+.neon-purple { color: #9b00ff; text-shadow: 0 0 8px rgba(155, 0, 255, 0.7), 0 0 22px rgba(155, 0, 255, 0.4); }
+
+/* ─── Neo / synthwave layer ─────────────────────────────────────────────
+   Everything here is gradients and transforms only — no filter(), no
+   backdrop-filter, no mix-blend-mode, so it composites for free. */
+
+/* Perspective horizon grid. One element, one slow transform. */
+.neo-grid {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46vh;
+  pointer-events: none;
+  overflow: hidden;
+  perspective: 260px;
+  perspective-origin: 50% 0%;
+  /* fade in below the horizon line at the top of the box */
+  mask-image: linear-gradient(to bottom, transparent 0%, black 22%, black 78%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 22%, black 78%, transparent 100%);
+  opacity: 0.55;
+}
+.neo-grid::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: auto;
+  left: -50%;
+  right: -50%;
+  height: 260%;
+  transform-origin: 50% 0%;
+  background-image:
+    repeating-linear-gradient(to right, rgba(0, 229, 255, 0.5) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(to bottom, rgba(255, 45, 120, 0.45) 0 1px, transparent 1px 40px);
+  /* Transform-only: animating background-position repaints this whole
+     3D-transformed surface every frame. Translating it is composited. */
+  animation: neo-grid-run 6s linear infinite;
+}
+@keyframes neo-grid-run {
+  from { transform: rotateX(80deg) translate3d(0, 0, 0); }
+  to   { transform: rotateX(80deg) translate3d(0, 40px, 0); }
+}
+
+/* Chromatic aberration — RGB split, done with text-shadow (no filters). */
+.neo-split {
+  text-shadow:
+    -2px 0 rgba(255, 45, 120, 0.55),
+    2px 0 rgba(0, 229, 255, 0.55);
+}
+.neo-split-sm {
+  text-shadow:
+    -1px 0 rgba(255, 45, 120, 0.6),
+    1px 0 rgba(0, 229, 255, 0.6);
+}
+
+/* Glitch on hover: two clipped ghosts jitter in steps. Idle cost is zero. */
+.neo-glitch { position: relative; }
+.neo-glitch::before,
+.neo-glitch::after {
+  content: attr(data-text);
   position: absolute;
   inset: 0;
+  opacity: 0;
   pointer-events: none;
-  z-index: 0;
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--rule) 0 1px,
-    transparent 1px calc(100% / 6)
+}
+.neo-glitch:hover::before {
+  opacity: 1;
+  color: #ff2d78;
+  clip-path: inset(0 0 62% 0);
+  animation: neo-glitch-a 0.5s steps(2) infinite;
+}
+.neo-glitch:hover::after {
+  opacity: 1;
+  color: #00e5ff;
+  clip-path: inset(58% 0 0 0);
+  animation: neo-glitch-b 0.5s steps(2) infinite;
+}
+@keyframes neo-glitch-a {
+  0%, 100% { transform: translate3d(-3px, -1px, 0); }
+  50%      { transform: translate3d(3px, 1px, 0); }
+}
+@keyframes neo-glitch-b {
+  0%, 100% { transform: translate3d(3px, 1px, 0); }
+  50%      { transform: translate3d(-3px, -1px, 0); }
+}
+
+/* HUD corner brackets — pairs with .pixel-frame on panels. */
+.hud { position: relative; }
+.hud::before,
+.hud::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: var(--hud-color, rgba(0, 229, 255, 0.9));
+}
+.hud::before {
+  top: -6px; left: -6px;
+  border-top: 3px solid; border-left: 3px solid;
+}
+.hud::after {
+  bottom: -6px; right: -6px;
+  border-bottom: 3px solid; border-right: 3px solid;
+}
+.hud-pink   { --hud-color: rgba(255, 45, 120, 0.9); }
+.hud-lime   { --hud-color: rgba(200, 255, 0, 0.85); }
+.hud-purple { --hud-color: rgba(155, 0, 255, 0.9); }
+
+/* Neon sweep — a light run that travels along a rule. The highlight is a
+   child that translates, so nothing repaints. */
+.neo-rule {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  overflow: hidden;
+  background: rgba(0, 229, 255, 0.2);
+}
+.neo-rule::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.9),
+    rgba(255, 45, 120, 0.9),
+    transparent
   );
-  opacity: 0.5;
+  animation: neo-sweep 7s linear infinite;
 }
-@media (max-width: 767px) { .gridlines { display: none; } }
-
-.section-anchor {
-  scroll-margin-top: calc(var(--navbar-height) + 1px);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 700px;
+@keyframes neo-sweep {
+  from { transform: translate3d(-110%, 0, 0); }
+  to   { transform: translate3d(320%, 0, 0); }
 }
 
-/* ─── Invert-on-hover — the one interaction motif ──────────────────────── */
-.invert-hover {
-  transition: background-color 140ms linear, color 140ms linear;
+/* Blinking status dot for the HUD chips */
+@keyframes neo-blink {
+  0%, 45%  { opacity: 1; }
+  50%, 95% { opacity: 0.15; }
+  100%     { opacity: 1; }
 }
-.invert-hover:hover {
-  background-color: var(--ink);
-  color: var(--paper);
-}
+.neo-blink { animation: neo-blink 1.6s steps(1) infinite; }
 
-/* ─── Ticker ───────────────────────────────────────────────────────────── */
-@keyframes ticker-scroll {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
-}
-.ticker-track {
-  display: flex;
-  width: max-content;
-  animation: ticker-scroll 38s linear infinite;
-}
-
-/* ─── Scroll reveal — progressive, no JS, no layout shift ──────────────── */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .reveal {
-      animation: reveal-in linear both;
-      animation-timeline: view();
-      animation-range: entry 5% cover 22%;
-    }
-    @keyframes reveal-in {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: none; }
-    }
-  }
+/* Vignette — static, keeps the neon from washing out the edges */
+.neo-vignette::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 39;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  .ticker-track { animation: none; }
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-  }
+  .neo-grid::before,
+  .neo-rule,
+  .neo-blink { animation: none; }
 }
+
+/* CRT scanlines — plain alpha, no mix-blend-mode. A full-viewport blended
+   layer forces the whole page to re-composite through the blend on every
+   frame; straight alpha over the top looks the same here and is free. */
+.scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.022) 0px,
+    rgba(255, 255, 255, 0.022) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Pixel typography accents */
+.font-pixel {
+  font-family: var(--font-pixel), "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sway,
+  .animate-drift,
+  .animate-bob { animation: none; }
+}
+
+/* ─── Divider ─── */
+.bloom-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent
+  );
+  margin: 0;
+}
+
+

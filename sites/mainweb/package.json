@@ -7,8 +7,8 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {

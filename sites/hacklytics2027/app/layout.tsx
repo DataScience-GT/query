@@ -1,51 +1,50 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { Roboto_Mono, Space_Grotesk, Silkscreen } from "next/font/google";
 import Navbar from "../components/Navbar";
 import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import Footer from "../components/Footer";
 
-// Self-hosted so the build never depends on reaching Google Fonts.
-// Latin woff2 subsets pulled from Google Fonts; both faces are OFL.
-const archivo = localFont({
-  src: [{ path: "./fonts/Archivo-100900.woff2", weight: "100 900", style: "normal" }],
-  variable: "--font-sans",
-  display: "swap",
-  fallback: ["Helvetica Neue", "Arial", "sans-serif"],
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-mono",
 });
 
-const plexMono = localFont({
-  src: [
-    { path: "./fonts/IBMPlexMono-400.woff2", weight: "400", style: "normal" },
-    { path: "./fonts/IBMPlexMono-500.woff2", weight: "500", style: "normal" },
-    { path: "./fonts/IBMPlexMono-600.woff2", weight: "600", style: "normal" },
-  ],
-  variable: "--font-mono",
-  display: "swap",
-  fallback: ["ui-monospace", "monospace"],
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-sans",
+});
+
+// Pixel face for the Terraria-style flora labels and badges.
+const silkscreen = Silkscreen({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-pixel",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f2efe9",
+  themeColor: "#050508",
 };
 
 export const metadata: Metadata = {
-  title: "Hacklytics 2027 | Data Science @ Georgia Tech",
+  title: "Hacklytics 2027: Digital Bloom | Premier Data Science Hackathon",
   description:
-    "Hacklytics 2027 — 36 hours of data science and AI at Georgia Tech. Feb 26–28, 2027, Klaus Advanced Computing Building, Atlanta. Free to enter, 1,000+ hackers.",
+    "Join Data Science @ GT for Hacklytics 2027, the premier data science and AI hackathon in the Southeast. 36 hours of coding, prizes, and networking in Atlanta.",
   keywords: ["hackathon", "data science", "machine learning", "AI", "Georgia Tech", "Atlanta", "coding", "competition"],
   authors: [{ name: "Data Science @ GT" }],
   openGraph: {
-    title: "Hacklytics 2027",
-    description: "36 hours. 1,000 hackers. Feb 26–28, 2027 at Georgia Tech.",
+    title: "Hacklytics 2027: Digital Bloom",
+    description: "The premier data science hackathon. 36 hours. Join 1,000+ hackers in Atlanta.",
     url: "https://hacklytics.io",
     siteName: "Hacklytics",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Hacklytics 2027 — Feb 26–28, Georgia Tech",
+        alt: "Hacklytics 2027 Digital Bloom",
       },
     ],
     type: "website",
@@ -53,11 +52,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hacklytics 2027",
+    title: "Hacklytics 2027: Digital Bloom",
     description: "The premier data science hackathon at Georgia Tech.",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpg"],
     creator: "@datasciencegt",
   },
+  icons: { icon: "/favicon.ico" },
   metadataBase: new URL("https://hacklytics.io"),
 };
 
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Event",
-    name: "Hacklytics 2027",
+    name: "Hacklytics 2027: Digital Bloom",
     startDate: "2027-02-26T17:00:00-05:00",
     endDate: "2027-02-28T16:00:00-05:00",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
@@ -84,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       }
     },
     image: [
-      "https://hacklytics.io/og-image.png"
+      "https://hacklytics.io/og-image.jpg"
     ],
     description: "Data Science @ GT — The premier data science hackathon in the Southeast. 36 hours of coding, data science, and AI.",
     offers: {
@@ -111,15 +111,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className={`${archivo.variable} ${plexMono.variable} antialiased`}
+        className={`${robotoMono.variable} ${spaceGrotesk.variable} ${silkscreen.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <a
-          href="#about"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-ink focus:px-4 focus:py-2 focus:text-paper mono-label"
-        >
-          Skip to content
-        </a>
         <Navbar />
         {children}
         <Footer />

@@ -16,7 +16,7 @@
     "./trpc": "./src/trpc.ts"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts"
   },

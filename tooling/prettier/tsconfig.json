@@ -3,10 +3,10 @@
   "include": ["."],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node",
-    "skipLibCheck": true
+    // Inherit module/moduleResolution/strict/target from the shared base.
+    // This package previously pinned "moduleResolution": "node", which
+    // TypeScript 6 rejects as deprecated (TS5107).
+    "allowJs": true,
+    "checkJs": false
   }
 }
