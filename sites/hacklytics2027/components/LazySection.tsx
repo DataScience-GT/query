@@ -69,7 +69,14 @@ export default function LazySection({
       {isVisible ? (
         children
       ) : (
-        <div style={{ minHeight }} aria-hidden="true" className="bg-paper" />
+        <div
+          style={{ minHeight }}
+          aria-hidden="true"
+          className="flex items-center justify-center"
+        >
+          {/* Subtle loading shimmer */}
+          <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-bloom-cyan/50 animate-spin" />
+        </div>
       )}
     </div>
   );

@@ -136,8 +136,13 @@ export const hackathonAdminRouter = createTRPCRouter({
               hackathonName: hackathon.name,
               host: process.env.NEXTAUTH_URL || "https://datasciencegt.org"
             });
+            // Deliberate server-side operational logging: acceptance emails are
+            // sent in a loop and individual failures are swallowed below, so
+            // these lines are the only record of what actually went out.
+            // eslint-disable-next-line no-console
             console.log(`[Email Service] Sent acceptance email to ${participant.user.email} for hackathon ${hackathon.name}.`);
           } catch (error) {
+            // eslint-disable-next-line no-console
             console.error(`[Email Service] Failed to send acceptance email to ${participant.user.email}:`, error);
           }
         }

@@ -1,0 +1,13 @@
+{
+  "extends": "@query/tsconfig/base.json",
+  "include": ["."],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    // The config files in this package are plain ESM JavaScript, not
+    // TypeScript. Everything else (module, moduleResolution, strict, target)
+    // comes from the shared base so this package cannot drift from the rest of
+    // the monorepo.
+    "allowJs": true,
+    "checkJs": false
+  }
+}
