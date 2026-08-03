@@ -1,15 +1,35 @@
+# Local Postgres for development.
+#
+# Production runs on Neon (serverless Postgres, pooled endpoint) — see README.
+# The database name here matches the Neon database so switching between them is
+# only a DATABASE_URL change, not a schema-qualified rewrite.
+#
+#   docker compose up -d
+#   DATABASE_URL=postgresql://postgres:postgres@localhost:5433/neondb pnpm --filter @query/db migrate:push
+#
+# Port 5433 on the host so this does not collide with a system Postgres on 5432.
+
 services:
   db:
     image: postgres:15
     container_name: monorepo-postgres
+    restart: unless-stopped
     ports:
       - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: app_db
+      POSTGRES_DB: neondb
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # drizzle-kit push against a container that is still booting fails with a
+      # confusing connection error; wait for Postgres to actually accept queries.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d neondb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 volumes:
   pgdata:
