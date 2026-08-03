@@ -461,7 +461,7 @@ export default function HackathonsPage() {
                   <Link
                     key={reg.id}
                     href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=INFO`}
-                    className="group flex flex-col rounded-none border border-[var(--border-subtle)] bg-gradient-to-b from-[#000000] to-black p-8 transition-all hover:border-accent/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden"
+                    className="group flex flex-col rounded-none border border-[var(--border-subtle)] bg-gradient-to-b from-[var(--bg-card)] to-[var(--bg-primary)] p-8 transition-all hover:border-accent/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
                       <FileCode2 className="w-24 h-24 text-accent" />

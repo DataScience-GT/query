@@ -20,6 +20,7 @@
   --bg-card: #121212;
   --bg-elevated: #1a1a1a;
   --bg-glass: #121212;
+  --bg-input: #0a0a0a;
 
   /* ===== TEXT COLORS ===== */
   --text-primary: #ededed;
@@ -127,6 +128,7 @@
   --bg-card: #ffffff;
   --bg-elevated: #ffffff;
   --bg-glass: #ffffff;
+  --bg-input: #f4f4f5;
 
   --text-primary: #09090b;
   --text-secondary: #3f3f46;
@@ -351,16 +353,17 @@ a {
    LIGHT MODE OVERRIDES
    ======================================================== */
 
-.light body {
+/* The white/black/gray Tailwind utilities used throughout the portal resolve
+   through --ui-* (see app/globals.css), so surfaces, borders and text follow
+   the theme on their own. Only genuinely mode-specific rules belong here. */
+
+.light body,
+.dark body {
   background: var(--bg-primary);
   color: var(--text-primary);
 }
 
-.light .bg-\[var\(--bg-primary\)\],
-.light [class*="bg-\[var(--bg-primary)\]"] {
-  background-color: var(--bg-primary) !important;
-}
-
+/* Elevation reads as shadow on a light page, not as a lighter fill. */
 .light .liquid-glass,
 .light .liquid-glass-lg {
   background: var(--bg-card);
@@ -373,111 +376,26 @@ a {
 .light .liquid-glass-lg:hover {
   background: var(--bg-secondary);
   border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
 }
 
-/* Fix hardcoded white/opacity patterns for light mode */
-.light [class*="bg-white\/5"],
-.light [class*="bg-white/5"] {
-  background-color: var(--bg-secondary) !important;
+/* The grain and color-dodge sheen only read against a dark card. */
+.light .card-printed::before,
+.light .card-holographic::after {
+  display: none;
 }
 
-.light [class*="bg-white\/10"],
-.light [class*="bg-white/10"] {
-  background-color: var(--bg-elevated) !important;
-  border-color: var(--border-subtle) !important;
-}
-
-/* Fix dark hardcoded text colors */
-.light .text-gray-300,
-.light .text-gray-400 {
-  color: var(--text-secondary) !important;
-}
-
-.light .text-\[var\(--text-primary\)\]\/40,
-.light [class*="text-[var(--text-primary)]/40"] {
-  color: rgba(9, 9, 11, 0.4) !important;
-}
-
-/* Fix hardcoded borders */
-.light [class*="border-\[var\(--border-subtle\)\]"] {
-  border-color: var(--border-subtle) !important;
-}
-
-.light [class*="border-white\/10"],
-.light [class*="border-white/10"] {
-  border-color: var(--border-subtle) !important;
-}
-
-.light [class*="divide-white\/5"] > * + * {
-  border-color: var(--border-subtle) !important;
-}
-
-/* Fix dark gradient backgrounds */
-.light [class*="from-\[#000000\]"],
-.light [class*="from-black"],
-.light [class*="to-black"] {
-  --tw-gradient-from: var(--bg-secondary);
-  --tw-gradient-to: var(--bg-primary);
-}
-
-/* Fix sidebar */
-.light .fixed.left-0.top-0.z-40 {
-  background: var(--bg-card) !important;
-  border-right-color: var(--border-subtle) !important;
-  box-shadow: 1px 0 0 var(--border-subtle);
-}
-
-/* Fix mobile top bar */
-.light .fixed.top-0.left-0.right-0.h-16 {
-  background: rgba(255, 255, 255, 0.97) !important;
-  border-bottom-color: var(--border-subtle) !important;
-  box-shadow: 0 1px 0 var(--border-subtle);
-}
-
-/* Fix backdrop-blur panels */
-.light [class*="bg-\[var\(--bg-primary\)\]\/95"],
-.light [class*="bg-\[var\(--bg-primary\)\]\/98"] {
-  background: rgba(255, 255, 255, 0.97) !important;
-}
-
-/* Input and select focus */
 .light input:focus,
 .light textarea:focus,
 .light select:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(0, 122, 122, 0.1) !important;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 122, 0.1);
 }
 
-.container-custom {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 1.5rem;
+/* Glow shadows are invisible on white; swap the neutral drop shadow in. */
+.light [class*="shadow-[0_0_"] {
+  box-shadow: var(--shadow-md);
 }
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-.grid {
-  display: grid;
-  gap: var(--space-md);
-}
-
-.p-xs { padding: var(--space-xs); }
-.p-sm { padding: var(--space-sm); }
-.p-md { padding: var(--space-md); }
-.p-lg { padding: var(--space-lg); }
-.p-xl { padding: var(--space-xl); }
-.p-2xl { padding: var(--space-2xl); }
-.p-3xl { padding: var(--space-3xl); }
-
-.m-xs { margin: var(--space-xs); }
-.m-sm { margin: var(--space-sm); }
-.m-md { margin: var(--space-md); }
-.m-lg { margin: var(--space-lg); }
-.m-xl { margin: var(--space-xl); }
-.m-2xl { margin: var(--space-2xl); }
-.m-3xl { margin: var(--space-3xl); }
 
 /* ===== COMMON GROUND INSPIRATION STYLES ===== */
 

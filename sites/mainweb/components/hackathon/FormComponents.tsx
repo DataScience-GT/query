@@ -36,7 +36,7 @@ export function FormInput({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
+        className={`w-full px-4 py-3.5 bg-[var(--bg-input)] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
       />
       {error && (
         <p id={errorId} className="mt-1.5 text-xs text-rose-400 font-medium">
@@ -80,7 +80,7 @@ export function FormTextarea({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`w-full px-4 py-3.5 bg-[#0a0a0a] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui resize-none ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
+        className={`w-full px-4 py-3.5 bg-[var(--bg-input)] border rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui resize-none ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
       />
       {error && (
         <p id={errorId} className="mt-1.5 text-xs text-rose-400 font-medium">
@@ -135,7 +135,7 @@ export function FormChipSelect({
             className={`px-4 py-2.5 rounded-none text-sm font-bold border transition-ui ${
               value === opt
                 ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5"
+                : "bg-[var(--bg-input)] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5"
             }`}
           >
             {opt}
@@ -196,7 +196,7 @@ export function FormMultiChipSelect({
             className={`px-4 py-2 rounded-none text-sm font-medium border transition-ui ${
               selected.includes(opt)
                 ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5"
+                : "bg-[var(--bg-input)] border-[var(--border-subtle)] text-[var(--text-primary)]/60 hover:bg-white/5"
             }`}
           >
             {opt}
@@ -277,13 +277,13 @@ export function SearchableSelect({
         }}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         placeholder={placeholder}
-        className="w-full px-4 py-3.5 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
+        className="w-full px-4 py-3.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
       />
       {open && filtered.length > 0 && (
         <div
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[#0e0e0e] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl"
+          className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl"
         >
           {filtered.map((opt) => (
             <button

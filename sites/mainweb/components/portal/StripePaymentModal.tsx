@@ -134,7 +134,7 @@ function CheckoutForm({
         <button
           type="submit"
           disabled={!stripe || processing}
-          className="flex-[2] px-5 py-3 rounded-sm bg-[var(--accent)] text-white font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-[2] px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {processing ? (
             <>
@@ -270,7 +270,7 @@ export function StripePaymentModal({
             onClick={() => {
               setTimeout(onSuccess, 500);
             }}
-            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-white font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui"
+            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui"
           >
             Simulate Successful Payment
           </button>
@@ -306,7 +306,7 @@ function ModalShell({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
+        className="absolute inset-0 bg-[var(--ui-scrim)] backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
       />
 

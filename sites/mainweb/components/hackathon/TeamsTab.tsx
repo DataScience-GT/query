@@ -283,7 +283,7 @@ export function TeamsTab({
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="Team Name"
                 maxLength={100}
-                className="w-full px-5 py-4 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
+                className="w-full px-5 py-4 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
               />
 
               <textarea
@@ -293,7 +293,7 @@ export function TeamsTab({
                 placeholder="What are you building? What skills are you looking for?"
                 maxLength={1000}
                 rows={4}
-                className="w-full px-5 py-4 bg-[#0a0a0a] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui resize-none"
+                className="w-full px-5 py-4 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui resize-none"
               />
 
               <div>
@@ -315,7 +315,7 @@ export function TeamsTab({
                       aria-pressed={maxMembers === n}
                       aria-label={`${n} members`}
                       onClick={() => setMaxMembers(n)}
-                      className={`w-12 h-12 rounded-none text-sm font-bold border transition-ui ${maxMembers === n ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-[#0a0a0a] border-[var(--border-subtle)] text-[var(--text-primary)]/40 hover:bg-white/5"}`}
+                      className={`w-12 h-12 rounded-none text-sm font-bold border transition-ui ${maxMembers === n ? "bg-emerald-500/20 border-emerald-500/50 text-accent shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-[var(--bg-input)] border-[var(--border-subtle)] text-[var(--text-primary)]/40 hover:bg-white/5"}`}
                     >
                       {n}
                     </button>
@@ -458,19 +458,19 @@ export function TeamsTab({
                                   alt=""
                                   width={32}
                                   height={32}
-                                  className="rounded-sm border-2 border-[#0a0a0a] shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
+                                  className="rounded-sm border-2 border-[var(--bg-primary)] shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
                                 />
                               ) : (
                                 <div
                                   key={p.id}
-                                  className="w-8 h-8 rounded-sm bg-white/10 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/60 shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
+                                  className="w-8 h-8 rounded-sm bg-white/10 border-2 border-[var(--bg-primary)] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/60 shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
                                 >
                                   {(p.user.name?.[0] ?? "?").toUpperCase()}
                                 </div>
                               ),
                           )}
                         {team.currentMembers > 5 && (
-                          <div className="w-8 h-8 rounded-sm bg-white/5 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/40 relative z-10">
+                          <div className="w-8 h-8 rounded-sm bg-white/5 border-2 border-[var(--bg-primary)] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/40 relative z-10">
                             +{team.currentMembers - 5}
                           </div>
                         )}

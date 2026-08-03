@@ -96,7 +96,7 @@ export function ZoneMapModal({ isOpen, onClose }: ZoneMapModalProps) {
         className="flex-1 overflow-auto p-4 flex items-start justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative w-full max-w-lg bg-white rounded-none overflow-hidden shadow-2xl">
+        <div className="relative w-full max-w-lg bg-[#ffffff] rounded-none overflow-hidden shadow-2xl">
           <Image
             src={activeMap.src}
             alt={`${activeMap.name} - ${activeMap.location}`}

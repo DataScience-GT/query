@@ -155,7 +155,7 @@ export default function AttendeesPage() {
                             {}
                             <img
                               src={
-                                attendee.user?.image || "/avatars/default.png"
+                                attendee.user?.image || "/avatars/default.svg"
                               }
                               alt={attendee.user?.name || "Attendee"}
                               className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover"

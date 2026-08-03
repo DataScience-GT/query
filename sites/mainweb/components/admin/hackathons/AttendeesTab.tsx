@@ -14,11 +14,8 @@ import {
 } from "lucide-react";
 import { RegistrationControls } from "./RegistrationControls";
 import { AttendeeStats } from "./AttendeeStats";
-import {
-  statusColors,
-  statusIcon,
-  type RegistrationStatus,
-} from "./attendee-status";
+import { statusColors, statusIcon } from "./attendee-status";
+import type { RegistrationStatus } from "./attendee-status";
 
 export function AttendeesTab({
   hackathonId,

@@ -62,8 +62,9 @@ export function QRCodeModal({
       </div>
 
       <div className="space-y-8">
-        {/* QR Code Display - White background with more padding */}
-        <div className="bg-white p-8 rounded-none shadow-lg mx-auto max-w-sm">
+        {/* QR Code Display - literal white in both themes so scanners keep the
+            contrast the code needs */}
+        <div className="bg-[#ffffff] p-8 rounded-none shadow-lg mx-auto max-w-sm">
           {qrCodeDataURL && (
             <img
               src={qrCodeDataURL}

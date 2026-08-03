@@ -206,7 +206,7 @@ export default function JudgeRegisterPage() {
                       className={`text-left p-6 border rounded-none transition-all ${
                         hackathonId === h.id
                           ? "bg-accent/10 border-accent/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                          : "bg-[#0a0a0a] border-[var(--border-subtle)] hover:border-white/20"
+                          : "bg-[var(--bg-input)] border-[var(--border-subtle)] hover:border-white/20"
                       }`}
                     >
                       <h3

@@ -19,11 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSansVar} ${geistMonoVar}`}>
-      <body
-        suppressHydrationWarning
-        className="antialiased bg-[#050505] text-gray-400"
-      >
+    // suppressHydrationWarning on <html>: next-themes writes the theme class
+    // here before hydration, so the server markup never matches.
+    <html
+      lang="en"
+      className={`${geistSansVar} ${geistMonoVar}`}
+      suppressHydrationWarning
+    >
+      <body className="antialiased bg-[#050505] text-gray-400">
         {children}
       </body>
     </html>

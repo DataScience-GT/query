@@ -63,7 +63,8 @@ export function ScheduleTab({
 
           {isRegistered && qrData ? (
             <div className="p-6 bg-white/5 backdrop-blur-md rounded-none border border-[var(--border-subtle)] shadow-[0_0_40px_rgba(16,185,129,0.15)]">
-              <div className="p-4 bg-white rounded-none">
+              {/* literal white: must match the QR bgColor below in both themes */}
+              <div className="p-4 bg-[#ffffff] rounded-none">
                 <QRCodeSVG
                   value={qrData}
                   size={180}
@@ -156,7 +157,7 @@ export function ScheduleTab({
             <div className="relative border-l border-[var(--border-subtle)] ml-4 space-y-10 pb-4">
               {events.map((event) => (
                 <div key={event.id} className="relative pl-8 group">
-                  <span className="absolute -left-[5px] top-2.5 w-2.5 h-2.5 rounded-sm bg-[#020202] border-2 border-emerald-500 group-hover:bg-emerald-400 transition-colors shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                  <span className="absolute -left-[5px] top-2.5 w-2.5 h-2.5 rounded-sm bg-[var(--bg-primary)] border-2 border-emerald-500 group-hover:bg-emerald-400 transition-colors shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
 
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 mb-3">
                     <h4 className="text-xl font-semibold text-[var(--text-primary)] group-hover:text-emerald-300 transition-colors">
