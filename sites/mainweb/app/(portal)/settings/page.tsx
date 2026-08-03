@@ -228,8 +228,8 @@ export default function SettingsPage() {
                           height={72}
                           className={`object-cover h-full w-full ${isUploadingImage ? 'opacity-50' : ''}`}
                         />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-white text-xs font-bold">Edit</span>
+                        <div className="absolute inset-0 bg-[var(--ui-scrim)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[var(--text-on-accent)] text-xs font-bold">Edit</span>
                         </div>
                         {isUploadingImage && (
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -238,7 +238,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                       <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-[var(--bg-card)] bg-emerald-500 flex items-center justify-center z-10">
-                        <CheckCircle className="w-2.5 h-2.5 text-white" />
+                        <CheckCircle className="w-2.5 h-2.5 text-[var(--text-on-accent)]" />
                       </span>
                     </label>
                     <div>
@@ -331,7 +331,7 @@ export default function SettingsPage() {
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-accent-secondary transition-all disabled:opacity-50"
+                      className="flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-accent-secondary transition-all disabled:opacity-50"
                     >
                       {isSaving ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-sm animate-spin" />
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                         </div>
                         {theme === "dark" && (
                           <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                            <CheckCircle className="w-3 h-3 text-white" />
+                            <CheckCircle className="w-3 h-3 text-[var(--text-on-accent)]" />
                           </span>
                         )}
                       </button>
@@ -399,7 +399,7 @@ export default function SettingsPage() {
                         </div>
                         {theme === "light" && (
                           <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                            <CheckCircle className="w-3 h-3 text-white" />
+                            <CheckCircle className="w-3 h-3 text-[var(--text-on-accent)]" />
                           </span>
                         )}
                       </button>

@@ -1,11 +1,8 @@
 import { admins, members, judges } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import {
-  EMPTY_MEMBER_CONTEXT,
-  type MemberContext,
-  type PortalContext,
-} from "../types/portal-context";
+import { EMPTY_MEMBER_CONTEXT } from "../types/portal-context";
+import type { MemberContext, PortalContext } from "../types/portal-context";
 
 function buildMemberContext(
   memberRecord: {

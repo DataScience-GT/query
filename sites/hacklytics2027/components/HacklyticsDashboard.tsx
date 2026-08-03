@@ -1,20 +1,12 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   FaFire, FaMapMarkedAlt, FaBrain, 
   FaRobot, FaPlay, FaVolumeUp
 } from "react-icons/fa";
-import { FiCheckCircle, FiLock, FiAward } from "react-icons/fi";
+import { FiAward } from "react-icons/fi";
 
 // Custom type definitions
-interface Achievement {
-  id: string;
-  name: string;
-  desc: string;
-  icon: React.ReactNode;
-  unlocked: boolean;
-}
-
 interface TriviaQuestion {
   id: number;
   question: string;
@@ -100,38 +92,6 @@ export default function HacklyticsDashboard() {
       localStorage.setItem("hacker_achievements", JSON.stringify(updated));
     }
   };
-
-  // Achievements Definition
-  const achievements: Achievement[] = useMemo(() => [
-    {
-      id: "first_quiz",
-      name: "Brain Burst",
-      desc: "Answered a data science trivia question correctly.",
-      icon: <FaBrain className="w-5 h-5 text-bloom-lime" />,
-      unlocked: unlockedAchievements.includes("first_quiz")
-    },
-    {
-      id: "streak_3",
-      name: "Data Fire",
-      desc: "Maintained a streak of correct answers.",
-      icon: <FaFire className="w-5 h-5 text-bloom-pink" />,
-      unlocked: unlockedAchievements.includes("streak_3") || streak >= 1
-    },
-    {
-      id: "scout_consult",
-      name: "Outbreak Investigator",
-      desc: "Explored the global hacker distribution map.",
-      icon: <FaMapMarkedAlt className="w-5 h-5 text-bloom-cyan" />,
-      unlocked: unlockedAchievements.includes("scout_consult")
-    },
-    {
-      id: "agent_chat",
-      name: "Neural Nexus",
-      desc: "Interacted with the multi-agent AI system.",
-      icon: <FaRobot className="w-5 h-5 text-bloom-purple" />,
-      unlocked: unlockedAchievements.includes("agent_chat")
-    }
-  ], [unlockedAchievements, streak]);
 
   // Handle Map Interaction
   const handleMapHover = () => {
@@ -269,7 +229,7 @@ export default function HacklyticsDashboard() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`flex-1 min-w-[160px] lg:w-full flex items-center gap-4 px-5 py-4 rounded-xl font-mono text-sm uppercase tracking-wider transition-all duration-300 border ${
                 activeTab === tab.id 
                   ? `bg-white/5 border-l-4 ${tab.color} font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)]` 
@@ -471,7 +431,7 @@ export default function HacklyticsDashboard() {
                 ].map((agent) => (
                   <button
                     key={agent.id}
-                    onClick={() => setActiveAgent(agent.id as any)}
+                    onClick={() => setActiveAgent(agent.id as typeof activeAgent)}
                     className={`p-2.5 rounded-lg border text-center transition-all duration-300 ${
                       activeAgent === agent.id
                         ? `bg-white/5 border-l-4 ${agent.color} shadow-md`

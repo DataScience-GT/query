@@ -252,7 +252,7 @@ export default function LinkStripeAccount({
           <button
             type="submit"
             disabled={linkMutation.isPending}
-            className="w-full mt-1 px-4 py-3 bg-[var(--accent)] text-white font-bold text-xs uppercase tracking-[0.2em] hover:opacity-90 transition-ui disabled:opacity-50 rounded-sm"
+            className="w-full mt-1 px-4 py-3 bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-xs uppercase tracking-[0.2em] hover:opacity-90 transition-ui disabled:opacity-50 rounded-sm"
           >
             {linkMutation.isPending ? "Verifying…" : "Link Payment"}
           </button>
@@ -300,7 +300,7 @@ export default function LinkStripeAccount({
               type="button"
               onClick={handleOpenModal}
               disabled={createIntentMutation.isPending}
-              className="w-full py-3.5 px-4 bg-[var(--accent)] text-white hover:opacity-90 text-xs font-bold tracking-[0.15em] uppercase transition-ui rounded-sm shadow-[0_4px_14px_rgba(0,168,168,0.25)] hover:shadow-[0_4px_20px_rgba(0,168,168,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 bg-[var(--accent)] text-[var(--text-on-accent)] hover:opacity-90 text-xs font-bold tracking-[0.15em] uppercase transition-ui rounded-sm shadow-[0_4px_14px_rgba(0,168,168,0.25)] hover:shadow-[0_4px_20px_rgba(0,168,168,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {createIntentMutation.isPending ? (
                 <>

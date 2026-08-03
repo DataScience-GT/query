@@ -277,7 +277,7 @@ export function InfoTab({
               ) => (
                 <div
                   key={i}
-                  className="p-6 bg-[#0a0a0a]/50 border border-[var(--border-subtle)] rounded-none hover:border-accent/30 transition-colors group relative overflow-hidden"
+                  className="p-6 bg-[var(--bg-input)]/50 border border-[var(--border-subtle)] rounded-none hover:border-accent/30 transition-colors group relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                   <p className="text-[var(--text-primary)] font-bold text-lg mb-1 relative z-10">
@@ -537,7 +537,7 @@ export function InfoTab({
                       type="checkbox"
                       checked={underrepresented}
                       onChange={(e) => setUnderrepresented(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I consider myself part of an underrepresented group in
@@ -599,7 +599,7 @@ export function InfoTab({
                       type="checkbox"
                       checked={firstGeneration}
                       onChange={(e) => setFirstGeneration(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I am a first-generation college student.
@@ -692,7 +692,7 @@ export function InfoTab({
                       type="checkbox"
                       checked={needsHardware}
                       onChange={(e) => setNeedsHardware(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I require hardware provided by the hackathon to
@@ -706,7 +706,7 @@ export function InfoTab({
                       type="checkbox"
                       checked={agreeToCoC}
                       onChange={(e) => setAgreeToCoC(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I agree to the{" "}
@@ -724,7 +724,7 @@ export function InfoTab({
                       type="checkbox"
                       checked={mlhCodeOfConduct}
                       onChange={(e) => setMlhCodeOfConduct(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I have read and agree to the{" "}
@@ -741,7 +741,7 @@ export function InfoTab({
                       type="checkbox"
                       checked={mlhDataSharing}
                       onChange={(e) => setMlhDataSharing(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I authorize you to share my application/registration
@@ -758,7 +758,7 @@ export function InfoTab({
                       onChange={(e) =>
                         setMlhInformationalEmails(e.target.checked)
                       }
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[#0a0a0a] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
                       I authorize MLH to send me occasional emails about
