@@ -1,33 +1,59 @@
 // Service Worker for Hacklytics 2027 — Digital Bloom
 // Implements cache-first for static assets, stale-while-revalidate for pages
 
-const CACHE_VERSION = "hacklytics-v1";
+const CACHE_VERSION = "hacklytics-v2";
 
-const PRECACHE_URLS = ["/"];
+// Shell routes worth having offline. 404 is included so a bad link still
+// renders the themed page instead of the browser's offline error.
+const PRECACHE_URLS = ["/", "/404.html"];
+
+// Cap the runtime cache so it can't grow without bound across deploys.
+const MAX_ENTRIES = 120;
+
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  // keys() is insertion-ordered, so the oldest entries are at the front
+  await Promise.all(
+    keys.slice(0, keys.length - maxEntries).map((key) => cache.delete(key)),
+  );
+}
 
 // ---------- Install: precache critical resources ----------
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      // individual failures must not abort the whole install
+      .then((cache) =>
+        Promise.all(
+          PRECACHE_URLS.map((url) =>
+            cache.add(new Request(url, { cache: "reload" })).catch(() => undefined),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });
 
-// ---------- Activate: purge stale caches ----------
+// ---------- Activate: purge stale caches, enable navigation preload ----------
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_VERSION)
-            .map((key) => caches.delete(key)),
-        ),
-      )
-      .then(() => self.clients.claim()),
+    (async () => {
+      // Lets the browser start the network request for a navigation in
+      // parallel with the service worker booting, instead of after it.
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.enable();
+      }
+
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key)),
+      );
+
+      await self.clients.claim();
+    })(),
   );
 });
 
@@ -81,16 +107,19 @@ async function cacheFirst(request) {
  * Stale-while-revalidate: return cached version instantly while
  * fetching a fresh copy in the background for the next visit.
  */
-async function staleWhileRevalidate(request) {
+async function staleWhileRevalidate(request, preloadResponse) {
   const cache = await caches.open(CACHE_VERSION);
 
   const cached = await cache.match(request);
 
-  // Kick off a background revalidation regardless of cache hit
-  const networkPromise = fetch(request)
+  // Kick off a background revalidation regardless of cache hit. If the browser
+  // already started a navigation preload, reuse that in-flight response
+  // instead of issuing a second request.
+  const networkPromise = (preloadResponse ? Promise.resolve(preloadResponse) : fetch(request))
     .then((response) => {
-      if (response.ok) {
+      if (response && response.ok) {
         cache.put(request, response.clone());
+        trimCache(CACHE_VERSION, MAX_ENTRIES);
       }
       return response;
     })
@@ -140,10 +169,17 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET requests (form submissions, etc.)
   if (event.request.method !== "GET") return;
 
+  // Never cache the worker itself — that is how a bad SW becomes permanent.
+  if (url.pathname === "/sw.js") return;
+
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(event.request));
   } else if (isNavigationRequest(event.request, url)) {
-    event.respondWith(staleWhileRevalidate(event.request));
+    event.respondWith(
+      event.preloadResponse
+        .then((preload) => staleWhileRevalidate(event.request, preload))
+        .catch(() => staleWhileRevalidate(event.request)),
+    );
   } else {
     event.respondWith(networkFirst(event.request));
   }
