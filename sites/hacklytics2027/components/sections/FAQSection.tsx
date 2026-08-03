@@ -1,6 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
+import SectionHead from "../SectionHead";
+
+const linkStyle = "border-b border-ink pb-[1px] hover:bg-ink hover:text-paper";
 
 const faqItems: { q: string; a: React.ReactNode }[] = [
   {
@@ -36,11 +39,11 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         Name, age (18+), phone, school, level of study, country, graduation year, major, gender, and race/ethnicity. You&apos;ll also agree to the{" "}
-        <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" className="text-bloom-purple hover:text-white transition-colors underline underline-offset-4">
+        <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" className={linkStyle}>
           MLH Code of Conduct
         </Link>{" "}
         and{" "}
-        <Link href="https://mlh.io/privacy" target="_blank" className="text-bloom-purple hover:text-white transition-colors underline underline-offset-4">
+        <Link href="https://mlh.io/privacy" target="_blank" className={linkStyle}>
           MLH Privacy Policy
         </Link>.
       </>
@@ -51,7 +54,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         All participants are expected to follow the{" "}
-        <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" className="text-bloom-purple hover:text-white transition-colors underline underline-offset-4">
+        <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" className={linkStyle}>
           MLH Code of Conduct
         </Link>. Harassment of any kind is not tolerated. Contact MLH at incidents@mlh.io or +1 409 202 6060.
       </>
@@ -59,78 +62,41 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
   },
 ];
 
-const FAQItem: React.FC<{ q: string; a: React.ReactNode; num: string }> = ({ q, a, num }) => {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className={`border-b border-white/5 transition-colors duration-500 ${open ? "border-white/20 bg-white/[0.01]" : "hover:bg-white/[0.02]"}`}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-start justify-between gap-6 py-8 px-4 md:px-6 text-left group"
-        aria-expanded={open}
-      >
-        <div className="flex items-start gap-6 md:gap-10">
-          <span className="font-mono text-xs text-white/20 mt-1 shrink-0 group-hover:text-bloom-purple transition-colors duration-500">
-            {num}
-          </span>
-          <span className={`font-sans text-lg md:text-2xl font-light tracking-wide transition-colors duration-500 ${open ? "text-white" : "text-white/70 group-hover:text-white"}`}>
-            {q}
-          </span>
-        </div>
-        {/* Plus / minus icon */}
-        <div className={`shrink-0 mt-1 text-white/20 group-hover:text-white transition-transform duration-500 ${open ? "rotate-45 text-bloom-purple" : ""}`}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </div>
-      </button>
-
-      {/* Answer */}
-      <div className={`grid transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? "grid-rows-[1fr] opacity-100 pb-8" : "grid-rows-[0fr] opacity-0"}`}>
-        <div className="overflow-hidden">
-          <p className="font-sans text-base md:text-lg text-white/50 leading-[1.8] font-light pl-4 md:pl-24 pr-4 md:pr-12">
-            {a}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function FAQSection() {
   return (
-    <section id="faqs" className="section-anchor text-white relative">
-      <div className="section-wrap max-w-5xl mx-auto py-24 md:py-32 px-6">
+    <section id="faqs" className="section-anchor relative bg-paper">
+      <div className="wrap py-14 md:py-20">
+        <SectionHead
+          num="05"
+          label="Reference"
+          title="FAQ"
+          note={
+            <>
+              Still stuck? Ask in{" "}
+              <Link href="https://discord.gg/hacklytics" target="_blank" className={linkStyle}>
+                our Discord
+              </Link>{" "}
+              — organizers answer daily.
+            </>
+          }
+        />
 
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-[1px] bg-gradient-to-r from-bloom-purple to-transparent" />
-          <span className="font-mono text-xs text-bloom-purple uppercase tracking-[0.4em]">Information</span>
-        </div>
-        
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-20">
-          <h2 className="font-sans font-medium text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] text-white leading-[0.9] tracking-[-0.03em]">
-            FAQ
-          </h2>
-          <p className="font-sans text-base text-white/40 max-w-xs leading-relaxed md:text-right font-light">
-            Can&apos;t find the answer?{" "}
-            <br className="hidden md:block" />
-            <Link href="https://discord.gg/hacklytics" target="_blank" className="text-white hover:text-bloom-purple transition-colors underline underline-offset-4">
-              Hit us up on Discord
-            </Link>.
-          </p>
-        </div>
-
-        {/* Accordion */}
-        <div className="border-t border-white/5">
+        <div className="rule-heavy-t mt-10 md:mt-14">
           {faqItems.map((item, i) => (
-            <FAQItem
-              key={i}
-              num={String(i + 1).padStart(2, "0")}
-              q={item.q}
-              a={item.a}
-            />
+            <details key={i} name="faq" className="group rule-b">
+              <summary className="grid cursor-pointer list-none grid-cols-[2.5rem_1fr_1.5rem] items-baseline gap-3 py-6 md:grid-cols-[4rem_1fr_2rem] md:gap-6">
+                <span className="mono-label text-ink-soft">{String(i + 1).padStart(2, "0")}</span>
+                <h3 className="text-lg font-medium leading-snug tracking-tight md:text-2xl">{item.q}</h3>
+                <span className="mono-label text-right text-ink-soft group-open:hidden">+</span>
+                <span className="mono-label hidden text-right text-ink-soft group-open:block">−</span>
+              </summary>
+              <div className="grid grid-cols-[2.5rem_1fr] gap-3 pb-8 md:grid-cols-[4rem_1fr] md:gap-6">
+                <span aria-hidden />
+                <div className="max-w-[68ch] text-[0.9375rem] leading-[1.7] text-ink-soft md:text-base">
+                  {item.a}
+                </div>
+              </div>
+            </details>
           ))}
         </div>
       </div>
