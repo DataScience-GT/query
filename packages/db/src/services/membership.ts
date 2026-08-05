@@ -73,16 +73,28 @@ export async function createOrUpdateMembership(
   });
 
   const now = new Date();
-  const oneYearFromNow = new Date(now);
-  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+  /**
+   * A membership is one paid year. Renewing early has to *extend* the term, so
+   * the new year starts where the old one ends — measuring from today instead
+   * would silently throw away whatever time was left, and someone who renews a
+   * month early would have paid to lose a month.
+   *
+   * A lapsed membership restarts from today; there is no credit for the gap.
+   */
+  const termStart =
+    existing?.membershipEndDate && existing.membershipEndDate > now
+      ? existing.membershipEndDate
+      : now;
+  const termEnd = new Date(termStart);
+  termEnd.setFullYear(termEnd.getFullYear() + 1);
 
   if (existing) {
     await db
       .update(members)
       .set({
         isActive: true,
-        membershipStartDate: now,
-        membershipEndDate: oneYearFromNow,
+        membershipEndDate: termEnd,
         renewalCount: existing.renewalCount + 1,
         memberType: "continuous",
         phoneNumber: opts.phoneNumber || existing.phoneNumber,
@@ -100,7 +112,7 @@ export async function createOrUpdateMembership(
     memberType: "new",
     isActive: true,
     membershipStartDate: now,
-    membershipEndDate: oneYearFromNow,
+    membershipEndDate: termEnd,
     renewalCount: 0,
     phoneNumber: opts.phoneNumber ?? null,
   });
