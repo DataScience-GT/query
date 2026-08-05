@@ -1,4 +1,4 @@
-import { admins, members, judges } from "@query/db";
+import { admins, members, judges, projectLeaders } from "@query/db";
 // Deep import on purpose: this is the one rule for "which hackathon is
 // current", shared with the sign-in hook in @query/auth.
 import {
@@ -99,15 +99,28 @@ export async function fetchPortalContext(
   ]);
 
   let member = EMPTY_MEMBER_CONTEXT;
+  let isProjectLeader = false;
 
+  // Both are scoped to the edition, so neither can be read until it resolves.
   if (hackathonId) {
-    const memberRecord = await db.query.members.findFirst({
-      where: and(
-        eq(members.userId, userId),
-        eq(members.hackathonId, hackathonId),
-      ),
-    });
+    const [memberRecord, leaderRecord] = await Promise.all([
+      db.query.members.findFirst({
+        where: and(
+          eq(members.userId, userId),
+          eq(members.hackathonId, hackathonId),
+        ),
+      }),
+      db.query.projectLeaders.findFirst({
+        where: and(
+          eq(projectLeaders.userId, userId),
+          eq(projectLeaders.hackathonId, hackathonId),
+          eq(projectLeaders.isActive, true),
+        ),
+        columns: { id: true },
+      }),
+    ]);
     member = buildMemberContext(memberRecord ?? null);
+    isProjectLeader = !!leaderRecord;
   }
 
   return {
@@ -117,6 +130,10 @@ export async function fetchPortalContext(
     isJudge: !!judgeRecord,
     judgeId: judgeRecord?.id ?? null,
     judgeName: judgeRecord?.name ?? null,
+    // Admins cover for leaders, and the middleware agrees — so the tab has to
+    // appear for them too or staff see a page they are allowed to use but
+    // cannot reach.
+    isProjectLeader: isProjectLeader || !!admin,
     member,
   };
 }
