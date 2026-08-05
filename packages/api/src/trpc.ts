@@ -282,6 +282,17 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // Stripe — invalidate member status after linking
   "stripe.attemptAutoLink": ["member:*"],
   "stripe.linkAccount": ["member:*"],
+  // Initiatives. Every write moves what BOTH the member list and the leader's
+  // queue show, so neither namespace can be evicted on its own.
+  "initiative.create": ["initiative:*"],
+  "initiative.update": ["initiative:*"],
+  "initiative.setStatus": ["initiative:*"],
+  "initiative.setArchived": ["initiative:*"],
+  "initiative.decide": ["initiative:*"],
+  "initiative.requestToJoin": ["initiative:*"],
+  "initiative.withdraw": ["initiative:*"],
+  // setLeader clears the role gate and portal context itself, by user id.
+  "initiative.setLeader": ["initiative:*"],
   // Events (club check-ins)
   "events.create": ["events:list"],
   "events.delete": ["events:list"],
