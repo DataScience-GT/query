@@ -1,5 +1,6 @@
 export type HackathonStatus =
   | "draft"
+  | "announced"
   | "open"
   | "closed"
   | "in_progress"
@@ -19,6 +20,15 @@ export const STATUSES: {
     color: "text-gray-400",
     bg: "bg-gray-500/10",
     border: "border-gray-500/20",
+  },
+  {
+    // Public landing page and interest list are live; registration is not, and
+    // this is NOT yet the edition memberships attach to.
+    value: "announced",
+    label: "Announced",
+    color: "text-cyan-400",
+    bg: "bg-cyan-500/10",
+    border: "border-cyan-500/20",
   },
   {
     value: "open",

@@ -83,7 +83,13 @@ export const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
 });
 
 /**
- * Verifies the caller runs initiatives for the current hackathon.
+ * Verifies the caller runs club initiatives.
+ *
+ * Not scoped to a hackathon: the club and the hackathon are separate aspects,
+ * and leading is a standing appointment rather than something re-granted every
+ * edition. It used to resolve the current edition first, which meant the gate
+ * refused every leader outright whenever no hackathon row existed — a club
+ * with no event scheduled had no project leaders at all.
  *
  * Admins pass without a project_leader row: staff cover for a leader who has
  * gone quiet. The reverse is deliberately not true — this grants nothing under
@@ -95,15 +101,7 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
   const db = ctx.db as NonNullable<typeof ctx.db>;
   const userId = ctx.userId as string;
 
-  const hackathonId = await resolveHackathonId(db);
-  if (!hackathonId) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "No hackathon context found",
-    });
-  }
-
-  const cacheKey = `${CacheKeys.projectLeader(userId)}:${hackathonId}:role`;
+  const cacheKey = `${CacheKeys.projectLeader(userId)}:role`;
   let leader = ctx.cache.get<typeof projectLeaders.$inferSelect>(cacheKey);
 
   if (!leader) {
@@ -111,7 +109,6 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
       (await db.query.projectLeaders.findFirst({
         where: and(
           eq(projectLeaders.userId, userId),
-          eq(projectLeaders.hackathonId, hackathonId),
           eq(projectLeaders.isActive, true),
         ),
       })) ?? null;
@@ -134,7 +131,6 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
   return next({
     ctx: {
       ...ctx,
-      hackathonId,
       projectLeader: leader ?? null,
       isPlatformAdmin,
     },

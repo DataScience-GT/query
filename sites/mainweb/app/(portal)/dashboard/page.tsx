@@ -4,7 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
@@ -22,6 +22,7 @@ import {
   XCircle,
   AlertCircle,
   Gavel,
+  Rocket,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -85,6 +86,17 @@ export default function Dashboard() {
   const isAdmin = portalContext?.isAdmin ?? false;
   const isJudge = portalContext?.isJudge ?? false;
 
+  /**
+   * Which half they land on. Held as null until they choose so the default can
+   * follow the data once it arrives — a paid member opens on Club, everyone
+   * else on Hackathon, which is the half that is open to them.
+   */
+  const [chosenView, setChosenView] = useState<"club" | "hackathon" | null>(
+    null,
+  );
+  const view = chosenView ?? (memberStatus?.isMember ? "club" : "hackathon");
+  const setView = setChosenView;
+
   const now = new Date();
   const activeRegs =
     myRegs?.filter((r) =>
@@ -136,7 +148,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <Image
-                src={userData?.image || "/avatar-placeholder.png"}
+                src={userData?.image || "/avatars/default.svg"}
                 alt="Avatar"
                 width={56}
                 height={56}
@@ -258,11 +270,37 @@ export default function Dashboard() {
                     Club Portal
                   </h3>
                   <p className="text-sm text-[var(--text-muted)] mt-1">
-                    Membership required. Pay dues to unlock access.
+                    {memberStatus?.hasLapsed
+                      ? "Your membership has run out. Renew below to get back in."
+                      : "Membership required. Join below to unlock access."}
                   </p>
                 </div>
               </LiquidGlass>
             </div>
+          ))}
+
+          {/* Initiatives — club side, but browsing is open so anyone can see
+              what membership actually buys before paying for it. */}
+          {view === "club" && (
+            <Link href="/initiatives" className="group">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-sky-500/40 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-sm bg-sky-500/10 border border-sky-500/20 group-hover:bg-sky-500/20 transition-colors">
+                    <Rocket className="w-5 h-5 text-sky-400" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-sky-400 group-hover:translate-x-1 transition-all" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Initiatives
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    Projects the club runs year-round. Join one, or pitch your
+                    own.
+                  </p>
+                </div>
+              </LiquidGlass>
+            </Link>
           )}
 
           {/* Judge Portal — judges only */}
@@ -310,8 +348,40 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ── MEMBERSHIP CTA (non-members) ───────────────── */}
-        {!memberStatus?.isMember && !isAdmin && (
+        {/* ── MEMBERSHIP ─────────────────────────────────── */}
+        {/* Club view only, and it now also catches lapsed members: `isMember`
+            means paid AND unexpired, so the renew path is reachable instead of
+            being hidden behind the same flag that expired. */}
+        {view === "club" && memberStatus?.isMember && (
+          <LiquidGlass printed className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
+              <div>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  Membership active
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] mt-1">
+                  {memberStatus.expiresAt
+                    ? `Runs until ${new Date(memberStatus.expiresAt).toLocaleDateString()}`
+                    : "Active"}
+                  {typeof memberStatus.daysRemaining === "number" &&
+                  memberStatus.daysRemaining <= 30
+                    ? ` · ${memberStatus.daysRemaining} days left`
+                    : ""}
+                </p>
+              </div>
+              {/* Renewing early extends from the current end date rather than
+                  from today, so nobody loses time by paying ahead. */}
+              {typeof memberStatus.daysRemaining === "number" &&
+                memberStatus.daysRemaining <= 30 && (
+                  <div className="flex-shrink-0">
+                    <LinkStripeAccount />
+                  </div>
+                )}
+            </div>
+          </LiquidGlass>
+        )}
+
+        {view === "club" && !memberStatus?.isMember && !isAdmin && (
           <LiquidGlass printed holographic className="p-6 border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-yellow-500/5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
               <div className="flex items-start gap-4">
@@ -320,7 +390,9 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Become a Member
+                    {memberStatus?.hasLapsed
+                      ? "Renew your membership"
+                      : "Become a Member"}
                   </h3>
                   <p className="text-sm text-[var(--text-muted)] mt-1">
                     Join DSGT as a full member for{" "}
@@ -340,7 +412,7 @@ export default function Dashboard() {
         )}
 
         {/* ── MY HACKATHONS ───────────────────────────────── */}
-        <div className="space-y-4">
+        <div className={`space-y-4 ${view === "hackathon" ? "" : "hidden"}`}>
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
               My Hackathons

@@ -257,6 +257,10 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "hackathon.createEvent": ["hackathon:*:events"],
   "hackathon.updateEvent": ["hackathon:*:events"],
   "hackathon.deleteEvent": ["hackathon:*:events"],
+  // Interest list. Both writes move the admin list and the caller's own
+  // "am I on it" answer, and the two are read from the same namespace.
+  "hackathon.registerInterest": ["hackathon:*:interest"],
+  "hackathon.withdrawInterest": ["hackathon:*:interest"],
   // Judge mutations — only invalidate judging-related keys
   "judge.submitVote": ["hackathon:*:rankings", "hackathon:*:judge-analytics"],
   "judge.completeAndNext": [

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import PixelSprite from "./pixel/PixelSprite";
 import { SPROUT } from "./pixel/sprites";
+import { INTEREST_URL } from "@/lib/links";
 
 const navItems = [
   { name: "About",    href: "/#about" },
@@ -105,12 +106,12 @@ export default function Navbar() {
 
           {/* Desktop CTA */}
           <a
-            href="https://form.typeform.com/to/GvqBCdAe"
+            href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="pixel-btn hidden md:inline-flex items-center justify-center px-6 py-2.5 font-pixel text-[10px] shrink-0"
           >
-            APPLY
+            NOTIFY ME
           </a>
 
           {/* Mobile hamburger */}
@@ -151,13 +152,13 @@ export default function Navbar() {
         </nav>
         <div className="px-8 mt-12">
           <a
-            href="https://form.typeform.com/to/GvqBCdAe"
+            href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
             className="pixel-btn flex items-center justify-center w-full font-pixel text-xs px-8 py-4"
           >
-            APPLY NOW
+            NOTIFY ME
           </a>
         </div>
         <div className="px-8 mt-auto pb-12">
