@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
 import { db } from "@query/db";
+import { MEMBERSHIP_CENTS, BOOTCAMP_ADDON_CENTS } from "../services/pricing";
 
 /**
  * Membership payment flow.
@@ -83,6 +84,10 @@ describe("Membership payments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     cache.clear();
+    // Both are set per-test; clearing here keeps one test's mode from leaking
+    // into the next.
+    delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_MOCK_MODE;
     mockFindFirst.mockImplementation((table) => {
       // Membership rows hang off a hackathon, so checkout needs one to exist.
       if (table === "users")
@@ -95,6 +100,7 @@ describe("Membership payments", () => {
   afterEach(() => {
     process.env.STRIPE_SECRET_KEY = originalKey;
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = originalPublishable;
+    delete process.env.STRIPE_MOCK_MODE;
   });
 
   const caller = () =>
@@ -125,7 +131,7 @@ describe("Membership payments", () => {
         /currently unavailable/i,
       );
 
-      process.env.STRIPE_SECRET_KEY = "mk_test_recovers";
+      process.env.STRIPE_MOCK_MODE = "true";
       const result = await caller().stripe.createPaymentIntent();
 
       expect(result.isMock).toBe(true);
@@ -135,7 +141,7 @@ describe("Membership payments", () => {
 
   describe("mock mode", () => {
     it("returns a mock client secret without touching the Stripe SDK", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_test_local";
 
       const result = await caller().stripe.createPaymentIntent();
@@ -148,7 +154,7 @@ describe("Membership payments", () => {
     });
 
     it("falls back to a placeholder publishable key when none is set", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
       delete process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
       const result = await caller().stripe.createPaymentIntent();
@@ -158,7 +164,7 @@ describe("Membership payments", () => {
     });
 
     it("completes a mock checkout session and returns a success URL", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
 
       const result = await caller().stripe.createCheckoutSession({
         returnUrl: RETURN_URL,
@@ -169,7 +175,7 @@ describe("Membership payments", () => {
     });
 
     it("appends the session with & when the return URL already has a query", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
 
       const result = await caller().stripe.createCheckoutSession({
         returnUrl: `${RETURN_URL}?tab=membership`,
@@ -180,11 +186,11 @@ describe("Membership payments", () => {
 
     /**
      * Mock mode writes paymentStatus "paid" and activates a membership without
-     * any money moving. .env.production ships an `mk_` key, so if the key
-     * prefix alone enabled it, any signed-in user could call this endpoint and
-     * grant themselves a paid membership on the live site.
+     * any money moving, so a production build must ignore the flag entirely —
+     * otherwise one stray environment variable turns "grant myself a paid
+     * membership" into a single authenticated request on the live site.
      */
-    describe("with a mock key on a production build", () => {
+    describe("with the mock flag set on a production build", () => {
       // NODE_ENV is typed readonly, so it is set through the record itself.
       const env = process.env as Record<string, string | undefined>;
       const realNodeEnv = env.NODE_ENV;
@@ -198,7 +204,7 @@ describe("Membership payments", () => {
       });
 
       it("does not hand out a membership from a mock checkout session", async () => {
-        process.env.STRIPE_SECRET_KEY = "mk_test_local";
+        process.env.STRIPE_MOCK_MODE = "true";
 
         await expect(
           caller().stripe.createCheckoutSession({ returnUrl: RETURN_URL }),
@@ -209,7 +215,7 @@ describe("Membership payments", () => {
       });
 
       it("does not hand out a mock client secret", async () => {
-        process.env.STRIPE_SECRET_KEY = "mk_test_local";
+        process.env.STRIPE_MOCK_MODE = "true";
 
         await expect(caller().stripe.createPaymentIntent()).rejects.toThrow(
           /unavailable/i,
@@ -220,7 +226,7 @@ describe("Membership payments", () => {
 
   describe("input and account preconditions", () => {
     it("rejects a return URL that is not a URL", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
 
       await expect(
         caller().stripe.createCheckoutSession({ returnUrl: "not-a-url" }),
@@ -228,7 +234,7 @@ describe("Membership payments", () => {
     });
 
     it("refuses checkout for a user with no email on file", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
       mockFindFirst.mockImplementation((table) =>
         table === "users" ? { id: USER, email: null, name: "No Email" } : undefined,
       );
@@ -239,7 +245,7 @@ describe("Membership payments", () => {
     });
 
     it("requires a signed-in user", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+      process.env.STRIPE_MOCK_MODE = "true";
       const anonymous = appRouter.createCaller({
         db,
         session: null,
@@ -256,17 +262,32 @@ describe("Membership payments", () => {
   });
 
   describe("membership price", () => {
-    it("records $15.00 for a mock membership payment", async () => {
-      process.env.STRIPE_SECRET_KEY = "mk_test_local";
+    const insertedAmount = () =>
+      (
+        mockInsert.mock.calls.flat(2).find(
+          (arg: any) => arg && typeof arg === "object" && "amountTotal" in arg,
+        ) as { amountTotal?: number } | undefined
+      )?.amountTotal;
+
+    it("records the membership price for a mock payment", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
 
       await caller().stripe.createCheckoutSession({ returnUrl: RETURN_URL });
 
-      // The inserted payment row must agree with the $15 the portal advertises.
-      const inserted = mockInsert.mock.calls.flat(2).find(
-        (arg: any) => arg && typeof arg === "object" && "amountTotal" in arg,
-      ) as { amountTotal?: number } | undefined;
+      // Reads from the shared pricing module rather than a literal, so this
+      // cannot drift from what the portal quotes the way $15 vs $25 once did.
+      expect(insertedAmount()).toBe(MEMBERSHIP_CENTS);
+    });
 
-      expect(inserted?.amountTotal).toBe(1500);
+    it("adds the bootcamp fee on top when it is requested", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      await caller().stripe.createCheckoutSession({
+        returnUrl: RETURN_URL,
+        bootcamp: true,
+      });
+
+      expect(insertedAmount()).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
     });
   });
 });
