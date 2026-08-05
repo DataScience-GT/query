@@ -14,14 +14,10 @@ const nextConfig = {
   reactCompiler: true,
   compress: true, // Enable gzip/brotli compression
   poweredByHeader: false, // Remove X-Powered-By header (smaller responses + security)
-  experimental: {
-    optimizePackageImports: [
-      "react-icons",
-      "clsx",
-      "class-variance-authority",
-      "tailwind-merge",
-    ],
-  },
+  // optimizePackageImports listed react-icons / clsx / class-variance-authority
+  // / tailwind-merge, none of which this site imports any more — the only
+  // consumer was an unused shadcn button. Barrel-optimising absent packages
+  // does nothing, so the option is gone with them.
   reactStrictMode: true, // recommended
 };
 

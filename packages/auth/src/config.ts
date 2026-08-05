@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import EmailProvider from "next-auth/providers/nodemailer";
 import { db } from "@query/db";
+import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 
@@ -127,9 +128,16 @@ export const authConfig: NextAuthConfig = {
         const customToken = `custom:${code}`;
         const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Store code in DB
+        // Store code in DB. Outstanding codes for this identifier are dropped
+        // first: leaving them live lets anyone spam sign-in requests to stack
+        // up valid codes, and every extra one multiplies the odds of a blind
+        // guess against a 6-digit secret.
         if (db) {
           const expiresISO = expires.toISOString();
+          await db.execute(sql`
+            DELETE FROM "verificationToken"
+            WHERE "identifier" = ${identifier} AND "token" LIKE 'custom:%'
+          `);
           await db.execute(sql`
             INSERT INTO "verificationToken" ("identifier", "token", "expires")
             VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamp)
@@ -191,6 +199,34 @@ export const authConfig: NextAuthConfig = {
         : new URL(url).origin === baseUrl
           ? url
           : baseUrl;
+    },
+  },
+  events: {
+    /**
+     * Claim a paid-but-unlinked payment for this person, every time they sign
+     * in.
+     *
+     * Linking used to happen only inside the membership page, via a mutation
+     * the client had to fire on mount. Anyone who paid and never opened that
+     * exact page stayed unlinked forever — which is why hundreds of paid
+     * payments carry no membership. Sign-in is the one place every member
+     * passes through, and the address here is provider-verified, so it is both
+     * the right hook and sufficient proof of ownership.
+     *
+     * Failures are swallowed on purpose: a membership that cannot be granted
+     * must never block the sign-in itself.
+     */
+    async signIn({ user }) {
+      if (!db || !user?.id || !user.email) return;
+      try {
+        await linkPaidPaymentByVerifiedEmail(db, {
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+        });
+      } catch {
+        // Swallowed deliberately — see above. Nothing here may break sign-in.
+      }
     },
   },
   session: {

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { trpcErrorMessage } from "@/lib/trpc-error";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { toInputDate } from "@/components/admin/hackathons/constants";
 
@@ -115,6 +116,10 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
   });
 
   function openEdit(event: NonNullable<typeof events>[number]) {
+    // The form is shared, so a rejection left over from the previous open would
+    // otherwise greet the user on a form they have not submitted yet.
+    createMutation.reset();
+    updateMutation.reset();
     setEditingId(event.id);
     setForm({
       name: event.name,
@@ -129,6 +134,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
   }
 
   function openCreate() {
+    createMutation.reset();
+    updateMutation.reset();
     setShowCreate(true);
     setEditingId(null);
     setForm(emptyForm);
@@ -342,7 +349,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             {/* Error */}
             {error && (
               <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-none text-red-400 text-sm">
-                {error.message}
+                {trpcErrorMessage(error, "Could not save this event.")}
               </div>
             )}
 

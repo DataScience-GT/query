@@ -32,6 +32,10 @@ if (DATABASE_URL) {
 
   db = drizzle(conn, { schema });
 } else {
+  // Deliberate startup diagnostic: `db` stays null instead of throwing so
+  // builds that never touch the database still succeed, which makes this the
+  // only signal that the variable is missing.
+  // eslint-disable-next-line no-console
   console.warn("DATABASE_URL not set - database operations will fail");
 }
 

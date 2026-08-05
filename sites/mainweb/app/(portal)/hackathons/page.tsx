@@ -132,7 +132,11 @@ export default function HackathonsPage() {
     enabled: !!session,
   });
 
-  const projects = myRegs?.flatMap((reg) => reg.team?.projects || []) || [];
+  // Covers solo submissions too, which have no team to read them off.
+  const { data: myProjects } = trpc.team.myProjects.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const projects = myProjects ?? [];
 
   useEffect(() => {
     const handleHashChange = () => {
