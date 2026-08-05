@@ -27,6 +27,34 @@ let stripeClientKey: string | undefined;
 const isMockMode = (key: string | undefined): key is string =>
   !!key && key.startsWith("mk_") && process.env.NODE_ENV !== "production";
 
+/**
+ * The secret and publishable keys must be the same Stripe mode.
+ *
+ * A PaymentIntent minted with a test secret cannot be confirmed by a live
+ * publishable key, and vice versa. Stripe.js reports that as a vague
+ * client-side error with no hint that the two keys disagree, so it is caught
+ * here where the cause is obvious — this pairing is easy to get wrong when
+ * only one of the two is swapped.
+ */
+const assertKeyModesMatch = (secretKey: string) => {
+  const publishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+  if (!publishable) return;
+
+  // Restricted keys (rk_live_/rk_test_) are the recommended kind, so matching
+  // only on `sk_` would read a live restricted key as test mode and refuse to
+  // take payments.
+  const secretIsLive = /^[sr]k_live/.test(secretKey);
+  const publishableIsLive = publishable.startsWith("pk_live");
+
+  if (secretIsLive !== publishableIsLive) {
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message:
+        "Payment service is misconfigured: the Stripe secret and publishable keys are for different modes (live vs test).",
+    });
+  }
+};
+
 async function getStripe(): Promise<Stripe | null> {
   const key = process.env.STRIPE_SECRET_KEY;
 
@@ -121,6 +149,8 @@ export const stripeRouter = createTRPCRouter({
         return { url: mockUrl };
       }
 
+      assertKeyModesMatch(stripeKey);
+
       const stripe = await getStripe();
       if (!stripe) {
         throw new TRPCError({
@@ -132,7 +162,9 @@ export const stripeRouter = createTRPCRouter({
 
       try {
         const session = await stripe.checkout.sessions.create({
-          payment_method_types: ["card"],
+          // No payment_method_types on purpose: pinning it to card disables
+          // dynamic payment methods, so anything enabled in the Dashboard
+          // (Link, Cash App, wallets) never appears at checkout.
           line_items: [
             {
               price_data: {
@@ -214,6 +246,8 @@ export const stripeRouter = createTRPCRouter({
         };
       }
 
+      assertKeyModesMatch(stripeKey);
+
       const stripe = await getStripe();
       if (!stripe) {
         throw new TRPCError({
@@ -261,6 +295,8 @@ export const stripeRouter = createTRPCRouter({
   confirmMembershipAfterPayment: protectedProcedure
     .input(z.object({ paymentIntentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      // No key-mode check here: this path hands no publishable key to the
+      // client, so the two cannot disagree.
       const stripe = await getStripe();
       if (!stripe) {
         throw new TRPCError({
@@ -414,6 +450,156 @@ export const stripeRouter = createTRPCRouter({
    *
    * that matches their email (auto-link scenario)
    */
+  /**
+   * Recovers membership payments Stripe took but this app never recorded.
+   *
+   * The portal flow records a charge by having the browser call
+   * confirmMembershipAfterPayment once the card clears. If that call never
+   * lands — tab closed, connection dropped, instance restarted — the money is
+   * gone and nothing here knows about it. The webhook is the usual backstop,
+   * but it only fires if the endpoint is subscribed to
+   * payment_intent.succeeded, which is Dashboard configuration rather than
+   * code and therefore not something this repo can guarantee.
+   *
+   * So the portal asks Stripe directly: any succeeded membership intent
+   * carrying this user's id that has no row here is recorded and granted now.
+   * Safe to call on every load — it is keyed on the PaymentIntent id and does
+   * nothing when everything is already reconciled.
+   */
+  reconcileMyPayments: protectedProcedure.mutation(async ({ ctx }) => {
+    const stripe = await getStripe();
+    if (!stripe) return { recovered: 0 };
+
+    const user = await ctx.db!.query.users.findFirst({
+      where: eq(users.id, ctx.userId!),
+    });
+
+    let found;
+    try {
+      // Scoped by metadata to this user, so it can only ever recover their own
+      // payments. Stripe's search index lags writes by up to a minute, which is
+      // fine for a backstop — the direct confirm call is the fast path.
+      found = await stripe.paymentIntents.search({
+        query: `metadata['userId']:'${ctx.userId}' AND status:'succeeded'`,
+        limit: 20,
+      });
+    } catch {
+      // Search is unavailable on some accounts/versions; a failed backstop
+      // must not break the page that called it.
+      return { recovered: 0 };
+    }
+
+    let recovered = 0;
+
+    for (const pi of found.data) {
+      if (pi.metadata?.type !== "membership") continue;
+      if (pi.metadata?.userId !== ctx.userId) continue;
+      // Same ceiling the webhook applies, so the two paths cannot disagree
+      // about which charges are memberships.
+      if (pi.amount > 10000) continue;
+
+      const existing = await ctx.db!.query.stripePayments.findFirst({
+        where: eq(stripePayments.stripePaymentIntentId, pi.id),
+      });
+
+      /**
+       * A row that exists but was never linked is exactly the half-finished
+       * state this is here to repair — treating "row exists" as "done" would
+       * strand it. Claim it and grant the membership instead.
+       */
+      if (existing) {
+        if (existing.linkedUserId) continue;
+
+        await ctx.db!.transaction(async (tx) => {
+          const claimed = await tx
+            .update(stripePayments)
+            .set({
+              linkedUserId: ctx.userId!,
+              linkedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(stripePayments.id, existing.id),
+                isNull(stripePayments.linkedUserId),
+              ),
+            );
+
+          if (claimed.rowCount === 0) return;
+
+          const parts = (user?.name || "Member").trim().split(/\s+/);
+          await createOrUpdateMembership(
+            tx as unknown as DrizzleDB,
+            ctx.userId!,
+            parts[0] || "Member",
+            parts.slice(1).join(" ") || "Member",
+          );
+          recovered += 1;
+        });
+        continue;
+      }
+
+      const { firstName, lastName } = (() => {
+        const parts = (user?.name || "Member").trim().split(/\s+/);
+        return {
+          firstName: parts[0] || "Member",
+          lastName: parts.slice(1).join(" ") || "Member",
+        };
+      })();
+
+      try {
+        await ctx.db!.transaction(async (tx) => {
+          // Same synthetic session id the confirm path and the webhook use, so
+          // the unique on stripeSessionId settles any race between the three.
+          const inserted = await tx
+            .insert(stripePayments)
+            .values({
+              stripeSessionId: `pi_${pi.id}`,
+              stripeCustomerId:
+                typeof pi.customer === "string"
+                  ? pi.customer
+                  : (pi.customer?.id ?? ""),
+              stripePaymentIntentId: pi.id,
+              customerEmail: (
+                pi.receipt_email ??
+                user?.email ??
+                ""
+              ).toLowerCase(),
+              customerName: user?.name ?? "Member",
+              amountTotal: pi.amount,
+              currency: pi.currency,
+              paymentStatus: "paid",
+              linkedUserId: ctx.userId!,
+              linkedAt: new Date(),
+              metadata: JSON.stringify(pi.metadata ?? {}),
+            })
+            .onConflictDoNothing({ target: stripePayments.stripeSessionId })
+            .returning({ id: stripePayments.id });
+
+          if (inserted.length === 0) return;
+
+          await createOrUpdateMembership(
+            tx as unknown as DrizzleDB,
+            ctx.userId!,
+            firstName,
+            lastName,
+          );
+          recovered += 1;
+        });
+      } catch (error) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `Payment reconcile failed: ${error}`,
+        });
+      }
+    }
+
+    if (recovered > 0) clearMembershipCaches(ctx.cache, ctx.userId!);
+
+    return { recovered };
+  }),
+
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db!.query.users.findFirst({
       where: eq((await import("@query/db")).users.id, ctx.userId!),
