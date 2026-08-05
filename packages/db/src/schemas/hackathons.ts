@@ -8,8 +8,10 @@ import {
   json,
   index,
   unique,
+  uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 
@@ -190,6 +192,13 @@ export const hackathonProjects = pgTable(
     teamId: uuid("team_id").references(() => hackathonTeams.id, {
       onDelete: "cascade",
     }),
+    // Who filed it. A solo entry has no team, so without this nothing links the
+    // row back to its author and a resubmit cannot find the project to update —
+    // it either files a duplicate or gets refused outright.
+    submittedById: uuid("submitted_by_id").references(
+      () => hackathonParticipants.id,
+      { onDelete: "set null" },
+    ),
     name: text("name").notNull(),
     description: text("description").notNull(),
     technologies: text("technologies").array(),
@@ -216,6 +225,18 @@ export const hackathonProjects = pgTable(
     index("project_hackathon_id_idx").on(table.hackathonId),
     index("project_team_id_idx").on(table.teamId),
     index("project_status_idx").on(table.status),
+    // One solo entry per person per hackathon, enforced where two concurrent
+    // submits would otherwise both insert. Restricted to solo rows so a captain
+    // filing for their team is unaffected.
+    uniqueIndex("project_solo_submitter_idx")
+      .on(table.hackathonId, table.submittedById)
+      .where(sql`${table.teamId} is null`),
+    // The team half of the same rule. submitProject decides insert-vs-update
+    // from a read, so two concurrent submits by a captain would otherwise both
+    // insert and the team would end up with two entries.
+    uniqueIndex("project_team_submission_idx")
+      .on(table.hackathonId, table.teamId)
+      .where(sql`${table.teamId} is not null`),
   ],
 );
 
@@ -298,9 +319,7 @@ export const hackathonEventAttendees = pgTable(
     eventId: uuid("event_id")
       .notNull()
       .references(() => hackathonEvents.id, { onDelete: "cascade" }),
-    participantId: uuid("participant_id")
-      .notNull()
-      .references(() => hackathonParticipants.id, { onDelete: "cascade" }),
+    participantId: uuid("participant_id").notNull(),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
   },
   (table) => [
@@ -308,6 +327,14 @@ export const hackathonEventAttendees = pgTable(
     index("event_attendee_participant_id_idx").on(table.participantId),
     // Prevent duplicate check-ins
     unique("unique_event_participant").on(table.eventId, table.participantId),
+    // Named explicitly: the generated name is 67 chars, Postgres truncates it
+    // to 63, and drizzle then sees a diff on every push and re-creates the
+    // constraint forever.
+    foreignKey({
+      name: "event_attendee_participant_id_fk",
+      columns: [table.participantId],
+      foreignColumns: [hackathonParticipants.id],
+    }).onDelete("cascade"),
   ],
 );
 

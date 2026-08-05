@@ -3,6 +3,8 @@
  * Provides comprehensive security headers for API responses
  */
 
+import { resolveClientIp } from "./security";
+
 export interface SecurityHeaders {
   "X-Content-Type-Options": string;
   "X-Frame-Options": string;
@@ -127,8 +129,8 @@ export function getClientIp(request: Request): string {
   // Check X-Forwarded-For header (from proxies/load balancers)
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
-    // Take the first IP in the chain
-    return forwardedFor.split(",")[0]?.trim() || "unknown";
+    // From the right, not the left: the leading entries are caller-supplied.
+    return resolveClientIp(forwardedFor);
   }
 
   // Check X-Real-IP header

@@ -8,7 +8,6 @@ The central monorepo for club operations and digital infrastructure.
 | --- | --- |
 | `sites/mainweb` | Public club site |
 | `sites/hacklytics2027` | Hacklytics 2027 event site (static export) |
-| `sites/discordBot` | Discord bot |
 | `packages/db` | Drizzle schema, client, seed script |
 | `packages/api` | tRPC routers |
 | `packages/auth` | NextAuth configuration |

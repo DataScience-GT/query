@@ -1,35 +1,56 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members, hackathons } from "@query/db";
+import { stripePayments, userAccountLinks, members, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
-import { invalidatePortalContext } from "../middleware/cache";
+import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware/cache";
+import { resolveHackathonId } from "../services/portal-context";
 import type Stripe from "stripe";
 import crypto from "crypto";
 
 let stripeClient: Stripe | null | undefined;
+let stripeClientKey: string | undefined;
+
+/**
+ * Mock mode is a local-development affordance: it records a paid payment and
+ * activates a membership without any money moving. That must never be
+ * reachable from a production deploy — .env.production currently carries an
+ * `mk_` key, which would otherwise make "grant myself a paid membership" a
+ * single authenticated request to createCheckoutSession.
+ *
+ * `next build`/`next start` set NODE_ENV to production, so a deploy that still
+ * has a mock key now fails closed with "payment service unavailable" instead
+ * of handing out memberships.
+ */
+const isMockMode = (key: string | undefined): key is string =>
+  !!key && key.startsWith("mk_") && process.env.NODE_ENV !== "production";
 
 async function getStripe(): Promise<Stripe | null> {
-  if (stripeClient !== undefined) return stripeClient;
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    stripeClient = null;
-    return stripeClient;
-  }
+
+  // A mock key cannot talk to Stripe; constructing a client with it would turn
+  // every call into an opaque auth error instead of a clear outage.
+  if (key?.startsWith("mk_")) return null;
+
+  // Only a successfully constructed client is memoized, and only for the key it
+  // was built from. Previously a single call made before the environment was
+  // populated cached `null` for the lifetime of the process, so every later
+  // request returned "payment service unavailable" even once the key was
+  // present — the failure was permanent and only a restart cleared it.
+  if (!key) return null;
+  if (stripeClient && stripeClientKey === key) return stripeClient;
+
   const { default: StripeSDK } = await import("stripe");
   stripeClient = new StripeSDK(key);
+  stripeClientKey = key;
   return stripeClient;
 }
 
-function clearMembershipCaches(
-  cache: { delete: (key: string) => boolean; deletePattern: (pattern: string) => number },
-  userId: string,
-) {
-  cache.delete(`member:${userId}`);
-  cache.deletePattern(`member:status:${userId}*`);
-  invalidatePortalContext(userId);
+// Shared with the Stripe webhook so both paths evict the identical key set.
+function clearMembershipCaches(_cache: unknown, userId: string) {
+  clearMembershipCachesFor(userId);
 }
 
 export const stripeRouter = createTRPCRouter({
@@ -63,7 +84,7 @@ export const stripeRouter = createTRPCRouter({
 
       // Mock mode short-circuits before getStripe(), so a development key never
       // dynamically imports and instantiates the real Stripe SDK.
-      if (stripeKey.startsWith("mk_")) {
+      if (isMockMode(stripeKey)) {
         const sessionId = `cs_mock_${crypto.randomUUID().replace(/-/g, "")}`;
         const nameParts = (user.name || "Member").split(" ");
         const firstName = nameParts[0] || "Member";
@@ -76,7 +97,8 @@ export const stripeRouter = createTRPCRouter({
             stripePaymentIntentId: "pi_mock_123",
             customerEmail: user.email!.toLowerCase(),
             customerName: user.name || "Member",
-            amountTotal: 2500,
+            // $15.00, matching the live checkout line item and the portal UI.
+            amountTotal: 1500,
             currency: "usd",
             paymentStatus: "paid",
             linkedUserId: ctx.userId!,
@@ -121,7 +143,10 @@ export const stripeRouter = createTRPCRouter({
                     "One year membership to Data Science at Georgia Tech",
                   // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
                 },
-                unit_amount: 2500, // $15.00
+                // $15.00 — matches createPaymentIntent (1500) and the portal UI
+                // ("$15.00 / year"). This was 2500, so the hosted-checkout path
+                // charged $25 for the same membership.
+                unit_amount: 1500,
               },
               quantity: 1,
             },
@@ -159,8 +184,8 @@ export const stripeRouter = createTRPCRouter({
    */
   createPaymentIntent: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const stripe = await getStripe();
-      if (!stripe) {
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
           message: "Payment service is currently unavailable. Please try again later.",
@@ -178,13 +203,23 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Dev/mock mode
-      if (process.env.STRIPE_SECRET_KEY?.startsWith("mk_")) {
+      // Dev/mock mode short-circuits before getStripe(), matching
+      // createCheckoutSession. This previously ran *after* getStripe(), so a
+      // mock key still constructed a real Stripe SDK instance.
+      if (isMockMode(stripeKey)) {
         return {
           clientSecret: "mock_pi_secret",
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
         };
+      }
+
+      const stripe = await getStripe();
+      if (!stripe) {
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is currently unavailable. Please try again later.",
+        });
       }
 
       try {
@@ -409,8 +444,10 @@ export const stripeRouter = createTRPCRouter({
   linkAccount: protectedProcedure
     .input(
       z.object({
-        firstName: z.string().min(1).max(100),
-        lastName: z.string().min(1).max(100),
+        // Trimmed before the length check: " " passes a bare min(1) and then
+        // normalizes to empty, which the ownership check below must never see.
+        firstName: z.string().trim().min(1).max(100),
+        lastName: z.string().trim().min(1).max(100),
         email: z.string().email().max(255),
       }),
     )
@@ -425,6 +462,68 @@ export const stripeRouter = createTRPCRouter({
         });
 
         if (!payment) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message:
+              "No payment found with that email. Please check the email you used during checkout.",
+          });
+        }
+
+        /**
+         * Prove the caller is the payer. The email alone is not proof — it is
+         * the one thing about someone else's payment that is easy to know — so
+         * without this any signed-in user could take over a stranger's
+         * membership by typing their address.
+         *
+         * Either the account email matches the one that paid, or the name they
+         * typed matches the name on the payment. The second covers paying with
+         * a personal address and signing up with a school one; the first covers
+         * payments Stripe recorded without a name.
+         */
+        const account = await tx.query.users.findFirst({
+          where: eq(users.id, ctx.userId!),
+          columns: { email: true },
+        });
+
+        const normalize = (value: string) =>
+          value.toLowerCase().replace(/\s+/g, " ").trim();
+
+        const emailMatches =
+          !!account?.email &&
+          normalize(account.email) === normalize(payment.customerEmail);
+
+        /**
+         * Every word the caller gave must be a word on the payment.
+         *
+         * Whole tokens, not `includes`: the empty string is a substring of
+         * every name and a single letter is a substring of most, so a
+         * substring test turns this guard back into "knowing the email is
+         * enough". Tokenising both sides also handles compound names — a payer
+         * recorded as "Mary Jane Watson" can enter "Jane Watson" as a surname
+         * and still match, which a field-by-field comparison would reject.
+         */
+        const tokensOf = (value: string) =>
+          normalize(value).split(" ").filter(Boolean);
+
+        const paymentTokens = new Set(tokensOf(payment.customerName ?? ""));
+        const givenTokens = [
+          ...tokensOf(input.firstName),
+          ...tokensOf(input.lastName),
+        ];
+
+        const nameMatches =
+          paymentTokens.size > 0 &&
+          givenTokens.length >= 2 &&
+          givenTokens.every((token) => paymentTokens.has(token));
+
+        if (!emailMatches && !nameMatches) {
+          logSecurityEvent({
+            type: "validation_error",
+            identifier: ctx.userId ?? "unknown",
+            details: `Failed ownership check linking payment ${payment.id}`,
+          });
+          // Same message as "no payment", so this cannot be used to discover
+          // which addresses have an unclaimed payment sitting against them.
           throw new TRPCError({
             code: "NOT_FOUND",
             message:
@@ -521,19 +620,16 @@ async function createOrUpdateMembership(
   firstName: string,
   lastName: string,
 ) {
-  const latest = await db.query.hackathons.findFirst({
-    orderBy: [desc(hackathons.startDate)],
-    columns: { id: true },
-  });
+  const hackathonId = await resolveHackathonId(db);
 
-  if (!latest) {
+  if (!hackathonId) {
     throw new Error("No hackathon found for membership assignment");
   }
 
   const existingMember = await db.query.members.findFirst({
     where: and(
       eq(members.userId, userId),
-      eq(members.hackathonId, latest.id),
+      eq(members.hackathonId, hackathonId),
     ),
   });
 
@@ -556,7 +652,7 @@ async function createOrUpdateMembership(
   } else {
     await db.insert(members).values({
       userId,
-      hackathonId: latest.id,
+      hackathonId,
       firstName,
       lastName,
       memberType: "new",

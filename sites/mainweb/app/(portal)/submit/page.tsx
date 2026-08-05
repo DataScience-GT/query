@@ -32,38 +32,65 @@ function SubmitPortalContent() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [projectSubmitted, setProjectSubmitted] = useState(false);
+  // Which hackathon the form below has already been filled from, so a
+  // background refetch cannot overwrite what someone is part-way through
+  // typing.
+  const [prefilledFor, setPrefilledFor] = useState("");
 
   // Queries
   const { data: myRegs, isLoading: loadingRegs } =
     trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
 
+  // The project a submit would overwrite — the team's entry, or the solo one
+  // this participant filed. Reading it from the team alone leaves every solo
+  // hacker staring at a blank form over a live submission.
+  const mySubmission = trpc.team.mySubmission.useQuery(
+    { hackathonId: selectedHackathonId },
+    { enabled: !!session && !!selectedHackathonId },
+  );
+
   // We get the specific registration / team context based on selected hackathon
   const currentReg = myRegs?.find((r) => r.hackathonId === selectedHackathonId);
-  const hasSubmitted = currentReg?.hasSubmittedProject || projectSubmitted;
+  const hasSubmitted =
+    !!mySubmission.data || currentReg?.hasSubmittedProject || projectSubmitted;
 
   // Mutations
+  // Joining, creating or leaving a team changes which project this participant
+  // owns, so the form has to be refilled from the new one rather than keeping
+  // the old team's answers.
+  const teamChanged = () => {
+    utils.hackathon.myRegistrations.invalidate();
+    utils.team.mySubmission.invalidate();
+    setPrefilledFor("");
+    setError("");
+  };
+
   const createTeam = trpc.team.createTeam.useMutation({
     onSuccess: () => {
-      utils.hackathon.myRegistrations.invalidate();
+      teamChanged();
       setTeamName("");
-      setError("");
     },
     onError: (err) => setError(err.message),
   });
 
   const joinTeam = trpc.team.joinTeam.useMutation({
     onSuccess: () => {
-      utils.hackathon.myRegistrations.invalidate();
+      teamChanged();
       setJoinTeamId("");
-      setError("");
     },
     onError: (err) => setError(err.message),
   });
 
   const leaveTeam = trpc.team.leaveTeam.useMutation({
     onSuccess: () => {
-      utils.hackathon.myRegistrations.invalidate();
-      setError("");
+      teamChanged();
+    },
+    onError: (err) => setError(err.message),
+  });
+
+  const disbandTeam = trpc.team.disbandTeam.useMutation({
+    onSuccess: () => {
+      teamChanged();
     },
     onError: (err) => setError(err.message),
   });
@@ -71,11 +98,27 @@ function SubmitPortalContent() {
   const submitProject = trpc.team.submitProject.useMutation({
     onSuccess: () => {
       utils.hackathon.myRegistrations.invalidate();
+      utils.team.mySubmission.invalidate();
       setError("");
       setSuccessMessage(
         "Project successfully submitted to the judging pipeline!",
       );
       setProjectSubmitted(true);
+    },
+    onError: (err) => setError(err.message),
+  });
+
+  // Leaving or disbanding a team refuses while a submission stands and tells
+  // the user to withdraw it first, so there has to be a way to do that.
+  const withdrawProject = trpc.team.withdrawProject.useMutation({
+    onSuccess: () => {
+      utils.hackathon.myRegistrations.invalidate();
+      utils.team.mySubmission.invalidate();
+      setError("");
+      setProjectSubmitted(false);
+      setSuccessMessage(
+        "Submission withdrawn. It is back to draft and no longer entered for judging.",
+      );
     },
     onError: (err) => setError(err.message),
   });
@@ -89,19 +132,28 @@ function SubmitPortalContent() {
     }
   }, [myRegs, selectedHackathonId]);
 
-  // Handle initial state if we already submitted
+  // Fill the form from the existing submission, once per selected event.
+  // Clearing when there is none matters as much as filling: the form used to
+  // keep the previous event's answers after switching, so a submit could file
+  // one hackathon's project against another.
   useEffect(() => {
-    if (currentReg?.team?.projects && currentReg.team.projects.length > 0) {
-      const p = currentReg.team.projects[0];
-      if (p) {
-        setProjectName(p.name || "");
-        setProjectDesc(p.description || "");
-        setGithubUrl(p.githubUrl || "");
-        setVideoUrl(p.videoUrl || "");
-        setDemoUrl(p.demoUrl || "");
-      }
-    }
-  }, [currentReg]);
+    if (!selectedHackathonId) return;
+    if (mySubmission.isPending) return;
+    if (prefilledFor === selectedHackathonId) return;
+
+    const p = mySubmission.data;
+    setProjectName(p?.name ?? "");
+    setProjectDesc(p?.description ?? "");
+    setGithubUrl(p?.githubUrl ?? "");
+    setVideoUrl(p?.videoUrl ?? "");
+    setDemoUrl(p?.demoUrl ?? "");
+    setPrefilledFor(selectedHackathonId);
+  }, [
+    selectedHackathonId,
+    mySubmission.isPending,
+    mySubmission.data,
+    prefilledFor,
+  ]);
 
   if (status === "loading" || loadingRegs) {
     return <LoadingScreen message="Initializing Workspace..." />;
@@ -236,9 +288,29 @@ function SubmitPortalContent() {
                         </div>
 
                         {currentReg.team.captainId === session?.user?.id ? (
-                          <p className="text-xs text-accent font-mono mt-4">
-                            You are the Captain
-                          </p>
+                          <div className="mt-4 space-y-3">
+                            <p className="text-xs text-accent font-mono">
+                              You are the Captain
+                            </p>
+                            {/* leaveTeam refuses for a captain and points here;
+                                without this the captain has no way out. */}
+                            <button
+                              onClick={() => {
+                                const teamId = currentReg.team?.id;
+                                if (!teamId) return;
+                                disbandTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                  teamId,
+                                });
+                              }}
+                              disabled={disbandTeam.isPending}
+                              className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                            >
+                              {disbandTeam.isPending
+                                ? "Disbanding..."
+                                : "Disband Team"}
+                            </button>
+                          </div>
                         ) : (
                           <button
                             onClick={() =>
@@ -465,12 +537,30 @@ function SubmitPortalContent() {
                       </div>
                     </div>
 
-                    <div className="pt-6 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                    <div className="pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-4">
                       <p className="text-xs font-mono text-text-muted">
                         {hasSubmitted
                           ? "Project record exists. Resubmitting will overwrite it."
                           : "Ready for deployment."}
                       </p>
+                      {hasSubmitted && (
+                        <button
+                          type="button"
+                          disabled={withdrawProject.isPending}
+                          onClick={() => {
+                            setError("");
+                            setSuccessMessage("");
+                            withdrawProject.mutate({
+                              hackathonId: selectedHackathonId,
+                            });
+                          }}
+                          className="px-6 py-4 border border-red-500/30 text-red-400 font-mono text-xs uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                        >
+                          {withdrawProject.isPending
+                            ? "Withdrawing..."
+                            : "Withdraw Submission"}
+                        </button>
+                      )}
                       <button
                         type="submit"
                         disabled={submitProject.isPending}

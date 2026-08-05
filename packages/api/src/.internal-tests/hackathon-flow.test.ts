@@ -463,6 +463,11 @@ describe("Hackathon end-to-end flow", () => {
           return { id: PROJECT, hackathonId: HACK_A };
         if (table === "judges")
           return { id: "judge_1", userId: "judge_user", hackathonId: HACK_A };
+        // The project was routed to this judge, which is the ordinary case
+        // these tests are about; scoring something never assigned to you is
+        // covered separately in judge-edge.
+        if (table === "judgeQueue")
+          return { id: "queue_1", judgeId: "judge_1", projectId: PROJECT };
         return undefined;
       });
       return appRouter.createCaller(createMockCtx("judge_user"));
@@ -817,9 +822,13 @@ describe("Hackathon end-to-end flow", () => {
         if (table === "hackathons") return { id: HACK_A };
         if (table === "judgeQueue") {
           queueLookups += 1;
+          // judge_queue.project_id is NOT NULL, so a slot always names the
+          // project it covers. Defaulted here (overridable per test) because
+          // completeAndNext checks the slot against the project being scored.
           if (skip && queueLookups === 1)
-            return { id: QUEUE_A, hackathonId: HACK_A };
-          if (queueLookups === skip + 1) return opts.queueItem;
+            return { id: QUEUE_A, hackathonId: HACK_A, projectId: PROJECT };
+          if (queueLookups === skip + 1)
+            return opts.queueItem && { projectId: PROJECT, ...opts.queueItem };
           return opts.next;
         }
         if (table === "judgeAssignments") return undefined;

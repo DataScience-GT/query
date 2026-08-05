@@ -50,6 +50,7 @@ export default function LinkStripeAccount({
       if (data.success) {
         setSuccess(true);
         utils.member.checkStatus.invalidate();
+        invalidatePortalContext();
         onSuccess?.();
       }
     },
@@ -88,6 +89,8 @@ export default function LinkStripeAccount({
       setSuccess(true);
       setError(null);
       utils.member.checkStatus.invalidate();
+      // Sidebar and dashboard gate on portal context, not checkStatus.
+      invalidatePortalContext();
       onSuccess?.();
     },
     onError: (err) => {

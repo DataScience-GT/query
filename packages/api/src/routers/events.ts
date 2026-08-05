@@ -2,9 +2,26 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members } from "@query/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, lt, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { isAdmin } from "../middleware/procedures";
+import { resolveHackathonId } from "../services/portal-context";
+import type { DrizzleDB } from "@query/db";
+
+/**
+ * Postgres unique_violation. Drizzle wraps every driver error in a
+ * DrizzleQueryError, which carries no `code` — the pg error holding the
+ * SQLSTATE sits on `.cause` — so the chain has to be walked. Checking only the
+ * top-level object silently never matches in production.
+ */
+const isUniqueViolation = (error: unknown) => {
+  for (let cursor = error, depth = 0; cursor && depth < 5; depth++) {
+    if (typeof cursor !== "object") break;
+    if ((cursor as { code?: string }).code === "23505") return true;
+    cursor = (cursor as { cause?: unknown }).cause;
+  }
+  return false;
+};
 
 export const eventRouter = createTRPCRouter({
   create: isAdmin
@@ -175,6 +192,13 @@ export const eventRouter = createTRPCRouter({
         .where(eq(events.id, input.eventId))
         .returning();
 
+      if (!updatedEvent) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        });
+      }
+
       // Invalidate event and check-in related caches
       ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
@@ -224,17 +248,41 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          if (event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns) {
+          // The public listing stops advertising an event 24h after it starts;
+          // the door has to agree, or a photographed QR keeps admitting people
+          // long after the event is over.
+          if (event.eventDate < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "Event is full",
+              message: "Check-in for this event has closed",
             });
           }
 
+          // Every guard below reads state this transaction is about to change.
+          // Locking the event row first is what makes them hold: two scanners
+          // otherwise decide on identical snapshots, so the same badge lands
+          // twice and a capped event overshoots.
+          const [locked] = await tx
+            .select({ currentCheckIns: events.currentCheckIns })
+            .from(events)
+            .where(eq(events.id, event.id))
+            .for("update");
+
+          // One membership row per edition, so an unscoped lookup can pick a
+          // lapsed earlier year.
+          const hackathonId = await resolveHackathonId(
+            tx as unknown as DrizzleDB,
+          );
+
           const [member, existingCheckIn] = await Promise.all([
-            tx.query.members.findFirst({
-              where: eq(members.userId, ctx.userId as string),
-            }),
+            hackathonId
+              ? tx.query.members.findFirst({
+                  where: and(
+                    eq(members.userId, ctx.userId as string),
+                    eq(members.hackathonId, hackathonId),
+                  ),
+                })
+              : undefined,
             tx.query.eventCheckIns.findFirst({
               where: and(
                 eq(eventCheckIns.eventId, event.id),
@@ -250,9 +298,13 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Org events have no registration status of their own; an active
-          // membership is the equivalent gate.
-          if (!member.isActive) {
+          // isActive alone still admits a lapsed membership the portal already
+          // reports as expired.
+          if (
+            !member.isActive ||
+            !member.membershipEndDate ||
+            member.membershipEndDate <= new Date()
+          ) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message: "Your membership is not active",
@@ -266,20 +318,65 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          await Promise.all([
-            tx.insert(eventCheckIns).values({
+          // Someone already inside is a duplicate, not an extra body, so the
+          // capacity gate only applies once that is ruled out.
+          if (
+            event.maxCheckIns &&
+            locked &&
+            locked.currentCheckIns >= event.maxCheckIns
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Event is full",
+            });
+          }
+
+          // unique(event_id, user_id) is what actually settles a double tap:
+          // the read above only rules out badges already committed when this
+          // transaction began, and the loser has to read as the same conflict
+          // a sequential rescan gets rather than an unexplained failure.
+          try {
+            await tx.insert(eventCheckIns).values({
               eventId: event.id,
               userId: ctx.userId as string,
               memberId: member.id,
               checkInMethod: "qr_code",
-            }),
-            tx
-              .update(events)
-              .set({
-                currentCheckIns: sql`${events.currentCheckIns} + 1`,
-              })
-              .where(eq(events.id, event.id)),
-          ]);
+            });
+          } catch (error: unknown) {
+            if (isUniqueViolation(error)) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Already checked in",
+              });
+            }
+            throw error;
+          }
+
+          // The counter is the capacity, so the increment re-tests it in the
+          // same statement. A scanner that got past the gate above on a stale
+          // count finds no row left to claim, and throwing here takes the
+          // attendance row down with the transaction.
+          const claimed = await tx
+            .update(events)
+            .set({
+              currentCheckIns: sql`${events.currentCheckIns} + 1`,
+            })
+            .where(
+              event.maxCheckIns
+                ? and(
+                    eq(events.id, event.id),
+                    lt(events.currentCheckIns, event.maxCheckIns),
+                  )
+                : eq(events.id, event.id),
+            )
+            .returning({ id: events.id });
+
+          if (event.maxCheckIns && claimed.length === 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Event is full",
+            });
+          }
 
           // Invalidate event and related caches after successful check-in
           ctx.cache.deletePattern(`event:${event.id}`);

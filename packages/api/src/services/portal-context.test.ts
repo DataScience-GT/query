@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type * as DrizzleOrm from "drizzle-orm";
 
 vi.mock("@query/db", () => ({
   admins: { userId: "user_id", isActive: "is_active" },
@@ -7,9 +8,18 @@ vi.mock("@query/db", () => ({
   hackathons: { startDate: "start_date" },
 }));
 
-vi.mock("drizzle-orm", () => ({
+// Partial: portal-context now deep-imports the membership service, which pulls
+// in the real schema modules, and those need the rest of drizzle-orm.
+vi.mock("drizzle-orm", async (importOriginal) => ({
+  ...(await importOriginal<typeof DrizzleOrm>()),
   eq: (...args: unknown[]) => args,
   and: (...args: unknown[]) => args,
+}));
+
+// The service is deep-imported so the @query/db mock above does not cover it.
+vi.mock("@query/db/services/membership", () => ({
+  resolveCurrentHackathonId: vi.fn(async () => "hackathon_1"),
+  setMembershipChangeHandler: vi.fn(),
 }));
 
 import {

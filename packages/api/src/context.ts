@@ -1,6 +1,7 @@
 import { db } from "@query/db";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { cache } from "./middleware/cache";
+import { resolveClientIp } from "./middleware/security";
 
 type Session = {
   user?: {
@@ -54,8 +55,7 @@ export async function createContext(
     cache,
     clientIp:
       opts?.clientIp ||
-      req?.headers.get("x-forwarded-for")?.split(",")[0] ||
-      "unknown",
+      resolveClientIp(req?.headers.get("x-forwarded-for")),
     req,
   };
 }

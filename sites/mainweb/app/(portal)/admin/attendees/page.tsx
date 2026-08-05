@@ -30,10 +30,42 @@ export default function AttendeesPage() {
   }
 
   const handleDownloadCSV = () => {
-    if (selectedEvent) {
-      // CSV export logic would go here
-      // TODO: Implement CSV export logic
-    }
+    if (!attendees || attendees.length === 0) return;
+
+    const cell = (value: unknown) =>
+      `"${String(value ?? "").replace(/"/g, '""')}"`;
+
+    const rows = attendees.map((a: NonNullable<typeof attendees>[number]) =>
+      [
+        a.member ? `${a.member.firstName} ${a.member.lastName}` : a.user?.name,
+        a.user?.email,
+        a.checkInMethod,
+        a.pointsEarned,
+        a.checkedInAt ? new Date(a.checkedInAt).toISOString() : "",
+      ].map(cell),
+    );
+
+    const csv = [
+      ["Name", "Email", "Method", "Points", "Checked In At"].map(cell),
+      ...rows,
+    ]
+      .map((r) => r.join(","))
+      .join("\n");
+
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${(eventData?.title ?? "event")
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase()}_attendees.csv`;
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    // Without this the blob is retained for the lifetime of the page.
+    URL.revokeObjectURL(url);
   };
 
   return (

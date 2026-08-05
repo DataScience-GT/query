@@ -14,6 +14,7 @@ import {
 } from "@query/db";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
+import { CacheKeys } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { shuffleArray, buildCoverageQueues } from "./helpers";
 
@@ -103,6 +104,24 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // A judges row belongs to one hackathon, and isJudge authorizes against
+      // that. Assigning across editions builds a queue nobody can ever open.
+      const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
+        where: eq(judges.id, input.judgeId),
+        columns: { hackathonId: true },
+      });
+
+      if (!judge) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Judge not found" });
+      }
+
+      if (judge.hackathonId !== input.hackathonId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This judge belongs to a different hackathon",
+        });
+      }
+
       const existing = await (
         ctx.db as DrizzleDB
       ).query.judgeAssignments.findFirst({
@@ -254,6 +273,10 @@ export const judgeAdminRouter = createTRPCRouter({
 
         for (const j of input.judges) {
           try {
+            // Only rows that actually gained a judge record or a hackathon
+            // assignment count as imported.
+            let imported = false;
+
             // 1. Find or create user by email
             let user = await tx.query.users.findFirst({
               where: eq(users.email, j.email),
@@ -287,6 +310,7 @@ export const judgeAdminRouter = createTRPCRouter({
                 })
                 .returning();
               judge = newJudge as NonNullable<typeof newJudge>;
+              imported = true;
             }
 
             // 3. Assign to hackathon (skip if already assigned)
@@ -304,9 +328,11 @@ export const judgeAdminRouter = createTRPCRouter({
                 hackathonId: input.hackathonId,
                 track: j.track || null,
               });
+              imported = true;
             }
 
-            results.created++;
+            if (imported) results.created++;
+            else results.skipped++;
           } catch (e) {
             results.skipped++;
             results.errors.push(
@@ -337,6 +363,14 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // An empty CSV would reach .values([]), which Drizzle rejects.
+      // The table bounds stay numeric so this branch keeps the same response
+      // shape as a real import — widening them to `undefined` breaks the
+      // setup wizard's prop type and takes the whole site build down with it.
+      if (input.projects.length === 0) {
+        return { created: 0, startTable: 0, endTable: 0 };
+      }
+
       // Get the current max table number for this hackathon
       const maxResult = await (ctx.db as DrizzleDB)
         .select({
@@ -435,7 +469,9 @@ export const judgeAdminRouter = createTRPCRouter({
             const inTracks = p.tracks?.includes(assignment.track!) ?? false;
             const inChallenges =
               p.challenges?.includes(assignment.track!) ?? false;
-            return inTracks || inChallenges;
+            const matchCreateX =
+              assignment.track!.toLowerCase() === "createx" && !!p.isCreateX;
+            return inTracks || inChallenges || matchCreateX;
           })
         : allProjects;
 
@@ -457,9 +493,56 @@ export const judgeAdminRouter = createTRPCRouter({
       return { success: true, projectCount: projects.length };
     }),
 
+  /**
+   * Approve (or suspend) a judge. judge.register creates the row inactive and
+   * judge.create refuses once it exists, so without this a self-registered
+   * judge can never be activated by any route.
+   */
+  setActive: isAdmin
+    .input(
+      z.object({
+        judgeId: z.string().uuid(),
+        isActive: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await (ctx.db as DrizzleDB)
+        .update(judges)
+        .set({ isActive: input.isActive })
+        .where(eq(judges.id, input.judgeId))
+        .returning({ userId: judges.userId, hackathonId: judges.hackathonId });
+
+      if (!updated) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Judge not found" });
+      }
+
+      // isJudge and judge.isJudge both cache the role for 60s per user per
+      // hackathon; approval has to take effect now, not a minute from now.
+      ctx.cache.deletePattern(`${CacheKeys.judge(updated.userId)}*`);
+
+      return { success: true, isActive: input.isActive };
+    }),
+
   remove: isAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      // judgeVotes.judgeId cascades on delete, so removing a judge who has
+      // already scored would erase those scores and shift the normalization
+      // behind every ranking.
+      const existingVote = await (
+        ctx.db as DrizzleDB
+      ).query.judgeVotes.findFirst({
+        where: eq(judgeVotes.judgeId, input.judgeId),
+      });
+
+      if (existingVote) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "This judge has already submitted votes and cannot be removed without discarding them.",
+        });
+      }
+
       await (ctx.db as DrizzleDB)
         .delete(judges)
         .where(eq(judges.id, input.judgeId));
@@ -494,12 +577,28 @@ export const judgeAdminRouter = createTRPCRouter({
             message: "Hackathon not found",
           });
 
-        const MAIN_TRACKS = new Set(hackathon.tracks ?? []);
-
         const allAssignments = await tx.query.judgeAssignments.findMany({
           where: eq(judgeAssignments.hackathonId, input.hackathonId),
           with: { judge: true },
         });
+
+        // An applicant who has not been activated can never open the portal
+        // (isJudge requires judges.isActive), so a queue handed to them is
+        // coverage the event will never actually receive.
+        const activeAssignments = allAssignments.filter(
+          (a) => a.judge.isActive !== false,
+        );
+
+        // With no tracks column configured every judge label would read as a
+        // sponsor/special one and bypass the per-judge caps, so fall back to
+        // the tracks the judges themselves carry.
+        const MAIN_TRACKS = new Set(
+          hackathon.tracks?.length
+            ? hackathon.tracks
+            : activeAssignments
+                .map((a) => a.track)
+                .filter((t): t is string => !!t),
+        );
 
         const allProjects = await tx.query.judgingProjects.findMany({
           where: eq(judgingProjects.hackathonId, input.hackathonId),
@@ -510,6 +609,18 @@ export const judgeAdminRouter = createTRPCRouter({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "No projects found for this hackathon",
+          });
+        }
+
+        if (activeAssignments.length === 0) {
+          // An empty roster and a roster still awaiting approval need different
+          // remedies from the organizer, so the message has to say which it is.
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              allAssignments.length === 0
+                ? "No judges have been added to this hackathon yet"
+                : "No active judges found for this hackathon - every judge is still pending approval",
           });
         }
 
@@ -534,8 +645,9 @@ export const judgeAdminRouter = createTRPCRouter({
           const P =
             allProjects.length || Math.ceil(activeRegistrations / 4) || 1;
           const mainJudgesCount =
-            allAssignments.filter((a) => !a.track || MAIN_TRACKS.has(a.track))
-              .length || 40; // Default to 40 judges as requested
+            activeAssignments.filter(
+              (a) => !a.track || MAIN_TRACKS.has(a.track),
+            ).length || 40; // Default to 40 judges as requested
 
           // Formula: Required Grades = Max(3, Floor((Total Judges * Judging Window Hours) / (Total Projects * Avg Time Per Project)))
           // Judging Window: 3 hours. Avg Time Per Project: 12 minutes (0.2 hours).
@@ -566,7 +678,7 @@ export const judgeAdminRouter = createTRPCRouter({
         // Uses buildCoverageQueues to guarantee every project is seen by at
         // least one judge before any project gets an extra judge. This replaces
         // the old random-slice approach which could leave some projects unseen.
-        const judgeList = allAssignments.map((a) => ({
+        const judgeList = activeAssignments.map((a) => ({
           judgeId: a.judgeId,
           track: a.track ?? null,
         }));
@@ -688,12 +800,14 @@ export const judgeAdminRouter = createTRPCRouter({
       const queueStats = await (ctx.db as DrizzleDB)
         .select({
           judgeId: judgeQueue.judgeId,
+          judgeName: judges.name,
           total: sql<number>`count(*)`,
           completed: sql<number>`sum(case when ${judgeQueue.isCompleted} then 1 else 0 end)`,
         })
         .from(judgeQueue)
+        .innerJoin(judges, eq(judges.id, judgeQueue.judgeId))
         .where(eq(judgeQueue.hackathonId, input.hackathonId))
-        .groupBy(judgeQueue.judgeId);
+        .groupBy(judgeQueue.judgeId, judges.name);
 
       const queueMap = new Map(queueStats.map((q) => [q.judgeId, q]));
 
@@ -714,15 +828,27 @@ export const judgeAdminRouter = createTRPCRouter({
 
       const round2 = (n: number) => Math.round(n * 100) / 100;
 
-      const analytics = [...byJudge.entries()].map(([judgeId, votes]) => {
+      // A judge who has a queue but has not scored anything yet is exactly the
+      // one an organizer needs to find mid-event, so drive the list from the
+      // queues as well as the votes.
+      const judgeIds = new Set([...byJudge.keys(), ...queueMap.keys()]);
+
+      const analytics = [...judgeIds].map((judgeId) => {
+        const votes = byJudge.get(judgeId) ?? ([] as typeof allVotes);
         const scores = votes.map((v) => v.score);
-        const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const mean =
+          scores.length > 0
+            ? scores.reduce((a, b) => a + b, 0) / scores.length
+            : 0;
         const variance =
-          scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
+          scores.length > 0
+            ? scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length
+            : 0;
         const std = Math.sqrt(variance);
 
         // Bias score: how far this judge's mean is from the global mean, in std units
-        const biasScore = round2((mean - globalMean) / (std || 1));
+        const biasScore =
+          scores.length > 0 ? round2((mean - globalMean) / (std || 1)) : 0;
         const biasLabel: "strict" | "neutral" | "lenient" =
           biasScore < -0.5 ? "strict" : biasScore > 0.5 ? "lenient" : "neutral";
 
@@ -740,12 +866,12 @@ export const judgeAdminRouter = createTRPCRouter({
 
         return {
           judgeId,
-          name: firstVote?.judgeName ?? "Unknown",
+          name: firstVote?.judgeName ?? qs?.judgeName ?? "Unknown",
           votesSubmitted: scores.length,
           mean: round2(mean),
           std: round2(std),
-          min: Math.min(...scores),
-          max: Math.max(...scores),
+          min: scores.length > 0 ? Math.min(...scores) : 0,
+          max: scores.length > 0 ? Math.max(...scores) : 0,
           biasScore,
           biasLabel,
           avgDurationSeconds: avgDuration > 0 ? round2(avgDuration) : null,

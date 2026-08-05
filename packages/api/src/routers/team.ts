@@ -7,7 +7,7 @@ import {
   hackathonProjects,
   hackathons,
 } from "@query/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull, inArray, lt, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
 const HOUR = 60 * 60 * 1000;
@@ -73,6 +73,45 @@ async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
   return window;
 }
 
+/**
+ * The single project row a participant owns in a hackathon: their team's entry
+ * if they are on a team, otherwise the solo entry they filed themselves. Shared
+ * by submitProject and mySubmission so the form is prefilled from exactly the
+ * row a resubmit updates — two copies of this rule drifting apart is how a
+ * resubmit ends up filing a duplicate instead of an edit.
+ */
+function ownProjectWhere(
+  hackathonId: string,
+  teamId: string | null | undefined,
+  participantId: string,
+) {
+  return and(
+    eq(hackathonProjects.hackathonId, hackathonId),
+    teamId
+      ? eq(hackathonProjects.teamId, teamId)
+      : and(
+          isNull(hackathonProjects.teamId),
+          eq(hackathonProjects.submittedById, participantId),
+        ),
+  );
+}
+
+/**
+ * Rejected and waitlisted applicants were never admitted to the hackathon, so
+ * they take no part in teams or submissions.
+ */
+function checkAdmitted(registrationStatus: string) {
+  if (
+    registrationStatus === "rejected" ||
+    registrationStatus === "waitlisted"
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `Your registration for this hackathon is ${registrationStatus}.`,
+    });
+  }
+}
+
 export const teamRouter = createTRPCRouter({
   createTeam: protectedProcedure
     .input(
@@ -85,34 +124,36 @@ export const teamRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
-      // 1. Check if user is registered for this hackathon
-      const participant = await (
-        ctx.db as NonNullable<typeof ctx.db>
-      ).query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
-      });
-
-      if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
-      }
-
-      // 2. Check if user is already in a team
-      if (participant.teamId) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You are already in a team for this hackathon.",
-        });
-      }
 
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
+            // 1. Check if user is registered for this hackathon. Read inside
+            // the transaction so a double-submit cannot both see no team.
+            const participant = await tx.query.hackathonParticipants.findFirst({
+              where: and(
+                eq(hackathonParticipants.hackathonId, input.hackathonId),
+                eq(hackathonParticipants.userId, ctx.userId as string),
+              ),
+            });
+
+            if (!participant) {
+              throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "You are not registered for this hackathon.",
+              });
+            }
+
+            checkAdmitted(participant.registrationStatus);
+
+            // 2. Check if user is already in a team
+            if (participant.teamId) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "You are already in a team for this hackathon.",
+              });
+            }
+
             // 3. Create the team
             const [newTeam] = await tx
               .insert(hackathonTeams)
@@ -126,12 +167,26 @@ export const teamRouter = createTRPCRouter({
               })
               .returning();
 
-            // 4. Update the participant's team ID
+            // 4. Claim the participant's team slot. The `teamId is null`
+            // condition is what settles a race: whoever loses it matches no row
+            // and rolls the team it just inserted back out again.
             if (newTeam) {
-              await tx
+              const claimed = await tx
                 .update(hackathonParticipants)
                 .set({ teamId: newTeam.id })
-                .where(eq(hackathonParticipants.id, participant.id));
+                .where(
+                  and(
+                    eq(hackathonParticipants.id, participant.id),
+                    isNull(hackathonParticipants.teamId),
+                  ),
+                );
+
+              if (claimed.rowCount === 0) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "You are already in a team for this hackathon.",
+                });
+              }
             }
 
             return newTeam;
@@ -157,34 +212,36 @@ export const teamRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
-      // 1. Verify user is registered for hackathon
-      const participant = await (
-        ctx.db as NonNullable<typeof ctx.db>
-      ).query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
-      });
-
-      if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
-      }
-
-      // 2. Check if already in a team
-      if (participant.teamId) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You are already in a team.",
-        });
-      }
 
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
+            // 1. Verify user is registered for hackathon. Read inside the
+            // transaction so the slot claim below settles against the same row.
+            const participant = await tx.query.hackathonParticipants.findFirst({
+              where: and(
+                eq(hackathonParticipants.hackathonId, input.hackathonId),
+                eq(hackathonParticipants.userId, ctx.userId as string),
+              ),
+            });
+
+            if (!participant) {
+              throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "You are not registered for this hackathon.",
+              });
+            }
+
+            checkAdmitted(participant.registrationStatus);
+
+            // 2. Check if already in a team
+            if (participant.teamId) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "You are already in a team.",
+              });
+            }
+
             // 3. Find the team and check capacity
             const team = await tx.query.hackathonTeams.findFirst({
               where: and(
@@ -214,17 +271,47 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
-            // 4. Join the team
-            await tx
+            // 4. Join the team. The `teamId is null` condition carries the
+            // check above into the write, so a racing join loses here instead
+            // of quietly moving the user off the team it already seated them on.
+            const joined = await tx
               .update(hackathonParticipants)
               .set({ teamId: team.id })
-              .where(eq(hackathonParticipants.id, participant.id));
+              .where(
+                and(
+                  eq(hackathonParticipants.id, participant.id),
+                  isNull(hackathonParticipants.teamId),
+                ),
+              );
 
-            // 5. Increment team member count
-            await tx
+            if (joined.rowCount === 0) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "You are already in a team.",
+              });
+            }
+
+            // 5. Take the seat. The count read above is a snapshot, so the
+            // increment carries the capacity test with it: whoever loses a
+            // race for the last seat updates no row and is turned away.
+            const seated = await tx
               .update(hackathonTeams)
-              .set({ currentMembers: team.currentMembers + 1 })
-              .where(eq(hackathonTeams.id, team.id));
+              .set({
+                currentMembers: sql`${hackathonTeams.currentMembers} + 1`,
+              })
+              .where(
+                and(
+                  eq(hackathonTeams.id, team.id),
+                  lt(hackathonTeams.currentMembers, hackathonTeams.maxMembers),
+                ),
+              );
+
+            if (seated.rowCount === 0) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "This team is full.",
+              });
+            }
 
             return { success: true };
           },
@@ -292,6 +379,20 @@ export const teamRouter = createTRPCRouter({
             // If captain is the only one left, they can "leave" which deletes the team
             if (team.captainId === (ctx.userId as string)) {
               if (team.currentMembers <= 1) {
+                const project = await tx.query.hackathonProjects.findFirst({
+                  where: eq(hackathonProjects.teamId, team.id),
+                });
+
+                // Disbanding takes the team's project with it, so a submission
+                // has to be withdrawn deliberately, not as a side effect.
+                if (project && project.status !== "draft") {
+                  throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message:
+                      "Your team has a submitted project. It must be withdrawn before you can leave.",
+                  });
+                }
+
                 // Delete team projects first
                 await tx
                   .delete(hackathonProjects)
@@ -308,23 +409,41 @@ export const teamRouter = createTRPCRouter({
                 return { success: true, message: "Team disbanded." };
               }
 
+              // Names only what exists. There is no ownership transfer, and
+              // telling a stuck captain to do something the product cannot do
+              // leaves them with no move at all.
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message:
-                  "The captain cannot leave a multi-member team. You must disband it or transfer ownership.",
+                  "The captain cannot leave a team that still has other members. Disband the team, or ask a teammate to leave first.",
               });
             }
 
-            // 1. Remove user from team
-            await tx
+            // 1. Give up the seat. The `teamId = team.id` condition makes a
+            // second Leave match no row instead of decrementing twice.
+            const left = await tx
               .update(hackathonParticipants)
               .set({ teamId: null })
-              .where(eq(hackathonParticipants.id, participant.id));
+              .where(
+                and(
+                  eq(hackathonParticipants.id, participant.id),
+                  eq(hackathonParticipants.teamId, team.id),
+                ),
+              );
 
-            // 2. Decrement team member count
+            // Already out; idempotent for the caller, but must not decrement.
+            if (left.rowCount === 0) {
+              return { success: true };
+            }
+
+            // 2. Decrement, computed by the database so a concurrent join is
+            // not overwritten. Drifting low to 1 makes the captain branch above
+            // delete the team and its project with members still on it.
             await tx
               .update(hackathonTeams)
-              .set({ currentMembers: Math.max(0, team.currentMembers - 1) })
+              .set({
+                currentMembers: sql`greatest(${hackathonTeams.currentMembers} - 1, 0)`,
+              })
               .where(eq(hackathonTeams.id, team.id));
 
             return { success: true };
@@ -349,7 +468,21 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+      const window = await checkTeamEditWindow(
+        ctx.db as DrizzleDB,
+        input.hackathonId,
+      );
+
+      // Disbanding empties a roster just as leaving does, so it shuts at the
+      // same lock.
+      if (!window.canLeave) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Teams are locked. You cannot disband a team within 12 hours of the project deadline.",
+        });
+      }
+
       const team = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.hackathonTeams.findFirst({
@@ -371,6 +504,20 @@ export const teamRouter = createTRPCRouter({
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
+            const project = await tx.query.hackathonProjects.findFirst({
+              where: eq(hackathonProjects.teamId, team.id),
+            });
+
+            // Disbanding takes the team's project with it, so a submission has
+            // to be withdrawn deliberately, not as a side effect.
+            if (project && project.status !== "draft") {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message:
+                  "Your team has a submitted project. It must be withdrawn before you can disband the team.",
+              });
+            }
+
             // 1. Remove all members
             await tx
               .update(hackathonParticipants)
@@ -449,6 +596,8 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
+      checkAdmitted(participant.registrationStatus);
+
       // 1.5. Verify hackathon is not past the submission window
       const hackathon = await (
         ctx.db as NonNullable<typeof ctx.db>
@@ -460,6 +609,13 @@ export const teamRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Hackathon not found.",
+        });
+      }
+
+      if (hackathon.status === "cancelled") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This hackathon has been cancelled.",
         });
       }
 
@@ -489,61 +645,62 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      // Fetch existing project to check for edit restrictions
-      let existingProject;
-      if (input.teamId) {
-        existingProject = await (
-          ctx.db as NonNullable<typeof ctx.db>
-        ).query.hackathonProjects.findFirst({
-          where: and(
-            eq(hackathonProjects.hackathonId, input.hackathonId),
-            eq(hackathonProjects.teamId, input.teamId),
-          ),
-        });
-      }
-
-      if (existingProject && now > devpostFinalDeadline) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
-        });
-      }
-
-      // Validate team ownership to prevent IDOR attacks
-      // Use teamId from participant record instead of nested team object
-      if (input.teamId) {
-        // Verify team belongs to this hackathon
-        const team = await (
-          ctx.db as NonNullable<typeof ctx.db>
-        ).query.hackathonTeams.findFirst({
-          where: and(
-            eq(hackathonTeams.id, input.teamId),
-            eq(hackathonTeams.hackathonId, input.hackathonId),
-          ),
-        });
-
-        if (!team) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Team not found for this hackathon.",
-          });
-        }
-
-        // Verify captain ownership using teamId comparison (not nested object)
-        if (team.captainId !== (ctx.userId as string)) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only the team captain can submit the project.",
-          });
-        }
-      } else {
-        // No team ID provided - solo submission (participant is already in the team)
-      }
+      // Someone who is on a team always submits as that team, whether or not
+      // the client sent the id along.
+      const teamId = input.teamId ?? participant.teamId ?? undefined;
 
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
+            // Fetch existing project to check for edit restrictions. Read
+            // inside the transaction, since the update-or-insert decision below
+            // turns on it.
+            // A solo entry is found by its author, exactly as a team entry is
+            // found by its team, so editing a submission works the same either
+            // way instead of filing a second row or being refused.
+            const existingProject = await tx.query.hackathonProjects.findFirst({
+              where: ownProjectWhere(
+                input.hackathonId,
+                teamId,
+                participant.id,
+              ),
+            });
+
+            if (existingProject && now > devpostFinalDeadline) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message:
+                  "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+              });
+            }
+
+            // Validate team ownership to prevent IDOR attacks
+            // Use teamId from participant record instead of nested team object
+            if (teamId) {
+              // Verify team belongs to this hackathon
+              const team = await tx.query.hackathonTeams.findFirst({
+                where: and(
+                  eq(hackathonTeams.id, teamId),
+                  eq(hackathonTeams.hackathonId, input.hackathonId),
+                ),
+              });
+
+              if (!team) {
+                throw new TRPCError({
+                  code: "NOT_FOUND",
+                  message: "Team not found for this hackathon.",
+                });
+              }
+
+              // Verify captain ownership using teamId comparison (not nested object)
+              if (team.captainId !== (ctx.userId as string)) {
+                throw new TRPCError({
+                  code: "FORBIDDEN",
+                  message: "Only the team captain can submit the project.",
+                });
+              }
+            }
+
             // We clean up empty strings to be null
             const githubUrl =
               input.githubUrl === "" ? undefined : input.githubUrl;
@@ -576,7 +733,8 @@ export const teamRouter = createTRPCRouter({
                 .insert(hackathonProjects)
                 .values({
                   hackathonId: input.hackathonId,
-                  teamId: input.teamId,
+                  teamId,
+                  submittedById: participant.id,
                   name: input.name,
                   description: input.description,
                   technologies: input.technologies || [],
@@ -614,6 +772,90 @@ export const teamRouter = createTRPCRouter({
       }
     }),
 
+  /**
+   * Puts a submission back to draft.
+   *
+   * disbandTeam and the sole-captain branch of leaveTeam both refuse while a
+   * submitted project exists and tell the user it "must be withdrawn first".
+   * Nothing could do that — submitProject is the only writer and always writes
+   * "submitted" — so that instruction named an action the product did not have
+   * and the two flows were simply dead ends.
+   */
+  withdrawProject: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .mutation(async ({ ctx, input }) => {
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+
+      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
+        async (tx) => {
+          const participant = await tx.query.hackathonParticipants.findFirst({
+            where: and(
+              eq(hackathonParticipants.hackathonId, input.hackathonId),
+              eq(hackathonParticipants.userId, ctx.userId as string),
+            ),
+          });
+
+          if (!participant) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "You are not registered for this hackathon.",
+            });
+          }
+
+          const project = await tx.query.hackathonProjects.findFirst({
+            where: ownProjectWhere(
+              input.hackathonId,
+              participant.teamId,
+              participant.id,
+            ),
+          });
+
+          if (!project) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "You do not have a submitted project.",
+            });
+          }
+
+          // Only the captain files or withdraws on a team's behalf, matching
+          // the rule submitProject already applies.
+          if (participant.teamId) {
+            const team = await tx.query.hackathonTeams.findFirst({
+              where: eq(hackathonTeams.id, participant.teamId),
+            });
+            if (team && team.captainId !== (ctx.userId as string)) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the team captain can withdraw the project.",
+              });
+            }
+          }
+
+          // Once judging has it, withdrawing would pull a project out from
+          // under scores that already reference it.
+          if (project.status === "judging" || project.status === "winner") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "Judging has started for this project. Ask an organiser if it needs to be pulled.",
+            });
+          }
+
+          await tx
+            .update(hackathonProjects)
+            .set({ status: "draft", submittedAt: null })
+            .where(eq(hackathonProjects.id, project.id));
+
+          await tx
+            .update(hackathonParticipants)
+            .set({ hasSubmittedProject: false })
+            .where(eq(hackathonParticipants.id, participant.id));
+
+          return { success: true };
+        },
+      );
+    }),
+
   /** Lets the UI disable team actions instead of letting the mutation fail. */
   window: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
@@ -633,10 +875,14 @@ export const teamRouter = createTRPCRouter({
             columns: { id: true, name: true, image: true },
           },
           participants: {
+            // Same rule as the public hackathon.getTeams roster: any signed-in
+            // caller can read every team here, so it carries neither the
+            // decision made on each application — registrationStatus names
+            // everyone rejected or waitlisted — nor the participant id, which
+            // is the entire content of that participant's event pass QR.
+            // userId identifies the captain and keys the list.
             columns: {
-              id: true,
               userId: true,
-              registrationStatus: true,
             },
             with: {
               user: {
@@ -650,4 +896,77 @@ export const teamRouter = createTRPCRouter({
 
       return teams;
     }),
+
+  /**
+   * The one project the caller owns in a hackathon, so the submission form can
+   * be filled from exactly the record a resubmit would overwrite. Without this
+   * a solo hacker sees a blank form over a live submission, and saving a typo
+   * fix silently wipes the links they had already filed.
+   */
+  mySubmission: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const participant = await db.query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
+          eq(hackathonParticipants.userId, ctx.userId as string),
+        ),
+        columns: { id: true, teamId: true },
+      });
+
+      if (!participant) return null;
+
+      const project = await db.query.hackathonProjects.findFirst({
+        where: ownProjectWhere(
+          input.hackathonId,
+          participant.teamId,
+          participant.id,
+        ),
+        // submittedById is a participant id — a pass QR — and for a team entry
+        // it belongs to the captain rather than the caller.
+        columns: { submittedById: false },
+      });
+
+      return project ?? null;
+    }),
+
+  /**
+   * Every project the caller owns, across hackathons. Reading these off the
+   * team relation alone leaves a solo hacker's submissions invisible.
+   */
+  myProjects: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+
+    const participants = await db.query.hackathonParticipants.findMany({
+      where: eq(hackathonParticipants.userId, ctx.userId as string),
+      columns: { id: true, teamId: true },
+    });
+
+    const teamIds = participants
+      .map((p) => p.teamId)
+      .filter((id): id is string => !!id);
+    const soloIds = participants.filter((p) => !p.teamId).map((p) => p.id);
+
+    // No filter would mean "every project in the platform", so bail first.
+    if (teamIds.length === 0 && soloIds.length === 0) return [];
+
+    return await db.query.hackathonProjects.findMany({
+      where: or(
+        teamIds.length
+          ? inArray(hackathonProjects.teamId, teamIds)
+          : undefined,
+        soloIds.length
+          ? and(
+              isNull(hackathonProjects.teamId),
+              inArray(hackathonProjects.submittedById, soloIds),
+            )
+          : undefined,
+      ),
+      columns: { submittedById: false },
+      with: { team: { columns: { id: true, name: true } } },
+      orderBy: (projects, { desc }) => [desc(projects.submittedAt)],
+    });
+  }),
 });

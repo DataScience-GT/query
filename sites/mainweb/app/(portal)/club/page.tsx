@@ -122,6 +122,10 @@ export default function ClubPage() {
       await checkInMutation.mutateAsync({ qrCode: scannedData });
     } catch (error) {
       console.error("Check-in error:", error);
+    } finally {
+      // Re-arm for the next code; otherwise the scanner takes one per load.
+      setIsProcessing(false);
+      setIsPaused(false);
     }
   };
 
