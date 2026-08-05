@@ -18,10 +18,12 @@ function CheckoutForm({
   onSuccess,
   onCancel,
   onConfirmPayment,
+  onUnconfirmed,
 }: {
   onSuccess: () => void;
   onCancel: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
+  onUnconfirmed: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -82,6 +84,7 @@ function CheckoutForm({
         setProcessing(false);
         setTimeout(() => onSuccess(), 1200);
       } catch {
+        onUnconfirmed();
         // Deliberately reassuring: the payment succeeded, and both the webhook
         // and the reconcile-on-load path will pick it up. Telling someone
         // "contact support" about money they have already paid, when it will
@@ -188,6 +191,7 @@ interface StripePaymentModalProps {
   onSuccess: () => void;
   onClose: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
+  onUnconfirmed?: () => void;
 }
 
 export function StripePaymentModal({
@@ -197,6 +201,7 @@ export function StripePaymentModal({
   onSuccess,
   onClose,
   onConfirmPayment,
+  onUnconfirmed,
 }: StripePaymentModalProps) {
   const [stripePromise, setStripePromise] =
     useState<Promise<Stripe | null> | null>(null);
@@ -310,6 +315,7 @@ export function StripePaymentModal({
           onSuccess={onSuccess}
           onCancel={onClose}
           onConfirmPayment={onConfirmPayment}
+          onUnconfirmed={onUnconfirmed ?? (() => {})}
         />
       </Elements>
     </ModalShell>

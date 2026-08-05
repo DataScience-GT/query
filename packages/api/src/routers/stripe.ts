@@ -494,11 +494,50 @@ export const stripeRouter = createTRPCRouter({
     for (const pi of found.data) {
       if (pi.metadata?.type !== "membership") continue;
       if (pi.metadata?.userId !== ctx.userId) continue;
+      // Same ceiling the webhook applies, so the two paths cannot disagree
+      // about which charges are memberships.
+      if (pi.amount > 10000) continue;
 
       const existing = await ctx.db!.query.stripePayments.findFirst({
         where: eq(stripePayments.stripePaymentIntentId, pi.id),
       });
-      if (existing) continue;
+
+      /**
+       * A row that exists but was never linked is exactly the half-finished
+       * state this is here to repair — treating "row exists" as "done" would
+       * strand it. Claim it and grant the membership instead.
+       */
+      if (existing) {
+        if (existing.linkedUserId) continue;
+
+        await ctx.db!.transaction(async (tx) => {
+          const claimed = await tx
+            .update(stripePayments)
+            .set({
+              linkedUserId: ctx.userId!,
+              linkedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(stripePayments.id, existing.id),
+                isNull(stripePayments.linkedUserId),
+              ),
+            );
+
+          if (claimed.rowCount === 0) return;
+
+          const parts = (user?.name || "Member").trim().split(/\s+/);
+          await createOrUpdateMembership(
+            tx as unknown as DrizzleDB,
+            ctx.userId!,
+            parts[0] || "Member",
+            parts.slice(1).join(" ") || "Member",
+          );
+          recovered += 1;
+        });
+        continue;
+      }
 
       const { firstName, lastName } = (() => {
         const parts = (user?.name || "Member").trim().split(/\s+/);
