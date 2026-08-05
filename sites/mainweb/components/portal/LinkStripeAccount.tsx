@@ -6,6 +6,12 @@ import { trpc } from "@/lib/trpc";
 import { useInvalidatePortalContext } from "@/lib/use-portal-context";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { CreditCard, Link as LinkIcon } from "lucide-react";
+import {
+  MEMBERSHIP_CENTS,
+  BOOTCAMP_ADDON_CENTS,
+  priceForCents,
+  formatCents,
+} from "@query/api/pricing";
 
 const StripePaymentModal = dynamic(
   () =>
@@ -30,6 +36,7 @@ export default function LinkStripeAccount({
     email: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [wantsBootcamp, setWantsBootcamp] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -118,7 +125,7 @@ export default function LinkStripeAccount({
 
   const handleOpenModal = () => {
     setError(null);
-    createIntentMutation.mutate();
+    createIntentMutation.mutate({ bootcamp: wantsBootcamp });
   };
 
   const handlePaymentSuccess = () => {
@@ -317,12 +324,28 @@ export default function LinkStripeAccount({
             </div>
           </div>
 
-          <p className="text-sm text-[var(--text-muted)] mb-6 leading-relaxed">
+          <p className="text-sm text-[var(--text-muted)] mb-4 leading-relaxed">
             Membership verification required for portal access.{" "}
             <span className="font-bold text-[var(--text-primary)]">
-              $15.00 / year
+              {formatCents(MEMBERSHIP_CENTS)} / year
             </span>
           </p>
+
+          {/* Add-on, priced from the same constants the server charges from. */}
+          <label className="flex items-start gap-3 mb-6 p-3 rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] cursor-pointer hover:border-[var(--border-medium)] transition-ui">
+            <input
+              type="checkbox"
+              checked={wantsBootcamp}
+              onChange={(e) => setWantsBootcamp(e.target.checked)}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span className="text-xs text-[var(--text-muted)] leading-relaxed">
+              <span className="font-bold text-[var(--text-primary)]">
+                Add Bootcamp access
+              </span>{" "}
+              — {formatCents(BOOTCAMP_ADDON_CENTS)} more, charged together.
+            </span>
+          </label>
 
           <div className="mt-auto space-y-2.5">
             {/* Primary: open Stripe modal */}
@@ -340,7 +363,7 @@ export default function LinkStripeAccount({
               ) : (
                 <>
                   <CreditCard className="w-3.5 h-3.5" />
-                  Pay Membership Dues ($15)
+                  Pay Membership Dues ({formatCents(priceForCents(wantsBootcamp))})
                 </>
               )}
             </button>
@@ -375,6 +398,7 @@ export default function LinkStripeAccount({
             await confirmMutation.mutateAsync({ paymentIntentId });
           }}
           onUnconfirmed={handlePaymentUnconfirmed}
+          amountCents={priceForCents(wantsBootcamp)}
           onClose={() => {
             setShowModal(false);
             setPaymentData(null);
