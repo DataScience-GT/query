@@ -55,6 +55,11 @@ const initiativeTones: Record<
   InitiativeState,
   { label: string; className: string }
 > = {
+  proposed: {
+    label: "Waiting on review",
+    className: "bg-sky-500/15 text-sky-300",
+  },
+  declined: { label: "Not approved", className: "bg-white/5 text-white/50" },
   draft: { label: "Draft", className: "bg-white/10 text-white/60" },
   open: {
     label: "Taking applications",

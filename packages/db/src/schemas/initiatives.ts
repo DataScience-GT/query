@@ -55,9 +55,29 @@ export const projectLeaders = pgTable(
 
 export type ProjectLeader = typeof projectLeaders.$inferSelect;
 
-/** draft is invisible to members, open takes applications, closed stops them. */
-export const initiativeStatuses = ["draft", "open", "closed"] as const;
+/**
+ * The whole lifecycle, including the one a member starts.
+ *
+ * A member with no leader role proposes an initiative; it sits at `proposed`
+ * until an admin reviews it. Approving moves it to `draft` and grants the
+ * proposer the leader role, so they finish writing it and open it themselves —
+ * approval never publishes a half-written page to members. Declining parks it
+ * at `declined` with a note the proposer can read.
+ *
+ * Only `open` is ever visible to members. An existing leader skips the first
+ * two states entirely and creates straight into `draft`.
+ */
+export const initiativeStatuses = [
+  "proposed",
+  "declined",
+  "draft",
+  "open",
+  "closed",
+] as const;
 export type InitiativeStatus = (typeof initiativeStatuses)[number];
+
+/** What a leader may set directly — the review states are not theirs to pick. */
+export const leaderSettableStatuses = ["draft", "open", "closed"] as const;
 
 /**
  * No accepted-seat counter here on purpose: every writer takes a row lock on
@@ -87,6 +107,13 @@ export const initiatives = pgTable(
     /** Null means uncapped. Zero would be an initiative nobody can join. */
     maxMembers: integer("max_members"),
     archivedAt: timestamp("archived_at"),
+    /** Set when an admin approves or declines a proposal. */
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedById: text("reviewed_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** The admin's note back to the proposer, shown on a decline. */
+    reviewNote: text("review_note"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

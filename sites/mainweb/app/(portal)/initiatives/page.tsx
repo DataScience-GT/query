@@ -8,13 +8,166 @@ import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   ApplicationChip,
+  InitiativeChip,
+  initiativeState,
   seatLabel,
 } from "@/components/portal/initiatives/chips";
+import {
+  InitiativeFields,
+  emptyDraft,
+  toInput,
+} from "@/components/portal/initiatives/form-fields";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@query/api";
 
 type OpenInitiative = RouterOutputs["initiative"]["list"][number];
 type MyApplication = RouterOutputs["initiative"]["myApplications"][number];
+type MyProposal = RouterOutputs["initiative"]["myProposals"][number];
+
+/**
+ * Proposing something to run, rather than joining something that exists.
+ *
+ * An admin reviews it; approving turns the proposal into a draft initiative
+ * and makes the proposer a project leader, so this is the one place a member
+ * can earn that role.
+ */
+function ProposeSection({ canPropose }: { canPropose: boolean }) {
+  const utils = trpc.useUtils();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft);
+
+  const propose = trpc.initiative.propose.useMutation({
+    onSuccess: async () => {
+      setOpen(false);
+      setDraft(emptyDraft);
+      await utils.initiative.myProposals.invalidate();
+    },
+  });
+
+  if (!canPropose) return null;
+
+  if (!open) {
+    return (
+      <LiquidGlass className="mb-10 flex flex-wrap items-center justify-between gap-4 p-5">
+        <div>
+          <p className="font-semibold text-white">Got something to build?</p>
+          <p className="mt-1 text-sm text-white/60">
+            Pitch it. If it is approved you become its project leader and pick
+            who joins.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="shrink-0 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+        >
+          Propose an initiative
+        </button>
+      </LiquidGlass>
+    );
+  }
+
+  return (
+    <LiquidGlass className="mb-10 p-5">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          propose.mutate(toInput(draft));
+        }}
+      >
+        <h2 className="mb-4 font-semibold text-white">Propose an initiative</h2>
+        <InitiativeFields draft={draft} onChange={setDraft} />
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={propose.isPending}
+            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+          >
+            {propose.isPending ? "Sending..." : "Send for review"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              propose.reset();
+            }}
+            className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+          >
+            Cancel
+          </button>
+        </div>
+
+        {propose.error && (
+          <p aria-live="polite" className="mt-3 text-sm text-red-300">
+            {propose.error.message}
+          </p>
+        )}
+      </form>
+    </LiquidGlass>
+  );
+}
+
+function ProposalRow({ proposal }: { proposal: MyProposal }) {
+  const utils = trpc.useUtils();
+
+  const withdraw = trpc.initiative.withdrawProposal.useMutation({
+    onSuccess: async () => {
+      await utils.initiative.myProposals.invalidate();
+    },
+  });
+
+  const state = initiativeState(proposal);
+
+  return (
+    <LiquidGlass className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-white">{proposal.title}</h3>
+            <InitiativeChip state={state} />
+          </div>
+          {proposal.summary && (
+            <p className="mt-1 text-sm text-white/60">{proposal.summary}</p>
+          )}
+
+          {/* The reviewer's note is the whole point of a decline — without it a
+              member has no idea what to change before pitching again. */}
+          {proposal.reviewNote && (
+            <p className="mt-2 border-l-2 border-white/10 pl-3 text-sm text-white/70">
+              {proposal.reviewNote}
+            </p>
+          )}
+
+          {proposal.status === "draft" && (
+            <p className="mt-2 text-sm text-white/60">
+              Approved — finish writing it and open it from{" "}
+              <Link href="/lead" className="font-semibold text-white underline">
+                My Initiatives
+              </Link>
+              .
+            </p>
+          )}
+        </div>
+
+        {proposal.status === "proposed" && (
+          <button
+            type="button"
+            disabled={withdraw.isPending}
+            onClick={() => withdraw.mutate({ id: proposal.id })}
+            className="shrink-0 text-sm font-semibold text-white/50 transition hover:text-white disabled:opacity-50"
+          >
+            Withdraw
+          </button>
+        )}
+      </div>
+
+      {withdraw.error && (
+        <p className="mt-3 text-sm text-red-300">{withdraw.error.message}</p>
+      )}
+    </LiquidGlass>
+  );
+}
 
 function OpenRow({
   initiative,
@@ -246,12 +399,21 @@ export default function InitiativesPage() {
   const memberStatus = trpc.member.checkStatus.useQuery(undefined, {
     enabled: !!session,
   });
+  const proposals = trpc.initiative.myProposals.useQuery(undefined, {
+    enabled: !!session,
+  });
 
-  if (status === "loading" || open.isPending || mine.isPending) {
+  if (
+    status === "loading" ||
+    open.isPending ||
+    mine.isPending ||
+    proposals.isPending
+  ) {
     return <LoadingScreen />;
   }
 
   const applications = mine.data ?? [];
+  const myProposals = proposals.data ?? [];
   // Already applied belongs in the member's own list, not in the one offering
   // them a chance to apply again.
   const joinable = (open.data ?? []).filter((row) => row.myStatus === null);
@@ -270,10 +432,25 @@ export default function InitiativesPage() {
         </p>
       </header>
 
-      {(open.error ?? mine.error) && (
+      {(open.error ?? mine.error ?? proposals.error) && (
         <p className="mb-6 text-sm text-red-300">
-          {(open.error ?? mine.error)?.message}
+          {(open.error ?? mine.error ?? proposals.error)?.message}
         </p>
+      )}
+
+      <ProposeSection canPropose={canApply} />
+
+      {myProposals.length > 0 && (
+        <section className="mb-10">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
+            What you proposed
+          </h2>
+          <div className="space-y-3">
+            {myProposals.map((proposal) => (
+              <ProposalRow key={proposal.id} proposal={proposal} />
+            ))}
+          </div>
+        </section>
       )}
 
       {applications.length > 0 && (

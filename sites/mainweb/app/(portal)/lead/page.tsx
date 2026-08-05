@@ -11,6 +11,11 @@ import {
   initiativeState,
   seatLabel,
 } from "@/components/portal/initiatives/chips";
+import {
+  InitiativeFields,
+  draftFrom,
+  toInput,
+} from "@/components/portal/initiatives/form-fields";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@query/api";
 
@@ -22,9 +27,6 @@ const statuses = [
   { value: "closed", label: "Closed" },
 ] as const;
 
-const field =
-  "w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none";
-
 function InitiativeForm({
   initiative,
   onDone,
@@ -34,13 +36,7 @@ function InitiativeForm({
 }) {
   const utils = trpc.useUtils();
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    title: initiative?.title ?? "",
-    summary: initiative?.summary ?? "",
-    description: initiative?.description ?? "",
-    commitment: initiative?.commitment ?? "",
-    maxMembers: initiative?.maxMembers?.toString() ?? "",
-  });
+  const [draft, setDraft] = useState(() => draftFrom(initiative));
 
   const done = async () => {
     await utils.initiative.listMine.invalidate();
@@ -57,22 +53,13 @@ function InitiativeForm({
   });
   const pending = create.isPending || update.isPending;
 
-  const set = (key: keyof typeof form) => (value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
   return (
     <LiquidGlass className="p-5">
       <form
         onSubmit={(event) => {
           event.preventDefault();
           setError(null);
-          const values = {
-            title: form.title.trim(),
-            summary: form.summary.trim() || undefined,
-            description: form.description.trim() || undefined,
-            commitment: form.commitment.trim() || undefined,
-            maxMembers: form.maxMembers ? Number(form.maxMembers) : null,
-          };
+          const values = toInput(draft);
           if (initiative) update.mutate({ ...values, id: initiative.id });
           else create.mutate(values);
         }}
@@ -81,48 +68,7 @@ function InitiativeForm({
           {initiative ? "Edit initiative" : "New initiative"}
         </h2>
 
-        <div className="space-y-3">
-          <input
-            required
-            maxLength={200}
-            placeholder="Title"
-            value={form.title}
-            onChange={(e) => set("title")(e.target.value)}
-            className={field}
-          />
-          <input
-            maxLength={300}
-            placeholder="One line — what a member reads before opening it"
-            value={form.summary}
-            onChange={(e) => set("summary")(e.target.value)}
-            className={field}
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              maxLength={120}
-              placeholder="Time commitment, e.g. 3-4 hrs/week"
-              value={form.commitment}
-              onChange={(e) => set("commitment")(e.target.value)}
-              className={field}
-            />
-            <input
-              type="number"
-              min={1}
-              placeholder="Team size (blank = no limit)"
-              value={form.maxMembers}
-              onChange={(e) => set("maxMembers")(e.target.value)}
-              className={field}
-            />
-          </div>
-          <textarea
-            rows={5}
-            maxLength={4000}
-            placeholder="Details"
-            value={form.description}
-            onChange={(e) => set("description")(e.target.value)}
-            className={field}
-          />
-        </div>
+        <InitiativeFields draft={draft} onChange={setDraft} />
 
         {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
 

@@ -166,9 +166,43 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* ── CLUB / HACKATHON ───────────────────────────── */}
+        {/* Two different things this org does, and they have different rules:
+            the hackathon is open to anyone with an account, the club is the
+            paid yearly membership. Splitting them is what stops the dashboard
+            reading as though everything is behind the same paywall. */}
+        <div
+          role="tablist"
+          aria-label="Portal view"
+          className="inline-flex rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-1"
+        >
+          {(
+            [
+              { value: "hackathon", label: "Hackathon" },
+              { value: "club", label: "Club" },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={view === option.value}
+              onClick={() => setView(option.value)}
+              className={`rounded-sm px-5 py-2 text-sm font-bold uppercase tracking-wider transition-colors ${
+                view === option.value
+                  ? "bg-accent/15 text-accent"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         {/* ── ROLE TILES ─────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Hackathons — always visible */}
+          {/* Hackathons — open to everyone, no membership needed */}
+          {view === "hackathon" && (
           <Link href="/hackathons" className="group">
             <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
               <div className="flex items-center justify-between">
@@ -182,14 +216,17 @@ export default function Dashboard() {
                   Hackathon Hub
                 </h3>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
-                  Browse and register for upcoming hackathons.
+                  Browse and register for upcoming hackathons. Open to
+                  everyone — no membership needed.
                 </p>
               </div>
             </LiquidGlass>
           </Link>
+          )}
 
           {/* Club Portal — members only */}
-          {memberStatus?.isMember ? (
+          {view === "club" &&
+          (memberStatus?.isMember ? (
             <Link href="/club" className="group">
               <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-emerald-500/40 transition-all">
                 <div className="flex items-center justify-between">
