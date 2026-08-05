@@ -291,8 +291,12 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "initiative.decide": ["initiative:*"],
   "initiative.requestToJoin": ["initiative:*"],
   "initiative.withdraw": ["initiative:*"],
-  // setLeader clears the role gate and portal context itself, by user id.
+  "initiative.propose": ["initiative:*"],
+  "initiative.withdrawProposal": ["initiative:*"],
+  // setLeader and reviewProposal clear the role gate and portal context
+  // themselves, by user id — this only sweeps the list caches.
   "initiative.setLeader": ["initiative:*"],
+  "initiative.reviewProposal": ["initiative:*"],
   // Events (club check-ins)
   "events.create": ["events:list"],
   "events.delete": ["events:list"],

@@ -41,15 +41,23 @@ const initiativeInput = z.object({
 });
 
 /**
- * Admins manage every initiative; a leader manages only their own. Callers
- * turn a false into NOT_FOUND rather than FORBIDDEN, so a leader who guesses
- * another leader's id does not learn from the error that it exists.
+ * Admins manage every initiative; a leader manages only their own, and only in
+ * the edition they currently lead. The role is granted per hackathon, so
+ * matching on leaderUserId alone would let this year's leader reach the
+ * initiative they ran last year — and its applicants' names, emails, and
+ * pitches — long after that appointment lapsed. Callers turn a false into
+ * NOT_FOUND rather than FORBIDDEN, so a leader who guesses another leader's id
+ * does not learn from the error that it exists.
  */
 function canManage(
-  ctx: { userId: string; isPlatformAdmin: boolean },
+  ctx: { userId: string; hackathonId: string; isPlatformAdmin: boolean },
   initiative: Initiative,
 ) {
-  return ctx.isPlatformAdmin || initiative.leaderUserId === ctx.userId;
+  return (
+    ctx.isPlatformAdmin ||
+    (initiative.hackathonId === ctx.hackathonId &&
+      initiative.leaderUserId === ctx.userId)
+  );
 }
 
 /** Applying is a member benefit, so it needs a membership that has not lapsed. */
@@ -128,6 +136,9 @@ export const initiativeRouter = createTRPCRouter({
       .where(
         and(
           eq(initiatives.hackathonId, ctx.hackathonId),
+          // Proposals and declines live in the member's own list and the admin
+          // review queue; this screen is for initiatives that actually exist.
+          inArray(initiatives.status, ["draft", "open", "closed"]),
           ctx.isPlatformAdmin
             ? undefined
             : eq(initiatives.leaderUserId, ctx.userId),
@@ -210,13 +221,55 @@ export const initiativeRouter = createTRPCRouter({
     }),
 
   create: isProjectLeader
-    .input(initiativeInput)
+    /**
+     * `leaderUserId` exists because an admin passes this gate without being a
+     * leader themselves. Defaulting it to the caller stored the ADMIN as the
+     * leader and showed their name to members, so staff creating an initiative
+     * on somebody's behalf name that person explicitly.
+     */
+    .input(initiativeInput.extend({ leaderUserId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
-      const [created] = await (ctx.db as DrizzleDB)
+      const db = ctx.db as DrizzleDB;
+      let leaderUserId = ctx.userId;
+
+      if (input.leaderUserId && input.leaderUserId !== ctx.userId) {
+        if (!ctx.isPlatformAdmin) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only an admin can create an initiative for someone else.",
+          });
+        }
+
+        const target = await db.query.projectLeaders.findFirst({
+          where: and(
+            eq(projectLeaders.userId, input.leaderUserId),
+            eq(projectLeaders.hackathonId, ctx.hackathonId),
+            eq(projectLeaders.isActive, true),
+          ),
+          columns: { id: true },
+        });
+        if (!target) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That person is not a project leader for this edition.",
+          });
+        }
+        leaderUserId = input.leaderUserId;
+      } else if (!ctx.projectLeader) {
+        // An admin who named nobody would otherwise become the leader by
+        // default, which is the bug this whole branch exists to stop.
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "You are not a project leader. Name the leader this initiative belongs to.",
+        });
+      }
+
+      const [created] = await db
         .insert(initiatives)
         .values({
           hackathonId: ctx.hackathonId,
-          leaderUserId: ctx.userId,
+          leaderUserId,
           title: input.title,
           summary: input.summary ?? null,
           description: input.description ?? null,
@@ -350,12 +403,16 @@ export const initiativeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       return (ctx.db as DrizzleDB).transaction(async (tx) => {
+        // Lock BEFORE reading. Reading first and locking after leaves every
+        // check below running on a pre-lock snapshot, so a concurrent archive
+        // or a lowered cap is invisible and the accept goes through anyway.
+        // Locking an id that does not exist simply matches no row.
+        await lockInitiative(tx, input.initiativeId);
+
         const initiative = await tx.query.initiatives.findFirst({
           where: eq(initiatives.id, input.initiativeId),
         });
         if (!initiative || !canManage(ctx, initiative)) throw notFound();
-
-        await lockInitiative(tx, initiative.id);
 
         const application = await tx.query.initiativeApplications.findFirst({
           where: and(
@@ -553,14 +610,26 @@ export const initiativeRouter = createTRPCRouter({
       const pitch = input.pitch?.length ? input.pitch : null;
 
       return db.transaction(async (tx) => {
+        // Lock BEFORE reading, so every guard below sees the row as it is now
+        // rather than as it was before the lock was granted — otherwise a
+        // leader closing the initiative, archiving it, or lowering the cap
+        // mid-flight is invisible here and the application lands anyway.
+        await lockInitiative(tx, input.initiativeId);
+
         const initiative = await tx.query.initiatives.findFirst({
           where: eq(initiatives.id, input.initiativeId),
         });
         if (!initiative) throw notFound();
 
-        // A draft or archived initiative is invisible to members, so it answers
-        // exactly the way a made-up id does.
-        if (initiative.archivedAt !== null || initiative.status === "draft") {
+        // Anything not open is invisible to members, so it answers exactly the
+        // way a made-up id does — including `proposed` and `declined`, which
+        // would otherwise leak that somebody pitched this idea.
+        if (
+          initiative.archivedAt !== null ||
+          initiative.status === "draft" ||
+          initiative.status === "proposed" ||
+          initiative.status === "declined"
+        ) {
           throw notFound();
         }
 
@@ -579,8 +648,6 @@ export const initiativeRouter = createTRPCRouter({
             message: "You already lead this initiative.",
           });
         }
-
-        await lockInitiative(tx, initiative.id);
 
         const existing = await tx.query.initiativeApplications.findFirst({
           where: and(
@@ -671,7 +738,240 @@ export const initiativeRouter = createTRPCRouter({
       return { withdrawn: updated !== undefined };
     }),
 
+  // --------------------------------------------------------------- proposals
+
+  /**
+   * A member asking to run something. Creates the initiative at `proposed`,
+   * with the proposer as its leader — the row is the proposal, so approving it
+   * is a status change rather than a copy from a second table that could drift.
+   */
+  propose: protectedProcedure
+    .input(initiativeInput)
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const hackathonId = await resolveHackathonId(db);
+      if (!hackathonId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No hackathon context found",
+        });
+      }
+
+      await requireActiveMember(db, ctx.userId, hackathonId);
+
+      // A queue an admin has to read is a shared resource. Three open at once
+      // is plenty for one person and stops a single member flooding it.
+      const [waiting] = await db
+        .select({ total: count() })
+        .from(initiatives)
+        .where(
+          and(
+            eq(initiatives.hackathonId, hackathonId),
+            eq(initiatives.leaderUserId, ctx.userId),
+            eq(initiatives.status, "proposed"),
+          ),
+        );
+
+      if ((waiting?.total ?? 0) >= 3) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "You already have three proposals waiting. Wait for one to be reviewed, or withdraw it.",
+        });
+      }
+
+      const [created] = await db
+        .insert(initiatives)
+        .values({
+          hackathonId,
+          leaderUserId: ctx.userId,
+          title: input.title,
+          summary: input.summary ?? null,
+          description: input.description ?? null,
+          commitment: input.commitment ?? null,
+          maxMembers: input.maxMembers ?? null,
+          status: "proposed",
+        })
+        .returning();
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not submit that proposal.",
+        });
+      }
+      return created;
+    }),
+
+  /**
+   * Everything this member has proposed, in any state. Separate from
+   * `listMine` because a member with a pending proposal is not a leader yet
+   * and cannot pass that gate.
+   */
+  myProposals: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+    const hackathonId = await resolveHackathonId(db);
+    if (!hackathonId) return [];
+
+    return db
+      .select({
+        id: initiatives.id,
+        title: initiatives.title,
+        summary: initiatives.summary,
+        description: initiatives.description,
+        commitment: initiatives.commitment,
+        status: initiatives.status,
+        maxMembers: initiatives.maxMembers,
+        archivedAt: initiatives.archivedAt,
+        reviewedAt: initiatives.reviewedAt,
+        reviewNote: initiatives.reviewNote,
+        createdAt: initiatives.createdAt,
+      })
+      .from(initiatives)
+      .where(
+        and(
+          eq(initiatives.hackathonId, hackathonId),
+          eq(initiatives.leaderUserId, ctx.userId),
+        ),
+      )
+      .orderBy(desc(initiatives.createdAt))
+      .limit(40);
+  }),
+
+  /** Taking a proposal back before anyone has reviewed it. */
+  withdrawProposal: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const deleted = await (ctx.db as DrizzleDB)
+        .delete(initiatives)
+        .where(
+          and(
+            eq(initiatives.id, input.id),
+            eq(initiatives.leaderUserId, ctx.userId),
+            // Only while it is still untouched. Once it is approved it is a
+            // real initiative with applicants, and archiving is the way out.
+            eq(initiatives.status, "proposed"),
+          ),
+        )
+        .returning({ id: initiatives.id });
+
+      if (deleted.length === 0) {
+        throw notFound("That proposal is no longer pending.");
+      }
+      return { withdrawn: true };
+    }),
+
   // ------------------------------------------------------------------- admin
+
+  /** The review queue. Oldest first — proposals are answered in order. */
+  listProposals: isAdmin.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+    const hackathonId = await resolveHackathonId(db);
+    if (!hackathonId) return [];
+
+    return db
+      .select({
+        id: initiatives.id,
+        title: initiatives.title,
+        summary: initiatives.summary,
+        description: initiatives.description,
+        commitment: initiatives.commitment,
+        maxMembers: initiatives.maxMembers,
+        status: initiatives.status,
+        createdAt: initiatives.createdAt,
+        proposerId: initiatives.leaderUserId,
+        proposerName: users.name,
+        proposerEmail: users.email,
+      })
+      .from(initiatives)
+      .innerJoin(users, eq(users.id, initiatives.leaderUserId))
+      .where(
+        and(
+          eq(initiatives.hackathonId, hackathonId),
+          eq(initiatives.status, "proposed"),
+        ),
+      )
+      .orderBy(asc(initiatives.createdAt))
+      .limit(100);
+  }),
+
+  /**
+   * Approving does two things at once, so they share a transaction: the
+   * initiative becomes a draft and the proposer becomes a project leader. Doing
+   * only the first would leave somebody owning an initiative they cannot reach.
+   */
+  reviewProposal: isAdmin
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        decision: z.enum(["approve", "decline"]),
+        note: z.string().trim().max(1000).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const proposerId = await db.transaction(async (tx) => {
+        const proposal = await tx.query.initiatives.findFirst({
+          where: eq(initiatives.id, input.id),
+        });
+        if (!proposal) throw notFound("Proposal not found.");
+
+        if (proposal.status !== "proposed") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That proposal has already been reviewed.",
+          });
+        }
+
+        await tx
+          .update(initiatives)
+          .set({
+            status: input.decision === "approve" ? "draft" : "declined",
+            reviewedAt: new Date(),
+            reviewedById: ctx.userId,
+            reviewNote: input.note ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(initiatives.id, proposal.id));
+
+        if (input.decision === "approve") {
+          const existing = await tx.query.projectLeaders.findFirst({
+            where: and(
+              eq(projectLeaders.userId, proposal.leaderUserId),
+              eq(projectLeaders.hackathonId, proposal.hackathonId),
+            ),
+          });
+
+          if (existing) {
+            // Re-approving somebody whose role was revoked restores it rather
+            // than colliding with the unique index.
+            if (!existing.isActive) {
+              await tx
+                .update(projectLeaders)
+                .set({ isActive: true, updatedAt: new Date() })
+                .where(eq(projectLeaders.id, existing.id));
+            }
+          } else {
+            await tx.insert(projectLeaders).values({
+              userId: proposal.leaderUserId,
+              hackathonId: proposal.hackathonId,
+              isActive: true,
+              appointedBy: ctx.userId,
+            });
+          }
+        }
+
+        return proposal.leaderUserId;
+      });
+
+      // Outside the transaction: the role gate and the sidebar both cache, and
+      // evicting before commit would let a concurrent read re-warm the old
+      // answer. Approval is the moment a member gains a whole new tab.
+      if (input.decision === "approve") clearProjectLeaderCaches(proposerId);
+
+      return { id: input.id, decision: input.decision };
+    }),
 
   listLeaders: isAdmin.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
