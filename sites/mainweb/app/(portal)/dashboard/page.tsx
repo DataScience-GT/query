@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
+import { MEMBERSHIP_CENTS, formatCents } from "@query/api/pricing";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
@@ -287,7 +288,7 @@ export default function Dashboard() {
                   <p className="text-sm text-[var(--text-muted)] mt-1">
                     Join DSGT as a full member for{" "}
                     <span className="text-[var(--text-primary)] font-semibold">
-                      $15/year
+                      {formatCents(MEMBERSHIP_CENTS)}/year
                     </span>{" "}
                     to unlock the Club Portal, event check-ins, and member-only
                     resources.

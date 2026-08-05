@@ -12,6 +12,7 @@ import type { Stripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { X, Shield, Lock } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
+import { formatCents } from "@query/api/pricing";
 
 // ── Inner form (must be inside <Elements>) ─────────────────────────────────
 function CheckoutForm({
@@ -19,11 +20,13 @@ function CheckoutForm({
   onCancel,
   onConfirmPayment,
   onUnconfirmed,
+  amountCents,
 }: {
   onSuccess: () => void;
   onCancel: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
   onUnconfirmed: () => void;
+  amountCents: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -169,7 +172,7 @@ function CheckoutForm({
           ) : (
             <>
               <Lock className="w-4 h-4" />
-              Pay $15.00
+              Pay {formatCents(amountCents)}
             </>
           )}
         </button>
@@ -192,6 +195,7 @@ interface StripePaymentModalProps {
   onClose: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
   onUnconfirmed?: () => void;
+  amountCents: number;
 }
 
 export function StripePaymentModal({
@@ -202,6 +206,7 @@ export function StripePaymentModal({
   onClose,
   onConfirmPayment,
   onUnconfirmed,
+  amountCents,
 }: StripePaymentModalProps) {
   const [stripePromise, setStripePromise] =
     useState<Promise<Stripe | null> | null>(null);
@@ -287,7 +292,7 @@ export function StripePaymentModal({
   // Mock mode — skip real Stripe Elements
   if (isMock) {
     return (
-      <ModalShell onClose={onClose}>
+      <ModalShell onClose={onClose} amountCents={amountCents}>
         <div className="space-y-4">
           <p className="text-sm text-[var(--text-muted)] font-mono bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3">
             🧪 Dev mock mode — no real charge will occur
@@ -309,13 +314,14 @@ export function StripePaymentModal({
   if (!stripePromise) return null;
 
   return (
-    <ModalShell onClose={onClose}>
+    <ModalShell onClose={onClose} amountCents={amountCents}>
       <Elements stripe={stripePromise} options={options}>
         <CheckoutForm
           onSuccess={onSuccess}
           onCancel={onClose}
           onConfirmPayment={onConfirmPayment}
           onUnconfirmed={onUnconfirmed ?? (() => {})}
+          amountCents={amountCents}
         />
       </Elements>
     </ModalShell>
@@ -326,9 +332,11 @@ export function StripePaymentModal({
 function ModalShell({
   children,
   onClose,
+  amountCents,
 }: {
   children: React.ReactNode;
   onClose: () => void;
+  amountCents: number;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -365,7 +373,7 @@ function ModalShell({
                   DSGT Membership
                 </p>
                 <p className="text-xs text-[var(--text-muted)]">
-                  $15.00 / year · Secure checkout
+                  {formatCents(amountCents)} · Secure checkout
                 </p>
               </div>
             </div>

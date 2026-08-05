@@ -1,12 +1,20 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members, users } from "@query/db";
+import { stripePayments, userAccountLinks, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware/cache";
-import { resolveHackathonId } from "../services/portal-context";
+import {
+  createOrUpdateMembership,
+  paidForBootcamp,
+} from "@query/db/services/membership";
+import {
+  priceForCents,
+  formatCents,
+  MAX_MEMBERSHIP_CHARGE_CENTS,
+} from "../services/pricing";
 import type Stripe from "stripe";
 import crypto from "crypto";
 
@@ -15,17 +23,22 @@ let stripeClientKey: string | undefined;
 
 /**
  * Mock mode is a local-development affordance: it records a paid payment and
- * activates a membership without any money moving. That must never be
- * reachable from a production deploy — .env.production currently carries an
- * `mk_` key, which would otherwise make "grant myself a paid membership" a
- * single authenticated request to createCheckoutSession.
+ * activates a membership without any money moving.
  *
- * `next build`/`next start` set NODE_ENV to production, so a deploy that still
- * has a mock key now fails closed with "payment service unavailable" instead
- * of handing out memberships.
+ * Switched on by an explicit flag, never by a key prefix. This used to trigger
+ * on a secret key starting with `mk_` — a prefix Stripe does not issue and
+ * this repo invented. That looked enough like a credential to get committed to
+ * an environment file and shipped to production, where it silently put the
+ * live site into mock mode. A flag named STRIPE_MOCK_MODE cannot be mistaken
+ * for a key.
+ *
+ * `next build`/`next start` set NODE_ENV to production, so the flag is ignored
+ * there no matter how it is set — a production deploy fails closed with
+ * "payment service unavailable" rather than handing out free memberships.
  */
-const isMockMode = (key: string | undefined): key is string =>
-  !!key && key.startsWith("mk_") && process.env.NODE_ENV !== "production";
+const isMockMode = () =>
+  process.env.STRIPE_MOCK_MODE === "true" &&
+  process.env.NODE_ENV !== "production";
 
 /**
  * The secret and publishable keys must be the same Stripe mode.
@@ -55,12 +68,21 @@ const assertKeyModesMatch = (secretKey: string) => {
   }
 };
 
+/**
+ * Why payments are unavailable, for the server log.
+ *
+ * "Payment service is currently unavailable" is the right thing to show a
+ * member, but it is useless to whoever has to fix it: a missing key and a mock
+ * key in production look identical from the outside. This names the cause
+ * without ever putting key material in a log.
+ */
+const describeKeyProblem = (key: string | undefined) => {
+  if (!key) return "STRIPE_SECRET_KEY is not set on this deployment";
+  return null;
+};
+
 async function getStripe(): Promise<Stripe | null> {
   const key = process.env.STRIPE_SECRET_KEY;
-
-  // A mock key cannot talk to Stripe; constructing a client with it would turn
-  // every call into an opaque auth error instead of a clear outage.
-  if (key?.startsWith("mk_")) return null;
 
   // Only a successfully constructed client is memoized, and only for the key it
   // was built from. Previously a single call made before the environment was
@@ -86,19 +108,13 @@ export const stripeRouter = createTRPCRouter({
    * Create a new Stripe Checkout Session for membership
    */
   createCheckoutSession: protectedProcedure
-    .input(z.object({ returnUrl: z.string().url() }))
+    .input(
+      z.object({
+        returnUrl: z.string().url(),
+        bootcamp: z.boolean().default(false),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      // Check key presence up front — cheap, and keeps the original error
-      // precedence without paying for the Stripe SDK import.
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
-
       const user = await ctx.db!.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
@@ -110,13 +126,15 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Mock mode short-circuits before getStripe(), so a development key never
-      // dynamically imports and instantiates the real Stripe SDK.
-      if (isMockMode(stripeKey)) {
+      // Checked before the key, so local development needs no Stripe key at
+      // all — which is the point: there is no longer any reason to invent a
+      // placeholder credential.
+      if (isMockMode()) {
         const sessionId = `cs_mock_${crypto.randomUUID().replace(/-/g, "")}`;
         const nameParts = (user.name || "Member").split(" ");
         const firstName = nameParts[0] || "Member";
         const lastName = nameParts.slice(1).join(" ") || "Member";
+        const bootcampMember = input.bootcamp;
 
         await ctx.db!.transaction(async (tx) => {
           await tx.insert(stripePayments).values({
@@ -125,21 +143,23 @@ export const stripeRouter = createTRPCRouter({
             stripePaymentIntentId: "pi_mock_123",
             customerEmail: user.email!.toLowerCase(),
             customerName: user.name || "Member",
-            // $15.00, matching the live checkout line item and the portal UI.
-            amountTotal: 1500,
+            amountTotal: priceForCents(input.bootcamp),
             currency: "usd",
             paymentStatus: "paid",
             linkedUserId: ctx.userId!,
             linkedAt: new Date(),
-            metadata: JSON.stringify({ userId: ctx.userId! }),
+            metadata: JSON.stringify({
+              userId: ctx.userId!,
+              bootcamp: input.bootcamp ? "true" : "false",
+            }),
           });
 
-          await createOrUpdateMembership(
-            tx as unknown as DrizzleDB,
-            ctx.userId!,
+          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: ctx.userId!,
             firstName,
             lastName,
-          );
+            bootcampMember,
+          });
         });
 
         // Invalidate cache
@@ -149,10 +169,29 @@ export const stripeRouter = createTRPCRouter({
         return { url: mockUrl };
       }
 
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
+        });
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message:
+            "Payment service is currently unavailable. Please try again later.",
+        });
+      }
+
       assertKeyModesMatch(stripeKey);
 
       const stripe = await getStripe();
       if (!stripe) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `Stripe unavailable: ${describeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? "unknown cause"}`,
+        });
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
           message:
@@ -170,15 +209,16 @@ export const stripeRouter = createTRPCRouter({
               price_data: {
                 currency: "usd",
                 product_data: {
-                  name: "DSGT Membership",
-                  description:
-                    "One year membership to Data Science at Georgia Tech",
-                  // images: ["https://example.com/logo.png"], // Optional: Add a logo if available
+                  name: input.bootcamp
+                    ? "DSGT Membership + Bootcamp"
+                    : "DSGT Membership",
+                  description: input.bootcamp
+                    ? "One year membership to Data Science at Georgia Tech, including bootcamp access"
+                    : "One year membership to Data Science at Georgia Tech",
                 },
-                // $15.00 — matches createPaymentIntent (1500) and the portal UI
-                // ("$15.00 / year"). This was 2500, so the hosted-checkout path
-                // charged $25 for the same membership.
-                unit_amount: 1500,
+                // From the shared pricing module, so this can no longer drift
+                // from what createPaymentIntent charges or the portal quotes.
+                unit_amount: priceForCents(input.bootcamp),
               },
               quantity: 1,
             },
@@ -189,6 +229,7 @@ export const stripeRouter = createTRPCRouter({
           customer_email: user.email,
           metadata: {
             userId: ctx.userId!,
+            bootcamp: input.bootcamp ? "true" : "false",
           },
         });
 
@@ -215,15 +256,8 @@ export const stripeRouter = createTRPCRouter({
    * Returns client_secret for use with Stripe Payment Element
    */
   createPaymentIntent: protectedProcedure
-    .mutation(async ({ ctx }) => {
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message: "Payment service is currently unavailable. Please try again later.",
-        });
-      }
-
+    .input(z.object({ bootcamp: z.boolean().default(false) }).default({}))
+    .mutation(async ({ ctx, input }) => {
       const user = await ctx.db!.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
@@ -235,10 +269,9 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Dev/mock mode short-circuits before getStripe(), matching
-      // createCheckoutSession. This previously ran *after* getStripe(), so a
-      // mock key still constructed a real Stripe SDK instance.
-      if (isMockMode(stripeKey)) {
+      // Checked before the key, matching createCheckoutSession, so local
+      // development needs no Stripe key at all.
+      if (isMockMode()) {
         return {
           clientSecret: "mock_pi_secret",
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
@@ -246,10 +279,28 @@ export const stripeRouter = createTRPCRouter({
         };
       }
 
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
+        });
+        throw new TRPCError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "Payment service is currently unavailable. Please try again later.",
+        });
+      }
+
       assertKeyModesMatch(stripeKey);
 
       const stripe = await getStripe();
       if (!stripe) {
+        logSecurityEvent({
+          type: "validation_error",
+          identifier: ctx.userId ?? "unknown",
+          details: `Stripe unavailable: ${describeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? "unknown cause"}`,
+        });
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
           message: "Payment service is currently unavailable. Please try again later.",
@@ -257,15 +308,23 @@ export const stripeRouter = createTRPCRouter({
       }
 
       try {
+        const amount = priceForCents(input.bootcamp);
+
         const paymentIntent = await stripe.paymentIntents.create({
-          amount: 1500, // $15.00 in cents
+          amount,
           currency: "usd",
           receipt_email: user.email,
-          description: "DSGT Annual Membership ($15/yr)",
+          description: input.bootcamp
+            ? `DSGT Annual Membership + Bootcamp (${formatCents(amount)}/yr)`
+            : `DSGT Annual Membership (${formatCents(amount)}/yr)`,
           metadata: {
             userId: ctx.userId!,
             userEmail: user.email,
             type: "membership",
+            // Read back when the payment is recorded, so the bootcamp flag
+            // comes from what was actually charged rather than from a client
+            // that could simply claim it.
+            bootcamp: input.bootcamp ? "true" : "false",
           },
           automatic_payment_methods: { enabled: true },
         });
@@ -331,6 +390,9 @@ export const stripeRouter = createTRPCRouter({
       const nameParts = (user?.name || "Member").split(" ");
       const firstName = nameParts[0] ?? "Member";
       const lastName = nameParts.slice(1).join(" ") || "Member";
+      // From the charged intent, not the client: the add-on is only granted
+      // if it was actually paid for.
+      const bootcampMember = pi.metadata?.bootcamp === "true";
 
       // Check if already processed (idempotent)
       const existing = await ctx.db!.query.stripePayments.findFirst({
@@ -353,19 +415,19 @@ export const stripeRouter = createTRPCRouter({
             metadata: JSON.stringify(pi.metadata ?? {}),
           });
 
-          await createOrUpdateMembership(
-            tx as unknown as DrizzleDB,
-            ctx.userId!,
+          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: ctx.userId!,
             firstName,
             lastName,
-          );
+            bootcampMember,
+          });
         });
       } else if (!existing.linkedUserId) {
         // Payment exists but wasn't linked — link it now
         await ctx.db!.update(stripePayments)
           .set({ linkedUserId: ctx.userId!, linkedAt: new Date(), updatedAt: new Date() })
           .where(eq(stripePayments.id, existing.id));
-        await createOrUpdateMembership(ctx.db! as DrizzleDB, ctx.userId!, firstName, lastName);
+        await createOrUpdateMembership(ctx.db! as DrizzleDB, { userId: ctx.userId!, firstName, lastName, bootcampMember });
       }
 
       clearMembershipCaches(ctx.cache, ctx.userId!);
@@ -414,6 +476,7 @@ export const stripeRouter = createTRPCRouter({
       const names = (user.name || "Member").split(" ");
       const firstName = names[0] || "Member";
       const lastName = names.slice(1).join(" ") || "Member";
+      const bootcampMember = paidForBootcamp(payment.metadata);
 
       await tx.insert(userAccountLinks).values({
         userId: ctx.userId!,
@@ -432,12 +495,12 @@ export const stripeRouter = createTRPCRouter({
         })
         .where(eq(stripePayments.id, payment.id));
 
-      await createOrUpdateMembership(
-        tx as unknown as DrizzleDB,
-        ctx.userId!,
-        firstName,
-        lastName,
-      );
+      await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: ctx.userId!,
+            firstName,
+            lastName,
+            bootcampMember,
+          });
 
       clearMembershipCaches(ctx.cache, ctx.userId!);
 
@@ -496,7 +559,7 @@ export const stripeRouter = createTRPCRouter({
       if (pi.metadata?.userId !== ctx.userId) continue;
       // Same ceiling the webhook applies, so the two paths cannot disagree
       // about which charges are memberships.
-      if (pi.amount > 10000) continue;
+      if (pi.amount > MAX_MEMBERSHIP_CHARGE_CENTS) continue;
 
       const existing = await ctx.db!.query.stripePayments.findFirst({
         where: eq(stripePayments.stripePaymentIntentId, pi.id),
@@ -528,17 +591,18 @@ export const stripeRouter = createTRPCRouter({
           if (claimed.rowCount === 0) return;
 
           const parts = (user?.name || "Member").trim().split(/\s+/);
-          await createOrUpdateMembership(
-            tx as unknown as DrizzleDB,
-            ctx.userId!,
-            parts[0] || "Member",
-            parts.slice(1).join(" ") || "Member",
-          );
+          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: ctx.userId!,
+            firstName: parts[0] || "Member",
+            lastName: parts.slice(1).join(" ") || "Member",
+            bootcampMember: pi.metadata?.bootcamp === "true",
+          });
           recovered += 1;
         });
         continue;
       }
 
+      const bootcampMember = pi.metadata?.bootcamp === "true";
       const { firstName, lastName } = (() => {
         const parts = (user?.name || "Member").trim().split(/\s+/);
         return {
@@ -578,12 +642,12 @@ export const stripeRouter = createTRPCRouter({
 
           if (inserted.length === 0) return;
 
-          await createOrUpdateMembership(
-            tx as unknown as DrizzleDB,
-            ctx.userId!,
+          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: ctx.userId!,
             firstName,
             lastName,
-          );
+            bootcampMember,
+          });
           recovered += 1;
         });
       } catch (error) {
@@ -761,12 +825,12 @@ export const stripeRouter = createTRPCRouter({
           })
           .where(eq(stripePayments.id, payment.id));
 
-        await createOrUpdateMembership(
-          tx as unknown as DrizzleDB,
-          ctx.userId!,
-          input.firstName,
-          input.lastName,
-        );
+        await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+          userId: ctx.userId!,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          bootcampMember: paidForBootcamp(payment.metadata),
+        });
 
         clearMembershipCaches(ctx.cache, ctx.userId!);
 
@@ -800,52 +864,3 @@ export const stripeRouter = createTRPCRouter({
   }),
 });
 
-async function createOrUpdateMembership(
-  db: DrizzleDB,
-  userId: string,
-  firstName: string,
-  lastName: string,
-) {
-  const hackathonId = await resolveHackathonId(db);
-
-  if (!hackathonId) {
-    throw new Error("No hackathon found for membership assignment");
-  }
-
-  const existingMember = await db.query.members.findFirst({
-    where: and(
-      eq(members.userId, userId),
-      eq(members.hackathonId, hackathonId),
-    ),
-  });
-
-  const now = new Date();
-  const oneYearFromNow = new Date(now);
-  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-  if (existingMember) {
-    await db
-      .update(members)
-      .set({
-        isActive: true,
-        membershipStartDate: now,
-        membershipEndDate: oneYearFromNow,
-        renewalCount: existingMember.renewalCount + 1,
-        memberType: "continuous",
-        updatedAt: now,
-      })
-      .where(eq(members.id, existingMember.id));
-  } else {
-    await db.insert(members).values({
-      userId,
-      hackathonId,
-      firstName,
-      lastName,
-      memberType: "new",
-      isActive: true,
-      membershipStartDate: now,
-      membershipEndDate: oneYearFromNow,
-      renewalCount: 0,
-    });
-  }
-}

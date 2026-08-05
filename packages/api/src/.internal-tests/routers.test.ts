@@ -1380,8 +1380,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
   describe("12. Stripe Payments & Account Linking", () => {
     it("should create checkout session in mock development mode", async () => {
       const ctx = createMockCtx("stripe_user_id");
-      const origKey = process.env.STRIPE_SECRET_KEY;
-      process.env.STRIPE_SECRET_KEY = "mk_test_123456";
+      const origMockMode = process.env.STRIPE_MOCK_MODE;
+      process.env.STRIPE_MOCK_MODE = "true";
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "users") {
@@ -1398,7 +1398,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
         returnUrl: "https://datasciencegt.org/portal",
       });
 
-      process.env.STRIPE_SECRET_KEY = origKey;
+      if (origMockMode === undefined) delete process.env.STRIPE_MOCK_MODE;
+      else process.env.STRIPE_MOCK_MODE = origMockMode;
       expect(res.url).toContain("payment=success");
     });
 
