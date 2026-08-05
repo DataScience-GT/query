@@ -1,4 +1,7 @@
 import { admins, members, judges } from "@query/db";
+// Deep import on purpose: this is the one rule for "which hackathon is
+// current", shared with the sign-in hook in @query/auth.
+import { resolveCurrentHackathonId } from "@query/db/services/membership";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { cache } from "../middleware/cache";
@@ -63,24 +66,13 @@ export async function resolveHackathonId(
   const cached = cache.get<string>(CURRENT_HACKATHON_KEY);
   if (cached !== null) return cached || undefined;
 
-  const now = new Date();
+  // The rule itself lives in @query/db so the sign-in hook and the webhook run
+  // the same one; this wrapper only adds the cache.
+  const resolved = await resolveCurrentHackathonId(db);
 
-  const inProgress = await db.query.hackathons.findFirst({
-    where: (h, { and: andFn, ne, lte, gte }) =>
-      andFn(ne(h.status, "draft"), lte(h.startDate, now), gte(h.endDate, now)),
-    columns: { id: true },
-  });
+  cache.set(CURRENT_HACKATHON_KEY, resolved ?? "", 60);
 
-  const resolved =
-    inProgress ??
-    (await db.query.hackathons.findFirst({
-      orderBy: (h, { desc: descFn }) => [descFn(h.startDate)],
-      columns: { id: true },
-    }));
-
-  cache.set(CURRENT_HACKATHON_KEY, resolved?.id ?? "", 60);
-
-  return resolved?.id;
+  return resolved;
 }
 
 /** Loads admin, judge, and member flags for the current user in one round-trip batch. */

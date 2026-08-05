@@ -409,10 +409,13 @@ export const teamRouter = createTRPCRouter({
                 return { success: true, message: "Team disbanded." };
               }
 
+              // Names only what exists. There is no ownership transfer, and
+              // telling a stuck captain to do something the product cannot do
+              // leaves them with no move at all.
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message:
-                  "The captain cannot leave a multi-member team. You must disband it or transfer ownership.",
+                  "The captain cannot leave a team that still has other members. Disband the team, or ask a teammate to leave first.",
               });
             }
 
@@ -767,6 +770,90 @@ export const teamRouter = createTRPCRouter({
           message: `Failed to submit project: ${message}`,
         });
       }
+    }),
+
+  /**
+   * Puts a submission back to draft.
+   *
+   * disbandTeam and the sole-captain branch of leaveTeam both refuse while a
+   * submitted project exists and tell the user it "must be withdrawn first".
+   * Nothing could do that — submitProject is the only writer and always writes
+   * "submitted" — so that instruction named an action the product did not have
+   * and the two flows were simply dead ends.
+   */
+  withdrawProject: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .mutation(async ({ ctx, input }) => {
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+
+      return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
+        async (tx) => {
+          const participant = await tx.query.hackathonParticipants.findFirst({
+            where: and(
+              eq(hackathonParticipants.hackathonId, input.hackathonId),
+              eq(hackathonParticipants.userId, ctx.userId as string),
+            ),
+          });
+
+          if (!participant) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "You are not registered for this hackathon.",
+            });
+          }
+
+          const project = await tx.query.hackathonProjects.findFirst({
+            where: ownProjectWhere(
+              input.hackathonId,
+              participant.teamId,
+              participant.id,
+            ),
+          });
+
+          if (!project) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "You do not have a submitted project.",
+            });
+          }
+
+          // Only the captain files or withdraws on a team's behalf, matching
+          // the rule submitProject already applies.
+          if (participant.teamId) {
+            const team = await tx.query.hackathonTeams.findFirst({
+              where: eq(hackathonTeams.id, participant.teamId),
+            });
+            if (team && team.captainId !== (ctx.userId as string)) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the team captain can withdraw the project.",
+              });
+            }
+          }
+
+          // Once judging has it, withdrawing would pull a project out from
+          // under scores that already reference it.
+          if (project.status === "judging" || project.status === "winner") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "Judging has started for this project. Ask an organiser if it needs to be pulled.",
+            });
+          }
+
+          await tx
+            .update(hackathonProjects)
+            .set({ status: "draft", submittedAt: null })
+            .where(eq(hackathonProjects.id, project.id));
+
+          await tx
+            .update(hackathonParticipants)
+            .set({ hasSubmittedProject: false })
+            .where(eq(hackathonParticipants.id, participant.id));
+
+          return { success: true };
+        },
+      );
     }),
 
   /** Lets the UI disable team actions instead of letting the mutation fail. */

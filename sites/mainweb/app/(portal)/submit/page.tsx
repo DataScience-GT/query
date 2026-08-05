@@ -88,6 +88,13 @@ function SubmitPortalContent() {
     onError: (err) => setError(err.message),
   });
 
+  const disbandTeam = trpc.team.disbandTeam.useMutation({
+    onSuccess: () => {
+      teamChanged();
+    },
+    onError: (err) => setError(err.message),
+  });
+
   const submitProject = trpc.team.submitProject.useMutation({
     onSuccess: () => {
       utils.hackathon.myRegistrations.invalidate();
@@ -97,6 +104,21 @@ function SubmitPortalContent() {
         "Project successfully submitted to the judging pipeline!",
       );
       setProjectSubmitted(true);
+    },
+    onError: (err) => setError(err.message),
+  });
+
+  // Leaving or disbanding a team refuses while a submission stands and tells
+  // the user to withdraw it first, so there has to be a way to do that.
+  const withdrawProject = trpc.team.withdrawProject.useMutation({
+    onSuccess: () => {
+      utils.hackathon.myRegistrations.invalidate();
+      utils.team.mySubmission.invalidate();
+      setError("");
+      setProjectSubmitted(false);
+      setSuccessMessage(
+        "Submission withdrawn. It is back to draft and no longer entered for judging.",
+      );
     },
     onError: (err) => setError(err.message),
   });
@@ -266,9 +288,29 @@ function SubmitPortalContent() {
                         </div>
 
                         {currentReg.team.captainId === session?.user?.id ? (
-                          <p className="text-xs text-accent font-mono mt-4">
-                            You are the Captain
-                          </p>
+                          <div className="mt-4 space-y-3">
+                            <p className="text-xs text-accent font-mono">
+                              You are the Captain
+                            </p>
+                            {/* leaveTeam refuses for a captain and points here;
+                                without this the captain has no way out. */}
+                            <button
+                              onClick={() => {
+                                const teamId = currentReg.team?.id;
+                                if (!teamId) return;
+                                disbandTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                  teamId,
+                                });
+                              }}
+                              disabled={disbandTeam.isPending}
+                              className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                            >
+                              {disbandTeam.isPending
+                                ? "Disbanding..."
+                                : "Disband Team"}
+                            </button>
+                          </div>
                         ) : (
                           <button
                             onClick={() =>
@@ -495,12 +537,30 @@ function SubmitPortalContent() {
                       </div>
                     </div>
 
-                    <div className="pt-6 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                    <div className="pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-4">
                       <p className="text-xs font-mono text-text-muted">
                         {hasSubmitted
                           ? "Project record exists. Resubmitting will overwrite it."
                           : "Ready for deployment."}
                       </p>
+                      {hasSubmitted && (
+                        <button
+                          type="button"
+                          disabled={withdrawProject.isPending}
+                          onClick={() => {
+                            setError("");
+                            setSuccessMessage("");
+                            withdrawProject.mutate({
+                              hackathonId: selectedHackathonId,
+                            });
+                          }}
+                          className="px-6 py-4 border border-red-500/30 text-red-400 font-mono text-xs uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                        >
+                          {withdrawProject.isPending
+                            ? "Withdrawing..."
+                            : "Withdraw Submission"}
+                        </button>
+                      )}
                       <button
                         type="submit"
                         disabled={submitProject.isPending}
