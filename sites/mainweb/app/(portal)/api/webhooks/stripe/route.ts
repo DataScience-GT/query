@@ -9,6 +9,17 @@ import { clearMembershipCaches, resolveHackathonId } from "@query/api";
 // Type for the transaction object
 type Tx = Parameters<Parameters<NonNullable<typeof db>["transaction"]>[0]>[0];
 
+/** Replaces control characters so a value cannot forge or split log lines. */
+const safeForLog = (value: unknown) =>
+  String(value)
+    .split("")
+    .map((ch) => {
+      const code = ch.charCodeAt(0);
+      return code < 32 || code === 127 ? " " : ch;
+    })
+    .join("")
+    .slice(0, 200);
+
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -43,10 +54,23 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
 
-  if (
-    process.env.STRIPE_SECRET_KEY?.startsWith("mk_") ||
-    process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_mock")
-  ) {
+  /**
+   * Accepting an unsigned body is a local-development affordance and nothing
+   * else. Keying it on the mock markers alone meant a mock key deployed to
+   * production — which is exactly what .env.production carries — turned this
+   * endpoint into "anyone who can POST here grants themselves a paid
+   * membership", since the body names both the user and the amount.
+   *
+   * NODE_ENV is set to production by `next build`/`next start`, so a
+   * misconfigured deploy now fails closed on a missing signature instead of
+   * trusting the caller.
+   */
+  const allowUnsignedMockEvents =
+    process.env.NODE_ENV !== "production" &&
+    (process.env.STRIPE_SECRET_KEY?.startsWith("mk_") ||
+      process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_mock"));
+
+  if (allowUnsignedMockEvents) {
     try {
       event = JSON.parse(body) as Stripe.Event;
     } catch (err) {
@@ -181,6 +205,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
+      /**
+       * Only intents this app minted for a membership.
+       *
+       * A Checkout Session creates its own PaymentIntent and does not copy the
+       * session metadata onto it, so without this gate a hosted-checkout
+       * payment would be recorded once by checkout.session.completed and again
+       * here — activating the membership twice and bumping renewalCount for a
+       * single $15. Any unrelated charge on the account would land here too.
+       */
+      if (pi.metadata?.type !== "membership") {
+        return NextResponse.json({ received: true });
+      }
+
       const metadataUserId = pi.metadata?.userId;
 
       let targetUser:
@@ -203,7 +240,9 @@ export async function POST(req: NextRequest) {
 
       const customerEmail = receiptEmail ?? targetUser?.email?.toLowerCase();
       if (!customerEmail) {
-        console.error("No customer email on payment intent", pi.id);
+        // The mock branch above parses the body without verifying a signature,
+        // so this id is not always Stripe's — keep it off the log as-is.
+        console.error("No customer email on payment intent", safeForLog(pi.id));
         return NextResponse.json({ received: true });
       }
 

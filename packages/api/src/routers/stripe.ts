@@ -13,8 +13,26 @@ import crypto from "crypto";
 let stripeClient: Stripe | null | undefined;
 let stripeClientKey: string | undefined;
 
+/**
+ * Mock mode is a local-development affordance: it records a paid payment and
+ * activates a membership without any money moving. That must never be
+ * reachable from a production deploy — .env.production currently carries an
+ * `mk_` key, which would otherwise make "grant myself a paid membership" a
+ * single authenticated request to createCheckoutSession.
+ *
+ * `next build`/`next start` set NODE_ENV to production, so a deploy that still
+ * has a mock key now fails closed with "payment service unavailable" instead
+ * of handing out memberships.
+ */
+const isMockMode = (key: string | undefined): key is string =>
+  !!key && key.startsWith("mk_") && process.env.NODE_ENV !== "production";
+
 async function getStripe(): Promise<Stripe | null> {
   const key = process.env.STRIPE_SECRET_KEY;
+
+  // A mock key cannot talk to Stripe; constructing a client with it would turn
+  // every call into an opaque auth error instead of a clear outage.
+  if (key?.startsWith("mk_")) return null;
 
   // Only a successfully constructed client is memoized, and only for the key it
   // was built from. Previously a single call made before the environment was
@@ -66,7 +84,7 @@ export const stripeRouter = createTRPCRouter({
 
       // Mock mode short-circuits before getStripe(), so a development key never
       // dynamically imports and instantiates the real Stripe SDK.
-      if (stripeKey.startsWith("mk_")) {
+      if (isMockMode(stripeKey)) {
         const sessionId = `cs_mock_${crypto.randomUUID().replace(/-/g, "")}`;
         const nameParts = (user.name || "Member").split(" ");
         const firstName = nameParts[0] || "Member";
@@ -188,7 +206,7 @@ export const stripeRouter = createTRPCRouter({
       // Dev/mock mode short-circuits before getStripe(), matching
       // createCheckoutSession. This previously ran *after* getStripe(), so a
       // mock key still constructed a real Stripe SDK instance.
-      if (stripeKey.startsWith("mk_")) {
+      if (isMockMode(stripeKey)) {
         return {
           clientSecret: "mock_pi_secret",
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
@@ -426,8 +444,10 @@ export const stripeRouter = createTRPCRouter({
   linkAccount: protectedProcedure
     .input(
       z.object({
-        firstName: z.string().min(1).max(100),
-        lastName: z.string().min(1).max(100),
+        // Trimmed before the length check: " " passes a bare min(1) and then
+        // normalizes to empty, which the ownership check below must never see.
+        firstName: z.string().trim().min(1).max(100),
+        lastName: z.string().trim().min(1).max(100),
         email: z.string().email().max(255),
       }),
     )
@@ -472,11 +492,27 @@ export const stripeRouter = createTRPCRouter({
           !!account?.email &&
           normalize(account.email) === normalize(payment.customerEmail);
 
-        const nameOnPayment = normalize(payment.customerName ?? "");
+        /**
+         * Whole-token equality, not `includes`.
+         *
+         * A substring test is not a name check: the empty string is a substring
+         * of every name, so blank input would match anything, and a single
+         * letter would match most names — both turn this guard back into
+         * "knowing the email is enough".
+         */
+        const paymentTokens = new Set(
+          normalize(payment.customerName ?? "")
+            .split(" ")
+            .filter(Boolean),
+        );
+        const firstName = normalize(input.firstName);
+        const lastName = normalize(input.lastName);
+
         const nameMatches =
-          nameOnPayment.length > 0 &&
-          nameOnPayment.includes(normalize(input.firstName)) &&
-          nameOnPayment.includes(normalize(input.lastName));
+          firstName.length > 0 &&
+          lastName.length > 0 &&
+          paymentTokens.has(firstName) &&
+          paymentTokens.has(lastName);
 
         if (!emailMatches && !nameMatches) {
           logSecurityEvent({

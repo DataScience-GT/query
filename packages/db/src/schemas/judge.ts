@@ -46,6 +46,7 @@ export const judges = pgTable(
   ],
 );
 
+
 export const judgeAssignments = pgTable(
   "judge_assignment",
   {
@@ -66,6 +67,12 @@ export const judgeAssignments = pgTable(
   (table) => [
     index("assignment_judge_id_idx").on(table.judgeId),
     index("assignment_hackathon_id_idx").on(table.hackathonId),
+    // assignToHackathon, judge.register and bulkImportJudges all enforce one
+    // assignment per judge per hackathon with a read before the insert.
+    unique("unique_assignment_per_hackathon").on(
+      table.judgeId,
+      table.hackathonId,
+    ),
   ],
 );
 

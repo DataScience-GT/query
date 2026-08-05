@@ -42,7 +42,22 @@ export default function JudgeHackathonPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const hackathonId = params.id as string;
+
+  /**
+   * The [id] segment is a name on every sibling route, but the judging
+   * procedures take a uuid, so a by-name URL would fail input validation.
+   * Resolve it first when it is not already an id.
+   */
+  const routeParam = params.id as string;
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      routeParam,
+    );
+  const resolved = trpc.hackathon.getById.useQuery(
+    { id: routeParam },
+    { enabled: !!session && !isUuid },
+  );
+  const hackathonId = isUuid ? routeParam : resolved.data?.id;
 
   const [current, setCurrent] = useState<{
     project: Project | null;
@@ -55,8 +70,8 @@ export default function JudgeHackathonPage() {
   const [startedAt, setStartedAt] = useState(() => Date.now());
 
   const judgeCheck = trpc.judge.isJudge.useQuery(
-    { hackathonId },
-    { enabled: !!session },
+    { hackathonId: hackathonId as string },
+    { enabled: !!session && !!hackathonId },
   );
 
   /**
@@ -65,17 +80,17 @@ export default function JudgeHackathonPage() {
    * below already return the next one.
    */
   const nextTable = trpc.judge.getNextTable.useQuery(
-    { hackathonId },
+    { hackathonId: hackathonId as string },
     {
-      enabled: !!session && judgeCheck.data?.isJudge === true,
+      enabled: !!session && !!hackathonId && judgeCheck.data?.isJudge === true,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
     },
   );
 
   const progress = trpc.judge.getProgress.useQuery(
-    { hackathonId },
-    { enabled: !!session && judgeCheck.data?.isJudge === true },
+    { hackathonId: hackathonId as string },
+    { enabled: !!session && !!hackathonId && judgeCheck.data?.isJudge === true },
   );
 
   // Seeds the first project only. Once a mutation has taken over, `current` or
@@ -131,10 +146,40 @@ export default function JudgeHackathonPage() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  if (status === "loading" || judgeCheck.isPending) {
+  if (status === "loading") {
     return <LoadingScreen message="Verifying Judge Access..." />;
   }
   if (!session) return null;
+
+  // Without this the disabled judgeCheck below stays pending forever and the
+  // page spins on a hackathon that does not exist.
+  if (!hackathonId) {
+    if (resolved.isPending) {
+      return <LoadingScreen message="Loading hackathon..." />;
+    }
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <LiquidGlass className="p-12 max-w-md text-center">
+          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+            Hackathon Not Found
+          </h1>
+          <p className="text-sm text-text-muted font-mono mb-8">
+            {resolved.error?.message ?? "That hackathon does not exist."}
+          </p>
+          <Link
+            href="/judge"
+            className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors"
+          >
+            Back to Judge Portal
+          </Link>
+        </LiquidGlass>
+      </div>
+    );
+  }
+
+  if (judgeCheck.isPending) {
+    return <LoadingScreen message="Verifying Judge Access..." />;
+  }
 
   if (judgeCheck.data && !judgeCheck.data.isJudge) {
     return (

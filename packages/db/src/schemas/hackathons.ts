@@ -9,6 +9,7 @@ import {
   index,
   unique,
   uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
@@ -230,6 +231,12 @@ export const hackathonProjects = pgTable(
     uniqueIndex("project_solo_submitter_idx")
       .on(table.hackathonId, table.submittedById)
       .where(sql`${table.teamId} is null`),
+    // The team half of the same rule. submitProject decides insert-vs-update
+    // from a read, so two concurrent submits by a captain would otherwise both
+    // insert and the team would end up with two entries.
+    uniqueIndex("project_team_submission_idx")
+      .on(table.hackathonId, table.teamId)
+      .where(sql`${table.teamId} is not null`),
   ],
 );
 
@@ -312,9 +319,7 @@ export const hackathonEventAttendees = pgTable(
     eventId: uuid("event_id")
       .notNull()
       .references(() => hackathonEvents.id, { onDelete: "cascade" }),
-    participantId: uuid("participant_id")
-      .notNull()
-      .references(() => hackathonParticipants.id, { onDelete: "cascade" }),
+    participantId: uuid("participant_id").notNull(),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
   },
   (table) => [
@@ -322,6 +327,14 @@ export const hackathonEventAttendees = pgTable(
     index("event_attendee_participant_id_idx").on(table.participantId),
     // Prevent duplicate check-ins
     unique("unique_event_participant").on(table.eventId, table.participantId),
+    // Named explicitly: the generated name is 67 chars, Postgres truncates it
+    // to 63, and drizzle then sees a diff on every push and re-creates the
+    // constraint forever.
+    foreignKey({
+      name: "event_attendee_participant_id_fk",
+      columns: [table.participantId],
+      foreignColumns: [hackathonParticipants.id],
+    }).onDelete("cascade"),
   ],
 );
 

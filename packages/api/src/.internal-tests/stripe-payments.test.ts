@@ -177,6 +177,45 @@ describe("Membership payments", () => {
 
       expect(result.url).toContain("?tab=membership&payment=success");
     });
+
+    /**
+     * Mock mode writes paymentStatus "paid" and activates a membership without
+     * any money moving. .env.production ships an `mk_` key, so if the key
+     * prefix alone enabled it, any signed-in user could call this endpoint and
+     * grant themselves a paid membership on the live site.
+     */
+    describe("with a mock key on a production build", () => {
+      // NODE_ENV is typed readonly, so it is set through the record itself.
+      const env = process.env as Record<string, string | undefined>;
+      const realNodeEnv = env.NODE_ENV;
+
+      beforeEach(() => {
+        env.NODE_ENV = "production";
+      });
+
+      afterEach(() => {
+        env.NODE_ENV = realNodeEnv;
+      });
+
+      it("does not hand out a membership from a mock checkout session", async () => {
+        process.env.STRIPE_SECRET_KEY = "mk_test_local";
+
+        await expect(
+          caller().stripe.createCheckoutSession({ returnUrl: RETURN_URL }),
+        ).rejects.toThrow(/unavailable/i);
+
+        // No payment row, no membership.
+        expect(mockInsert).not.toHaveBeenCalled();
+      });
+
+      it("does not hand out a mock client secret", async () => {
+        process.env.STRIPE_SECRET_KEY = "mk_test_local";
+
+        await expect(caller().stripe.createPaymentIntent()).rejects.toThrow(
+          /unavailable/i,
+        );
+      });
+    });
   });
 
   describe("input and account preconditions", () => {
