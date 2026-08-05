@@ -45,9 +45,9 @@ describe("createOrUpdateMembership", () => {
     });
 
     expect(inserts).toHaveLength(1);
-    const end = inserts[0]!.membershipEndDate as Date;
+    const end = inserts[0]?.membershipEndDate as Date;
     expect(end.getTime()).toBeGreaterThan(Date.now() + 360 * DAY);
-    expect(inserts[0]!.renewalCount).toBe(0);
+    expect(inserts[0]?.renewalCount).toBe(0);
   });
 
   /**
@@ -71,15 +71,15 @@ describe("createOrUpdateMembership", () => {
     });
 
     expect(updates).toHaveLength(1);
-    const end = updates[0]!.membershipEndDate as Date;
+    const end = updates[0]?.membershipEndDate as Date;
     const expected = new Date(existingEnd);
     expected.setFullYear(expected.getFullYear() + 1);
 
     expect(end.getTime()).toBe(expected.getTime());
     // The 100 remaining days survived the renewal.
     expect(end.getTime()).toBeGreaterThan(Date.now() + 460 * DAY);
-    expect(updates[0]!.renewalCount).toBe(2);
-    expect(updates[0]!.memberType).toBe("continuous");
+    expect(updates[0]?.renewalCount).toBe(2);
+    expect(updates[0]?.memberType).toBe("continuous");
   });
 
   it("restarts from today when the membership already lapsed", async () => {
@@ -96,7 +96,7 @@ describe("createOrUpdateMembership", () => {
       lastName: "Lovelace",
     });
 
-    const end = updates[0]!.membershipEndDate as Date;
+    const end = updates[0]?.membershipEndDate as Date;
     // A year from now, not a year from the date it lapsed — no credit for the
     // gap, and no term that is already partly spent.
     expect(end.getTime()).toBeGreaterThan(Date.now() + 360 * DAY);

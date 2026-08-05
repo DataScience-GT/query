@@ -1,14 +1,21 @@
 import { admins, members, judges } from "@query/db";
 // Deep import on purpose: this is the one rule for "which hackathon is
 // current", shared with the sign-in hook in @query/auth.
-import { resolveCurrentHackathonId } from "@query/db/services/membership";
+import {
+  resolveCurrentHackathonId,
+  setMembershipChangeHandler,
+} from "@query/db/services/membership";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import { cache } from "../middleware/cache";
+import { cache, clearMembershipCaches } from "../middleware/cache";
 import { EMPTY_MEMBER_CONTEXT } from "../types/portal-context";
 import type { MemberContext, PortalContext } from "../types/portal-context";
 
 const CURRENT_HACKATHON_KEY = "hackathon:current-id";
+
+// The sign-in hook in @query/auth grants memberships and cannot reach this
+// cache; registering here is how those grants get their entries evicted.
+setMembershipChangeHandler(clearMembershipCaches);
 
 function buildMemberContext(
   memberRecord: {
