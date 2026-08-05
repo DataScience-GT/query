@@ -5,6 +5,7 @@ import {
   uuid,
   boolean,
   integer,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
@@ -28,23 +29,33 @@ export const events = pgTable("event", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const eventCheckIns = pgTable("event_check_in", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  eventId: uuid("event_id")
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  memberId: uuid("member_id").references(() => members.id, {
-    onDelete: "set null",
-  }),
-  checkInMethod: text("check_in_method", { enum: ["qr_code", "manual"] })
-    .notNull()
-    .default("qr_code"),
-  pointsEarned: integer("points_earned").notNull().default(10),
-  checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
-});
+export const eventCheckIns = pgTable(
+  "event_check_in",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id").references(() => members.id, {
+      onDelete: "set null",
+    }),
+    checkInMethod: text("check_in_method", { enum: ["qr_code", "manual"] })
+      .notNull()
+      .default("qr_code"),
+    pointsEarned: integer("points_earned").notNull().default(10),
+    checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // A person is at a given event once. events.checkIn already treats a 23505
+    // here as "Already checked in", and its row lock keeps the QR door honest,
+    // but that only covers the one path that takes the lock — the constraint is
+    // what holds for any future manual or imported check-in as well.
+    unique("unique_event_check_in").on(table.eventId, table.userId),
+  ],
+);
 
 // Relations
 export const eventsRelations = relations(events, ({ one, many }) => ({

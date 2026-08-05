@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
+import { trpcErrorMessage } from "@/lib/trpc-error";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
@@ -135,11 +136,14 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Sent as-is, not `|| undefined`: an emptied field means "clear it", and
+      // collapsing it to undefined made the server skip it while the UI still
+      // reported a save.
       await updateProfile.mutateAsync({
         name: form.name || undefined,
-        bio: form.bio || undefined,
-        website: form.website || undefined,
-        location: form.location || undefined,
+        bio: form.bio,
+        website: form.website,
+        location: form.location,
       });
       await utils.user.me.invalidate();
       setSaved(true);
@@ -325,6 +329,15 @@ export default function SettingsPage() {
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm resize-none"
                     />
                   </div>
+
+                  {updateProfile.error && (
+                    <div className="px-4 py-3 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                      {trpcErrorMessage(
+                        updateProfile.error,
+                        "Could not save your profile.",
+                      )}
+                    </div>
+                  )}
 
                   {/* Save Button */}
                   <div className="flex justify-end pt-2">

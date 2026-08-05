@@ -7,6 +7,24 @@ import { CacheKeys } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { fetchPortalContext } from "../services/portal-context";
 
+// z.string().url() is backed by new URL(), which accepts any scheme — a stored
+// data: or javascript: URI is handed straight back to whoever renders it.
+// The settings form resubmits every field it holds on each save, so this is a
+// denylist of the schemes that execute rather than an http(s) allowlist: an
+// allowlist would let one legacy mailto:/ftp: entry block edits to every other
+// field, with no way for the owner to get out of it.
+const EXECUTABLE_SCHEMES = ["javascript:", "data:", "vbscript:", "file:"];
+// Parsing rather than pattern-matching the scheme: the URL parser drops the
+// embedded tabs/newlines a browser would also ignore in "java\nscript:".
+const hasSafeScheme = (value: string) => {
+  try {
+    return !EXECUTABLE_SCHEMES.includes(new URL(value).protocol.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+const SAFE_URL_MESSAGE = "URL scheme is not allowed";
+
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
     const cacheKey = CacheKeys.userProfile(ctx.userId as string);
@@ -73,13 +91,31 @@ export const userRouter = createTRPCRouter({
 
   updateProfile: protectedProcedure
     .input(
-      z.object({
-        name: z.string().min(1).max(100).optional(),
-        image: z.string().url().optional(),
-        bio: z.string().max(500).optional(),
-        website: z.string().url().max(500).optional(),
-        location: z.string().max(200).optional(),
-      }),
+      z
+        .object({
+          name: z.string().min(1).max(100).optional(),
+          image: z
+            .string()
+            .url()
+            .refine(hasSafeScheme, SAFE_URL_MESSAGE)
+            .optional(),
+          bio: z.string().max(500).optional(),
+          // "" is how the client says "clear this", so it has to get past url().
+          website: z
+            .string()
+            .url()
+            .max(500)
+            .refine(hasSafeScheme, SAFE_URL_MESSAGE)
+            .or(z.literal(""))
+            .optional(),
+          location: z.string().max(200).optional(),
+        })
+        .refine(
+          (fields) => Object.values(fields).some((v) => v !== undefined),
+          {
+            message: "At least one field must be provided",
+          },
+        ),
     )
     .mutation(async ({ ctx, input }) => {
       const { name, image, bio, website, location } = input;

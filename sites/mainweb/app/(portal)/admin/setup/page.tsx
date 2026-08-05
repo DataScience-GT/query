@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { trpcErrorMessage } from "@/lib/trpc-error";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -82,7 +83,10 @@ export default function AdminSetupPage() {
   });
 
   const importProjects = trpc.judge.bulkImportProjects.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // A run that created nothing leaves the hackathon with no projects to
+      // judge, so the wizard must not mark the step done and move on.
+      if (data.created === 0) return;
       setProjectsImported(true);
       setActiveStep(4);
     },
@@ -275,6 +279,17 @@ export default function AdminSetupPage() {
                 ? "Assigning..."
                 : "Auto-Assign All Judges"}
             </button>
+
+            {assignJudges.error && (
+              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-none">
+                <p className="text-red-400 text-xs font-mono">
+                  {trpcErrorMessage(
+                    assignJudges.error,
+                    "Could not assign judges.",
+                  )}
+                </p>
+              </div>
+            )}
 
             {assignJudges.data && (
               <div className="mt-6">

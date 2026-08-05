@@ -68,7 +68,10 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
       });
       setShowScanner(false);
     } finally {
+      // Re-arm on every exit path. Clearing this only in the modal's onClose
+      // meant the scanner took one badge per page load.
       setIsProcessing(false);
+      setIsPaused(false);
     }
   };
 

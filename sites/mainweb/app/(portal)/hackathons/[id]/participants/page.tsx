@@ -13,6 +13,7 @@ import { InfoTab } from "@/components/hackathon/InfoTab";
 import { ScheduleTab } from "@/components/hackathon/ScheduleTab";
 import { ProjectsTab } from "@/components/hackathon/ProjectsTab";
 import { TeamsTab } from "@/components/hackathon/TeamsTab";
+import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
@@ -115,7 +116,11 @@ export default function ParticipantHackathonPage() {
       : "INFO",
   );
 
-  const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery({
+  const {
+    data: hackathon,
+    isLoading,
+    error,
+  } = trpc.hackathon.getById.useQuery({
     id: hackathonId,
   });
   const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
@@ -126,9 +131,13 @@ export default function ParticipantHackathonPage() {
     if (authStatus === "unauthenticated") router.push("/login");
   }, [authStatus, router]);
 
-  if (authStatus === "loading" || isLoading || !hackathon)
+  if (authStatus === "loading" || isLoading)
     return <LoadingScreen message="Loading Hackathon..." />;
   if (!session) return null;
+  // A hackathon can be missing (bad link, deleted event) or hidden. Without
+  // this branch the loading guard above never clears and the page spins
+  // forever with nothing to click.
+  if (error || !hackathon) return <HackathonUnavailable message={error?.message} />;
 
   const myReg = myRegs?.find((r) => r.hackathonId === hackathon.id);
   const isRegistered = !!myReg;
