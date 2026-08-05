@@ -2,23 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { db, stripePayments, users } from "@query/db";
-import { createOrUpdateMembership } from "@query/db/services/membership";
+import {
+  createOrUpdateMembership,
+  splitName,
+} from "@query/db/services/membership";
 import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import {
   clearMembershipCaches,
   MAX_MEMBERSHIP_CHARGE_CENTS,
 } from "@query/api";
-
-/** Mirrors the name split the old local helper did internally. */
-const splitName = (name: string | null | undefined) => {
-  const parts = (name || "Member").trim().split(/s+/);
-  return {
-    firstName: parts[0] || "Member",
-    lastName: parts.slice(1).join(" ") || "Member",
-  };
-};
-
 
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

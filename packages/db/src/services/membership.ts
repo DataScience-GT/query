@@ -78,7 +78,12 @@ export const paidForBootcamp = (metadata: string | null | undefined) => {
   }
 };
 
-const splitName = (name: string | null | undefined) => {
+/**
+ * Exported so no caller hand-rolls it. A copied version in the Stripe webhook
+ * lost a backslash and split on the letter "s" rather than whitespace, storing
+ * "Chris Smith" as firstName "Chri", lastName " Smith".
+ */
+export const splitName = (name: string | null | undefined) => {
   const parts = (name || "Member").trim().split(/\s+/);
   return {
     firstName: parts[0] || "Member",
