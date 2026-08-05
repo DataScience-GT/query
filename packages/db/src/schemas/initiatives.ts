@@ -10,20 +10,31 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
-import { hackathons } from "./hackathons";
 
 /**
  * Club initiatives: things a project leader runs year-round that members apply
  * to join. Named `initiative` rather than `project` because a hackathon
  * "project" is already a judged submission, and one word for both would make
  * every query and conversation ambiguous.
+ *
+ * Deliberately unscoped by hackathon. The club and the hackathon are two
+ * separate aspects of the platform: the hackathon has editions, registration,
+ * teams and judging; the club has initiatives that run whenever somebody is
+ * willing to lead one. Nothing here is ever judged — judges only ever score
+ * `hackathon_project`. Tying these tables to an edition, as they were, meant a
+ * club project silently belonged to whichever hackathon happened to be current
+ * on the day it was created, and vanished from every list the moment staff
+ * drafted the next one.
  */
 
 /**
  * The project-leader role, as its own assignment table rather than a value on
  * `admin.role` — a leader is an elevated member, not staff, and nothing here
- * should widen an existing admin check. Scoped per hackathon edition, the same
- * way `judge` and `member` are.
+ * should widen an existing admin check.
+ *
+ * One row per person, not one per edition: leading is a standing appointment
+ * that lasts until somebody revokes it, so there is no yearly re-grant and
+ * nobody loses their initiatives when an edition rolls over.
  */
 export const projectLeaders = pgTable(
   "project_leader",
@@ -32,9 +43,6 @@ export const projectLeaders = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    hackathonId: uuid("hackathon_id")
-      .notNull()
-      .references(() => hackathons.id, { onDelete: "cascade" }),
     /** Revoked by clearing this, so the appointment stays on the record. */
     isActive: boolean("is_active").notNull().default(true),
     appointedBy: text("appointed_by").references(() => users.id, {
@@ -45,11 +53,7 @@ export const projectLeaders = pgTable(
   },
   (table) => [
     index("project_leader_user_id_idx").on(table.userId),
-    index("project_leader_hackathon_id_idx").on(table.hackathonId),
-    unique("unique_project_leader_per_hackathon").on(
-      table.userId,
-      table.hackathonId,
-    ),
+    unique("unique_project_leader").on(table.userId),
   ],
 );
 
@@ -91,9 +95,6 @@ export const initiatives = pgTable(
   "initiative",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    hackathonId: uuid("hackathon_id")
-      .notNull()
-      .references(() => hackathons.id, { onDelete: "cascade" }),
     leaderUserId: text("leader_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -104,7 +105,11 @@ export const initiatives = pgTable(
     status: text("status", { enum: initiativeStatuses })
       .notNull()
       .default("draft"),
-    /** Null means uncapped. Zero would be an initiative nobody can join. */
+    /**
+     * How many people the leader may accept, not counting themselves — a team
+     * of four is a leader plus three accepted members at `maxMembers = 3`.
+     * Null means uncapped. Zero would be an initiative nobody can join.
+     */
     maxMembers: integer("max_members"),
     archivedAt: timestamp("archived_at"),
     /** Set when an admin approves or declines a proposal. */
@@ -118,7 +123,6 @@ export const initiatives = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("initiative_hackathon_id_idx").on(table.hackathonId),
     index("initiative_leader_idx").on(table.leaderUserId),
     index("initiative_status_idx").on(table.status),
   ],
@@ -175,20 +179,12 @@ export type InitiativeApplication = typeof initiativeApplications.$inferSelect;
 
 export const projectLeadersRelations = relations(projectLeaders, ({ one }) => ({
   user: one(users, { fields: [projectLeaders.userId], references: [users.id] }),
-  hackathon: one(hackathons, {
-    fields: [projectLeaders.hackathonId],
-    references: [hackathons.id],
-  }),
 }));
 
 export const initiativesRelations = relations(initiatives, ({ one, many }) => ({
   leader: one(users, {
     fields: [initiatives.leaderUserId],
     references: [users.id],
-  }),
-  hackathon: one(hackathons, {
-    fields: [initiatives.hackathonId],
-    references: [hackathons.id],
   }),
   applications: many(initiativeApplications),
 }));

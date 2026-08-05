@@ -4,6 +4,7 @@ import { Roboto_Mono, Space_Grotesk, Silkscreen } from "next/font/google";
 import Navbar from "../components/Navbar";
 import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import Footer from "../components/Footer";
+import { INTEREST_URL } from "../lib/links";
 
 const robotoMono = Roboto_Mono({
   subsets: ["latin"],
@@ -89,10 +90,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     description: "Data Science @ GT — The premier data science hackathon in the Southeast. 36 hours of coding, data science, and AI.",
     offers: {
       "@type": "Offer",
-      url: "https://form.typeform.com/to/GvqBCdAe",
+      url: INTEREST_URL,
       price: "0",
       priceCurrency: "USD",
-      availability: "https://schema.org/InStock",
+      // PreOrder, not InStock: registration has not opened, and the link behind
+      // this offer joins an interest list rather than securing a place. Search
+      // results that promise "register now" against a page that cannot are the
+      // kind of thing that gets rich results pulled.
+      availability: "https://schema.org/PreOrder",
       validFrom: "2026-08-01T00:00:00-04:00"
     },
     organizer: {

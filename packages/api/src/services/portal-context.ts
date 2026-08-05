@@ -104,7 +104,7 @@ export async function fetchPortalContext(
   db: DrizzleDB,
   userId: string,
 ): Promise<PortalContext> {
-  const [admin, hackathonId, judgeRecord] = await Promise.all([
+  const [admin, hackathonId, judgeRecord, leaderRecord] = await Promise.all([
     db.query.admins.findFirst({
       where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
     }),
@@ -113,32 +113,31 @@ export async function fetchPortalContext(
       where: and(eq(judges.userId, userId), eq(judges.isActive, true)),
       columns: { id: true, name: true },
     }),
+    // Club side, so it does not wait on the edition and does not disappear
+    // between editions the way it used to.
+    db.query.projectLeaders.findFirst({
+      where: and(
+        eq(projectLeaders.userId, userId),
+        eq(projectLeaders.isActive, true),
+      ),
+      columns: { id: true },
+    }),
   ]);
 
   let member = EMPTY_MEMBER_CONTEXT;
-  let isProjectLeader = false;
 
-  // Both are scoped to the edition, so neither can be read until it resolves.
+  // Membership is still scoped to the edition, so it waits for one to resolve.
   if (hackathonId) {
-    const [memberRecord, leaderRecord] = await Promise.all([
-      db.query.members.findFirst({
-        where: and(
-          eq(members.userId, userId),
-          eq(members.hackathonId, hackathonId),
-        ),
-      }),
-      db.query.projectLeaders.findFirst({
-        where: and(
-          eq(projectLeaders.userId, userId),
-          eq(projectLeaders.hackathonId, hackathonId),
-          eq(projectLeaders.isActive, true),
-        ),
-        columns: { id: true },
-      }),
-    ]);
+    const memberRecord = await db.query.members.findFirst({
+      where: and(
+        eq(members.userId, userId),
+        eq(members.hackathonId, hackathonId),
+      ),
+    });
     member = buildMemberContext(memberRecord ?? null);
-    isProjectLeader = !!leaderRecord;
   }
+
+  const isProjectLeader = !!leaderRecord;
 
   return {
     isAdmin: !!admin,

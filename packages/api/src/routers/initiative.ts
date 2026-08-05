@@ -32,44 +32,61 @@ type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 /** The helpers below only read, so either handle will do. */
 type Reader = DrizzleDB | Tx;
 
+/**
+ * A team is the leader plus the people they accept, so the stored cap — which
+ * counts accepted members only — is one less than this. Applied when a leader
+ * names no cap; an explicit null still means uncapped, for the initiatives that
+ * are a standing group rather than a team.
+ */
+const DEFAULT_TEAM_SIZE = 4;
+
 const initiativeInput = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().max(300).optional(),
   description: z.string().trim().max(4000).optional(),
   commitment: z.string().trim().max(120).optional(),
-  maxMembers: z.number().int().positive().max(500).nullable().optional(),
+  maxMembers: z
+    .number()
+    .int()
+    .positive()
+    .max(500)
+    .nullable()
+    .optional()
+    .default(DEFAULT_TEAM_SIZE - 1),
 });
 
 /**
- * Admins manage every initiative; a leader manages only their own, and only in
- * the edition they currently lead. The role is granted per hackathon, so
- * matching on leaderUserId alone would let this year's leader reach the
- * initiative they ran last year — and its applicants' names, emails, and
- * pitches — long after that appointment lapsed. Callers turn a false into
- * NOT_FOUND rather than FORBIDDEN, so a leader who guesses another leader's id
- * does not learn from the error that it exists.
+ * Admins manage every initiative; a leader manages only their own. There is no
+ * edition to cross: an initiative belongs to whoever leads it and to nothing
+ * else. Callers turn a false into NOT_FOUND rather than FORBIDDEN, so a leader
+ * who guesses another leader's id does not learn from the error that it exists.
  */
 function canManage(
-  ctx: { userId: string; hackathonId: string; isPlatformAdmin: boolean },
+  ctx: { userId: string; isPlatformAdmin: boolean },
   initiative: Initiative,
 ) {
-  return (
-    ctx.isPlatformAdmin ||
-    (initiative.hackathonId === ctx.hackathonId &&
-      initiative.leaderUserId === ctx.userId)
-  );
+  return ctx.isPlatformAdmin || initiative.leaderUserId === ctx.userId;
 }
 
-/** Applying is a member benefit, so it needs a membership that has not lapsed. */
-async function requireActiveMember(
-  db: Reader,
-  userId: string,
-  hackathonId: string,
-) {
-  const member = await db.query.members.findFirst({
-    where: and(eq(members.userId, userId), eq(members.hackathonId, hackathonId)),
-    columns: { isActive: true, membershipEndDate: true },
-  });
+/**
+ * Applying is a member benefit, so it needs a membership that has not lapsed.
+ *
+ * Initiatives are unscoped but membership is not — a paid year still hangs off
+ * an edition, so this resolves the current one. No edition means nobody has a
+ * live membership to check, which refuses rather than waving everyone through.
+ */
+async function requireActiveMember(db: Reader, userId: string) {
+  const hackathonId = await resolveHackathonId(db as DrizzleDB);
+
+  const member = hackathonId
+    ? await db.query.members.findFirst({
+        where: and(
+          eq(members.userId, userId),
+          eq(members.hackathonId, hackathonId),
+        ),
+        columns: { isActive: true, membershipEndDate: true },
+      })
+    : undefined;
 
   const active = !!(
     member?.isActive &&
@@ -135,7 +152,6 @@ export const initiativeRouter = createTRPCRouter({
       .innerJoin(users, eq(users.id, initiatives.leaderUserId))
       .where(
         and(
-          eq(initiatives.hackathonId, ctx.hackathonId),
           // Proposals and declines live in the member's own list and the admin
           // review queue; this screen is for initiatives that actually exist.
           inArray(initiatives.status, ["draft", "open", "closed"]),
@@ -243,7 +259,6 @@ export const initiativeRouter = createTRPCRouter({
         const target = await db.query.projectLeaders.findFirst({
           where: and(
             eq(projectLeaders.userId, input.leaderUserId),
-            eq(projectLeaders.hackathonId, ctx.hackathonId),
             eq(projectLeaders.isActive, true),
           ),
           columns: { id: true },
@@ -251,7 +266,7 @@ export const initiativeRouter = createTRPCRouter({
         if (!target) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "That person is not a project leader for this edition.",
+            message: "That person is not a project leader.",
           });
         }
         leaderUserId = input.leaderUserId;
@@ -268,7 +283,6 @@ export const initiativeRouter = createTRPCRouter({
       const [created] = await db
         .insert(initiatives)
         .values({
-          hackathonId: ctx.hackathonId,
           leaderUserId,
           title: input.title,
           summary: input.summary ?? null,
@@ -465,132 +479,119 @@ export const initiativeRouter = createTRPCRouter({
    * whether to join should be able to see what they would get. Applying is
    * where the membership check bites.
    */
-  list: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
-    .query(async ({ ctx, input }) => {
-      const db = ctx.db as DrizzleDB;
-      const hackathonId = await resolveHackathonId(db, input?.hackathonId);
-      if (!hackathonId) return [];
+  list: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
 
-      const open = await db
+    const open = await db
+      .select({
+        id: initiatives.id,
+        title: initiatives.title,
+        summary: initiatives.summary,
+        description: initiatives.description,
+        commitment: initiatives.commitment,
+        status: initiatives.status,
+        maxMembers: initiatives.maxMembers,
+        archivedAt: initiatives.archivedAt,
+        leaderName: users.name,
+        leaderImage: users.image,
+      })
+      .from(initiatives)
+      .innerJoin(users, eq(users.id, initiatives.leaderUserId))
+      .where(
+        and(eq(initiatives.status, "open"), isNull(initiatives.archivedAt)),
+      )
+      .orderBy(asc(initiatives.title))
+      .limit(60);
+
+    if (open.length === 0) return [];
+
+    const ids = open.map((row) => row.id);
+
+    const [seats, mine] = await Promise.all([
+      db
         .select({
-          id: initiatives.id,
-          title: initiatives.title,
-          summary: initiatives.summary,
-          description: initiatives.description,
-          commitment: initiatives.commitment,
-          status: initiatives.status,
-          maxMembers: initiatives.maxMembers,
-          archivedAt: initiatives.archivedAt,
-          leaderName: users.name,
-          leaderImage: users.image,
-        })
-        .from(initiatives)
-        .innerJoin(users, eq(users.id, initiatives.leaderUserId))
-        .where(
-          and(
-            eq(initiatives.hackathonId, hackathonId),
-            eq(initiatives.status, "open"),
-            isNull(initiatives.archivedAt),
-          ),
-        )
-        .orderBy(asc(initiatives.title))
-        .limit(60);
-
-      if (open.length === 0) return [];
-
-      const ids = open.map((row) => row.id);
-
-      const [seats, mine] = await Promise.all([
-        db
-          .select({
-            initiativeId: initiativeApplications.initiativeId,
-            taken: count(),
-          })
-          .from(initiativeApplications)
-          .where(
-            and(
-              inArray(initiativeApplications.initiativeId, ids),
-              eq(initiativeApplications.status, "accepted"),
-            ),
-          )
-          .groupBy(initiativeApplications.initiativeId),
-        db
-          .select({
-            initiativeId: initiativeApplications.initiativeId,
-            status: initiativeApplications.status,
-          })
-          .from(initiativeApplications)
-          .where(
-            and(
-              inArray(initiativeApplications.initiativeId, ids),
-              eq(initiativeApplications.userId, ctx.userId),
-            ),
-          ),
-      ]);
-
-      const taken = new Map(seats.map((row) => [row.initiativeId, row.taken]));
-      const status = new Map(mine.map((row) => [row.initiativeId, row.status]));
-
-      return open.map((row) => {
-        const accepted = taken.get(row.id) ?? 0;
-        const myStatus = status.get(row.id) ?? null;
-        return {
-          ...row,
-          accepted,
-          // withdrawn reads as no application, because re-applying is allowed.
-          myStatus: myStatus === "withdrawn" ? null : myStatus,
-          isFull: row.maxMembers !== null && accepted >= row.maxMembers,
-        };
-      });
-    }),
-
-  myApplications: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
-    .query(async ({ ctx, input }) => {
-      const db = ctx.db as DrizzleDB;
-      const hackathonId = await resolveHackathonId(db, input?.hackathonId);
-      if (!hackathonId) return [];
-
-      const rows = await db
-        .select({
-          id: initiatives.id,
-          title: initiatives.title,
-          summary: initiatives.summary,
-          status: initiatives.status,
-          maxMembers: initiatives.maxMembers,
-          archivedAt: initiatives.archivedAt,
-          leaderName: users.name,
-          leaderEmail: users.email,
-          myStatus: initiativeApplications.status,
-          appliedAt: initiativeApplications.appliedAt,
-          decidedAt: initiativeApplications.decidedAt,
+          initiativeId: initiativeApplications.initiativeId,
+          taken: count(),
         })
         .from(initiativeApplications)
-        .innerJoin(
-          initiatives,
-          eq(initiatives.id, initiativeApplications.initiativeId),
-        )
-        .innerJoin(users, eq(users.id, initiatives.leaderUserId))
         .where(
           and(
-            eq(initiativeApplications.userId, ctx.userId),
-            eq(initiatives.hackathonId, hackathonId),
-            // A withdrawal is an exit, not a record to carry forever.
-            ne(initiativeApplications.status, "withdrawn"),
+            inArray(initiativeApplications.initiativeId, ids),
+            eq(initiativeApplications.status, "accepted"),
           ),
         )
-        .orderBy(desc(initiativeApplications.appliedAt))
-        .limit(60);
+        .groupBy(initiativeApplications.initiativeId),
+      db
+        .select({
+          initiativeId: initiativeApplications.initiativeId,
+          status: initiativeApplications.status,
+        })
+        .from(initiativeApplications)
+        .where(
+          and(
+            inArray(initiativeApplications.initiativeId, ids),
+            eq(initiativeApplications.userId, ctx.userId),
+          ),
+        ),
+    ]);
 
-      // The leader's address is contact detail for people actually on the
-      // initiative. Stripped here, not in the component — what the component
-      // does not render still rides along in the payload.
-      return rows.map(({ leaderEmail, ...row }) => ({
+    const taken = new Map(seats.map((row) => [row.initiativeId, row.taken]));
+    const status = new Map(mine.map((row) => [row.initiativeId, row.status]));
+
+    return open.map((row) => {
+      const accepted = taken.get(row.id) ?? 0;
+      const myStatus = status.get(row.id) ?? null;
+      return {
         ...row,
-        leaderEmail: row.myStatus === "accepted" ? leaderEmail : null,
-      }));
-    }),
+        accepted,
+        // withdrawn reads as no application, because re-applying is allowed.
+        myStatus: myStatus === "withdrawn" ? null : myStatus,
+        isFull: row.maxMembers !== null && accepted >= row.maxMembers,
+      };
+    });
+  }),
+
+  myApplications: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+
+    const rows = await db
+      .select({
+        id: initiatives.id,
+        title: initiatives.title,
+        summary: initiatives.summary,
+        status: initiatives.status,
+        maxMembers: initiatives.maxMembers,
+        archivedAt: initiatives.archivedAt,
+        leaderName: users.name,
+        leaderEmail: users.email,
+        myStatus: initiativeApplications.status,
+        appliedAt: initiativeApplications.appliedAt,
+        decidedAt: initiativeApplications.decidedAt,
+      })
+      .from(initiativeApplications)
+      .innerJoin(
+        initiatives,
+        eq(initiatives.id, initiativeApplications.initiativeId),
+      )
+      .innerJoin(users, eq(users.id, initiatives.leaderUserId))
+      .where(
+        and(
+          eq(initiativeApplications.userId, ctx.userId),
+          // A withdrawal is an exit, not a record to carry forever.
+          ne(initiativeApplications.status, "withdrawn"),
+        ),
+      )
+      .orderBy(desc(initiativeApplications.appliedAt))
+      .limit(60);
+
+    // The leader's address is contact detail for people actually on the
+    // initiative. Stripped here, not in the component — what the component
+    // does not render still rides along in the payload.
+    return rows.map(({ leaderEmail, ...row }) => ({
+      ...row,
+      leaderEmail: row.myStatus === "accepted" ? leaderEmail : null,
+    }));
+  }),
 
   /**
    * Not `apply`: tRPC refuses a procedure named after anything on
@@ -633,7 +634,7 @@ export const initiativeRouter = createTRPCRouter({
           throw notFound();
         }
 
-        await requireActiveMember(tx, userId, initiative.hackathonId);
+        await requireActiveMember(tx, userId);
 
         if (initiative.status !== "open") {
           throw new TRPCError({
@@ -749,15 +750,8 @@ export const initiativeRouter = createTRPCRouter({
     .input(initiativeInput)
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const hackathonId = await resolveHackathonId(db);
-      if (!hackathonId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No hackathon context found",
-        });
-      }
 
-      await requireActiveMember(db, ctx.userId, hackathonId);
+      await requireActiveMember(db, ctx.userId);
 
       // A queue an admin has to read is a shared resource. Three open at once
       // is plenty for one person and stops a single member flooding it.
@@ -766,7 +760,6 @@ export const initiativeRouter = createTRPCRouter({
         .from(initiatives)
         .where(
           and(
-            eq(initiatives.hackathonId, hackathonId),
             eq(initiatives.leaderUserId, ctx.userId),
             eq(initiatives.status, "proposed"),
           ),
@@ -783,7 +776,6 @@ export const initiativeRouter = createTRPCRouter({
       const [created] = await db
         .insert(initiatives)
         .values({
-          hackathonId,
           leaderUserId: ctx.userId,
           title: input.title,
           summary: input.summary ?? null,
@@ -810,8 +802,6 @@ export const initiativeRouter = createTRPCRouter({
    */
   myProposals: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
-    const hackathonId = await resolveHackathonId(db);
-    if (!hackathonId) return [];
 
     return db
       .select({
@@ -828,12 +818,7 @@ export const initiativeRouter = createTRPCRouter({
         createdAt: initiatives.createdAt,
       })
       .from(initiatives)
-      .where(
-        and(
-          eq(initiatives.hackathonId, hackathonId),
-          eq(initiatives.leaderUserId, ctx.userId),
-        ),
-      )
+      .where(eq(initiatives.leaderUserId, ctx.userId))
       .orderBy(desc(initiatives.createdAt))
       .limit(40);
   }),
@@ -866,8 +851,6 @@ export const initiativeRouter = createTRPCRouter({
   /** The review queue. Oldest first — proposals are answered in order. */
   listProposals: isAdmin.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
-    const hackathonId = await resolveHackathonId(db);
-    if (!hackathonId) return [];
 
     return db
       .select({
@@ -885,12 +868,7 @@ export const initiativeRouter = createTRPCRouter({
       })
       .from(initiatives)
       .innerJoin(users, eq(users.id, initiatives.leaderUserId))
-      .where(
-        and(
-          eq(initiatives.hackathonId, hackathonId),
-          eq(initiatives.status, "proposed"),
-        ),
-      )
+      .where(eq(initiatives.status, "proposed"))
       .orderBy(asc(initiatives.createdAt))
       .limit(100);
   }),
@@ -937,10 +915,7 @@ export const initiativeRouter = createTRPCRouter({
 
         if (input.decision === "approve") {
           const existing = await tx.query.projectLeaders.findFirst({
-            where: and(
-              eq(projectLeaders.userId, proposal.leaderUserId),
-              eq(projectLeaders.hackathonId, proposal.hackathonId),
-            ),
+            where: eq(projectLeaders.userId, proposal.leaderUserId),
           });
 
           if (existing) {
@@ -955,7 +930,6 @@ export const initiativeRouter = createTRPCRouter({
           } else {
             await tx.insert(projectLeaders).values({
               userId: proposal.leaderUserId,
-              hackathonId: proposal.hackathonId,
               isActive: true,
               appointedBy: ctx.userId,
             });
@@ -975,8 +949,6 @@ export const initiativeRouter = createTRPCRouter({
 
   listLeaders: isAdmin.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
-    const hackathonId = await resolveHackathonId(db);
-    if (!hackathonId) return [];
 
     return db
       .select({
@@ -990,26 +962,18 @@ export const initiativeRouter = createTRPCRouter({
       })
       .from(projectLeaders)
       .innerJoin(users, eq(users.id, projectLeaders.userId))
-      .where(eq(projectLeaders.hackathonId, hackathonId))
       .orderBy(asc(users.email))
       .limit(200);
   }),
 
   /**
-   * Grant or revoke, by user id, for the current edition. Upserted rather than
-   * deleted so an appointment stays on the record after it is revoked.
+   * Grant or revoke, by user id. Upserted rather than deleted so an
+   * appointment stays on the record after it is revoked.
    */
   setLeader: isAdmin
     .input(z.object({ userId: z.string(), isLeader: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const hackathonId = await resolveHackathonId(db);
-      if (!hackathonId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No hackathon context found",
-        });
-      }
 
       const target = await db.query.users.findFirst({
         where: eq(users.id, input.userId),
@@ -1020,10 +984,7 @@ export const initiativeRouter = createTRPCRouter({
       }
 
       const existing = await db.query.projectLeaders.findFirst({
-        where: and(
-          eq(projectLeaders.userId, input.userId),
-          eq(projectLeaders.hackathonId, hackathonId),
-        ),
+        where: eq(projectLeaders.userId, input.userId),
       });
 
       if (existing) {
@@ -1034,7 +995,6 @@ export const initiativeRouter = createTRPCRouter({
       } else if (input.isLeader) {
         await db.insert(projectLeaders).values({
           userId: input.userId,
-          hackathonId,
           isActive: true,
           appointedBy: ctx.userId,
         });

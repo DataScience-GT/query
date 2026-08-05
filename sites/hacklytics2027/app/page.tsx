@@ -4,6 +4,7 @@ import HomeSections from "@/components/HomeSections";
 import PixelGarden, { PixelGround } from "@/components/pixel/PixelGarden";
 import PixelSprite from "@/components/pixel/PixelSprite";
 import { BLOOM, DAISY, SPROUT, TULIP } from "@/components/pixel/sprites";
+import { INTEREST_URL } from "@/lib/links";
 
 // ─── Elegant Floral Background ─────────────────────────────────────────────
 const FloralBackground = () => (
@@ -173,13 +174,13 @@ export default function HomePage() {
           {/* Framer-style CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
             <a
-              href="https://form.typeform.com/to/GvqBCdAe"
+              href={INTEREST_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="pixel-btn relative inline-flex items-center justify-center px-10 py-4 font-pixel text-xs overflow-hidden group w-full sm:w-auto"
             >
               <span className="relative flex items-center gap-3">
-                APPLY NOW
+                NOTIFY ME
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>

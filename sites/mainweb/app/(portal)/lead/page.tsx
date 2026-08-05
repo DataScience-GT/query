@@ -257,7 +257,7 @@ export default function LeadPage() {
         <LiquidGlass className="p-8 text-center">
           <p className="font-semibold text-white">
             {listing.error.data?.code === "FORBIDDEN"
-              ? "You are not a project leader for this edition."
+              ? "You are not a project leader."
               : listing.error.message}
           </p>
           <Link

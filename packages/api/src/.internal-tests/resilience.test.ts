@@ -166,32 +166,7 @@ describe("Resilience and Domain Edge Cases Verification Suite", () => {
     });
   });
 
-  describe("5. Discord Grapheme Safe Channel Name Truncation", () => {
-    it("should truncate channel names with multi-byte surrogate pairs safely", () => {
-      // 4-byte unicode values (using unicode escapes for emojis)
-      const compoundEmoji =
-        "A\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66"; // family emoji
-
-      const safeTruncateBytes = (str: string, maxBytes: number) => {
-        const encoder = new TextEncoder();
-        const decoder = new TextDecoder("utf-8");
-        const bytes = encoder.encode(str);
-        if (bytes.length <= maxBytes) return str;
-
-        const sliced = bytes.slice(0, maxBytes);
-        const decoded = decoder.decode(sliced);
-        // Clean trailing corrupted surrogate halves
-        return decoded.replace(/[\uFFFD\uD800-\uDBFF]$/, "");
-      };
-
-      const truncated = safeTruncateBytes(compoundEmoji, 5);
-      expect(truncated.endsWith("\uFFFD")).toBe(false);
-      const lastCode = truncated.charCodeAt(truncated.length - 1);
-      expect(lastCode >= 0xd800 && lastCode <= 0xdbff).toBe(false);
-    });
-  });
-
-  describe("6. Temporal and Calendar Rules", () => {
+  describe("5. Temporal and Calendar Rules", () => {
     it("should calculate dates across leap year boundaries", () => {
       // Leap day sign up
       const leapDay = new Date("2024-02-29T12:00:00Z");

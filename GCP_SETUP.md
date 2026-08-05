@@ -48,10 +48,10 @@ This will pull the following from GCP:
 
 ## 4. Running the App
 
-To run the entire stack (Main Web + Discord Bot) in development mode:
+To run every workspace in development mode:
 
 ```bash
-pnpm dev:full
+pnpm dev
 ```
 
 ## 5. Troubleshooting

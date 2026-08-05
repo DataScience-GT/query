@@ -10,7 +10,13 @@ export default function PortalWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/verify";
+  // Pages inside (portal) that a signed-out stranger is meant to see. They need
+  // the tRPC and session providers this group mounts, but a portal sidebar full
+  // of links they cannot use is the wrong first impression.
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/verify" ||
+    pathname === "/hacklytics";
 
   // Default to minimized state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

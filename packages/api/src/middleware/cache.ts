@@ -252,9 +252,9 @@ export const invalidatePortalContext = (userId: string) => {
 };
 
 /**
- * The role gate caches per hackathon for 60s and the sidebar reads the portal
- * context, so granting or revoking has to clear both or the new leader is shown
- * a tab the procedures still refuse.
+ * The role gate caches for 60s and the sidebar reads the portal context, so
+ * granting or revoking has to clear both or the new leader is shown a tab the
+ * procedures still refuse.
  */
 export const clearProjectLeaderCaches = (userId: string) => {
   cache.deletePattern(`${CacheKeys.projectLeader(userId)}*`);
