@@ -130,6 +130,15 @@ export default function LinkStripeAccount({
     onSuccess?.();
   };
 
+  /**
+   * The modal calls this when the card cleared but recording it did not. Money
+   * has moved, so reconcile immediately rather than waiting for a remount —
+   * the message shown to the user promises the membership will just appear.
+   */
+  const handlePaymentUnconfirmed = () => {
+    reconcileMutation.mutate();
+  };
+
   const handleLinkSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -365,6 +374,7 @@ export default function LinkStripeAccount({
           onConfirmPayment={async (paymentIntentId) => {
             await confirmMutation.mutateAsync({ paymentIntentId });
           }}
+          onUnconfirmed={handlePaymentUnconfirmed}
           onClose={() => {
             setShowModal(false);
             setPaymentData(null);
