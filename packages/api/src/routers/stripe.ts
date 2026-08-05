@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, members, hackathons } from "@query/db";
+import { stripePayments, userAccountLinks, members, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
-import { invalidatePortalContext } from "../middleware/cache";
+import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware/cache";
+import { resolveHackathonId } from "../services/portal-context";
 import type Stripe from "stripe";
 import crypto from "crypto";
 
@@ -29,13 +30,9 @@ async function getStripe(): Promise<Stripe | null> {
   return stripeClient;
 }
 
-function clearMembershipCaches(
-  cache: { delete: (key: string) => boolean; deletePattern: (pattern: string) => number },
-  userId: string,
-) {
-  cache.delete(`member:${userId}`);
-  cache.deletePattern(`member:status:${userId}*`);
-  invalidatePortalContext(userId);
+// Shared with the Stripe webhook so both paths evict the identical key set.
+function clearMembershipCaches(_cache: unknown, userId: string) {
+  clearMembershipCachesFor(userId);
 }
 
 export const stripeRouter = createTRPCRouter({
@@ -82,7 +79,8 @@ export const stripeRouter = createTRPCRouter({
             stripePaymentIntentId: "pi_mock_123",
             customerEmail: user.email!.toLowerCase(),
             customerName: user.name || "Member",
-            amountTotal: 2500,
+            // $15.00, matching the live checkout line item and the portal UI.
+            amountTotal: 1500,
             currency: "usd",
             paymentStatus: "paid",
             linkedUserId: ctx.userId!,
@@ -451,6 +449,50 @@ export const stripeRouter = createTRPCRouter({
           });
         }
 
+        /**
+         * Prove the caller is the payer. The email alone is not proof — it is
+         * the one thing about someone else's payment that is easy to know — so
+         * without this any signed-in user could take over a stranger's
+         * membership by typing their address.
+         *
+         * Either the account email matches the one that paid, or the name they
+         * typed matches the name on the payment. The second covers paying with
+         * a personal address and signing up with a school one; the first covers
+         * payments Stripe recorded without a name.
+         */
+        const account = await tx.query.users.findFirst({
+          where: eq(users.id, ctx.userId!),
+          columns: { email: true },
+        });
+
+        const normalize = (value: string) =>
+          value.toLowerCase().replace(/\s+/g, " ").trim();
+
+        const emailMatches =
+          !!account?.email &&
+          normalize(account.email) === normalize(payment.customerEmail);
+
+        const nameOnPayment = normalize(payment.customerName ?? "");
+        const nameMatches =
+          nameOnPayment.length > 0 &&
+          nameOnPayment.includes(normalize(input.firstName)) &&
+          nameOnPayment.includes(normalize(input.lastName));
+
+        if (!emailMatches && !nameMatches) {
+          logSecurityEvent({
+            type: "validation_error",
+            identifier: ctx.userId ?? "unknown",
+            details: `Failed ownership check linking payment ${payment.id}`,
+          });
+          // Same message as "no payment", so this cannot be used to discover
+          // which addresses have an unclaimed payment sitting against them.
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message:
+              "No payment found with that email. Please check the email you used during checkout.",
+          });
+        }
+
         const existingLink = await tx.query.userAccountLinks.findFirst({
           where: eq(userAccountLinks.stripePaymentId, payment.id),
         });
@@ -540,19 +582,16 @@ async function createOrUpdateMembership(
   firstName: string,
   lastName: string,
 ) {
-  const latest = await db.query.hackathons.findFirst({
-    orderBy: [desc(hackathons.startDate)],
-    columns: { id: true },
-  });
+  const hackathonId = await resolveHackathonId(db);
 
-  if (!latest) {
+  if (!hackathonId) {
     throw new Error("No hackathon found for membership assignment");
   }
 
   const existingMember = await db.query.members.findFirst({
     where: and(
       eq(members.userId, userId),
-      eq(members.hackathonId, latest.id),
+      eq(members.hackathonId, hackathonId),
     ),
   });
 
@@ -575,7 +614,7 @@ async function createOrUpdateMembership(
   } else {
     await db.insert(members).values({
       userId,
-      hackathonId: latest.id,
+      hackathonId,
       firstName,
       lastName,
       memberType: "new",

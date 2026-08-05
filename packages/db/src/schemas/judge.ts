@@ -160,6 +160,12 @@ export const judgeQueue = pgTable(
     order: integer("order").notNull(), // order to visit
     isCompleted: boolean("is_completed").notNull().default(false),
     completedAt: timestamp("completed_at"),
+    // Stamped when this project is handed to the judge, so a second judge whose
+    // queue reaches the same table can pass over it and come back later instead
+    // of crowding the team. Treated as a claim only while it is recent
+    // (JUDGE_CLAIM_MINUTES) — a judge who closes the tab releases the table on
+    // their own rather than blocking it until an admin steps in.
+    startedAt: timestamp("started_at"),
   },
   (table) => [
     index("queue_judge_id_idx").on(table.judgeId),
@@ -169,6 +175,12 @@ export const judgeQueue = pgTable(
       table.judgeId,
       table.hackathonId,
       table.isCompleted,
+    ),
+    // Answers "is anyone else at this table right now" for the claim check.
+    index("queue_project_active_idx").on(
+      table.projectId,
+      table.isCompleted,
+      table.startedAt,
     ),
   ],
 );

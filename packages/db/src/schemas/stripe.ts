@@ -6,6 +6,7 @@ import {
   integer,
   boolean,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
@@ -55,29 +56,40 @@ export const stripePayments = pgTable(
  * Links users who signed in with a different email (e.g., Google)
  * to their Stripe payment record.
  */
-export const userAccountLinks = pgTable("user_account_link", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const userAccountLinks = pgTable(
+  "user_account_link",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
 
-  // The user who linked (signed in via Google, etc.)
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    // The user who linked (signed in via Google, etc.)
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
 
-  // The Stripe payment being linked
-  stripePaymentId: uuid("stripe_payment_id")
-    .notNull()
-    .references(() => stripePayments.id, { onDelete: "cascade" }),
+    // The Stripe payment being linked
+    stripePaymentId: uuid("stripe_payment_id")
+      .notNull()
+      .references(() => stripePayments.id, { onDelete: "cascade" }),
 
-  // Info provided during linking (for verification)
-  providedFirstName: text("provided_first_name").notNull(),
-  providedLastName: text("provided_last_name").notNull(),
-  providedEmail: text("provided_email").notNull(),
+    // Info provided during linking (for verification)
+    providedFirstName: text("provided_first_name").notNull(),
+    providedLastName: text("provided_last_name").notNull(),
+    providedEmail: text("provided_email").notNull(),
 
-  // Status
-  isVerified: boolean("is_verified").notNull().default(true),
+    // Status
+    isVerified: boolean("is_verified").notNull().default(true),
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // linkAccount and attemptAutoLink both assume one link per user and one
+    // per payment, and both check with a read before writing. Two tabs, or two
+    // instances, otherwise both insert — which runs the membership upsert
+    // twice and bumps renewalCount for a single payment.
+    unique("unique_link_per_user").on(table.userId),
+    unique("unique_link_per_payment").on(table.stripePaymentId),
+  ],
+);
 
 // Relations
 export const stripePaymentsRelations = relations(
