@@ -64,7 +64,26 @@ export async function resolveCurrentHackathonId(
   return resolved?.id;
 }
 
-const splitName = (name: string | null | undefined) => {
+/**
+ * Whether a stored payment's metadata says the bootcamp add-on was bought.
+ * Metadata is a JSON string written by whichever path recorded the payment,
+ * and older rows predate the field entirely, so anything unparseable is "no".
+ */
+export const paidForBootcamp = (metadata: string | null | undefined) => {
+  if (!metadata) return false;
+  try {
+    return (JSON.parse(metadata) as { bootcamp?: string }).bootcamp === "true";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Exported so no caller hand-rolls it. A copied version in the Stripe webhook
+ * lost a backslash and split on the letter "s" rather than whitespace, storing
+ * "Chris Smith" as firstName "Chri", lastName " Smith".
+ */
+export const splitName = (name: string | null | undefined) => {
   const parts = (name || "Member").trim().split(/\s+/);
   return {
     firstName: parts[0] || "Member",
@@ -80,6 +99,12 @@ export async function createOrUpdateMembership(
     lastName: string;
     phoneNumber?: string | null;
     hackathonId?: string;
+    /**
+     * Whether this payment included the bootcamp add-on. Only ever upgrades:
+     * renewing without it should not silently strip access someone already
+     * paid for, so the flag is sticky once set.
+     */
+    bootcampMember?: boolean;
   },
 ) {
   const hackathonId =
@@ -122,6 +147,7 @@ export async function createOrUpdateMembership(
         renewalCount: existing.renewalCount + 1,
         memberType: "continuous",
         phoneNumber: opts.phoneNumber || existing.phoneNumber,
+        bootcampMember: existing.bootcampMember || !!opts.bootcampMember,
         updatedAt: now,
       })
       .where(eq(members.id, existing.id));
@@ -139,6 +165,7 @@ export async function createOrUpdateMembership(
     membershipEndDate: termEnd,
     renewalCount: 0,
     phoneNumber: opts.phoneNumber ?? null,
+    bootcampMember: !!opts.bootcampMember,
   });
 }
 
@@ -225,6 +252,9 @@ export async function linkPaidPaymentByVerifiedEmail(
     userId: opts.userId,
     firstName,
     lastName,
+    // What they paid for is recorded on the payment, so the add-on survives
+    // being claimed later by the sign-in hook or the backfill.
+    bootcampMember: paidForBootcamp(payment.metadata),
   });
 
   notifyMembershipChanged(opts.userId);

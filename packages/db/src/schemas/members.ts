@@ -49,6 +49,12 @@ export const members = pgTable(
     major: text("major"),
     graduationYear: integer("graduation_year"),
     isActive: boolean("is_active").notNull().default(true),
+    /**
+     * Paid the bootcamp add-on on top of the membership. Set from the payment
+     * metadata, so it reflects what the member actually bought rather than
+     * anything a client can assert.
+     */
+    bootcampMember: boolean("bootcamp_member").notNull().default(false),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
     membershipStartDate: timestamp("membership_start_date").notNull(),
     membershipEndDate: timestamp("membership_end_date"),
