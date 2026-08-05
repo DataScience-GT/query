@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createOrUpdateMembership } from "./membership";
+import { createOrUpdateMembership, splitName } from "./membership";
 import type { DrizzleDB } from "../client";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -33,6 +33,34 @@ function fakeDb(existingMember: Record<string, unknown> | undefined) {
 
   return { db, updates, inserts };
 }
+
+describe("splitName", () => {
+  /**
+   * A copy of this in the Stripe webhook lost a backslash and split on the
+   * letter "s" instead of whitespace, so every name containing an s was
+   * mangled before being written to the members table. "Chris Smith" is the
+   * case that catches it — it passes under /\s+/ and fails under /s+/.
+   */
+  it.each([
+    ["Chris Smith", "Chris", "Smith"],
+    ["Jane Doe", "Jane", "Doe"],
+    ["Mary Jane Watson", "Mary", "Jane Watson"],
+    ["  Ada   Lovelace  ", "Ada", "Lovelace"],
+  ])("splits %s on whitespace", (input, first, last) => {
+    expect(splitName(input)).toEqual({ firstName: first, lastName: last });
+  });
+
+  it("falls back for a single name or nothing at all", () => {
+    expect(splitName("Prince")).toEqual({
+      firstName: "Prince",
+      lastName: "Member",
+    });
+    expect(splitName(null)).toEqual({
+      firstName: "Member",
+      lastName: "Member",
+    });
+  });
+});
 
 describe("createOrUpdateMembership", () => {
   it("gives a brand new member a year from today", async () => {
