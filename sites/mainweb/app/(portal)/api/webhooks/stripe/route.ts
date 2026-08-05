@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { db, stripePayments, users, members } from "@query/db";
+import { db, stripePayments, users } from "@query/db";
+import {
+  createOrUpdateMembership,
+  splitName,
+} from "@query/db/services/membership";
 import type { DrizzleDB } from "@query/db";
-import { eq, and } from "drizzle-orm";
-import { clearMembershipCaches, resolveHackathonId } from "@query/api";
-
-// Type for the transaction object
-type Tx = Parameters<Parameters<NonNullable<typeof db>["transaction"]>[0]>[0];
+import { eq } from "drizzle-orm";
+import {
+  clearMembershipCaches,
+  MAX_MEMBERSHIP_CHARGE_CENTS,
+} from "@query/api";
 
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -57,8 +61,7 @@ export async function POST(req: NextRequest) {
    */
   const allowUnsignedMockEvents =
     process.env.NODE_ENV !== "production" &&
-    (process.env.STRIPE_SECRET_KEY?.startsWith("mk_") ||
-      process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_mock"));
+    process.env.STRIPE_MOCK_MODE === "true";
 
   if (allowUnsignedMockEvents) {
     try {
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     try {
       // Check for amounts greater than $100 (10000 cents)
-      if (session.amount_total && session.amount_total > 10000) {
+      if (session.amount_total && session.amount_total > MAX_MEMBERSHIP_CHARGE_CENTS) {
         return NextResponse.json({ received: true });
       }
 
@@ -138,13 +141,12 @@ export async function POST(req: NextRequest) {
               .where(eq(stripePayments.id, existingPayment.id));
 
             if (existingPayment.linkedUserId) {
-              await createOrUpdateMembership(
-                tx,
-                existingPayment.linkedUserId,
-                customerName,
-                customerEmail,
+              await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+                userId: existingPayment.linkedUserId,
+                ...splitName(customerName),
                 phoneNumber,
-              );
+                bootcampMember: session.metadata?.bootcamp === "true",
+              });
             }
           });
         }
@@ -198,13 +200,12 @@ export async function POST(req: NextRequest) {
 
         // If user exists and paid, create/update membership
         if (targetUser && session.payment_status === "paid") {
-          await createOrUpdateMembership(
-            tx,
-            targetUser.id,
-            customerName,
-            customerEmail,
+          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: targetUser.id,
+            ...splitName(customerName),
             phoneNumber,
-          );
+            bootcampMember: session.metadata?.bootcamp === "true",
+          });
 
           // Invalidate cache
           try {
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest) {
     const pi = event.data.object as Stripe.PaymentIntent;
 
     try {
-      if (pi.amount > 10000) {
+      if (pi.amount > MAX_MEMBERSHIP_CHARGE_CENTS) {
         return NextResponse.json({ received: true });
       }
 
@@ -306,13 +307,11 @@ export async function POST(req: NextRequest) {
         if (inserted.length === 0) return;
 
         if (targetUser) {
-          await createOrUpdateMembership(
-            tx,
-            targetUser.id,
-            targetUser.name,
-            customerEmail,
-            null,
-          );
+          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+            userId: targetUser.id,
+            ...splitName(targetUser.name),
+            bootcampMember: pi.metadata?.bootcamp === "true",
+          });
 
           try {
             clearMembershipCaches(targetUser.id);
@@ -328,67 +327,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
-}
-
-async function createOrUpdateMembership(
-  tx: Tx,
-  userId: string,
-  customerName: string | null | undefined,
-  customerEmail: string,
-  phoneNumber: string | null | undefined,
-) {
-  // Same rule as every membership read, so a payment does not land against
-  // next year's draft while this year's edition is running.
-  const hackathonId = await resolveHackathonId(tx as unknown as DrizzleDB);
-
-  if (!hackathonId) {
-    throw new Error("No hackathon found for membership assignment");
-  }
-
-  // Check if member already exists for this hackathon
-  const existingMember = await tx.query.members.findFirst({
-    where: and(
-      eq(members.userId, userId),
-      eq(members.hackathonId, hackathonId),
-    ),
-  });
-
-  const now = new Date();
-  const oneYearFromNow = new Date(now);
-  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-  // Parse name
-  const nameParts = (customerName || "Member").split(" ");
-  const firstName = nameParts[0] || "Member";
-  const lastName = nameParts.slice(1).join(" ") || "";
-
-  if (existingMember) {
-    // Renew membership
-    await tx
-      .update(members)
-      .set({
-        isActive: true,
-        membershipStartDate: now,
-        membershipEndDate: oneYearFromNow,
-        renewalCount: existingMember.renewalCount + 1,
-        memberType: "continuous",
-        updatedAt: now,
-        phoneNumber: phoneNumber || existingMember.phoneNumber, // Update phone if provided
-      })
-      .where(eq(members.id, existingMember.id));
-  } else {
-    // Create new membership
-    await tx.insert(members).values({
-      userId,
-      hackathonId,
-      firstName,
-      lastName,
-      memberType: "new",
-      isActive: true,
-      membershipStartDate: now,
-      membershipEndDate: oneYearFromNow,
-      renewalCount: 0,
-      phoneNumber: phoneNumber || null,
-    });
-  }
 }
