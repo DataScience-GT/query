@@ -6,7 +6,6 @@ import type { Context } from "./context";
 import {
   rateLimit,
   RATE_LIMITS,
-  sanitizeInput,
   logSecurityEvent,
   ddosProtection,
   validateRequestSize,
@@ -58,25 +57,129 @@ const requiresDb = t.middleware(async ({ ctx, next }) => {
   });
 });
 
+/**
+ * Dangerous markup is REJECTED, never rewritten.
+ *
+ * Rewriting means silently changing what somebody wrote, and an HTML parser
+ * run over prose is destructive far beyond markup: it treats an unterminated
+ * "<word" as an open tag and drops it along with everything after it. A
+ * submission reading "picks the class where loss<threshold, then retrains"
+ * would be stored as "picks the class where loss", with nothing to tell the
+ * author it happened. Bouncing the request instead is visible and recoverable.
+ *
+ * The bar is deliberately "could this execute somewhere", not "does this look
+ * like HTML" — React escapes on render, so this is defence in depth for the
+ * places a value might reach an HTML sink, and a hackathon full of people
+ * writing `vector<int>` or `a<b` must not be caught by it.
+ */
+const DANGEROUS_TAG =
+  /<\s*\/?\s*(script|iframe|object|embed|link|meta|base|svg|math|style|form|input|button|img|video|audio|source|track|template|noscript|textarea|xmp|frame|frameset|applet)\b/i;
+
+// An event handler only means anything inside a tag; matched loosely it would
+// reject prose like "onboarding = great".
+const TAG_WITH_HANDLER = /<[a-zA-Z][^>]*\bon[a-z]+\s*=/i;
+
+// Still dangerous as plain text: whoever renders it into an href gets an
+// executable link.
+const SCRIPTABLE_URI = /javascript:/i;
+
+const isPlainObject = (value: object) => {
+  const proto = Object.getPrototypeOf(value) as object | null;
+  return proto === Object.prototype || proto === null;
+};
+
+/**
+ * Rejects executable markup anywhere in a request payload, and rebuilds the
+ * object so prototype-polluting keys cannot ride along. Strings are passed
+ * through byte for byte — SQL injection is already covered by parameterised
+ * queries, so nothing here guesses at SQL either, and ordinary prose ("select a
+ * track from the list") has to survive untouched. Values that are not strings,
+ * arrays or plain objects (Date, Buffer, …) are handed on as-is so the
+ * procedure's own validator still sees them.
+ */
+const scrubMarkup = (input: unknown, depth = 0): unknown => {
+  if (depth > 10) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Input too deeply nested",
+    });
+  }
+
+  if (typeof input === "string") {
+    if (
+      DANGEROUS_TAG.test(input) ||
+      TAG_WITH_HANDLER.test(input) ||
+      SCRIPTABLE_URI.test(input)
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid input: HTML and script content are not allowed",
+      });
+    }
+
+    return input;
+  }
+
+  if (typeof input === "number" && !Number.isFinite(input)) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid number" });
+  }
+
+  if (Array.isArray(input)) {
+    if (input.length > 500) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Array too large" });
+    }
+    return input.map((item) => scrubMarkup(item, depth + 1));
+  }
+
+  if (input !== null && typeof input === "object" && isPlainObject(input)) {
+    const entries = Object.entries(input);
+    if (entries.length > 50) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Object too complex",
+      });
+    }
+
+    const scrubbed: Record<string, unknown> = {};
+    for (const [key, value] of entries) {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        continue;
+      }
+      if (!/^[\w.-]{1,100}$/.test(key)) {
+        continue;
+      }
+      scrubbed[key] = scrubMarkup(value, depth + 1);
+    }
+    return scrubbed;
+  }
+
+  return input;
+};
+
 const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
   const rawInput = await getRawInput();
 
-  if (rawInput != null) {
-    if (!validateRequestSize(rawInput)) {
-      logSecurityEvent({
-        type: "validation_error",
-        identifier: ctx.userId ?? ctx.clientIp,
-        details: "Request payload too large",
-      });
-      throw new TRPCError({
-        code: "PAYLOAD_TOO_LARGE",
-        message: "Request payload is too large",
-      });
-    }
-    sanitizeInput(rawInput);
+  if (rawInput == null) {
+    return next();
   }
 
-  return next();
+  if (!validateRequestSize(rawInput)) {
+    logSecurityEvent({
+      type: "validation_error",
+      identifier: ctx.userId ?? ctx.clientIp,
+      details: "Request payload too large",
+    });
+    throw new TRPCError({
+      code: "PAYLOAD_TOO_LARGE",
+      message: "Request payload is too large",
+    });
+  }
+
+  const scrubbed = scrubMarkup(rawInput);
+
+  // The validator and the resolver both read the input through getRawInput, so
+  // replacing it here is what makes the scrubbed value the one that is stored.
+  return next({ getRawInput: () => Promise.resolve(scrubbed) });
 });
 
 const enforceContentType = t.middleware(async ({ ctx, next, type }) => {
@@ -113,7 +216,7 @@ const uploadSanitizeInputs = t.middleware(
       });
     }
 
-    // We intentionally skip the recursive `sanitizeInput` here because it truncates
+    // We intentionally skip the recursive `scrubMarkup` here because it truncates
     // strings longer than 10,000 characters (base64 strings are much larger).
     // The zod validator on the procedure will ensure it's a valid data URI structure.
 
@@ -168,6 +271,14 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "judge.assignToHackathon": ["judge:*"],
   // Member mutations
   "member.update": ["member:*", "user:*:profile"],
+  // A renewal changes the membership the portal reads, so its context must go too
+  // Team mutations — team membership is embedded in both the public roster and
+  // each participant's own registration list
+  "team.createTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
+  "team.joinTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
+  "team.leaveTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
+  "team.disbandTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
+  "team.submitProject": ["hackathon:*:projects", "hackathon:registrations:*"],
   // Stripe — invalidate member status after linking
   "stripe.attemptAutoLink": ["member:*"],
   "stripe.linkAccount": ["member:*"],

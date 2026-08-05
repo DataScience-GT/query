@@ -9,10 +9,15 @@ import {
   userAccountLinks,
   members,
   verificationTokens,
-  hackathons,
 } from "@query/db";
-import { eq, and, isNull, desc } from "drizzle-orm";
-import { rateLimit, cache } from "@query/api";
+import { eq, and, isNull } from "drizzle-orm";
+import {
+  rateLimit,
+  cache,
+  resolveClientIp,
+  resolveHackathonId,
+} from "@query/api";
+import type { DrizzleDB } from "@query/db";
 
 /**
  * Code-based email verification endpoint.
@@ -27,19 +32,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { code, email } = body as { code?: string; email?: string };
 
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
-    const limit = rateLimit(ip, 10, 1); // 10 attempts, refills 1/sec
-    if (!limit.allowed) {
-      return NextResponse.json(
-        { success: false, error: "Too many attempts. Please try again later." },
-        { status: 429 },
-      );
-    }
-
     if (!code || !email) {
       return NextResponse.json(
         { success: false, error: "Missing code or email." },
         { status: 400 },
+      );
+    }
+
+    /**
+     * Auth.js stores the identifier lowercased, so the lookup has to match
+     * that or sign-in fails forever for anyone who typed a capital letter.
+     */
+    const identifier = email.normalize("NFKC").toLowerCase().trim();
+
+    /**
+     * Throttle the identity being attacked, not the connection.
+     *
+     * The code is six digits and grants a 30-day session, so the only thing
+     * standing between a guesser and someone else's account is this limit.
+     * Keying it on X-Forwarded-For made it decorative: that header is set by
+     * the caller, and a fresh value per request mints a fresh bucket every
+     * time. The IP is still mixed in to slow a single host down, but the
+     * per-email bucket is what actually bounds the guess rate.
+     */
+    const ip = resolveClientIp(request.headers.get("x-forwarded-for"));
+    const perEmail = rateLimit(`verify-email:${identifier}`, 5, 0.05);
+    const perIp = rateLimit(`verify-ip:${ip}`, 20, 0.2);
+
+    if (!perEmail.allowed || !perIp.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many attempts. Please try again later." },
+        { status: 429 },
       );
     }
 
@@ -60,7 +83,7 @@ export async function POST(request: NextRequest) {
         .delete(verificationTokens)
         .where(
           and(
-            eq(verificationTokens.identifier, email),
+            eq(verificationTokens.identifier, identifier),
             eq(verificationTokens.token, customTokenValue),
           ),
         )
@@ -81,14 +104,14 @@ export async function POST(request: NextRequest) {
       let user = await tx
         .select()
         .from(users)
-        .where(eq(users.email, email))
+        .where(eq(users.email, identifier))
         .then((r) => r[0] ?? null);
 
       if (!user) {
         const newId = crypto.randomUUID();
         const inserted = await tx
           .insert(users)
-          .values({ id: newId, email, emailVerified: new Date() })
+          .values({ id: newId, email: identifier, emailVerified: new Date() })
           .returning();
         const firstUser = inserted[0];
         if (!firstUser) {
@@ -129,7 +152,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           type: "email",
           provider: "nodemailer",
-          providerAccountId: email,
+          providerAccountId: identifier,
         });
       }
 
@@ -137,7 +160,7 @@ export async function POST(request: NextRequest) {
       try {
         const payment = await tx.query.stripePayments.findFirst({
           where: and(
-            eq(stripePayments.customerEmail, email),
+            eq(stripePayments.customerEmail, identifier),
             isNull(stripePayments.linkedUserId),
             eq(stripePayments.paymentStatus, "paid"),
           ),
@@ -159,7 +182,7 @@ export async function POST(request: NextRequest) {
               stripePaymentId: payment.id,
               providedFirstName: firstName,
               providedLastName: lastName,
-              providedEmail: email,
+              providedEmail: identifier,
             });
 
             await tx
@@ -176,19 +199,19 @@ export async function POST(request: NextRequest) {
             const oneYearFromNow = new Date(now);
             oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
-            const latest = await tx.query.hackathons.findFirst({
-              orderBy: [desc(hackathons.startDate)],
-              columns: { id: true },
-            });
+            // Same rule as every other membership read.
+            const hackathonId = await resolveHackathonId(
+              tx as unknown as DrizzleDB,
+            );
 
-            if (!latest) {
+            if (!hackathonId) {
               throw new Error("No hackathon found for membership assignment");
             }
 
             const existingMember = await tx.query.members.findFirst({
               where: and(
                 eq(members.userId, user.id),
-                eq(members.hackathonId, latest.id),
+                eq(members.hackathonId, hackathonId),
               ),
             });
 
@@ -207,7 +230,7 @@ export async function POST(request: NextRequest) {
             } else {
               await tx.insert(members).values({
                 userId: user.id,
-                hackathonId: latest.id,
+                hackathonId,
                 firstName,
                 lastName,
                 memberType: "new",

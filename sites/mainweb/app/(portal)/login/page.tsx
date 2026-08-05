@@ -16,6 +16,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const { data: portalContext } = usePortalContext();
 
   useEffect(() => {
@@ -40,15 +41,27 @@ export default function Home() {
     if (!email) return;
     setEmailSending(true);
     try {
-      await signIn("nodemailer", {
+      // redirect:false resolves with a result instead of throwing, so a failed
+      // send has to be read off the result or every failure looks like a send.
+      const res = await signIn("nodemailer", {
         email,
         callbackUrl: "/dashboard",
         redirect: false,
       });
+
+      if (!res?.ok || res.error) {
+        setEmailSending(false);
+        setEmailError(
+          "We could not send that link. Check the address and try again.",
+        );
+        return;
+      }
+
       setEmailSent(true);
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch {
       setEmailSending(false);
+      setEmailError("We could not send that link. Please try again.");
     }
   };
 
@@ -181,11 +194,15 @@ export default function Home() {
                   Email Login
                 </button>
               ) : (
-                <div className="flex w-full sm:w-auto gap-3">
+                <div className="flex w-full sm:w-auto flex-col gap-2">
+                  <div className="flex w-full gap-3">
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailError("");
+                    }}
                     onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
                     placeholder="your@email.com"
                     disabled={emailSending || emailSent}
@@ -198,6 +215,12 @@ export default function Home() {
                   >
                     {emailSent ? "Sent" : emailSending ? "Sending..." : "Send"}
                   </button>
+                  </div>
+                  {emailError && (
+                    <p className="text-rose-400 font-mono text-[10px] tracking-wide">
+                      {emailError}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

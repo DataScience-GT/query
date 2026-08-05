@@ -250,6 +250,18 @@ export const invalidatePortalContext = (userId: string) => {
   cache.delete(CacheKeys.portalContext(userId));
 };
 
+/**
+ * Everything that reports whether someone is a member. The portal context
+ * entry is the one that matters most — the sidebar and dashboard gate on it,
+ * it lives for 5 minutes, and a payment that does not evict it leaves the
+ * member being told to pay again.
+ */
+export const clearMembershipCaches = (userId: string) => {
+  cache.deletePattern(`${CacheKeys.member(userId)}*`);
+  cache.deletePattern(`member:status:${userId}*`);
+  invalidatePortalContext(userId);
+};
+
 // Cache invalidation helpers
 export const invalidateUser = (userId: string) => {
   cache.deletePattern(`user:${userId}*`);
