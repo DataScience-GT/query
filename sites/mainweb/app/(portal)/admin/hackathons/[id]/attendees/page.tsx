@@ -29,10 +29,13 @@ export default function AdminAttendeeViewer() {
     );
 
   const massAcceptMutation = trpc.hackathon.sendMassAcceptanceEmails.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       setSelectedIds(new Set());
       refetch();
-      alert("Successfully accepted and sent emails!");
+      // Show what the server actually did: ids that belong to another
+      // hackathon are skipped, and silently reporting success for them hides
+      // acceptances that never went out.
+      alert(result.message);
     },
     onError: (e) => alert("Error: " + e.message)
   });

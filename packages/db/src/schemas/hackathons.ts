@@ -8,8 +8,9 @@ import {
   json,
   index,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 
@@ -190,6 +191,13 @@ export const hackathonProjects = pgTable(
     teamId: uuid("team_id").references(() => hackathonTeams.id, {
       onDelete: "cascade",
     }),
+    // Who filed it. A solo entry has no team, so without this nothing links the
+    // row back to its author and a resubmit cannot find the project to update —
+    // it either files a duplicate or gets refused outright.
+    submittedById: uuid("submitted_by_id").references(
+      () => hackathonParticipants.id,
+      { onDelete: "set null" },
+    ),
     name: text("name").notNull(),
     description: text("description").notNull(),
     technologies: text("technologies").array(),
@@ -216,6 +224,12 @@ export const hackathonProjects = pgTable(
     index("project_hackathon_id_idx").on(table.hackathonId),
     index("project_team_id_idx").on(table.teamId),
     index("project_status_idx").on(table.status),
+    // One solo entry per person per hackathon, enforced where two concurrent
+    // submits would otherwise both insert. Restricted to solo rows so a captain
+    // filing for their team is unaffected.
+    uniqueIndex("project_solo_submitter_idx")
+      .on(table.hackathonId, table.submittedById)
+      .where(sql`${table.teamId} is null`),
   ],
 );
 

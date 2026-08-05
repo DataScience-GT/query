@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
+import { CacheKeys } from "../../middleware/cache";
 import {
   hackathons,
   hackathonParticipants,
@@ -8,6 +9,32 @@ import {
 } from "@query/db";
 import { eq, and, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
+
+/**
+ * Postgres unique_violation on unique_participant_per_hackathon — a second
+ * submission of the same form. Drizzle wraps every driver error in a
+ * DrizzleQueryError whose own `code` is undefined and whose message is only the
+ * failed SQL; the pg error carrying the SQLSTATE sits on `.cause`, so the chain
+ * has to be walked rather than the top-level object inspected.
+ */
+const isDuplicateRegistration = (error: unknown) => {
+  for (let cursor: unknown = error, depth = 0; cursor && depth < 5; depth++) {
+    if (typeof cursor !== "object") break;
+    const candidate = cursor as {
+      code?: string;
+      constraint?: string;
+      message?: string;
+      cause?: unknown;
+    };
+    if (candidate.code === "23505") return true;
+    if (candidate.constraint === "unique_participant_per_hackathon")
+      return true;
+    if (candidate.message?.includes("unique_participant_per_hackathon"))
+      return true;
+    cursor = candidate.cause;
+  }
+  return false;
+};
 
 export const hackathonRegistrationRouter = createTRPCRouter({
   register: protectedProcedure
@@ -63,7 +90,9 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        const { participant, hackathonName } = await (
+          ctx.db as DrizzleDB
+        ).transaction(async (tx) => {
           const hackathon = await tx.query.hackathons.findFirst({
             where: eq(hackathons.id, input.hackathonId),
           });
@@ -107,6 +136,9 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             });
           }
 
+          // Nothing is locked yet, so this only turns away a form submitted
+          // against an event that was already visibly full; the seat itself is
+          // claimed and checked below.
           if (
             hackathon.maxParticipants &&
             hackathon.currentParticipants >= hackathon.maxParticipants
@@ -123,6 +155,40 @@ export const hackathonRegistrationRouter = createTRPCRouter({
               eq(members.hackathonId, input.hackathonId),
             ),
           });
+
+          /**
+           * Claiming the seat before inserting anything is what makes capacity
+           * hold across processes: this statement takes the hackathon row's
+           * exclusive lock, so a registration racing for the same last seat
+           * blocks here and, once we commit, re-runs `+ 1` against the count we
+           * wrote rather than against the snapshot it read above. Reading the
+           * row back inside the same transaction therefore gives the seat this
+           * registration actually holds, and going over the limit rolls the
+           * whole claim back. It also keeps admin.ts's recount honest — that
+           * path locks the same row first, so it cannot count participants
+           * while a half-finished registration is in flight.
+           */
+          await tx
+            .update(hackathons)
+            .set({
+              currentParticipants: sql`${hackathons.currentParticipants} + 1`,
+            })
+            .where(eq(hackathons.id, input.hackathonId));
+
+          const claimed = await tx.query.hackathons.findFirst({
+            where: eq(hackathons.id, input.hackathonId),
+            columns: { currentParticipants: true, maxParticipants: true },
+          });
+
+          if (
+            claimed?.maxParticipants &&
+            claimed.currentParticipants > claimed.maxParticipants
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "This hackathon is full",
+            });
+          }
 
           const [participant] = await tx
             .insert(hackathonParticipants)
@@ -167,20 +233,28 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             })
             .returning();
 
-          await tx
-            .update(hackathons)
-            .set({
-              currentParticipants: sql`${hackathons.currentParticipants} + 1`,
-            })
-            .where(eq(hackathons.id, input.hackathonId));
-
-          // Invalidate all hackathon caches after successful registration
-          ctx.cache.deletePattern("hackathon*");
-
-          return participant;
+          return { participant, hackathonName: hackathon.name };
         });
+
+        // Invalidate what this registration changed, once it has committed: the
+        // hackathon's seat count and roster, and this user's own list. Anything
+        // broader takes every other user's cached hackathon data down with it.
+        // getById is reachable by id or by name and caches under whichever was
+        // asked for, so the name-keyed copy of the seat count has to go too.
+        ctx.cache.delete(CacheKeys.hackathon(input.hackathonId));
+        ctx.cache.delete(CacheKeys.hackathon(hackathonName));
+        ctx.cache.delete(`hackathon:${input.hackathonId}:participants`);
+        ctx.cache.delete(`hackathon:registrations:${ctx.userId as string}`);
+
+        return participant;
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
+        if (isDuplicateRegistration(error)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You are already registered for this hackathon",
+          });
+        }
         const message =
           error instanceof Error ? error.message : "Unknown error";
         // Unexpected error during registration
@@ -205,7 +279,10 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         hackathon: true,
         team: {
           with: {
-            projects: true,
+            // submittedById names the teammate who filed a solo entry, and a
+            // participant id is the entire content of that person's event pass
+            // QR — a teammate does not need it to see the submission.
+            projects: { columns: { submittedById: false } },
           },
         },
       },
@@ -230,13 +307,22 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         ctx.db as DrizzleDB
       ).query.hackathonParticipants.findMany({
         where: eq(hackathonParticipants.hackathonId, input.hackathonId),
+        // Anyone can read this roster, so it carries neither the decision made
+        // on each application — registrationStatus names everyone who was
+        // rejected or waitlisted — nor the participant id, which is the entire
+        // content of that participant's event pass QR and would let a stranger
+        // enumerate passes for the whole event.
+        // The joined `user` relation below is the public identity; the raw
+        // userId adds nothing a caller needs and only widens what a scrape of
+        // this endpoint yields.
         columns: {
-          id: true,
           hackathonId: true,
-          userId: true,
           teamId: true,
-          registrationStatus: true,
         },
+        // A public list has to be bounded rather than handing out the whole
+        // attendee table per request; staff read it all via adminGetAttendees.
+        limit: 500,
+        orderBy: (participants, { asc }) => [asc(participants.registeredAt)],
         with: {
           user: {
             columns: {

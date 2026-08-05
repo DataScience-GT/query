@@ -23,57 +23,81 @@ interface IPRecord {
 
 const ipTrackingStore = new Map<string, IPRecord>();
 
-const enforceSizeLimit = () => {
-  const now = Date.now();
+/**
+ * Number of proxies between the client and this process that append to
+ * X-Forwarded-For. On Cloud Run / App Hosting behind Google's load balancer
+ * that is 1, so the client is the second-to-last entry.
+ */
+const TRUSTED_PROXY_HOPS = Number(process.env.TRUSTED_PROXY_HOPS ?? 1);
 
-  // Cleanup rate limit store - remove oldest entries when over limit
-  while (rateLimitStore.size > MAX_RATE_LIMIT_STORE_SIZE) {
+/**
+ * The client address, taken from the right-hand end of X-Forwarded-For.
+ *
+ * The left-hand entries are whatever the caller sent — reading `[0]` means the
+ * caller picks their own rate-limit bucket, which makes every limit here a
+ * no-op (rotate the header, get a fresh bucket every request) and lets them
+ * pin a bucket to a victim's address to have that victim blocked. Only the
+ * entries our own proxies appended can be trusted, and those are at the end.
+ */
+export const resolveClientIp = (forwardedFor: string | null | undefined) => {
+  const parts = (forwardedFor ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) return "unknown";
+
+  const index = Math.max(0, parts.length - 1 - TRUSTED_PROXY_HOPS);
+  return parts[index] ?? parts[parts.length - 1] ?? "unknown";
+};
+
+/**
+ * Evicts oldest-first until the store is under `max`.
+ *
+ * The pick is unconditional and the loop gives up when nothing was selected.
+ * A version that only deleted entries matching a predicate could make zero
+ * progress — a store full of fresh, never-blocked records satisfies no
+ * predicate — and since this runs on an interval, that spins the event loop of
+ * the whole instance until it is killed.
+ */
+const evictOldest = <V>(
+  store: Map<string, V>,
+  max: number,
+  ageOf: (value: V) => number,
+) => {
+  while (store.size > max) {
     let oldestKey: string | null = null;
     let oldestTime = Infinity;
-    for (const [key, value] of rateLimitStore.entries()) {
-      if (value.lastRefill < oldestTime) {
-        oldestTime = value.lastRefill;
+    for (const [key, value] of store.entries()) {
+      const age = ageOf(value);
+      if (age < oldestTime) {
+        oldestTime = age;
         oldestKey = key;
       }
     }
-    if (oldestKey) {
-      rateLimitStore.delete(oldestKey);
-    }
+    if (oldestKey === null) break;
+    store.delete(oldestKey);
   }
+};
 
-  // Cleanup IP tracking store - remove old entries
-  while (ipTrackingStore.size > MAX_IP_TRACKING_STORE_SIZE) {
-    let oldestKey: string | null = null;
-    let oldestTime = Infinity;
-    for (const [ip, record] of ipTrackingStore.entries()) {
-      if (
-        now - record.firstRequest > 5 * 60 * 1000 &&
-        now < record.blockedUntil
-      ) {
-        if (record.firstRequest < oldestTime) {
-          oldestTime = record.firstRequest;
-          oldestKey = ip;
-        }
-      }
-    }
-    if (oldestKey) {
-      ipTrackingStore.delete(oldestKey);
-    }
-  }
+const enforceSizeLimit = () => {
+  const now = Date.now();
 
-  // Remove expired records
+  // Expired records first, so eviction usually has nothing left to do.
   for (const [key, value] of rateLimitStore.entries()) {
     if (now > value.blockedUntil) {
       rateLimitStore.delete(key);
     }
   }
 
-  // Cleanup non-blocked IPs older than 5 minutes
   for (const [ip, record] of ipTrackingStore.entries()) {
     if (!record.isBlocked && now - record.firstRequest > 5 * 60 * 1000) {
       ipTrackingStore.delete(ip);
     }
   }
+
+  evictOldest(rateLimitStore, MAX_RATE_LIMIT_STORE_SIZE, (v) => v.lastRefill);
+  evictOldest(ipTrackingStore, MAX_IP_TRACKING_STORE_SIZE, (r) => r.firstRequest);
 };
 
 // Run cleanup every minute
