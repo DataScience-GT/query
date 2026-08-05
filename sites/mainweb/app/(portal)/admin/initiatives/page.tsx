@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@query/api";
 
 /**
- * Who runs initiatives this edition.
+ * Who runs club initiatives.
  *
  * Granting takes a user id rather than an email search: this reuses the
  * attendees list every officer already works from, and a leader has to have
@@ -235,7 +235,7 @@ export default function AdminInitiativesPage() {
 
       <section className="mt-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
-          Leaders this edition
+          Project leaders
         </h2>
 
         {rows.length > 0 ? (
