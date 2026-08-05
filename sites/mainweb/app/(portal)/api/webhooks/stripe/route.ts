@@ -76,7 +76,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (event.type === "checkout.session.completed") {
+  /**
+   * `async_payment_succeeded` matters because dynamic payment methods are
+   * enabled: a bank debit completes the Checkout Session while still `unpaid`
+   * and only settles minutes or days later. Handling the completion event
+   * alone would record that unpaid row and never come back for it, leaving a
+   * customer charged with no membership.
+   *
+   * Both events carry a Checkout Session, so they share one handler; the
+   * membership is granted only on `payment_status: "paid"`, which is false on
+   * the first event and true on the second.
+   */
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
     const session = event.data.object as Stripe.Checkout.Session;
 
     try {
@@ -107,7 +121,34 @@ export async function POST(req: NextRequest) {
       });
 
       if (existingPayment) {
-        // If payment exists, verify membership was created too
+        /**
+         * An async payment method recorded this row as unpaid on
+         * checkout.session.completed and has now settled. Upgrade it and grant
+         * the membership it paid for — returning early here is what would
+         * leave that customer charged with nothing.
+         */
+        if (
+          existingPayment.paymentStatus !== "paid" &&
+          session.payment_status === "paid"
+        ) {
+          await db.transaction(async (tx) => {
+            await tx
+              .update(stripePayments)
+              .set({ paymentStatus: "paid", updatedAt: new Date() })
+              .where(eq(stripePayments.id, existingPayment.id));
+
+            if (existingPayment.linkedUserId) {
+              await createOrUpdateMembership(
+                tx,
+                existingPayment.linkedUserId,
+                customerName,
+                customerEmail,
+                phoneNumber,
+              );
+            }
+          });
+        }
+
         if (existingPayment.linkedUserId) {
           try {
             // Invalidate cache just in case

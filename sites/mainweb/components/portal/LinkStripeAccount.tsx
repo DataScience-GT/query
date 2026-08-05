@@ -57,13 +57,31 @@ export default function LinkStripeAccount({
     onError: () => setIsChecking(false),
   });
 
+  /**
+   * Recovers a charge Stripe took that never got recorded here — the case
+   * where the browser died between the card clearing and the confirm call.
+   * Runs on load so the money reappears as a membership without anyone
+   * having to contact support.
+   */
+  const reconcileMutation = trpc.stripe.reconcileMyPayments.useMutation({
+    onSuccess: (data) => {
+      if (data.recovered > 0) {
+        setSuccess(true);
+        utils.member.checkStatus.invalidate();
+        invalidatePortalContext();
+        onSuccess?.();
+      }
+    },
+  });
+
   // Guard: only fire once even in React StrictMode double-invoke
   const autoLinkFired = useRef(false);
   useEffect(() => {
     if (autoLinkFired.current) return;
     autoLinkFired.current = true;
     autoLinkMutation.mutate();
-    // autoLinkMutation ref is stable — intentionally omitted from deps
+    reconcileMutation.mutate();
+    // mutation refs are stable — intentionally omitted from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -110,6 +128,15 @@ export default function LinkStripeAccount({
     invalidatePortalContext();
     utils.member.checkStatus.invalidate();
     onSuccess?.();
+  };
+
+  /**
+   * The modal calls this when the card cleared but recording it did not. Money
+   * has moved, so reconcile immediately rather than waiting for a remount —
+   * the message shown to the user promises the membership will just appear.
+   */
+  const handlePaymentUnconfirmed = () => {
+    reconcileMutation.mutate();
   };
 
   const handleLinkSubmit = (e: React.FormEvent) => {
@@ -347,6 +374,7 @@ export default function LinkStripeAccount({
           onConfirmPayment={async (paymentIntentId) => {
             await confirmMutation.mutateAsync({ paymentIntentId });
           }}
+          onUnconfirmed={handlePaymentUnconfirmed}
           onClose={() => {
             setShowModal(false);
             setPaymentData(null);

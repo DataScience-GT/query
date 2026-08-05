@@ -18,10 +18,12 @@ function CheckoutForm({
   onSuccess,
   onCancel,
   onConfirmPayment,
+  onUnconfirmed,
 }: {
   onSuccess: () => void;
   onCancel: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
+  onUnconfirmed: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -55,18 +57,41 @@ function CheckoutForm({
       setError(confirmError.message ?? "Payment failed. Please try again.");
       setProcessing(false);
     } else if (paymentIntent?.status === "succeeded") {
-      // Server-side confirmation: record payment + activate membership
+      /**
+       * The card has cleared by this point, so the money is already gone. The
+       * server call that records it is therefore retried rather than failed on
+       * the first error — it is idempotent (keyed on the PaymentIntent id) and
+       * a transient blip here is the difference between a membership and a
+       * charge with nothing to show for it.
+       */
+      const confirmWithRetry = async () => {
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            await onConfirmPayment(paymentIntent.id);
+            return true;
+          } catch (err) {
+            lastError = err;
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          }
+        }
+        throw lastError;
+      };
+
       try {
-        await onConfirmPayment(paymentIntent.id);
+        await confirmWithRetry();
         setSucceeded(true);
         setProcessing(false);
         setTimeout(() => onSuccess(), 1200);
-      } catch (err: unknown) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : "Confirmation failed. Contact support.";
-        setError(msg);
+      } catch {
+        onUnconfirmed();
+        // Deliberately reassuring: the payment succeeded, and both the webhook
+        // and the reconcile-on-load path will pick it up. Telling someone
+        // "contact support" about money they have already paid, when it will
+        // resolve itself, generates a ticket for nothing.
+        setError(
+          "Your payment went through, but activating the membership is taking a moment. It will appear automatically — reload the portal shortly.",
+        );
         setProcessing(false);
       }
     } else {
@@ -166,6 +191,7 @@ interface StripePaymentModalProps {
   onSuccess: () => void;
   onClose: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
+  onUnconfirmed?: () => void;
 }
 
 export function StripePaymentModal({
@@ -175,6 +201,7 @@ export function StripePaymentModal({
   onSuccess,
   onClose,
   onConfirmPayment,
+  onUnconfirmed,
 }: StripePaymentModalProps) {
   const [stripePromise, setStripePromise] =
     useState<Promise<Stripe | null> | null>(null);
@@ -288,6 +315,7 @@ export function StripePaymentModal({
           onSuccess={onSuccess}
           onCancel={onClose}
           onConfirmPayment={onConfirmPayment}
+          onUnconfirmed={onUnconfirmed ?? (() => {})}
         />
       </Elements>
     </ModalShell>
