@@ -43,8 +43,25 @@ function buildMemberContext(
   }
 
   return {
-    isMember: true,
+    /**
+     * Paid and unexpired, not merely "a row exists". A `member` row is also
+     * written for a profile with no payment behind it, and the row outlives the
+     * year it paid for — reporting either as a member is what let a lapsed
+     * member be greeted as active while the pay button stayed hidden.
+     *
+     * Club benefits gate on this. Hackathon participation deliberately does
+     * NOT: the hackathon is open to everyone, member or not.
+     */
+    isMember: isActive,
     isActive,
+    /**
+     * Paid once, ran out — what turns the club view into a renew prompt.
+     *
+     * Ran out, rather than revoked: a row switched off while its date is still
+     * in the future is a staff action, and prompting that person to renew a
+     * membership they still hold would be wrong.
+     */
+    hasLapsed: !isActive && !!expiresAt && expiresAt <= now,
     expiresAt,
     daysRemaining,
     memberType: memberRecord.memberType,

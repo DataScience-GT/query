@@ -6,6 +6,7 @@ import { Rocket } from "lucide-react";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { trpc } from "@/lib/trpc";
+import type { RouterOutputs } from "@query/api";
 
 /**
  * Who runs initiatives this edition.
@@ -14,12 +15,124 @@ import { trpc } from "@/lib/trpc";
  * attendees list every officer already works from, and a leader has to have
  * signed in at least once to have an id at all.
  */
+function ProposalRow({
+  proposal,
+}: {
+  proposal: RouterOutputs["initiative"]["listProposals"][number];
+}) {
+  const utils = trpc.useUtils();
+  const [note, setNote] = useState("");
+  const [declining, setDeclining] = useState(false);
+
+  const review = trpc.initiative.reviewProposal.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.initiative.listProposals.invalidate(),
+        // Approving mints a project leader, so that list moves too.
+        utils.initiative.listLeaders.invalidate(),
+      ]);
+    },
+  });
+
+  return (
+    <LiquidGlass className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-white">{proposal.title}</h3>
+          <p className="mt-0.5 text-sm text-white/50">
+            {proposal.proposerName ?? proposal.proposerEmail} ·{" "}
+            {proposal.proposerEmail}
+          </p>
+          {proposal.summary && (
+            <p className="mt-2 text-sm text-white/80">{proposal.summary}</p>
+          )}
+          {proposal.description && (
+            <p className="mt-2 whitespace-pre-line text-sm text-white/60">
+              {proposal.description}
+            </p>
+          )}
+          <p className="mt-2 text-sm text-white/50">
+            {proposal.commitment ?? "No commitment given"} ·{" "}
+            {proposal.maxMembers === null
+              ? "no team cap"
+              : `cap ${proposal.maxMembers}`}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={review.isPending}
+            onClick={() =>
+              review.mutate({ id: proposal.id, decision: "approve" })
+            }
+            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            disabled={review.isPending}
+            onClick={() => setDeclining((prev) => !prev)}
+            className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5 disabled:opacity-50"
+          >
+            Decline
+          </button>
+        </div>
+      </div>
+
+      {/* A decline without a reason is the thing a member can do nothing with,
+          so the note is asked for at the moment of declining. */}
+      {declining && (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <label
+            htmlFor={`note-${proposal.id}`}
+            className="text-xs font-semibold uppercase tracking-wide text-white/50"
+          >
+            Why (shown to them)
+          </label>
+          <textarea
+            id={`note-${proposal.id}`}
+            rows={2}
+            maxLength={1000}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Too close to an existing initiative, needs a clearer scope, ..."
+            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+          />
+          <button
+            type="button"
+            disabled={review.isPending}
+            onClick={() =>
+              review.mutate({
+                id: proposal.id,
+                decision: "decline",
+                note: note.trim() || undefined,
+              })
+            }
+            className="mt-3 rounded-full bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/30 disabled:opacity-50"
+          >
+            Confirm decline
+          </button>
+        </div>
+      )}
+
+      {review.error && (
+        <p className="mt-3 text-sm text-red-300">{review.error.message}</p>
+      )}
+    </LiquidGlass>
+  );
+}
+
 export default function AdminInitiativesPage() {
   const { data: session, status } = useSession();
   const utils = trpc.useUtils();
   const [userId, setUserId] = useState("");
 
   const leaders = trpc.initiative.listLeaders.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const proposals = trpc.initiative.listProposals.useQuery(undefined, {
     enabled: !!session,
   });
 
@@ -56,6 +169,31 @@ export default function AdminInitiativesPage() {
           grants nothing else — admin screens stay admin-only.
         </p>
       </header>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
+          Proposals waiting on you
+          {proposals.data && proposals.data.length > 0
+            ? ` · ${proposals.data.length}`
+            : ""}
+        </h2>
+        {proposals.error ? (
+          <p className="text-sm text-red-300">{proposals.error.message}</p>
+        ) : (proposals.data ?? []).length > 0 ? (
+          <div className="space-y-3">
+            {(proposals.data ?? []).map((proposal) => (
+              <ProposalRow key={proposal.id} proposal={proposal} />
+            ))}
+          </div>
+        ) : (
+          <LiquidGlass className="p-6 text-center">
+            <p className="text-sm text-white/60">
+              Nothing waiting. Members pitch initiatives from their Initiatives
+              page; approving one makes them a project leader.
+            </p>
+          </LiquidGlass>
+        )}
+      </section>
 
       <LiquidGlass className="p-5">
         <form
