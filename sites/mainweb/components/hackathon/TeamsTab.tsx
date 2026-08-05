@@ -158,12 +158,11 @@ export function TeamsTab({
             <div className="flex flex-wrap gap-3 mb-6">
               {(myTeam.participants || []).map(
                 (p: {
-                  id: string;
                   userId: string;
                   user: { name?: string | null; image?: string | null };
                 }) => (
                   <div
-                    key={p.id}
+                    key={p.userId}
                     className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-[var(--border-subtle)] rounded-none"
                   >
                     {p.user.image ? (
@@ -445,7 +444,7 @@ export function TeamsTab({
                           .slice(0, 5)
                           .map(
                             (p: {
-                              id: string;
+                              userId: string;
                               user: {
                                 name?: string | null;
                                 image?: string | null;
@@ -453,7 +452,7 @@ export function TeamsTab({
                             }) =>
                               p.user.image ? (
                                 <Image
-                                  key={p.id}
+                                  key={p.userId}
                                   src={p.user.image}
                                   alt=""
                                   width={32}
@@ -462,7 +461,7 @@ export function TeamsTab({
                                 />
                               ) : (
                                 <div
-                                  key={p.id}
+                                  key={p.userId}
                                   className="w-8 h-8 rounded-sm bg-white/10 border-2 border-[var(--bg-primary)] flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]/60 shadow-sm relative z-10 hover:z-20 transition-ui hover:scale-110"
                                 >
                                   {(p.user.name?.[0] ?? "?").toUpperCase()}
