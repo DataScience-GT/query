@@ -57,13 +57,31 @@ export default function LinkStripeAccount({
     onError: () => setIsChecking(false),
   });
 
+  /**
+   * Recovers a charge Stripe took that never got recorded here — the case
+   * where the browser died between the card clearing and the confirm call.
+   * Runs on load so the money reappears as a membership without anyone
+   * having to contact support.
+   */
+  const reconcileMutation = trpc.stripe.reconcileMyPayments.useMutation({
+    onSuccess: (data) => {
+      if (data.recovered > 0) {
+        setSuccess(true);
+        utils.member.checkStatus.invalidate();
+        invalidatePortalContext();
+        onSuccess?.();
+      }
+    },
+  });
+
   // Guard: only fire once even in React StrictMode double-invoke
   const autoLinkFired = useRef(false);
   useEffect(() => {
     if (autoLinkFired.current) return;
     autoLinkFired.current = true;
     autoLinkMutation.mutate();
-    // autoLinkMutation ref is stable — intentionally omitted from deps
+    reconcileMutation.mutate();
+    // mutation refs are stable — intentionally omitted from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
