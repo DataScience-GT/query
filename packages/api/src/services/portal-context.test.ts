@@ -19,6 +19,7 @@ vi.mock("drizzle-orm", async (importOriginal) => ({
 // The service is deep-imported so the @query/db mock above does not cover it.
 vi.mock("@query/db/services/membership", () => ({
   resolveCurrentHackathonId: vi.fn(async () => "hackathon_1"),
+  setMembershipChangeHandler: vi.fn(),
 }));
 
 import {

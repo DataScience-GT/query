@@ -14,6 +14,30 @@ import { stripePayments, userAccountLinks } from "../schemas/stripe";
  */
 
 /**
+ * Called after a membership is granted so caches can be evicted.
+ *
+ * Inverted rather than imported: the cache lives in @query/api, and @query/api
+ * already depends on @query/auth, so neither can import it here. Without this,
+ * a membership granted during sign-in sat behind a "not a member" entry with a
+ * 5-minute TTL — the member signs in, pays, and is still told to pay.
+ */
+let onMembershipChanged: ((userId: string) => void) | undefined;
+
+export const setMembershipChangeHandler = (
+  handler: (userId: string) => void,
+) => {
+  onMembershipChanged = handler;
+};
+
+const notifyMembershipChanged = (userId: string) => {
+  try {
+    onMembershipChanged?.(userId);
+  } catch {
+    // Cache eviction must never fail the write that succeeded.
+  }
+};
+
+/**
  * The hackathon a membership belongs to when nobody names one: the edition
  * actually running, and only once nothing is running the newest by start date.
  * Next year's edition is drafted long before it runs, so ordering by start date
@@ -161,16 +185,18 @@ export async function linkPaidPaymentByVerifiedEmail(
 
   const { firstName, lastName } = splitName(opts.name ?? payment.customerName);
 
-  await db.insert(userAccountLinks).values({
-    userId: opts.userId,
-    stripePaymentId: payment.id,
-    providedFirstName: firstName,
-    providedLastName: lastName,
-    providedEmail: email,
-  });
-
-  // `linkedUserId is null` carries the read above into the write, so two
-  // sign-ins racing for the same payment cannot both claim it.
+  /**
+   * Claim the payment first, and only then write the link row.
+   *
+   * The reverse order strands the user permanently: the link row is what makes
+   * this function report "already-linked", so if it exists while the claim
+   * failed, every later sign-in short-circuits and the membership is never
+   * granted — with no way for the person to retry.
+   *
+   * `linkedUserId is null` carries the read above into the write, so two
+   * sign-ins racing for the same payment cannot both claim it; the loser
+   * matches no row and simply reports nothing to link.
+   */
   const claimed = await db
     .update(stripePayments)
     .set({
@@ -185,15 +211,23 @@ export async function linkPaidPaymentByVerifiedEmail(
       ),
     );
 
-  if (claimed.rowCount === 0) {
-    throw new Error("Payment was linked by a concurrent request");
-  }
+  if (claimed.rowCount === 0) return { linked: false, reason: "no-payment" };
+
+  await db.insert(userAccountLinks).values({
+    userId: opts.userId,
+    stripePaymentId: payment.id,
+    providedFirstName: firstName,
+    providedLastName: lastName,
+    providedEmail: email,
+  });
 
   await createOrUpdateMembership(db, {
     userId: opts.userId,
     firstName,
     lastName,
   });
+
+  notifyMembershipChanged(opts.userId);
 
   return { linked: true, paymentId: payment.id };
 }

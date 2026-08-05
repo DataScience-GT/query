@@ -493,26 +493,28 @@ export const stripeRouter = createTRPCRouter({
           normalize(account.email) === normalize(payment.customerEmail);
 
         /**
-         * Whole-token equality, not `includes`.
+         * Every word the caller gave must be a word on the payment.
          *
-         * A substring test is not a name check: the empty string is a substring
-         * of every name, so blank input would match anything, and a single
-         * letter would match most names — both turn this guard back into
-         * "knowing the email is enough".
+         * Whole tokens, not `includes`: the empty string is a substring of
+         * every name and a single letter is a substring of most, so a
+         * substring test turns this guard back into "knowing the email is
+         * enough". Tokenising both sides also handles compound names — a payer
+         * recorded as "Mary Jane Watson" can enter "Jane Watson" as a surname
+         * and still match, which a field-by-field comparison would reject.
          */
-        const paymentTokens = new Set(
-          normalize(payment.customerName ?? "")
-            .split(" ")
-            .filter(Boolean),
-        );
-        const firstName = normalize(input.firstName);
-        const lastName = normalize(input.lastName);
+        const tokensOf = (value: string) =>
+          normalize(value).split(" ").filter(Boolean);
+
+        const paymentTokens = new Set(tokensOf(payment.customerName ?? ""));
+        const givenTokens = [
+          ...tokensOf(input.firstName),
+          ...tokensOf(input.lastName),
+        ];
 
         const nameMatches =
-          firstName.length > 0 &&
-          lastName.length > 0 &&
-          paymentTokens.has(firstName) &&
-          paymentTokens.has(lastName);
+          paymentTokens.size > 0 &&
+          givenTokens.length >= 2 &&
+          givenTokens.every((token) => paymentTokens.has(token));
 
         if (!emailMatches && !nameMatches) {
           logSecurityEvent({

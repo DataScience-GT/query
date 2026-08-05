@@ -9,16 +9,6 @@ import { clearMembershipCaches, resolveHackathonId } from "@query/api";
 // Type for the transaction object
 type Tx = Parameters<Parameters<NonNullable<typeof db>["transaction"]>[0]>[0];
 
-/** Replaces control characters so a value cannot forge or split log lines. */
-const safeForLog = (value: unknown) =>
-  String(value)
-    .split("")
-    .map((ch) => {
-      const code = ch.charCodeAt(0);
-      return code < 32 || code === 127 ? " " : ch;
-    })
-    .join("")
-    .slice(0, 200);
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -240,9 +230,9 @@ export async function POST(req: NextRequest) {
 
       const customerEmail = receiptEmail ?? targetUser?.email?.toLowerCase();
       if (!customerEmail) {
-        // The mock branch above parses the body without verifying a signature,
-        // so this id is not always Stripe's — keep it off the log as-is.
-        console.error("No customer email on payment intent", safeForLog(pi.id));
+        // No request-derived value in the log line: the mock branch parses the
+        // body without verifying a signature, so this id is not always Stripe's.
+        console.error("No customer email on payment intent");
         return NextResponse.json({ received: true });
       }
 

@@ -974,20 +974,6 @@ describe("Participant edge cases", () => {
 
   // =====================================================================
   describe("8. Membership writes", () => {
-    const existingMember = {
-      id: "member_1",
-      userId: "user_a",
-      hackathonId: HACK_A,
-      isActive: true,
-      memberType: "new" as const,
-      renewalCount: 0,
-      // Expiring within the year. That is the whole population with a reason to
-      // renew, and the one a naive "already covered a year out" guard waves
-      // through a second time. A fixed calendar date would also make this test
-      // read differently either side of UTC.
-      membershipEndDate: new Date(Date.now() + 180 * DAY),
-    };
-
     // BUG: member.ts:98-134 writes the member row and its history row in two
     // unrelated statements — no db.transaction, unlike every other mutation.
     it("commits a new member and its audit row together", async () => {
