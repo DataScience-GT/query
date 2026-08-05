@@ -1,6 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../trpc";
-import { admins, judges, judgingProjects, judgeQueue } from "@query/db";
+import {
+  admins,
+  judges,
+  judgingProjects,
+  judgeQueue,
+  projectLeaders,
+} from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
 import { resolveHackathonId } from "../services/portal-context";
@@ -74,6 +80,65 @@ export const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
     });
   }
   return next({ ctx });
+});
+
+/**
+ * Verifies the caller runs initiatives for the current hackathon.
+ *
+ * Admins pass without a project_leader row: staff cover for a leader who has
+ * gone quiet. The reverse is deliberately not true — this grants nothing under
+ * isAdmin. Holding the role is only half the gate; every procedure that touches
+ * one initiative also checks who leads it, and an admin is the only caller
+ * allowed to skip that.
+ */
+export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
+  const db = ctx.db as NonNullable<typeof ctx.db>;
+  const userId = ctx.userId as string;
+
+  const hackathonId = await resolveHackathonId(db);
+  if (!hackathonId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "No hackathon context found",
+    });
+  }
+
+  const cacheKey = `${CacheKeys.projectLeader(userId)}:${hackathonId}:role`;
+  let leader = ctx.cache.get<typeof projectLeaders.$inferSelect>(cacheKey);
+
+  if (!leader) {
+    leader =
+      (await db.query.projectLeaders.findFirst({
+        where: and(
+          eq(projectLeaders.userId, userId),
+          eq(projectLeaders.hackathonId, hackathonId),
+          eq(projectLeaders.isActive, true),
+        ),
+      })) ?? null;
+
+    if (leader) ctx.cache.set(cacheKey, leader, 60);
+  }
+
+  // Resolved even when a leader row exists: somebody can be both, and the
+  // ownership checks downstream need to know whether to let them past another
+  // leader's initiative. callerIsAdmin caches both answers, so this is cheap.
+  const isPlatformAdmin = await callerIsAdmin(ctx);
+
+  if (!leader && !isPlatformAdmin) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Project leader access required",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      hackathonId,
+      projectLeader: leader ?? null,
+      isPlatformAdmin,
+    },
+  });
 });
 
 /**

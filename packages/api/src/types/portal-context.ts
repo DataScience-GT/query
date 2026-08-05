@@ -14,6 +14,8 @@ export type PortalContext = {
   isJudge: boolean;
   judgeId: string | null;
   judgeName: string | null;
+  /** Runs club initiatives for the current edition. Not a staff role. */
+  isProjectLeader: boolean;
   member: MemberContext;
 };
 

@@ -1,4 +1,11 @@
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import type { AppRouter as AppRouterType } from "./root";
+
 export { appRouter, type AppRouter } from "./root";
+
+/** So a component types itself off the procedure instead of restating it. */
+export type RouterInputs = inferRouterInputs<AppRouterType>;
+export type RouterOutputs = inferRouterOutputs<AppRouterType>;
 export { createContext, type Context } from "./context";
 export { createTRPCRouter, publicProcedure, protectedProcedure } from "./trpc";
 export { rateLimit, RATE_LIMITS, resolveClientIp } from "./middleware/security";
