@@ -1,1 +1,0 @@
-export { SCHOOLS } from "./schools";

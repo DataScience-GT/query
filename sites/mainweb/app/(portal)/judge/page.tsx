@@ -120,7 +120,12 @@ export default function JudgePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {hackathons?.map((h: HackathonData) => {
-            const conf = confMap[h.status];
+            // draft has no entry, and admins see drafts in this list.
+            const conf = confMap[h.status] ?? {
+              label: h.status,
+              bg: "bg-white/5",
+              border: "border-[var(--border-subtle)]",
+            };
             const assignment = assignments?.find((a) => a.hackathonId === h.id);
             const isRegistered = !!assignment;
 
@@ -130,7 +135,7 @@ export default function JudgePage() {
                 className="h-full flex flex-col p-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-[var(--border-subtle)]"
               >
                 <Link
-                  href={`/hackathons/${encodeURIComponent(h.name)}/judge`}
+                  href={`/hackathons/${h.id}/judge`}
                   className="group block"
                 >
                   <div className="relative flex flex-col h-full bg-[var(--bg-secondary)] rounded-none p-6 overflow-hidden">
@@ -221,7 +226,7 @@ export default function JudgePage() {
                       {isRegistered ? (
                         <>
                           <Link
-                            href={`/hackathons/${encodeURIComponent(h.name)}/judge`}
+                            href={`/hackathons/${h.id}/judge`}
                             className="flex-1 px-4 py-2 rounded-none bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors cursor-pointer"
                           >
                             Ready to Judge

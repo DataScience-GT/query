@@ -232,14 +232,21 @@ export function ImportProjectsStep({
               : `Import ${projectsData.length} Projects (Auto-Assign Tables)`}
           </button>
 
-          {importProjectsData && (
-            <div className="mt-4 p-4 bg-accent/10 border border-accent/20 rounded-none">
-              <p className="text-accent text-xs font-mono">
-                Created: {importProjectsData.created} | Tables:{" "}
-                {importProjectsData.startTable} - {importProjectsData.endTable}
-              </p>
-            </div>
-          )}
+          {importProjectsData &&
+            (importProjectsData.created === 0 ? (
+              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-none">
+                <p className="text-red-400 text-xs font-mono">
+                  No projects were created - the CSV held no importable rows.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 p-4 bg-accent/10 border border-accent/20 rounded-none">
+                <p className="text-accent text-xs font-mono">
+                  Created: {importProjectsData.created} | Tables:{" "}
+                  {importProjectsData.startTable} - {importProjectsData.endTable}
+                </p>
+              </div>
+            ))}
         </>
       )}
     </LiquidGlass>

@@ -3,6 +3,7 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { toInputDate } from "@/components/admin/hackathons/constants";
 import { Clock } from "lucide-react";
 
 /**
@@ -104,9 +105,7 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
             <input
               type="datetime-local"
               aria-label="Registration deadline"
-              defaultValue={
-                regDeadline ? regDeadline.toISOString().slice(0, 16) : ""
-              }
+              defaultValue={regDeadline ? toInputDate(regDeadline) : ""}
               onChange={(e) => {
                 if (e.target.value) {
                   updateHackathon.mutate({

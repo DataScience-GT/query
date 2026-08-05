@@ -161,6 +161,8 @@ vi.mock("@query/db", () => {
             groupBy: vi.fn().mockResolvedValue([]),
             limit: vi.fn().mockResolvedValue([]),
             offset: vi.fn().mockResolvedValue([]),
+            // `.for("update")` row-locks before a seat recount.
+            for: vi.fn().mockResolvedValue([{ count: 0 }]),
           })),
           orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
           groupBy: vi.fn().mockResolvedValue([]),
@@ -993,13 +995,21 @@ describe("Router Integration and Access Control Verification Suite", () => {
     it("should return public participant list for a hackathon", async () => {
       const ctx = createMockCtx();
       mockFindMany.mockReturnValue([
-        { id: "p1", hackathonId, userId: "u1", registrationStatus: "approved" },
+        {
+          hackathonId,
+          teamId: null,
+          user: { id: "u1", name: "Ada", image: null },
+          team: null,
+        },
       ]);
 
       const caller = appRouter.createCaller(ctx);
       const res = await caller.hackathon.participants({ hackathonId });
       expect(res.length).toBe(1);
-      expect(res[0].id).toBe("p1");
+      // Identified through the joined public profile. The participant id is the
+      // event pass QR payload, and the raw userId adds nothing a caller needs;
+      // both are deliberately absent from this public roster.
+      expect(res[0].user.id).toBe("u1");
     });
   });
 
@@ -1223,8 +1233,17 @@ describe("Router Integration and Access Control Verification Suite", () => {
             maxCheckIns: 50,
           };
         }
+        if (table === "hackathons") {
+          return { id: "h_latest" };
+        }
         if (table === "members") {
-          return { id: "member_1", userId: "member_user_id", isActive: true };
+          return {
+            id: "member_1",
+            userId: "member_user_id",
+            hackathonId: "h_latest",
+            isActive: true,
+            membershipEndDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          };
         }
         if (table === "eventCheckIns") {
           return null; // Not checked in yet
@@ -1417,6 +1436,10 @@ describe("Router Integration and Access Control Verification Suite", () => {
           return {
             id: "payment_100",
             customerEmail: "purchaser@example.com",
+            // The name Stripe recorded. linkAccount matches the submitted name
+            // against this, so knowing the email alone is not enough to claim
+            // someone else's payment.
+            customerName: "Stripe Payer",
             paymentStatus: "paid",
             linkedUserId: null,
           };
@@ -1441,6 +1464,42 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
       expect(res.success).toBe(true);
       expect(res.message).toContain("Account linked successfully");
+    });
+
+    // The email is the one thing about someone else's payment that is easy to
+    // know, so it cannot be the whole proof of ownership.
+    it("should refuse to link a payment to someone who is not the payer", async () => {
+      const ctx = createMockCtx("mallory");
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "stripePayments") {
+          return {
+            id: "payment_100",
+            customerEmail: "alice@gatech.edu",
+            customerName: "Alice Anderson",
+            paymentStatus: "paid",
+            linkedUserId: null,
+          };
+        }
+        // Mallory's own account is on a different address.
+        if (table === "users") {
+          return { id: "mallory", email: "mallory@gatech.edu" };
+        }
+        if (table === "userAccountLinks") return null;
+        if (table === "hackathons") return { id: "h_latest" };
+        return null;
+      });
+
+      await expect(
+        appRouter.createCaller(ctx).stripe.linkAccount({
+          firstName: "Mallory",
+          lastName: "Jones",
+          email: "alice@gatech.edu",
+        }),
+      ).rejects.toThrow(/No payment found/);
+
+      // Nothing was written, so Alice can still claim her own payment.
+      expect(mockInsert).not.toHaveBeenCalled();
     });
   });
 

@@ -93,6 +93,17 @@ export const hackathonEventsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
       }
 
+      // Merge with existing times for partial-update validation
+      const resolvedStart = updateData.startTime ?? existing.startTime;
+      const resolvedEnd = updateData.endTime ?? existing.endTime;
+
+      if (resolvedEnd <= resolvedStart) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "End time must be after start time",
+        });
+      }
+
       const [updatedEvent] = await (ctx.db as DrizzleDB)
         .update(hackathonEvents)
         .set({

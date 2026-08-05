@@ -1,13 +1,20 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
-import {
-  hackathons,
-} from "@query/db";
-import { eq, and, gte } from "drizzle-orm";
-import { isAdmin } from "../../middleware/procedures";
+import { hackathons } from "@query/db";
+import { eq, and, gte, notInArray } from "drizzle-orm";
+import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
+
+// A draft has not been announced yet, so it does not belong in a participant's
+// browse list — create()'s own comment promises a draft stays invisible to
+// participants. "cancelled" is deliberately NOT hidden: the hackathon detail
+// and participants pages both ship a "Cancelled" status badge, and people who
+// already registered need to be able to open the event and see that it is off.
+const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
+  "draft",
+];
 
 export const hackathonCrudRouter = createTRPCRouter({
   list: publicProcedure
@@ -29,12 +36,28 @@ export const hackathonCrudRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const cacheKey = `hackathons:list:${input.status || "all"}:${input.upcoming ? "upcoming" : "all"}:${input.limit}:${input.offset}`;
-
       type DB = DrizzleDB;
       type HackathonList = Awaited<
         ReturnType<DB["query"]["hackathons"]["findMany"]>
       >;
+
+      // Staff-only statuses are still listable by admins (the admin setup and
+      // judging pages pick a hackathon off this endpoint), so both the rows and
+      // the cache entry depend on who is asking.
+      const adminViewer = await callerIsAdmin(ctx);
+
+      // An explicit status filter is honoured, but for a non-admin a staff-only
+      // status simply has no visible rows.
+      if (
+        !adminViewer &&
+        input.status &&
+        STAFF_ONLY_STATUSES.includes(input.status)
+      ) {
+        return [] as HackathonList;
+      }
+
+      const cacheKey = `hackathons:list:${adminViewer ? "admin" : "public"}:${input.status || "all"}:${input.upcoming ? "upcoming" : "all"}:${input.limit}:${input.offset}`;
+
       // Check cache first
       const cached = ctx.cache.get<HackathonList>(cacheKey);
       if (cached) return cached;
@@ -47,6 +70,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         where: and(
           eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
+          adminViewer
+            ? undefined
+            : notInArray(hackathons.status, STAFF_ONLY_STATUSES),
           input.upcoming ? gte(hackathons.startDate, now) : undefined,
         ),
         limit: input.limit,
@@ -84,19 +110,51 @@ export const hackathonCrudRouter = createTRPCRouter({
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      // Check cache first
-      const cacheKey = CacheKeys.hackathon(input.id);
       type DB = DrizzleDB;
       type HackathonItem = Awaited<
         ReturnType<DB["query"]["hackathons"]["findFirst"]>
       >;
-      const cached = ctx.cache.get<HackathonItem>(cacheKey);
-      if (cached) return cached;
+      /**
+       * list() hides staff-only statuses, but this endpoint is reachable by id
+       * or by name, so a draft stays fetchable by anyone who guesses either.
+       * The cache entry is shared across callers, so visibility is enforced on
+       * the way out — otherwise one admin lookup would warm the cache and then
+       * serve the unannounced hackathon to everybody for VOLATILE_TTL.
+       * Only the draft status gates here: isPublic=false is how invite-only
+       * events are marked, and their participants still need to open the link.
+       */
+      const assertVisible = async (row: NonNullable<HackathonItem>) => {
+        if (!STAFF_ONLY_STATUSES.includes(row.status)) return;
+        if (await callerIsAdmin(ctx)) return;
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      };
 
       const isUuid =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
           input.id,
         );
+
+      /**
+       * A hackathon is cached under its own id and nothing else. This endpoint
+       * also accepts a name, but keying a second copy under the name gives the
+       * row two homes: every writer (register, update, delete) evicts by id, so
+       * the name-keyed copy would outlive the eviction and keep serving a stale
+       * seat count. A name lookup therefore always hits the database and only
+       * refreshes the id-keyed entry.
+       */
+      if (isUuid) {
+        const cached = ctx.cache.get<HackathonItem>(
+          CacheKeys.hackathon(input.id),
+        );
+        if (cached) {
+          await assertVisible(cached);
+          return cached;
+        }
+      }
+
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
         where: isUuid
           ? eq(hackathons.id, input.id)
@@ -110,7 +168,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         });
       }
 
-      ctx.cache.set(cacheKey, hackathon, VOLATILE_TTL);
+      ctx.cache.set(CacheKeys.hackathon(hackathon.id), hackathon, VOLATILE_TTL);
+
+      await assertVisible(hackathon);
 
       return hackathon;
     }),
@@ -287,9 +347,24 @@ export const hackathonCrudRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { hackathonId } = input;
-      await (ctx.db as DrizzleDB)
+
+      // Every child table cascades off this row, so reporting success for an id
+      // that matched nothing hides a delete that never happened. RETURNING names
+      // the rows the statement itself removed, which a separate existence check
+      // cannot: that only describes the row as it was before the DELETE, and a
+      // concurrent delete landing in between would still be called a success.
+      const deleted = await (ctx.db as DrizzleDB)
         .delete(hackathons)
-        .where(eq(hackathons.id, hackathonId));
+        .where(eq(hackathons.id, hackathonId))
+        .returning({ id: hackathons.id });
+
+      if (deleted?.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+
       ctx.cache.delete(CacheKeys.hackathon(hackathonId));
       ctx.cache.deletePattern("hackathons:*");
       return { success: true };

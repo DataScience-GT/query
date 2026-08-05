@@ -28,6 +28,14 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     },
   });
 
+  // Judges who applied through /judge/register arrive inactive; this is the
+  // only thing that approves them.
+  const setActive = trpc.judge.setActive.useMutation({
+    onSuccess: () => {
+      utils.judge.list.invalidate();
+    },
+  });
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedJudgeId, setSelectedJudgeId] = useState("");
   const [assignTrack, setAssignTrack] = useState("");
@@ -283,6 +291,19 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                         >
                           {judge.isActive ? "Active" : "Inactive"}
                         </span>
+                        <button
+                          type="button"
+                          disabled={setActive.isPending}
+                          onClick={() =>
+                            setActive.mutate({
+                              judgeId: judge.id,
+                              isActive: !judge.isActive,
+                            })
+                          }
+                          className="px-2 py-0.5 text-[9px] font-mono rounded uppercase tracking-widest border border-[var(--border-subtle)] text-[var(--text-primary)] hover:bg-white/10 transition-colors disabled:opacity-40"
+                        >
+                          {judge.isActive ? "Suspend" : "Approve"}
+                        </button>
                       </div>
                     </div>
                   </div>

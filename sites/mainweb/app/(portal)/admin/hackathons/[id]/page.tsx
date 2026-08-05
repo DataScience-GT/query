@@ -100,8 +100,11 @@ export default function AdminHackathonDashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {["scanner", "attendees"].includes(activeTab) && (
-                <Link
-                  href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}/scanner`}
+                // ScannerTab is rendered on this page; there is no
+                // /admin/hackathons/[id]/scanner route to link to.
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("scanner")}
                   className="group relative px-4 py-2 rounded-none bg-gradient-to-r from-accent/15 to-emerald-500/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/25 active:scale-95 transition-all overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
@@ -121,7 +124,7 @@ export default function AdminHackathonDashboard() {
                     </svg>
                     Quick Scan
                   </span>
-                </Link>
+                </button>
               )}
             </div>
           </div>

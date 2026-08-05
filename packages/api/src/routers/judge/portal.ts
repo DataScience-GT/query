@@ -10,23 +10,32 @@ import {
   hackathonMaps,
   hackathons,
 } from "@query/db";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, ne, gt, and, asc, inArray, sql } from "drizzle-orm";
 import { CacheKeys } from "../../middleware/cache";
 import { isAdmin, isJudge } from "../../middleware/procedures";
+import { resolveHackathonId } from "../../services/portal-context";
 import type { DrizzleDB } from "@query/db";
+
+/**
+ * How long a judge holds a table without refreshing the claim.
+ *
+ * getNextTable re-stamps on every poll, so a judge with the portal open keeps
+ * their table for as long as they are actually there. One who closes the tab or
+ * walks off stops refreshing and the table frees itself, which is why this is a
+ * timeout rather than a lock somebody has to release.
+ */
+const JUDGE_CLAIM_MINUTES = 10;
 
 export const judgePortalRouter = createTRPCRouter({
   isJudge: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      let hackathonId = input?.hackathonId;
-      if (!hackathonId) {
-        const latest = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-          orderBy: (h, { desc }) => [desc(h.startDate)],
-          columns: { id: true },
-        });
-        hackathonId = latest?.id;
-      }
+      // Same rule as the isJudge middleware; ordering by start date alone
+      // picks next year's draft.
+      const hackathonId = await resolveHackathonId(
+        ctx.db as DrizzleDB,
+        input?.hackathonId,
+      );
 
       if (!hackathonId) {
         return {
@@ -62,11 +71,41 @@ export const judgePortalRouter = createTRPCRouter({
       return result;
     }),
 
-  getMyAssignments: isJudge.query(async ({ ctx }) => {
-    const assignments = await (
-      ctx.db as DrizzleDB
-    ).query.judgeAssignments.findMany({
-      where: eq(judgeAssignments.judgeId, ctx.judge.id),
+  getMyAssignments: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+
+    // A platform with no hackathon at all is a missing judging context, not an
+    // empty assignment list.
+    const anyHackathon = await db.query.hackathons.findFirst({
+      columns: { id: true },
+    });
+    if (!anyHackathon) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No hackathon context found for judging",
+      });
+    }
+
+    // This listing spans every hackathon the caller judges, so it resolves the
+    // judge rows from the user instead of a single hackathon context — pinning
+    // it to the newest hackathon hides the assignments of everyone judging an
+    // earlier one.
+    const myJudges = await db.query.judges.findMany({
+      where: and(
+        eq(judges.userId, ctx.userId as string),
+        // Every other judging entry point requires an active row; an applicant
+        // who was never activated should not see an assignment list here and
+        // then hit FORBIDDEN on the first thing they click.
+        eq(judges.isActive, true),
+      ),
+      columns: { id: true },
+    });
+
+    const assignments = await db.query.judgeAssignments.findMany({
+      where: inArray(
+        judgeAssignments.judgeId,
+        myJudges.map((j) => j.id),
+      ),
       with: {
         hackathon: true,
       },
@@ -80,9 +119,9 @@ export const judgePortalRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       try {
-        const nextInQueue = await (
-          ctx.db as DrizzleDB
-        ).query.judgeQueue.findFirst({
+        const db = ctx.db as DrizzleDB;
+
+        const queue = await db.query.judgeQueue.findMany({
           where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
             eq(judgeQueue.hackathonId, input.hackathonId),
@@ -94,26 +133,71 @@ export const judgePortalRouter = createTRPCRouter({
           orderBy: [asc(judgeQueue.order)],
         });
 
-        if (!nextInQueue) {
+        if (queue.length === 0) {
           return { done: true, project: null, remaining: 0 };
         }
 
-        const remainingCount = await (ctx.db as DrizzleDB)
-          .select({ count: sql<number>`count(*)` })
-          .from(judgeQueue)
-          .where(
-            and(
-              eq(judgeQueue.judgeId, ctx.judge.id),
-              eq(judgeQueue.hackathonId, input.hackathonId),
-              eq(judgeQueue.isCompleted, false),
+        // Tables another judge is standing at right now. Sending a second judge
+        // to a team that is already presenting helps nobody, so a claimed table
+        // is passed over and comes back on a later pass — the judge is never
+        // told about it and never has to act on it.
+        const claimedSince = new Date(
+          Date.now() - JUDGE_CLAIM_MINUTES * 60 * 1000,
+        );
+        const claims = await db.query.judgeQueue.findMany({
+          where: and(
+            inArray(
+              judgeQueue.projectId,
+              queue.map((row) => row.projectId),
             ),
+            eq(judgeQueue.hackathonId, input.hackathonId),
+            eq(judgeQueue.isCompleted, false),
+            ne(judgeQueue.judgeId, ctx.judge.id),
+            gt(judgeQueue.startedAt, claimedSince),
+          ),
+          columns: { projectId: true, startedAt: true },
+        });
+
+        // Latest claim per table, i.e. the best guess at when it frees up.
+        const claimedAt = new Map<string, number>();
+        for (const claim of claims) {
+          const at = claim.startedAt?.getTime() ?? 0;
+          claimedAt.set(
+            claim.projectId,
+            Math.max(claimedAt.get(claim.projectId) ?? 0, at),
           );
+        }
+
+        // First free table in the judge's own order. When every remaining table
+        // is busy, take the one claimed longest ago rather than stalling: two
+        // judges at a table is awkward, a judge with nothing to do is worse, and
+        // both scores count either way.
+        const free = queue.find((row) => !claimedAt.has(row.projectId));
+        const next =
+          free ??
+          [...queue].sort(
+            (a, b) =>
+              (claimedAt.get(a.projectId) ?? 0) -
+              (claimedAt.get(b.projectId) ?? 0),
+          )[0];
+
+        if (!next) {
+          return { done: true, project: null, remaining: 0 };
+        }
+
+        // Claiming doubles as a heartbeat: the portal re-runs this query while
+        // the judge has the project open, so the claim lapses only once they
+        // actually leave.
+        await db
+          .update(judgeQueue)
+          .set({ startedAt: new Date() })
+          .where(eq(judgeQueue.id, next.id));
 
         return {
           done: false,
-          project: nextInQueue.project,
-          queueId: nextInQueue.id,
-          remaining: Number(remainingCount[0]?.count || 0),
+          project: next.project,
+          queueId: next.id,
+          remaining: queue.length,
         };
       } catch (error) {
         // getNextTable error
@@ -208,6 +292,38 @@ export const judgePortalRouter = createTRPCRouter({
         input.scoreClarity +
         input.scoreSoundness;
 
+      // Closing judging has to stop scores being written, otherwise the upsert
+      // keeps overwriting results after the organizers have called the winners.
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, ctx.judge.hackathonId),
+        columns: { judgingActive: true },
+      });
+      if (hackathon?.judgingActive === false) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Judging is closed for this hackathon",
+        });
+      }
+
+      // A judge may only score what was routed to them. Without this any judge
+      // could score any project in the hackathon — including one deliberately
+      // assigned elsewhere, or one they never visited — and those scores would
+      // count towards the rankings. Completed slots still match, so revising an
+      // earlier score keeps working.
+      const ownSlot = await (ctx.db as DrizzleDB).query.judgeQueue.findFirst({
+        where: and(
+          eq(judgeQueue.judgeId, ctx.judge.id),
+          eq(judgeQueue.projectId, input.projectId),
+        ),
+        columns: { id: true },
+      });
+      if (!ownSlot) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This project is not in your judging queue",
+        });
+      }
+
       // Atomic upsert: INSERT or UPDATE if judge already voted on this project
       const result = await (ctx.db as DrizzleDB)
         .insert(judgeVotes)
@@ -264,8 +380,70 @@ export const judgePortalRouter = createTRPCRouter({
         input.scoreClarity +
         input.scoreSoundness;
 
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, ctx.judge.hackathonId),
+        columns: { judgingActive: true },
+      });
+      if (hackathon?.judgingActive === false) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Judging is closed for this hackathon",
+        });
+      }
+
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // 1. Atomic upsert vote
+        // 1. The queue slot is addressed by id alone, so it has to be read back
+        // and vetted before any score is written against it.
+        const queueItem = await tx.query.judgeQueue.findFirst({
+          where: eq(judgeQueue.id, input.queueId),
+        });
+
+        // A queue id that no longer resolves is tolerated — the judge may be
+        // retrying a completion — but a row that does resolve has to be this
+        // judge's own slot in the hackathon they are judging.
+        if (queueItem) {
+          if (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Queue item not found",
+            });
+          }
+          if (queueItem.hackathonId !== ctx.judge.hackathonId) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Queue item does not belong to this hackathon",
+            });
+          }
+          // The slot being closed and the project being scored must be the same
+          // one. Comparing hackathons alone proves nothing — every slot a judge
+          // owns is already in their hackathon — so without this a judge could
+          // score project Y while slot X is stamped complete, leaving X
+          // unscored while the coverage counters claim it was visited.
+          if (queueItem.projectId !== input.projectId) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Queue item does not match the project being scored",
+            });
+          }
+        } else {
+          // Tolerating a missing slot must not also drop the ownership test —
+          // otherwise any queueId that matches no row scores any project.
+          const ownSlot = await tx.query.judgeQueue.findFirst({
+            where: and(
+              eq(judgeQueue.judgeId, ctx.judge.id),
+              eq(judgeQueue.projectId, input.projectId),
+            ),
+            columns: { id: true },
+          });
+          if (!ownSlot) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "This project is not in your judging queue",
+            });
+          }
+        }
+
+        // 2. Atomic upsert vote
         await tx
           .insert(judgeVotes)
           .values({
@@ -295,7 +473,7 @@ export const judgePortalRouter = createTRPCRouter({
             },
           });
 
-        // 2. Mark queue item as completed
+        // 3. Mark queue item as completed
         await tx
           .update(judgeQueue)
           .set({
@@ -304,20 +482,11 @@ export const judgePortalRouter = createTRPCRouter({
           })
           .where(eq(judgeQueue.id, input.queueId));
 
-        // 3. Get hackathonId from queue item
-        const queueItem = await tx.query.judgeQueue.findFirst({
-          where: eq(judgeQueue.id, input.queueId),
-        });
-
-        if (!queueItem) {
-          return { done: true, nextProject: null };
-        }
-
         // 4. Get next uncompleted queue item
         const nextInQueue = await tx.query.judgeQueue.findFirst({
           where: and(
             eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, queueItem.hackathonId),
+            eq(judgeQueue.hackathonId, ctx.judge.hackathonId),
             eq(judgeQueue.isCompleted, false),
           ),
           with: {
@@ -329,6 +498,14 @@ export const judgePortalRouter = createTRPCRouter({
         if (!nextInQueue) {
           return { done: true, nextProject: null };
         }
+
+        // Handing a table over is what claims it. Stamping only in
+        // getNextTable left every project after a judge's first one unclaimed,
+        // so two judges could be sent to the same table.
+        await tx
+          .update(judgeQueue)
+          .set({ startedAt: new Date() })
+          .where(eq(judgeQueue.id, nextInQueue.id));
 
         return {
           done: false,
@@ -349,20 +526,29 @@ export const judgePortalRouter = createTRPCRouter({
         // Get the queue item to find the hackathon
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
+          with: { project: true },
         });
 
-        if (!queueItem) {
+        // The queue id addresses any judge's slot, so a row owned by someone
+        // else has to read as missing rather than as an actionable item.
+        if (
+          !queueItem ||
+          (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id)
+        ) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Queue item not found",
           });
         }
 
-        // Atomically move this item to the end of the queue using a subquery
+        // Atomically move this item to the end of the queue using a subquery.
+        // Walking away also drops the claim on that table, so another judge can
+        // take it immediately instead of waiting out the claim window.
         await tx
           .update(judgeQueue)
           .set({
             order: sql`(SELECT COALESCE(MAX(${judgeQueue.order}), 0) + 1 FROM ${judgeQueue} WHERE ${judgeQueue.judgeId} = ${ctx.judge.id} AND ${judgeQueue.hackathonId} = ${queueItem.hackathonId})`,
+            startedAt: null,
           })
           .where(eq(judgeQueue.id, input.queueId));
 
@@ -380,14 +566,21 @@ export const judgePortalRouter = createTRPCRouter({
         });
 
         if (!nextInQueue || nextInQueue.id === input.queueId) {
-          // Only this one project left — can't skip the last one
+          // Only this one project left — can't skip the last one. The caller
+          // renders a project card, so hand back the project, not the queue row.
           return {
             done: false,
             skippedToEnd: true,
-            project: queueItem,
+            project: queueItem.project,
             queueId: input.queueId,
           };
         }
+
+        // Claim the table being handed over, same as getNextTable does.
+        await tx
+          .update(judgeQueue)
+          .set({ startedAt: new Date() })
+          .where(eq(judgeQueue.id, nextInQueue.id));
 
         return {
           done: false,
@@ -406,7 +599,12 @@ export const judgePortalRouter = createTRPCRouter({
           where: eq(judgeQueue.id, input.queueId),
           with: { project: true },
         });
-        if (!queueItem)
+        // The queue id addresses any judge's slot, so a row owned by someone
+        // else has to read as missing rather than as an actionable item.
+        if (
+          !queueItem ||
+          (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id)
+        )
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Queue item not found",
@@ -418,17 +616,21 @@ export const judgePortalRouter = createTRPCRouter({
           .set({ isCompleted: true, completedAt: new Date() })
           .where(eq(judgeQueue.id, input.queueId));
 
+        let reassigned = false;
+
         // Try to reassign to another judge with the same track
         const myAssignment = await tx.query.judgeAssignments.findFirst({
-          where: eq(judgeAssignments.judgeId, ctx.judge.id),
+          where: and(
+            eq(judgeAssignments.judgeId, ctx.judge.id),
+            eq(judgeAssignments.hackathonId, queueItem.hackathonId),
+          ),
         });
 
-        if (myAssignment?.hackathonId) {
+        if (myAssignment) {
           // Find other judges assigned to the same hackathon
           const otherAssignments = await tx.query.judgeAssignments.findMany({
-            where: and(
-              eq(judgeAssignments.hackathonId, myAssignment.hackathonId),
-            ),
+            where: eq(judgeAssignments.hackathonId, queueItem.hackathonId),
+            with: { judge: true },
           });
 
           // Get the project's tracks for matching
@@ -443,6 +645,10 @@ export const judgePortalRouter = createTRPCRouter({
 
           for (const other of otherAssignments) {
             if (other.judgeId === ctx.judge.id) continue;
+
+            // A judge who is not active can never open the portal, so handing
+            // them the project strands it with nobody able to score it.
+            if (!other.judge?.isActive) continue;
 
             // Check if already has this project
             const alreadyQueued = await tx.query.judgeQueue.findFirst({
@@ -460,7 +666,7 @@ export const judgePortalRouter = createTRPCRouter({
               .where(
                 and(
                   eq(judgeQueue.judgeId, other.judgeId),
-                  eq(judgeQueue.hackathonId, myAssignment.hackathonId),
+                  eq(judgeQueue.hackathonId, queueItem.hackathonId),
                   eq(judgeQueue.isCompleted, false),
                 ),
               );
@@ -488,10 +694,11 @@ export const judgePortalRouter = createTRPCRouter({
             // Atomic order assignment via SQL subquery
             await tx.insert(judgeQueue).values({
               judgeId: best.judgeId,
-              hackathonId: myAssignment.hackathonId,
+              hackathonId: queueItem.hackathonId,
               projectId: queueItem.projectId,
-              order: sql`(SELECT COALESCE(MAX(${judgeQueue.order}), 0) + 1 FROM ${judgeQueue} WHERE ${judgeQueue.judgeId} = ${best.judgeId} AND ${judgeQueue.hackathonId} = ${myAssignment.hackathonId})`,
+              order: sql`(SELECT COALESCE(MAX(${judgeQueue.order}), 0) + 1 FROM ${judgeQueue} WHERE ${judgeQueue.judgeId} = ${best.judgeId} AND ${judgeQueue.hackathonId} = ${queueItem.hackathonId})`,
             });
+            reassigned = true;
           }
         }
 
@@ -510,6 +717,7 @@ export const judgePortalRouter = createTRPCRouter({
           done: !nextInQueue,
           project: nextInQueue?.project ?? null,
           queueId: nextInQueue?.id ?? null,
+          reassigned,
         };
       });
     }),

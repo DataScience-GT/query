@@ -8,6 +8,7 @@ import {
   eventCheckIns,
   hackathons,
   hackathonParticipants,
+  hackathonEventAttendees,
 } from "@query/db";
 import { eq, and, count, gte, inArray } from "drizzle-orm";
 import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
@@ -58,27 +59,40 @@ export const adminRouter = createTRPCRouter({
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const [participantsResult, eventsResult, hackathonsResult, checkinsResult] =
-      await Promise.all([
-        (ctx.db as DrizzleDB)
-          .select({ count: count() })
-          .from(hackathonParticipants),
-        (ctx.db as DrizzleDB).select({ count: count() }).from(events),
-        (ctx.db as DrizzleDB)
-          .select({ count: count() })
-          .from(hackathons)
-          .where(inArray(hackathons.status, ["open", "in_progress"])),
-        (ctx.db as DrizzleDB)
-          .select({ count: count() })
-          .from(eventCheckIns)
-          .where(gte(eventCheckIns.checkedInAt, startOfToday)),
-      ]);
+    const [
+      participantsResult,
+      eventsResult,
+      hackathonsResult,
+      badgeScansResult,
+      doorCheckinsResult,
+    ] = await Promise.all([
+      (ctx.db as DrizzleDB)
+        .select({ count: count() })
+        .from(hackathonParticipants),
+      (ctx.db as DrizzleDB).select({ count: count() }).from(events),
+      (ctx.db as DrizzleDB)
+        .select({ count: count() })
+        .from(hackathons)
+        .where(inArray(hackathons.status, ["open", "in_progress"])),
+      // This dashboard covers both domains, and a QR scan lands in a different
+      // table depending on which one it came from: hackathon badge scans in
+      // hackathonEventAttendees, club door check-ins in eventCheckIns.
+      (ctx.db as DrizzleDB)
+        .select({ count: count() })
+        .from(hackathonEventAttendees)
+        .where(gte(hackathonEventAttendees.checkedInAt, startOfToday)),
+      (ctx.db as DrizzleDB)
+        .select({ count: count() })
+        .from(eventCheckIns)
+        .where(gte(eventCheckIns.checkedInAt, startOfToday)),
+    ]);
 
     return {
       totalParticipants: participantsResult[0]?.count ?? 0,
       totalEvents: eventsResult[0]?.count ?? 0,
       totalHackathons: hackathonsResult[0]?.count ?? 0,
-      checkinsToday: checkinsResult[0]?.count ?? 0,
+      checkinsToday:
+        (badgeScansResult[0]?.count ?? 0) + (doorCheckinsResult[0]?.count ?? 0),
     };
   }),
 
@@ -188,6 +202,26 @@ export const adminRouter = createTRPCRouter({
           code: "BAD_REQUEST",
           message: "Cannot deactivate your own admin account",
         });
+      }
+
+      // Only a super admin can hand the role back out, so demoting the last
+      // one locks the org out of admin management with no in-app recovery.
+      if (
+        targetAdmin.role === "super_admin" &&
+        input.role &&
+        input.role !== "super_admin"
+      ) {
+        const superAdmins = await (ctx.db as DrizzleDB).query.admins.findMany({
+          where: and(eq(admins.role, "super_admin"), eq(admins.isActive, true)),
+          columns: { id: true },
+        });
+
+        if (!superAdmins.some((other) => other.id !== targetAdmin.id)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Cannot demote the last super admin",
+          });
+        }
       }
 
       const result = await (ctx.db as DrizzleDB)

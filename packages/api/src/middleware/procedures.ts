@@ -3,6 +3,33 @@ import { protectedProcedure } from "../trpc";
 import { admins, judges, judgingProjects, judgeQueue } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
+import { resolveHackathonId } from "../services/portal-context";
+import type { Context } from "../context";
+
+/**
+ * Admin check for a publicProcedure that widens its response for staff.
+ *
+ * Unlike the isAdmin middleware below, this caches the NEGATIVE answer too.
+ * Ordinary participants are the overwhelming majority of signed-in callers on
+ * the public endpoints that use this (hackathon.list, hackathon.projects), and
+ * caching only the positive turned every one of their requests into an
+ * `admins` round-trip that the response cache used to avoid entirely.
+ */
+export const callerIsAdmin = async (ctx: Context) => {
+  if (!ctx.userId || !ctx.db) return false;
+
+  const cacheKey = `${CacheKeys.admin(ctx.userId)}:is-admin`;
+  const cached = ctx.cache.get<boolean>(cacheKey);
+  if (cached !== null) return cached;
+
+  const admin = await ctx.db.query.admins.findFirst({
+    where: and(eq(admins.userId, ctx.userId), eq(admins.isActive, true)),
+  });
+
+  ctx.cache.set(cacheKey, !!admin, 60);
+
+  return !!admin;
+};
 
 /**
  * Middleware that verifies the current user is an active admin.
@@ -78,13 +105,13 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput })
     }
   }
 
-  // Fallback to the latest hackathon if not specified in input
+  // Fallback when the input names nothing that resolves. Shares the platform's
+  // single definition of "the current hackathon" — the edition actually
+  // running, and only once nothing is running the newest one. Ordering by start
+  // date alone picks next year's draft the day staff create it, which would
+  // authorize this judge against an edition they were never assigned to.
   if (!hackathonId) {
-    const latest = await db.query.hackathons.findFirst({
-      orderBy: (h, { desc }) => [desc(h.startDate)],
-      columns: { id: true },
-    });
-    hackathonId = latest?.id;
+    hackathonId = await resolveHackathonId(db);
   }
 
   if (!hackathonId) {

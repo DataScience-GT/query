@@ -2,35 +2,29 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory } from "@query/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, lte, isNull } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { invalidatePortalContext } from "../middleware/cache";
+import { resolveHackathonId } from "../services/portal-context";
 
+// Letters from every script, plus the combining marks, spaces, hyphens and
+// apostrophes (straight and typographic) that real names are written with.
 const nameSchema = z
   .string()
   .min(1)
   .max(100)
-  .regex(/^[a-zA-Z\s'-]+$/, "Invalid name format");
+  .regex(/^[\p{L}\p{M}\s'’-]+$/u, "Invalid name format");
 const urlSchema = z.string().url().max(500).optional();
 const phoneSchema = z
   .string()
   .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
   .optional();
 
-async function getHackathonId(db: DrizzleDB, inputId?: string) {
-  if (inputId) return inputId;
-  const latest = await db.query.hackathons.findFirst({
-    orderBy: (h, { desc }) => [desc(h.startDate)],
-    columns: { id: true },
-  });
-  return latest?.id;
-}
-
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
       if (!hackathonId) return null;
 
       const cacheKey = `member:me:${ctx.userId}:${hackathonId}`;
@@ -67,7 +61,7 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input.hackathonId);
       if (!hackathonId) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -95,42 +89,46 @@ export const memberRouter = createTRPCRouter({
       const membershipEndDate = new Date();
       membershipEndDate.setFullYear(membershipEndDate.getFullYear() + 1);
 
-      const result = await (ctx.db as DrizzleDB)
-        .insert(members)
-        .values({
-          userId: ctx.userId!,
-          hackathonId,
-          memberType: "new",
-          firstName: input.firstName,
-          lastName: input.lastName,
-          phoneNumber: input.phoneNumber,
-          school: input.school,
-          major: input.major,
-          graduationYear: input.graduationYear,
-          skills: input.skills || [],
-          interests: input.interests || [],
-          linkedinUrl: input.linkedinUrl,
-          githubUrl: input.githubUrl,
-          portfolioUrl: input.portfolioUrl,
-          membershipStartDate,
-          membershipEndDate,
-        })
-        .returning();
+      const newMember = await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        const result = await tx
+          .insert(members)
+          .values({
+            userId: ctx.userId!,
+            hackathonId,
+            memberType: "new",
+            firstName: input.firstName,
+            lastName: input.lastName,
+            phoneNumber: input.phoneNumber,
+            school: input.school,
+            major: input.major,
+            graduationYear: input.graduationYear,
+            skills: input.skills || [],
+            interests: input.interests || [],
+            linkedinUrl: input.linkedinUrl,
+            githubUrl: input.githubUrl,
+            portfolioUrl: input.portfolioUrl,
+            membershipStartDate,
+            membershipEndDate,
+          })
+          .returning();
 
-      const newMember = result[0];
+        const created = result[0];
 
-      if (!newMember) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create member",
+        if (!created) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create member",
+          });
+        }
+
+        await tx.insert(membershipHistory).values({
+          memberId: created.id,
+          action: "joined",
+          startDate: membershipStartDate,
+          endDate: membershipEndDate,
         });
-      }
 
-      await (ctx.db as DrizzleDB).insert(membershipHistory).values({
-        memberId: newMember.id,
-        action: "joined",
-        startDate: membershipStartDate,
-        endDate: membershipEndDate,
+        return created;
       });
 
       invalidatePortalContext(ctx.userId!);
@@ -141,7 +139,7 @@ export const memberRouter = createTRPCRouter({
   renew: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
     .mutation(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
       if (!hackathonId) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -163,9 +161,34 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      const newEndDate = new Date(member.membershipEndDate || new Date());
+      // A term is a single year and a lapsed membership restarts from today, so
+      // a renewal never reaches further than a year ahead. A membership already
+      // covered that far was therefore renewed a moment ago, and this call is a
+      // retry rather than a second year — the day of slack absorbs the time
+      // between the first call landing and the retry arriving.
+      const now = new Date();
+      const renewableThrough = new Date(now);
+      renewableThrough.setFullYear(renewableThrough.getFullYear() + 1);
+      renewableThrough.setDate(renewableThrough.getDate() - 1);
+
+      if (
+        member.membershipEndDate &&
+        member.membershipEndDate > renewableThrough
+      ) {
+        return member;
+      }
+
+      const termStartDate =
+        member.membershipEndDate && member.membershipEndDate > now
+          ? member.membershipEndDate
+          : now;
+      const newEndDate = new Date(termStartDate);
       newEndDate.setFullYear(newEndDate.getFullYear() + 1);
 
+      // The same window again, this time as part of the write: Postgres
+      // re-evaluates it against the committed row, so a retry or a request on
+      // another instance racing this one matches nothing instead of stacking a
+      // second year on top of the first.
       const result = await (ctx.db as DrizzleDB)
         .update(members)
         .set({
@@ -175,22 +198,38 @@ export const memberRouter = createTRPCRouter({
           isActive: true,
           updatedAt: new Date(),
         })
-        .where(eq(members.id, member.id))
+        .where(
+          and(
+            eq(members.id, member.id),
+            or(
+              isNull(members.membershipEndDate),
+              lte(members.membershipEndDate, renewableThrough),
+            ),
+          ),
+        )
         .returning();
 
       const updatedMember = result[0];
 
       if (!updatedMember) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to renew membership",
+        const current = await (ctx.db as DrizzleDB).query.members.findFirst({
+          where: eq(members.id, member.id),
         });
+
+        if (!current) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to renew membership",
+          });
+        }
+
+        return current;
       }
 
       await (ctx.db as DrizzleDB).insert(membershipHistory).values({
         memberId: member.id,
         action: "renewed",
-        startDate: member.membershipEndDate || new Date(),
+        startDate: termStartDate,
         endDate: newEndDate,
       });
 
@@ -215,7 +254,7 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input.hackathonId);
       if (!hackathonId) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -271,7 +310,7 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input.hackathonId);
       const cacheKey = `members:list:${hackathonId || "all"}:${input.memberType || "all"}:${input.limit}:${input.offset}`;
       const cached = ctx.cache.get<typeof allMembers>(cacheKey);
       if (cached) return cached;
@@ -355,7 +394,7 @@ export const memberRouter = createTRPCRouter({
   history: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
       if (!hackathonId) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -387,7 +426,7 @@ export const memberRouter = createTRPCRouter({
   checkStatus: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const hackathonId = await getHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
+      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
       if (!hackathonId) {
         return {
           isMember: false,
@@ -402,7 +441,7 @@ export const memberRouter = createTRPCRouter({
       const cacheKey = `member:status:${ctx.userId}:${hackathonId}`;
       const cached = ctx.cache.get<{
         isMember: boolean;
-        isActive: boolean | null;
+        isActive: boolean;
         expiresAt: Date | null;
         daysRemaining: number | null;
         memberType: string | null;
@@ -432,7 +471,7 @@ export const memberRouter = createTRPCRouter({
 
       const now = new Date();
       const expiresAt = member.membershipEndDate;
-      const isActive = member.isActive && expiresAt && expiresAt > now;
+      const isActive = Boolean(member.isActive && expiresAt && expiresAt > now);
 
       let daysRemaining: number | null = null;
       if (expiresAt) {
