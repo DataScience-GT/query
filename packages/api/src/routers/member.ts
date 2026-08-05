@@ -136,105 +136,13 @@ export const memberRouter = createTRPCRouter({
       return newMember;
     }),
 
-  renew: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
-    .mutation(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
-      if (!hackathonId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No hackathon context found for renewal",
-        });
-      }
-
-      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: and(
-          eq(members.userId, ctx.userId!),
-          eq(members.hackathonId, hackathonId),
-        ),
-      });
-
-      if (!member) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Member not found for this hackathon",
-        });
-      }
-
-      // A term is a single year and a lapsed membership restarts from today, so
-      // a renewal never reaches further than a year ahead. A membership already
-      // covered that far was therefore renewed a moment ago, and this call is a
-      // retry rather than a second year — the day of slack absorbs the time
-      // between the first call landing and the retry arriving.
-      const now = new Date();
-      const renewableThrough = new Date(now);
-      renewableThrough.setFullYear(renewableThrough.getFullYear() + 1);
-      renewableThrough.setDate(renewableThrough.getDate() - 1);
-
-      if (
-        member.membershipEndDate &&
-        member.membershipEndDate > renewableThrough
-      ) {
-        return member;
-      }
-
-      const termStartDate =
-        member.membershipEndDate && member.membershipEndDate > now
-          ? member.membershipEndDate
-          : now;
-      const newEndDate = new Date(termStartDate);
-      newEndDate.setFullYear(newEndDate.getFullYear() + 1);
-
-      // The same window again, this time as part of the write: Postgres
-      // re-evaluates it against the committed row, so a retry or a request on
-      // another instance racing this one matches nothing instead of stacking a
-      // second year on top of the first.
-      const result = await (ctx.db as DrizzleDB)
-        .update(members)
-        .set({
-          memberType: "continuous",
-          membershipEndDate: newEndDate,
-          renewalCount: member.renewalCount + 1,
-          isActive: true,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(members.id, member.id),
-            or(
-              isNull(members.membershipEndDate),
-              lte(members.membershipEndDate, renewableThrough),
-            ),
-          ),
-        )
-        .returning();
-
-      const updatedMember = result[0];
-
-      if (!updatedMember) {
-        const current = await (ctx.db as DrizzleDB).query.members.findFirst({
-          where: eq(members.id, member.id),
-        });
-
-        if (!current) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to renew membership",
-          });
-        }
-
-        return current;
-      }
-
-      await (ctx.db as DrizzleDB).insert(membershipHistory).values({
-        memberId: member.id,
-        action: "renewed",
-        startDate: termStartDate,
-        endDate: newEndDate,
-      });
-
-      return updatedMember;
-    }),
+  /**
+   * Renewal is not an endpoint. A membership is one paid year, and the only
+   * thing that extends it is a completed payment through the portal, which
+   * runs createOrUpdateMembership in @query/db. A free renew procedure lived
+   * here and, being a plain protectedProcedure, let any signed-in user grant
+   * themselves another year over tRPC without paying.
+   */
 
   update: protectedProcedure
     .input(

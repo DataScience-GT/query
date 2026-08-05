@@ -272,7 +272,6 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // Member mutations
   "member.update": ["member:*", "user:*:profile"],
   // A renewal changes the membership the portal reads, so its context must go too
-  "member.renew": ["member:*", "user:*:portal"],
   // Team mutations — team membership is embedded in both the public roster and
   // each participant's own registration list
   "team.createTeam": ["hackathon:*:participants", "hackathon:registrations:*"],

@@ -988,35 +988,6 @@ describe("Participant edge cases", () => {
       membershipEndDate: new Date(Date.now() + 180 * DAY),
     };
 
-    // BUG: member.ts:166-167 extends from the stored end date with no idempotency
-    // or "already active" guard, so a retry buys a second year.
-    it("treats a repeated renew as a no-op instead of buying a second year", async () => {
-      const memberRow = { ...existingMember };
-      mockFindFirst.mockImplementation((table) => {
-        if (table === "hackathons") return { id: HACK_A };
-        if (table === "members") return { ...memberRow };
-        return undefined;
-      });
-      mockUpdate.mockImplementation((_op, _args, setArgs) => {
-        Object.assign(memberRow, setArgs[0]);
-        return [{ ...memberRow }];
-      });
-      mockInsert.mockReturnValue([{ id: "history_1" }]);
-
-      const caller = callerFor("user_a");
-      await caller.member.renew();
-      const afterFirst = memberRow.membershipEndDate.getTime();
-
-      await caller.member.renew();
-
-      // The retry changes nothing: same end date, same count, no second
-      // audit row. The first renewal still bought a real year.
-      expect(memberRow.membershipEndDate.getTime()).toBe(afterFirst);
-      expect(afterFirst).toBeGreaterThan(Date.now() + 300 * DAY);
-      expect(memberRow.renewalCount).toBe(1);
-      expect(insertedInto(membershipHistory)).toHaveLength(1);
-    });
-
     // BUG: member.ts:98-134 writes the member row and its history row in two
     // unrelated statements — no db.transaction, unlike every other mutation.
     it("commits a new member and its audit row together", async () => {
@@ -1039,25 +1010,6 @@ describe("Participant edge cases", () => {
       // `db` is typed DrizzleDB | null (client.ts leaves it null without
       // DATABASE_URL); the vi.mock factory always supplies an object here.
       expect(db!.transaction).toHaveBeenCalled();
-    });
-
-    // BUG: member.renew is absent from CACHE_INVALIDATION_MAP, so it falls back
-    // to deletePattern("member:*"), which never matches CacheKeys.portalContext
-    // (`user:<id>:portal`). member.register calls invalidatePortalContext for
-    // exactly this reason; renew does not.
-    it("shows a renewed membership in the portal on the very next load", async () => {
-      mockFindFirst.mockImplementation((table) => {
-        if (table === "hackathons") return { id: HACK_A };
-        if (table === "members") return { ...existingMember };
-        return undefined;
-      });
-      mockUpdate.mockReturnValue([{ ...existingMember, isActive: true }]);
-      mockInsert.mockReturnValue([{ id: "history_1" }]);
-      cache.set("user:user_a:portal", { member: { isActive: false } }, 300);
-
-      await callerFor("user_a").member.renew();
-
-      expect(cache.get("user:user_a:portal")).toBeNull();
     });
 
     // BUG: nameSchema (member.ts:9-13) is /^[a-zA-Z\s'-]+$/, so any accented or
