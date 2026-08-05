@@ -1501,6 +1501,47 @@ describe("Router Integration and Access Control Verification Suite", () => {
       // Nothing was written, so Alice can still claim her own payment.
       expect(mockInsert).not.toHaveBeenCalled();
     });
+
+    // A substring test would accept these: "" is inside every name, and so is
+    // any single letter. The check compares whole name tokens for that reason.
+    it.each([
+      ["whitespace-only names", "   ", "   "],
+      ["single letters", "a", "n"],
+      ["a partial token", "ali", "and"],
+    ])(
+      "should not accept %s as proof of owning a payment",
+      async (_label, firstName, lastName) => {
+        const ctx = createMockCtx("mallory");
+
+        mockFindFirst.mockImplementation((table) => {
+          if (table === "stripePayments") {
+            return {
+              id: "payment_100",
+              customerEmail: "alice@gatech.edu",
+              customerName: "Alice Anderson",
+              paymentStatus: "paid",
+              linkedUserId: null,
+            };
+          }
+          if (table === "users") {
+            return { id: "mallory", email: "mallory@gatech.edu" };
+          }
+          if (table === "userAccountLinks") return null;
+          if (table === "hackathons") return { id: "h_latest" };
+          return null;
+        });
+
+        await expect(
+          appRouter.createCaller(ctx).stripe.linkAccount({
+            firstName,
+            lastName,
+            email: "alice@gatech.edu",
+          }),
+        ).rejects.toThrow();
+
+        expect(mockInsert).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe("13. Judging System, Queue & Live Rankings", () => {

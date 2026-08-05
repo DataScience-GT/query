@@ -565,6 +565,40 @@ describe("Participant edge cases", () => {
 
       expect(deletedTables()).not.toContain(hackathonProjects);
     });
+
+    // leaveTeam and disbandTeam both refuse while a submission stands and tell
+    // the captain to withdraw it first, so that has to be something they can
+    // actually do — otherwise both flows are dead ends.
+    it("lets the captain withdraw the submission the disband error names", async () => {
+      const caller = captainCaller(20, {
+        currentMembers: 1,
+        project: { id: PROJECT_A, teamId: TEAM_A, status: "submitted" },
+      });
+
+      await expect(
+        caller.team.disbandTeam({ hackathonId: HACK_A, teamId: TEAM_A }),
+      ).rejects.toThrow(/withdrawn/i);
+
+      await expect(
+        caller.team.withdrawProject({ hackathonId: HACK_A }),
+      ).resolves.toMatchObject({ success: true });
+
+      const setStatuses = mockUpdate.mock.calls
+        .filter((c) => c[1]?.[0] === hackathonProjects)
+        .map((c) => c[2]?.[0]?.status);
+      expect(setStatuses).toContain("draft");
+    });
+
+    it("refuses to withdraw once judging has the project", async () => {
+      const caller = captainCaller(20, {
+        currentMembers: 1,
+        project: { id: PROJECT_A, teamId: TEAM_A, status: "judging" },
+      });
+
+      await expect(
+        caller.team.withdrawProject({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/Judging has started/i);
+    });
   });
 
   // =====================================================================
