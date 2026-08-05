@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members, membershipHistory } from "@query/db";
-import { eq, and, or, lte, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { invalidatePortalContext } from "../middleware/cache";
 import { resolveHackathonId } from "../services/portal-context";
