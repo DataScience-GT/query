@@ -5,6 +5,11 @@ vi.mock("@query/db", () => ({
   admins: { userId: "user_id", isActive: "is_active" },
   members: { userId: "user_id", hackathonId: "hackathon_id" },
   judges: { userId: "user_id", isActive: "is_active" },
+  projectLeaders: {
+    userId: "user_id",
+    hackathonId: "hackathon_id",
+    isActive: "is_active",
+  },
   hackathons: { startDate: "start_date" },
 }));
 
@@ -34,7 +39,7 @@ describe("buildMemberContext", () => {
     expect(buildMemberContext(undefined)).toEqual(EMPTY_MEMBER_CONTEXT);
   });
 
-  it("marks expired memberships inactive", () => {
+  it("marks expired memberships lapsed, not current", () => {
     const past = new Date("2020-01-01");
     const ctx = buildMemberContext({
       isActive: true,
@@ -42,9 +47,26 @@ describe("buildMemberContext", () => {
       memberType: "continuous",
       renewalCount: 1,
     });
-    expect(ctx.isMember).toBe(true);
+    // A row that outlived the year it paid for is not a membership: reporting
+    // it as one is what greeted a lapsed member as active and hid the only
+    // renew button behind the same flag.
+    expect(ctx.isMember).toBe(false);
     expect(ctx.isActive).toBe(false);
+    expect(ctx.hasLapsed).toBe(true);
     expect(ctx.daysRemaining).toBeLessThan(0);
+  });
+
+  it("does not call a revoked but unexpired membership lapsed", () => {
+    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const ctx = buildMemberContext({
+      isActive: false,
+      membershipEndDate: future,
+      memberType: "continuous",
+      renewalCount: 1,
+    });
+    expect(ctx.isActive).toBe(false);
+    // Switched off by staff, term still running — renewing is not the fix.
+    expect(ctx.hasLapsed).toBe(false);
   });
 
   it("marks active memberships with days remaining", () => {
@@ -86,6 +108,9 @@ describe("fetchPortalContext", () => {
             renewalCount: 2,
           }),
         },
+        projectLeaders: {
+          findFirst: async () => ({ id: "leader-1" }),
+        },
       },
     };
 
@@ -96,6 +121,7 @@ describe("fetchPortalContext", () => {
     expect(result.permissions).toEqual(["events"]);
     expect(result.isJudge).toBe(true);
     expect(result.judgeId).toBe("judge-1");
+    expect(result.isProjectLeader).toBe(true);
     expect(result.member.isMember).toBe(true);
     expect(result.member.isActive).toBe(true);
   });
@@ -107,6 +133,7 @@ describe("fetchPortalContext", () => {
         hackathons: { findFirst: async () => null },
         judges: { findFirst: async () => null },
         members: { findFirst: async () => null },
+        projectLeaders: { findFirst: async () => null },
       },
     };
 
@@ -114,6 +141,7 @@ describe("fetchPortalContext", () => {
 
     expect(result.isAdmin).toBe(false);
     expect(result.isJudge).toBe(false);
+    expect(result.isProjectLeader).toBe(false);
     expect(result.member).toEqual(EMPTY_MEMBER_CONTEXT);
   });
 });

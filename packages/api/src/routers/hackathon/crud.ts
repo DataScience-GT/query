@@ -23,6 +23,7 @@ export const hackathonCrudRouter = createTRPCRouter({
         status: z
           .enum([
             "draft",
+            "announced",
             "open",
             "closed",
             "in_progress",
@@ -203,9 +204,11 @@ export const hackathonCrudRouter = createTRPCRouter({
           tracks: z.array(z.string().max(100)).max(50).optional(),
           challenges: z.array(z.string().max(100)).max(50).optional(),
           websiteUrl: z.string().url().max(500).optional(),
-          // Draft keeps the hackathon invisible to participants; open lets them
-          // register straight away without a second trip to the admin panel.
-          status: z.enum(["draft", "open"]).default("draft"),
+          // Draft keeps the hackathon invisible to participants; announced puts
+          // its landing page and interest list live without opening
+          // registration; open lets them register straight away without a
+          // second trip to the admin panel.
+          status: z.enum(["draft", "announced", "open"]).default("draft"),
         })
         .refine((data) => data.endDate > data.startDate, {
           message: "End date must be after start date",
@@ -258,6 +261,7 @@ export const hackathonCrudRouter = createTRPCRouter({
         status: z
           .enum([
             "draft",
+            "announced",
             "open",
             "closed",
             "in_progress",

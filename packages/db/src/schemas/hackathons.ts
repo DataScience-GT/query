@@ -29,9 +29,16 @@ export const hackathons = pgTable(
     hackingStartTime: timestamp("hacking_start_time"),
     maxParticipants: integer("max_participants"),
     currentParticipants: integer("current_participants").notNull().default(0),
+    /**
+     * `announced` is the gap between "nobody can see this" and "registration is
+     * open": the edition exists publicly, has a landing page and collects
+     * interest, but is not taking registrations and — importantly — is NOT the
+     * edition memberships attach to. See PRE_CURRENT_STATUSES below.
+     */
     status: text("status", {
       enum: [
         "draft",
+        "announced",
         "open",
         "closed",
         "in_progress",
@@ -240,12 +247,84 @@ export const hackathonProjects = pgTable(
   ],
 );
 
+/**
+ * Editions that exist but are not yet "the current edition".
+ *
+ * `resolveCurrentHackathonId` skips these, which is what lets staff announce
+ * next year months ahead without every membership, portal gate and club
+ * check-in silently retargeting an edition nobody has registered for. An
+ * edition becomes current the moment it moves to `open`.
+ */
+export const PRE_CURRENT_STATUSES = ["draft", "announced"] as const;
+
+/**
+ * "Tell me when registration opens."
+ *
+ * Sign-in is required rather than taking a typed address: an entry is then a
+ * real `user` row with a verified email behind it, so the list can actually be
+ * mailed and an interested person converts into a participant without
+ * re-entering anything. Sign-in is not a Georgia Tech gate — the hackathon is
+ * open globally, and the email-code provider means anybody with any address can
+ * do it without a Google or GitHub account.
+ *
+ * The fields here are the ones that shape pre-event planning; everything else
+ * is asked at registration. `country` earns its place for a global field:
+ * travel, visa lead time and time zones for pre-event programming all depend on
+ * it, and it is far too late to ask once registration opens. All are optional —
+ * a blank answer should never be the reason somebody abandons the form.
+ */
+export const hackathonInterest = pgTable(
+  "hackathon_interest",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    hackathonId: uuid("hackathon_id")
+      .notNull()
+      .references(() => hackathons.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    school: text("school"),
+    country: text("country"),
+    graduationYear: integer("graduation_year"),
+    experience: text("experience", {
+      enum: ["first", "one_or_two", "three_plus"],
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("hackathon_interest_hackathon_id_idx").on(table.hackathonId),
+    index("hackathon_interest_user_id_idx").on(table.userId),
+    // Registering interest twice is one person changing their answers, not two
+    // people. The unique index is what makes the upsert in `registerInterest`
+    // safe against a double submit.
+    unique("unique_interest_per_hackathon").on(table.hackathonId, table.userId),
+  ],
+);
+
+export type HackathonInterest = typeof hackathonInterest.$inferSelect;
+
 // Relations
 export const hackathonsRelations = relations(hackathons, ({ many }) => ({
   participants: many(hackathonParticipants),
   teams: many(hackathonTeams),
   projects: many(hackathonProjects),
+  interest: many(hackathonInterest),
 }));
+
+export const hackathonInterestRelations = relations(
+  hackathonInterest,
+  ({ one }) => ({
+    hackathon: one(hackathons, {
+      fields: [hackathonInterest.hackathonId],
+      references: [hackathons.id],
+    }),
+    user: one(users, {
+      fields: [hackathonInterest.userId],
+      references: [users.id],
+    }),
+  }),
+);
 
 export const hackathonParticipantsRelations = relations(
   hackathonParticipants,
