@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Elements,
   PaymentElement,
@@ -254,16 +255,33 @@ export function StripePaymentModal({
           colorIconCardError: "#ef4444",
         },
         rules: {
+          /**
+           * `color` is set explicitly on every input state.
+           *
+           * The rules below override the input background, which takes it out
+           * of whatever the chosen theme pairs it with — so relying on the
+           * theme's default text colour left typed card numbers dark-on-dark
+           * and unreadable once you clicked into a field.
+           */
           ".Input": {
             border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
             backgroundColor: isLight ? "#f9fafb" : "#0a0a0a",
+            color: isLight ? "#09090b" : "#ffffff",
             boxShadow: "none",
           },
           ".Input:focus": {
             border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
+            backgroundColor: isLight ? "#ffffff" : "#0a0a0a",
+            color: isLight ? "#09090b" : "#ffffff",
             boxShadow: isLight
               ? "0 0 0 2px rgba(0,122,122,0.12)"
               : "0 0 0 2px rgba(0,168,168,0.15)",
+          },
+          ".Input--invalid": {
+            color: isLight ? "#09090b" : "#ffffff",
+          },
+          ".Input::placeholder": {
+            color: isLight ? "#a1a1aa" : "#6b6b6b",
           },
           ".Label": {
             fontWeight: "600",
@@ -338,8 +356,22 @@ function ModalShell({
   onClose: () => void;
   amountCents: number;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  /**
+   * Rendered into document.body rather than in place.
+   *
+   * The membership card this opens from is a `.card-printed` container with
+   * `overflow: hidden` and `.card-printed > * { z-index: 2 }`, so a modal
+   * mounted inside it is clipped to the card and trapped in that subtree's
+   * stacking order — the page behind stayed visible instead of being covered.
+   * A portal puts it at the top level where `fixed inset-0` means the whole
+   * viewport.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-[var(--ui-scrim)] backdrop-blur-md animate-in fade-in duration-200"
@@ -391,6 +423,7 @@ function ModalShell({
           <div className="px-6 py-6">{children}</div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

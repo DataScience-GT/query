@@ -2,8 +2,23 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
+
+/**
+ * Where to send somebody after they sign in, when they arrived from a page that
+ * asked them to.
+ *
+ * Only a same-origin path is ever honoured. A bare `startsWith("/")` is not
+ * enough: `//evil.example` and `/\evil.example` are both protocol-relative and
+ * would hand an attacker a redirect off this origin carrying whatever the
+ * browser sends next.
+ */
+function safeCallback(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/")) return null;
+  if (raw.startsWith("//") || raw.startsWith("/\\")) return null;
+  return raw;
+}
 
 // DSGT Query - Premium Landing Page
 // Ultra-modern, standout UI/UX
@@ -11,6 +26,8 @@ import { usePortalContext } from "@/lib/use-portal-context";
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = safeCallback(searchParams.get("callbackUrl"));
   const [mounted, setMounted] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState("");
@@ -26,7 +43,12 @@ export default function Home() {
   useEffect(() => {
     if (session) {
       const redirectTimeout = setTimeout(() => {
-        if (portalContext?.isJudge && !portalContext?.isAdmin) {
+        // An explicit destination wins over the role default: somebody sent
+        // here by a page that asked them to sign in wants to land back on it,
+        // not on a dashboard that says nothing about why they signed in.
+        if (callbackUrl) {
+          router.push(callbackUrl);
+        } else if (portalContext?.isJudge && !portalContext?.isAdmin) {
           router.push("/judge");
         } else {
           router.push("/dashboard");
@@ -35,7 +57,14 @@ export default function Home() {
 
       return () => clearTimeout(redirectTimeout);
     }
-  }, [status, session, router, portalContext?.isJudge, portalContext?.isAdmin]);
+  }, [
+    status,
+    session,
+    router,
+    callbackUrl,
+    portalContext?.isJudge,
+    portalContext?.isAdmin,
+  ]);
 
   const handleEmailLogin = async () => {
     if (!email) return;
@@ -45,7 +74,7 @@ export default function Home() {
       // send has to be read off the result or every failure looks like a send.
       const res = await signIn("nodemailer", {
         email,
-        callbackUrl: "/dashboard",
+        callbackUrl: callbackUrl ?? "/dashboard",
         redirect: false,
       });
 
@@ -66,11 +95,11 @@ export default function Home() {
   };
 
   const handleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" });
+    signIn("google", { callbackUrl: callbackUrl ?? "/dashboard" });
   };
 
   const handleGithubSignIn = () => {
-    signIn("github", { callbackUrl: "/dashboard" });
+    signIn("github", { callbackUrl: callbackUrl ?? "/dashboard" });
   };
 
   if (!mounted)

@@ -243,11 +243,22 @@ export const CacheKeys = {
   events: () => `events:list`,
   judge: (userId: string) => `judge:${userId}`,
   member: (userId: string) => `member:${userId}`,
+  projectLeader: (userId: string) => `project-leader:${userId}`,
   portalContext: (userId: string) => `user:${userId}:portal`,
 } as const;
 
 export const invalidatePortalContext = (userId: string) => {
   cache.delete(CacheKeys.portalContext(userId));
+};
+
+/**
+ * The role gate caches for 60s and the sidebar reads the portal context, so
+ * granting or revoking has to clear both or the new leader is shown a tab the
+ * procedures still refuse.
+ */
+export const clearProjectLeaderCaches = (userId: string) => {
+  cache.deletePattern(`${CacheKeys.projectLeader(userId)}*`);
+  invalidatePortalContext(userId);
 };
 
 /**
