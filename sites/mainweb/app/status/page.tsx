@@ -34,17 +34,9 @@ export default function StatusPage() {
                   Operational
                 </span>
               </div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  Auth Service
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  Discord Bot
+                  Auth Service
                 </span>
                 <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
                   Operational

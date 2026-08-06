@@ -226,7 +226,7 @@ export default function SettingsPage() {
                       />
                       <div className="relative h-[72px] w-[72px] rounded-full overflow-hidden border-2 border-[var(--border-medium)] group-hover:border-accent transition-colors">
                         <Image
-                          src={userData?.image || "/avatar-placeholder.png"}
+                          src={userData?.image || "/avatars/default.svg"}
                           alt="Avatar"
                           width={72}
                           height={72}

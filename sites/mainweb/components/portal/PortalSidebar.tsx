@@ -21,6 +21,7 @@ import {
   Home,
   ShieldAlert,
   UserCircle,
+  Rocket,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -84,6 +85,21 @@ export default function PortalSidebar({
       show: portalContext?.isJudge && !portalContext?.isAdmin,
     },
     {
+      name: "Initiatives",
+      href: "/initiatives",
+      icon: Rocket,
+      // Shown to any signed-in non-admin: somebody deciding whether to pay
+      // should be able to see what membership gets them. Applying is where the
+      // membership check bites, not browsing.
+      show: !portalContext?.isAdmin,
+    },
+    {
+      name: "My Initiatives",
+      href: "/lead",
+      icon: Rocket,
+      show: portalContext?.isProjectLeader && !portalContext?.isAdmin,
+    },
+    {
       name: "Settings",
       href: "/settings",
       icon: UserCircle,
@@ -95,6 +111,7 @@ export default function PortalSidebar({
     { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
     { name: "Hackathons", href: "/admin/hackathons", icon: Code },
     { name: "Judging", href: "/admin/judging", icon: ClipboardList },
+    { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   ];

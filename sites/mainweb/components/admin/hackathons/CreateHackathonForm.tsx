@@ -20,7 +20,7 @@ export function CreateHackathonForm({
   const [regDeadline, setRegDeadline] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
   const [theme, setTheme] = useState("");
-  const [status, setStatus] = useState<"draft" | "open">("draft");
+  const [status, setStatus] = useState<"draft" | "announced" | "open">("draft");
   const [error, setError] = useState("");
 
   const createMutation = trpc.hackathon.create.useMutation({
@@ -145,15 +145,21 @@ export function CreateHackathonForm({
             <select
               id="create-visibility"
               value={status}
-              onChange={(e) => setStatus(e.target.value as "draft" | "open")}
+              onChange={(e) =>
+                setStatus(e.target.value as "draft" | "announced" | "open")
+              }
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
             >
               <option value="draft">Draft — hidden, nobody can register</option>
+              <option value="announced">
+                Announced — public page and interest list, no registration
+              </option>
               <option value="open">Open — registration live immediately</option>
             </select>
             <p className="text-[11px] text-[var(--text-subtle)] mt-2 font-mono">
-              Draft hackathons show as &quot;Registration Closed&quot; to
-              participants until you open them.
+              Announced is the safe way to publish months ahead: /hacklytics
+              goes live and collects interest, but memberships and check-in keep
+              pointing at the current edition until you switch this to Open.
             </p>
           </div>
         </div>

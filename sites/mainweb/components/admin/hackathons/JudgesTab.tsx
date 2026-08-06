@@ -262,7 +262,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 >
                   <div className="flex items-start gap-3">
                     <Image
-                      src={judge.user?.image || "/avatar-placeholder.png"}
+                      src={judge.user?.image || "/avatars/default.svg"}
                       alt="Judge"
                       width={40}
                       height={40}

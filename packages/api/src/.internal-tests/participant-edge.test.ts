@@ -7,6 +7,7 @@ import {
   hackathonParticipants,
   hackathonTeams,
   hackathonProjects,
+  members,
   membershipHistory,
 } from "@query/db";
 import { __onRollback } from "./_db-tx-mock";
@@ -901,7 +902,7 @@ describe("Participant edge cases", () => {
       return callerFor("user_a");
     };
 
-    it("reports an expired membership as a member whose days remaining went negative", async () => {
+    it("reports an expired membership as lapsed, with days remaining gone negative", async () => {
       const caller = memberCaller({
         id: "member_1",
         isActive: true,
@@ -911,9 +912,29 @@ describe("Participant edge cases", () => {
       });
 
       const res = await caller.member.checkStatus();
-      expect(res.isMember).toBe(true);
+      // A row that outlived its paid year is not a membership. Answering true
+      // here is what greeted a lapsed member as active and hid the one button
+      // that would have let them renew.
+      expect(res.isMember).toBe(false);
       expect(res.isActive).toBe(false);
+      expect(res.hasLapsed).toBe(true);
       expect(res.daysRemaining).toBeLessThan(0);
+    });
+
+    it("does not report a revoked but unexpired membership as lapsed", async () => {
+      const caller = memberCaller({
+        id: "member_1",
+        isActive: false,
+        memberType: "new",
+        renewalCount: 0,
+        membershipEndDate: new Date(Date.now() + 30 * DAY),
+      });
+
+      const res = await caller.member.checkStatus();
+      expect(res.isActive).toBe(false);
+      // Switched off by staff while the term still runs — renewing is not the
+      // remedy, so the renew prompt stays down.
+      expect(res.hasLapsed).toBe(false);
     });
 
     // BUG: member.ts:435 `member.isActive && expiresAt && expiresAt > now`
@@ -974,28 +995,38 @@ describe("Participant edge cases", () => {
 
   // =====================================================================
   describe("8. Membership writes", () => {
-    // BUG: member.ts:98-134 writes the member row and its history row in two
-    // unrelated statements — no db.transaction, unlike every other mutation.
-    it("commits a new member and its audit row together", async () => {
+    /**
+     * `register` writes a PROFILE, not a membership. It used to stamp
+     * `membershipEndDate = now + 1 year` and let `isActive` default to true,
+     * which handed any signed-in caller a full paid-tier membership over tRPC
+     * for nothing. Only a completed payment may set a term, so there is also no
+     * "joined" history row to write and nothing to wrap in a transaction.
+     */
+    it("grants no membership term when a profile is created", async () => {
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathons") return { id: HACK_A };
         return undefined;
       });
-      mockInsert.mockImplementation((_op, insertArgs) => {
-        if (insertArgs[0] === membershipHistory)
-          throw new Error("history insert failed");
-        return [{ id: "member_1" }];
+      mockInsert.mockImplementation(() => [{ id: "member_1" }]);
+
+      await callerFor("user_a").member.register({
+        firstName: "Ada",
+        lastName: "Lovelace",
       });
 
-      await expect(
-        callerFor("user_a").member.register({
-          firstName: "Ada",
-          lastName: "Lovelace",
-        }),
-      ).rejects.toThrow();
-      // `db` is typed DrizzleDB | null (client.ts leaves it null without
-      // DATABASE_URL); the vi.mock factory always supplies an object here.
-      expect(db!.transaction).toHaveBeenCalled();
+      const memberInsert = mockInsert.mock.calls.find(
+        (call) => call[1]?.[0] === members,
+      );
+      expect(memberInsert).toBeDefined();
+      const values = memberInsert![2][0];
+      expect(values.isActive).toBe(false);
+      expect(values.membershipEndDate).toBeNull();
+
+      // Nothing was joined until a payment lands, so no audit row is written.
+      const historyInsert = mockInsert.mock.calls.find(
+        (call) => call[1]?.[0] === membershipHistory,
+      );
+      expect(historyInsert).toBeUndefined();
     });
 
     // BUG: nameSchema (member.ts:9-13) is /^[a-zA-Z\s'-]+$/, so any accented or

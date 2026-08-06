@@ -44,12 +44,13 @@ in `drizzle.config.ts`.
 | `admins.ts` | `admin` |
 | `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_event`, `hackathon_event_attendee` |
 | `judge.ts` | `judge`, `judge_assignment`, `judging_project`, `judge_vote`, `judge_queue`, `hackathon_map` |
+| `initiatives.ts` | `project_leader`, `initiative`, `initiative_application` |
 | `events.ts` | `event`, `event_check_in` |
 | `stripe.ts` | `stripe_payment`, `user_account_link` |
 | `security.ts` | `audit_logs` (+ `security_severity` enum) |
 | `settings.ts` | `system_settings` |
 
-26 tables in total. Two entities anchor the graph:
+Two entities anchor the graph:
 
 - **`user`** — every identity-bearing table cascades from it: `account`,
   `session`, `admin`, `user_profile`, `member`, `judge`, `event`,
@@ -61,6 +62,87 @@ in `drizzle.config.ts`.
 
 Nearly all foreign keys are `onDelete: "cascade"`, so deleting a user or a
 hackathon removes its dependent rows rather than orphaning them.
+
+### Club and hackathon are separate
+
+Two aspects share the database and touch nowhere:
+
+- **Hackathon** — editions, registration, teams, project submission, judging.
+  Everything here hangs off a `hackathon` row.
+- **Club** — `initiative`, its applications, and the `project_leader` role.
+  Deliberately **not** scoped to a hackathon. A club project runs whenever
+  somebody leads one, and leading is a standing appointment rather than a
+  yearly re-grant. Nothing in this half is ever judged; judges only score
+  `hackathon_project`.
+
+`member` is the one crossing case: a paid year still hangs off an edition, so
+membership resolves the current hackathon even though initiatives do not.
+
+#### One-off step before the first push that carries this
+
+`migrate:push` cannot work this one out on its own. `project_leader` moved from
+`unique(user_id, hackathon_id)` to `unique(user_id)`, so anybody appointed in
+more than one edition has more than one row; drizzle-kit fails building the new
+index partway and leaves the schema half-applied. Run this against the target
+database **once, before** the push. Every statement is guarded, so it is safe to
+re-run.
+
+```sql
+BEGIN;
+
+-- Collapse duplicate leader appointments to one row per person. Keeps the
+-- oldest row, so created_at still reads as when they were first appointed, and
+-- keeps the role switched on if ANY of their rows was active — dropping an
+-- active appointment here silently locks a leader out of their own initiatives.
+WITH ranked AS (
+  SELECT
+    id,
+    user_id,
+    bool_or(is_active) OVER (PARTITION BY user_id) AS any_active,
+    row_number() OVER (PARTITION BY user_id ORDER BY created_at ASC, id ASC) AS rn
+  FROM project_leader
+)
+UPDATE project_leader AS pl
+SET is_active = ranked.any_active
+FROM ranked
+WHERE pl.id = ranked.id
+  AND ranked.rn = 1
+  AND pl.is_active IS DISTINCT FROM ranked.any_active;
+
+DELETE FROM project_leader
+WHERE id IN (
+  SELECT id FROM (
+    SELECT
+      id,
+      row_number() OVER (PARTITION BY user_id ORDER BY created_at ASC, id ASC) AS rn
+    FROM project_leader
+  ) dupes
+  WHERE rn > 1
+);
+
+-- Drop the edition columns and everything hanging off them.
+ALTER TABLE project_leader
+  DROP CONSTRAINT IF EXISTS unique_project_leader_per_hackathon;
+DROP INDEX IF EXISTS project_leader_hackathon_id_idx;
+ALTER TABLE project_leader DROP COLUMN IF EXISTS hackathon_id;
+
+DROP INDEX IF EXISTS initiative_hackathon_id_idx;
+ALTER TABLE initiative DROP COLUMN IF EXISTS hackathon_id;
+
+-- The constraint the new schema expects. Added here rather than left to push,
+-- so a collision surfaces inside this transaction where it rolls back.
+ALTER TABLE project_leader
+  DROP CONSTRAINT IF EXISTS unique_project_leader;
+ALTER TABLE project_leader
+  ADD CONSTRAINT unique_project_leader UNIQUE (user_id);
+
+COMMIT;
+```
+
+Initiatives themselves are untouched. Rows that were invisible because they
+belonged to a past edition become visible again — that is the point, they were
+club projects an edition rollover hid. Archive any that should not come back
+from the leader screen afterwards.
 
 ### Working with the schema
 

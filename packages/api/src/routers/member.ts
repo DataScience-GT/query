@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { members, membershipHistory } from "@query/db";
+// membershipHistory is written by createOrUpdateMembership on a real payment,
+// not here: `register` no longer grants a term, so it has nothing to record.
+import { members } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { invalidatePortalContext } from "../middleware/cache";
@@ -85,51 +87,55 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      const membershipStartDate = new Date();
-      const membershipEndDate = new Date();
-      membershipEndDate.setFullYear(membershipEndDate.getFullYear() + 1);
+      /**
+       * This writes a PROFILE, not a membership.
+       *
+       * It used to stamp `membershipEndDate = now + 1 year` and let the column
+       * default `isActive` to true, which handed any signed-in caller a full
+       * paid-tier membership over tRPC for nothing — the same hole the comment
+       * below records for the deleted `renew` endpoint. A membership is one
+       * paid year and `createOrUpdateMembership`, driven by a completed
+       * payment, is the only thing that may set a term.
+       *
+       * `membershipStartDate` is not null in the schema, so it carries when the
+       * profile was created. It grants nothing on its own: `isActive` is false
+       * and `membershipEndDate` is null, and both `checkStatus` and
+       * `buildMemberContext` require an unexpired end date.
+       */
+      const result = await (ctx.db as DrizzleDB)
+        .insert(members)
+        .values({
+          userId: ctx.userId!,
+          hackathonId,
+          memberType: "new",
+          firstName: input.firstName,
+          lastName: input.lastName,
+          phoneNumber: input.phoneNumber,
+          school: input.school,
+          major: input.major,
+          graduationYear: input.graduationYear,
+          skills: input.skills || [],
+          interests: input.interests || [],
+          linkedinUrl: input.linkedinUrl,
+          githubUrl: input.githubUrl,
+          portfolioUrl: input.portfolioUrl,
+          membershipStartDate: new Date(),
+          membershipEndDate: null,
+          isActive: false,
+        })
+        .returning();
 
-      const newMember = await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        const result = await tx
-          .insert(members)
-          .values({
-            userId: ctx.userId!,
-            hackathonId,
-            memberType: "new",
-            firstName: input.firstName,
-            lastName: input.lastName,
-            phoneNumber: input.phoneNumber,
-            school: input.school,
-            major: input.major,
-            graduationYear: input.graduationYear,
-            skills: input.skills || [],
-            interests: input.interests || [],
-            linkedinUrl: input.linkedinUrl,
-            githubUrl: input.githubUrl,
-            portfolioUrl: input.portfolioUrl,
-            membershipStartDate,
-            membershipEndDate,
-          })
-          .returning();
+      const newMember = result[0];
 
-        const created = result[0];
-
-        if (!created) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create member",
-          });
-        }
-
-        await tx.insert(membershipHistory).values({
-          memberId: created.id,
-          action: "joined",
-          startDate: membershipStartDate,
-          endDate: membershipEndDate,
+      if (!newMember) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create member",
         });
+      }
 
-        return created;
-      });
+      // No membershipHistory "joined" row either: nothing was joined until a
+      // payment lands, and createOrUpdateMembership is what records that.
 
       invalidatePortalContext(ctx.userId!);
 
@@ -339,6 +345,7 @@ export const memberRouter = createTRPCRouter({
         return {
           isMember: false,
           isActive: false,
+          hasLapsed: false,
           expiresAt: null,
           daysRemaining: null,
           memberType: null,
@@ -350,6 +357,7 @@ export const memberRouter = createTRPCRouter({
       const cached = ctx.cache.get<{
         isMember: boolean;
         isActive: boolean;
+        hasLapsed: boolean;
         expiresAt: Date | null;
         daysRemaining: number | null;
         memberType: string | null;
@@ -368,6 +376,7 @@ export const memberRouter = createTRPCRouter({
         const result = {
           isMember: false,
           isActive: false,
+          hasLapsed: false,
           expiresAt: null,
           daysRemaining: null,
           memberType: null,
@@ -389,8 +398,13 @@ export const memberRouter = createTRPCRouter({
       }
 
       const result = {
-        isMember: true,
+        // Paid and unexpired. A profile row with no payment, and a row whose
+        // year has run out, both answer false — the same rule the portal
+        // context uses, so the two can never disagree.
+        isMember: isActive,
         isActive,
+        // Same rule as buildMemberContext: ran out, not revoked.
+        hasLapsed: !isActive && Boolean(expiresAt) && expiresAt! <= now,
         memberType: member.memberType,
         expiresAt,
         daysRemaining,
