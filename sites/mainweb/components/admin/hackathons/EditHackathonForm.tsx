@@ -7,6 +7,7 @@ import { toInputDate } from "@/components/admin/hackathons/constants";
 
 const HACKATHON_STATUSES = [
   "draft",
+  "announced",
   "open",
   "closed",
   "in_progress",

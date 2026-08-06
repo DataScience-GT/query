@@ -257,6 +257,10 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "hackathon.createEvent": ["hackathon:*:events"],
   "hackathon.updateEvent": ["hackathon:*:events"],
   "hackathon.deleteEvent": ["hackathon:*:events"],
+  // Interest list. Both writes move the admin list and the caller's own
+  // "am I on it" answer, and the two are read from the same namespace.
+  "hackathon.registerInterest": ["hackathon:*:interest"],
+  "hackathon.withdrawInterest": ["hackathon:*:interest"],
   // Judge mutations — only invalidate judging-related keys
   "judge.submitVote": ["hackathon:*:rankings", "hackathon:*:judge-analytics"],
   "judge.completeAndNext": [
@@ -282,6 +286,21 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // Stripe — invalidate member status after linking
   "stripe.attemptAutoLink": ["member:*"],
   "stripe.linkAccount": ["member:*"],
+  // Initiatives. Every write moves what BOTH the member list and the leader's
+  // queue show, so neither namespace can be evicted on its own.
+  "initiative.create": ["initiative:*"],
+  "initiative.update": ["initiative:*"],
+  "initiative.setStatus": ["initiative:*"],
+  "initiative.setArchived": ["initiative:*"],
+  "initiative.decide": ["initiative:*"],
+  "initiative.requestToJoin": ["initiative:*"],
+  "initiative.withdraw": ["initiative:*"],
+  "initiative.propose": ["initiative:*"],
+  "initiative.withdrawProposal": ["initiative:*"],
+  // setLeader and reviewProposal clear the role gate and portal context
+  // themselves, by user id — this only sweeps the list caches.
+  "initiative.setLeader": ["initiative:*"],
+  "initiative.reviewProposal": ["initiative:*"],
   // Events (club check-ins)
   "events.create": ["events:list"],
   "events.delete": ["events:list"],

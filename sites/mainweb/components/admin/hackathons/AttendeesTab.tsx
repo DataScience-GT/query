@@ -349,7 +349,7 @@ export function AttendeesTab({
                       <div className="flex items-center gap-3">
                         <Image
                           src={
-                            attendee.user?.image || "/avatar-placeholder.png"
+                            attendee.user?.image || "/avatars/default.svg"
                           }
                           alt="Avatar"
                           width={40}

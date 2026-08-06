@@ -1326,7 +1326,10 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
       expect(member.id).toBe("member_new_id");
       expect(member.memberType).toBe("new");
-      expect(mockInsert).toHaveBeenCalledTimes(2); // member + membershipHistory
+      // One write. `register` creates a profile, and only a completed payment
+      // grants a term — so there is no "joined" membershipHistory row to pair
+      // it with, and nothing to wrap in a transaction.
+      expect(mockInsert).toHaveBeenCalledTimes(1);
     });
 
     it("should reject duplicate member registration for the same hackathon", async () => {

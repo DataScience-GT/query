@@ -38,16 +38,26 @@ export default function Navbar({
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
+  /**
+   * `link: false` renders a react-scroll ScrollLink, so `to` has to be the id
+   * of an element on THIS page. Four entries carried a route path under
+   * `link: false`, which sent ScrollLink hunting for an element with id
+   * "/events" — it warns to the console and does nothing, so those four were
+   * dead clicks on the highest-traffic page in the site. Anything starting with
+   * a slash is a destination, not an anchor.
+   */
   const homeMenuItems = [
     { name: "About", to: "about", link: false },
     { name: "Bootcamp", to: "bootcamp", link: false },
-    { name: "Hacklytics", to: "/hackathons", link: false },
+    // The public announcement page, not /hackathons — that one is the
+    // signed-in participant's list and answers a stranger with a login screen.
+    { name: "Hacklytics", to: "/hacklytics", link: true },
     { name: "Projects", to: "projects", link: false },
     { name: "Get Involved", to: "getinvolved", link: false },
     { name: "Team", to: "/team", link: true },
-    { name: "Events", to: "/events", link: false },
-    { name: "History", to: "/history", link: false },
-    { name: "Status", to: "/status", link: false },
+    { name: "Events", to: "/events", link: true },
+    { name: "History", to: "/history", link: true },
+    { name: "Status", to: "/status", link: true },
   ];
 
   const otherPageMenuItems = [
