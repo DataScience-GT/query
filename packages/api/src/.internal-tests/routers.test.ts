@@ -106,10 +106,6 @@ vi.mock("@query/db", () => {
           findFirst: (...args: any[]) => mockFindFirst("judgeQueue", ...args),
           findMany: (...args: any[]) => mockFindMany("judgeQueue", ...args),
         },
-        hackathonMaps: {
-          findFirst: (...args: any[]) => mockFindFirst("hackathonMaps", ...args),
-          findMany: (...args: any[]) => mockFindMany("hackathonMaps", ...args),
-        },
         stripePayments: {
           findFirst: (...args: any[]) =>
             mockFindFirst("stripePayments", ...args),
@@ -270,10 +266,6 @@ vi.mock("@query/db", () => {
       judgeId: "judge_id",
       hackathonId: "hackathon_id",
       isCompleted: "is_completed",
-    },
-    hackathonMaps: {
-      id: "id",
-      hackathonId: "hackathon_id",
     },
     stripePayments: {
       id: "id",
@@ -1091,11 +1083,17 @@ describe("Router Integration and Access Control Verification Suite", () => {
         if (table === "admins") {
           return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
         }
+        if (table === "hackathons") {
+          return { id: hackathonId, name: "Test Hackathon" };
+        }
         return null;
       });
 
       const caller = appRouter.createCaller(ctx);
-      const res = await caller.hackathon.delete({ hackathonId });
+      const res = await caller.hackathon.delete({
+        hackathonId,
+        confirmName: "Test Hackathon",
+      });
       expect(res.success).toBe(true);
       expect(mockDelete).toHaveBeenCalled();
     });

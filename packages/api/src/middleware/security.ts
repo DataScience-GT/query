@@ -523,14 +523,21 @@ export function getRecentSecurityEvents(minutes: number = 60): SecurityEvent[] {
   return securityLog.filter((e) => e.timestamp > cutoff);
 }
 
-export function ddosProtection(clientIp: string): {
+/**
+ * Coarse per-caller flood protection.
+ *
+ * `key` is an identity when we have one and an address only when we do not —
+ * callers must prefix it (`user:` / `ip:`) so the two namespaces can never
+ * collide. Keying on the address alone puts an entire venue behind one NAT into
+ * a single bucket, which is exactly the crowd this is supposed to serve.
+ */
+export function ddosProtection(key: string): {
   allowed: boolean;
   retryAfter?: number;
 } {
   const now = Date.now();
 
-  // Get or create IP record
-  let record = ipTrackingStore.get(clientIp);
+  let record = ipTrackingStore.get(key);
   if (!record) {
     record = {
       requests: 0,
@@ -539,15 +546,14 @@ export function ddosProtection(clientIp: string): {
       isBlocked: false,
       blockedUntil: 0,
     };
-    ipTrackingStore.set(clientIp, record);
+    ipTrackingStore.set(key, record);
   }
 
-  // Check if IP is blocked
   if (record.isBlocked && now < record.blockedUntil) {
     logSecurityEvent({
       type: "rate_limit",
-      identifier: clientIp,
-      details: `Blocked IP attempted access`,
+      identifier: key,
+      details: `Blocked caller attempted access`,
     });
     return {
       allowed: false,
@@ -576,7 +582,7 @@ export function ddosProtection(clientIp: string): {
 
     logSecurityEvent({
       type: "rate_limit",
-      identifier: clientIp,
+      identifier: key,
       details: `Burst attack detected: ${record.requests} requests in ${elapsed}ms`,
     });
 
@@ -594,7 +600,7 @@ export function ddosProtection(clientIp: string): {
 
     logSecurityEvent({
       type: "rate_limit",
-      identifier: clientIp,
+      identifier: key,
       details: `Sustained attack: ${record.requests} requests/minute`,
     });
 

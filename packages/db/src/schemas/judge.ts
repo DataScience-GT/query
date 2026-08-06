@@ -8,10 +8,11 @@ import {
   index,
   uniqueIndex,
   unique,
+  numeric,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
-import { hackathons } from "./hackathons";
+import { hackathons, hackathonProjects } from "./hackathons";
 
 export const judges = pgTable(
   "judge",
@@ -67,8 +68,8 @@ export const judgeAssignments = pgTable(
   (table) => [
     index("assignment_judge_id_idx").on(table.judgeId),
     index("assignment_hackathon_id_idx").on(table.hackathonId),
-    // assignToHackathon, judge.register and bulkImportJudges all enforce one
-    // assignment per judge per hackathon with a read before the insert.
+    // assignToHackathon and judge.register both enforce one assignment per
+    // judge per hackathon with a read before the insert.
     unique("unique_assignment_per_hackathon").on(
       table.judgeId,
       table.hackathonId,
@@ -84,6 +85,14 @@ export const judgingProjects = pgTable(
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
+    // The submission this judgeable entry was promoted from. Judging runs on
+    // this table while participants submit into hackathon_project, and without
+    // this column the two halves share no key at all — a winner could not be
+    // mapped back to the team that built it.
+    sourceProjectId: uuid("source_project_id").references(
+      () => hackathonProjects.id,
+      { onDelete: "cascade" },
+    ),
     name: text("name").notNull(),
     description: text("description"),
     tableNumber: integer("table_number").notNull(),
@@ -100,6 +109,19 @@ export const judgingProjects = pgTable(
   (table) => [
     index("judging_project_hackathon_id_idx").on(table.hackathonId),
     index("judging_project_table_idx").on(table.tableNumber),
+    // A table number identifies one physical table at one event. Without this,
+    // a retried CSV import appends the entire project list a second time with
+    // fresh numbers, and judges get routed to tables that do not exist.
+    uniqueIndex("judging_project_table_unique").on(
+      table.hackathonId,
+      table.tableNumber,
+    ),
+    // Partial: one judgeable entry per submission, while still allowing any
+    // number of rows that came from nowhere. This is what makes promoting
+    // submissions safe to re-run as teams keep submitting.
+    uniqueIndex("judging_project_source_unique")
+      .on(table.sourceProjectId)
+      .where(sql`${table.sourceProjectId} is not null`),
   ],
 );
 
@@ -134,20 +156,57 @@ export const judgeVotes = pgTable(
   ],
 );
 
-// Map images for hackathon venues
-export const hackathonMaps = pgTable(
-  "hackathon_map",
+/**
+ * A frozen placing, computed once when judging closes.
+ *
+ * getRankings recomputes the whole ordering on every call, and its z-score
+ * normalisation runs over the entire vote set — so one late vote silently
+ * changes every project's score, including ones already announced. The
+ * ordering existed only inside an HTTP response; nothing in the product could
+ * say who won yesterday.
+ *
+ * A snapshot instead: computed deliberately, reviewable while unpublished, and
+ * unchanged by anything that happens to the votes afterwards.
+ */
+export const hackathonResults = pgTable(
+  "hackathon_result",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
-    imageUrl: text("image_url").notNull(),
-    name: text("name"),
-    order: integer("order").notNull().default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => judgingProjects.id, { onDelete: "cascade" }),
+    /** Carried across at compute time so results survive the judging tables
+     *  and can name the team that actually built the thing. */
+    sourceProjectId: uuid("source_project_id").references(
+      () => hackathonProjects.id,
+      { onDelete: "set null" },
+    ),
+    /** Which prize this placing is for. Null is the overall ranking. */
+    track: text("track"),
+    placement: integer("placement").notNull(),
+    /** The blended score at the moment of computation. `numeric` because the
+     *  pipeline produces a float — hackathon_project.score is an integer and
+     *  could never have held this value. */
+    weightedScore: numeric("weighted_score", { precision: 6, scale: 2 }),
+    voteCount: integer("vote_count").notNull().default(0),
+    /** Null while the snapshot is a draft. Set on publish; cleared on
+     *  unpublish, which is what makes publishing reversible. */
+    publishedAt: timestamp("published_at"),
+    computedAt: timestamp("computed_at").defaultNow().notNull(),
   },
-  (table) => [index("map_hackathon_id_idx").on(table.hackathonId)],
+  (table) => [
+    index("result_hackathon_idx").on(table.hackathonId),
+    // One placing per project per prize. Recomputing upserts onto this rather
+    // than appending a second, contradictory ordering.
+    uniqueIndex("result_unique_placing").on(
+      table.hackathonId,
+      table.projectId,
+      table.track,
+    ),
+  ],
 );
 
 // Track which tables a judge still needs to visit
@@ -244,12 +303,23 @@ export const judgeVotesRelations = relations(judgeVotes, ({ one }) => ({
   }),
 }));
 
-export const hackathonMapsRelations = relations(hackathonMaps, ({ one }) => ({
-  hackathon: one(hackathons, {
-    fields: [hackathonMaps.hackathonId],
-    references: [hackathons.id],
+export const hackathonResultsRelations = relations(
+  hackathonResults,
+  ({ one }) => ({
+    hackathon: one(hackathons, {
+      fields: [hackathonResults.hackathonId],
+      references: [hackathons.id],
+    }),
+    project: one(judgingProjects, {
+      fields: [hackathonResults.projectId],
+      references: [judgingProjects.id],
+    }),
+    sourceProject: one(hackathonProjects, {
+      fields: [hackathonResults.sourceProjectId],
+      references: [hackathonProjects.id],
+    }),
   }),
-}));
+);
 
 export const judgeQueueRelations = relations(judgeQueue, ({ one }) => ({
   judge: one(judges, {

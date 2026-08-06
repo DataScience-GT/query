@@ -17,6 +17,21 @@ const HACKATHON_STATUSES = [
 
 type HackathonStatus = (typeof HACKATHON_STATUSES)[number];
 
+/**
+ * Comma-separated text to the array the API stores, or null when emptied.
+ *
+ * Judge assignment matches these strings exactly, so entries are trimmed and
+ * blanks dropped — a stray ", " would otherwise become a track that no project
+ * can ever be matched against.
+ */
+const splitList = (value: string): string[] | null => {
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : null;
+};
+
 export function EditHackathonForm({
   hackathonId,
   onClose,
@@ -40,6 +55,13 @@ export function EditHackathonForm({
   const [maxParticipants, setMaxParticipants] = useState("");
   const [theme, setTheme] = useState("");
   const [status, setStatus] = useState<HackathonStatus>("draft");
+  // Tracks and challenges decide which judges see which project, so they have
+  // to be editable after creation — the setup wizard only wrote them once, at
+  // create time, and InfoTab rendered all five of these as blank sections.
+  const [tracks, setTracks] = useState("");
+  const [challenges, setChallenges] = useState("");
+  const [rules, setRules] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
@@ -62,6 +84,10 @@ export function EditHackathonForm({
       );
       setMaxParticipants(hackathon.maxParticipants?.toString() || "");
       setTheme(hackathon.theme || "");
+      setTracks((hackathon.tracks ?? []).join(", "));
+      setChallenges((hackathon.challenges ?? []).join(", "));
+      setRules(hackathon.rules || "");
+      setWebsiteUrl(hackathon.websiteUrl || "");
       setStatus(hackathon.status as HackathonStatus);
       setLoaded(true);
     }
@@ -98,6 +124,12 @@ export function EditHackathonForm({
       registrationDeadline: regDeadline ? new Date(regDeadline) : undefined,
       maxParticipants: maxParticipants ? parseInt(maxParticipants) : undefined,
       theme: theme.trim() || undefined,
+      // null, not undefined, when emptied: undefined means "leave unchanged",
+      // so a field that was set could otherwise never be cleared.
+      tracks: splitList(tracks),
+      challenges: splitList(challenges),
+      rules: rules.trim() || null,
+      websiteUrl: websiteUrl.trim() || null,
       status,
     });
   }
@@ -239,6 +271,82 @@ export function EditHackathonForm({
 
             <div className="pt-2">
               <p className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-primary)] mb-4 font-mono opacity-80">
+                Judging &amp; Info
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="edit-tracks"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Tracks
+                  </label>
+                  <input
+                    id="edit-tracks"
+                    type="text"
+                    value={tracks}
+                    onChange={(e) => setTracks(e.target.value)}
+                    placeholder="AI, Healthcare, Finance"
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                  />
+                  <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
+                    Comma separated. Teams pick from these when they submit, and
+                    judges are matched on them.
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="edit-challenges"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Sponsor Challenges
+                  </label>
+                  <input
+                    id="edit-challenges"
+                    type="text"
+                    value={challenges}
+                    onChange={(e) => setChallenges(e.target.value)}
+                    placeholder="AWS, MongoDB, Capital One"
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="edit-website"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Website URL
+                  </label>
+                  <input
+                    id="edit-website"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://hacklytics.io"
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="edit-rules"
+                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  >
+                    Rules
+                  </label>
+                  <textarea
+                    id="edit-rules"
+                    value={rules}
+                    onChange={(e) => setRules(e.target.value)}
+                    rows={5}
+                    maxLength={10000}
+                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors resize-y"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <p className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-primary)] mb-4 font-mono opacity-80">
                 Timing
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -332,8 +440,15 @@ export function EditHackathonForm({
                 type="number"
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(e.target.value)}
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+                placeholder="Leave blank for no cap"
+                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
               />
+              {/* Counts APPLICATIONS, pending included — not acceptances. */}
+              <p className="text-[10px] font-mono text-amber-300/80 mt-1 leading-relaxed">
+                Counts applications, including unreviewed ones. Set it to your
+                venue size and registration closes before you have accepted
+                anyone. Leave blank and close registration by deadline instead.
+              </p>
             </div>
 
             {error && (

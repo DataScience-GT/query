@@ -4,21 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
-
-/**
- * Where to send somebody after they sign in, when they arrived from a page that
- * asked them to.
- *
- * Only a same-origin path is ever honoured. A bare `startsWith("/")` is not
- * enough: `//evil.example` and `/\evil.example` are both protocol-relative and
- * would hand an attacker a redirect off this origin carrying whatever the
- * browser sends next.
- */
-function safeCallback(raw: string | null): string | null {
-  if (!raw || !raw.startsWith("/")) return null;
-  if (raw.startsWith("//") || raw.startsWith("/\\")) return null;
-  return raw;
-}
+import { safeCallback } from "@/lib/safe-callback";
 
 // DSGT Query - Premium Landing Page
 // Ultra-modern, standout UI/UX
@@ -87,7 +73,13 @@ export default function Home() {
       }
 
       setEmailSent(true);
-      router.push(`/verify?email=${encodeURIComponent(email)}`);
+      // The destination has to ride along to /verify. The code flow finishes on
+      // that screen, not through NextAuth's own redirect, so dropping it here
+      // is what sent everybody to /dashboard no matter where they came from.
+      const next = callbackUrl
+        ? `&callbackUrl=${encodeURIComponent(callbackUrl)}`
+        : "";
+      router.push(`/verify?email=${encodeURIComponent(email)}${next}`);
     } catch {
       setEmailSending(false);
       setEmailError("We could not send that link. Please try again.");

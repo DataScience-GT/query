@@ -48,7 +48,6 @@ vi.mock("@query/db", async () => {
         hackathonProjects: table("hackathonProjects"),
         hackathonEvents: table("hackathonEvents"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
-        hackathonMaps: table("hackathonMaps"),
         members: table("members"),
         membershipHistory: table("membershipHistory"),
         events: table("events"),
@@ -159,7 +158,6 @@ vi.mock("@query/db", async () => {
       eventId: "event_id",
       participantId: "participant_id",
     },
-    hackathonMaps: { id: "id", hackathonId: "hackathon_id" },
     members: {
       id: "id",
       userId: "user_id",

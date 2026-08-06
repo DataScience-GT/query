@@ -8,6 +8,7 @@ import {
   hackathons,
 } from "@query/db";
 import { eq, and, or, isNull, inArray, lt, sql } from "drizzle-orm";
+import { VOLATILE_TTL } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
 const HOUR = 60 * 60 * 1000;
@@ -560,6 +561,9 @@ export const teamRouter = createTRPCRouter({
         technologies: z.array(z.string()).optional(),
         tracks: z.array(z.string()).optional(),
         challenges: z.array(z.string()).optional(),
+        // Judge routing filters on exactly this, and nothing else in the
+        // product ever set it — every CreateX judge got an empty pool.
+        isCreateX: z.boolean().optional(),
         githubUrl: z
           .string()
           .url("Must be a valid URL")
@@ -718,6 +722,7 @@ export const teamRouter = createTRPCRouter({
                   technologies: input.technologies || [],
                   tracks: input.tracks || [],
                   challenges: input.challenges || [],
+                  isCreateX: input.isCreateX ?? false,
                   githubUrl,
                   demoUrl,
                   videoUrl,
@@ -740,6 +745,7 @@ export const teamRouter = createTRPCRouter({
                   technologies: input.technologies || [],
                   tracks: input.tracks || [],
                   challenges: input.challenges || [],
+                  isCreateX: input.isCreateX ?? false,
                   githubUrl,
                   demoUrl,
                   videoUrl,
@@ -863,37 +869,58 @@ export const teamRouter = createTRPCRouter({
       return await loadTeamWindow(ctx.db as DrizzleDB, input.hackathonId);
     }),
 
+  /**
+   * Every team in a hackathon.
+   *
+   * Deliberately NOT paginated. The Teams tab finds the caller's own team by
+   * searching this list, so with a page size any member of an early-created
+   * team would fall off page one and lose their entire "Your Team" panel,
+   * including Leave Team, with nothing on screen explaining why.
+   *
+   * Bounded by caching instead. The TTL is deliberately short: the tab
+   * refetches immediately after every join, leave and disband, and a long TTL
+   * served from another instance would show a roster the user just changed.
+   */
   list: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const teams = await (
-        ctx.db as NonNullable<typeof ctx.db>
-      ).query.hackathonTeams.findMany({
-        where: eq(hackathonTeams.hackathonId, input.hackathonId),
-        with: {
-          captain: {
-            columns: { id: true, name: true, image: true },
-          },
-          participants: {
-            // Same rule as the public hackathon.getTeams roster: any signed-in
-            // caller can read every team here, so it carries neither the
-            // decision made on each application — registrationStatus names
-            // everyone rejected or waitlisted — nor the participant id, which
-            // is the entire content of that participant's event pass QR.
-            // userId identifies the captain and keys the list.
-            columns: {
-              userId: true,
+      const cacheKey = `hackathon:${input.hackathonId}:teams`;
+
+      const fetchTeams = () =>
+        (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findMany({
+          where: eq(hackathonTeams.hackathonId, input.hackathonId),
+          with: {
+            captain: {
+              columns: { id: true, name: true, image: true },
             },
-            with: {
-              user: {
-                columns: { id: true, name: true, image: true },
+            participants: {
+              // Any signed-in caller can read every team here, so it carries
+              // neither the decision made on each application —
+              // registrationStatus names everyone rejected or waitlisted — nor
+              // the participant id, which is the entire content of that
+              // participant's event pass QR. userId identifies the captain and
+              // keys the list.
+              columns: {
+                userId: true,
+              },
+              with: {
+                user: {
+                  columns: { id: true, name: true, image: true },
+                },
               },
             },
           },
-        },
-        orderBy: (hackathonTeams, { desc }) => [desc(hackathonTeams.createdAt)],
-      });
+          orderBy: (hackathonTeams, { desc }) => [
+            desc(hackathonTeams.createdAt),
+          ],
+        });
 
+      const cached =
+        ctx.cache.get<Awaited<ReturnType<typeof fetchTeams>>>(cacheKey);
+      if (cached !== null) return cached;
+
+      const teams = await fetchTeams();
+      ctx.cache.set(cacheKey, teams, VOLATILE_TTL);
       return teams;
     }),
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -11,7 +11,30 @@ import {
   Check,
   X,
   Clock,
+  Mail,
 } from "lucide-react";
+
+/**
+ * Recipients per request. The server caps at the same number: each one is an
+ * SMTP round trip, and a request that tries to carry more than this does not
+ * finish inside Cloud Run's timeout.
+ */
+const MASS_EMAIL_BATCH = 500;
+
+/** Rows per page. The expanded detail view needs every column, so the roster
+ *  is kept small by row count rather than by narrowing what each row carries. */
+const PAGE_SIZE = 50;
+
+/** Delays a fast-changing value so it can drive a query without firing one per
+ *  keystroke. */
+function useDebounced<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return debounced;
+}
 import { RegistrationControls } from "./RegistrationControls";
 import { AttendeeStats } from "./AttendeeStats";
 import { statusColors, statusIcon } from "./attendee-status";
@@ -25,11 +48,57 @@ export function AttendeesTab({
   hackathonName: string;
 }) {
   const utils = trpc.useUtils();
-  const { data: attendees, isLoading } =
-    trpc.hackathon.adminGetAttendees.useQuery({ hackathonId });
+
+  const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | RegistrationStatus>(
+    "all",
+  );
+
+  // Typing straight into the query would fire a request per keystroke against
+  // a table this size. 300ms is below the point where the list feels detached
+  // from the box.
+  const debouncedSearch = useDebounced(searchQuery, 300);
+
+  const query = {
+    hackathonId,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+    search: debouncedSearch.trim() || undefined,
+    status: statusFilter === "all" ? undefined : statusFilter,
+  };
+
+  const { data, isLoading, isFetching } =
+    trpc.hackathon.adminGetAttendees.useQuery(query, {
+      // Keeps the current page on screen while the next one loads, instead of
+      // dropping back to the skeleton on every page turn or filter change.
+      placeholderData: (previous) => previous,
+    });
+
+  // Stat tiles come from the aggregate, not from counting the rows on screen.
+  // Counting a page would report "12 pending" when 400 are.
+  const { data: analytics } = trpc.hackathon.analytics.useQuery({ hackathonId });
+
+  const attendees = data?.attendees;
+
   const updateStatus = trpc.hackathon.updateParticipantStatus.useMutation({
-    onSuccess: () => {
-      utils.hackathon.adminGetAttendees.invalidate({ hackathonId });
+    onSuccess: (_result, variables) => {
+      // Patch the row that changed rather than refetching the page. An
+      // organiser working through a queue of applications triggers this on
+      // every click.
+      utils.hackathon.adminGetAttendees.setData(query, (previous) =>
+        previous
+          ? {
+              ...previous,
+              attendees: previous.attendees.map((a) =>
+                a.id === variables.participantId
+                  ? { ...a, registrationStatus: variables.status }
+                  : a,
+              ),
+            }
+          : previous,
+      );
+      utils.hackathon.analytics.invalidate({ hackathonId });
       utils.hackathon.getById.invalidate({ id: hackathonId });
       utils.hackathon.listAll.invalidate();
     },
@@ -38,45 +107,38 @@ export function AttendeesTab({
   const batchUpdateStatus =
     trpc.hackathon.batchUpdateParticipantStatus.useMutation({
       onSuccess: () => {
-        utils.hackathon.adminGetAttendees.invalidate({ hackathonId });
+        // A bulk action can move rows out of the current filter, so unlike the
+        // single-row path this genuinely has to refetch the page.
+        utils.hackathon.adminGetAttendees.invalidate();
+        utils.hackathon.analytics.invalidate({ hackathonId });
         utils.hackathon.getById.invalidate({ id: hackathonId });
         utils.hackathon.listAll.invalidate();
         setSelectedIds(new Set());
+        setBulkError(null);
       },
+      // Without this a rejected batch looks identical to a successful one: the
+      // selection stays highlighted and nothing on screen changes. An organiser
+      // working through 2000 applications has no way to tell.
+      onError: (error) => setBulkError(error.message),
     });
 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | RegistrationStatus>(
-    "all",
-  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [emailProgress, setEmailProgress] = useState<string | null>(null);
+  const [emailSending, setEmailSending] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  // Stats
-  const stats = useMemo(() => {
-    if (!attendees)
-      return {
-        total: 0,
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        waitlisted: 0,
-        checked_in: 0,
-      };
-    return {
-      total: attendees.length,
-      pending: attendees.filter((a) => a.registrationStatus === "pending")
-        .length,
-      approved: attendees.filter((a) => a.registrationStatus === "approved")
-        .length,
-      rejected: attendees.filter((a) => a.registrationStatus === "rejected")
-        .length,
-      waitlisted: attendees.filter((a) => a.registrationStatus === "waitlisted")
-        .length,
-      checked_in: attendees.filter((a) => a.registrationStatus === "checked_in")
-        .length,
-    };
-  }, [attendees]);
+  const massAccept = trpc.hackathon.sendMassAcceptanceEmails.useMutation();
+
+  const stats = {
+    total: analytics?.totalRegistrations ?? 0,
+    pending: analytics?.statusBreakdown.pending ?? 0,
+    approved: analytics?.statusBreakdown.approved ?? 0,
+    rejected: analytics?.statusBreakdown.rejected ?? 0,
+    waitlisted: analytics?.statusBreakdown.waitlisted ?? 0,
+    checked_in: analytics?.statusBreakdown.checked_in ?? 0,
+  };
 
   if (isLoading)
     return (
@@ -85,25 +147,35 @@ export function AttendeesTab({
       </div>
     );
 
-  const filteredAttendees =
-    attendees?.filter((a) => {
-      if (statusFilter !== "all" && a.registrationStatus !== statusFilter)
-        return false;
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        (a.user?.name || "").toLowerCase().includes(q) ||
-        (a.user?.email || "").toLowerCase().includes(q) ||
-        (a.school || "").toLowerCase().includes(q) ||
-        (a.major || "").toLowerCase().includes(q) ||
-        (a.firstName || "").toLowerCase().includes(q) ||
-        (a.lastName || "").toLowerCase().includes(q) ||
-        (a.whyAttend || "").toLowerCase().includes(q)
-      );
-    }) || [];
+  // Already filtered and paged by the database.
+  const filteredAttendees = attendees ?? [];
+  const matching = data?.matching ?? 0;
+  const pageCount = Math.max(1, Math.ceil(matching / PAGE_SIZE));
 
-  const exportToCSV = () => {
-    if (!filteredAttendees || filteredAttendees.length === 0) return;
+  /**
+   * Exports every row matching the current filter, not just the page on
+   * screen. Fetched on demand through its own endpoint so the bulk-PII read
+   * happens exactly when an organiser asks for it.
+   */
+  const exportToCSV = async () => {
+    setExporting(true);
+    let all: Awaited<
+      ReturnType<typeof utils.hackathon.exportAttendees.fetch>
+    > = [];
+    try {
+      all = await utils.hackathon.exportAttendees.fetch({
+        hackathonId,
+        search: debouncedSearch.trim() || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+      });
+    } catch (error) {
+      setBulkError(error instanceof Error ? error.message : "Export failed");
+      setExporting(false);
+      return;
+    }
+    setExporting(false);
+
+    if (all.length === 0) return;
     const headers = [
       "Name",
       "Email",
@@ -119,8 +191,8 @@ export function AttendeesTab({
       "Emergency Phone",
       "Registered At",
     ];
-    type Attendee = (typeof filteredAttendees)[number];
-    const rows = filteredAttendees.map((a: Attendee) => [
+    type Attendee = (typeof all)[number];
+    const rows = all.map((a: Attendee) => [
       `"${a.firstName || ""} ${a.lastName || ""}"`,
       `"${a.user?.email || "Unknown"}"`,
       `"${a.registrationStatus}"`,
@@ -164,11 +236,70 @@ export function AttendeesTab({
   };
 
   const handleBulkAction = (newStatus: RegistrationStatus) => {
+    setBulkError(null);
     batchUpdateStatus.mutate({
       hackathonId,
       participantIds: Array.from(selectedIds),
       status: newStatus,
     });
+  };
+
+  /**
+   * Approve the selection and mail each of them, in server-sized batches.
+   *
+   * Sequential on purpose: this is thousands of SMTP sends against one
+   * provider, and firing the batches concurrently is how you get rate-limited
+   * halfway through your acceptance list. Progress is reported per batch
+   * because the whole run takes minutes.
+   */
+  const handleMassAccept = async () => {
+    const ids = Array.from(selectedIds);
+    if (
+      !window.confirm(
+        `Approve ${ids.length} applicant(s) and send each an acceptance email?\n\nAcceptance emails cannot be unsent.`,
+      )
+    )
+      return;
+
+    setBulkError(null);
+    setEmailSending(true);
+    let approved = 0;
+    let emailed = 0;
+    let failed = 0;
+
+    for (let i = 0; i < ids.length; i += MASS_EMAIL_BATCH) {
+      const chunk = ids.slice(i, i + MASS_EMAIL_BATCH);
+      setEmailProgress(
+        `Sending ${i + 1}-${i + chunk.length} of ${ids.length}...`,
+      );
+      try {
+        const result = await massAccept.mutateAsync({
+          hackathonId,
+          participantIds: chunk,
+        });
+        approved += result.approved;
+        emailed += result.emailed;
+        failed += result.failedEmails.length;
+      } catch (error) {
+        // Stop rather than continue: whatever broke this batch — a timeout, a
+        // provider limit — will break the next one too, and every extra
+        // attempt costs the organiser minutes they do not have.
+        setBulkError(
+          error instanceof Error ? error.message : "Mass accept failed",
+        );
+        break;
+      }
+    }
+
+    setEmailProgress(
+      `Approved ${approved}. Emailed ${emailed}.${failed > 0 ? ` ${failed} could not be delivered.` : ""}`,
+    );
+    setEmailSending(false);
+    setSelectedIds(new Set());
+    utils.hackathon.adminGetAttendees.invalidate();
+    utils.hackathon.analytics.invalidate({ hackathonId });
+    utils.hackathon.getById.invalidate({ id: hackathonId });
+    utils.hackathon.listAll.invalidate();
   };
 
   const toggleSelect = (id: string) => {
@@ -186,6 +317,19 @@ export function AttendeesTab({
     }
   };
 
+  // Both of these change which rows match, so the current page number stops
+  // meaning anything — landing on page 8 of a 2-page result shows nothing.
+  const changeFilter = (next: "all" | RegistrationStatus) => {
+    setStatusFilter(next);
+    setPage(0);
+    setSelectedIds(new Set());
+  };
+
+  const changeSearch = (next: string) => {
+    setSearchQuery(next);
+    setPage(0);
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
       <RegistrationControls hackathonId={hackathonId} />
@@ -193,7 +337,7 @@ export function AttendeesTab({
       <AttendeeStats
         stats={stats}
         statusFilter={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={changeFilter}
       />
 
       {/* Header + Actions */}
@@ -203,7 +347,10 @@ export function AttendeesTab({
             Applications
           </h2>
           <p className="text-sm font-mono text-[var(--text-subtle)]">
-            {filteredAttendees.length} of {attendees?.length || 0} registrations
+            {matching === 0
+              ? "No matching registrations"
+              : `Showing ${page * PAGE_SIZE + 1}-${page * PAGE_SIZE + filteredAttendees.length} of ${matching}`}
+            {isFetching && " • updating..."}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -215,30 +362,43 @@ export function AttendeesTab({
               <button
                 type="button"
                 onClick={() => handleBulkAction("approved")}
-                className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors flex items-center gap-1.5"
+                disabled={batchUpdateStatus.isPending}
+                className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Check className="w-3 h-3" /> Approve All
               </button>
               <button
                 type="button"
                 onClick={() => handleBulkAction("rejected")}
-                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
+                disabled={batchUpdateStatus.isPending}
+                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X className="w-3 h-3" /> Reject All
               </button>
               <button
                 type="button"
                 onClick={() => handleBulkAction("waitlisted")}
-                className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors flex items-center gap-1.5"
+                disabled={batchUpdateStatus.isPending}
+                className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Clock className="w-3 h-3" /> Waitlist All
+              </button>
+              <button
+                type="button"
+                onClick={handleMassAccept}
+                disabled={emailSending || batchUpdateStatus.isPending}
+                className="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent rounded-none text-xs font-bold uppercase tracking-wider hover:bg-accent/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Mail className="w-3 h-3" />{" "}
+                {emailSending ? "Sending..." : "Accept + Email"}
               </button>
             </div>
           )}
           <button
             type="button"
             onClick={exportToCSV}
-            className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] hover:bg-white/10 transition-colors rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] flex items-center gap-2"
+            disabled={exporting}
+            className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] hover:bg-white/10 transition-colors rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <svg
               className="w-4 h-4"
@@ -253,10 +413,28 @@ export function AttendeesTab({
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            Export CSV
+            {exporting ? "Exporting..." : "Export CSV"}
           </button>
         </div>
       </div>
+
+      {bulkError && (
+        <div
+          role="alert"
+          className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-mono text-red-300"
+        >
+          Bulk action failed: {bulkError}
+        </div>
+      )}
+
+      {emailProgress && (
+        <div
+          role="status"
+          className="border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-mono text-accent"
+        >
+          {emailProgress}
+        </div>
+      )}
 
       {/* Search */}
       <div className="flex-1">
@@ -265,7 +443,7 @@ export function AttendeesTab({
           aria-label="Search attendees"
           placeholder="Search by name, email, school, major, or response..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => changeSearch(e.target.value)}
           className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"
         />
       </div>
@@ -655,6 +833,33 @@ export function AttendeesTab({
           </tbody>
         </table>
       </LiquidGlass>
+
+      {pageCount > 1 && (
+        <nav
+          aria-label="Attendee pages"
+          className="flex items-center justify-between gap-4"
+        >
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0 || isFetching}
+            className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="text-xs font-mono text-[var(--text-subtle)] uppercase tracking-widest">
+            Page {page + 1} of {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            disabled={page >= pageCount - 1 || isFetching}
+            className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

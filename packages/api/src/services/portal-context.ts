@@ -8,7 +8,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { cache, clearMembershipCaches } from "../middleware/cache";
-import { EMPTY_MEMBER_CONTEXT } from "../types/portal-context";
+import { EMPTY_MEMBER_CONTEXT, isStaffRole } from "../types/portal-context";
 import type { MemberContext, PortalContext } from "../types/portal-context";
 
 const CURRENT_HACKATHON_KEY = "hackathon:current-id";
@@ -140,7 +140,11 @@ export async function fetchPortalContext(
   const isProjectLeader = !!leaderRecord;
 
   return {
-    isAdmin: !!admin,
+    // A volunteer holds an admins row but is not staff. Reporting them as
+    // admin here would render the whole admin nav for someone every one of
+    // those pages rejects.
+    isAdmin: isStaffRole(admin?.role),
+    isScanner: !!admin,
     role: admin?.role ?? null,
     permissions: admin?.permissions ?? [],
     isJudge: !!judgeRecord,
