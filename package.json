@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck",
-    "test": "vitest run packages/api"
+    "test": "vitest run packages/api packages/db"
   },
   "dependencies": {
     "next": "16.3.0",

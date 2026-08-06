@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 type HackathonStatus =
+  | "announced"
   | "open"
   | "in_progress"
   | "completed"
@@ -57,6 +58,14 @@ function statusConfig(s: HackathonStatus | "draft" | "cancelled") {
       glow: string;
     }
   > = {
+    announced: {
+      label: "Opening Soon",
+      dot: "bg-cyan-400",
+      text: "text-cyan-400",
+      bg: "bg-cyan-400/10",
+      border: "border-cyan-400/30",
+      glow: "",
+    },
     open: {
       label: "Registering",
       dot: "bg-emerald-400",

@@ -12,12 +12,20 @@ vi.mock("@query/db", () => ({
       hackathons: { findFirst: (...args: unknown[]) => mockFindFirst("hackathons", ...args) },
       judges: { findFirst: (...args: unknown[]) => mockFindFirst("judges", ...args) },
       members: { findFirst: (...args: unknown[]) => mockFindFirst("members", ...args) },
+      projectLeaders: {
+        findFirst: (...args: unknown[]) => mockFindFirst("projectLeaders", ...args),
+      },
       users: { findFirst: vi.fn() },
     },
   },
   admins: { userId: "user_id", isActive: "is_active" },
   members: { userId: "user_id", hackathonId: "hackathon_id" },
   judges: { userId: "user_id", isActive: "is_active" },
+  projectLeaders: {
+    userId: "user_id",
+    hackathonId: "hackathon_id",
+    isActive: "is_active",
+  },
   hackathons: { startDate: "start_date" },
   users: { id: "id" },
   userProfiles: { userId: "user_id" },
@@ -56,12 +64,16 @@ describe("user.getPortalContext", () => {
 
     const caller = appRouter.createCaller(ctx);
     const first = await caller.user.getPortalContext();
+    const afterFirst = mockFindFirst.mock.calls.length;
     const second = await caller.user.getPortalContext();
 
     expect(first.isAdmin).toBe(true);
     expect(first.isJudge).toBe(false);
     expect(first.member.isMember).toBe(true);
     expect(second).toEqual(first);
-    expect(mockFindFirst).toHaveBeenCalledTimes(4);
+    // The point of the assertion is the cache, not the exact fan-out: the
+    // second call must reach the database zero times.
+    expect(afterFirst).toBeGreaterThan(0);
+    expect(mockFindFirst).toHaveBeenCalledTimes(afterFirst);
   });
 });

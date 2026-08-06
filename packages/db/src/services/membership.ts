@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import type { DrizzleDB } from "../client";
 import { members } from "../schemas/members";
+import { PRE_CURRENT_STATUSES } from "../schemas/hackathons";
 import { stripePayments, userAccountLinks } from "../schemas/stripe";
 
 /**
@@ -49,14 +50,27 @@ export async function resolveCurrentHackathonId(
   const now = new Date();
 
   const inProgress = await db.query.hackathons.findFirst({
-    where: (h, { and: andFn, ne, lte, gte }) =>
-      andFn(ne(h.status, "draft"), lte(h.startDate, now), gte(h.endDate, now)),
+    where: (h, { and: andFn, notInArray, lte, gte }) =>
+      andFn(
+        notInArray(h.status, [...PRE_CURRENT_STATUSES]),
+        lte(h.startDate, now),
+        gte(h.endDate, now),
+      ),
     columns: { id: true },
   });
 
   const resolved =
     inProgress ??
     (await db.query.hackathons.findFirst({
+      // The status filter is the whole point of the comment above, and this
+      // branch is the one that needed it: the in-progress query can never match
+      // a future edition, so an unopened one could only ever arrive here.
+      // Without it, the day staff draft or announce next year's edition every
+      // membership read, portal gate and club check-in silently retargets an
+      // edition nobody has registered for, and every paying member reads as
+      // lapsed. An edition joins the running only when it opens.
+      where: (h, { notInArray }) =>
+        notInArray(h.status, [...PRE_CURRENT_STATUSES]),
       orderBy: (h, { desc }) => [desc(h.startDate)],
       columns: { id: true },
     }));
