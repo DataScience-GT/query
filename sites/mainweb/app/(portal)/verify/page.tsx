@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { safeCallback } from "@/lib/safe-callback";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
@@ -12,6 +13,7 @@ function VerifyContent() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const email = searchParams?.get("email") || "";
+  const callbackUrl = safeCallback(searchParams?.get("callbackUrl"));
 
   // Auto-focus first input on mount
   useEffect(() => {
@@ -90,8 +92,14 @@ function VerifyContent() {
       const data = await res.json();
 
       if (data.success) {
-        // Redirect — session cookie is set by the API
-        window.location.href = data.redirectUrl || "/dashboard";
+        // Redirect — session cookie is set by the API.
+        //
+        // The caller's destination wins. `data.redirectUrl` is hardcoded to
+        // /dashboard by the route, so the `||` below can never fall through to
+        // anything else — reading the query param first is what actually
+        // returns somebody to the page that sent them here.
+        window.location.href =
+          callbackUrl || data.redirectUrl || "/dashboard";
       } else {
         setError(data.error || "Invalid code. Please try again.");
         setVerifying(false);

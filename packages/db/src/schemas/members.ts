@@ -36,9 +36,14 @@ export const members = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // restrict, not cascade. This row is the paid club membership behind a
+    // stripe_payment, and it is not reconstructible: linkPaidPaymentByVerifiedEmail
+    // short-circuits on already-linked and every re-grant path filters on an
+    // unlinked payment, so no amount of signing back in restores it. Deleting a
+    // hackathon must fail loudly rather than quietly destroy paid records.
     hackathonId: uuid("hackathon_id")
       .notNull()
-      .references(() => hackathons.id, { onDelete: "cascade" }),
+      .references(() => hackathons.id, { onDelete: "restrict" }),
     memberType: text("member_type", { enum: ["new", "continuous"] })
       .notNull()
       .default("new"),
