@@ -9,31 +9,86 @@ import { UserPlus, Gavel } from "lucide-react";
 export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
 
-  const { data: allJudges, isLoading: judgesLoading } =
-    trpc.judge.list.useQuery();
+  // Scoped to this hackathon: a judges row belongs to one edition, and
+  // assignToHackathon rejects any judge from another — so an unscoped list
+  // could only ever populate the picker with judges the server refuses.
+  const { data: allJudges, isLoading: judgesLoading } = trpc.judge.list.useQuery(
+    { hackathonId },
+  );
   const { data: judgingStatus } = trpc.judge.getJudgingStatus.useQuery({
     hackathonId,
   });
   const { data: rankings } = trpc.judge.getRankings.useQuery({ hackathonId });
 
+  const [judgeError, setJudgeError] = useState<string | null>(null);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
+
   const toggleJudging = trpc.judge.toggleJudging.useMutation({
     onSuccess: () => {
       utils.judge.getJudgingStatus.invalidate({ hackathonId });
+      setJudgeError(null);
     },
+    // The judges' scoring screens gate on this flag, so a silent failure here
+    // leaves every judge staring at "Judging Not Open" while the organiser
+    // believes they opened it.
+    onError: (error) => setJudgeError(error.message),
   });
 
   const assignJudge = trpc.judge.assignToHackathon.useMutation({
     onSuccess: () => {
       utils.judge.list.invalidate();
+      setJudgeError(null);
     },
+    onError: (error) => setJudgeError(error.message),
   });
+
+  // The edition's own tracks and challenges. Judging routes on an exact string
+  // match, so any other value classifies the judge as sponsor/special and
+  // empties their pool — which is why this is a picker and not a text box.
+  const { data: hackathon } = trpc.hackathon.getById.useQuery({
+    id: hackathonId,
+  });
+  const trackOptions = [
+    ...(hackathon?.tracks ?? []),
+    ...(hackathon?.challenges ?? []),
+  ];
 
   // Judges who applied through /judge/register arrive inactive; this is the
   // only thing that approves them.
   const setActive = trpc.judge.setActive.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       utils.judge.list.invalidate();
+      setJudgeError(null);
+      // Approval builds the queue when there isn't one. Saying so is the
+      // difference between "approved" and "approved and ready to judge" —
+      // organisers previously had to re-run the whole assignment step to find
+      // out, and that step is unsafe once judging is live.
+      setQueueNotice(
+        result.queuedProjects === null
+          ? null
+          : result.queuedProjects > 0
+            ? `Queue built: ${result.queuedProjects} project(s).`
+            : "Approved, but no project matched this judge's track — check their track below.",
+      );
     },
+    // Approving a judge is what lets them open the portal at all. Failing
+    // silently leaves the badge on "Inactive", indistinguishable from not
+    // having clicked.
+    onError: (error) => setJudgeError(error.message),
+  });
+
+  const updateTrack = trpc.judge.updateAssignmentTrack.useMutation({
+    onSuccess: (result) => {
+      utils.judge.list.invalidate();
+      setJudgeError(null);
+      setQueueNotice(
+        result.message ??
+          (result.queueRebuilt
+            ? `Track updated — queue rebuilt with ${result.projectCount} project(s).`
+            : "Track updated."),
+      );
+    },
+    onError: (error) => setJudgeError(error.message),
   });
 
   const { data: resultsDraft } = trpc.judge.getResultsDraft.useQuery({
@@ -41,17 +96,30 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   });
 
   const [resultsError, setResultsError] = useState<string | null>(null);
+  /**
+   * Set only when COMPUTE itself was refused.
+   *
+   * Kept separate from resultsError because that is written by all three
+   * mutations: a failed publish or unpublish would otherwise relabel Compute
+   * to "Compute anyway" and send force: true, bypassing the judging-is-live
+   * guard without the admin ever having seen the refusal it is overriding.
+   */
+  const [computeConflict, setComputeConflict] = useState(false);
 
   const refreshResults = () => {
     utils.judge.getResultsDraft.invalidate({ hackathonId });
     setResultsError(null);
+    setComputeConflict(false);
   };
 
   const computeResults = trpc.judge.computeResults.useMutation({
     onSuccess: refreshResults,
     // Refuses while judging is live, and says why. Forcing is offered only
     // after that has been read.
-    onError: (error) => setResultsError(error.message),
+    onError: (error) => {
+      setResultsError(error.message);
+      setComputeConflict(error.data?.code === "CONFLICT");
+    },
   });
 
   const publishResults = trpc.judge.publishResults.useMutation({
@@ -66,6 +134,63 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
   const isPublished = resultsDraft?.some((row) => row.publishedAt) ?? false;
   const hasDraft = (resultsDraft?.length ?? 0) > 0;
+
+  /**
+   * Publishing puts the results on the public tab and tells nobody.
+   *
+   * Built on the same announcement machinery as the Email tab rather than a
+   * second send path, so this one is resumable too: the recipients are recorded
+   * server-side and a closed tab continues instead of re-mailing everyone.
+   */
+  const createAnnouncement = trpc.hackathon.createAnnouncement.useMutation();
+  const sendBatch = trpc.hackathon.sendBatch.useMutation();
+  const [announcing, setAnnouncing] = useState(false);
+
+  const announceResults = async () => {
+    const name = hackathon?.name ?? "the hackathon";
+    if (
+      !window.confirm(
+        `Email everyone registered for ${name} that the results are live?\n\nThis cannot be unsent.`,
+      )
+    )
+      return;
+
+    setAnnouncing(true);
+    setQueueNotice(null);
+    try {
+      const created = await createAnnouncement.mutateAsync({
+        hackathonId,
+        audience: "registered",
+        subject: `${name} results are live`,
+        heading: "Results are live",
+        body: `Judging for ${name} is finished and the results are published.\n\nThank you for building with us.`,
+        ctaLabel: "See the results",
+        ctaUrl: `${window.location.origin}/hackathons/${hackathonId}`,
+      });
+
+      let sent = 0;
+      for (let guard = 0; guard < 100; guard++) {
+        const result = await sendBatch.mutateAsync({
+          announcementId: created.announcementId,
+        });
+        sent += result.sent;
+        setQueueNotice(
+          `Announcing results: ${sent} of ${created.totalRecipients} sent…`,
+        );
+        if (result.done) break;
+        if (result.sent === 0 && result.failed.length === 0) break;
+      }
+      setQueueNotice(
+        `Results announced to ${sent} recipient(s). Unfinished sends can be resumed from the Email tab.`,
+      );
+    } catch (error) {
+      setJudgeError(
+        error instanceof Error ? error.message : "Announcement failed",
+      );
+    } finally {
+      setAnnouncing(false);
+    }
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedJudgeId, setSelectedJudgeId] = useState("");
@@ -154,6 +279,24 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
         </div>
       </LiquidGlass>
 
+      {judgeError && (
+        <div
+          role="alert"
+          className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-mono text-red-300"
+        >
+          {judgeError}
+        </div>
+      )}
+
+      {queueNotice && (
+        <div
+          role="status"
+          className="border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-mono text-accent"
+        >
+          {queueNotice}
+        </div>
+      )}
+
       {/* Results — computed once judging closes, reviewed, then published. */}
       <LiquidGlass className="p-6 border-[var(--border-subtle)]">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -177,8 +320,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 setResultsError(null);
                 computeResults.mutate({
                   hackathonId,
-                  // Only forced once the refusal has been shown.
-                  force: !!resultsError,
+                  // Only forced once COMPUTE's own refusal has been shown.
+                  force: computeConflict,
                 });
               }}
               disabled={computeResults.isPending || isPublished}
@@ -186,12 +329,24 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             >
               {computeResults.isPending
                 ? "Computing..."
-                : resultsError
+                : computeConflict
                   ? "Compute anyway"
                   : hasDraft
                     ? "Recompute"
                     : "Compute"}
             </button>
+            {/* Publishing shows the results on the public tab; telling people
+                was a separate step nobody was prompted about. */}
+            {isPublished && (
+              <button
+                type="button"
+                onClick={announceResults}
+                disabled={announcing}
+                className="px-5 py-3 bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-30"
+              >
+                {announcing ? "Announcing…" : "Announce Results"}
+              </button>
+            )}
             {hasDraft &&
               (isPublished ? (
                 <button
@@ -338,14 +493,19 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 >
                   Track
                 </label>
-                <input
+                <select
                   id="track"
-                  type="text"
                   value={assignTrack}
                   onChange={(e) => setAssignTrack(e.target.value)}
-                  placeholder="e.g. AI, Web3"
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-purple-500/50 focus:outline-none transition-colors"
-                />
+                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
+                >
+                  <option value="">All projects</option>
+                  {trackOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button
                 type="button"
@@ -407,11 +567,39 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                         {judge.user?.email}
                       </p>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {assignment?.track && (
-                          <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest">
-                            {assignment.track}
-                          </span>
-                        )}
+                        {/* A wrong track routes the judge to an empty pool and
+                            used to be permanent — assignToHackathon refuses a
+                            second assignment and nothing else could edit it. */}
+                        <select
+                          aria-label="Track"
+                          value={assignment?.track ?? ""}
+                          disabled={updateTrack.isPending}
+                          onChange={(e) => {
+                            setQueueNotice(null);
+                            updateTrack.mutate({
+                              judgeId: judge.id,
+                              hackathonId,
+                              track: e.target.value || null,
+                            });
+                          }}
+                          className="px-2 py-0.5 text-[9px] font-mono rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest focus:outline-none disabled:opacity-40"
+                        >
+                          <option value="">All projects</option>
+                          {trackOptions.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                          {/* A track the edition no longer lists still has to
+                              be shown, or the select would silently misreport
+                              what the judge is actually assigned to. */}
+                          {assignment?.track &&
+                            !trackOptions.includes(assignment.track) && (
+                              <option value={assignment.track}>
+                                {assignment.track} (not on this edition)
+                              </option>
+                            )}
+                        </select>
                         {assignment?.isLead && (
                           <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
                             Lead

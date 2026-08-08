@@ -12,9 +12,10 @@ import {
   users,
   hackathonParticipants,
 } from "@query/db";
-import { eq, and, asc, sql, inArray } from "drizzle-orm";
+import { eq, and, asc, sql, inArray, isNull } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
-import { CacheKeys } from "../../middleware/cache";
+import { recordAdminAction } from "../../middleware/audit";
+import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { shuffleArray, buildCoverageQueues } from "./helpers";
 
@@ -22,9 +23,294 @@ import { shuffleArray, buildCoverageQueues } from "./helpers";
  *  ceiling allows at 4 bound parameters per row. */
 const QUEUE_INSERT_CHUNK = 5000;
 
+/**
+ * The projects one judge should see, in order — their whole queue.
+ *
+ * Shared by `initializeQueue` (an explicit per-judge rebuild) and `setActive`
+ * (approval), so an approved judge cannot end up with a queue built by
+ * different rules than the one the admin can rebuild by hand.
+ *
+ * Replaces whatever queue the judge had. Callers decide whether replacing is
+ * safe — `setActive` only calls this when the queue is empty, because a judge
+ * part-way through theirs must not be reshuffled mid-event.
+ */
+async function rebuildQueueForJudge(
+  db: DrizzleDB,
+  opts: { judgeId: string; hackathonId: string; shuffle?: boolean },
+) {
+  await db
+    .delete(judgeQueue)
+    .where(
+      and(
+        eq(judgeQueue.judgeId, opts.judgeId),
+        eq(judgeQueue.hackathonId, opts.hackathonId),
+      ),
+    );
+
+  // The assignment's track is what narrows the pool; without one the judge
+  // sees every project in the edition.
+  const assignment = await db.query.judgeAssignments.findFirst({
+    where: and(
+      eq(judgeAssignments.judgeId, opts.judgeId),
+      eq(judgeAssignments.hackathonId, opts.hackathonId),
+    ),
+  });
+
+  const allProjects = await db.query.judgingProjects.findMany({
+    // Withdrawn entries must not be queued to anyone.
+    where: and(
+      eq(judgingProjects.hackathonId, opts.hackathonId),
+      isNull(judgingProjects.withdrawnAt),
+    ),
+    orderBy: [asc(judgingProjects.tableNumber)],
+  });
+
+  let projects = assignment?.track
+    ? allProjects.filter((p) => {
+        const inTracks = p.tracks?.includes(assignment.track!) ?? false;
+        const inChallenges = p.challenges?.includes(assignment.track!) ?? false;
+        const matchCreateX =
+          assignment.track!.toLowerCase() === "createx" && !!p.isCreateX;
+        return inTracks || inChallenges || matchCreateX;
+      })
+    : allProjects;
+
+  if (opts.shuffle) {
+    projects = shuffleArray(projects);
+  }
+
+  if (projects.length > 0) {
+    await db.insert(judgeQueue).values(
+      projects.map((p, idx) => ({
+        judgeId: opts.judgeId,
+        hackathonId: opts.hackathonId,
+        projectId: p.id,
+        order: idx + 1,
+      })),
+    );
+  }
+
+  return projects.length;
+}
+
+/**
+ * The labels a judge's track may actually take, for one edition.
+ *
+ * Routing matches these strings exactly, so anything else silently classifies
+ * the judge as sponsor/special and filters their pool to zero projects — they
+ * open the portal to an empty queue with nothing on any screen explaining why.
+ * "createX" is included because buildCoverageQueues routes it against the
+ * project flag rather than the tracks array.
+ */
+async function assertTrackExists(
+  db: DrizzleDB,
+  hackathonId: string,
+  track: string | null | undefined,
+): Promise<string | null> {
+  if (!track) return null;
+
+  const hackathon = await db.query.hackathons.findFirst({
+    where: eq(hackathons.id, hackathonId),
+    columns: { tracks: true, challenges: true },
+  });
+
+  const allowed = [
+    ...(hackathon?.tracks ?? []),
+    ...(hackathon?.challenges ?? []),
+    "createX",
+  ];
+
+  // Case-insensitive match, but the stored value is the edition's own spelling:
+  // the routing comparison is exact, so "ai" must become "AI" here or it
+  // matches nothing later.
+  const match = allowed.find(
+    (t) => t.toLowerCase() === track.trim().toLowerCase(),
+  );
+
+  if (!match) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: allowed.length === 1
+        ? "This hackathon has no tracks or challenges configured yet — set them on the edition before assigning a judge to one."
+        : `"${track}" is not a track or challenge on this hackathon. Choose one of: ${allowed.join(", ")}.`,
+    });
+  }
+
+  return match;
+}
+
+/** Does this project fall inside a judge's track/challenge label? */
+const projectMatchesTrack = (
+  project: {
+    tracks: string[] | null;
+    challenges: string[] | null;
+    isCreateX?: boolean | null;
+  },
+  track: string | null,
+) => {
+  if (!track) return true;
+  const inTracks = project.tracks?.includes(track) ?? false;
+  const inChallenges = project.challenges?.includes(track) ?? false;
+  const matchCreateX =
+    track.toLowerCase() === "createx" && !!project.isCreateX;
+  return inTracks || inChallenges || matchCreateX;
+};
+
+/**
+ * Adds late-promoted projects to the queues that already exist, without
+ * touching a single row that is already there.
+ *
+ * The alternative — re-running `assignJudgesToProjects` — deletes and rebuilds
+ * every queue in the event, which is unsafe once judging is live. Appending is
+ * the only thing that is safe mid-event, so promotion does it itself: a project
+ * promoted after assignment used to sit in nobody's queue, receive zero votes,
+ * and then be dropped from the standings entirely by the zero-vote rule, with
+ * only an amber banner to say so.
+ *
+ * Coverage matches what the existing queues already give a project, so late
+ * entries are judged about as many times as everything else rather than once.
+ */
+async function appendProjectsToExistingQueues(
+  db: DrizzleDB,
+  hackathonId: string,
+  freshProjects: {
+    id: string;
+    tracks: string[] | null;
+    challenges: string[] | null;
+    isCreateX: boolean | null;
+    tableNumber: number;
+  }[],
+) {
+  if (freshProjects.length === 0) return 0;
+
+  const existingQueue = await db.query.judgeQueue.findMany({
+    where: eq(judgeQueue.hackathonId, hackathonId),
+    columns: { judgeId: true, projectId: true, order: true },
+  });
+
+  // Nothing has been assigned yet, so there is no queue to append to — the
+  // organiser still has to run assignment once, and doing it here would build
+  // queues out of an incomplete project list.
+  if (existingQueue.length === 0) return 0;
+
+  const nextOrder = new Map<string, number>();
+  const queueLength = new Map<string, number>();
+  const coverage = new Map<string, number>();
+
+  for (const row of existingQueue) {
+    nextOrder.set(row.judgeId, Math.max(nextOrder.get(row.judgeId) ?? 0, row.order));
+    queueLength.set(row.judgeId, (queueLength.get(row.judgeId) ?? 0) + 1);
+    coverage.set(row.projectId, (coverage.get(row.projectId) ?? 0) + 1);
+  }
+
+  // How many judges an already-queued project is seen by, on average. Rounded
+  // down but never below 1: one judge is the difference between being ranked
+  // and being invisible.
+  const target = Math.max(
+    1,
+    Math.floor(
+      [...coverage.values()].reduce((sum, n) => sum + n, 0) / coverage.size,
+    ),
+  );
+
+  const hackathon = await db.query.hackathons.findFirst({
+    where: eq(hackathons.id, hackathonId),
+    columns: { tracks: true },
+  });
+
+  const assignments = await db.query.judgeAssignments.findMany({
+    where: eq(judgeAssignments.hackathonId, hackathonId),
+    with: { judge: { columns: { isActive: true } } },
+  });
+
+  // Only judges who already hold a queue: anyone else is either inactive or
+  // was never part of the assignment, and a queue nobody opens is coverage the
+  // event never receives.
+  const eligible = assignments.filter(
+    (a) => a.judge.isActive !== false && queueLength.has(a.judgeId),
+  );
+
+  if (eligible.length === 0) return 0;
+
+  // Same fallback as assignJudgesToProjects: with no tracks configured on the
+  // edition, every judge label would read as a sponsor one and get everything.
+  const mainTracks = new Set(
+    hackathon?.tracks?.length
+      ? hackathon.tracks
+      : eligible.map((a) => a.track).filter((t): t is string => !!t),
+  );
+
+  const rows: {
+    judgeId: string;
+    hackathonId: string;
+    projectId: string;
+    order: number;
+  }[] = [];
+
+  const ordered = [...freshProjects].sort(
+    (a, b) => a.tableNumber - b.tableNumber,
+  );
+
+  for (const project of ordered) {
+    const matching = eligible.filter((a) =>
+      projectMatchesTrack(project, a.track ?? null),
+    );
+
+    // Sponsor/special judges take their whole pool, exactly as the bulk
+    // assignment gives it to them.
+    const special = matching.filter(
+      (a) => a.track && !mainTracks.has(a.track),
+    );
+    const main = matching
+      .filter((a) => !a.track || mainTracks.has(a.track))
+      // Shortest queue first, so late projects land on the judges with the
+      // most room rather than piling onto whoever comes first alphabetically.
+      .sort(
+        (a, b) =>
+          (queueLength.get(a.judgeId) ?? 0) - (queueLength.get(b.judgeId) ?? 0),
+      )
+      .slice(0, target);
+
+    for (const a of [...special, ...main]) {
+      const order = (nextOrder.get(a.judgeId) ?? 0) + 1;
+      nextOrder.set(a.judgeId, order);
+      queueLength.set(a.judgeId, (queueLength.get(a.judgeId) ?? 0) + 1);
+      rows.push({
+        judgeId: a.judgeId,
+        hackathonId,
+        projectId: project.id,
+        order,
+      });
+    }
+  }
+
+  for (let i = 0; i < rows.length; i += QUEUE_INSERT_CHUNK) {
+    await db.insert(judgeQueue).values(rows.slice(i, i + QUEUE_INSERT_CHUNK));
+  }
+
+  return rows.length;
+}
+
 export const judgeAdminRouter = createTRPCRouter({
-  list: isAdmin.query(async ({ ctx }) => {
+  /**
+   * Judges, optionally scoped to one hackathon.
+   *
+   * The scope matters: a judges row belongs to exactly one edition, and
+   * assignToHackathon refuses any judge from another. Listing every judge in
+   * the database meant the admin picker offered only the ones the server was
+   * guaranteed to reject.
+   */
+  list: isAdmin
+    .input(
+      z
+        .object({ hackathonId: z.string().uuid().optional() })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
     const allJudges = await (ctx.db as DrizzleDB).query.judges.findMany({
+      where: input?.hackathonId
+        ? eq(judges.hackathonId, input.hackathonId)
+        : undefined,
       with: {
         user: {
           columns: {
@@ -48,8 +334,8 @@ export const judgeAdminRouter = createTRPCRouter({
       orderBy: (judges, { desc }) => [desc(judges.createdAt)],
     });
 
-    return allJudges;
-  }),
+      return allJudges;
+    }),
 
   create: isAdmin
     .input(
@@ -142,13 +428,19 @@ export const judgeAdminRouter = createTRPCRouter({
         });
       }
 
+      const track = await assertTrackExists(
+        ctx.db as DrizzleDB,
+        input.hackathonId,
+        input.track,
+      );
+
       const result = await (ctx.db as DrizzleDB)
         .insert(judgeAssignments)
         .values({
           judgeId: input.judgeId,
           hackathonId: input.hackathonId,
           isLead: input.isLead || false,
-          track: input.track,
+          track,
         })
         .returning();
 
@@ -161,22 +453,19 @@ export const judgeAdminRouter = createTRPCRouter({
       const allProjects = await (
         ctx.db as DrizzleDB
       ).query.judgingProjects.findMany({
-        where: eq(judgingProjects.hackathonId, input.hackathonId),
+        // Withdrawn entries must not be queued to anyone.
+        where: and(
+          eq(judgingProjects.hackathonId, input.hackathonId),
+          isNull(judgingProjects.withdrawnAt),
+        ),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
       // Filter by track if assigned (fixes bug: previously assigned ALL projects regardless of track)
-      const track = input.track ?? null;
       const isSpecial = track ? !mainTracks.has(track) : false;
-      const eligibleProjects = track
-        ? allProjects.filter((p) => {
-            const inTracks = p.tracks?.includes(track) ?? false;
-            const inChallenges = p.challenges?.includes(track) ?? false;
-            const matchCreateX =
-              track.toLowerCase() === "createx" && !!p.isCreateX;
-            return inTracks || inChallenges || matchCreateX;
-          })
-        : allProjects;
+      const eligibleProjects = allProjects.filter((p) =>
+        projectMatchesTrack(p, track),
+      );
 
       // Special judges always get their full pool; main track judges get a shuffled subset
       const assignedProjects = isSpecial
@@ -233,6 +522,7 @@ export const judgeAdminRouter = createTRPCRouter({
             created: 0,
             alreadyPresent: 0,
             total: 0,
+            queueRowsAdded: 0,
             queuesNeedRebuild: false,
           };
         }
@@ -255,8 +545,16 @@ export const judgeAdminRouter = createTRPCRouter({
           0,
         );
 
+        let promotedRows: {
+          id: string;
+          tracks: string[] | null;
+          challenges: string[] | null;
+          isCreateX: boolean | null;
+          tableNumber: number;
+        }[] = [];
+
         if (fresh.length > 0) {
-          await tx.insert(judgingProjects).values(
+          promotedRows = (await tx.insert(judgingProjects).values(
             fresh.map((submission) => ({
               hackathonId: input.hackathonId,
               sourceProjectId: submission.id,
@@ -280,7 +578,14 @@ export const judgeAdminRouter = createTRPCRouter({
                 : null,
               isCreateX: submission.isCreateX ?? false,
             })),
-          );
+          )
+            .returning({
+              id: judgingProjects.id,
+              tracks: judgingProjects.tracks,
+              challenges: judgingProjects.challenges,
+              isCreateX: judgingProjects.isCreateX,
+              tableNumber: judgingProjects.tableNumber,
+            })) ?? [];
 
           await tx
             .update(hackathonProjects)
@@ -293,9 +598,16 @@ export const judgeAdminRouter = createTRPCRouter({
             );
         }
 
-        // Queues are built from a snapshot of the project list. Anything
-        // promoted after assignment sits in nobody's queue and would simply
-        // never be judged, with nothing on screen to say so.
+        // Queues are built from a snapshot of the project list, so anything
+        // promoted after assignment has to be added to them here. Appending is
+        // the only safe move mid-judging — a rebuild reorders every queue that
+        // is already in progress.
+        const queueRowsAdded = await appendProjectsToExistingQueues(
+          tx as unknown as DrizzleDB,
+          input.hackathonId,
+          promotedRows,
+        );
+
         const [queued] = await tx
           .select({ count: sql<number>`count(*)::int` })
           .from(judgeQueue)
@@ -305,7 +617,12 @@ export const judgeAdminRouter = createTRPCRouter({
           created: fresh.length,
           alreadyPresent: submissions.length - fresh.length,
           total: submissions.length,
-          queuesNeedRebuild: fresh.length > 0 && (queued?.count ?? 0) > 0,
+          queueRowsAdded,
+          // Only still true if queues exist, something was promoted, and the
+          // append reached nobody — a track label on the new projects that no
+          // active judge covers. That one an organiser does have to resolve.
+          queuesNeedRebuild:
+            fresh.length > 0 && (queued?.count ?? 0) > 0 && queueRowsAdded === 0,
         };
       });
     }),
@@ -339,61 +656,13 @@ export const judgeAdminRouter = createTRPCRouter({
         });
       }
 
-      await (ctx.db as DrizzleDB)
-        .delete(judgeQueue)
-        .where(
-          and(
-            eq(judgeQueue.judgeId, input.judgeId),
-            eq(judgeQueue.hackathonId, input.hackathonId),
-          ),
-        );
-
-      // Get judge assignment to check for track restriction
-      const assignment = await (
-        ctx.db as DrizzleDB
-      ).query.judgeAssignments.findFirst({
-        where: and(
-          eq(judgeAssignments.judgeId, input.judgeId),
-          eq(judgeAssignments.hackathonId, input.hackathonId),
-        ),
+      const projectCount = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
+        judgeId: input.judgeId,
+        hackathonId: input.hackathonId,
+        shuffle: input.shuffle,
       });
 
-      // Fetch all projects (or filter in query if possible, but JS filter matches assignToHackathon logic)
-      const allProjects = await (
-        ctx.db as DrizzleDB
-      ).query.judgingProjects.findMany({
-        where: eq(judgingProjects.hackathonId, input.hackathonId),
-        orderBy: [asc(judgingProjects.tableNumber)],
-      });
-
-      // Filter based on track if assigned
-      let projects = assignment?.track
-        ? allProjects.filter((p) => {
-            const inTracks = p.tracks?.includes(assignment.track!) ?? false;
-            const inChallenges =
-              p.challenges?.includes(assignment.track!) ?? false;
-            const matchCreateX =
-              assignment.track!.toLowerCase() === "createx" && !!p.isCreateX;
-            return inTracks || inChallenges || matchCreateX;
-          })
-        : allProjects;
-
-      if (input.shuffle) {
-        projects = shuffleArray(projects);
-      }
-
-      if (projects.length > 0) {
-        await ctx.db!.insert(judgeQueue).values(
-          projects.map((p, idx) => ({
-            judgeId: input.judgeId,
-            hackathonId: input.hackathonId,
-            projectId: p.id,
-            order: idx + 1,
-          })),
-        );
-      }
-
-      return { success: true, projectCount: projects.length };
+      return { success: true, projectCount };
     }),
 
   /**
@@ -409,21 +678,219 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Read first, because `.returning()` hands back the row as it now is —
+      // the approval email has to know whether this click was the transition or
+      // a second press on an already-approved judge.
+      const before = await (ctx.db as DrizzleDB).query.judges.findFirst({
+        where: eq(judges.id, input.judgeId),
+        columns: { isActive: true },
+      });
+
       const [updated] = await (ctx.db as DrizzleDB)
         .update(judges)
         .set({ isActive: input.isActive })
         .where(eq(judges.id, input.judgeId))
-        .returning({ userId: judges.userId, hackathonId: judges.hackathonId });
+        .returning({
+          userId: judges.userId,
+          hackathonId: judges.hackathonId,
+          email: judges.email,
+        });
 
       if (!updated) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Judge not found" });
       }
 
+      /**
+       * Keep the assignment's own status column honest.
+       *
+       * `judges.isActive` is what every judging gate actually reads; this column
+       * was written once as "pending" at registration and never touched again,
+       * so anybody reading the table directly saw every approved judge as still
+       * pending. It is a mirror, not a second source of truth.
+       */
+      await (ctx.db as DrizzleDB)
+        .update(judgeAssignments)
+        .set({ status: input.isActive ? "approved" : "pending" })
+        .where(
+          and(
+            eq(judgeAssignments.judgeId, input.judgeId),
+            eq(judgeAssignments.hackathonId, updated.hackathonId),
+          ),
+        );
+
       // isJudge and judge.isJudge both cache the role for 60s per user per
       // hackathon; approval has to take effect now, not a minute from now.
       ctx.cache.deletePattern(`${CacheKeys.judge(updated.userId)}*`);
+      // The sidebar reads the portal context, which lives for 5 minutes — so
+      // without this the approved judge waited out that TTL before the Judge
+      // tab appeared at all.
+      invalidatePortalContext(updated.userId);
 
-      return { success: true, isActive: input.isActive };
+      /**
+       * Approval builds the queue, because nothing else will.
+       *
+       * `judge.register` always writes an assignment row, and
+       * `assignToHackathon` refuses anyone who already has one — so the
+       * documented recruitment path produced an active judge whose portal said
+       * "All Done" having judged nothing. The only remedy was
+       * `assignJudgesToProjects`, which deletes and rebuilds *every* queue in
+       * the event and is unsafe once judging is live.
+       *
+       * Only when the queue is empty: a judge suspended mid-event and
+       * reinstated must come back to the queue they were part-way through, not
+       * a fresh one that forgets what they already scored.
+       */
+      let queuedProjects: number | null = null;
+
+      if (input.isActive) {
+        const assignment = await (
+          ctx.db as DrizzleDB
+        ).query.judgeAssignments.findFirst({
+          where: and(
+            eq(judgeAssignments.judgeId, input.judgeId),
+            eq(judgeAssignments.hackathonId, updated.hackathonId),
+          ),
+          columns: { id: true },
+        });
+
+        if (assignment) {
+          const [existingQueue] = await (ctx.db as DrizzleDB)
+            .select({ count: sql<number>`count(*)::int` })
+            .from(judgeQueue)
+            .where(
+              and(
+                eq(judgeQueue.judgeId, input.judgeId),
+                eq(judgeQueue.hackathonId, updated.hackathonId),
+              ),
+            );
+
+          if ((existingQueue?.count ?? 0) === 0) {
+            queuedProjects = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
+              judgeId: input.judgeId,
+              hackathonId: updated.hackathonId,
+            });
+          }
+        }
+      }
+
+      /**
+       * The judge is told they were approved — the /judge/register success
+       * screen promises exactly this, and nothing sent it.
+       *
+       * Only on the transition, so re-pressing Approve does not mail them
+       * again, and after the queue exists so the email's "your queue is ready"
+       * is true. Best-effort: a mail provider failure must not undo an approval
+       * that already happened in the database.
+       */
+      if (input.isActive && before?.isActive !== true && updated.email) {
+        try {
+          const hackathon = await (
+            ctx.db as DrizzleDB
+          ).query.hackathons.findFirst({
+            where: eq(hackathons.id, updated.hackathonId),
+            columns: { name: true },
+          });
+
+          const { sendJudgeApprovedEmail } = await import("@query/auth/email");
+          await sendJudgeApprovedEmail({
+            email: updated.email,
+            hackathonName: hackathon?.name ?? "the hackathon",
+          });
+        } catch (error) {
+          // Deliberate server-side operational logging: the approval stands and
+          // this is the only record that the notice did not go out.
+          // eslint-disable-next-line no-console
+          console.error(
+            `[Email Service] Judge approval notice failed for judge ${input.judgeId}:`,
+            error,
+          );
+        }
+      }
+
+      return { success: true, isActive: input.isActive, queuedProjects };
+    }),
+
+  /**
+   * Corrects a judge's track after the fact.
+   *
+   * Without this, a wrong track was permanent: the value routes their whole
+   * pool, `assignToHackathon` refuses anyone who already has an assignment row,
+   * and no screen could edit it — the only remedy was SQL or removing a judge
+   * who may already have scored.
+   */
+  updateAssignmentTrack: isAdmin
+    .input(
+      z.object({
+        judgeId: z.string().uuid(),
+        hackathonId: z.string().uuid(),
+        /** Null clears the track, giving the judge the whole project pool. */
+        track: z.string().max(200).nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const assignment = await (
+        ctx.db as DrizzleDB
+      ).query.judgeAssignments.findFirst({
+        where: and(
+          eq(judgeAssignments.judgeId, input.judgeId),
+          eq(judgeAssignments.hackathonId, input.hackathonId),
+        ),
+        columns: { id: true },
+      });
+
+      if (!assignment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This judge is not assigned to this hackathon",
+        });
+      }
+
+      const track = await assertTrackExists(
+        ctx.db as DrizzleDB,
+        input.hackathonId,
+        input.track,
+      );
+
+      await (ctx.db as DrizzleDB)
+        .update(judgeAssignments)
+        .set({ track })
+        .where(eq(judgeAssignments.id, assignment.id));
+
+      // The queue was built from the old track, so leaving it would keep the
+      // judge scoring the wrong pool. Completed slots are the reason this is
+      // refused rather than silently rebuilt.
+      const [completed] = await (ctx.db as DrizzleDB)
+        .select({ count: sql<number>`count(*)::int` })
+        .from(judgeQueue)
+        .where(
+          and(
+            eq(judgeQueue.judgeId, input.judgeId),
+            eq(judgeQueue.hackathonId, input.hackathonId),
+            eq(judgeQueue.isCompleted, true),
+          ),
+        );
+
+      if ((completed?.count ?? 0) > 0) {
+        return {
+          success: true,
+          track,
+          queueRebuilt: false,
+          message: `Track updated. This judge has already scored ${completed?.count} project(s), so their queue was left alone — rebuild it by hand if the new track should apply.`,
+        };
+      }
+
+      const projectCount = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
+        judgeId: input.judgeId,
+        hackathonId: input.hackathonId,
+      });
+
+      return {
+        success: true,
+        track,
+        queueRebuilt: true,
+        projectCount,
+        message: null,
+      };
     }),
 
   remove: isAdmin
@@ -474,7 +941,7 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+      const outcome = await (ctx.db as DrizzleDB).transaction(async (tx) => {
         const hackathon = await tx.query.hackathons.findFirst({
           where: eq(hackathons.id, input.hackathonId),
         });
@@ -539,7 +1006,10 @@ export const judgeAdminRouter = createTRPCRouter({
         );
 
         const allProjects = await tx.query.judgingProjects.findMany({
-          where: eq(judgingProjects.hackathonId, input.hackathonId),
+          where: and(
+            eq(judgingProjects.hackathonId, input.hackathonId),
+            isNull(judgingProjects.withdrawnAt),
+          ),
           orderBy: [asc(judgingProjects.tableNumber)],
         });
 
@@ -747,6 +1217,8 @@ export const judgeAdminRouter = createTRPCRouter({
           success: true,
           totalJudges: results.length,
           totalInsertedRows: insertRows.length,
+          judgingWasActive: hackathon.judgingActive,
+          preservedCompleted: completed.length,
           coverage: {
             avg: avgCoverage,
             min: minCoverage,
@@ -755,6 +1227,56 @@ export const judgeAdminRouter = createTRPCRouter({
           },
           assignments: results,
         };
+      });
+
+      // Deliberately AFTER the transaction commits, on ctx.db.
+      //
+      // recordAdminAction swallows its errors, which is right outside a
+      // transaction and dangerous inside one: any failed statement aborts the
+      // Postgres session, so the following COMMIT silently becomes a ROLLBACK.
+      // Called as the last statement in the tx, a failed audit insert would
+      // return success and a coverage report while every judge queue in the
+      // event quietly reverted.
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "judge.assignJudgesToProjects",
+        resourceId: input.hackathonId,
+        severity: input.force ? "critical" : "info",
+        metadata: {
+          forced: input.force,
+          judgingWasActive: outcome.judgingWasActive,
+          preservedCompleted: outcome.preservedCompleted,
+          totalRows: outcome.totalInsertedRows,
+        },
+      });
+
+      return outcome;
+    }),
+
+  /**
+   * The table cards to print, one per judgeable project.
+   *
+   * Each carries the code a judge scans on arrival. Without a way to get these
+   * out of the database and onto a desk, the scan-to-start flow has no
+   * physical half.
+   */
+  tableCards: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return await (ctx.db as DrizzleDB).query.judgingProjects.findMany({
+        where: and(
+          eq(judgingProjects.hackathonId, input.hackathonId),
+          isNull(judgingProjects.withdrawnAt),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          tableNumber: true,
+          zone: true,
+          qrCode: true,
+          teamMembers: true,
+        },
+        orderBy: [asc(judgingProjects.tableNumber)],
       });
     }),
 
@@ -990,10 +1512,19 @@ export const judgeAdminRouter = createTRPCRouter({
           });
         }
 
+        // Free text used to land straight in the routing column, so a judge who
+        // typed "ai" instead of "AI" was classified sponsor/special and given
+        // an empty pool — invisible to them and to the organiser.
+        const track = await assertTrackExists(
+          tx as unknown as DrizzleDB,
+          input.hackathonId,
+          input.preferredTrack,
+        );
+
         await tx.insert(judgeAssignments).values({
           judgeId: judge.id,
           hackathonId: input.hackathonId,
-          track: input.preferredTrack,
+          track,
           status: "pending",
         });
 
