@@ -62,7 +62,14 @@ export const hackathons = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("hackathon_status_idx").on(table.status)],
+  (table) => [
+    index("hackathon_status_idx").on(table.status),
+    // Every admin link builds its URL from the hackathon's name, and getById
+    // resolves a non-uuid argument with findFirst on this column. Two editions
+    // sharing a name therefore make one of them permanently unreachable
+    // through the admin UI, with no error to explain it.
+    unique("unique_hackathon_name").on(table.name),
+  ],
 );
 
 // Teams for hackathons
@@ -301,6 +308,16 @@ export const hackathonInterest = pgTable(
     experience: text("experience", {
       enum: ["first", "one_or_two", "three_plus"],
     }),
+    /**
+     * When this person was told registration opened.
+     *
+     * The whole reason the list exists is that one message, and a send of
+     * thousands runs in batches from an admin's browser — so it has to be
+     * resumable. Per recipient, exactly like `acceptanceEmailSentAt`: a closed
+     * tab, a refresh or a second click continues where it stopped instead of
+     * mailing everybody again.
+     */
+    registrationOpenEmailSentAt: timestamp("registration_open_email_sent_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -390,9 +407,9 @@ export const hackathonEvents = pgTable(
       enum: ["workshop", "meal", "ceremony", "activity", "sponsor_session"],
     }).notNull(),
     location: text("location").notNull(),
+    points: integer("points").notNull().default(0), // For gamification
     startTime: timestamp("start_time").notNull(),
     endTime: timestamp("end_time").notNull(),
-    points: integer("points").notNull().default(0), // For gamification
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -464,6 +481,101 @@ export const hackathonProjectsRelations = relations(
     team: one(hackathonTeams, {
       fields: [hackathonProjects.teamId],
       references: [hackathonTeams.id],
+    }),
+  }),
+);
+
+/**
+ * One announcement, composed once and sent in batches.
+ *
+ * The send loop runs in an organiser's browser: it walks the audience 500 at a
+ * time across separate requests. Without a stored copy of what was being sent
+ * and to whom, a closed tab left no way to resume — the only options were
+ * "mail everybody again" or "leave the rest unmailed", and nothing on any
+ * screen said which recipients had already had it.
+ */
+export const hackathonAnnouncements = pgTable(
+  "hackathon_announcement",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    hackathonId: uuid("hackathon_id")
+      .notNull()
+      .references(() => hackathons.id, { onDelete: "cascade" }),
+    audience: text("audience", {
+      enum: ["interested", "registered", "approved", "checked_in"],
+    }).notNull(),
+    subject: text("subject").notNull(),
+    heading: text("heading").notNull(),
+    body: text("body").notNull(),
+    ctaLabel: text("cta_label"),
+    ctaUrl: text("cta_url"),
+    createdById: text("created_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("hackathon_announcement_hackathon_id_idx").on(table.hackathonId),
+  ],
+);
+
+/**
+ * The audience of one announcement, frozen at compose time, one row per person.
+ *
+ * Snapshotting is what makes resuming exact: the previous implementation
+ * re-resolved the audience on every batch and sliced it by offset, so any row
+ * that moved between requests shifted everything after it — some people were
+ * mailed twice and others never at all, silently.
+ */
+export const hackathonAnnouncementRecipients = pgTable(
+  "hackathon_announcement_recipient",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    announcementId: uuid("announcement_id")
+      .notNull()
+      .references(() => hackathonAnnouncements.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** The address as it was at compose time, so a later change cannot cause a
+     *  second delivery to the same person under a new address. */
+    email: text("email").notNull(),
+    sentAt: timestamp("sent_at"),
+    /** Set when the provider rejected this address, so a retry can tell a
+     *  never-attempted recipient from a failed one. */
+    failedAt: timestamp("failed_at"),
+  },
+  (table) => [
+    index("hackathon_announcement_recipient_pending_idx").on(
+      table.announcementId,
+      table.sentAt,
+    ),
+    // One delivery per person per announcement, enforced by the database rather
+    // than by the batching arithmetic that used to get it wrong.
+    unique("unique_announcement_recipient").on(
+      table.announcementId,
+      table.userId,
+    ),
+  ],
+);
+
+export const hackathonAnnouncementsRelations = relations(
+  hackathonAnnouncements,
+  ({ one, many }) => ({
+    hackathon: one(hackathons, {
+      fields: [hackathonAnnouncements.hackathonId],
+      references: [hackathons.id],
+    }),
+    recipients: many(hackathonAnnouncementRecipients),
+  }),
+);
+
+export const hackathonAnnouncementRecipientsRelations = relations(
+  hackathonAnnouncementRecipients,
+  ({ one }) => ({
+    announcement: one(hackathonAnnouncements, {
+      fields: [hackathonAnnouncementRecipients.announcementId],
+      references: [hackathonAnnouncements.id],
     }),
   }),
 );

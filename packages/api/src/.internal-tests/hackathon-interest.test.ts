@@ -15,7 +15,14 @@ import { hackathonInterest } from "@query/db";
 const mockFindFirst = vi.fn();
 const mockInsert = vi.fn();
 const mockDelete = vi.fn();
+const mockUpdate = vi.fn();
 const mockSelectRows = vi.fn(() => [] as unknown[]);
+const mockSendRegistrationOpen = vi.fn();
+
+vi.mock("@query/auth/email", () => ({
+  sendRegistrationOpenEmail: (...args: unknown[]) =>
+    mockSendRegistrationOpen(...args),
+}));
 
 vi.mock("@query/db", () => {
   const selectChain = () => {
@@ -68,6 +75,16 @@ vi.mock("@query/db", () => {
             returning: vi.fn().mockResolvedValue(val),
           });
         },
+      }),
+      update: (...updateArgs: any[]) => ({
+        set: (...setArgs: any[]) => ({
+          where: (...wArgs: any[]) => {
+            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
+            return Object.assign(Promise.resolve(val), {
+              returning: vi.fn().mockResolvedValue(val),
+            });
+          },
+        }),
       }),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
@@ -149,7 +166,9 @@ describe("Hackathon interest list", () => {
     mockFindFirst.mockReset();
     mockInsert.mockReset().mockReturnValue([]);
     mockDelete.mockReset().mockReturnValue([]);
+    mockUpdate.mockReset().mockReturnValue([]);
     mockSelectRows.mockReset().mockReturnValue([]);
+    mockSendRegistrationOpen.mockReset().mockResolvedValue(undefined);
     cache.clear();
   });
 
@@ -166,6 +185,95 @@ describe("Hackathon interest list", () => {
     it("answers null when nothing is announced", async () => {
       lookups({ hackathon: undefined });
       await expect(callerFor().hackathon.getUpcoming()).resolves.toBeNull();
+    });
+
+    /**
+     * /hacklytics is the only public entrance to the hackathon — the 2027
+     * site's single CTA and the navbar both land there. Filtering to
+     * `announced` alone meant the page went blank the moment registration
+     * opened, which is the moment it matters most.
+     */
+    it("still renders once registration opens, and says so", async () => {
+      lookups({ hackathon: announced({ status: "open" }) });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.name).toBe("Example Hackathon");
+      expect(res?.registrationOpen).toBe(true);
+    });
+
+    it("reports an announced edition as not yet open", async () => {
+      lookups({ hackathon: announced() });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.registrationOpen).toBe(false);
+    });
+  });
+
+  describe("5. Telling the list registration opened", () => {
+    /**
+     * The list exists for this one moment and nothing sent it — the runbook
+     * told organisers to hand-compose an announcement instead.
+     */
+    it("emails everyone pending and marks each one as it goes", async () => {
+      lookups({ hackathon: announced({ status: "open" }), isAdmin: true });
+      mockSelectRows.mockReturnValue([
+        { id: "int_1", email: "ada@example.com" },
+        { id: "int_2", email: "grace@example.com" },
+      ]);
+
+      const res = await callerFor(ADMIN).hackathon.notifyRegistrationOpen({
+        hackathonId: HACK,
+      });
+
+      expect(res).toMatchObject({ sent: 2, done: true });
+      expect(mockSendRegistrationOpen).toHaveBeenCalledTimes(2);
+      // The marker is what makes a closed tab safe to reopen: one write per
+      // recipient, not one at the end of the batch.
+      expect(mockUpdate).toHaveBeenCalledTimes(2);
+      expect(mockUpdate.mock.calls[0]![2][0]).toHaveProperty(
+        "registrationOpenEmailSentAt",
+      );
+    });
+
+    // Everyone who acts on the mail would land on a closed registration page.
+    it("refuses while registration is still closed", async () => {
+      lookups({ hackathon: announced({ status: "announced" }), isAdmin: true });
+
+      await expect(
+        callerFor(ADMIN).hackathon.notifyRegistrationOpen({
+          hackathonId: HACK,
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(mockSendRegistrationOpen).not.toHaveBeenCalled();
+    });
+
+    // A rejected address must not stop the rest of the batch, and must not be
+    // marked as sent — otherwise it is silently never retried.
+    it("keeps going when one address is rejected", async () => {
+      lookups({ hackathon: announced({ status: "open" }), isAdmin: true });
+      mockSelectRows.mockReturnValue([
+        { id: "int_1", email: "bounces@example.com" },
+        { id: "int_2", email: "grace@example.com" },
+      ]);
+      mockSendRegistrationOpen.mockRejectedValueOnce(new Error("550 rejected"));
+
+      const res = await callerFor(ADMIN).hackathon.notifyRegistrationOpen({
+        hackathonId: HACK,
+      });
+
+      expect(res.sent).toBe(1);
+      expect(res.failed).toEqual(["bounces@example.com"]);
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it("is refused to a caller who is not an admin", async () => {
+      lookups({ hackathon: announced({ status: "open" }), isAdmin: false });
+
+      await expect(
+        callerFor(VISITOR).hackathon.notifyRegistrationOpen({
+          hackathonId: HACK,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
 
