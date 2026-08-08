@@ -5,6 +5,7 @@ import {
   splitName,
 } from "./membership";
 import type { DrizzleDB } from "../client";
+import { membershipHistory } from "../schemas/members";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -61,6 +62,7 @@ function fakeHackathons(rows: Record<string, unknown>[]) {
 function fakeDb(existingMember: Record<string, unknown> | undefined) {
   const updates: Record<string, unknown>[] = [];
   const inserts: Record<string, unknown>[] = [];
+  const historyInserts: Record<string, unknown>[] = [];
 
   const db = {
     query: {
@@ -74,14 +76,28 @@ function fakeDb(existingMember: Record<string, unknown> | undefined) {
         },
       }),
     }),
-    insert: () => ({
-      values: async (values: Record<string, unknown>) => {
-        inserts.push(values);
+    // Which table an insert targets decides which recorder it lands in, so a
+    // test can assert the membership_history row separately from the member
+    // row. Identity against the imported table objects, because the service
+    // passes them straight through.
+    insert: (table: unknown) => ({
+      values: (values: Record<string, unknown>) => {
+        (table === membershipHistory ? historyInserts : inserts).push(values);
+        // `.returning()` on the member insert is what gives the history row its
+        // memberId, so the fake has to be both awaitable and returning-able.
+        const rows = [{ id: "member_new" }];
+        return {
+          returning: async () => rows,
+          then: (
+            resolve: (v: typeof rows) => unknown,
+            reject: (e: unknown) => unknown,
+          ) => Promise.resolve(rows).then(resolve, reject),
+        };
       },
     }),
   } as unknown as DrizzleDB;
 
-  return { db, updates, inserts };
+  return { db, updates, inserts, historyInserts };
 }
 
 describe("resolveCurrentHackathonId", () => {
@@ -200,6 +216,54 @@ describe("createOrUpdateMembership", () => {
     const end = inserts[0]?.membershipEndDate as Date;
     expect(end.getTime()).toBeGreaterThan(Date.now() + 360 * DAY);
     expect(inserts[0]?.renewalCount).toBe(0);
+    // No edition column any more: a membership is annual and belongs to the
+    // person, so nothing here may name a hackathon.
+    expect(inserts[0]).not.toHaveProperty("hackathonId");
+  });
+
+  /**
+   * membership_history is the only record of which years somebody was a member
+   * now that the hackathon column is gone — the table existed for a long time
+   * with nothing ever writing to it.
+   */
+  it("records a joined history row for a new member", async () => {
+    const { db, historyInserts } = fakeDb(undefined);
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(historyInserts).toHaveLength(1);
+    expect(historyInserts[0]?.action).toBe("joined");
+    expect(historyInserts[0]?.memberId).toBe("member_new");
+    expect(historyInserts[0]?.endDate).toBeInstanceOf(Date);
+  });
+
+  it("records a renewed history row spanning the new term", async () => {
+    const existingEnd = new Date(Date.now() + 100 * DAY);
+    const { db, historyInserts } = fakeDb({
+      id: "m1",
+      renewalCount: 1,
+      membershipEndDate: existingEnd,
+      phoneNumber: null,
+    });
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(historyInserts).toHaveLength(1);
+    expect(historyInserts[0]?.action).toBe("renewed");
+    expect(historyInserts[0]?.memberId).toBe("m1");
+    // The renewal overwrites membershipEndDate in place, so the history row is
+    // what preserves where the new term started.
+    expect((historyInserts[0]?.startDate as Date).getTime()).toBe(
+      existingEnd.getTime(),
+    );
   });
 
   /**

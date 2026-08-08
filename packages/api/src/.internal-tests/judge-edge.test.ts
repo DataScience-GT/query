@@ -45,6 +45,7 @@ vi.mock("@query/db", () => {
       "orderBy",
       "limit",
       "offset",
+      "for",
     ]) {
       chain[m] = (...a: any[]) => {
         trace.push([m, a]);
@@ -67,7 +68,6 @@ vi.mock("@query/db", () => {
         hackathonProjects: table("hackathonProjects"),
         hackathonEvents: table("hackathonEvents"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
-        hackathonMaps: table("hackathonMaps"),
         members: table("members"),
         events: table("events"),
         eventCheckIns: table("eventCheckIns"),
@@ -76,6 +76,7 @@ vi.mock("@query/db", () => {
         judgingProjects: table("judgingProjects"),
         judgeVotes: table("judgeVotes"),
         judgeQueue: table("judgeQueue"),
+        hackathonResults: table("hackathonResults"),
         stripePayments: table("stripePayments"),
         userAccountLinks: table("userAccountLinks"),
         auditLogs: table("auditLogs"),
@@ -133,13 +134,17 @@ vi.mock("@query/db", () => {
       registrationStatus: "registration_status",
     },
     hackathonTeams: { id: "id", hackathonId: "hackathon_id", name: "name" },
-    hackathonProjects: { id: "id", hackathonId: "hackathon_id" },
+    hackathonProjects: {
+      id: "id",
+      hackathonId: "hackathon_id",
+      status: "status",
+      submittedAt: "submitted_at",
+    },
     hackathonEvents: { id: "id", hackathonId: "hackathon_id", name: "name" },
     hackathonEventAttendees: {
       eventId: "event_id",
       participantId: "participant_id",
     },
-    hackathonMaps: { id: "id", hackathonId: "hackathon_id", order: "order" },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
     membershipHistory: { id: "id", memberId: "member_id" },
     events: {
@@ -168,6 +173,7 @@ vi.mock("@query/db", () => {
     judgingProjects: {
       id: "id",
       hackathonId: "hackathon_id",
+      sourceProjectId: "source_project_id",
       tableNumber: "table_number",
       tracks: "tracks",
       challenges: "challenges",
@@ -179,6 +185,14 @@ vi.mock("@query/db", () => {
       projectId: "project_id",
       score: "score",
       durationSeconds: "duration_seconds",
+    },
+    hackathonResults: {
+      id: "id",
+      hackathonId: "hackathon_id",
+      projectId: "project_id",
+      track: "track",
+      placement: "placement",
+      publishedAt: "published_at",
     },
     judgeQueue: {
       id: "id",
@@ -511,10 +525,21 @@ describe("Judge edge cases", () => {
 
   // =====================================================================
   describe("5. forceSkipOvertime reassignment", () => {
+    /**
+     * Candidate selection now runs two set-based queries rather than two per
+     * candidate: who already holds this project, and each judge's uncompleted
+     * count. The mocks mirror that shape — feeding the old per-candidate
+     * counts here would make these tests pass without exercising the sort.
+     */
     const wireForceSkip = (opts: {
       myAssignment?: Record<string, unknown>;
       others: Record<string, unknown>[];
-      remaining: number[];
+      /** judgeIds already holding the skipped project */
+      holders?: string[];
+      /** judgeId -> uncompleted queue length */
+      remaining?: Record<string, number>;
+      /** the judge's own next uncompleted slot, if any */
+      next?: Record<string, unknown>;
     }) => {
       const nextQueue = seq([
         { id: QUEUE_A, hackathonId: HACK_A }, // isJudge middleware lookup
@@ -525,7 +550,8 @@ describe("Judge edge cases", () => {
           projectId: PROJECT_A,
           project: { id: PROJECT_A, tracks: [] },
         },
-        // one "already queued?" lookup per candidate — all undefined
+        // the "what do I do next" lookup at the end
+        opts.next,
       ]);
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "judges") return JUDGE_ROW;
@@ -540,9 +566,15 @@ describe("Judge edge cases", () => {
       mockFindMany.mockImplementation((table: string) =>
         table === "judgeAssignments" ? opts.others : [],
       );
-      for (const n of opts.remaining) {
-        mockSelect.mockReturnValueOnce([{ count: n }]);
-      }
+      mockSelect.mockReturnValueOnce(
+        (opts.holders ?? []).map((judgeId) => ({ judgeId })),
+      );
+      mockSelect.mockReturnValueOnce(
+        Object.entries(opts.remaining ?? {}).map(([judgeId, remaining]) => ({
+          judgeId,
+          remaining,
+        })),
+      );
     };
 
     // BUG: portal.ts:428-486 draws candidates from every judgeAssignments row
@@ -565,13 +597,68 @@ describe("Judge edge cases", () => {
             judge: { id: "active_judge", isActive: true },
           },
         ],
-        remaining: [0, 4],
+        remaining: { inactive_judge: 0, active_judge: 4 },
       });
 
       await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
 
       const reassigned = insertedRows().find((r: any) => r.projectId === PROJECT_A);
       expect(reassigned?.judgeId).toBe("active_judge");
+    });
+
+    // A judge already holding this project must not be handed it twice — they
+    // would see the same table appear again later in their own queue.
+    it("never hands the project to a judge who already has it", async () => {
+      wireForceSkip({
+        others: [
+          {
+            judgeId: "has_it",
+            track: null,
+            judge: { id: "has_it", isActive: true },
+          },
+          {
+            judgeId: "free_judge",
+            track: null,
+            judge: { id: "free_judge", isActive: true },
+          },
+        ],
+        holders: [JUDGE_ID, "has_it"],
+        remaining: { has_it: 0, free_judge: 9 },
+      });
+
+      await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
+
+      const reassigned = insertedRows().find(
+        (r: any) => r.projectId === PROJECT_A,
+      );
+      expect(reassigned?.judgeId).toBe("free_judge");
+    });
+
+    // Between two eligible judges the lighter queue wins, so the reassigned
+    // project is actually reached before judging closes.
+    it("prefers the judge with the fewest projects left", async () => {
+      wireForceSkip({
+        others: [
+          {
+            judgeId: "busy",
+            track: null,
+            judge: { id: "busy", isActive: true },
+          },
+          {
+            judgeId: "light",
+            track: null,
+            judge: { id: "light", isActive: true },
+          },
+        ],
+        remaining: { busy: 11, light: 2 },
+      });
+
+      await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
+
+      const reassigned = insertedRows().find(
+        (r: any) => r.projectId === PROJECT_A,
+      );
+      expect(reassigned?.judgeId).toBe("light");
     });
 
     // BUG: portal.ts:422-424 loads myAssignment with no hackathonId filter and
@@ -588,7 +675,7 @@ describe("Judge edge cases", () => {
             judge: { id: "active_judge", isActive: true },
           },
         ],
-        remaining: [1],
+        remaining: { active_judge: 1 },
       });
 
       await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
@@ -597,11 +684,40 @@ describe("Judge edge cases", () => {
       expect(reassigned?.hackathonId).toBe(HACK_A);
     });
 
+    // Both siblings (completeAndNext, skipProject) stamp startedAt on the slot
+    // they hand over. Without it here the next table stays unclaimed and the
+    // following judge to ask for work is sent to the table this judge just
+    // walked up to.
+    it("claims the table it hands the judge next", async () => {
+      wireForceSkip({
+        others: [],
+        next: {
+          id: "queue_next",
+          judgeId: JUDGE_ID,
+          hackathonId: HACK_A,
+          projectId: "project_next",
+          project: { id: "project_next", tracks: [] },
+        },
+      });
+
+      const res = await judgeCaller().judge.forceSkipOvertime({
+        queueId: QUEUE_A,
+      });
+
+      expect(res.queueId).toBe("queue_next");
+      const claimed = mockUpdate.mock.calls.some(
+        (call: any) =>
+          call[2]?.[0]?.startedAt instanceof Date &&
+          !("isCompleted" in (call[2]?.[0] ?? {})),
+      );
+      expect(claimed).toBe(true);
+    });
+
     // BUG: with no judgeAssignments row the whole reassignment block is
     // skipped (portal.ts:426) yet the response still looks like a success, so
     // the project is dropped with nobody left to judge it.
     it("reports that nothing was reassigned when the judge has no assignment row", async () => {
-      wireForceSkip({ myAssignment: undefined, others: [], remaining: [] });
+      wireForceSkip({ myAssignment: undefined, others: [] });
 
       const res = await judgeCaller().judge.forceSkipOvertime({
         queueId: QUEUE_A,
@@ -742,9 +858,16 @@ describe("Judge edge cases", () => {
 
   // =====================================================================
   describe("7. initializeQueue track filtering", () => {
-    const wireInit = (track: string, projects: Record<string, unknown>[]) => {
+    const wireInit = (
+      track: string,
+      projects: Record<string, unknown>[],
+      judgeHackathonId: string = HACK_A,
+    ) => {
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "admins") return ADMIN_ROW;
+        // The judge's own edition. initializeQueue reads this to refuse
+        // building a queue nobody could ever open.
+        if (table === "judges") return { hackathonId: judgeHackathonId };
         if (table === "judgeAssignments")
           return { judgeId: JUDGE_ID, hackathonId: HACK_A, track };
         return undefined;
@@ -798,6 +921,26 @@ describe("Judge edge cases", () => {
       });
 
       expect(res.projectCount).toBe(1);
+    });
+
+    /**
+     * A judges row belongs to one hackathon and isJudge authorizes against it,
+     * so a queue built across editions can never be opened — the projects in
+     * it are simply never scored, with nothing anywhere reporting a problem.
+     * assignToHackathon already refuses this; this path did not.
+     */
+    it("refuses to build a queue for a judge from another hackathon", async () => {
+      wireInit("Sports", pool, HACK_B);
+
+      await expect(
+        adminCaller().judge.initializeQueue({
+          judgeId: JUDGE_ID,
+          hackathonId: HACK_A,
+          shuffle: false,
+        }),
+      ).rejects.toThrow(/different hackathon/i);
+
+      expect(mockDelete).not.toHaveBeenCalled();
     });
   });
 
@@ -858,58 +1001,96 @@ describe("Judge edge cases", () => {
   });
 
   // =====================================================================
-  describe("9. Bulk import", () => {
-    const wireExistingJudge = () => {
-      mockFindFirst.mockImplementation((table: string) => {
-        if (table === "admins") return ADMIN_ROW;
-        if (table === "users") return { id: "u1", email: "ada@example.com" };
-        if (table === "judges") return { id: JUDGE_ID, userId: "u1" };
-        if (table === "judgeAssignments")
-          return { judgeId: JUDGE_ID, hackathonId: HACK_A };
-        return undefined;
-      });
-    };
-
-    const importOne = () =>
-      adminCaller().judge.bulkImportJudges({
-        hackathonId: HACK_A,
-        judges: [{ name: "Ada", email: "ada@example.com" }],
-      });
-
-    it("writes nothing when the judge, user and assignment already exist", async () => {
-      wireExistingJudge();
-
-      await importOne();
-
-      expect(mockInsert).not.toHaveBeenCalled();
-    });
-
-    // BUG: admin.ts:309 increments results.created for every row that did not
-    // throw, including rows where nothing was created, so the admin is told
-    // judges were imported when none were.
-    it("counts only judges that were actually created", async () => {
-      wireExistingJudge();
-
-      const res = await importOne();
-
-      expect(res.created).toBe(0);
-    });
-
-    // BUG: admin.ts:366-369 calls .values(rows) unconditionally; an empty CSV
-    // produces .values([]) which Drizzle rejects, turning a plausible admin
-    // action into a 500.
-    it("returns a zero-row result for an empty project import", async () => {
+  describe("9. Promoting submissions into judging", () => {
+    const asAdmin = () =>
       mockFindFirst.mockImplementation((table: string) =>
         table === "admins" ? ADMIN_ROW : undefined,
       );
 
-      const res = await adminCaller().judge.bulkImportProjects({
+    const submission = (id: string, extra: Record<string, unknown> = {}) => ({
+      id,
+      hackathonId: HACK_A,
+      name: `Project ${id}`,
+      description: "d",
+      tracks: ["AI"],
+      challenges: null,
+      isCreateX: false,
+      teamMembers: ["Ada", "Grace"],
+      githubUrl: null,
+      demoUrl: null,
+      team: null,
+      ...extra,
+    });
+
+    it("writes nothing when no project has been submitted", async () => {
+      asAdmin();
+      mockFindMany.mockReturnValue([]);
+
+      const res = await adminCaller().judge.promoteSubmissions({
         hackathonId: HACK_A,
-        projects: [],
       });
 
-      expect(res.created).toBe(0);
+      expect(res).toMatchObject({ created: 0, total: 0 });
       expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    // The whole point of the source link: an organiser presses this again as
+    // late submissions land, and must not get a second copy of every project
+    // with a fresh table number.
+    it("skips submissions that are already judgeable", async () => {
+      asAdmin();
+      mockFindMany.mockImplementation((table: string) => {
+        if (table === "hackathonProjects")
+          return [submission("s1"), submission("s2")];
+        if (table === "judgingProjects")
+          return [{ id: "jp1", sourceProjectId: "s1", tableNumber: 7 }];
+        return [];
+      });
+      mockSelect.mockResolvedValue([{ count: 0 }]);
+
+      const res = await adminCaller().judge.promoteSubmissions({
+        hackathonId: HACK_A,
+      });
+
+      expect(res).toMatchObject({ created: 1, alreadyPresent: 1, total: 2 });
+
+      const rows = mockInsert.mock.calls[0]?.[2]?.[0];
+      expect(rows).toHaveLength(1);
+      expect(rows[0].sourceProjectId).toBe("s2");
+      // Numbering continues past the highest table already handed out.
+      expect(rows[0].tableNumber).toBe(8);
+    });
+
+    // hackathon_project.teamMembers is text[]; judging_project.teamMembers is
+    // a single text column. Assigning the array straight across puts
+    // "[object Object]" on a judge's screen.
+    it("flattens the team member array into the scalar column", async () => {
+      asAdmin();
+      mockFindMany.mockImplementation((table: string) =>
+        table === "hackathonProjects" ? [submission("s1")] : [],
+      );
+      mockSelect.mockResolvedValue([{ count: 0 }]);
+
+      await adminCaller().judge.promoteSubmissions({ hackathonId: HACK_A });
+
+      const rows = mockInsert.mock.calls[0]?.[2]?.[0];
+      expect(rows[0].teamMembers).toBe("Ada, Grace");
+    });
+
+    // Queues are built from a snapshot of the project list. A project promoted
+    // afterwards is in nobody's queue and would never be judged, silently.
+    it("warns when queues already exist and new projects were added", async () => {
+      asAdmin();
+      mockFindMany.mockImplementation((table: string) =>
+        table === "hackathonProjects" ? [submission("s1")] : [],
+      );
+      mockSelect.mockResolvedValue([{ count: 12 }]);
+
+      const res = await adminCaller().judge.promoteSubmissions({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.queuesNeedRebuild).toBe(true);
     });
   });
 
@@ -1153,6 +1334,68 @@ describe("Judge edge cases", () => {
         (call) => call[2]?.[0]?.startedAt instanceof Date,
       );
       expect(claimWrite).toBeDefined();
+    });
+  });
+
+  // =====================================================================
+  describe("12. Freezing results", () => {
+    const wireResults = (opts: {
+      judgingActive?: boolean;
+      published?: Record<string, unknown>;
+    }) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "hackathons")
+          return { id: HACK_A, judgingActive: opts.judgingActive ?? false };
+        if (table === "hackathonResults") return opts.published;
+        return undefined;
+      });
+      mockFindMany.mockReturnValue([]);
+    };
+
+    /**
+     * The z-score normalisation runs over the whole vote set, so one late vote
+     * shifts every project's score. A snapshot taken while judging is live is
+     * already stale by the time anyone reads it.
+     */
+    it("refuses to freeze results while judging is still live", async () => {
+      wireResults({ judgingActive: true });
+
+      await expect(
+        adminCaller().judge.computeResults({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/still live/i);
+
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    it("computes once judging has closed", async () => {
+      wireResults({ judgingActive: false });
+
+      const res = await adminCaller().judge.computeResults({
+        hackathonId: HACK_A,
+      });
+
+      // No projects wired, so nothing to place — but it got past the guard.
+      expect(res).toMatchObject({ computed: 0 });
+    });
+
+    // Recomputing under a published ordering would change placings people
+    // have already been told about, with no record that it happened.
+    it("refuses to recompute over published results", async () => {
+      wireResults({ judgingActive: false, published: { id: "r1" } });
+
+      await expect(
+        adminCaller().judge.computeResults({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/already published/i);
+    });
+
+    it("refuses to publish when nothing has been computed", async () => {
+      wireResults({ judgingActive: false });
+      mockUpdate.mockReturnValue([]);
+
+      await expect(
+        adminCaller().judge.publishResults({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/compute the results first/i);
     });
   });
 });

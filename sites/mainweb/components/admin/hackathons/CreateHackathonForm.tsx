@@ -4,6 +4,21 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 
+/**
+ * Comma-separated text to the array the API stores, or null when empty.
+ *
+ * Judge assignment matches these strings exactly, so entries are trimmed and
+ * blanks dropped — a stray ", " would otherwise become a track no project can
+ * ever be matched against.
+ */
+const splitList = (value: string): string[] | null => {
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : null;
+};
+
 export function CreateHackathonForm({
   onClose,
   onCreated,
@@ -20,6 +35,11 @@ export function CreateHackathonForm({
   const [regDeadline, setRegDeadline] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
   const [theme, setTheme] = useState("");
+  // Set at creation so judge assignment has something to match on from the
+  // start; the edit form can change them later.
+  const [tracks, setTracks] = useState("");
+  const [challenges, setChallenges] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [status, setStatus] = useState<"draft" | "announced" | "open">("draft");
   const [error, setError] = useState("");
 
@@ -46,6 +66,9 @@ export function CreateHackathonForm({
         : undefined,
       maxParticipants: maxParticipants ? parseInt(maxParticipants) : undefined,
       theme: theme.trim() || undefined,
+      tracks: splitList(tracks) ?? undefined,
+      challenges: splitList(challenges) ?? undefined,
+      websiteUrl: websiteUrl.trim() || undefined,
       status,
     });
   }
@@ -131,6 +154,61 @@ export function CreateHackathonForm({
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
               placeholder="Data for Good"
+              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="create-tracks"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
+              Tracks
+            </label>
+            <input
+              id="create-tracks"
+              type="text"
+              value={tracks}
+              onChange={(e) => setTracks(e.target.value)}
+              placeholder="AI, Healthcare, Finance"
+              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+            />
+            <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
+              Comma separated. Teams pick from these when they submit, and
+              judges are matched on them.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="create-challenges"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
+              Sponsor Challenges
+            </label>
+            <input
+              id="create-challenges"
+              type="text"
+              value={challenges}
+              onChange={(e) => setChallenges(e.target.value)}
+              placeholder="AWS, MongoDB, Capital One"
+              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="create-website"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
+              Website URL
+            </label>
+            <input
+              id="create-website"
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://hacklytics.io"
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
             />
           </div>
@@ -260,9 +338,17 @@ export function CreateHackathonForm({
               type="number"
               value={maxParticipants}
               onChange={(e) => setMaxParticipants(e.target.value)}
-              placeholder="500"
+              placeholder="Leave blank for no cap"
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
             />
+            {/* This number counts APPLICATIONS, pending ones included — not
+                people you have accepted. Setting it to your venue capacity
+                closes registration before anyone has been reviewed. */}
+            <p className="text-[10px] font-mono text-amber-300/80 mt-1 leading-relaxed">
+              Counts applications, including unreviewed ones. Set it to your
+              venue size and registration closes before you have accepted
+              anyone. Leave blank and close registration by deadline instead.
+            </p>
           </div>
           <div>{/* empty cell for layout */}</div>
         </div>

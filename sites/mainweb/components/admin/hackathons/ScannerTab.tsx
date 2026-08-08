@@ -20,7 +20,33 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   const { data: events, isLoading } = trpc.hackathon.getEvents.useQuery({
     hackathonId,
   });
-  const scanPassMutation = trpc.hackathon.scanParticipantPass.useMutation();
+  const utils = trpc.useUtils();
+
+  const roster = trpc.hackathon.getEventAttendees.useQuery(
+    { hackathonId, eventId: selectedEventId },
+    { enabled: !!selectedEventId },
+  );
+
+  const removeAttendance = trpc.hackathon.removeEventAttendance.useMutation({
+    onSuccess: () => {
+      utils.hackathon.getEventAttendees.invalidate({
+        hackathonId,
+        eventId: selectedEventId,
+      });
+      utils.hackathon.getEvents.invalidate({ hackathonId });
+    },
+    onError: (error) => window.alert(error.message),
+  });
+
+  const scanPassMutation = trpc.hackathon.scanParticipantPass.useMutation({
+    onSuccess: () => {
+      // Keeps the list below the scanner honest as badges come in.
+      utils.hackathon.getEventAttendees.invalidate({
+        hackathonId,
+        eventId: selectedEventId,
+      });
+    },
+  });
 
   const handleScan = async (detectedCodes: { rawValue: string }[]) => {
     if (isProcessing || !detectedCodes || detectedCodes.length === 0) return;
@@ -161,6 +187,80 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           <span>Scan User</span>
         </button>
       </LiquidGlass>
+
+      {/* Who has been scanned into this event, and the way back out. A station
+          left on the wrong event used to produce check-ins nobody could see or
+          remove. */}
+      {selectedEventId && (
+        <LiquidGlass className="p-6 w-full max-w-md mt-6 rounded-none border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+              Checked In
+            </h3>
+            <span className="text-xs font-mono text-[var(--text-subtle)]">
+              {roster.data?.matching ?? 0} total
+            </span>
+          </div>
+
+          {roster.isLoading ? (
+            <p className="text-xs font-mono text-[var(--text-subtle)] animate-pulse">
+              Loading...
+            </p>
+          ) : (roster.data?.attendees.length ?? 0) === 0 ? (
+            <p className="text-xs font-mono text-[var(--text-subtle)]">
+              Nobody has scanned into this event yet.
+            </p>
+          ) : (
+            <ul className="space-y-2 max-h-80 overflow-y-auto">
+              {roster.data?.attendees.map((row) => {
+                const name =
+                  row.participant?.user?.name ||
+                  [row.participant?.firstName, row.participant?.lastName]
+                    .filter(Boolean)
+                    .join(" ") ||
+                  row.participant?.user?.email ||
+                  "Unknown";
+                return (
+                  <li
+                    key={row.id}
+                    className="flex items-center justify-between gap-3 border border-[var(--border-subtle)] px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-[var(--text-primary)] truncate">
+                        {name}
+                      </p>
+                      <p className="text-[10px] font-mono text-[var(--text-subtle)]">
+                        {new Date(row.checkedInAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={removeAttendance.isPending}
+                      onClick={() => {
+                        if (!row.participant?.id) return;
+                        if (
+                          !window.confirm(
+                            `Remove ${name}'s check-in from this event?`,
+                          )
+                        )
+                          return;
+                        removeAttendance.mutate({
+                          hackathonId,
+                          eventId: selectedEventId,
+                          participantId: row.participant.id,
+                        });
+                      }}
+                      className="px-2 py-1 border border-red-500/30 text-red-400 text-[10px] font-mono uppercase tracking-wider hover:bg-red-500/10 transition-colors disabled:opacity-40 shrink-0"
+                    >
+                      Undo
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </LiquidGlass>
+      )}
     </div>
   );
 }

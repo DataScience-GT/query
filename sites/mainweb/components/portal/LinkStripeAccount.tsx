@@ -45,6 +45,7 @@ export default function LinkStripeAccount({
     clientSecret: string;
     publishableKey: string;
     isMock: boolean;
+    mockPaymentIntentId?: string;
   } | null>(null);
 
   const utils = trpc.useUtils();
@@ -393,6 +394,7 @@ export default function LinkStripeAccount({
           clientSecret={paymentData.clientSecret}
           publishableKey={paymentData.publishableKey}
           isMock={paymentData.isMock}
+          mockPaymentIntentId={paymentData.mockPaymentIntentId}
           onSuccess={handlePaymentSuccess}
           onConfirmPayment={async (paymentIntentId) => {
             await confirmMutation.mutateAsync({ paymentIntentId });
