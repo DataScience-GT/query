@@ -51,3 +51,16 @@ env:
     value: datascience.gt@gmail.com
   - variable: CRON_SECRET
     secret: CRON_SECRET
+  # Flood-protection thresholds, sized per instance for a full venue.
+  # These are the ceiling for one signed-in person, not for the building —
+  # the limiter keys on user id when somebody is signed in. The short block
+  # duration bounds a false positive to a page refresh rather than locking
+  # an attendee out for five minutes in the middle of a workshop.
+  - variable: DDOS_BURST_THRESHOLD
+    value: "3000"
+  - variable: DDOS_MAX_REQUESTS_PER_MINUTE
+    value: "20000"
+  - variable: DDOS_SUSPICIOUS_THRESHOLD
+    value: "14000"
+  - variable: DDOS_BLOCK_DURATION_MS
+    value: "30000"

@@ -180,16 +180,21 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   callbacks: {
+    /**
+     * Deliberately does no database work beyond what the adapter already did.
+     *
+     * With the database session strategy this callback runs on every single
+     * request, so anything queried here is queried once per request per user.
+     * A judge lookup used to live here to set `session.user.isJudge` — with
+     * 2000 attendees, none of whom are judges, that was a second connection
+     * checkout per request across the whole fleet.
+     *
+     * Judge status is read from `user.getPortalContext` (cached) and
+     * `judge.isJudge` instead, which is where every consumer already gets it.
+     */
     async session({ session, user }) {
-      if (user && session.user && db) {
+      if (user && session.user) {
         session.user.id = user.id;
-
-        // Add judge status to session for easier client-side checks
-        const judge = await db.query.judges.findFirst({
-          where: (j, { eq }) => eq(j.userId, user.id),
-        });
-        // @ts-expect-error - custom property
-        session.user.isJudge = !!judge;
       }
       return session;
     },
