@@ -36,6 +36,37 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     },
   });
 
+  const { data: resultsDraft } = trpc.judge.getResultsDraft.useQuery({
+    hackathonId,
+  });
+
+  const [resultsError, setResultsError] = useState<string | null>(null);
+
+  const refreshResults = () => {
+    utils.judge.getResultsDraft.invalidate({ hackathonId });
+    setResultsError(null);
+  };
+
+  const computeResults = trpc.judge.computeResults.useMutation({
+    onSuccess: refreshResults,
+    // Refuses while judging is live, and says why. Forcing is offered only
+    // after that has been read.
+    onError: (error) => setResultsError(error.message),
+  });
+
+  const publishResults = trpc.judge.publishResults.useMutation({
+    onSuccess: refreshResults,
+    onError: (error) => setResultsError(error.message),
+  });
+
+  const unpublishResults = trpc.judge.unpublishResults.useMutation({
+    onSuccess: refreshResults,
+    onError: (error) => setResultsError(error.message),
+  });
+
+  const isPublished = resultsDraft?.some((row) => row.publishedAt) ?? false;
+  const hasDraft = (resultsDraft?.length ?? 0) > 0;
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedJudgeId, setSelectedJudgeId] = useState("");
   const [assignTrack, setAssignTrack] = useState("");
@@ -121,6 +152,106 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             {judgingStatus?.active ? "Stop Judging" : "Start Judging"}
           </button>
         </div>
+      </LiquidGlass>
+
+      {/* Results — computed once judging closes, reviewed, then published. */}
+      <LiquidGlass className="p-6 border-[var(--border-subtle)]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
+              <Gavel className="w-4 h-4 text-amber-400" />
+              Results
+            </h3>
+            <p className="text-xs font-mono text-[var(--text-subtle)]">
+              {!hasDraft
+                ? "Not computed yet. Scores move with every vote until you freeze them."
+                : isPublished
+                  ? `Published — ${resultsDraft?.length} placing(s) visible to everyone.`
+                  : `Draft ready — ${resultsDraft?.length} placing(s), not yet visible.`}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setResultsError(null);
+                computeResults.mutate({
+                  hackathonId,
+                  // Only forced once the refusal has been shown.
+                  force: !!resultsError,
+                });
+              }}
+              disabled={computeResults.isPending || isPublished}
+              className="px-5 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest rounded-none hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {computeResults.isPending
+                ? "Computing..."
+                : resultsError
+                  ? "Compute anyway"
+                  : hasDraft
+                    ? "Recompute"
+                    : "Compute"}
+            </button>
+            {hasDraft &&
+              (isPublished ? (
+                <button
+                  type="button"
+                  onClick={() => unpublishResults.mutate({ hackathonId })}
+                  disabled={unpublishResults.isPending}
+                  className="px-5 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-red-500/20 transition-colors disabled:opacity-30"
+                >
+                  {unpublishResults.isPending ? "..." : "Unpublish"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        `Publish ${resultsDraft?.length} placing(s)? Everyone will see them immediately.`,
+                      )
+                    )
+                      return;
+                    publishResults.mutate({ hackathonId });
+                  }}
+                  disabled={publishResults.isPending}
+                  className="px-5 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-amber-500/20 transition-colors disabled:opacity-30"
+                >
+                  {publishResults.isPending ? "..." : "Publish"}
+                </button>
+              ))}
+          </div>
+        </div>
+
+        {resultsError && (
+          <p
+            role="alert"
+            className="mt-4 text-xs font-mono text-amber-300 leading-relaxed"
+          >
+            {resultsError}
+          </p>
+        )}
+
+        {hasDraft && (
+          <ol className="mt-5 space-y-1 max-h-64 overflow-y-auto">
+            {resultsDraft?.slice(0, 20).map((row) => (
+              <li
+                key={row.id}
+                className="flex items-center justify-between gap-3 text-xs font-mono border-b border-[var(--border-subtle)] py-2"
+              >
+                <span className="text-[var(--text-primary)] truncate">
+                  <span className="text-accent font-bold mr-3">
+                    #{row.placement}
+                  </span>
+                  {row.project?.name ?? "Unknown"}
+                </span>
+                <span className="text-[var(--text-subtle)] shrink-0">
+                  {row.weightedScore ?? "—"} · {row.voteCount} vote(s)
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
       </LiquidGlass>
 
       {/* Stats */}

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { InfoTab } from "@/components/hackathon/InfoTab";
 import { ScheduleTab } from "@/components/hackathon/ScheduleTab";
 import { ProjectsTab } from "@/components/hackathon/ProjectsTab";
+import { ResultsTab } from "@/components/hackathon/ResultsTab";
 import { TeamsTab } from "@/components/hackathon/TeamsTab";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 
@@ -108,13 +109,14 @@ function statusConfig(s: string) {
   );
 }
 
-type TabType = "INFO" | "SCHEDULE" | "PROJECTS" | "TEAMS";
+type TabType = "INFO" | "SCHEDULE" | "PROJECTS" | "TEAMS" | "RESULTS";
 
 const TABS: { id: TabType; label: string }[] = [
   { id: "INFO", label: "Info & Register" },
   { id: "SCHEDULE", label: "Schedule & QR" },
   { id: "PROJECTS", label: "Project Gallery" },
   { id: "TEAMS", label: "Find Teams" },
+  { id: "RESULTS", label: "Results" },
 ];
 
 export default function HackathonDetailPage() {
@@ -364,6 +366,8 @@ export default function HackathonDetailPage() {
               hackathonId={hackathon.id}
               isRegistered={isRegistered}
             />
+          ) : tab === "RESULTS" ? (
+            <ResultsTab hackathonId={hackathon.id} />
           ) : tab === "PROJECTS" ? (
             <ProjectsTab hackathonId={hackathon.id} />
           ) : (

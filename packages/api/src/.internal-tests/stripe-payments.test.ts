@@ -20,6 +20,37 @@ import { MEMBERSHIP_CENTS, BOOTCAMP_ADDON_CENTS } from "../services/pricing";
 const mockFindFirst = vi.fn();
 const mockInsert = vi.fn();
 
+/**
+ * The Stripe SDK is stubbed so no test reaches the network.
+ *
+ * Without this, "refuses a mock intent id when not in mock mode" set a fake
+ * secret key and then genuinely called api.stripe.com — the request spent ~23
+ * seconds on SDK retries and failed the whole suite whenever the machine was
+ * offline or slow, for reasons that had nothing to do with the assertion.
+ */
+/** Payment intents `reconcileMyPayments` should find. Set per test. */
+const mockSearchResults = vi.fn<() => unknown[]>(() => []);
+
+vi.mock("stripe", () => ({
+  default: class {
+    paymentIntents = {
+      search: vi.fn(async () => ({ data: mockSearchResults() })),
+      retrieve: vi.fn(async (id: string) => {
+        throw new Error(`No such payment_intent: ${id}`);
+      }),
+      create: vi.fn(async () => ({
+        id: "pi_stub",
+        client_secret: "pi_stub_secret",
+      })),
+    };
+    checkout = {
+      sessions: {
+        create: vi.fn(async () => ({ id: "cs_stub", url: "https://stub" })),
+      },
+    };
+  },
+}));
+
 vi.mock("@query/db", () => {
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
@@ -34,6 +65,7 @@ vi.mock("@query/db", () => {
         members: table("members"),
         hackathons: table("hackathons"),
         stripePayments: table("stripePayments"),
+        membershipHistory: table("membershipHistory"),
         userAccountLinks: table("userAccountLinks"),
         admins: table("admins"),
       },
@@ -146,11 +178,58 @@ describe("Membership payments", () => {
 
       const result = await caller().stripe.createPaymentIntent();
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         clientSecret: "mock_pi_secret",
         publishableKey: "pk_test_local",
         isMock: true,
       });
+      // A unique id per call, so two developers (or two runs) do not collide
+      // on confirmMembershipAfterPayment's idempotency check.
+      expect(result.mockPaymentIntentId).toMatch(/^pi_mock_[0-9a-f]{32}$/);
+    });
+
+    /**
+     * The whole point of mock mode. It previously returned a fake secret and
+     * wrote nothing, while the modal called onSuccess() directly — so the UI
+     * said "Access Granted" with no payment row and no member row anywhere,
+     * and the club half could not be developed locally at all.
+     *
+     * Asserting the returned shape (as the test above does) proves nothing
+     * about what was written, which is exactly how this survived the suite.
+     */
+    it("grants a real membership through the production confirm path", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      const { mockPaymentIntentId } = await caller().stripe.createPaymentIntent();
+
+      await caller().stripe.confirmMembershipAfterPayment({
+        paymentIntentId: mockPaymentIntentId!,
+      });
+
+      // This file mocks insert as mockInsert(valArgs), so the row is c[0][0].
+      const written = mockInsert.mock.calls.map((c) => c[0]?.[0]);
+      // A payment row, recorded under the same synthetic session id the
+      // webhook uses so the two settle each other's race.
+      expect(
+        written.some((row) => row?.stripeSessionId === `pi_${mockPaymentIntentId}`),
+      ).toBe(true);
+      // And the membership itself.
+      expect(written.some((row) => row?.userId === USER && row?.firstName)).toBe(
+        true,
+      );
+    });
+
+    // isMockMode() is false whenever NODE_ENV=production regardless of the
+    // flag, so the live site cannot be talked into minting free memberships.
+    it("refuses a mock intent id when not in mock mode", async () => {
+      delete process.env.STRIPE_MOCK_MODE;
+      process.env.STRIPE_SECRET_KEY = "sk_test_abc";
+
+      await expect(
+        caller().stripe.confirmMembershipAfterPayment({
+          paymentIntentId: "pi_mock_deadbeefdeadbeefdeadbeefdeadbeef",
+        }),
+      ).rejects.toThrow();
     });
 
     it("falls back to a placeholder publishable key when none is set", async () => {
@@ -288,6 +367,75 @@ describe("Membership payments", () => {
       });
 
       expect(insertedAmount()).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
+    });
+  });
+
+  /**
+   * Reported by review on #316, and correct.
+   *
+   * The webhook records the payment first and grants the membership after, so
+   * a grant that throws leaves a payment row linked to the user with no
+   * membership behind it. Every recovery path skipped already-linked payments,
+   * which made that state permanent: charged customer, payment on file,
+   * nothing ever retrying.
+   */
+  describe("recovering a payment whose membership grant failed", () => {
+    const PAID_AT = new Date("2026-03-01T12:00:00Z");
+
+    const paidIntent = {
+      id: "pi_stranded",
+      amount: MEMBERSHIP_CENTS,
+      currency: "usd",
+      status: "succeeded",
+      metadata: { type: "membership", userId: USER },
+    };
+
+    const wire = (opts: { history?: unknown }) => {
+      process.env.STRIPE_SECRET_KEY = "sk_test_abc";
+      mockSearchResults.mockReturnValue([paidIntent]);
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users")
+          return { id: USER, email: "member@gatech.edu", name: "Buzz Member" };
+        if (table === "stripePayments")
+          return {
+            id: "pay_1",
+            stripePaymentIntentId: paidIntent.id,
+            linkedUserId: USER,
+            paymentStatus: "paid",
+            createdAt: PAID_AT,
+          };
+        if (table === "members") return { id: "member_1" };
+        if (table === "membershipHistory") return opts.history;
+        return undefined;
+      });
+    };
+
+    it("grants the membership when no history row covers the payment", async () => {
+      wire({ history: undefined });
+
+      const res = await caller().stripe.reconcileMyPayments();
+
+      expect(res.recovered).toBe(1);
+      // A member row already exists (the profile), so the term is written as a
+      // renewal — what matters is that a history row records the grant at all.
+      const written = mockInsert.mock.calls.map((c) => c[0]?.[0]);
+      expect(
+        written.some((row) => row?.action === "renewed" || row?.action === "joined"),
+      ).toBe(true);
+    });
+
+    /**
+     * The other half of the rule: a membership granted a year ago and since
+     * lapsed must NOT be silently renewed off that old payment. The history row
+     * is what distinguishes "never honoured" from "honoured and expired".
+     */
+    it("leaves an already-honoured payment alone", async () => {
+      wire({ history: { id: "hist_1" } });
+
+      const res = await caller().stripe.reconcileMyPayments();
+
+      expect(res.recovered).toBe(0);
+      expect(mockInsert).not.toHaveBeenCalled();
     });
   });
 });

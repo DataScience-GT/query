@@ -76,7 +76,10 @@ export default function AnalyticsPage() {
 
   const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
     undefined,
-    { enabled: !!session, refetchInterval: 5000 },
+    // Matched to the server's cache entry. Polling faster only produced
+    // repeated cache hits and a request per tab per 5s for numbers that move
+    // on a much slower clock.
+    { enabled: !!session, refetchInterval: 15000 },
   );
 
   if (status === "unauthenticated") {
