@@ -104,11 +104,10 @@ export async function fetchPortalContext(
   db: DrizzleDB,
   userId: string,
 ): Promise<PortalContext> {
-  const [admin, hackathonId, judgeRecord, leaderRecord] = await Promise.all([
+  const [admin, judgeRecord, leaderRecord] = await Promise.all([
     db.query.admins.findFirst({
       where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
     }),
-    resolveHackathonId(db),
     db.query.judges.findFirst({
       where: and(eq(judges.userId, userId), eq(judges.isActive, true)),
       columns: { id: true, name: true },
@@ -124,18 +123,12 @@ export async function fetchPortalContext(
     }),
   ]);
 
-  let member = EMPTY_MEMBER_CONTEXT;
-
-  // Membership is still scoped to the edition, so it waits for one to resolve.
-  if (hackathonId) {
-    const memberRecord = await db.query.members.findFirst({
-      where: and(
-        eq(members.userId, userId),
-        eq(members.hackathonId, hackathonId),
-      ),
-    });
-    member = buildMemberContext(memberRecord ?? null);
-  }
+  // Membership no longer depends on an edition resolving, so the portal knows
+  // who is a member even when no hackathon is running.
+  const memberRecord = await db.query.members.findFirst({
+    where: eq(members.userId, userId),
+  });
+  const member = buildMemberContext(memberRecord ?? null);
 
   const isProjectLeader = !!leaderRecord;
 
@@ -152,8 +145,10 @@ export async function fetchPortalContext(
     judgeName: judgeRecord?.name ?? null,
     // Admins cover for leaders, and the middleware agrees — so the tab has to
     // appear for them too or staff see a page they are allowed to use but
-    // cannot reach.
-    isProjectLeader: isProjectLeader || !!admin,
+    // cannot reach. isStaffRole, not `!!admin`: a volunteer holds an admins
+    // row but isProjectLeader (procedures.ts) rejects them, so the bare truthy
+    // check advertised /lead to the one role that cannot open it.
+    isProjectLeader: isProjectLeader || isStaffRole(admin?.role),
     member,
   };
 }

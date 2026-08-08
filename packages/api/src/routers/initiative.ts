@@ -12,7 +12,6 @@ import type { DrizzleDB, Initiative } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin, isProjectLeader } from "../middleware/procedures";
 import { clearProjectLeaderCaches } from "../middleware/cache";
-import { resolveHackathonId } from "../services/portal-context";
 
 const notFound = (message = "Initiative not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
@@ -76,17 +75,13 @@ function canManage(
  * live membership to check, which refuses rather than waving everyone through.
  */
 async function requireActiveMember(db: Reader, userId: string) {
-  const hackathonId = await resolveHackathonId(db as DrizzleDB);
-
-  const member = hackathonId
-    ? await db.query.members.findFirst({
-        where: and(
-          eq(members.userId, userId),
-          eq(members.hackathonId, hackathonId),
-        ),
-        columns: { isActive: true, membershipEndDate: true },
-      })
-    : undefined;
+  // Initiatives were deliberately un-scoped from hackathons; membership now is
+  // too. This previously resolved a current edition and refused everyone when
+  // none existed, which is how the club half went dead outside event season.
+  const member = await db.query.members.findFirst({
+    where: eq(members.userId, userId),
+    columns: { isActive: true, membershipEndDate: true },
+  });
 
   const active = !!(
     member?.isActive &&
@@ -444,7 +439,8 @@ export const initiativeRouter = createTRPCRouter({
         }
 
         // Two leaders clicking the same button: the second is a no-op, so
-        // decidedAt keeps pointing at the real decision.
+        // decidedAt keeps pointing at the real decision — and no second email
+        // goes out, because there is no second decision.
         if (application.status === input.decision) {
           return { status: application.status };
         }

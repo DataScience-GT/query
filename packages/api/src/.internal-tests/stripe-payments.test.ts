@@ -20,6 +20,33 @@ import { MEMBERSHIP_CENTS, BOOTCAMP_ADDON_CENTS } from "../services/pricing";
 const mockFindFirst = vi.fn();
 const mockInsert = vi.fn();
 
+/**
+ * The Stripe SDK is stubbed so no test reaches the network.
+ *
+ * Without this, "refuses a mock intent id when not in mock mode" set a fake
+ * secret key and then genuinely called api.stripe.com — the request spent ~23
+ * seconds on SDK retries and failed the whole suite whenever the machine was
+ * offline or slow, for reasons that had nothing to do with the assertion.
+ */
+vi.mock("stripe", () => ({
+  default: class {
+    paymentIntents = {
+      retrieve: vi.fn(async (id: string) => {
+        throw new Error(`No such payment_intent: ${id}`);
+      }),
+      create: vi.fn(async () => ({
+        id: "pi_stub",
+        client_secret: "pi_stub_secret",
+      })),
+    };
+    checkout = {
+      sessions: {
+        create: vi.fn(async () => ({ id: "cs_stub", url: "https://stub" })),
+      },
+    };
+  },
+}));
+
 vi.mock("@query/db", () => {
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
@@ -146,11 +173,58 @@ describe("Membership payments", () => {
 
       const result = await caller().stripe.createPaymentIntent();
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         clientSecret: "mock_pi_secret",
         publishableKey: "pk_test_local",
         isMock: true,
       });
+      // A unique id per call, so two developers (or two runs) do not collide
+      // on confirmMembershipAfterPayment's idempotency check.
+      expect(result.mockPaymentIntentId).toMatch(/^pi_mock_[0-9a-f]{32}$/);
+    });
+
+    /**
+     * The whole point of mock mode. It previously returned a fake secret and
+     * wrote nothing, while the modal called onSuccess() directly — so the UI
+     * said "Access Granted" with no payment row and no member row anywhere,
+     * and the club half could not be developed locally at all.
+     *
+     * Asserting the returned shape (as the test above does) proves nothing
+     * about what was written, which is exactly how this survived the suite.
+     */
+    it("grants a real membership through the production confirm path", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      const { mockPaymentIntentId } = await caller().stripe.createPaymentIntent();
+
+      await caller().stripe.confirmMembershipAfterPayment({
+        paymentIntentId: mockPaymentIntentId!,
+      });
+
+      // This file mocks insert as mockInsert(valArgs), so the row is c[0][0].
+      const written = mockInsert.mock.calls.map((c) => c[0]?.[0]);
+      // A payment row, recorded under the same synthetic session id the
+      // webhook uses so the two settle each other's race.
+      expect(
+        written.some((row) => row?.stripeSessionId === `pi_${mockPaymentIntentId}`),
+      ).toBe(true);
+      // And the membership itself.
+      expect(written.some((row) => row?.userId === USER && row?.firstName)).toBe(
+        true,
+      );
+    });
+
+    // isMockMode() is false whenever NODE_ENV=production regardless of the
+    // flag, so the live site cannot be talked into minting free memberships.
+    it("refuses a mock intent id when not in mock mode", async () => {
+      delete process.env.STRIPE_MOCK_MODE;
+      process.env.STRIPE_SECRET_KEY = "sk_test_abc";
+
+      await expect(
+        caller().stripe.confirmMembershipAfterPayment({
+          paymentIntentId: "pi_mock_deadbeefdeadbeefdeadbeefdeadbeef",
+        }),
+      ).rejects.toThrow();
     });
 
     it("falls back to a placeholder publishable key when none is set", async () => {

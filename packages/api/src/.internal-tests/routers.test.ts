@@ -644,8 +644,9 @@ describe("Router Integration and Access Control Verification Suite", () => {
     });
 
     it("should ensure backslash escapes in sql queries are checked securely", () => {
-      // Drizzle handles parameterization automatically, so raw inputs are never interpolated directly.
-      // We test that inputs containing backslashes are sanitized/passed as single literals.
+      // Drizzle handles parameterization automatically, so raw inputs are never
+      // interpolated directly. We test that inputs containing backslashes are
+      // sanitized/passed as single literals.
       const dangerousValue = "value\\' OR \\'1\\'=\\'1";
       const cleanValue = sanitizeInput(dangerousValue);
       expect(typeof cleanValue).toBe("string");
@@ -1077,11 +1078,19 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(updated.status).toBe("open");
     });
 
-    it("should allow admin to delete a hackathon", async () => {
+    it("should allow a super admin to delete a hackathon", async () => {
       const ctx = createMockCtx("admin_user_id");
       mockFindFirst.mockImplementation((table) => {
         if (table === "admins") {
-          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
+          // Deleting an edition is super-admin only: isAdmin never checked
+          // role, so the default "admin" could destroy every participant,
+          // team, project and vote attached to it.
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "super_admin",
+            isActive: true,
+          };
         }
         if (table === "hackathons") {
           return { id: hackathonId, name: "Test Hackathon" };
@@ -1289,7 +1298,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
   describe("11. Member Registration, Renewal, and Status Tracking", () => {
     const hackathonId = "00000000-0000-0000-0000-000000000040";
 
-    it("should register a user as a member for a hackathon", async () => {
+    it("should register a user as a member", async () => {
       const ctx = createMockCtx("user_member_1");
 
       mockFindFirst.mockImplementation((table) => {
@@ -1316,7 +1325,6 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
       const caller = appRouter.createCaller(ctx);
       const member = await caller.member.register({
-        hackathonId,
         firstName: "John",
         lastName: "Doe",
         phoneNumber: "+14045550123",
@@ -1330,7 +1338,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(mockInsert).toHaveBeenCalledTimes(1);
     });
 
-    it("should reject duplicate member registration for the same hackathon", async () => {
+    it("should reject duplicate member registration", async () => {
       const ctx = createMockCtx("user_member_1");
 
       mockFindFirst.mockImplementation((table) => {
@@ -1342,11 +1350,10 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const caller = appRouter.createCaller(ctx);
       await expect(
         caller.member.register({
-          hackathonId,
           firstName: "John",
           lastName: "Doe",
         }),
-      ).rejects.toThrowError("You are already a member for this hackathon");
+      ).rejects.toThrowError("You already have a member profile");
     });
 
     it("should return correct membership status and days remaining", async () => {
@@ -1370,7 +1377,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       });
 
       const caller = appRouter.createCaller(ctx);
-      const status = await caller.member.checkStatus({ hackathonId });
+      const status = await caller.member.checkStatus();
 
       expect(status.isMember).toBe(true);
       expect(status.isActive).toBe(true);

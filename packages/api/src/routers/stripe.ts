@@ -272,8 +272,14 @@ export const stripeRouter = createTRPCRouter({
       // Checked before the key, matching createCheckoutSession, so local
       // development needs no Stripe key at all.
       if (isMockMode()) {
+        // A real, unique id so the mock flow goes through the SAME
+        // confirmMembershipAfterPayment path production uses — including its
+        // idempotency check on stripePaymentIntentId. A fixed placeholder
+        // would collide across runs and make the second developer's payment a
+        // silent no-op.
         return {
           clientSecret: "mock_pi_secret",
+          mockPaymentIntentId: `pi_mock_${crypto.randomUUID().replace(/-/g, "")}`,
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
         };
@@ -354,18 +360,52 @@ export const stripeRouter = createTRPCRouter({
   confirmMembershipAfterPayment: protectedProcedure
     .input(z.object({ paymentIntentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      // No key-mode check here: this path hands no publishable key to the
-      // client, so the two cannot disagree.
-      const stripe = await getStripe();
-      if (!stripe) {
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message: "Payment service unavailable.",
-        });
+      // Mock mode grants the membership through this same procedure rather
+      // than a parallel branch, so local development exercises the production
+      // path: same idempotency check, same membership service, same cache
+      // eviction. Previously the modal called onSuccess() directly and the UI
+      // reported "Access Granted" with nothing written anywhere.
+      //
+      // isMockMode() is false whenever NODE_ENV=production regardless of the
+      // flag, so this cannot mint free memberships on the live site.
+      const mock = isMockMode() && input.paymentIntentId.startsWith("pi_mock_");
+
+      // Only the fields this procedure reads. Structural rather than Stripe's
+      // own type so the mock object can satisfy it without inventing the
+      // hundred properties a real PaymentIntent carries.
+      let pi: {
+        id: string;
+        status: string;
+        amount: number;
+        currency: string;
+        customer?: string | { id: string } | null;
+        receipt_email?: string | null;
+        metadata?: Record<string, string>;
+      };
+
+      if (mock) {
+        pi = {
+          id: input.paymentIntentId,
+          status: "succeeded",
+          amount: priceForCents(false),
+          currency: "usd",
+          metadata: { userId: ctx.userId!, bootcamp: "false" },
+        };
+      } else {
+        // No key-mode check here: this path hands no publishable key to the
+        // client, so the two cannot disagree.
+        const stripe = await getStripe();
+        if (!stripe) {
+          throw new TRPCError({
+            code: "SERVICE_UNAVAILABLE",
+            message: "Payment service unavailable.",
+          });
+        }
+
+        // Verify with Stripe that payment actually succeeded
+        pi = await stripe.paymentIntents.retrieve(input.paymentIntentId);
       }
 
-      // Verify with Stripe that payment actually succeeded
-      const pi = await stripe.paymentIntents.retrieve(input.paymentIntentId);
       if (pi.status !== "succeeded") {
         throw new TRPCError({
           code: "BAD_REQUEST",

@@ -5,9 +5,12 @@ import {
   hackathonParticipants,
   hackathonProjects,
   hackathonResults,
+  judgingProjects,
 } from "@query/db";
 import { eq, and, inArray, isNotNull } from "drizzle-orm";
 import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
+import { recordAdminAction } from "../../middleware/audit";
+import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
 
 // Same visibility rule as getPublicProjects: a project only becomes public once
@@ -113,6 +116,27 @@ export const hackathonContentRouter = createTRPCRouter({
         .set({ status: "draft", submittedAt: null, updatedAt: new Date() })
         .where(eq(hackathonProjects.id, input.projectId));
 
+      // The judging entry has to go with it, or the CONFLICT message above is
+      // a lie: judges keep being routed to the table, the votes keep counting,
+      // and the project can still be computed and published as a placing.
+      await db
+        .update(judgingProjects)
+        .set({ withdrawnAt: new Date() })
+        .where(eq(judgingProjects.sourceProjectId, input.projectId));
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "hackathon.adminWithdrawProject",
+        resourceId: input.projectId,
+        // Pulling a project judges are actively scoring changes the results.
+        severity: existing.status === "judging" ? "critical" : "warn",
+        metadata: {
+          hackathonId: existing.hackathonId,
+          previousStatus: existing.status,
+          forced: input.force,
+        },
+      });
+
       ctx.cache.delete(`hackathon:${existing.hackathonId}:projects`);
       ctx.cache.deletePattern(
         `hackathon:${existing.hackathonId}:public-projects*`,
@@ -131,6 +155,8 @@ export const hackathonContentRouter = createTRPCRouter({
   getResults: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      await assertHackathonVisible(ctx, input.hackathonId);
+
       const cacheKey = `hackathon:${input.hackathonId}:results`;
 
       const fetchResults = () =>
@@ -163,6 +189,8 @@ export const hackathonContentRouter = createTRPCRouter({
   projects: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      await assertHackathonVisible(ctx, input.hackathonId);
+
       const fetchProjects = () =>
         (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
           where: eq(hackathonProjects.hackathonId, input.hackathonId),
@@ -254,6 +282,8 @@ export const hackathonContentRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
+      await assertHackathonVisible(ctx, input.hackathonId);
+
       const cacheKey = `hackathon:${input.hackathonId}:public-projects:${input.limit}:${input.offset}`;
 
       const fetchPage = () =>

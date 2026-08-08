@@ -628,9 +628,6 @@ describe("Participant edge cases", () => {
       return callerFor("user_a");
     };
 
-    // BUG: createTeam/joinTeam/submitProject only assert that a participant row
-    // exists (team.ts:98, 170, 445) — registrationStatus is never inspected,
-    // unlike hackathon.scanParticipantPass.
     it.each(["rejected", "waitlisted"])(
       "keeps a %s applicant out of teams and out of judging",
       async (status) => {
@@ -951,30 +948,26 @@ describe("Participant edge cases", () => {
       expect(res.daysRemaining).toBeNull();
     });
 
-    // BUG: getHackathonId (member.ts:20-27) resolves the default hackathon by
-    // `orderBy desc(startDate)` with no status or date filter, so a future draft
-    // hijacks every member lookup the moment staff create next year's event.
-    it("resolves the hackathon in progress, not next year's draft", async () => {
-      const catalogue = [
-        { id: HACK_A, status: "open", startDate: new Date(Date.now() - DAY) },
-        {
-          id: HACK_NEXT,
-          status: "draft",
-          startDate: new Date(Date.now() + 300 * DAY),
-        },
-      ];
-      mockFindFirst.mockImplementation((table, args) => {
+    /**
+     * A membership used to be keyed on (userId, hackathonId), so the day a new
+     * edition opened every read resolved to it, matched no row, and every
+     * paying member silently became a non-member. Membership status must not
+     * consult the hackathon table at all now.
+     */
+    it("reports a member as a member even with a newer edition open", async () => {
+      const hackathonReads: unknown[] = [];
+      mockFindFirst.mockImplementation((table) => {
         if (table === "hackathons") {
-          if (args?.orderBy)
-            return [...catalogue].sort(
-              (a, b) => b.startDate.getTime() - a.startDate.getTime(),
-            )[0];
-          return catalogue[0];
+          hackathonReads.push(table);
+          return {
+            id: HACK_NEXT,
+            status: "open",
+            startDate: new Date(Date.now() + 300 * DAY),
+          };
         }
         if (table === "members")
           return {
             id: "member_1",
-            hackathonId: HACK_A,
             isActive: true,
             memberType: "continuous",
             renewalCount: 1,
@@ -986,8 +979,10 @@ describe("Participant edge cases", () => {
       const res = await callerFor("user_a").member.checkStatus();
 
       expect(res.isMember).toBe(true);
-      // The cache key records which hackathon the lookup actually targeted.
-      expect(cache.get(`member:status:user_a:${HACK_A}`)).not.toBeNull();
+      expect(hackathonReads).toHaveLength(0);
+      // The cache key is keyed on the person alone — nothing evicts an
+      // edition-scoped key, which is how a stale "not a member" survived.
+      expect(cache.get(`member:status:user_a`)).not.toBeNull();
     });
   });
 
@@ -1163,4 +1158,5 @@ describe("Participant edge cases", () => {
       await expect(caller.user.updateProfile({})).rejects.toThrow();
     });
   });
+
 });

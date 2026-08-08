@@ -3,8 +3,16 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { hackathons } from "@query/db";
 import { eq, and, gte, notInArray } from "drizzle-orm";
-import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
-import { isForeignKeyViolation } from "../../middleware/db-errors";
+import {
+  callerIsAdmin,
+  isAdmin,
+  isSuperAdmin,
+} from "../../middleware/procedures";
+import {
+  isForeignKeyViolation,
+  isUniqueViolation,
+} from "../../middleware/db-errors";
+import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
@@ -234,12 +242,26 @@ export const hackathonCrudRouter = createTRPCRouter({
         ),
     )
     .mutation(async ({ ctx, input }) => {
-      const [newHackathon] = await (ctx.db as DrizzleDB)
-        .insert(hackathons)
-        .values({
-          ...input,
-        })
-        .returning();
+      let newHackathon;
+      try {
+        [newHackathon] = await (ctx.db as DrizzleDB)
+          .insert(hackathons)
+          .values({
+            ...input,
+          })
+          .returning();
+      } catch (error) {
+        // unique_hackathon_name. Admin URLs are built from the name, so a
+        // duplicate would make one of the two unreachable — worth saying
+        // plainly rather than surfacing a driver error.
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `A hackathon named "${input.name}" already exists. Names are used in admin links, so they have to be distinct.`,
+          });
+        }
+        throw error;
+      }
 
       ctx.cache.deletePattern("hackathons:*");
 
@@ -339,14 +361,25 @@ export const hackathonCrudRouter = createTRPCRouter({
         });
       }
 
-      const [updatedHackathon] = await (ctx.db as DrizzleDB)
-        .update(hackathons)
-        .set({
-          ...updateData,
-          updatedAt: new Date(),
-        })
-        .where(eq(hackathons.id, id))
-        .returning();
+      let updatedHackathon;
+      try {
+        [updatedHackathon] = await (ctx.db as DrizzleDB)
+          .update(hackathons)
+          .set({
+            ...updateData,
+            updatedAt: new Date(),
+          })
+          .where(eq(hackathons.id, id))
+          .returning();
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Another hackathon is already named "${updateData.name}". Names are used in admin links, so they have to be distinct.`,
+          });
+        }
+        throw error;
+      }
 
       ctx.cache.delete(CacheKeys.hackathon(id));
       ctx.cache.deletePattern("hackathons:*");
@@ -355,7 +388,15 @@ export const hackathonCrudRouter = createTRPCRouter({
     }),
 
 
-  delete: isAdmin
+  /**
+   * Super-admin only.
+   *
+   * isAdmin never checks `role`, so the default "admin" and "moderator" both
+   * passed — every staff account could destroy an edition. Verified three
+   * active super_admin rows exist before narrowing this, because a gate with
+   * nobody behind it is an outage rather than a control.
+   */
+  delete: isSuperAdmin
     .input(
       z.object({
         hackathonId: z.string().uuid(),
@@ -419,6 +460,15 @@ export const hackathonCrudRouter = createTRPCRouter({
           message: "Hackathon not found",
         });
       }
+
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "hackathon.delete",
+        resourceId: hackathonId,
+        severity: "critical",
+        // The name is recorded because the row it came from no longer exists.
+        metadata: { name: existing.name },
+      });
 
       ctx.cache.delete(CacheKeys.hackathon(hackathonId));
       ctx.cache.deletePattern("hackathons:*");

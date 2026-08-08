@@ -2,8 +2,9 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter } from "../../trpc";
 import { hackathonResults, hackathons, judgingProjects } from "@query/db";
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, sql , isNull } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
+import { recordAdminAction } from "../../middleware/audit";
 import type { DrizzleDB } from "@query/db";
 import { zNormalize } from "./helpers";
 
@@ -16,7 +17,11 @@ import { zNormalize } from "./helpers";
  */
 async function computeRanking(db: DrizzleDB, hackathonId: string) {
   const projects = await db.query.judgingProjects.findMany({
-    where: eq(judgingProjects.hackathonId, hackathonId),
+    // Withdrawn entries stop counting toward the ordering.
+    where: and(
+      eq(judgingProjects.hackathonId, hackathonId),
+      isNull(judgingProjects.withdrawnAt),
+    ),
     with: {
       votes: {
         with: {
@@ -407,18 +412,27 @@ export const judgeRankingsRouter = createTRPCRouter({
       // two implementations of a scoring formula is two answers to "who won".
       const { rankings } = await computeRanking(db, input.hackathonId);
 
-      if (rankings.length === 0) {
-        return { computed: 0 };
+      // A project nobody scored is not a placing. computeRanking gives every
+      // unjudged entry a weightedScore of 0, so including them would publish
+      // hundreds of rows tied at zero in arbitrary order below the real
+      // results — and "47th place" is a worse thing to tell a team than
+      // nothing at all.
+      const placed = rankings.filter((row) => row.voteCount > 0);
+
+      if (placed.length === 0) {
+        return { computed: 0, unjudged: rankings.length };
       }
 
       await db
         .insert(hackathonResults)
         .values(
-          rankings.map((row, index) => ({
+          placed.map((row, index) => ({
             hackathonId: input.hackathonId,
             projectId: row.project.id,
             sourceProjectId: row.project.sourceProjectId ?? null,
-            track: null,
+            // Never null — see the column comment. A NULL here silently
+            // defeats result_unique_placing and duplicates the ordering.
+            track: "overall",
             placement: index + 1,
             weightedScore: row.weightedScore.toFixed(2),
             voteCount: row.voteCount,
@@ -440,7 +454,12 @@ export const judgeRankingsRouter = createTRPCRouter({
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:results`);
 
-      return { computed: rankings.length };
+      // Reported separately so an organiser can see that, say, 40 of 300
+      // projects were never reached before they publish.
+      return {
+        computed: placed.length,
+        unjudged: rankings.length - placed.length,
+      };
     }),
 
   /** What has been computed, published or not. Admin review before release. */
@@ -470,6 +489,14 @@ export const judgeRankingsRouter = createTRPCRouter({
         });
       }
 
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "judge.publishResults",
+        resourceId: input.hackathonId,
+        severity: "warn",
+        metadata: { placings: rows.length },
+      });
+
       ctx.cache.delete(`hackathon:${input.hackathonId}:results`);
 
       return { published: rows.length };
@@ -485,6 +512,15 @@ export const judgeRankingsRouter = createTRPCRouter({
         .set({ publishedAt: null })
         .where(eq(hackathonResults.hackathonId, input.hackathonId))
         .returning({ id: hackathonResults.id });
+
+      // Taking results back down after people have seen them.
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "judge.unpublishResults",
+        resourceId: input.hackathonId,
+        severity: "critical",
+        metadata: { placings: rows.length },
+      });
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:results`);
 

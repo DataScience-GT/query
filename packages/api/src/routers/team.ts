@@ -42,6 +42,32 @@ export function computeTeamWindow(baseTime: Date, now: Date) {
   };
 }
 
+/**
+ * The submission window, as three moments and the state between them.
+ *
+ * Exported and used by `submitProject` itself, so the page and the procedure
+ * cannot disagree: /submit rendered no window state at all, which meant an
+ * attendee could write a full description and learn it was refused only when
+ * they pressed submit.
+ */
+export function computeSubmissionWindow(baseTime: Date, now: Date) {
+  const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
+
+  const opensAt = at(TEAM_WINDOW_OPEN_HOURS);
+  /** After this, an existing submission is frozen — new ones still land. */
+  const editsCloseAt = at(TEAM_WINDOW_CLOSE_HOURS);
+  const closesAt = at(SUBMISSION_HARD_DEADLINE_HOURS);
+
+  return {
+    opensAt,
+    editsCloseAt,
+    closesAt,
+    isOpen: now >= opensAt && now <= closesAt,
+    notYetOpen: now < opensAt,
+    canEditExisting: now >= opensAt && now <= editsCloseAt,
+  };
+}
+
 async function loadTeamWindow(db: DrizzleDB, hackathonId: string) {
   const hackathon = await db.query.hackathons.findFirst({
     where: eq(hackathons.id, hackathonId),
@@ -625,15 +651,10 @@ export const teamRouter = createTRPCRouter({
 
       const now = new Date();
       const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
-      const startSubmission = new Date(
-        baseTime.getTime() + 12 * 60 * 60 * 1000,
-      );
-      const devpostFinalDeadline = new Date(
-        baseTime.getTime() + 34 * 60 * 60 * 1000,
-      );
-      const hardDeadline = new Date(baseTime.getTime() + 36 * 60 * 60 * 1000);
+      const window = computeSubmissionWindow(baseTime, now);
+      const devpostFinalDeadline = window.editsCloseAt;
 
-      if (now < startSubmission) {
+      if (window.notYetOpen) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
@@ -641,7 +662,7 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      if (now > hardDeadline) {
+      if (now > window.closesAt) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
@@ -726,7 +747,16 @@ export const teamRouter = createTRPCRouter({
                   githubUrl,
                   demoUrl,
                   videoUrl,
-                  status: "submitted",
+                  // Only ever forward, never backwards. Writing "submitted"
+                  // unconditionally let a team editing a demo link after
+                  // promotion knock their project out of "judging" — which
+                  // re-opened withdrawProject's status guard and let them
+                  // withdraw a project judges were actively scoring.
+                  status:
+                    existingProject.status === "judging" ||
+                    existingProject.status === "winner"
+                      ? existingProject.status
+                      : "submitted",
                   submittedAt: new Date(),
                 })
                 .where(eq(hackathonProjects.id, existingProject.id))
@@ -930,6 +960,39 @@ export const teamRouter = createTRPCRouter({
    * a solo hacker sees a blank form over a live submission, and saving a typo
    * fix silently wipes the links they had already filed.
    */
+  /**
+   * The submission window for one edition, so /submit can say whether it is
+   * open before somebody fills the form in. Same computation the mutation
+   * enforces with, so the two cannot drift.
+   */
+  submissionWindow: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: {
+          hackingStartTime: true,
+          startDate: true,
+          status: true,
+        },
+      });
+
+      if (!hackathon) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found.",
+        });
+      }
+
+      const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
+      const window = computeSubmissionWindow(baseTime, new Date());
+
+      return {
+        ...window,
+        cancelled: hackathon.status === "cancelled",
+      };
+    }),
+
   mySubmission: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {

@@ -89,10 +89,28 @@ export const judgingProjects = pgTable(
     // this table while participants submit into hackathon_project, and without
     // this column the two halves share no key at all — a winner could not be
     // mapped back to the team that built it.
+    // set null, not cascade. judge_vote and hackathon_result both cascade off
+    // judging_project.id, so cascading here would make one DELETE on a
+    // submission also erase every score judges gave it and its frozen
+    // published placing. hackathonResults.sourceProjectId is already set null
+    // for the same reason.
     sourceProjectId: uuid("source_project_id").references(
       () => hackathonProjects.id,
-      { onDelete: "cascade" },
+      { onDelete: "set null" },
     ),
+    /**
+     * The code on the team's table card.
+     *
+     * A judge scans this on arrival, which is what starts their scoring clock
+     * — being handed a table in a queue is not the same as standing in front
+     * of it, and the walk between them was previously counted as judging time.
+     * Scanning also proves the judge reached the right table.
+     *
+     * Lives on the judging entry rather than the team because this is exactly
+     * one physical table: a solo submission has no team row, and a team has no
+     * table until its project is promoted.
+     */
+    qrCode: uuid("qr_code").defaultRandom().notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
     tableNumber: integer("table_number").notNull(),
@@ -104,6 +122,16 @@ export const judgingProjects = pgTable(
     tracks: text("tracks").array(), // Enum: Sports, Entertainment, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
     challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
     isCreateX: boolean("is_create_x").default(false),
+    /**
+     * Set when an organiser pulls the submission out of the event.
+     *
+     * A flag rather than a delete: judge_vote cascades off this row, so
+     * deleting would erase scores judges actually gave, and the z-score
+     * normalisation over the remaining votes would shift every other
+     * project. The entry stops being served and stops counting; the record of
+     * what happened survives.
+     */
+    withdrawnAt: timestamp("withdrawn_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -184,8 +212,15 @@ export const hackathonResults = pgTable(
       () => hackathonProjects.id,
       { onDelete: "set null" },
     ),
-    /** Which prize this placing is for. Null is the overall ranking. */
-    track: text("track"),
+    /**
+     * Which prize this placing is for. "overall" is the main ranking.
+     *
+     * NOT NULL deliberately. Postgres unique indexes treat NULLs as distinct,
+     * so a nullable track would make result_unique_placing below match nothing
+     * — every recompute would append a second full ordering instead of
+     * upserting, and nothing in the product deletes result rows.
+     */
+    track: text("track").notNull().default("overall"),
     placement: integer("placement").notNull(),
     /** The blended score at the moment of computation. `numeric` because the
      *  pipeline produces a float — hackathon_project.score is an integer and
@@ -232,6 +267,15 @@ export const judgeQueue = pgTable(
     // (JUDGE_CLAIM_MINUTES) — a judge who closes the tab releases the table on
     // their own rather than blocking it until an admin steps in.
     startedAt: timestamp("started_at"),
+    /**
+     * When the judge scanned the table's QR and actually began.
+     *
+     * Distinct from startedAt, which is the claim stamped when the queue hands
+     * the table over. The gap between them is walking, queueing behind another
+     * judge, and finding the table — none of which is time spent judging, and
+     * all of which used to be counted as it.
+     */
+    arrivedAt: timestamp("arrived_at"),
   },
   (table) => [
     index("queue_judge_id_idx").on(table.judgeId),

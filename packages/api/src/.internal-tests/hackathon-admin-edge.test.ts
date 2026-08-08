@@ -402,7 +402,41 @@ describe("Hackathon admin management edge cases", () => {
 
     // BUG: content.projects is a publicProcedure with no status filter, unlike
     // its sibling getPublicProjects which exists precisely to hide drafts.
+    /**
+     * getById enforced the draft rule on the hackathon row, but its public
+     * children each queried by hackathonId with no such check — so anyone
+     * holding the uuid could read an unannounced edition's full schedule,
+     * gallery and results. NOT_FOUND rather than FORBIDDEN, because
+     * confirming a hidden edition exists is most of the leak.
+     */
+    it("hides a draft edition's schedule, gallery and results from the public", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "draft" } : undefined,
+      );
+      mockFindMany.mockReturnValue([]);
+
+      const anon = publicCaller();
+
+      await expect(
+        anon.hackathon.getEvents({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/not found/i);
+      await expect(
+        anon.hackathon.projects({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/not found/i);
+      await expect(
+        anon.hackathon.getPublicProjects({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/not found/i);
+      await expect(
+        anon.hackathon.getResults({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/not found/i);
+    });
+
     it("hides in-progress project drafts and their scores from rivals", async () => {
+      // The gallery now refuses to serve a hackathon the caller cannot see, so
+      // a visible one has to exist before the project filter is reached.
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
+      );
       mockFindMany.mockReturnValue([
         {
           id: PROJECT,
@@ -474,6 +508,62 @@ describe("Hackathon admin management edge cases", () => {
       });
 
       expect(res.approved).toBe(2);
+    });
+
+    /**
+     * The recovery case. A mass send that died partway leaves everyone before
+     * the failure point already emailed; re-running is the obvious next move,
+     * and without reading the marker it congratulates them all again. An
+     * acceptance email cannot be unsent.
+     */
+    it("does not email anyone who already received their acceptance", async () => {
+      const caller = adminCaller({ hackathons: { name: "Hacklytics 2027" } });
+      mockFindMany.mockReturnValue([
+        {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          acceptanceEmailSentAt: new Date("2026-08-01"),
+          user: { email: "ada@example.com" },
+        },
+        {
+          id: PART_A2,
+          hackathonId: HACK_A,
+          acceptanceEmailSentAt: null,
+          user: { email: "alan@example.com" },
+        },
+      ]);
+
+      const res = await caller.hackathon.sendMassAcceptanceEmails({
+        hackathonId: HACK_A,
+        participantIds: [PART_A1, PART_A2],
+      });
+
+      const mailed = mockSendAcceptanceEmail.mock.calls.map((c) => c[0].email);
+      expect(mailed).toEqual(["alan@example.com"]);
+      expect(res).toMatchObject({ emailed: 1, alreadyEmailed: 1 });
+      // Both are still approved — only the mail is skipped.
+      expect(res.approved).toBe(2);
+    });
+
+    // Deliberately resending is still possible; it just is not the default.
+    it("re-emails everyone when resend is asked for", async () => {
+      const caller = adminCaller({ hackathons: { name: "Hacklytics 2027" } });
+      mockFindMany.mockReturnValue([
+        {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          acceptanceEmailSentAt: new Date("2026-08-01"),
+          user: { email: "ada@example.com" },
+        },
+      ]);
+
+      const res = await caller.hackathon.sendMassAcceptanceEmails({
+        hackathonId: HACK_A,
+        participantIds: [PART_A1],
+        resend: true,
+      });
+
+      expect(res.emailed).toBe(1);
     });
 
     // A send that the provider rejected must not be reported as delivered:
@@ -674,7 +764,9 @@ describe("Hackathon admin management edge cases", () => {
     // Every child table cascades off this row, so reporting success for an id
     // that matched nothing hides a delete that never happened.
     it("refuses to delete a hackathon id that does not exist", async () => {
-      const caller = adminCaller({ hackathons: undefined });
+      // super_admin: deleting an edition is deliberately the narrowest gate
+      // in the product.
+      const caller = adminCaller({ hackathons: undefined }, "super_admin");
       // RETURNING names the rows the statement itself removed; against an id
       // that matches nothing that is the empty set.
       mockDelete.mockReturnValue([]);
@@ -687,12 +779,37 @@ describe("Hackathon admin management edge cases", () => {
       ).rejects.toThrow(/not found/i);
     });
 
+    /**
+     * The audit trail must never be the reason an organiser's action fails.
+     * A delete that succeeded and went unrecorded is bad; a delete refused
+     * because the logging table was busy is worse, and from the outside it is
+     * indistinguishable from the guard doing its job.
+     */
+    it("still deletes when the audit write fails", async () => {
+      const caller = adminCaller(
+        { hackathons: { id: HACK_A, name: "Hacklytics 2027" } },
+        "super_admin",
+      );
+      mockDelete.mockReturnValue([{ id: HACK_A }]);
+      mockInsert.mockImplementation(() => {
+        throw new Error("audit_logs unavailable");
+      });
+
+      await expect(
+        caller.hackathon.delete({
+          hackathonId: HACK_A,
+          confirmName: "Hacklytics 2027",
+        }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
     // Eleven tables cascade off this row. A click-through confirm is one stray
     // Enter key; the name has to be typed and has to match.
     it("refuses to delete when the typed name does not match", async () => {
-      const caller = adminCaller({
-        hackathons: { id: HACK_A, name: "Hacklytics 2027" },
-      });
+      const caller = adminCaller(
+        { hackathons: { id: HACK_A, name: "Hacklytics 2027" } },
+        "super_admin",
+      );
 
       await expect(
         caller.hackathon.delete({

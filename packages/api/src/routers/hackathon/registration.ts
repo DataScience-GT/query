@@ -149,11 +149,11 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             });
           }
 
+          // A membership is annual and edition-independent, so it is keyed on
+          // the person alone; the edition clause used to be here and made a
+          // paying member read as a non-member the moment a new edition opened.
           const member = await tx.query.members.findFirst({
-            where: and(
-              eq(members.userId, ctx.userId as string),
-              eq(members.hackathonId, input.hackathonId),
-            ),
+            where: eq(members.userId, ctx.userId as string),
           });
 
           /**

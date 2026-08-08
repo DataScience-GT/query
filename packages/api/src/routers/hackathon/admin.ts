@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter } from "../../trpc";
 import { isAdmin, isScanner } from "../../middleware/procedures";
 import { isUniqueViolation } from "../../middleware/db-errors";
+import { recordAdminAction } from "../../middleware/audit";
 import {
   hackathons,
   hackathonParticipants,
@@ -169,6 +170,39 @@ export const hackathonAdminRouter = createTRPCRouter({
     }),
 
   /**
+   * Just the ids matching the current filter.
+   *
+   * Exists so "select all" can mean every matching applicant rather than the
+   * fifty on screen. Pagination made the header checkbox select one page, and
+   * a bulk approve that silently covers 50 of 2000 while reporting success is
+   * worse than one that fails outright — the organiser moves on believing the
+   * queue is cleared.
+   *
+   * Ids rather than rows: 2000 uuids is a small payload, and keeping the
+   * mutation id-based means the set is fixed at the moment the organiser
+   * chose it, instead of re-evaluating a filter that may have moved.
+   */
+  adminGetAttendeeIds: isAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        search: z.string().trim().max(200).optional(),
+        status: PARTICIPANT_STATUSES.optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const rows = await (ctx.db as DrizzleDB)
+        .select({ id: hackathonParticipants.id })
+        .from(hackathonParticipants)
+        .where(buildAttendeeWhere(input))
+        // Matches the batch mutation's own cap, so a selection can always be
+        // acted on in a single call.
+        .limit(2500);
+
+      return rows.map((row) => row.id);
+    }),
+
+  /**
    * The whole filtered roster, for CSV export.
    *
    * Its own endpoint rather than a flag on adminGetAttendees so the one call
@@ -255,6 +289,11 @@ export const hackathonAdminRouter = createTRPCRouter({
         // Gmail account this currently sends through — the UI chunks a larger
         // selection rather than handing the request a batch it cannot finish.
         participantIds: z.array(z.string().uuid()).min(1).max(500),
+        /** Mail people who have already had their acceptance. Off by default:
+         *  the ordinary reason to run this twice is that the first run died
+         *  partway, and then everyone before the failure point is already
+         *  done. */
+        resend: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -321,10 +360,21 @@ export const hackathonAdminRouter = createTRPCRouter({
       const { sendAcceptanceEmail } = await import("@query/auth/email");
 
       let emailed = 0;
+      let alreadyEmailed = 0;
       const failedEmails: string[] = [];
 
       for (const participant of participants) {
         if (!participant.user?.email) continue;
+
+        // The marker is read here, not just written below. Re-running this
+        // after a batch died partway through is the normal recovery, and
+        // without this check everyone before the failure point is congratulated
+        // a second time — which cannot be taken back.
+        if (participant.acceptanceEmailSentAt && !input.resend) {
+          alreadyEmailed++;
+          continue;
+        }
+
         try {
           await sendAcceptanceEmail({
             email: participant.user.email,
@@ -349,6 +399,21 @@ export const hackathonAdminRouter = createTRPCRouter({
         }
       }
 
+      // Thousands of emails that cannot be unsent, in one action.
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "hackathon.sendMassAcceptanceEmails",
+        resourceId: hackathonId,
+        severity: "warn",
+        metadata: {
+          approved: participants.length,
+          emailed,
+          alreadyEmailed,
+          failed: failedEmails.length,
+          resend: input.resend,
+        },
+      });
+
       evictParticipantCaches(
         ctx.cache,
         hackathonId,
@@ -364,9 +429,10 @@ export const hackathonAdminRouter = createTRPCRouter({
         success: true,
         approved: participants.length,
         emailed,
+        alreadyEmailed,
         failedEmails,
         skipped,
-        message: `Approved ${participants.length} participant(s); ${emailed} acceptance email(s) sent.${failedEmails.length > 0 ? ` ${failedEmails.length} could not be delivered.` : ""}${skipped > 0 ? ` ${skipped} id(s) are not registered for this hackathon and were skipped.` : ""}`,
+        message: `Approved ${participants.length} participant(s); ${emailed} acceptance email(s) sent.${alreadyEmailed > 0 ? ` ${alreadyEmailed} had already been emailed and were left alone.` : ""}${failedEmails.length > 0 ? ` ${failedEmails.length} could not be delivered.` : ""}${skipped > 0 ? ` ${skipped} id(s) are not registered for this hackathon and were skipped.` : ""}`,
       };
     }),
 
@@ -619,6 +685,19 @@ export const hackathonAdminRouter = createTRPCRouter({
           message: "That participant is not checked into this event.",
         });
       }
+
+      // Volunteers can reach this, so it is the widest-held destructive action
+      // in the product — worth a record of who undid which scan.
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "hackathon.removeEventAttendance",
+        resourceId: input.participantId,
+        severity: "warn",
+        metadata: {
+          eventId: input.eventId,
+          hackathonId: input.hackathonId,
+        },
+      });
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
 

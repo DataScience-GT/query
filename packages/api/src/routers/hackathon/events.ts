@@ -8,6 +8,8 @@ import {
 } from "@query/db";
 import { eq, inArray, sql } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
+import { recordAdminAction } from "../../middleware/audit";
+import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
 
 export const hackathonEventsRouter = createTRPCRouter({
@@ -54,9 +56,9 @@ export const hackathonEventsRouter = createTRPCRouter({
           description: input.description,
           type: input.type,
           location: input.location,
+          points: input.points,
           startTime: input.startTime,
           endTime: input.endTime,
-          points: input.points,
         })
         .returning();
 
@@ -163,6 +165,20 @@ export const hackathonEventsRouter = createTRPCRouter({
         .delete(hackathonEvents)
         .where(eq(hackathonEvents.id, input.eventId));
 
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "hackathon.deleteEvent",
+        resourceId: input.eventId,
+        // Forcing past the refusal destroys check-in records with no undo.
+        severity: checkIns > 0 ? "critical" : "info",
+        metadata: {
+          name: existing.name,
+          hackathonId: existing.hackathonId,
+          deletedCheckIns: checkIns,
+          forced: input.force,
+        },
+      });
+
       ctx.cache.delete(`hackathon:${existing.hackathonId}:events`);
 
       return { success: true, deletedCheckIns: checkIns };
@@ -172,6 +188,9 @@ export const hackathonEventsRouter = createTRPCRouter({
   getEvents: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      // A draft edition's schedule is not public just because its uuid leaked.
+      await assertHackathonVisible(ctx, input.hackathonId);
+
       const cacheKey = `hackathon:${input.hackathonId}:events`;
 
       const fetchEvents = async () => {

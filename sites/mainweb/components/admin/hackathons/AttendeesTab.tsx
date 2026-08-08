@@ -102,6 +102,11 @@ export function AttendeesTab({
       utils.hackathon.getById.invalidate({ id: hackathonId });
       utils.hackathon.listAll.invalidate();
     },
+    // Same reasoning as the batch mutation below. This is the action an
+    // organiser repeats 2000 times; a rate-limit or NOT_FOUND leaves the badge
+    // on "pending", which looks exactly like a missed click — so those
+    // applicants are never approved and never emailed.
+    onError: (error) => setBulkError(error.message),
   });
 
   const batchUpdateStatus =
@@ -128,6 +133,8 @@ export function AttendeesTab({
   const [emailProgress, setEmailProgress] = useState<string | null>(null);
   const [emailSending, setEmailSending] = useState(false);
   const [exporting, setExporting] = useState(false);
+  /** True once the selection covers every matching row, not just this page. */
+  const [selectedAllMatching, setSelectedAllMatching] = useState(false);
 
   const massAccept = trpc.hackathon.sendMassAcceptanceEmails.useMutation();
 
@@ -309,11 +316,41 @@ export function AttendeesTab({
     setSelectedIds(next);
   };
 
+  const pageFullySelected =
+    filteredAttendees.length > 0 &&
+    filteredAttendees.every((a) => selectedIds.has(a.id));
+
   const selectAllVisible = () => {
-    if (selectedIds.size === filteredAttendees.length) {
+    if (pageFullySelected) {
       setSelectedIds(new Set());
+      setSelectedAllMatching(false);
     } else {
       setSelectedIds(new Set(filteredAttendees.map((a) => a.id)));
+    }
+  };
+
+  /**
+   * Extends the selection past the current page to everything matching the
+   * filter.
+   *
+   * The ids are fetched rather than inferred: the mutation stays id-based, so
+   * the set is fixed at the moment the organiser chose it and cannot quietly
+   * grow if somebody registers while they are reading the confirmation.
+   */
+  const selectAllMatching = async () => {
+    setBulkError(null);
+    try {
+      const ids = await utils.hackathon.adminGetAttendeeIds.fetch({
+        hackathonId,
+        search: debouncedSearch.trim() || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+      });
+      setSelectedIds(new Set(ids));
+      setSelectedAllMatching(true);
+    } catch (error) {
+      setBulkError(
+        error instanceof Error ? error.message : "Could not select all",
+      );
     }
   };
 
@@ -323,11 +360,32 @@ export function AttendeesTab({
     setStatusFilter(next);
     setPage(0);
     setSelectedIds(new Set());
+    setSelectedAllMatching(false);
+  };
+
+  /**
+   * Turning the page drops the selection.
+   *
+   * Ids from page 1 surviving onto page 2 is how "Reject All" rejects fifty
+   * people the organiser is not looking at: the rows on screen render
+   * unchecked while the bar still reads "50 selected". A selection that spans
+   * the whole roster is made explicitly through the banner instead, which says
+   * so in words.
+   */
+  const goToPage = (next: number) => {
+    setPage(Math.max(0, Math.min(pageCount - 1, next)));
+    if (!selectedAllMatching) {
+      setSelectedIds(new Set());
+    }
   };
 
   const changeSearch = (next: string) => {
     setSearchQuery(next);
     setPage(0);
+    // A selection made under the old filter no longer means what its banner
+    // says, so it is dropped rather than silently re-labelled.
+    setSelectedIds(new Set());
+    setSelectedAllMatching(false);
   };
 
   return (
@@ -418,6 +476,43 @@ export function AttendeesTab({
         </div>
       </div>
 
+      {/* Without this, "select all" silently means "select this page" and a
+          bulk approve covers 50 of 2000 while reporting success. */}
+      {pageFullySelected && matching > filteredAttendees.length && (
+        <div className="border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-mono text-accent flex flex-wrap items-center justify-between gap-3">
+          {selectedAllMatching ? (
+            <>
+              <span>
+                All {selectedIds.size} matching applicant(s) are selected.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedIds(new Set());
+                  setSelectedAllMatching(false);
+                }}
+                className="underline underline-offset-4 hover:no-underline"
+              >
+                Clear selection
+              </button>
+            </>
+          ) : (
+            <>
+              <span>
+                All {filteredAttendees.length} on this page are selected.
+              </span>
+              <button
+                type="button"
+                onClick={selectAllMatching}
+                className="font-bold underline underline-offset-4 hover:no-underline"
+              >
+                Select all {matching} matching
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {bulkError && (
         <div
           role="alert"
@@ -456,10 +551,10 @@ export function AttendeesTab({
               <th className="px-4 py-4 font-semibold w-10">
                 <input
                   type="checkbox"
-                  checked={
-                    selectedIds.size === filteredAttendees.length &&
-                    filteredAttendees.length > 0
-                  }
+                  aria-label="Select all on this page"
+                  // Page-level, not roster-level: size equality would read as
+                  // unchecked whenever the selection is the whole roster.
+                  checked={pageFullySelected}
                   onChange={selectAllVisible}
                   className="w-4 h-4 rounded border-white/20 bg-transparent accent-[var(--accent)] cursor-pointer"
                 />
@@ -841,7 +936,7 @@ export function AttendeesTab({
         >
           <button
             type="button"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            onClick={() => goToPage(page - 1)}
             disabled={page === 0 || isFetching}
             className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
@@ -852,7 +947,7 @@ export function AttendeesTab({
           </span>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            onClick={() => goToPage(page + 1)}
             disabled={page >= pageCount - 1 || isFetching}
             className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
