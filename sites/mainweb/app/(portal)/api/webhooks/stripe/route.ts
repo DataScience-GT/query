@@ -134,21 +134,29 @@ export async function POST(req: NextRequest) {
           existingPayment.paymentStatus !== "paid" &&
           session.payment_status === "paid"
         ) {
-          await db.transaction(async (tx) => {
-            await tx
-              .update(stripePayments)
-              .set({ paymentStatus: "paid", updatedAt: new Date() })
-              .where(eq(stripePayments.id, existingPayment.id));
+          // Status upgrade commits first; the grant is best-effort after it.
+          // Sharing a transaction meant a failed grant reverted the row to
+          // "unpaid", losing the settlement Stripe just told us about.
+          await db
+            .update(stripePayments)
+            .set({ paymentStatus: "paid", updatedAt: new Date() })
+            .where(eq(stripePayments.id, existingPayment.id));
 
-            if (existingPayment.linkedUserId) {
-              await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+          if (existingPayment.linkedUserId) {
+            try {
+              await createOrUpdateMembership(db as unknown as DrizzleDB, {
                 userId: existingPayment.linkedUserId,
                 ...splitName(customerName),
                 phoneNumber,
                 bootcampMember: session.metadata?.bootcamp === "true",
               });
+            } catch (e) {
+              console.error(
+                `[Stripe webhook] Payment ${existingPayment.id} marked paid, membership grant failed:`,
+                e,
+              );
             }
-          });
+          }
         }
 
         if (existingPayment.linkedUserId) {
@@ -179,42 +187,51 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Execute in transaction
-      await db.transaction(async (tx) => {
-        await tx.insert(stripePayments).values({
-          stripeSessionId: session.id,
-          stripeCustomerId: session.customer as string | null,
-          stripePaymentIntentId: session.payment_intent as string | null,
-          customerEmail, // Normalized
-          customerName,
-          amountTotal: session.amount_total,
-          currency: session.currency || "usd",
-          paymentStatus: session.payment_status as
-            | "paid"
-            | "unpaid"
-            | "no_payment_required",
-          linkedUserId: targetUser?.id || null,
-          linkedAt: targetUser ? new Date() : null,
-          metadata: session.metadata ? JSON.stringify(session.metadata) : null,
-        });
+      // The payment record commits on its own, BEFORE any membership work.
+      //
+      // These used to share one transaction. createOrUpdateMembership throws
+      // when no hackathon edition is open, and that throw rolled back the
+      // payment row too — so the customer was charged and nothing anywhere
+      // recorded it. Stripe then retried into the same failure until it gave
+      // up, and none of the recovery paths (attemptAutoLink,
+      // linkPaidPaymentByVerifiedEmail, reconcileMyPayments) could help,
+      // because they all look for a payment row that was never written.
+      await db.insert(stripePayments).values({
+        stripeSessionId: session.id,
+        stripeCustomerId: session.customer as string | null,
+        stripePaymentIntentId: session.payment_intent as string | null,
+        customerEmail, // Normalized
+        customerName,
+        amountTotal: session.amount_total,
+        currency: session.currency || "usd",
+        paymentStatus: session.payment_status as
+          | "paid"
+          | "unpaid"
+          | "no_payment_required",
+        linkedUserId: targetUser?.id || null,
+        linkedAt: targetUser ? new Date() : null,
+        metadata: session.metadata ? JSON.stringify(session.metadata) : null,
+      });
 
-        // If user exists and paid, create/update membership
-        if (targetUser && session.payment_status === "paid") {
-          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+      // Membership is a separate, best-effort step. A failure here leaves a
+      // recorded payment that the link paths can still turn into a membership;
+      // failing the whole webhook would lose the payment instead.
+      if (targetUser && session.payment_status === "paid") {
+        try {
+          await createOrUpdateMembership(db as unknown as DrizzleDB, {
             userId: targetUser.id,
             ...splitName(customerName),
             phoneNumber,
             bootcampMember: session.metadata?.bootcamp === "true",
           });
-
-          // Invalidate cache
-          try {
-            clearMembershipCaches(targetUser.id);
-          } catch (e) {
-            console.warn("Failed to invalidate cache inside webhook", e);
-          }
+          clearMembershipCaches(targetUser.id);
+        } catch (e) {
+          console.error(
+            `[Stripe webhook] Payment ${session.id} recorded, membership grant failed:`,
+            e,
+          );
         }
-      });
+      }
     } catch (error) {
       console.error("Error processing checkout session:", error);
       return NextResponse.json({ error: "Processing failed" }, { status: 500 });
@@ -278,13 +295,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      await db.transaction(async (tx) => {
-        // Same synthetic session id confirmMembershipAfterPayment writes, so
-        // the existing unique on stripeSessionId settles the race between this
-        // webhook and the client callback: whichever lands second inserts
-        // nothing and leaves the first one's membership alone.
-        const inserted = await tx
-          .insert(stripePayments)
+      // Same synthetic session id confirmMembershipAfterPayment writes, so
+      // the existing unique on stripeSessionId settles the race between this
+      // webhook and the client callback: whichever lands second inserts
+      // nothing and leaves the first one's membership alone.
+      //
+      // Not in a transaction with the grant below: onConflictDoNothing already
+      // makes the insert idempotent, and wrapping the two together meant a
+      // membership failure rolled back the payment record as well.
+      const inserted = await db
+        .insert(stripePayments)
           .values({
             stripeSessionId: `pi_${pi.id}`,
             stripeCustomerId:
@@ -304,22 +324,22 @@ export async function POST(req: NextRequest) {
           .onConflictDoNothing({ target: stripePayments.stripeSessionId })
           .returning({ id: stripePayments.id });
 
-        if (inserted.length === 0) return;
-
-        if (targetUser) {
-          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+      // Another writer got there first and has already granted the membership.
+      if (inserted.length > 0 && targetUser) {
+        try {
+          await createOrUpdateMembership(db as unknown as DrizzleDB, {
             userId: targetUser.id,
             ...splitName(targetUser.name),
             bootcampMember: pi.metadata?.bootcamp === "true",
           });
-
-          try {
-            clearMembershipCaches(targetUser.id);
-          } catch (e) {
-            console.warn("Failed to invalidate cache inside webhook", e);
-          }
+          clearMembershipCaches(targetUser.id);
+        } catch (e) {
+          console.error(
+            `[Stripe webhook] Payment pi_${pi.id} recorded, membership grant failed:`,
+            e,
+          );
         }
-      });
+      }
     } catch (error) {
       console.error("Error processing payment intent:", error);
       return NextResponse.json({ error: "Processing failed" }, { status: 500 });

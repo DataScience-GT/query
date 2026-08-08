@@ -100,3 +100,4 @@ graphify-out/cost.json
 # `*.tsbuildinfo` above does not match these, so they were tracked and every
 # build dirtied the working tree.
 .cache/
+bash.exe.stackdump

@@ -268,7 +268,10 @@ export const clearProjectLeaderCaches = (userId: string) => {
  * member being told to pay again.
  */
 export const clearMembershipCaches = (userId: string) => {
-  cache.deletePattern(`${CacheKeys.member(userId)}*`);
+  // `member:<userId>*` is a shape nothing writes — member.me stores
+  // `member:me:<userId>`, so a webhook grant used to leave that entry stale and
+  // the member was told to pay for another minute. Evict what is written.
+  cache.deletePattern(`member:me:${userId}*`);
   cache.deletePattern(`member:status:${userId}*`);
   invalidatePortalContext(userId);
 };

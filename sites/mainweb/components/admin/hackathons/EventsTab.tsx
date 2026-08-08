@@ -86,6 +86,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<EventFormData>(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  /** Server's refusal message when the event already has check-ins. */
+  const [deleteBlocked, setDeleteBlocked] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
   const { data: events, isLoading } = trpc.hackathon.getEvents.useQuery({
@@ -112,7 +114,16 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
     onSuccess: () => {
       utils.hackathon.getEvents.invalidate({ hackathonId });
       setDeleteConfirm(null);
+      setDeleteBlocked(null);
     },
+    // The server refuses when people have already scanned in, and says how
+    // many. Overriding is only offered once that count has been shown.
+    onError: (error) =>
+      setDeleteBlocked(
+        error.data?.code === "CONFLICT"
+          ? error.message
+          : `Could not delete: ${error.message}`,
+      ),
   });
 
   function openEdit(event: NonNullable<typeof events>[number]) {
@@ -514,29 +525,53 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                       Edit
                     </button>
                     {deleteConfirm === event.id ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            deleteMutation.mutate({ eventId: event.id })
-                          }
-                          disabled={deleteMutation.isPending}
-                          className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold rounded-none hover:bg-red-500/30 transition-colors disabled:opacity-50"
-                        >
-                          {deleteMutation.isPending ? "..." : "Confirm"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirm(null)}
-                          className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-sm rounded-none hover:bg-white/5 transition-colors"
-                        >
-                          No
-                        </button>
+                      <div className="flex flex-col items-end gap-2">
+                        {deleteBlocked && (
+                          <p
+                            role="alert"
+                            className="text-[11px] font-mono text-amber-300 max-w-xs text-right"
+                          >
+                            {deleteBlocked}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteMutation.mutate({
+                                eventId: event.id,
+                                // Only after the refusal has been read.
+                                force: !!deleteBlocked,
+                              })
+                            }
+                            disabled={deleteMutation.isPending}
+                            className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold rounded-none hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                          >
+                            {deleteMutation.isPending
+                              ? "..."
+                              : deleteBlocked
+                                ? "Delete anyway"
+                                : "Confirm"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteConfirm(null);
+                              setDeleteBlocked(null);
+                            }}
+                            className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-sm rounded-none hover:bg-white/5 transition-colors"
+                          >
+                            No
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setDeleteConfirm(event.id)}
+                        onClick={() => {
+                          setDeleteBlocked(null);
+                          setDeleteConfirm(event.id);
+                        }}
                         className="px-4 py-2.5 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors"
                       >
                         Delete

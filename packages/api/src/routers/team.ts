@@ -8,6 +8,7 @@ import {
   hackathons,
 } from "@query/db";
 import { eq, and, or, isNull, inArray, lt, sql } from "drizzle-orm";
+import { VOLATILE_TTL } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
 const HOUR = 60 * 60 * 1000;
@@ -38,6 +39,32 @@ export function computeTeamWindow(baseTime: Date, now: Date) {
     // Leaving shuts earlier than the rest of the window so rosters are stable
     // through the final crunch and judging.
     canLeave: isOpen && now < leaveLocksAt,
+  };
+}
+
+/**
+ * The submission window, as three moments and the state between them.
+ *
+ * Exported and used by `submitProject` itself, so the page and the procedure
+ * cannot disagree: /submit rendered no window state at all, which meant an
+ * attendee could write a full description and learn it was refused only when
+ * they pressed submit.
+ */
+export function computeSubmissionWindow(baseTime: Date, now: Date) {
+  const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
+
+  const opensAt = at(TEAM_WINDOW_OPEN_HOURS);
+  /** After this, an existing submission is frozen — new ones still land. */
+  const editsCloseAt = at(TEAM_WINDOW_CLOSE_HOURS);
+  const closesAt = at(SUBMISSION_HARD_DEADLINE_HOURS);
+
+  return {
+    opensAt,
+    editsCloseAt,
+    closesAt,
+    isOpen: now >= opensAt && now <= closesAt,
+    notYetOpen: now < opensAt,
+    canEditExisting: now >= opensAt && now <= editsCloseAt,
   };
 }
 
@@ -560,6 +587,9 @@ export const teamRouter = createTRPCRouter({
         technologies: z.array(z.string()).optional(),
         tracks: z.array(z.string()).optional(),
         challenges: z.array(z.string()).optional(),
+        // Judge routing filters on exactly this, and nothing else in the
+        // product ever set it — every CreateX judge got an empty pool.
+        isCreateX: z.boolean().optional(),
         githubUrl: z
           .string()
           .url("Must be a valid URL")
@@ -621,15 +651,10 @@ export const teamRouter = createTRPCRouter({
 
       const now = new Date();
       const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
-      const startSubmission = new Date(
-        baseTime.getTime() + 12 * 60 * 60 * 1000,
-      );
-      const devpostFinalDeadline = new Date(
-        baseTime.getTime() + 34 * 60 * 60 * 1000,
-      );
-      const hardDeadline = new Date(baseTime.getTime() + 36 * 60 * 60 * 1000);
+      const window = computeSubmissionWindow(baseTime, now);
+      const devpostFinalDeadline = window.editsCloseAt;
 
-      if (now < startSubmission) {
+      if (window.notYetOpen) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
@@ -637,7 +662,7 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      if (now > hardDeadline) {
+      if (now > window.closesAt) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
@@ -718,10 +743,20 @@ export const teamRouter = createTRPCRouter({
                   technologies: input.technologies || [],
                   tracks: input.tracks || [],
                   challenges: input.challenges || [],
+                  isCreateX: input.isCreateX ?? false,
                   githubUrl,
                   demoUrl,
                   videoUrl,
-                  status: "submitted",
+                  // Only ever forward, never backwards. Writing "submitted"
+                  // unconditionally let a team editing a demo link after
+                  // promotion knock their project out of "judging" — which
+                  // re-opened withdrawProject's status guard and let them
+                  // withdraw a project judges were actively scoring.
+                  status:
+                    existingProject.status === "judging" ||
+                    existingProject.status === "winner"
+                      ? existingProject.status
+                      : "submitted",
                   submittedAt: new Date(),
                 })
                 .where(eq(hackathonProjects.id, existingProject.id))
@@ -740,6 +775,7 @@ export const teamRouter = createTRPCRouter({
                   technologies: input.technologies || [],
                   tracks: input.tracks || [],
                   challenges: input.challenges || [],
+                  isCreateX: input.isCreateX ?? false,
                   githubUrl,
                   demoUrl,
                   videoUrl,
@@ -863,37 +899,58 @@ export const teamRouter = createTRPCRouter({
       return await loadTeamWindow(ctx.db as DrizzleDB, input.hackathonId);
     }),
 
+  /**
+   * Every team in a hackathon.
+   *
+   * Deliberately NOT paginated. The Teams tab finds the caller's own team by
+   * searching this list, so with a page size any member of an early-created
+   * team would fall off page one and lose their entire "Your Team" panel,
+   * including Leave Team, with nothing on screen explaining why.
+   *
+   * Bounded by caching instead. The TTL is deliberately short: the tab
+   * refetches immediately after every join, leave and disband, and a long TTL
+   * served from another instance would show a roster the user just changed.
+   */
   list: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
-      const teams = await (
-        ctx.db as NonNullable<typeof ctx.db>
-      ).query.hackathonTeams.findMany({
-        where: eq(hackathonTeams.hackathonId, input.hackathonId),
-        with: {
-          captain: {
-            columns: { id: true, name: true, image: true },
-          },
-          participants: {
-            // Same rule as the public hackathon.getTeams roster: any signed-in
-            // caller can read every team here, so it carries neither the
-            // decision made on each application — registrationStatus names
-            // everyone rejected or waitlisted — nor the participant id, which
-            // is the entire content of that participant's event pass QR.
-            // userId identifies the captain and keys the list.
-            columns: {
-              userId: true,
+      const cacheKey = `hackathon:${input.hackathonId}:teams`;
+
+      const fetchTeams = () =>
+        (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findMany({
+          where: eq(hackathonTeams.hackathonId, input.hackathonId),
+          with: {
+            captain: {
+              columns: { id: true, name: true, image: true },
             },
-            with: {
-              user: {
-                columns: { id: true, name: true, image: true },
+            participants: {
+              // Any signed-in caller can read every team here, so it carries
+              // neither the decision made on each application —
+              // registrationStatus names everyone rejected or waitlisted — nor
+              // the participant id, which is the entire content of that
+              // participant's event pass QR. userId identifies the captain and
+              // keys the list.
+              columns: {
+                userId: true,
+              },
+              with: {
+                user: {
+                  columns: { id: true, name: true, image: true },
+                },
               },
             },
           },
-        },
-        orderBy: (hackathonTeams, { desc }) => [desc(hackathonTeams.createdAt)],
-      });
+          orderBy: (hackathonTeams, { desc }) => [
+            desc(hackathonTeams.createdAt),
+          ],
+        });
 
+      const cached =
+        ctx.cache.get<Awaited<ReturnType<typeof fetchTeams>>>(cacheKey);
+      if (cached !== null) return cached;
+
+      const teams = await fetchTeams();
+      ctx.cache.set(cacheKey, teams, VOLATILE_TTL);
       return teams;
     }),
 
@@ -903,6 +960,39 @@ export const teamRouter = createTRPCRouter({
    * a solo hacker sees a blank form over a live submission, and saving a typo
    * fix silently wipes the links they had already filed.
    */
+  /**
+   * The submission window for one edition, so /submit can say whether it is
+   * open before somebody fills the form in. Same computation the mutation
+   * enforces with, so the two cannot drift.
+   */
+  submissionWindow: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: {
+          hackingStartTime: true,
+          startDate: true,
+          status: true,
+        },
+      });
+
+      if (!hackathon) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found.",
+        });
+      }
+
+      const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
+      const window = computeSubmissionWindow(baseTime, new Date());
+
+      return {
+        ...window,
+        cancelled: hackathon.status === "cancelled",
+      };
+    }),
+
   mySubmission: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {

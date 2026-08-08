@@ -7,16 +7,14 @@ import {
   accounts,
   stripePayments,
   userAccountLinks,
-  members,
   verificationTokens,
 } from "@query/db";
-import { eq, and, isNull } from "drizzle-orm";
 import {
-  rateLimit,
-  cache,
-  resolveClientIp,
-  resolveHackathonId,
-} from "@query/api";
+  createOrUpdateMembership,
+  paidForBootcamp,
+} from "@query/db/services/membership";
+import { eq, and, isNull } from "drizzle-orm";
+import { rateLimit, cache, resolveClientIp } from "@query/api";
 import type { DrizzleDB } from "@query/db";
 
 /**
@@ -194,52 +192,16 @@ export async function POST(request: NextRequest) {
               })
               .where(eq(stripePayments.id, payment.id));
 
-            // Create/Update membership
-            const now = new Date();
-            const oneYearFromNow = new Date(now);
-            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-            // Same rule as every other membership read.
-            const hackathonId = await resolveHackathonId(
-              tx as unknown as DrizzleDB,
-            );
-
-            if (!hackathonId) {
-              throw new Error("No hackathon found for membership assignment");
-            }
-
-            const existingMember = await tx.query.members.findFirst({
-              where: and(
-                eq(members.userId, user.id),
-                eq(members.hackathonId, hackathonId),
-              ),
+            // One shared implementation rather than a fourth copy: this one
+            // used to restart the term from today on renewal (discarding
+            // remaining months), write no membership_history row, and refuse
+            // outright when no hackathon edition was open.
+            await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+              userId: user.id,
+              firstName,
+              lastName,
+              bootcampMember: paidForBootcamp(payment.metadata),
             });
-
-            if (existingMember) {
-              await tx
-                .update(members)
-                .set({
-                  isActive: true,
-                  membershipStartDate: now,
-                  membershipEndDate: oneYearFromNow,
-                  renewalCount: existingMember.renewalCount + 1,
-                  memberType: "continuous",
-                  updatedAt: now,
-                })
-                .where(eq(members.id, existingMember.id));
-            } else {
-              await tx.insert(members).values({
-                userId: user.id,
-                hackathonId,
-                firstName,
-                lastName,
-                memberType: "new",
-                isActive: true,
-                membershipStartDate: now,
-                membershipEndDate: oneYearFromNow,
-                renewalCount: 0,
-              });
-            }
           }
         }
       } catch (linkError) {

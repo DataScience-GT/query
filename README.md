@@ -43,7 +43,7 @@ in `drizzle.config.ts`.
 | `members.ts` | `user_profile`, `member`, `membership_history` |
 | `admins.ts` | `admin` |
 | `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_event`, `hackathon_event_attendee` |
-| `judge.ts` | `judge`, `judge_assignment`, `judging_project`, `judge_vote`, `judge_queue`, `hackathon_map` |
+| `judge.ts` | `judge`, `judge_assignment`, `judging_project`, `judge_vote`, `judge_queue` |
 | `initiatives.ts` | `project_leader`, `initiative`, `initiative_application` |
 | `events.ts` | `event`, `event_check_in` |
 | `stripe.ts` | `stripe_payment`, `user_account_link` |
@@ -78,14 +78,24 @@ Two aspects share the database and touch nowhere:
 `member` is the one crossing case: a paid year still hangs off an edition, so
 membership resolves the current hackathon even though initiatives do not.
 
-#### One-off step before the first push that carries this
+#### One-off step — only for a database that already has the edition-scoped tables
 
-`migrate:push` cannot work this one out on its own. `project_leader` moved from
-`unique(user_id, hackathon_id)` to `unique(user_id)`, so anybody appointed in
-more than one edition has more than one row; drizzle-kit fails building the new
-index partway and leaves the schema half-applied. Run this against the target
-database **once, before** the push. Every statement is guarded, so it is safe to
-re-run.
+**Check first:**
+
+```sql
+SELECT to_regclass('public.project_leader');
+```
+
+If that returns `NULL`, this database has never had the club tables. Skip
+everything below — `migrate:push` simply creates them in the current shape, and
+the statements here would error on tables that do not exist.
+
+If it returns a table name, `migrate:push` cannot work the change out on its
+own. `project_leader` moved from `unique(user_id, hackathon_id)` to
+`unique(user_id)`, so anybody appointed in more than one edition has more than
+one row; drizzle-kit fails building the new index partway and leaves the schema
+half-applied. Run this against that database **once, before** the push. Every
+statement is guarded, so it is safe to re-run.
 
 ```sql
 BEGIN;

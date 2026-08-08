@@ -5,6 +5,7 @@ import {
   uuid,
   boolean,
   integer,
+  index,
   unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -54,6 +55,11 @@ export const eventCheckIns = pgTable(
     // but that only covers the one path that takes the lock — the constraint is
     // what holds for any future manual or imported check-in as well.
     unique("unique_event_check_in").on(table.eventId, table.userId),
+    // The unique above leads with eventId, so a lookup by user alone cannot use
+    // it. events.myEvents and myStats filter on exactly userId and run on every
+    // portal dashboard load — without this they sequentially scan the whole
+    // check-in table.
+    index("event_check_in_user_id_idx").on(table.userId),
   ],
 );
 

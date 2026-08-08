@@ -28,6 +28,11 @@ function SubmitPortalContent() {
   const [githubUrl, setGithubUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
+  // Judge routing filters on exactly these three. A submission without them
+  // reaches no track judge and no sponsor judge at all.
+  const [tracks, setTracks] = useState<string[]>([]);
+  const [challenges, setChallenges] = useState<string[]>([]);
+  const [isCreateX, setIsCreateX] = useState(false);
 
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -48,6 +53,28 @@ function SubmitPortalContent() {
     { hackathonId: selectedHackathonId },
     { enabled: !!session && !!selectedHackathonId },
   );
+
+  // The event's own track and challenge lists. Offering free text instead
+  // would be worse than offering nothing: judge assignment matches these
+  // strings exactly, so a typo silently removes a project from a judge's pool.
+  const { data: hackathonDetail } = trpc.hackathon.getById.useQuery(
+    { id: selectedHackathonId },
+    { enabled: !!session && !!selectedHackathonId },
+  );
+
+  const availableTracks = hackathonDetail?.tracks ?? [];
+  const availableChallenges = hackathonDetail?.challenges ?? [];
+
+  const toggle = (
+    value: string,
+    current: string[],
+    set: (next: string[]) => void,
+  ) =>
+    set(
+      current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value],
+    );
 
   // We get the specific registration / team context based on selected hackathon
   const currentReg = myRegs?.find((r) => r.hackathonId === selectedHackathonId);
@@ -147,6 +174,9 @@ function SubmitPortalContent() {
     setGithubUrl(p?.githubUrl ?? "");
     setVideoUrl(p?.videoUrl ?? "");
     setDemoUrl(p?.demoUrl ?? "");
+    setTracks(p?.tracks ?? []);
+    setChallenges(p?.challenges ?? []);
+    setIsCreateX(p?.isCreateX ?? false);
     setPrefilledFor(selectedHackathonId);
   }, [
     selectedHackathonId,
@@ -455,6 +485,9 @@ function SubmitPortalContent() {
                         githubUrl,
                         demoUrl,
                         videoUrl,
+                        tracks,
+                        challenges,
+                        isCreateX,
                       });
                     }}
                     className="space-y-8 relative z-10"
@@ -489,6 +522,88 @@ function SubmitPortalContent() {
                         />
                       </div>
                     </div>
+
+                    {/* Tracks, challenges and CreateX — what judge assignment
+                        routes on. Rendered only when the organisers configured
+                        them, so an event without tracks shows nothing rather
+                        than an empty box. */}
+                    {(availableTracks.length > 0 ||
+                      availableChallenges.length > 0) && (
+                      <div className="p-6 border border-[var(--border-subtle)] rounded-none bg-white/[0.02]">
+                        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 flex items-center gap-3">
+                          <span className="w-1.5 h-1.5 bg-text-muted rounded-sm"></span>
+                          Tracks & Challenges
+                        </h3>
+                        <p className="text-xs font-mono text-text-muted mb-6">
+                          This decides which judges see your project. Pick
+                          everything you are competing for.
+                        </p>
+
+                        {availableTracks.length > 0 && (
+                          <div className="mb-6">
+                            <p className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-3 font-mono">
+                              Tracks
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {availableTracks.map((track) => (
+                                <button
+                                  key={track}
+                                  type="button"
+                                  onClick={() =>
+                                    toggle(track, tracks, setTracks)
+                                  }
+                                  aria-pressed={tracks.includes(track)}
+                                  className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-none border transition-colors ${
+                                    tracks.includes(track)
+                                      ? "bg-accent/15 border-accent/40 text-accent font-bold"
+                                      : "bg-[var(--bg-primary)]/60 border-[var(--border-subtle)] text-gray-400 hover:border-accent/30"
+                                  }`}
+                                >
+                                  {track}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {availableChallenges.length > 0 && (
+                          <div className="mb-6">
+                            <p className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-3 font-mono">
+                              Sponsor Challenges
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {availableChallenges.map((challenge) => (
+                                <button
+                                  key={challenge}
+                                  type="button"
+                                  onClick={() =>
+                                    toggle(challenge, challenges, setChallenges)
+                                  }
+                                  aria-pressed={challenges.includes(challenge)}
+                                  className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-none border transition-colors ${
+                                    challenges.includes(challenge)
+                                      ? "bg-purple-500/15 border-purple-500/40 text-purple-300 font-bold"
+                                      : "bg-[var(--bg-primary)]/60 border-[var(--border-subtle)] text-gray-400 hover:border-purple-500/30"
+                                  }`}
+                                >
+                                  {challenge}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <label className="flex items-center gap-3 text-xs font-mono text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isCreateX}
+                            onChange={(e) => setIsCreateX(e.target.checked)}
+                            className="w-4 h-4 accent-[var(--accent)]"
+                          />
+                          We are competing for the CreateX entrepreneurship prize
+                        </label>
+                      </div>
+                    )}
 
                     {/* Links */}
                     <div className="p-6 border border-[var(--border-subtle)] rounded-none bg-white/[0.02]">

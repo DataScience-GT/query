@@ -8,10 +8,11 @@ import {
   index,
   uniqueIndex,
   unique,
+  numeric,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
-import { hackathons } from "./hackathons";
+import { hackathons, hackathonProjects } from "./hackathons";
 
 export const judges = pgTable(
   "judge",
@@ -67,8 +68,8 @@ export const judgeAssignments = pgTable(
   (table) => [
     index("assignment_judge_id_idx").on(table.judgeId),
     index("assignment_hackathon_id_idx").on(table.hackathonId),
-    // assignToHackathon, judge.register and bulkImportJudges all enforce one
-    // assignment per judge per hackathon with a read before the insert.
+    // assignToHackathon and judge.register both enforce one assignment per
+    // judge per hackathon with a read before the insert.
     unique("unique_assignment_per_hackathon").on(
       table.judgeId,
       table.hackathonId,
@@ -84,6 +85,32 @@ export const judgingProjects = pgTable(
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
+    // The submission this judgeable entry was promoted from. Judging runs on
+    // this table while participants submit into hackathon_project, and without
+    // this column the two halves share no key at all — a winner could not be
+    // mapped back to the team that built it.
+    // set null, not cascade. judge_vote and hackathon_result both cascade off
+    // judging_project.id, so cascading here would make one DELETE on a
+    // submission also erase every score judges gave it and its frozen
+    // published placing. hackathonResults.sourceProjectId is already set null
+    // for the same reason.
+    sourceProjectId: uuid("source_project_id").references(
+      () => hackathonProjects.id,
+      { onDelete: "set null" },
+    ),
+    /**
+     * The code on the team's table card.
+     *
+     * A judge scans this on arrival, which is what starts their scoring clock
+     * — being handed a table in a queue is not the same as standing in front
+     * of it, and the walk between them was previously counted as judging time.
+     * Scanning also proves the judge reached the right table.
+     *
+     * Lives on the judging entry rather than the team because this is exactly
+     * one physical table: a solo submission has no team row, and a team has no
+     * table until its project is promoted.
+     */
+    qrCode: uuid("qr_code").defaultRandom().notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
     tableNumber: integer("table_number").notNull(),
@@ -95,11 +122,34 @@ export const judgingProjects = pgTable(
     tracks: text("tracks").array(), // Enum: Sports, Entertainment, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
     challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
     isCreateX: boolean("is_create_x").default(false),
+    /**
+     * Set when an organiser pulls the submission out of the event.
+     *
+     * A flag rather than a delete: judge_vote cascades off this row, so
+     * deleting would erase scores judges actually gave, and the z-score
+     * normalisation over the remaining votes would shift every other
+     * project. The entry stops being served and stops counting; the record of
+     * what happened survives.
+     */
+    withdrawnAt: timestamp("withdrawn_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
     index("judging_project_hackathon_id_idx").on(table.hackathonId),
     index("judging_project_table_idx").on(table.tableNumber),
+    // A table number identifies one physical table at one event. Without this,
+    // a retried CSV import appends the entire project list a second time with
+    // fresh numbers, and judges get routed to tables that do not exist.
+    uniqueIndex("judging_project_table_unique").on(
+      table.hackathonId,
+      table.tableNumber,
+    ),
+    // Partial: one judgeable entry per submission, while still allowing any
+    // number of rows that came from nowhere. This is what makes promoting
+    // submissions safe to re-run as teams keep submitting.
+    uniqueIndex("judging_project_source_unique")
+      .on(table.sourceProjectId)
+      .where(sql`${table.sourceProjectId} is not null`),
   ],
 );
 
@@ -134,20 +184,64 @@ export const judgeVotes = pgTable(
   ],
 );
 
-// Map images for hackathon venues
-export const hackathonMaps = pgTable(
-  "hackathon_map",
+/**
+ * A frozen placing, computed once when judging closes.
+ *
+ * getRankings recomputes the whole ordering on every call, and its z-score
+ * normalisation runs over the entire vote set — so one late vote silently
+ * changes every project's score, including ones already announced. The
+ * ordering existed only inside an HTTP response; nothing in the product could
+ * say who won yesterday.
+ *
+ * A snapshot instead: computed deliberately, reviewable while unpublished, and
+ * unchanged by anything that happens to the votes afterwards.
+ */
+export const hackathonResults = pgTable(
+  "hackathon_result",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
-    imageUrl: text("image_url").notNull(),
-    name: text("name"),
-    order: integer("order").notNull().default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => judgingProjects.id, { onDelete: "cascade" }),
+    /** Carried across at compute time so results survive the judging tables
+     *  and can name the team that actually built the thing. */
+    sourceProjectId: uuid("source_project_id").references(
+      () => hackathonProjects.id,
+      { onDelete: "set null" },
+    ),
+    /**
+     * Which prize this placing is for. "overall" is the main ranking.
+     *
+     * NOT NULL deliberately. Postgres unique indexes treat NULLs as distinct,
+     * so a nullable track would make result_unique_placing below match nothing
+     * — every recompute would append a second full ordering instead of
+     * upserting, and nothing in the product deletes result rows.
+     */
+    track: text("track").notNull().default("overall"),
+    placement: integer("placement").notNull(),
+    /** The blended score at the moment of computation. `numeric` because the
+     *  pipeline produces a float — hackathon_project.score is an integer and
+     *  could never have held this value. */
+    weightedScore: numeric("weighted_score", { precision: 6, scale: 2 }),
+    voteCount: integer("vote_count").notNull().default(0),
+    /** Null while the snapshot is a draft. Set on publish; cleared on
+     *  unpublish, which is what makes publishing reversible. */
+    publishedAt: timestamp("published_at"),
+    computedAt: timestamp("computed_at").defaultNow().notNull(),
   },
-  (table) => [index("map_hackathon_id_idx").on(table.hackathonId)],
+  (table) => [
+    index("result_hackathon_idx").on(table.hackathonId),
+    // One placing per project per prize. Recomputing upserts onto this rather
+    // than appending a second, contradictory ordering.
+    uniqueIndex("result_unique_placing").on(
+      table.hackathonId,
+      table.projectId,
+      table.track,
+    ),
+  ],
 );
 
 // Track which tables a judge still needs to visit
@@ -173,6 +267,15 @@ export const judgeQueue = pgTable(
     // (JUDGE_CLAIM_MINUTES) — a judge who closes the tab releases the table on
     // their own rather than blocking it until an admin steps in.
     startedAt: timestamp("started_at"),
+    /**
+     * When the judge scanned the table's QR and actually began.
+     *
+     * Distinct from startedAt, which is the claim stamped when the queue hands
+     * the table over. The gap between them is walking, queueing behind another
+     * judge, and finding the table — none of which is time spent judging, and
+     * all of which used to be counted as it.
+     */
+    arrivedAt: timestamp("arrived_at"),
   },
   (table) => [
     index("queue_judge_id_idx").on(table.judgeId),
@@ -244,12 +347,23 @@ export const judgeVotesRelations = relations(judgeVotes, ({ one }) => ({
   }),
 }));
 
-export const hackathonMapsRelations = relations(hackathonMaps, ({ one }) => ({
-  hackathon: one(hackathons, {
-    fields: [hackathonMaps.hackathonId],
-    references: [hackathons.id],
+export const hackathonResultsRelations = relations(
+  hackathonResults,
+  ({ one }) => ({
+    hackathon: one(hackathons, {
+      fields: [hackathonResults.hackathonId],
+      references: [hackathons.id],
+    }),
+    project: one(judgingProjects, {
+      fields: [hackathonResults.projectId],
+      references: [judgingProjects.id],
+    }),
+    sourceProject: one(hackathonProjects, {
+      fields: [hackathonResults.sourceProjectId],
+      references: [hackathonProjects.id],
+    }),
   }),
-}));
+);
 
 export const judgeQueueRelations = relations(judgeQueue, ({ one }) => ({
   judge: one(judges, {

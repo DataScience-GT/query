@@ -56,6 +56,19 @@ export const adminRouter = createTRPCRouter({
   }),
 
   analyticsOverview: isAdmin.query(async ({ ctx }) => {
+    // The analytics page polls this every 5s and leaves it open all weekend.
+    // Five uncached aggregates per poll per open dashboard is a standing load
+    // for numbers nobody watches change second by second; a 15s entry means at
+    // most one round of aggregates per 15s no matter how many tabs are up.
+    const cacheKey = "admin:analytics-overview";
+    const cached = ctx.cache.get<{
+      totalParticipants: number;
+      totalEvents: number;
+      totalHackathons: number;
+      checkinsToday: number;
+    }>(cacheKey);
+    if (cached !== null) return cached;
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -87,13 +100,17 @@ export const adminRouter = createTRPCRouter({
         .where(gte(eventCheckIns.checkedInAt, startOfToday)),
     ]);
 
-    return {
+    const result = {
       totalParticipants: participantsResult[0]?.count ?? 0,
       totalEvents: eventsResult[0]?.count ?? 0,
       totalHackathons: hackathonsResult[0]?.count ?? 0,
       checkinsToday:
         (badgeScansResult[0]?.count ?? 0) + (doorCheckinsResult[0]?.count ?? 0),
     };
+
+    ctx.cache.set(cacheKey, result, 15);
+
+    return result;
   }),
 
   list: isAdmin.query(async ({ ctx }) => {

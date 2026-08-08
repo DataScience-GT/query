@@ -231,24 +231,6 @@ export default function JudgePage() {
                           >
                             Ready to Judge
                           </Link>
-                          <Link
-                            href={`/hackathons/${encodeURIComponent(h.name)}/participants`}
-                            className="px-3 py-2 rounded-none border border-[var(--border-subtle)] text-text-muted hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M14 5l7 7m0 0l-7 7m7-7H3"
-                              />
-                            </svg>
-                          </Link>
                         </>
                       ) : h.status === "open" || h.status === "in_progress" ? (
                         <Link
@@ -265,24 +247,6 @@ export default function JudgePage() {
                           Closed
                         </button>
                       )}
-                      <Link
-                        href={`/hackathons/${encodeURIComponent(h.name)}/participants`}
-                        className="px-3 py-2 rounded-none border border-[var(--border-subtle)] text-text-muted hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M14 5l7 7m0 0l-7 7m7-7H3"
-                          />
-                        </svg>
-                      </Link>
                     </div>
                   </div>
                 </Link>

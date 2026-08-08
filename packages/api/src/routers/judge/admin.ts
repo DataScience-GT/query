@@ -7,16 +7,20 @@ import {
   judgeVotes,
   judgingProjects,
   judgeQueue,
-  hackathonMaps,
   hackathons,
+  hackathonProjects,
   users,
   hackathonParticipants,
 } from "@query/db";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { shuffleArray, buildCoverageQueues } from "./helpers";
+
+/** Rows per queue INSERT. Well under the ~16k that Postgres's 65535-parameter
+ *  ceiling allows at 4 bound parameters per row. */
+const QUEUE_INSERT_CHUNK = 5000;
 
 export const judgeAdminRouter = createTRPCRouter({
   list: isAdmin.query(async ({ ctx }) => {
@@ -193,238 +197,117 @@ export const judgeAdminRouter = createTRPCRouter({
       return result[0];
     }),
 
-  createProject: isAdmin
-    .input(
-      z.object({
-        hackathonId: z.string().uuid(),
-        name: z.string().min(1).max(255),
-        description: z.string().max(1000).optional(),
-        tableNumber: z.number().min(1),
-        zone: z.string().optional(),
-        teamMembers: z.string().max(500).optional(),
-        projectUrl: z.string().url().optional(),
-        repoUrl: z.string().url().optional(),
-        tracks: z.array(z.string()).optional(),
-        challenges: z.array(z.string()).optional(),
-        isCreateX: z.boolean().default(false),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const result = await (ctx.db as DrizzleDB)
-        .insert(judgingProjects)
-        .values(input)
-        .returning();
-
-      return result[0];
-    }),
-
-  bulkCreateProjects: isAdmin
-    .input(
-      z.object({
-        hackathonId: z.string().uuid(),
-        projects: z.array(
-          z.object({
-            name: z.string().min(1).max(255),
-            description: z.string().max(1000).optional(),
-            tableNumber: z.number().min(1),
-            zone: z.string().optional(),
-            category: z.string().max(100).optional(),
-            teamMembers: z.string().max(500).optional(),
-            tracks: z.array(z.string()).optional(),
-            challenges: z.array(z.string()).optional(),
-            isCreateX: z.boolean().default(false),
-          }),
-        ),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const result = await (ctx.db as DrizzleDB)
-        .insert(judgingProjects)
-        .values(
-          input.projects.map((p) => ({
-            ...p,
-            hackathonId: input.hackathonId,
-          })),
-        )
-        .returning();
-
-      return result;
-    }),
-
-  /** Bulk import judges from a parsed CSV.
-   *  Creates user stubs for emails not yet in the system,
-   *  creates judge records, and assigns to the hackathon. */
-  bulkImportJudges: isAdmin
-    .input(
-      z.object({
-        hackathonId: z.string().uuid(),
-        judges: z.array(
-          z.object({
-            name: z.string().min(1).max(255),
-            email: z.string().email(),
-            track: z.string().optional(),
-          }),
-        ),
-      }),
-    )
+  /**
+   * Turns submitted projects into judgeable ones.
+   *
+   * This is the only way a judging entry comes into existence. Teams submit
+   * through the portal, an organiser presses one button, and every submission
+   * gets a table number. Idempotent by design — run it again as late
+   * submissions land and only the new ones are added, because
+   * judging_project_source_unique pins one judgeable row per submission.
+   */
+  promoteSubmissions: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        const results = { created: 0, skipped: 0, errors: [] as string[] };
+        // Serializes concurrent promotions for this event, so two organisers
+        // pressing the button together cannot both read the same max table
+        // number and hand out duplicates.
+        await tx
+          .select({ id: hackathons.id })
+          .from(hackathons)
+          .where(eq(hackathons.id, input.hackathonId))
+          .for("update");
 
-        for (const j of input.judges) {
-          try {
-            // Only rows that actually gained a judge record or a hackathon
-            // assignment count as imported.
-            let imported = false;
+        const submissions = await tx.query.hackathonProjects.findMany({
+          where: and(
+            eq(hackathonProjects.hackathonId, input.hackathonId),
+            inArray(hackathonProjects.status, ["submitted", "judging"]),
+          ),
+          with: { team: { columns: { name: true } } },
+          orderBy: [asc(hackathonProjects.submittedAt)],
+        });
 
-            // 1. Find or create user by email
-            let user = await tx.query.users.findFirst({
-              where: eq(users.email, j.email),
-            });
-
-            if (!user) {
-              const id = crypto.randomUUID();
-              const [newUser] = await tx
-                .insert(users)
-                .values({ id, name: j.name, email: j.email })
-                .returning();
-              user = newUser as NonNullable<typeof newUser>;
-            }
-
-            // 2. Find or create judge record for this hackathon
-            let judge = await tx.query.judges.findFirst({
-              where: and(
-                eq(judges.userId, user.id),
-                eq(judges.hackathonId, input.hackathonId),
-              ),
-            });
-
-            if (!judge) {
-              const [newJudge] = await tx
-                .insert(judges)
-                .values({
-                  userId: user.id,
-                  hackathonId: input.hackathonId,
-                  name: j.name,
-                  isActive: true,
-                })
-                .returning();
-              judge = newJudge as NonNullable<typeof newJudge>;
-              imported = true;
-            }
-
-            // 3. Assign to hackathon (skip if already assigned)
-            const existingAssignment =
-              await tx.query.judgeAssignments.findFirst({
-                where: and(
-                  eq(judgeAssignments.judgeId, judge.id),
-                  eq(judgeAssignments.hackathonId, input.hackathonId),
-                ),
-              });
-
-            if (!existingAssignment) {
-              await tx.insert(judgeAssignments).values({
-                judgeId: judge.id,
-                hackathonId: input.hackathonId,
-                track: j.track || null,
-              });
-              imported = true;
-            }
-
-            if (imported) results.created++;
-            else results.skipped++;
-          } catch (e) {
-            results.skipped++;
-            results.errors.push(
-              `${j.email}: ${e instanceof Error ? e.message : "Unknown error"}`,
-            );
-          }
+        if (submissions.length === 0) {
+          return {
+            created: 0,
+            alreadyPresent: 0,
+            total: 0,
+            queuesNeedRebuild: false,
+          };
         }
 
-        return results;
-      });
-    }),
+        const existing = await tx.query.judgingProjects.findMany({
+          where: eq(judgingProjects.hackathonId, input.hackathonId),
+          columns: { id: true, sourceProjectId: true, tableNumber: true },
+        });
 
-  /** Bulk import projects from a parsed CSV.
-   *  Auto-assigns incrementing table numbers starting from 1. */
-  bulkImportProjects: isAdmin
-    .input(
-      z.object({
-        hackathonId: z.string().uuid(),
-        projects: z.array(
-          z.object({
-            name: z.string().min(1).max(255),
-            teamMembers: z.string().max(500).optional(),
-            mainTrack: z.string().optional(),
-            extraTracks: z.array(z.string()).optional(),
-            isCreateX: z.boolean().default(false),
-          }),
-        ),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      // An empty CSV would reach .values([]), which Drizzle rejects.
-      // The table bounds stay numeric so this branch keeps the same response
-      // shape as a real import — widening them to `undefined` breaks the
-      // setup wizard's prop type and takes the whole site build down with it.
-      if (input.projects.length === 0) {
-        return { created: 0, startTable: 0, endTable: 0 };
-      }
+        const promoted = new Set(
+          existing
+            .map((row) => row.sourceProjectId)
+            .filter((id): id is string => !!id),
+        );
 
-      // Get the current max table number for this hackathon
-      const maxResult = await (ctx.db as DrizzleDB)
-        .select({
-          max: sql<number>`COALESCE(MAX(${judgingProjects.tableNumber}), 0)`,
-        })
-        .from(judgingProjects)
-        .where(eq(judgingProjects.hackathonId, input.hackathonId));
+        const fresh = submissions.filter((s) => !promoted.has(s.id));
 
-      let nextTable = (maxResult[0]?.max ?? 0) + 1;
+        let nextTable = existing.reduce(
+          (max, row) => Math.max(max, row.tableNumber),
+          0,
+        );
 
-      const rows = input.projects.map((p) => {
-        const tracks = [
-          ...(p.mainTrack ? [p.mainTrack] : []),
-          ...(p.extraTracks || []),
-        ].filter(Boolean);
+        if (fresh.length > 0) {
+          await tx.insert(judgingProjects).values(
+            fresh.map((submission) => ({
+              hackathonId: input.hackathonId,
+              sourceProjectId: submission.id,
+              name: submission.name,
+              description: submission.description,
+              tableNumber: ++nextTable,
+              // hackathon_project.teamMembers is text[]; this column is a
+              // single text field. Joined, not assigned — handing an array
+              // straight over is a type error at best and "[object Object]"
+              // on a judge's screen at worst.
+              teamMembers:
+                submission.team?.name ??
+                (submission.teamMembers?.length
+                  ? submission.teamMembers.join(", ")
+                  : null),
+              projectUrl: submission.demoUrl,
+              repoUrl: submission.githubUrl,
+              tracks: submission.tracks?.length ? submission.tracks : null,
+              challenges: submission.challenges?.length
+                ? submission.challenges
+                : null,
+              isCreateX: submission.isCreateX ?? false,
+            })),
+          );
+
+          await tx
+            .update(hackathonProjects)
+            .set({ status: "judging", updatedAt: new Date() })
+            .where(
+              inArray(
+                hackathonProjects.id,
+                fresh.map((submission) => submission.id),
+              ),
+            );
+        }
+
+        // Queues are built from a snapshot of the project list. Anything
+        // promoted after assignment sits in nobody's queue and would simply
+        // never be judged, with nothing on screen to say so.
+        const [queued] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(judgeQueue)
+          .where(eq(judgeQueue.hackathonId, input.hackathonId));
 
         return {
-          hackathonId: input.hackathonId,
-          name: p.name,
-          teamMembers: p.teamMembers,
-          tableNumber: nextTable++,
-          tracks: tracks.length > 0 ? tracks : undefined,
-          isCreateX: p.isCreateX,
+          created: fresh.length,
+          alreadyPresent: submissions.length - fresh.length,
+          total: submissions.length,
+          queuesNeedRebuild: fresh.length > 0 && (queued?.count ?? 0) > 0,
         };
       });
-
-      const result = await (ctx.db as DrizzleDB)
-        .insert(judgingProjects)
-        .values(rows)
-        .returning();
-
-      return {
-        created: result.length,
-        startTable: rows[0]?.tableNumber,
-        endTable: rows[rows.length - 1]?.tableNumber,
-      };
-    }),
-
-  addMap: isAdmin
-    .input(
-      z.object({
-        hackathonId: z.string().uuid(),
-        imageUrl: z.string().url(),
-        name: z.string().max(100).optional(),
-        order: z.number().min(0).default(0),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const result = await (ctx.db as DrizzleDB)
-        .insert(hackathonMaps)
-        .values(input)
-        .returning();
-
-      return result[0];
     }),
 
   initializeQueue: isAdmin
@@ -436,6 +319,26 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // A judges row belongs to one hackathon and isJudge authorizes against
+      // that, so a queue built for a judge from another edition can never be
+      // opened — the projects sit in it and are silently never scored.
+      // assignToHackathon makes exactly this check; this path did not.
+      const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
+        where: eq(judges.id, input.judgeId),
+        columns: { hackathonId: true },
+      });
+
+      if (!judge) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Judge not found" });
+      }
+
+      if (judge.hackathonId !== input.hackathonId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This judge belongs to a different hackathon",
+        });
+      }
+
       await (ctx.db as DrizzleDB)
         .delete(judgeQueue)
         .where(
@@ -564,6 +467,10 @@ export const judgeAdminRouter = createTRPCRouter({
          *  When true, they stay grouped in table order. */
         groupSpecial: z.boolean().default(false),
         autoCalculate: z.boolean().default(true),
+        /** Rebuild even though judging is live or work has been completed.
+         *  Completed slots are still carried over; this only waives the
+         *  refusal, so the admin has to have seen the count first. */
+        force: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -576,6 +483,37 @@ export const judgeAdminRouter = createTRPCRouter({
             code: "NOT_FOUND",
             message: "Hackathon not found",
           });
+
+        // This procedure deletes and rebuilds every queue in the hackathon. Run
+        // a second time by accident — and the wizard drops you straight onto
+        // its button after a project import — it would restart judging for
+        // everyone at once, mid-event.
+        if (hackathon.judgingActive && !input.force) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Judging is live. Re-running assignment rebuilds every judge's queue. Stop judging first, or confirm to rebuild anyway.",
+          });
+        }
+
+        // Completed slots are not reconstructible from votes: skipProject marks
+        // a slot complete without writing one, so a wipe sends judges back to
+        // tables they already dealt with. judgingActive defaults false and
+        // organisers switch it off when judging closes, so the flag above
+        // cannot be the only guard.
+        const completed = await tx.query.judgeQueue.findMany({
+          where: and(
+            eq(judgeQueue.hackathonId, input.hackathonId),
+            eq(judgeQueue.isCompleted, true),
+          ),
+        });
+
+        if (completed.length > 0 && !input.force) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `${completed.length} judging slot(s) are already complete. Rebuilding preserves them but reorders everything else — confirm to continue.`,
+          });
+        }
 
         const allAssignments = await tx.query.judgeAssignments.findMany({
           where: eq(judgeAssignments.hackathonId, input.hackathonId),
@@ -702,29 +640,73 @@ export const judgeAdminRouter = createTRPCRouter({
           },
         );
 
-        // Build all insert rows in one pass
+        // Build all insert rows in one pass, skipping pairs a judge has already
+        // finished. judge_queue has no unique on (judgeId, projectId), so
+        // without this filter the rebuild happily re-issues a completed pair as
+        // a fresh uncompleted row and getNextTable sends the judge back.
+        const completedKeys = new Set(
+          completed.map((row) => `${row.judgeId}:${row.projectId}`),
+        );
+
         const insertRows: {
           judgeId: string;
           hackathonId: string;
           projectId: string;
           order: number;
+          isCompleted?: boolean;
+          startedAt?: Date | null;
+          completedAt?: Date | null;
         }[] = [];
         for (const [judgeId, projectIds] of queues.entries()) {
-          projectIds.forEach((projectId, idx) => {
+          let order = 0;
+          for (const projectId of projectIds) {
+            if (completedKeys.has(`${judgeId}:${projectId}`)) continue;
             insertRows.push({
               judgeId,
               hackathonId: input.hackathonId,
               projectId,
-              order: idx + 1,
+              order: ++order,
             });
+          }
+        }
+
+        // Re-append the finished work past the tail of each judge's new queue,
+        // so their history survives and nothing re-serves it.
+        const tailByJudge = new Map<string, number>();
+        for (const row of insertRows) {
+          tailByJudge.set(
+            row.judgeId,
+            Math.max(tailByJudge.get(row.judgeId) ?? 0, row.order),
+          );
+        }
+        for (const row of completed) {
+          const next = (tailByJudge.get(row.judgeId) ?? 0) + 1;
+          tailByJudge.set(row.judgeId, next);
+          insertRows.push({
+            judgeId: row.judgeId,
+            hackathonId: input.hackathonId,
+            projectId: row.projectId,
+            order: next,
+            isCompleted: true,
+            startedAt: row.startedAt,
+            completedAt: row.completedAt,
           });
         }
 
-        if (insertRows.length > 0) {
-          await tx.insert(judgeQueue).values(insertRows);
+        // Chunked because a single INSERT carries 4 bound parameters per row
+        // against Postgres's 65535 limit — about 16k rows. A sponsor-track
+        // judge's pool is uncapped, so a few of them over a large project list
+        // crosses it and aborts the whole assignment with an opaque driver
+        // error at the worst possible moment.
+        for (let i = 0; i < insertRows.length; i += QUEUE_INSERT_CHUNK) {
+          await tx
+            .insert(judgeQueue)
+            .values(insertRows.slice(i, i + QUEUE_INSERT_CHUNK));
         }
 
-        // Compute coverage stats for admin feedback
+        // Compute coverage stats for admin feedback. Counted over the merged
+        // set — over the generated rows alone, a fully-judged project reads as
+        // uncovered and the admin re-runs assignment chasing it.
         const projectCoverage = new Map<string, number>();
         for (const row of insertRows) {
           projectCoverage.set(
@@ -747,11 +729,18 @@ export const judgeAdminRouter = createTRPCRouter({
         const maxCoverage =
           coverageValues.length > 0 ? Math.max(...coverageValues) : 0;
 
+        // Counted from the rows actually written, not from `queues` — those
+        // still hold the completed pairs that were filtered out above.
+        const countByJudge = new Map<string, number>();
+        for (const row of insertRows) {
+          countByJudge.set(row.judgeId, (countByJudge.get(row.judgeId) ?? 0) + 1);
+        }
+
         const results = allAssignments.map((a) => ({
           judgeId: a.judgeId,
           judgeName: a.judge.name,
           track: a.track ?? null,
-          assignedCount: queues.get(a.judgeId)?.length ?? 0,
+          assignedCount: countByJudge.get(a.judgeId) ?? 0,
         }));
 
         return {
@@ -891,32 +880,6 @@ export const judgeAdminRouter = createTRPCRouter({
       };
       ctx.cache.set(cacheKey, result, 30);
       return result;
-    }),
-
-  getAllVotes: isAdmin
-    .input(z.object({ hackathonId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const projects = await (
-        ctx.db as DrizzleDB
-      ).query.judgingProjects.findMany({
-        where: eq(judgingProjects.hackathonId, input.hackathonId),
-        with: {
-          votes: {
-            with: {
-              judge: {
-                with: {
-                  user: {
-                    columns: { name: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-        orderBy: [asc(judgingProjects.tableNumber)],
-      });
-
-      return projects;
     }),
 
   register: protectedProcedure

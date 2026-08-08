@@ -30,7 +30,6 @@ vi.mock("@query/db", () => {
         hackathonProjects: table("hackathonProjects"),
         hackathonEvents: table("hackathonEvents"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
-        hackathonMaps: table("hackathonMaps"),
         members: table("members"),
         events: table("events"),
         eventCheckIns: table("eventCheckIns"),
@@ -118,7 +117,6 @@ vi.mock("@query/db", () => {
       eventId: "event_id",
       participantId: "participant_id",
     },
-    hackathonMaps: { id: "id", hackathonId: "hackathon_id" },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
     membershipHistory: { id: "id", memberId: "member_id" },
     events: {
@@ -441,8 +439,11 @@ describe("Hackathon end-to-end flow", () => {
       ).rejects.toThrow(/Event not found/);
     });
 
-    it("requires admin rights to scan a pass", async () => {
-      mockFindFirst.mockImplementation(() => undefined); // not an admin
+    // Scanning is the one action volunteers may take, so it is gated on
+    // holding any active admins row rather than on being full staff. An
+    // ordinary participant still has none and is still refused.
+    it("requires event staff to scan a pass", async () => {
+      mockFindFirst.mockImplementation(() => undefined); // no admins row at all
       const caller = appRouter.createCaller(createMockCtx("random_user"));
 
       await expect(
@@ -451,7 +452,7 @@ describe("Hackathon end-to-end flow", () => {
           eventId: EVENT_A,
           participantId: PARTICIPANT,
         }),
-      ).rejects.toThrow(/Admin access required/);
+      ).rejects.toThrow(/Event staff access required/);
     });
   });
 

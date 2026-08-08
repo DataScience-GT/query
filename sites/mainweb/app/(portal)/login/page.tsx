@@ -1,24 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn, getProviders } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
-
-/**
- * Where to send somebody after they sign in, when they arrived from a page that
- * asked them to.
- *
- * Only a same-origin path is ever honoured. A bare `startsWith("/")` is not
- * enough: `//evil.example` and `/\evil.example` are both protocol-relative and
- * would hand an attacker a redirect off this origin carrying whatever the
- * browser sends next.
- */
-function safeCallback(raw: string | null): string | null {
-  if (!raw || !raw.startsWith("/")) return null;
-  if (raw.startsWith("//") || raw.startsWith("/\\")) return null;
-  return raw;
-}
+import { safeCallback } from "@/lib/safe-callback";
 
 // DSGT Query - Premium Landing Page
 // Ultra-modern, standout UI/UX
@@ -36,9 +22,32 @@ export default function Home() {
   const [emailError, setEmailError] = useState("");
   const { data: portalContext } = usePortalContext();
 
+  /**
+   * Which providers the server actually registered.
+   *
+   * GitHub is only added to the provider list when GITHUB_CLIENT_ID and
+   * GITHUB_CLIENT_SECRET are set (packages/auth/src/config.ts), so a
+   * deployment without them was rendering a GitHub button that called
+   * signIn("github") against a provider that did not exist — a dead button
+   * with no explanation. Asking the server what it supports means a missing
+   * provider hides its button instead of failing when pressed.
+   */
+  const [providers, setProviders] = useState<Record<string, unknown> | null>(
+    null,
+  );
+
   useEffect(() => {
     setMounted(true);
+    getProviders()
+      .then((p) => setProviders(p ?? {}))
+      // A failed lookup must not hide every sign-in button. Falling back to
+      // "assume configured" keeps the page usable and lets the provider's own
+      // error surface instead.
+      .catch(() => setProviders(null));
   }, []);
+
+  // null means "we could not ask" — show it and let signIn report the truth.
+  const hasProvider = (id: string) => providers === null || id in providers;
 
   useEffect(() => {
     if (session) {
@@ -87,7 +96,13 @@ export default function Home() {
       }
 
       setEmailSent(true);
-      router.push(`/verify?email=${encodeURIComponent(email)}`);
+      // The destination has to ride along to /verify. The code flow finishes on
+      // that screen, not through NextAuth's own redirect, so dropping it here
+      // is what sent everybody to /dashboard no matter where they came from.
+      const next = callbackUrl
+        ? `&callbackUrl=${encodeURIComponent(callbackUrl)}`
+        : "";
+      router.push(`/verify?email=${encodeURIComponent(email)}${next}`);
     } catch {
       setEmailSending(false);
       setEmailError("We could not send that link. Please try again.");
@@ -194,21 +209,23 @@ export default function Home() {
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleGithubSignIn}
-                disabled={emailSending || isRedirecting || status === "loading"}
-                className="group w-full sm:w-auto px-10 py-6 flex items-center justify-center gap-2.5 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 16 16"
-                  className="w-4 h-4 fill-current"
+              {hasProvider("github") && (
+                <button
+                  type="button"
+                  onClick={handleGithubSignIn}
+                  disabled={emailSending || isRedirecting || status === "loading"}
+                  className="group w-full sm:w-auto px-10 py-6 flex items-center justify-center gap-2.5 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-                </svg>
-                Sign in with GitHub
-              </button>
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 16 16"
+                    className="w-4 h-4 fill-current"
+                  >
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+                  </svg>
+                  Sign in with GitHub
+                </button>
+              )}
 
               {!showEmailInput ? (
                 <button

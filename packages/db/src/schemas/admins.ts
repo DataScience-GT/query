@@ -8,7 +8,13 @@ export const admins = pgTable("admin", {
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["super_admin", "admin", "moderator"] })
+  // "volunteer" is deliberately the weakest tier and is NOT full staff: it
+  // exists so the six-to-ten people running check-in desks can scan badges
+  // without holding the role that can delete the hackathon. isAdmin rejects
+  // it; only the scanner procedures accept it.
+  role: text("role", {
+    enum: ["super_admin", "admin", "moderator", "volunteer"],
+  })
     .notNull()
     .default("admin"),
   permissions: text("permissions").array(),

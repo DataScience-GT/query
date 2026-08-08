@@ -682,8 +682,14 @@ export default function DocsPageClient() {
                   />
                   <ApiEndpoint
                     method="QUERY"
-                    route="hackathon.getActive"
-                    description="Get the currently active hackathon"
+                    route="hackathon.getUpcoming"
+                    description="The announced edition behind the interest form"
+                    auth="Public"
+                  />
+                  <ApiEndpoint
+                    method="QUERY"
+                    route="hackathon.getResults"
+                    description="Published placings, once results are released"
                     auth="Public"
                   />
                   <ApiEndpoint
@@ -772,8 +778,14 @@ export default function DocsPageClient() {
                   />
                   <ApiEndpoint
                     method="QUERY"
-                    route="stripe.getPaymentStatus"
-                    description="Check payment status of a session"
+                    route="stripe.checkPendingPayment"
+                    description="Check for a payment awaiting confirmation"
+                    auth="Protected"
+                  />
+                  <ApiEndpoint
+                    method="QUERY"
+                    route="stripe.getLinkedPayment"
+                    description="The payment linked to this account, if any"
                     auth="Protected"
                   />
                 </div>
@@ -1219,7 +1231,7 @@ export default function DocsPageClient() {
                   </h3>
                   <CodeBlock
                     title=".env"
-                    code={`# Database\nDATABASE_URL=[REDACTED]\n\n# Auth\nNEXTAUTH_URL=[REDACTED]\nNEXTAUTH_SECRET=[REDACTED]\n\n# OAuth Providers\nGOOGLE_CLIENT_ID=[REDACTED]\nGOOGLE_CLIENT_SECRET=[REDACTED]\nGITHUB_CLIENT_ID=[REDACTED]\nGITHUB_CLIENT_SECRET=[REDACTED]\n\n# Stripe\nSTRIPE_SECRET_KEY=[REDACTED]\nSTRIPE_WEBHOOK_SECRET=[REDACTED]\nNEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=[REDACTED]\n\n# Email (Resend)\nRESEND_API_KEY=[REDACTED]\n\n# Redis\nREDIS_URL=[REDACTED]`}
+                    code={`# Database\nDATABASE_URL=[REDACTED]\n\n# Auth\nNEXTAUTH_URL=[REDACTED]\nNEXTAUTH_SECRET=[REDACTED]\n\n# OAuth Providers\nGOOGLE_CLIENT_ID=[REDACTED]\nGOOGLE_CLIENT_SECRET=[REDACTED]\nGITHUB_CLIENT_ID=[REDACTED]\nGITHUB_CLIENT_SECRET=[REDACTED]\n\n# Stripe\nSTRIPE_SECRET_KEY=[REDACTED]\nSTRIPE_WEBHOOK_SECRET=[REDACTED]\nNEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=[REDACTED]\n\n# Email (SMTP - any provider)\nEMAIL_SERVER_HOST=[REDACTED]\nEMAIL_SERVER_PORT=587\nEMAIL_SERVER_USER=[REDACTED]\nEMAIL_SERVER_PASSWORD=[REDACTED]\nEMAIL_FROM=[REDACTED]`}
                   />
                 </div>
 

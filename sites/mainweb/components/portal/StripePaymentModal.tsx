@@ -192,6 +192,9 @@ interface StripePaymentModalProps {
   clientSecret: string;
   publishableKey: string;
   isMock?: boolean;
+  /** Present only in mock mode: the synthetic PaymentIntent id the server
+   *  minted, so the simulated payment goes through the real confirm path. */
+  mockPaymentIntentId?: string;
   onSuccess: () => void;
   onClose: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
@@ -203,6 +206,7 @@ export function StripePaymentModal({
   clientSecret,
   publishableKey,
   isMock = false,
+  mockPaymentIntentId,
   onSuccess,
   onClose,
   onConfirmPayment,
@@ -211,6 +215,10 @@ export function StripePaymentModal({
 }: StripePaymentModalProps) {
   const [stripePromise, setStripePromise] =
     useState<Promise<Stripe | null> | null>(null);
+  // Used only by the mock branch below; the real flow keeps its own state
+  // inside the Elements form.
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isMock && publishableKey) {
@@ -317,13 +325,39 @@ export function StripePaymentModal({
           </p>
           <button
             type="button"
-            onClick={() => {
-              setTimeout(onSuccess, 500);
+            onClick={async () => {
+              // Goes through the real server confirm, exactly as a card
+              // payment does. Calling onSuccess() directly is what made the
+              // UI say "Access Granted" with no member row behind it.
+              if (!mockPaymentIntentId) {
+                setError("Mock payment intent missing — restart the flow.");
+                return;
+              }
+              setProcessing(true);
+              setError(null);
+              try {
+                await onConfirmPayment(mockPaymentIntentId);
+                setProcessing(false);
+                onSuccess();
+              } catch (err) {
+                setProcessing(false);
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Mock payment failed to record.",
+                );
+              }
             }}
-            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui"
+            disabled={processing}
+            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-40"
           >
-            Simulate Successful Payment
+            {processing ? "Recording..." : "Simulate Successful Payment"}
           </button>
+          {error && (
+            <p role="alert" className="text-xs font-mono text-red-400">
+              {error}
+            </p>
+          )}
         </div>
       </ModalShell>
     );

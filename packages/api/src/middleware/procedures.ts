@@ -10,6 +10,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
 import { resolveHackathonId } from "../services/portal-context";
+import { isStaffRole } from "../types/portal-context";
 import type { Context } from "../context";
 
 /**
@@ -32,23 +33,27 @@ export const callerIsAdmin = async (ctx: Context) => {
     where: and(eq(admins.userId, ctx.userId), eq(admins.isActive, true)),
   });
 
-  ctx.cache.set(cacheKey, !!admin, 60);
+  const isStaff = !!admin && admin.role !== "volunteer";
 
-  return !!admin;
+  ctx.cache.set(cacheKey, isStaff, 60);
+
+  return isStaff;
 };
 
+
 /**
- * Middleware that verifies the current user is an active admin.
- * Result is cached for 60s per user to avoid a DB round-trip on every request.
+ * Loads the caller's active admin row, cached 60s per user.
+ *
+ * Shared by isScanner and isAdmin so a check-in station and a staff action
+ * cost the same single lookup.
  */
-export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
+const loadAdminRow = async (ctx: Context) => {
   const cacheKey = `${CacheKeys.admin(ctx.userId as string)}:role`;
   let admin = ctx.cache.get<typeof admins.$inferSelect>(cacheKey);
 
   if (!admin) {
     admin =
       (await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({
-        // try catch for ctx.db
         where: and(
           eq(admins.userId, ctx.userId as string),
           eq(admins.isActive, true),
@@ -58,7 +63,38 @@ export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
     if (admin) ctx.cache.set(cacheKey, admin, 60);
   }
 
+  return admin;
+};
+
+/**
+ * Anyone staffing the event, volunteers included.
+ *
+ * Scoped to badge scanning and its undo. A 2000-person event runs several
+ * check-in stations, and the people on them should not need the role that can
+ * delete the hackathon and cascade every participant, team and vote with it.
+ */
+export const isScanner = protectedProcedure.use(async ({ ctx, next }) => {
+  const admin = await loadAdminRow(ctx);
+
   if (!admin) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Event staff access required",
+    });
+  }
+
+  return next({ ctx: { ...ctx, admin } });
+});
+
+/**
+ * Full staff. Volunteers are deliberately rejected here — they hold an admins
+ * row, so without the role check they would pass every admin gate in the API.
+ * Result is cached for 60s per user to avoid a DB round-trip on every request.
+ */
+export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
+  const admin = await loadAdminRow(ctx);
+
+  if (!admin || !isStaffRole(admin.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Admin access required",

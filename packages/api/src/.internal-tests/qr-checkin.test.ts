@@ -732,6 +732,11 @@ describe("QR check-in", () => {
       mockFindMany.mockImplementation((table: string) =>
         table === "hackathonProjects" ? [{ ...project }] : [],
       );
+      // The gallery refuses to serve a hackathon the caller cannot see, so a
+      // visible one has to exist before the column scrubbing is reached.
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
+      );
       const anon = appRouter.createCaller(createMockCtx());
 
       const listed: any[] = await anon.hackathon.projects({
@@ -894,5 +899,6 @@ describe("QR check-in", () => {
       expect(cache.deletePattern("events:list*")).toBe(2);
       expect(cache.has("events:list:public")).toBe(false);
     });
+
   });
 });

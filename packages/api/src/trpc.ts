@@ -250,7 +250,11 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
     "hackathon:*:participants",
     "hackathon:*:analytics",
   ],
-  "hackathon.scanParticipantPass": ["hackathon:*:participants"],
+  // A badge scan changes one event's attendee count, not the roster. The
+  // resolver evicts that single key by id; an empty list here keeps the
+  // namespace fallback below from wiping every attendee's cached registrations
+  // on every scan, all weekend, at every door.
+  "hackathon.scanParticipantPass": [],
   "hackathon.create": ["hackathons:list"],
   "hackathon.update": ["hackathons:list", "hackathon:*"],
   "hackathon.delete": ["hackathons:list", "hackathon:*"],
@@ -272,17 +276,63 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
     "hackathon:*:rankings",
     "hackathon:*:judge-analytics",
   ],
+  // Promotion creates judgeable projects and flips submissions to "judging",
+  // so both the public project list and the rankings view move.
+  "judge.promoteSubmissions": [
+    "hackathon:*:projects",
+    "hackathon:*:public-projects*",
+    "hackathon:*:rankings",
+  ],
+  // Announcements read the audience live and write nothing cacheable.
+  "hackathon.sendAnnouncement": [],
   "judge.assignToHackathon": ["judge:*"],
   // Member mutations
   "member.update": ["member:*", "user:*:profile"],
   // A renewal changes the membership the portal reads, so its context must go too
   // Team mutations — team membership is embedded in both the public roster and
   // each participant's own registration list
-  "team.createTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
-  "team.joinTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
-  "team.leaveTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
-  "team.disbandTeam": ["hackathon:*:participants", "hackathon:registrations:*"],
-  "team.submitProject": ["hackathon:*:projects", "hackathon:registrations:*"],
+  // team.list is cached now, and the tab refetches straight after each of
+  // these — so the roster key has to go with them or the user sees the state
+  // they just changed back again.
+  "team.createTeam": [
+    "hackathon:*:participants",
+    "hackathon:*:teams",
+    "hackathon:registrations:*",
+  ],
+  "team.joinTeam": [
+    "hackathon:*:participants",
+    "hackathon:*:teams",
+    "hackathon:registrations:*",
+  ],
+  "team.leaveTeam": [
+    "hackathon:*:participants",
+    "hackathon:*:teams",
+    "hackathon:registrations:*",
+  ],
+  "team.disbandTeam": [
+    "hackathon:*:participants",
+    "hackathon:*:teams",
+    "hackathon:registrations:*",
+  ],
+  // The public gallery is cached per page, so its keys carry a limit/offset
+  // suffix that a bare `:projects` pattern would not match.
+  "team.submitProject": [
+    "hackathon:*:projects",
+    "hackathon:*:public-projects*",
+    "hackathon:registrations:*",
+  ],
+  "team.withdrawProject": [
+    "hackathon:*:projects",
+    "hackathon:*:public-projects*",
+  ],
+  // Both evict precisely by id in the resolver; empty keeps the namespace
+  // fallback from sweeping every attendee's cached registrations.
+  "hackathon.adminUpdateProject": [],
+  "hackathon.adminWithdrawProject": [],
+  // Publishing and unpublishing change what the public getResults returns.
+  "judge.computeResults": ["hackathon:*:results"],
+  "judge.publishResults": ["hackathon:*:results"],
+  "judge.unpublishResults": ["hackathon:*:results"],
   // Stripe — invalidate member status after linking
   "stripe.attemptAutoLink": ["member:*"],
   "stripe.linkAccount": ["member:*"],
@@ -331,12 +381,17 @@ export const publicProcedure = t.procedure
   .use(sanitizeInputs)
   .use(enforceContentType)
   .use(async ({ ctx, next, type }) => {
-    // DDoS Protection - check IP-based limits first
-    const ddosCheck = ddosProtection(ctx.clientIp);
+    // Flood protection. Key on the signed-in user when there is one: at a
+    // 2000-person venue every attendee shares one NAT address, so an
+    // address-keyed bucket blocks the whole building the moment the schedule
+    // page gets popular. Prefixes keep the two namespaces from colliding.
+    const ddosCheck = ddosProtection(
+      ctx.userId ? `user:${ctx.userId}` : `ip:${ctx.clientIp}`,
+    );
     if (!ddosCheck.allowed) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message: `Too many requests from your IP. Please try again in ${ddosCheck.retryAfter} seconds.`,
+        message: `Too many requests. Please try again in ${ddosCheck.retryAfter} seconds.`,
       });
     }
 

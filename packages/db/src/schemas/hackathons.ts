@@ -170,6 +170,11 @@ export const hackathonParticipants = pgTable(
     hasSubmittedProject: boolean("has_submitted_project")
       .notNull()
       .default(false),
+    // Stamped per participant as their acceptance mail leaves. A mass send is
+    // thousands of SMTP round trips and can die halfway through; without a
+    // per-row marker the only safe retry is none, and the unsafe one mails
+    // everybody twice.
+    acceptanceEmailSentAt: timestamp("acceptance_email_sent_at"),
 
     registeredAt: timestamp("registered_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -178,6 +183,13 @@ export const hackathonParticipants = pgTable(
     index("participant_hackathon_id_idx").on(table.hackathonId),
     index("participant_user_id_idx").on(table.userId),
     index("participant_team_id_idx").on(table.teamId),
+    // syncCurrentParticipants filters on exactly this pair and runs after every
+    // approve and every check-in. Without it each call is a full scan of the
+    // participant table.
+    index("participant_hackathon_status_idx").on(
+      table.hackathonId,
+      table.registrationStatus,
+    ),
     // Enforce one registration per user per hackathon at the DB level.
     // This prevents duplicates even under concurrent requests that race
     // past the application-level findFirst check inside the transaction.

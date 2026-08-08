@@ -24,6 +24,46 @@ export default function ProjectsPage() {
     selectedHackathon ? { hackathonId: selectedHackathon } : skipToken,
   );
 
+  // The one project being repaired, and the field values being repaired to.
+  const [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    githubUrl: "",
+    demoUrl: "",
+    videoUrl: "",
+  });
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+
+  const utils = trpc.useUtils();
+
+  const refresh = () => {
+    if (selectedHackathon) {
+      utils.hackathon.projects.invalidate({ hackathonId: selectedHackathon });
+    }
+  };
+
+  const updateProject = trpc.hackathon.adminUpdateProject.useMutation({
+    onSuccess: () => {
+      setEditing(null);
+      setActionError(null);
+      refresh();
+    },
+    onError: (error) => setActionError(error.message),
+  });
+
+  const withdrawProject = trpc.hackathon.adminWithdrawProject.useMutation({
+    onSuccess: () => {
+      setWithdrawing(null);
+      setActionError(null);
+      refresh();
+    },
+    // A project already in judging comes back as CONFLICT with what that
+    // means; the second press confirms it.
+    onError: (error) => setActionError(error.message),
+  });
+
   if (status === "unauthenticated") {
     router.push("/login");
     return null;
@@ -167,6 +207,125 @@ export default function ProjectsPage() {
                         <span>Team: {project.team?.name || "Unknown"}</span>
                       </div>
                     </div>
+
+                    {editing === project.id ? (
+                      <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] space-y-3">
+                        {(
+                          [
+                            ["name", "Name"],
+                            ["description", "Description"],
+                            ["githubUrl", "Repo URL"],
+                            ["demoUrl", "Demo URL"],
+                            ["videoUrl", "Video URL"],
+                          ] as const
+                        ).map(([field, label]) => (
+                          <div key={field}>
+                            <label
+                              htmlFor={`${project.id}-${field}`}
+                              className="block text-[10px] uppercase tracking-widest font-bold text-[var(--text-subtle)] mb-1 font-mono"
+                            >
+                              {label}
+                            </label>
+                            <input
+                              id={`${project.id}-${field}`}
+                              type="text"
+                              value={form[field]}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  [field]: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-xs font-mono focus:border-accent/50 focus:outline-none"
+                            />
+                          </div>
+                        ))}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            disabled={updateProject.isPending}
+                            onClick={() =>
+                              updateProject.mutate({
+                                projectId: project.id,
+                                name: form.name.trim() || undefined,
+                                description:
+                                  form.description.trim() || undefined,
+                                // null clears; undefined leaves unchanged.
+                                githubUrl: form.githubUrl.trim() || null,
+                                demoUrl: form.demoUrl.trim() || null,
+                                videoUrl: form.videoUrl.trim() || null,
+                              })
+                            }
+                            className="px-3 py-2 bg-accent/10 border border-accent/30 text-accent text-[10px] font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors disabled:opacity-40"
+                          >
+                            {updateProject.isPending ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditing(null);
+                              setActionError(null);
+                            }}
+                            className="px-3 py-2 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-[10px] uppercase tracking-widest hover:bg-white/5 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionError(null);
+                            setWithdrawing(null);
+                            setEditing(project.id);
+                            setForm({
+                              name: project.name,
+                              description: project.description || "",
+                              githubUrl: project.githubUrl || "",
+                              demoUrl: project.demoUrl || "",
+                              videoUrl: project.videoUrl || "",
+                            });
+                          }}
+                          className="px-3 py-2 border border-[var(--border-subtle)] text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                        >
+                          Fix details
+                        </button>
+                        {project.status !== "draft" && (
+                          <button
+                            type="button"
+                            disabled={withdrawProject.isPending}
+                            onClick={() => {
+                              setActionError(null);
+                              withdrawProject.mutate({
+                                projectId: project.id,
+                                // Forced only on the second press, after the
+                                // server has said what withdrawing costs.
+                                force: withdrawing === project.id,
+                              });
+                              setWithdrawing(project.id);
+                            }}
+                            className="px-3 py-2 border border-red-500/20 text-red-400/70 text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
+                          >
+                            {withdrawing === project.id
+                              ? "Withdraw anyway"
+                              : "Withdraw"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {actionError &&
+                      (editing === project.id ||
+                        withdrawing === project.id) && (
+                        <p
+                          role="alert"
+                          className="mt-3 text-[10px] font-mono text-amber-300 leading-relaxed"
+                        >
+                          {actionError}
+                        </p>
+                      )}
                   </LiquidGlass>
                 ))}
               </div>

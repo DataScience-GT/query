@@ -16,8 +16,22 @@ export type MemberContext = {
   renewalCount: number;
 };
 
+/**
+ * Full staff, as opposed to a volunteer.
+ *
+ * Lives here rather than beside the middleware because both the middleware and
+ * the portal context need it, and procedures.ts already imports from the
+ * portal-context service — putting it there would close an import cycle.
+ */
+export const isStaffRole = (role: string | null | undefined) =>
+  !!role && role !== "volunteer";
+
 export type PortalContext = {
+  /** Full staff. False for volunteers, who hold an admins row but are limited
+   *  to badge scanning. */
   isAdmin: boolean;
+  /** Any active admins row, volunteers included — may staff a check-in desk. */
+  isScanner: boolean;
   role: string | null;
   permissions: string[];
   isJudge: boolean;

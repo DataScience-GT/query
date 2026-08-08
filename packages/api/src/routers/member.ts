@@ -6,8 +6,10 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { members } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import { invalidatePortalContext } from "../middleware/cache";
-import { resolveHackathonId } from "../services/portal-context";
+import {
+  clearMembershipCaches,
+  invalidatePortalContext,
+} from "../middleware/cache";
 
 // Letters from every script, plus the combining marks, spaces, hyphens and
 // apostrophes (straight and typographic) that real names are written with.
@@ -24,20 +26,13 @@ const phoneSchema = z
 
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
-    .query(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
-      if (!hackathonId) return null;
-
-      const cacheKey = `member:me:${ctx.userId}:${hackathonId}`;
+    .query(async ({ ctx }) => {
+      const cacheKey = `member:me:${ctx.userId}`;
       const cached = ctx.cache.get<typeof member>(cacheKey);
       if (cached) return cached;
 
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: and(
-          eq(members.userId, ctx.userId!),
-          eq(members.hackathonId, hackathonId),
-        ),
+        where: eq(members.userId, ctx.userId!),
       });
 
       const result = member ?? null;
@@ -48,7 +43,6 @@ export const memberRouter = createTRPCRouter({
   register: protectedProcedure
     .input(
       z.object({
-        hackathonId: z.string().uuid().optional(),
         firstName: nameSchema,
         lastName: nameSchema,
         phoneNumber: phoneSchema,
@@ -63,27 +57,16 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input.hackathonId);
-      if (!hackathonId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No hackathon context found for registration",
-        });
-      }
-
       const existingMember = await (
         ctx.db as DrizzleDB
       ).query.members.findFirst({
-        where: and(
-          eq(members.userId, ctx.userId!),
-          eq(members.hackathonId, hackathonId),
-        ),
+        where: eq(members.userId, ctx.userId!),
       });
 
       if (existingMember) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "You are already a member for this hackathon",
+          message: "You already have a member profile",
         });
       }
 
@@ -106,7 +89,6 @@ export const memberRouter = createTRPCRouter({
         .insert(members)
         .values({
           userId: ctx.userId!,
-          hackathonId,
           memberType: "new",
           firstName: input.firstName,
           lastName: input.lastName,
@@ -153,7 +135,6 @@ export const memberRouter = createTRPCRouter({
   update: protectedProcedure
     .input(
       z.object({
-        hackathonId: z.string().uuid().optional(),
         firstName: nameSchema.optional(),
         lastName: nameSchema.optional(),
         phoneNumber: phoneSchema,
@@ -168,35 +149,21 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input.hackathonId);
-      if (!hackathonId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No hackathon context found for update",
-        });
-      }
-
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: and(
-          eq(members.userId, ctx.userId!),
-          eq(members.hackathonId, hackathonId),
-        ),
+        where: eq(members.userId, ctx.userId!),
       });
 
       if (!member) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Member not found for this hackathon",
+          message: "Member not found",
         });
       }
-
-      // Exclude hackathonId from update fields
-      const { hackathonId: _, ...updateFields } = input;
 
       const result = await (ctx.db as DrizzleDB)
         .update(members)
         .set({
-          ...updateFields,
+          ...input,
           updatedAt: new Date(),
         })
         .where(eq(members.id, member.id))
@@ -211,28 +178,29 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
+      // `me` caches for 60s; without this the form saves and re-reads the old
+      // values, which is indistinguishable from the save having failed.
+      clearMembershipCaches(ctx.userId!);
+
       return updatedMember;
     }),
 
   list: publicProcedure
     .input(
       z.object({
-        hackathonId: z.string().uuid().optional(),
         memberType: z.enum(["new", "continuous"]).optional(),
         limit: z.number().int().min(1).max(100).default(50),
         offset: z.number().int().min(0).max(10000).default(0),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input.hackathonId);
-      const cacheKey = `members:list:${hackathonId || "all"}:${input.memberType || "all"}:${input.limit}:${input.offset}`;
+      const cacheKey = `members:list:${input.memberType || "all"}:${input.limit}:${input.offset}`;
       const cached = ctx.cache.get<typeof allMembers>(cacheKey);
       if (cached) return cached;
 
       const allMembers = await (ctx.db as DrizzleDB).query.members.findMany({
         where: and(
           eq(members.isActive, true),
-          hackathonId ? eq(members.hackathonId, hackathonId) : undefined,
           input.memberType
             ? eq(members.memberType, input.memberType)
             : undefined,
@@ -306,21 +274,9 @@ export const memberRouter = createTRPCRouter({
     }),
 
   history: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
-    .query(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
-      if (!hackathonId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No hackathon context found for history lookup",
-        });
-      }
-
+    .query(async ({ ctx }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: and(
-          eq(members.userId, ctx.userId!),
-          eq(members.hackathonId, hackathonId),
-        ),
+        where: eq(members.userId, ctx.userId!),
         columns: { id: true },
         with: {
           membershipHistory: {
@@ -331,29 +287,15 @@ export const memberRouter = createTRPCRouter({
       });
 
       if (!member) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Member not found for this hackathon" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
       }
 
       return member.membershipHistory;
     }),
 
   checkStatus: protectedProcedure
-    .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
-    .query(async ({ ctx, input }) => {
-      const hackathonId = await resolveHackathonId(ctx.db as DrizzleDB, input?.hackathonId);
-      if (!hackathonId) {
-        return {
-          isMember: false,
-          isActive: false,
-          hasLapsed: false,
-          expiresAt: null,
-          daysRemaining: null,
-          memberType: null,
-          renewalCount: 0,
-        };
-      }
-
-      const cacheKey = `member:status:${ctx.userId}:${hackathonId}`;
+    .query(async ({ ctx }) => {
+      const cacheKey = `member:status:${ctx.userId}`;
       const cached = ctx.cache.get<{
         isMember: boolean;
         isActive: boolean;
@@ -366,10 +308,7 @@ export const memberRouter = createTRPCRouter({
       if (cached) return cached;
 
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: and(
-          eq(members.userId, ctx.userId!),
-          eq(members.hackathonId, hackathonId),
-        ),
+        where: eq(members.userId, ctx.userId!),
       });
 
       if (!member) {
@@ -415,4 +354,5 @@ export const memberRouter = createTRPCRouter({
 
       return result;
     }),
+
 });

@@ -5,8 +5,6 @@ import { events, eventCheckIns, members } from "@query/db";
 import { eq, and, lt, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { isAdmin } from "../middleware/procedures";
-import { resolveHackathonId } from "../services/portal-context";
-import type { DrizzleDB } from "@query/db";
 
 /**
  * Postgres unique_violation. Drizzle wraps every driver error in a
@@ -50,6 +48,64 @@ export const eventRouter = createTRPCRouter({
       ctx.cache.deletePattern("event*");
 
       return newEvent;
+    }),
+
+  /**
+   * Corrects a club event in place.
+   *
+   * Without this the only way to fix a typo in a title was to delete the event
+   * and make a new one — which destroys every check-in already collected
+   * against it, and mints a new QR code that the printed one no longer matches.
+   */
+  update: isAdmin
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        title: z.string().min(1).max(200).optional(),
+        description: z.string().max(1000).nullable().optional(),
+        location: z.string().max(200).nullable().optional(),
+        eventDate: z.date().optional(),
+        /** Null removes the cap. */
+        maxCheckIns: z.number().int().positive().nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { eventId, ...fields } = input;
+
+      const existing = await (
+        ctx.db as NonNullable<typeof ctx.db>
+      ).query.events.findFirst({
+        where: eq(events.id, eventId),
+        columns: { currentCheckIns: true },
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      }
+
+      // A cap below the number of people already scanned would make the counter
+      // read as over-full forever and refuse everyone at the door, with nothing
+      // saying why.
+      if (
+        typeof fields.maxCheckIns === "number" &&
+        fields.maxCheckIns < existing.currentCheckIns
+      ) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `${existing.currentCheckIns} people have already checked in, so the cap cannot be lower than that.`,
+        });
+      }
+
+      const [updated] = await (ctx.db as NonNullable<typeof ctx.db>)
+        .update(events)
+        .set({ ...fields, updatedAt: new Date() })
+        .where(eq(events.id, eventId))
+        .returning();
+
+      ctx.cache.deletePattern(`event:${eventId}`);
+      ctx.cache.deletePattern("event*");
+
+      return updated;
     }),
 
   regenerateQR: isAdmin
@@ -268,21 +324,14 @@ export const eventRouter = createTRPCRouter({
             .where(eq(events.id, event.id))
             .for("update");
 
-          // One membership row per edition, so an unscoped lookup can pick a
-          // lapsed earlier year.
-          const hackathonId = await resolveHackathonId(
-            tx as unknown as DrizzleDB,
-          );
-
           const [member, existingCheckIn] = await Promise.all([
-            hackathonId
-              ? tx.query.members.findFirst({
-                  where: and(
-                    eq(members.userId, ctx.userId as string),
-                    eq(members.hackathonId, hackathonId),
-                  ),
-                })
-              : undefined,
+            // Club check-in no longer depends on a hackathon edition existing.
+            // It used to skip this lookup entirely when none resolved, and
+            // then refuse everyone at the door with "Must be a member" — at a
+            // club event that has nothing to do with any hackathon.
+            tx.query.members.findFirst({
+              where: eq(members.userId, ctx.userId as string),
+            }),
             tx.query.eventCheckIns.findFirst({
               where: and(
                 eq(eventCheckIns.eventId, event.id),

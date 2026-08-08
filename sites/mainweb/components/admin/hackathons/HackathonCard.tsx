@@ -42,6 +42,9 @@ export function HackathonCard({
     onSuccess: () => {
       utils.hackathon.listAll.invalidate();
     },
+    // A mistyped name and a blocking paid-membership reference both come back
+    // here. Silently doing nothing would read as "deleted".
+    onError: (error) => window.alert(error.message),
   });
 
   return (
@@ -315,13 +318,17 @@ export function HackathonCard({
             <button
               type="button"
               onClick={() => {
-                if (
-                  confirm(
-                    "Are you sure you want to delete this hackathon? This cannot be undone.",
-                  )
-                ) {
-                  deleteMutation.mutate({ hackathonId: hackathon.id });
-                }
+                // Typing the name, not clicking OK. Deleting an edition takes
+                // every participant, team, project and judge vote with it, and
+                // a confirm() dialog is one stray Enter key away from doing it.
+                const typed = window.prompt(
+                  `This deletes "${hackathon.name}" and every participant, team, project and vote attached to it. This cannot be undone.\n\nType the hackathon's name to confirm:`,
+                );
+                if (typed === null) return;
+                deleteMutation.mutate({
+                  hackathonId: hackathon.id,
+                  confirmName: typed,
+                });
               }}
               disabled={deleteMutation.isPending}
               className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-50"

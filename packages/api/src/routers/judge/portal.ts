@@ -7,7 +7,6 @@ import {
   judgeVotes,
   judgingProjects,
   judgeQueue,
-  hackathonMaps,
   hackathons,
 } from "@query/db";
 import { eq, ne, gt, and, asc, inArray, sql } from "drizzle-orm";
@@ -232,17 +231,6 @@ export const judgePortalRouter = createTRPCRouter({
         myVote: votesMap.get(p.id) || null,
         hasVoted: votesMap.has(p.id),
       }));
-    }),
-
-  getMaps: isJudge
-    .input(z.object({ hackathonId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const maps = await (ctx.db as DrizzleDB).query.hackathonMaps.findMany({
-        where: eq(hackathonMaps.hackathonId, input.hackathonId),
-        orderBy: [asc(hackathonMaps.order)],
-      });
-
-      return maps;
     }),
 
   getJudgingStatus: protectedProcedure
@@ -636,7 +624,35 @@ export const judgePortalRouter = createTRPCRouter({
           // Get the project's tracks for matching
           const projectTracks = queueItem.project?.tracks || [];
 
-          // Build candidate list with workload info
+          // Two queries for the whole candidate set, not two per candidate.
+          // This runs inside an open transaction during judging: at 40 judges
+          // the per-candidate version was ~80 sequential round trips, holding
+          // a pool connection the entire time.
+          const [holders, workloads] = await Promise.all([
+            tx
+              .select({ judgeId: judgeQueue.judgeId })
+              .from(judgeQueue)
+              .where(eq(judgeQueue.projectId, queueItem.projectId)),
+            tx
+              .select({
+                judgeId: judgeQueue.judgeId,
+                remaining: sql<number>`count(*)::int`,
+              })
+              .from(judgeQueue)
+              .where(
+                and(
+                  eq(judgeQueue.hackathonId, queueItem.hackathonId),
+                  eq(judgeQueue.isCompleted, false),
+                ),
+              )
+              .groupBy(judgeQueue.judgeId),
+          ]);
+
+          const alreadyHolding = new Set(holders.map((row) => row.judgeId));
+          const remainingByJudge = new Map(
+            workloads.map((row) => [row.judgeId, row.remaining]),
+          );
+
           const candidates: {
             judgeId: string;
             trackMatch: boolean;
@@ -650,26 +666,7 @@ export const judgePortalRouter = createTRPCRouter({
             // them the project strands it with nobody able to score it.
             if (!other.judge?.isActive) continue;
 
-            // Check if already has this project
-            const alreadyQueued = await tx.query.judgeQueue.findFirst({
-              where: and(
-                eq(judgeQueue.judgeId, other.judgeId),
-                eq(judgeQueue.projectId, queueItem.projectId),
-              ),
-            });
-            if (alreadyQueued) continue;
-
-            // Count remaining (uncompleted) projects for workload balancing
-            const remainingCount = await tx
-              .select({ count: sql<number>`COUNT(*)` })
-              .from(judgeQueue)
-              .where(
-                and(
-                  eq(judgeQueue.judgeId, other.judgeId),
-                  eq(judgeQueue.hackathonId, queueItem.hackathonId),
-                  eq(judgeQueue.isCompleted, false),
-                ),
-              );
+            if (alreadyHolding.has(other.judgeId)) continue;
 
             // Check track match: judge's assigned track overlaps with project's tracks
             const trackMatch = other.track
@@ -679,7 +676,9 @@ export const judgePortalRouter = createTRPCRouter({
             candidates.push({
               judgeId: other.judgeId,
               trackMatch,
-              remaining: remainingCount[0]?.count ?? 0,
+              // A judge with nothing left has no group row at all, which is the
+              // lightest possible load rather than a missing one.
+              remaining: remainingByJudge.get(other.judgeId) ?? 0,
             });
           }
 
@@ -712,6 +711,17 @@ export const judgePortalRouter = createTRPCRouter({
           with: { project: true },
           orderBy: [asc(judgeQueue.order)],
         });
+
+        // Claim the table being handed over, exactly as completeAndNext and
+        // skipProject do. Without this the slot stays unclaimed and the next
+        // judge to ask for work is sent to the table this judge just walked up
+        // to — two judges, one team, at the same moment.
+        if (nextInQueue) {
+          await tx
+            .update(judgeQueue)
+            .set({ startedAt: new Date() })
+            .where(eq(judgeQueue.id, nextInQueue.id));
+        }
 
         return {
           done: !nextInQueue,

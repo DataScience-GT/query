@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import type { DrizzleDB } from "../client";
-import { members } from "../schemas/members";
+import { members, membershipHistory } from "../schemas/members";
 import { PRE_CURRENT_STATUSES } from "../schemas/hackathons";
 import { stripePayments, userAccountLinks } from "../schemas/stripe";
 
@@ -121,18 +121,15 @@ export async function createOrUpdateMembership(
     bootcampMember?: boolean;
   },
 ) {
-  const hackathonId =
-    opts.hackathonId ?? (await resolveCurrentHackathonId(db));
-
-  if (!hackathonId) {
-    throw new Error("No hackathon found for membership assignment");
-  }
-
+  // Keyed on the person, not the edition.
+  //
+  // This used to resolve a "current hackathon" and look for (userId,
+  // hackathonId) — so on the day the next edition opened, an existing member
+  // matched nothing, took the insert branch below, and had their remaining
+  // months silently replaced by a fresh term starting today. It also meant a
+  // payment could not be honoured at all when no edition was open.
   const existing = await db.query.members.findFirst({
-    where: and(
-      eq(members.userId, opts.userId),
-      eq(members.hackathonId, hackathonId),
-    ),
+    where: eq(members.userId, opts.userId),
   });
 
   const now = new Date();
@@ -165,22 +162,44 @@ export async function createOrUpdateMembership(
         updatedAt: now,
       })
       .where(eq(members.id, existing.id));
+
+    // The renewal overwrites membershipEndDate in place, so without this row
+    // the previous term leaves no trace at all. Since a membership is no
+    // longer scoped to an edition, this table is the only record of which
+    // years somebody was a member.
+    await db.insert(membershipHistory).values({
+      memberId: existing.id,
+      action: "renewed",
+      startDate: termStart,
+      endDate: termEnd,
+    });
     return;
   }
 
-  await db.insert(members).values({
-    userId: opts.userId,
-    hackathonId,
-    firstName: opts.firstName,
-    lastName: opts.lastName,
-    memberType: "new",
-    isActive: true,
-    membershipStartDate: now,
-    membershipEndDate: termEnd,
-    renewalCount: 0,
-    phoneNumber: opts.phoneNumber ?? null,
-    bootcampMember: !!opts.bootcampMember,
-  });
+  const [created] = await db
+    .insert(members)
+    .values({
+      userId: opts.userId,
+      firstName: opts.firstName,
+      lastName: opts.lastName,
+      memberType: "new",
+      isActive: true,
+      membershipStartDate: now,
+      membershipEndDate: termEnd,
+      renewalCount: 0,
+      phoneNumber: opts.phoneNumber ?? null,
+      bootcampMember: !!opts.bootcampMember,
+    })
+    .returning({ id: members.id });
+
+  if (created) {
+    await db.insert(membershipHistory).values({
+      memberId: created.id,
+      action: "joined",
+      startDate: now,
+      endDate: termEnd,
+    });
+  }
 }
 
 export type LinkOutcome =
