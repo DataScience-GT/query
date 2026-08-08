@@ -38,6 +38,19 @@ alter table member add constraint unique_member_per_user unique (user_id);
 
 commit;
 
--- Verify: `pnpm --filter @query/db migrate:push` must report
--- "No changes detected." Anything else means the schema and the database
--- disagree and the next push will offer to fix it destructively.
+-- THIS FILE IS NOT THE WHOLE MIGRATION.
+--
+-- It covers only the change `drizzle-kit push` cannot be trusted with — adding
+-- the unique constraint, where push offers to TRUNCATE. The same release also
+-- changes the judging tables (a NOT NULL UNIQUE qr_code with a default, a
+-- withdrawn_at flag, judging_project.source_project_id moving from ON DELETE
+-- CASCADE to SET NULL, arrival tracking on the queue and the results snapshot).
+-- Those are additive or FK-only and push applies them safely.
+--
+-- So the order is:
+--   1. this file, by hand
+--   2. `pnpm --filter @query/db migrate:push` for the rest
+--   3. run it once more — only NOW must it report "No changes detected"
+--
+-- Applying step 1 and deploying without step 2 leaves the judging code
+-- querying columns that do not exist.

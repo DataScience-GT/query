@@ -28,9 +28,13 @@ const mockInsert = vi.fn();
  * seconds on SDK retries and failed the whole suite whenever the machine was
  * offline or slow, for reasons that had nothing to do with the assertion.
  */
+/** Payment intents `reconcileMyPayments` should find. Set per test. */
+const mockSearchResults = vi.fn<() => unknown[]>(() => []);
+
 vi.mock("stripe", () => ({
   default: class {
     paymentIntents = {
+      search: vi.fn(async () => ({ data: mockSearchResults() })),
       retrieve: vi.fn(async (id: string) => {
         throw new Error(`No such payment_intent: ${id}`);
       }),
@@ -61,6 +65,7 @@ vi.mock("@query/db", () => {
         members: table("members"),
         hackathons: table("hackathons"),
         stripePayments: table("stripePayments"),
+        membershipHistory: table("membershipHistory"),
         userAccountLinks: table("userAccountLinks"),
         admins: table("admins"),
       },
@@ -362,6 +367,75 @@ describe("Membership payments", () => {
       });
 
       expect(insertedAmount()).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
+    });
+  });
+
+  /**
+   * Reported by review on #316, and correct.
+   *
+   * The webhook records the payment first and grants the membership after, so
+   * a grant that throws leaves a payment row linked to the user with no
+   * membership behind it. Every recovery path skipped already-linked payments,
+   * which made that state permanent: charged customer, payment on file,
+   * nothing ever retrying.
+   */
+  describe("recovering a payment whose membership grant failed", () => {
+    const PAID_AT = new Date("2026-03-01T12:00:00Z");
+
+    const paidIntent = {
+      id: "pi_stranded",
+      amount: MEMBERSHIP_CENTS,
+      currency: "usd",
+      status: "succeeded",
+      metadata: { type: "membership", userId: USER },
+    };
+
+    const wire = (opts: { history?: unknown }) => {
+      process.env.STRIPE_SECRET_KEY = "sk_test_abc";
+      mockSearchResults.mockReturnValue([paidIntent]);
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users")
+          return { id: USER, email: "member@gatech.edu", name: "Buzz Member" };
+        if (table === "stripePayments")
+          return {
+            id: "pay_1",
+            stripePaymentIntentId: paidIntent.id,
+            linkedUserId: USER,
+            paymentStatus: "paid",
+            createdAt: PAID_AT,
+          };
+        if (table === "members") return { id: "member_1" };
+        if (table === "membershipHistory") return opts.history;
+        return undefined;
+      });
+    };
+
+    it("grants the membership when no history row covers the payment", async () => {
+      wire({ history: undefined });
+
+      const res = await caller().stripe.reconcileMyPayments();
+
+      expect(res.recovered).toBe(1);
+      // A member row already exists (the profile), so the term is written as a
+      // renewal — what matters is that a history row records the grant at all.
+      const written = mockInsert.mock.calls.map((c) => c[0]?.[0]);
+      expect(
+        written.some((row) => row?.action === "renewed" || row?.action === "joined"),
+      ).toBe(true);
+    });
+
+    /**
+     * The other half of the rule: a membership granted a year ago and since
+     * lapsed must NOT be silently renewed off that old payment. The history row
+     * is what distinguishes "never honoured" from "honoured and expired".
+     */
+    it("leaves an already-honoured payment alone", async () => {
+      wire({ history: { id: "hist_1" } });
+
+      const res = await caller().stripe.reconcileMyPayments();
+
+      expect(res.recovered).toBe(0);
+      expect(mockInsert).not.toHaveBeenCalled();
     });
   });
 });

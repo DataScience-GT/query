@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { stripePayments, userAccountLinks, users } from "@query/db";
+import {
+  members,
+  membershipHistory,
+  stripePayments,
+  userAccountLinks,
+  users,
+} from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, gte, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware/cache";
 import {
@@ -611,7 +617,56 @@ export const stripeRouter = createTRPCRouter({
        * strand it. Claim it and grant the membership instead.
        */
       if (existing) {
-        if (existing.linkedUserId) continue;
+        // Somebody else's payment. Not ours to touch.
+        if (existing.linkedUserId && existing.linkedUserId !== ctx.userId) {
+          continue;
+        }
+
+        /**
+         * Linked to this user, which is NOT proof the membership was granted.
+         *
+         * The webhook records the payment first and grants afterwards, on
+         * purpose — sharing a transaction meant a failed grant rolled the
+         * payment row back and lost the charge entirely. But that ordering
+         * leaves a real state where the row is linked and no membership
+         * exists, and skipping every linked payment here made that state
+         * permanent: the customer is charged, the payment is on file, and
+         * nothing ever retries.
+         *
+         * `membership_history` is what tells the two apart. Every grant writes
+         * a row, so a payment with no history row at or after its own
+         * timestamp was never honoured. That distinguishes a failed grant from
+         * a membership that was granted a year ago and has since lapsed —
+         * which must NOT be silently renewed off an old payment.
+         */
+        if (existing.linkedUserId) {
+          const member = await ctx.db!.query.members.findFirst({
+            where: eq(members.userId, ctx.userId!),
+            columns: { id: true },
+          });
+
+          const honoured = member
+            ? await ctx.db!.query.membershipHistory.findFirst({
+                where: and(
+                  eq(membershipHistory.memberId, member.id),
+                  gte(membershipHistory.createdAt, existing.createdAt),
+                ),
+                columns: { id: true },
+              })
+            : undefined;
+
+          if (honoured) continue;
+
+          const parts = (user?.name || "Member").trim().split(/\s+/);
+          await createOrUpdateMembership(ctx.db! as DrizzleDB, {
+            userId: ctx.userId!,
+            firstName: parts[0] || "Member",
+            lastName: parts.slice(1).join(" ") || "Member",
+            bootcampMember: pi.metadata?.bootcamp === "true",
+          });
+          recovered += 1;
+          continue;
+        }
 
         await ctx.db!.transaction(async (tx) => {
           const claimed = await tx
