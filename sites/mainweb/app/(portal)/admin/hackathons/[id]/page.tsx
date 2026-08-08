@@ -12,9 +12,16 @@ import { AttendeesTab } from "@/components/admin/hackathons/AttendeesTab";
 import { AnalyticsTab } from "@/components/admin/hackathons/AnalyticsTab";
 import { EventsTab } from "@/components/admin/hackathons/EventsTab";
 import { JudgesTab } from "@/components/admin/hackathons/JudgesTab";
-import { Gavel } from "lucide-react";
+import { AnnouncementsTab } from "@/components/admin/hackathons/AnnouncementsTab";
+import { Gavel, Megaphone } from "lucide-react";
 
-type Tab = "events" | "scanner" | "attendees" | "analytics" | "judges";
+type Tab =
+  | "events"
+  | "scanner"
+  | "attendees"
+  | "analytics"
+  | "judges"
+  | "announcements";
 
 export default function AdminHackathonDashboard() {
   const { status } = useSession();
@@ -52,6 +59,11 @@ export default function AdminHackathonDashboard() {
       icon: <IconChart className="w-5 h-5" />,
     },
     { id: "judges", label: "Judges", icon: <Gavel className="w-5 h-5" /> },
+    {
+      id: "announcements",
+      label: "Email",
+      icon: <Megaphone className="w-5 h-5" />,
+    },
   ];
 
   return (
@@ -177,6 +189,9 @@ export default function AdminHackathonDashboard() {
             <AnalyticsTab hackathonId={hackathon.id} />
           )}
           {activeTab === "judges" && <JudgesTab hackathonId={hackathon.id} />}
+          {activeTab === "announcements" && (
+            <AnnouncementsTab hackathonId={hackathon.id} />
+          )}
         </div>
       </main>
 

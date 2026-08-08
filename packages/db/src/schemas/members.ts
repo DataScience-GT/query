@@ -10,7 +10,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
-import { hackathons } from "./hackathons";
 
 export const userProfiles = pgTable(
   "user_profile",
@@ -36,9 +35,6 @@ export const members = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    hackathonId: uuid("hackathon_id")
-      .notNull()
-      .references(() => hackathons.id, { onDelete: "cascade" }),
     memberType: text("member_type", { enum: ["new", "continuous"] })
       .notNull()
       .default("new"),
@@ -69,10 +65,17 @@ export const members = pgTable(
   },
   (table) => [
     index("member_user_id_idx").on(table.userId),
-    index("member_hackathon_id_idx").on(table.hackathonId),
     // Optimized for "Active Members" directory listing
     index("member_active_type_idx").on(table.isActive, table.memberType),
-    unique("unique_member_per_hackathon").on(table.userId, table.hackathonId),
+    // One membership per person, full stop.
+    //
+    // This was unique(userId, hackathonId), which welded a membership to a
+    // hackathon edition: the day the next edition opened, every read resolved
+    // to it, found no row, and every paying member silently became a
+    // non-member. A membership is an annual subscription defined by its own
+    // start and end dates — the edition contributed nothing to that meaning.
+    // Which YEAR somebody was a member is recorded in membership_history.
+    unique("unique_member_per_user").on(table.userId),
   ],
 );
 
@@ -116,10 +119,6 @@ export const membersRelations = relations(members, ({ one, many }) => ({
   user: one(users, {
     fields: [members.userId],
     references: [users.id],
-  }),
-  hackathon: one(hackathons, {
-    fields: [members.hackathonId],
-    references: [hackathons.id],
   }),
   membershipHistory: many(membershipHistory),
 }));

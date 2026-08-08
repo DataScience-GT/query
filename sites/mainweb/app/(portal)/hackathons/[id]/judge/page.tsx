@@ -66,6 +66,9 @@ export default function JudgeHackathonPage() {
   const [scores, setScores] = useState<Scores>(BLANK);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  /** Set when a skip had nowhere to rotate to — this is the judge's last
+   *  uncompleted table, so "skip" cannot move them off it. */
+  const [stranded, setStranded] = useState(false);
   const [done, setDone] = useState(false);
   const [startedAt, setStartedAt] = useState(() => Date.now());
 
@@ -137,6 +140,25 @@ export default function JudgeHackathonPage() {
 
   const skip = trpc.judge.skipProject.useMutation({
     onSuccess: (res) => {
+      // Skipping the last uncompleted item hands back the same project: there
+      // is nothing to rotate to. Saying so is the difference between a button
+      // that looks broken and one that explains the only way out.
+      setStranded(res.skippedToEnd === true);
+      advance((res.project as Project) ?? null, res.queueId ?? null);
+    },
+    onError: (e) => setError(e.message),
+  });
+
+  // The escape from a table nobody is standing at: marks it done without a
+  // score and hands the project to another judge, so it still gets seen.
+  const forceSkip = trpc.judge.forceSkipOvertime.useMutation({
+    onSuccess: (res) => {
+      setStranded(false);
+      if (!res.reassigned) {
+        setError(
+          "Marked done, but no other judge was free to take it — flag this table to an organiser.",
+        );
+      }
       advance((res.project as Project) ?? null, res.queueId ?? null);
     },
     onError: (e) => setError(e.message),
@@ -237,7 +259,8 @@ export default function JudgeHackathonPage() {
     scores.scoreSoundness;
 
   const project = current?.project;
-  const busy = complete.isPending || skip.isPending;
+  const busy =
+    complete.isPending || skip.isPending || forceSkip.isPending;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans pb-24">
@@ -366,6 +389,33 @@ export default function JudgeHackathonPage() {
                   className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-sm placeholder:text-gray-600 focus:border-accent/50 focus:outline-none resize-none"
                 />
               </div>
+
+              {stranded && (
+                <div
+                  role="status"
+                  className="p-4 border border-amber-500/30 bg-amber-500/10"
+                >
+                  <p className="font-mono text-xs text-amber-300 leading-relaxed">
+                    This is the last table left in your queue, so there is
+                    nothing to skip to. If nobody is here, hand it to another
+                    judge instead — it will still get scored.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={busy || !current?.queueId}
+                    onClick={() => {
+                      setError("");
+                      if (current?.queueId)
+                        forceSkip.mutate({ queueId: current.queueId });
+                    }}
+                    className="mt-3 px-4 py-2 border border-amber-500/40 bg-amber-500/10 text-amber-200 font-mono text-xs uppercase tracking-widest hover:bg-amber-500/20 transition-colors disabled:opacity-30"
+                  >
+                    {forceSkip.isPending
+                      ? "Reassigning..."
+                      : "Hand to another judge"}
+                  </button>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--border-subtle)]">
                 <p className="font-mono text-xs text-text-muted">

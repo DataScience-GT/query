@@ -22,6 +22,8 @@ import {
   ShieldAlert,
   UserCircle,
   Rocket,
+  Upload,
+  FolderGit2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -111,6 +113,10 @@ export default function PortalSidebar({
     { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
     { name: "Hackathons", href: "/admin/hackathons", icon: Code },
     { name: "Judging", href: "/admin/judging", icon: ClipboardList },
+    // Judge import and queue assignment live only here. Without this entry the
+    // page is reachable by typed URL alone, which means judging never starts.
+    { name: "Judging Setup", href: "/admin/setup", icon: Upload },
+    { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
     { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },

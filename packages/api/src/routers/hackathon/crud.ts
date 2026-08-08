@@ -3,7 +3,16 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { hackathons } from "@query/db";
 import { eq, and, gte, notInArray } from "drizzle-orm";
-import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
+import {
+  callerIsAdmin,
+  isAdmin,
+  isSuperAdmin,
+} from "../../middleware/procedures";
+import {
+  isForeignKeyViolation,
+  isUniqueViolation,
+} from "../../middleware/db-errors";
+import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
@@ -233,12 +242,26 @@ export const hackathonCrudRouter = createTRPCRouter({
         ),
     )
     .mutation(async ({ ctx, input }) => {
-      const [newHackathon] = await (ctx.db as DrizzleDB)
-        .insert(hackathons)
-        .values({
-          ...input,
-        })
-        .returning();
+      let newHackathon;
+      try {
+        [newHackathon] = await (ctx.db as DrizzleDB)
+          .insert(hackathons)
+          .values({
+            ...input,
+          })
+          .returning();
+      } catch (error) {
+        // unique_hackathon_name. Admin URLs are built from the name, so a
+        // duplicate would make one of the two unreachable — worth saying
+        // plainly rather than surfacing a driver error.
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `A hackathon named "${input.name}" already exists. Names are used in admin links, so they have to be distinct.`,
+          });
+        }
+        throw error;
+      }
 
       ctx.cache.deletePattern("hackathons:*");
 
@@ -269,6 +292,10 @@ export const hackathonCrudRouter = createTRPCRouter({
             "cancelled",
           ])
           .optional(),
+        // These five are nullable as well as optional, and the distinction is
+        // load-bearing: `undefined` means "leave unchanged", `null` means
+        // "clear it". Optional alone gave the edit form no way to empty a
+        // field it had already filled — sending `[]` reads as unchanged.
         prizes: z
           .array(
             z.object({
@@ -278,12 +305,15 @@ export const hackathonCrudRouter = createTRPCRouter({
             }),
           )
           .max(20)
+          .nullable()
           .optional(),
-        rules: z.string().max(10000).optional(),
+        rules: z.string().max(10000).nullable().optional(),
         theme: z.string().max(200).optional(),
-        tracks: z.array(z.string().max(100)).max(50).optional(),
-        challenges: z.array(z.string().max(100)).max(50).optional(),
-        websiteUrl: z.string().url().max(500).optional(),
+        tracks: z.array(z.string().max(100)).max(50).nullable().optional(),
+        challenges: z.array(z.string().max(100)).max(50).nullable().optional(),
+        // No empty-string escape hatch: "" would be stored and render as a
+        // link to nowhere. Clearing the field sends null.
+        websiteUrl: z.string().url().max(500).nullable().optional(),
         isPublic: z.boolean().optional(),
       }),
     )
@@ -331,14 +361,25 @@ export const hackathonCrudRouter = createTRPCRouter({
         });
       }
 
-      const [updatedHackathon] = await (ctx.db as DrizzleDB)
-        .update(hackathons)
-        .set({
-          ...updateData,
-          updatedAt: new Date(),
-        })
-        .where(eq(hackathons.id, id))
-        .returning();
+      let updatedHackathon;
+      try {
+        [updatedHackathon] = await (ctx.db as DrizzleDB)
+          .update(hackathons)
+          .set({
+            ...updateData,
+            updatedAt: new Date(),
+          })
+          .where(eq(hackathons.id, id))
+          .returning();
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Another hackathon is already named "${updateData.name}". Names are used in admin links, so they have to be distinct.`,
+          });
+        }
+        throw error;
+      }
 
       ctx.cache.delete(CacheKeys.hackathon(id));
       ctx.cache.deletePattern("hackathons:*");
@@ -347,20 +388,71 @@ export const hackathonCrudRouter = createTRPCRouter({
     }),
 
 
-  delete: isAdmin
-    .input(z.object({ hackathonId: z.string().uuid() }))
+  /**
+   * Super-admin only.
+   *
+   * isAdmin never checks `role`, so the default "admin" and "moderator" both
+   * passed — every staff account could destroy an edition. Verified three
+   * active super_admin rows exist before narrowing this, because a gate with
+   * nobody behind it is an outage rather than a control.
+   */
+  delete: isSuperAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        // The hackathon's own name, typed by the caller. Eleven tables cascade
+        // off this row — every participant, team, project and judge vote for
+        // the event. A browser confirm() is one misplaced click; this is not.
+        confirmName: z.string().min(1),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      const { hackathonId } = input;
+      const { hackathonId, confirmName } = input;
+
+      const existing = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+        where: eq(hackathons.id, hackathonId),
+        columns: { id: true, name: true },
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+
+      if (confirmName.trim() !== existing.name.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Type the hackathon's exact name to confirm. Expected "${existing.name}".`,
+        });
+      }
 
       // Every child table cascades off this row, so reporting success for an id
       // that matched nothing hides a delete that never happened. RETURNING names
       // the rows the statement itself removed, which a separate existence check
       // cannot: that only describes the row as it was before the DELETE, and a
       // concurrent delete landing in between would still be called a success.
-      const deleted = await (ctx.db as DrizzleDB)
-        .delete(hackathons)
-        .where(eq(hackathons.id, hackathonId))
-        .returning({ id: hackathons.id });
+      let deleted;
+      try {
+        deleted = await (ctx.db as DrizzleDB)
+          .delete(hackathons)
+          .where(eq(hackathons.id, hackathonId))
+          .returning({ id: hackathons.id });
+      } catch (error) {
+        // member.hackathon_id is ON DELETE RESTRICT, so this fires when paid
+        // club memberships still hang off the edition. That is the guard
+        // working, not a bug — those rows are the only record of who paid and
+        // nothing re-creates them.
+        if (isForeignKeyViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "This hackathon still has club memberships attached. Those are paid records and cannot be cascaded away — move or remove them deliberately first.",
+          });
+        }
+        throw error;
+      }
 
       if (deleted?.length === 0) {
         throw new TRPCError({
@@ -368,6 +460,15 @@ export const hackathonCrudRouter = createTRPCRouter({
           message: "Hackathon not found",
         });
       }
+
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "hackathon.delete",
+        resourceId: hackathonId,
+        severity: "critical",
+        // The name is recorded because the row it came from no longer exists.
+        metadata: { name: existing.name },
+      });
 
       ctx.cache.delete(CacheKeys.hackathon(hackathonId));
       ctx.cache.deletePattern("hackathons:*");
