@@ -259,7 +259,6 @@ describe("QR check-in", () => {
     eventDate: new Date(),
     currentCheckIns: 0,
     maxCheckIns: null as number | null,
-    pointsValue: 10,
     ...overrides,
   });
 
