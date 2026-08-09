@@ -7,6 +7,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { QRScannerModal } from "@/components/portal/QRScannerModal";
 
 type Project = {
   id: string;
@@ -66,6 +67,10 @@ export default function JudgeHackathonPage() {
   const [scores, setScores] = useState<Scores>(BLANK);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  /** Server-stamped arrival. Until the judge scans the table, the scoring form
+   *  stays closed so the clock cannot start from across the room. */
+  const [arrived, setArrived] = useState(false);
   /** Set when a skip had nowhere to rotate to — this is the judge's last
    *  uncompleted table, so "skip" cannot move them off it. */
   const [stranded, setStranded] = useState(false);
@@ -82,10 +87,30 @@ export default function JudgeHackathonPage() {
    * refetch could hand the judge a different project mid-score; the mutations
    * below already return the next one.
    */
+  /**
+   * Whether judging is open.
+   *
+   * getNextTable has no such guard, so without this the page hands a judge a
+   * table and a full scoring form while judgingActive is false — and then
+   * submitVote and completeAndNext both throw FORBIDDEN. The judge interviews
+   * the team, types their notes, presses submit and loses all of it. The flag
+   * defaults to false, so this is the state every event starts in.
+   */
+  const judgingStatus = trpc.judge.getJudgingStatus.useQuery(
+    { hackathonId: hackathonId as string },
+    { enabled: !!session && !!hackathonId },
+  );
+
+  const judgingOpen = judgingStatus.data?.active === true;
+
   const nextTable = trpc.judge.getNextTable.useQuery(
     { hackathonId: hackathonId as string },
     {
-      enabled: !!session && !!hackathonId && judgeCheck.data?.isJudge === true,
+      enabled:
+        !!session &&
+        !!hackathonId &&
+        judgeCheck.data?.isJudge === true &&
+        judgingOpen,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
     },
@@ -111,11 +136,18 @@ export default function JudgeHackathonPage() {
     });
   }, [nextTable.data, current, done]);
 
-  const advance = (project: Project | null, queueId: string | null) => {
+  const advance = (
+    project: Project | null,
+    queueId: string | null,
+    // startByQrCode is the one caller that has already arrived; every other
+    // path hands over a table the judge still has to walk to.
+    hasArrived = false,
+  ) => {
     setScores(BLANK);
     setComment("");
     setError("");
     setStartedAt(Date.now());
+    setArrived(hasArrived);
     progress.refetch();
     if (!project) {
       setDone(true);
@@ -136,6 +168,25 @@ export default function JudgeHackathonPage() {
       advance((res.nextProject as Project) ?? null, res.nextQueueId ?? null);
     },
     onError: (e) => setError(e.message),
+  });
+
+  /**
+   * Scanning the table card is what starts the clock.
+   *
+   * The judge is handed a table by the queue, walks to it, and scans — only
+   * then does scoring time begin, and only then does the form open. It also
+   * catches a judge standing at the wrong table before they score it.
+   */
+  const startByQr = trpc.judge.startByQrCode.useMutation({
+    onSuccess: (res) => {
+      setShowScanner(false);
+      setError("");
+      advance((res.project as Project) ?? null, res.queueId ?? null, true);
+    },
+    onError: (e) => {
+      setShowScanner(false);
+      setError(e.message);
+    },
   });
 
   const skip = trpc.judge.skipProject.useMutation({
@@ -219,6 +270,42 @@ export default function JudgeHackathonPage() {
           >
             Back to Judge Portal
           </Link>
+        </LiquidGlass>
+      </div>
+    );
+  }
+
+  if (judgingStatus.isPending) {
+    return <LoadingScreen message="Checking judging status..." />;
+  }
+
+  // Said before a table is handed out, not after a score is lost.
+  if (!judgingOpen) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <LiquidGlass className="p-12 max-w-md text-center">
+          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+            Judging Not Open
+          </h1>
+          <p className="text-sm text-text-muted font-mono mb-8 leading-relaxed">
+            Scoring has not been opened for this hackathon yet. Your queue is
+            waiting — an organiser will start judging when the expo begins.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => judgingStatus.refetch()}
+              className="px-6 py-3 border border-accent/40 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/10 transition-colors"
+            >
+              Check again
+            </button>
+            <Link
+              href="/judge"
+              className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors"
+            >
+              Back to Judge Portal
+            </Link>
+          </div>
         </LiquidGlass>
       </div>
     );
@@ -340,6 +427,32 @@ export default function JudgeHackathonPage() {
               </div>
             </div>
 
+            {/* The scoring form stays shut until the table card is scanned.
+                Opening it earlier is what let the clock run across the walk,
+                and let a judge score a table they never actually reached. */}
+            {!arrived ? (
+              <LiquidGlass className="p-10 text-center border-accent/20">
+                <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-3">
+                  Scan the team&apos;s code to begin
+                </h2>
+                <p className="text-sm text-text-muted font-mono mb-8 leading-relaxed max-w-md mx-auto">
+                  Walk to table {project.tableNumber ?? "?"} and scan the card
+                  on their desk. Your judging time starts from the scan, not
+                  from when this table was assigned to you.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setShowScanner(true);
+                  }}
+                  disabled={startByQr.isPending}
+                  className="px-10 py-5 bg-accent text-black font-black text-sm uppercase tracking-widest rounded-none hover:bg-white transition-ui active:scale-95 disabled:opacity-40"
+                >
+                  {startByQr.isPending ? "Starting..." : "Scan Table Code"}
+                </button>
+              </LiquidGlass>
+            ) : (
             <LiquidGlass className="p-8 space-y-8">
               {CRITERIA.map((c) => (
                 <div key={c.key}>
@@ -459,9 +572,26 @@ export default function JudgeHackathonPage() {
                 </div>
               </div>
             </LiquidGlass>
+            )}
           </>
         )}
       </main>
+
+      {showScanner && (
+        <QRScannerModal
+          onClose={() => setShowScanner(false)}
+          onScan={(codes: { rawValue: string }[]) => {
+            const raw = codes[0]?.rawValue;
+            if (!raw || startByQr.isPending) return;
+            // The card encodes the code on its own. Accepting a bare value
+            // keeps the printed card as small and as scannable as possible.
+            startByQr.mutate({ qrCode: raw.trim() });
+          }}
+          onError={(e: unknown) => console.error(e)}
+          isProcessing={startByQr.isPending}
+          isPaused={startByQr.isPending}
+        />
+      )}
     </div>
   );
 }
