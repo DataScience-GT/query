@@ -82,10 +82,14 @@ export function MembershipTab() {
   const save = () => {
     setError(null);
 
+    // `null` is a graduation year that was left blank, which is allowed and is
+    // what clears the column. The guard compared against `undefined` instead,
+    // so `Number.isInteger(null)` failed it and the whole form refused to save
+    // — school, skills, socials and all — until a year was typed in.
     const year = form.graduationYear.trim()
       ? Number(form.graduationYear)
       : null;
-    if (year !== undefined && !Number.isInteger(year)) {
+    if (year !== null && !Number.isInteger(year)) {
       setError("That graduation year does not look right.");
       return;
     }
