@@ -224,6 +224,43 @@ describe("Announcements", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
 
+    /**
+     * Rejected and waitlisted applicants are excluded from every other
+     * audience, which left nothing in the product able to reach them at all.
+     * This audience exists to be chosen deliberately, for a message written
+     * for it — so it must be selectable, and must not leak into the others.
+     */
+    it("accepts the not_accepted audience", async () => {
+      asAdmin((table) => (table === "hackathons" ? { id: HACK } : undefined));
+      mockSelectRows.mockReturnValue([
+        { userId: "u1", email: "turned.down@example.com" },
+      ]);
+
+      const res = await callerFor(ADMIN).hackathon.createAnnouncement({
+        ...compose,
+        audience: "not_accepted",
+        subject: "An update on your application",
+      });
+
+      expect(res.totalRecipients).toBe(1);
+      const announcementRow = mockInsert.mock.calls
+        .map((c) => c[2]?.[0])
+        .find((row) => row && !Array.isArray(row) && "audience" in row);
+      expect(announcementRow.audience).toBe("not_accepted");
+    });
+
+    it("refuses an audience name that does not exist", async () => {
+      asAdmin((table) => (table === "hackathons" ? { id: HACK } : undefined));
+
+      await expect(
+        callerFor(ADMIN).hackathon.createAnnouncement({
+          ...compose,
+          // @ts-expect-error deliberately not one of the five audiences
+          audience: "everyone",
+        }),
+      ).rejects.toBeDefined();
+    });
+
   });
 
   describe("Sending in batches", () => {

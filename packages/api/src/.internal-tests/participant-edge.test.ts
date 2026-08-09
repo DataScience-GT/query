@@ -319,7 +319,10 @@ describe("Participant edge cases", () => {
             hackathonId: HACK_A,
             userId: "user_a",
             teamId: TEAM_A,
-            registrationStatus: opts.status ?? "approved",
+            // Submitting requires the badge scan, so "checked in" is the
+            // default state for these tests — they are about ownership and the
+            // clock, not about admission.
+            registrationStatus: opts.status ?? "checked_in",
             team: { id: TEAM_A, captainId: opts.captainId ?? "captain_user" },
           };
         if (table === "hackathonTeams")
@@ -442,7 +445,15 @@ describe("Participant edge cases", () => {
             hackingStartTime: new Date(FIXED.getTime() - offsetMs),
           };
         if (table === "hackathonParticipants")
-          return participant ?? { id: PARTICIPANT_A, teamId: null };
+          // Checked in by default: submitting requires it and forming a team
+          // requires acceptance; these tests are about the clock.
+          return (
+            participant ?? {
+              id: PARTICIPANT_A,
+              teamId: null,
+              registrationStatus: "checked_in",
+            }
+          );
         if (table === "hackathonTeams")
           return {
             id: TEAM_A,
@@ -654,6 +665,62 @@ describe("Participant edge cases", () => {
         ).rejects.toThrow(new RegExp(status));
       },
     );
+
+    /**
+     * Registration is an application, not admission.
+     *
+     * Every participant is created `pending`, and `pending` used to pass — so
+     * teams formed and projects were submitted with no review having happened,
+     * while organisers were shown an approve/reject screen that decided nothing
+     * but an email.
+     */
+    it("keeps a pending applicant out until they are accepted", async () => {
+      const caller = rejectedApplicant("pending");
+
+      await expect(
+        caller.team.createTeam({
+          hackathonId: HACK_A,
+          name: "meow",
+          maxMembers: 4,
+        }),
+      ).rejects.toThrow(/still being reviewed/i);
+      await expect(
+        caller.team.joinTeam({ hackathonId: HACK_A, teamId: TEAM_A }),
+      ).rejects.toThrow(/still being reviewed/i);
+    });
+
+    it("lets an accepted applicant form a team", async () => {
+      const caller = rejectedApplicant("approved");
+
+      await expect(
+        caller.team.createTeam({
+          hackathonId: HACK_A,
+          name: "meow",
+          maxMembers: 4,
+        }),
+      ).resolves.toMatchObject({ id: TEAM_A });
+    });
+
+    /**
+     * Acceptance is a decision made weeks earlier; it says nothing about
+     * whether somebody turned up. Judging is in person against a table number,
+     * so a submission has to come from a team that is actually in the building.
+     */
+    it("refuses a submission from someone accepted but not checked in", async () => {
+      const caller = rejectedApplicant("approved");
+
+      await expect(caller.team.submitProject(projectInput())).rejects.toThrow(
+        /check in at the event/i,
+      );
+    });
+
+    it("accepts a submission once they have been scanned in", async () => {
+      const caller = rejectedApplicant("checked_in");
+
+      await expect(
+        caller.team.submitProject(projectInput()),
+      ).resolves.toBeDefined();
+    });
   });
 
   // =====================================================================
