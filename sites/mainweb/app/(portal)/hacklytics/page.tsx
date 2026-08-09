@@ -46,6 +46,17 @@ const formatRange = (start: Date, end: Date) => {
   return sameYear ? `${startText} – ${endText}` : `${startText} – ${endText}`;
 };
 
+/** Same fixed time zone, and the time as well — a deadline is a moment. */
+const formatDeadline = (deadline: Date) =>
+  deadline.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone: "America/New_York",
+  });
+
 function Field({
   label,
   hint,
@@ -166,6 +177,10 @@ export default function HacklyticsPage() {
   }
 
   const event = upcoming.data;
+  // This page is the only public entrance to the hackathon, so it has to keep
+  // working past the moment registration opens — before, it collected the
+  // interest list; after, it points at the registration itself.
+  const registrationOpen = event.registrationOpen;
   const onList = !!mine.data;
   const showForm = !onList || editing;
   const busy = join.isPending || leave.isPending;
@@ -176,7 +191,9 @@ export default function HacklyticsPage() {
         <div className="inline-flex items-center gap-3 px-4 py-2 rounded-sm bg-accent/5 border border-accent/20 mb-8">
           <span className="w-1.5 h-1.5 rounded-sm bg-accent animate-pulse" />
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-accent/80">
-            Registration opens soon
+            {registrationOpen
+              ? "Registration is open"
+              : "Registration opens soon"}
           </span>
         </div>
 
@@ -220,7 +237,24 @@ export default function HacklyticsPage() {
         ) : null}
 
         <div className="mt-12 p-8 rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40">
-          {sessionStatus === "loading" ? (
+          {registrationOpen ? (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold uppercase tracking-tight text-[var(--text-primary)]">
+                Registration is open
+              </h2>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                {event.registrationDeadline
+                  ? `Applications close ${formatDeadline(event.registrationDeadline)}. Spots are limited.`
+                  : "Spots are limited and applications are reviewed as they arrive."}
+              </p>
+              <Link
+                href={`/hackathons/${event.id}`}
+                className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-all"
+              >
+                Register now
+              </Link>
+            </div>
+          ) : sessionStatus === "loading" ? (
             <p className="text-sm text-[var(--text-muted)]">Checking sign-in…</p>
           ) : !session ? (
             <div className="space-y-4">
