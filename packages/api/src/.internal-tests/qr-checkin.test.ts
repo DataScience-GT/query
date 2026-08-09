@@ -901,4 +901,72 @@ describe("QR check-in", () => {
     });
 
   });
+
+  // -------------------------------------------------------------------
+  describe("Editing a club event", () => {
+    const asAdmin = (event: Record<string, unknown>) =>
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "events") return event;
+        return undefined;
+      });
+
+    it("corrects a title without touching the QR or the check-ins", async () => {
+      asAdmin(clubEvent({ currentCheckIns: 12 }));
+      mockUpdate.mockReturnValue([
+        { ...clubEvent(), title: "General Meeting #2" },
+      ]);
+
+      const res = await appRouter
+        .createCaller(createMockCtx("admin_user_id"))
+        .events.update({ eventId: CLUB_EVENT, title: "General Meeting #2" });
+
+      expect(res?.title).toBe("General Meeting #2");
+      const written = mockUpdate.mock.calls[0]![2][0];
+      expect(written).toMatchObject({ title: "General Meeting #2" });
+      // Nothing else may ride along: a new qrCode would invalidate every
+      // printed sign, and the counters are the door's own state.
+      expect(written).not.toHaveProperty("qrCode");
+      expect(written).not.toHaveProperty("currentCheckIns");
+    });
+
+    /**
+     * A cap below the number already scanned makes the door refuse everyone
+     * forever, and the counter read as over-full with nothing explaining it.
+     */
+    it("refuses a capacity below the people already checked in", async () => {
+      asAdmin(clubEvent({ currentCheckIns: 40 }));
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("admin_user_id"))
+          .events.update({ eventId: CLUB_EVENT, maxCheckIns: 20 }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("allows removing the cap entirely", async () => {
+      asAdmin(clubEvent({ currentCheckIns: 40, maxCheckIns: 50 }));
+      mockUpdate.mockReturnValue([{ ...clubEvent(), maxCheckIns: null }]);
+
+      await appRouter
+        .createCaller(createMockCtx("admin_user_id"))
+        .events.update({ eventId: CLUB_EVENT, maxCheckIns: null });
+
+      expect(mockUpdate.mock.calls[0]![2][0]).toMatchObject({
+        maxCheckIns: null,
+      });
+    });
+
+    it("is refused to a caller who is not staff", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("member_user"))
+          .events.update({ eventId: CLUB_EVENT, title: "Nope" }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+  });
 });

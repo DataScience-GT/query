@@ -17,7 +17,9 @@ import {
   CheckCircle,
   Mail,
   Link as LinkIcon,
+  CreditCard,
 } from "lucide-react";
+import { MembershipTab } from "@/components/portal/MembershipTab";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
@@ -29,7 +31,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "appearance" | "account">("profile");
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "membership" | "appearance" | "account"
+  >("profile");
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -160,6 +164,9 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: "profile", label: "Profile", icon: UserCircle, desc: "Personal info & bio" },
+    // The club member profile: school, major, skills, interests, socials. The
+    // columns and the procedures existed with no screen behind them.
+    { id: "membership", label: "Membership", icon: CreditCard, desc: "Club profile & status" },
     { id: "appearance", label: "Appearance", icon: Sun, desc: "Theme & display" },
     { id: "account", label: "Account", icon: Mail, desc: "Account & sign out" },
   ] as const;
@@ -357,6 +364,9 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Membership Tab */}
+              {activeTab === "membership" && <MembershipTab />}
 
               {/* Appearance Tab */}
               {activeTab === "appearance" && (

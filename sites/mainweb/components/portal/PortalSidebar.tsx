@@ -24,6 +24,9 @@ import {
   Rocket,
   Upload,
   FolderGit2,
+  CreditCard,
+  ShieldCheck,
+  ScrollText,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -75,6 +78,23 @@ export default function PortalSidebar({
       show: !portalContext?.isAdmin,
     },
     {
+      name: "Check-In Desk",
+      href: "/scan",
+      icon: QrCode,
+      // Volunteers hold an admins row but isAdmin rejects them, so the admin
+      // nav below is invisible to them — this is their only entry point.
+      show: portalContext?.isScanner && !portalContext?.isAdmin,
+    },
+    {
+      name: "Submit Project",
+      href: "/submit",
+      icon: Upload,
+      // The only route to team.submitProject, and nothing else in the product
+      // linked to it — so no project could be submitted, and with submissions
+      // now feeding judging, nothing could be judged either.
+      show: !portalContext?.isAdmin,
+    },
+    {
       name: "Club Portal",
       href: "/club",
       icon: QrCode,
@@ -119,7 +139,14 @@ export default function PortalSidebar({
     { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
     { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
+    { name: "Memberships", href: "/admin/members", icon: CreditCard },
+    // Granting the volunteer tier is otherwise an INSERT against production,
+    // and /scan's rejection screen tells people to ask an organiser for it.
+    { name: "Staff & Roles", href: "/admin/staff", icon: ShieldCheck },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+    // Retention prunes routine entries at 90 days, so an unreadable log is an
+    // expiring one.
+    { name: "Audit Log", href: "/admin/audit", icon: ScrollText },
   ];
 
   return (

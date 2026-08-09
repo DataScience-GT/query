@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const { data: portalContext } = usePortalContext();
   const { data: events, isLoading: eventsLoading } =
@@ -63,6 +65,17 @@ export default function AdminPage() {
     },
   });
 
+  // Editing rather than delete-and-recreate: deleting takes every check-in
+  // already collected with it, and mints a QR nobody's printed sign matches.
+  const updateEventMutation = trpc.events.update.useMutation({
+    onSuccess: () => {
+      utils.events.listAll.invalidate();
+      setEditingEvent(null);
+      setEditError(null);
+    },
+    onError: (error) => setEditError(error.message),
+  });
+
   const regenerateQRMutation = trpc.events.regenerateQR.useMutation({
     onSuccess: (updatedEvent) => {
       utils.events.listAll.invalidate();
@@ -85,19 +98,53 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateEvent = (formData: {
+  type EventForm = {
     title: string;
     description: string;
     location: string;
     eventDate: string;
-  }) => {
+    maxCheckIns: string;
+  };
+
+  // Empty means no cap — the column is nullable and the door gate only runs
+  // when a number is set. The form used to hardcode undefined, so capacity was
+  // unreachable from anywhere in the product.
+  const parseCapacity = (value: string) => {
+    const parsed = Number(value);
+    return value.trim() && Number.isFinite(parsed) && parsed > 0
+      ? Math.floor(parsed)
+      : undefined;
+  };
+
+  const handleCreateEvent = (formData: EventForm) => {
     createEventMutation.mutate({
       title: formData.title,
       description: formData.description || undefined,
       location: formData.location || undefined,
       eventDate: new Date(formData.eventDate),
-      maxCheckIns: undefined,
+      maxCheckIns: parseCapacity(formData.maxCheckIns),
     });
+  };
+
+  const handleEditEvent = (formData: EventForm) => {
+    if (!editingEvent) return;
+    setEditError(null);
+    updateEventMutation.mutate({
+      eventId: editingEvent.id,
+      title: formData.title,
+      description: formData.description || null,
+      location: formData.location || null,
+      eventDate: new Date(formData.eventDate),
+      maxCheckIns: parseCapacity(formData.maxCheckIns) ?? null,
+    });
+  };
+
+  /** `datetime-local` wants local wall-clock, not the UTC ISO string. */
+  const toLocalInput = (date: Date) => {
+    const local = new Date(
+      date.getTime() - new Date(date).getTimezoneOffset() * 60 * 1000,
+    );
+    return local.toISOString().slice(0, 16);
   };
 
   const downloadQRCode = () => {
@@ -114,6 +161,28 @@ export default function AdminPage() {
           onClose={() => setShowCreateEvent(false)}
           onSubmit={handleCreateEvent}
           isSubmitting={createEventMutation.isPending}
+        />
+      )}
+
+      {editingEvent && (
+        <EventFormModal
+          mode="edit"
+          initial={{
+            title: editingEvent.title,
+            description: editingEvent.description ?? "",
+            location: editingEvent.location ?? "",
+            eventDate: toLocalInput(new Date(editingEvent.eventDate)),
+            maxCheckIns: editingEvent.maxCheckIns
+              ? String(editingEvent.maxCheckIns)
+              : "",
+          }}
+          onClose={() => {
+            setEditingEvent(null);
+            setEditError(null);
+          }}
+          onSubmit={handleEditEvent}
+          isSubmitting={updateEventMutation.isPending}
+          error={editError}
         />
       )}
 
@@ -286,8 +355,20 @@ export default function AdminPage() {
                           {event.checkInEnabled ? "Close" : "Open"}
                         </button>
                         <button
+                          onClick={() => setEditingEvent(event)}
+                          className="px-4 py-2 border border-[var(--border-subtle)] text-[var(--text-secondary)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
                           onClick={() => {
-                            if (confirm("Delete this event?")) {
+                            if (
+                              confirm(
+                                event.currentCheckIns > 0
+                                  ? `Delete this event? Its ${event.currentCheckIns} check-in(s) are deleted with it and cannot be recovered.`
+                                  : "Delete this event?",
+                              )
+                            ) {
                               deleteEventMutation.mutate({ eventId: event.id });
                             }
                           }}
