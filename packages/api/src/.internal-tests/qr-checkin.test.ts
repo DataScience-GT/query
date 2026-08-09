@@ -594,7 +594,14 @@ describe("QR check-in", () => {
       return appRouter.createCaller(createMockCtx("admin_user_id"));
     };
 
-    it("records attendance without promoting the participant's registration status", async () => {
+    /**
+     * This used to assert the opposite — that a scan records attendance and
+     * leaves the roster alone — and that was right while `checked_in` was only
+     * a label. It stopped being right when submitting a project came to depend
+     * on the status: nothing else in the product ever wrote it, so the door
+     * scan leaving it alone meant nobody could submit at all.
+     */
+    it("records attendance and checks the participant in", async () => {
       const caller = scannerCtx({});
       mockInsert.mockReturnValue([{ id: "attendee_1" }]);
 
@@ -612,9 +619,12 @@ describe("QR check-in", () => {
         eventId: HACK_EVENT,
         participantId: PARTICIPANT,
       });
-      // Scanning is attendance only. hackathon.analytics' checked_in tile
-      // therefore counts manual admin decisions, never scanned arrivals.
-      expect(mockUpdate).not.toHaveBeenCalled();
+      // The roster write is what makes the analytics tile count real arrivals
+      // rather than manual admin decisions — and what lets the team submit.
+      const rosterWrite = mockUpdate.mock.calls[0];
+      expect(rosterWrite?.[2][0]).toMatchObject({
+        registrationStatus: "checked_in",
+      });
     });
 
     it("never records attendance for a pass minted by another hackathon", async () => {
