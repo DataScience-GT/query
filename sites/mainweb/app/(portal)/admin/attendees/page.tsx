@@ -40,13 +40,14 @@ export default function AttendeesPage() {
         a.member ? `${a.member.firstName} ${a.member.lastName}` : a.user?.name,
         a.user?.email,
         a.checkInMethod,
-        a.pointsEarned,
         a.checkedInAt ? new Date(a.checkedInAt).toISOString() : "",
       ].map(cell),
     );
 
     const csv = [
-      ["Name", "Email", "Method", "Points", "Checked In At"].map(cell),
+      // No "Points" column: every row carried the same schema default, so the
+      // export presented a constant as though it were tracked data.
+      ["Name", "Email", "Method", "Checked In At"].map(cell),
       ...rows,
     ]
       .map((r) => r.join(","))
