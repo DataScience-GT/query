@@ -1025,6 +1025,31 @@ describe("Judge edge cases", () => {
       expect(mockDelete).not.toHaveBeenCalled();
     });
 
+    /**
+     * Reported by review on #320. "Is the queue empty? then build it" is a read
+     * followed by a write, and judge_queue has no unique on (judge, project) —
+     * so two approvals arriving together both saw an empty queue and both
+     * built one, giving the judge every project twice.
+     */
+    it("locks the judge row before deciding whether to build", async () => {
+      wireApproval({
+        queueCount: 0,
+        projects: [project(PROJECT_A, 1)],
+      });
+
+      await adminCaller().judge.setActive({
+        judgeId: JUDGE_ID,
+        isActive: true,
+      });
+
+      // The lock is what serialises two concurrent approvals; without it the
+      // second reads the queue the first has not committed yet.
+      const lockedForUpdate = mockSelect.mock.calls.some((call) =>
+        (call[0] as [string, unknown[]][]).some(([method]) => method === "for"),
+      );
+      expect(lockedForUpdate).toBe(true);
+    });
+
     it("builds nothing for a judge with no assignment, and nothing on suspend", async () => {
       wireApproval({ assignment: undefined, queueCount: 0 });
 
@@ -1040,6 +1065,90 @@ describe("Judge edge cases", () => {
       });
       expect(suspended.queuedProjects).toBeNull();
       expect(mockInsert).not.toHaveBeenCalled();
+    });
+  });
+
+  // =====================================================================
+  describe("7d. Correcting a judge's track", () => {
+    /**
+     * Reported by review on #320.
+     *
+     * Writing the new track while leaving the old queue alone makes the
+     * assignment and the queue disagree: the judge carries on scoring the pool
+     * they were routed to before, and nothing on any screen says so. Refuse
+     * first, name the cost, and only then offer the override — the same
+     * pattern assignJudgesToProjects uses.
+     */
+    const wireTrackChange = (completedCount: number) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "judgeAssignments")
+          return { id: "asn_1", judgeId: JUDGE_ID, hackathonId: HACK_A };
+        if (table === "hackathons")
+          return { tracks: ["Sports", "Health"], challenges: null };
+        return undefined;
+      });
+      mockFindMany.mockImplementation(() => []);
+      mockSelect.mockReturnValue([{ count: completedCount }]);
+    };
+
+    it("refuses a track change once the judge has scored", async () => {
+      wireTrackChange(4);
+
+      await expect(
+        adminCaller().judge.updateAssignmentTrack({
+          judgeId: JUDGE_ID,
+          hackathonId: HACK_A,
+          track: "Health",
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      // Nothing may be written by a refused change — least of all the track,
+      // which would leave the assignment and the queue disagreeing.
+      expect(mockUpdate).not.toHaveBeenCalled();
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+
+    it("names what the change would cost", async () => {
+      wireTrackChange(4);
+
+      await expect(
+        adminCaller().judge.updateAssignmentTrack({
+          judgeId: JUDGE_ID,
+          hackathonId: HACK_A,
+          track: "Health",
+        }),
+      ).rejects.toThrow(/already scored 4 project/i);
+    });
+
+    // Completed slots survive the override: skipProject marks one done without
+    // writing a vote, so they cannot be rebuilt from the votes table.
+    it("keeps completed slots when forced", async () => {
+      wireTrackChange(4);
+
+      const res = await adminCaller().judge.updateAssignmentTrack({
+        judgeId: JUDGE_ID,
+        hackathonId: HACK_A,
+        track: "Health",
+        force: true,
+      });
+
+      expect(res).toMatchObject({ queueRebuilt: true, keptCompleted: 4 });
+      // The delete that precedes a rebuild must be scoped to the unfinished
+      // part of the queue.
+      expect(mockDelete).toHaveBeenCalled();
+    });
+
+    it("changes the track freely when nothing has been scored", async () => {
+      wireTrackChange(0);
+
+      const res = await adminCaller().judge.updateAssignmentTrack({
+        judgeId: JUDGE_ID,
+        hackathonId: HACK_A,
+        track: "Health",
+      });
+
+      expect(res).toMatchObject({ track: "Health", queueRebuilt: true });
     });
   });
 

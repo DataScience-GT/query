@@ -36,7 +36,18 @@ const QUEUE_INSERT_CHUNK = 5000;
  */
 async function rebuildQueueForJudge(
   db: DrizzleDB,
-  opts: { judgeId: string; hackathonId: string; shuffle?: boolean },
+  opts: {
+    judgeId: string;
+    hackathonId: string;
+    shuffle?: boolean;
+    /**
+     * Leave completed slots in place and rebuild only the remainder. A
+     * completed slot cannot be reconstructed — skipProject marks one done
+     * without writing a vote — so deleting it sends the judge back to a table
+     * they already dealt with.
+     */
+    keepCompleted?: boolean;
+  },
 ) {
   await db
     .delete(judgeQueue)
@@ -44,8 +55,27 @@ async function rebuildQueueForJudge(
       and(
         eq(judgeQueue.judgeId, opts.judgeId),
         eq(judgeQueue.hackathonId, opts.hackathonId),
+        opts.keepCompleted ? eq(judgeQueue.isCompleted, false) : undefined,
       ),
     );
+
+  // Projects the judge has already dealt with must not come back in the new
+  // queue, or they are asked to score the same table twice.
+  const kept = opts.keepCompleted
+    ? await db.query.judgeQueue.findMany({
+        where: and(
+          eq(judgeQueue.judgeId, opts.judgeId),
+          eq(judgeQueue.hackathonId, opts.hackathonId),
+        ),
+        columns: { projectId: true, order: true },
+      })
+    : [];
+
+  const keptProjectIds = new Set(kept.map((row) => row.projectId));
+  const highestKeptOrder = kept.reduce(
+    (max, row) => Math.max(max, row.order),
+    0,
+  );
 
   // The assignment's track is what narrows the pool; without one the judge
   // sees every project in the edition.
@@ -75,6 +105,8 @@ async function rebuildQueueForJudge(
       })
     : allProjects;
 
+  projects = projects.filter((p) => !keptProjectIds.has(p.id));
+
   if (opts.shuffle) {
     projects = shuffleArray(projects);
   }
@@ -85,7 +117,7 @@ async function rebuildQueueForJudge(
         judgeId: opts.judgeId,
         hackathonId: opts.hackathonId,
         projectId: p.id,
-        order: idx + 1,
+        order: highestKeptOrder + idx + 1,
       })),
     );
   }
@@ -743,18 +775,35 @@ export const judgeAdminRouter = createTRPCRouter({
       let queuedProjects: number | null = null;
 
       if (input.isActive) {
-        const assignment = await (
-          ctx.db as DrizzleDB
-        ).query.judgeAssignments.findFirst({
-          where: and(
-            eq(judgeAssignments.judgeId, input.judgeId),
-            eq(judgeAssignments.hackathonId, updated.hackathonId),
-          ),
-          columns: { id: true },
-        });
+        /**
+         * Check and build inside one transaction, behind a lock on the judge
+         * row.
+         *
+         * "Is the queue empty? then build it" is a read followed by a write,
+         * and judge_queue has no unique on (judge, project) to fall back on —
+         * so two approvals arriving together (a double-click, or two organisers
+         * working the same list) both saw an empty queue and both built one,
+         * giving the judge every project twice. The lock serialises them: the
+         * second sees the queue the first wrote and does nothing.
+         */
+        queuedProjects = await (ctx.db as DrizzleDB).transaction(async (tx) => {
+          await tx
+            .select({ id: judges.id })
+            .from(judges)
+            .where(eq(judges.id, input.judgeId))
+            .for("update");
 
-        if (assignment) {
-          const [existingQueue] = await (ctx.db as DrizzleDB)
+          const assignment = await tx.query.judgeAssignments.findFirst({
+            where: and(
+              eq(judgeAssignments.judgeId, input.judgeId),
+              eq(judgeAssignments.hackathonId, updated.hackathonId),
+            ),
+            columns: { id: true },
+          });
+
+          if (!assignment) return null;
+
+          const [existingQueue] = await tx
             .select({ count: sql<number>`count(*)::int` })
             .from(judgeQueue)
             .where(
@@ -764,13 +813,13 @@ export const judgeAdminRouter = createTRPCRouter({
               ),
             );
 
-          if ((existingQueue?.count ?? 0) === 0) {
-            queuedProjects = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
-              judgeId: input.judgeId,
-              hackathonId: updated.hackathonId,
-            });
-          }
-        }
+          if ((existingQueue?.count ?? 0) > 0) return null;
+
+          return await rebuildQueueForJudge(tx as unknown as DrizzleDB, {
+            judgeId: input.judgeId,
+            hackathonId: updated.hackathonId,
+          });
+        });
       }
 
       /**
@@ -825,6 +874,11 @@ export const judgeAdminRouter = createTRPCRouter({
         hackathonId: z.string().uuid(),
         /** Null clears the track, giving the judge the whole project pool. */
         track: z.string().max(200).nullable(),
+        /**
+         * Change the track even though this judge has already scored. Their
+         * completed slots are kept; only the unjudged remainder is rebuilt.
+         */
+        force: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -851,14 +905,8 @@ export const judgeAdminRouter = createTRPCRouter({
         input.track,
       );
 
-      await (ctx.db as DrizzleDB)
-        .update(judgeAssignments)
-        .set({ track })
-        .where(eq(judgeAssignments.id, assignment.id));
-
-      // The queue was built from the old track, so leaving it would keep the
-      // judge scoring the wrong pool. Completed slots are the reason this is
-      // refused rather than silently rebuilt.
+      // Counted before anything is written, so the refusal below is decided on
+      // the state the organiser is actually looking at.
       const [completed] = await (ctx.db as DrizzleDB)
         .select({ count: sql<number>`count(*)::int` })
         .from(judgeQueue)
@@ -870,18 +918,36 @@ export const judgeAdminRouter = createTRPCRouter({
           ),
         );
 
-      if ((completed?.count ?? 0) > 0) {
-        return {
-          success: true,
-          track,
-          queueRebuilt: false,
-          message: `Track updated. This judge has already scored ${completed?.count} project(s), so their queue was left alone — rebuild it by hand if the new track should apply.`,
-        };
+      /**
+       * Refuse first, then offer the override — P3, and for a real reason.
+       *
+       * Writing the new track while leaving the old queue in place makes the
+       * assignment and the queue disagree: the judge carries on scoring the
+       * pool they were routed to before, and nothing on any screen says so.
+       * The organiser has to see the cost first.
+       */
+      if ((completed?.count ?? 0) > 0 && !input.force) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `This judge has already scored ${completed?.count} project(s). Changing their track keeps those scores but rebuilds the rest of their queue — confirm to continue.`,
+        });
       }
 
+      await (ctx.db as DrizzleDB)
+        .update(judgeAssignments)
+        .set({ track })
+        .where(eq(judgeAssignments.id, assignment.id));
+
+      /**
+       * Completed slots survive; everything unjudged is rebuilt against the new
+       * track. skipProject marks a slot complete without writing a vote, so
+       * those cannot be reconstructed from the votes table — deleting them
+       * would send the judge back to tables they already dealt with.
+       */
       const projectCount = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
         judgeId: input.judgeId,
         hackathonId: input.hackathonId,
+        keepCompleted: true,
       });
 
       return {
@@ -889,7 +955,11 @@ export const judgeAdminRouter = createTRPCRouter({
         track,
         queueRebuilt: true,
         projectCount,
-        message: null,
+        keptCompleted: completed?.count ?? 0,
+        message:
+          (completed?.count ?? 0) > 0
+            ? `Track updated. ${completed?.count} completed slot(s) kept; the rest of the queue was rebuilt.`
+            : null,
       };
     }),
 

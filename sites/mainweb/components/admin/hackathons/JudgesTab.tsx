@@ -77,10 +77,23 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     onError: (error) => setJudgeError(error.message),
   });
 
+  /**
+   * Set only when the SERVER refused a track change because the judge has
+   * already scored. Holding the attempt lets the override re-send exactly what
+   * was refused — and keeping it separate from judgeError means an unrelated
+   * failure cannot relabel the button into one that sends force: true.
+   */
+  const [trackConflict, setTrackConflict] = useState<{
+    judgeId: string;
+    track: string | null;
+    message: string;
+  } | null>(null);
+
   const updateTrack = trpc.judge.updateAssignmentTrack.useMutation({
     onSuccess: (result) => {
       utils.judge.list.invalidate();
       setJudgeError(null);
+      setTrackConflict(null);
       setQueueNotice(
         result.message ??
           (result.queueRebuilt
@@ -88,7 +101,21 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             : "Track updated."),
       );
     },
-    onError: (error) => setJudgeError(error.message),
+    onError: (error, variables) => {
+      if (error.data?.code === "CONFLICT") {
+        // Refused, not failed: the judge has scored, and the organiser has to
+        // read what changing the track costs before it happens.
+        setTrackConflict({
+          judgeId: variables.judgeId,
+          track: variables.track,
+          message: error.message,
+        });
+        setJudgeError(null);
+        return;
+      }
+      setTrackConflict(null);
+      setJudgeError(error.message);
+    },
   });
 
   const { data: resultsDraft } = trpc.judge.getResultsDraft.useQuery({
@@ -576,6 +603,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                           disabled={updateTrack.isPending}
                           onChange={(e) => {
                             setQueueNotice(null);
+                            setTrackConflict(null);
                             updateTrack.mutate({
                               judgeId: judge.id,
                               hackathonId,
@@ -626,6 +654,32 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                       </div>
                     </div>
                   </div>
+
+                  {trackConflict?.judgeId === judge.id && (
+                    <div
+                      role="alert"
+                      className="mt-3 p-3 border border-amber-500/30 bg-amber-500/10"
+                    >
+                      <p className="text-[11px] font-mono text-amber-300 leading-relaxed">
+                        {trackConflict.message}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={updateTrack.isPending}
+                        onClick={() =>
+                          updateTrack.mutate({
+                            judgeId: trackConflict.judgeId,
+                            hackathonId,
+                            track: trackConflict.track,
+                            force: true,
+                          })
+                        }
+                        className="mt-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 transition-colors disabled:opacity-40"
+                      >
+                        Change track anyway
+                      </button>
+                    </div>
+                  )}
 
                   {/* Stats */}
                   {stats && (
