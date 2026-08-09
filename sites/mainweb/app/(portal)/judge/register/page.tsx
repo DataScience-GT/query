@@ -56,10 +56,22 @@ export default function JudgeRegisterPage() {
 
   if (isLoading) return <LoadingScreen message="Loading Hackathons..." />;
 
+  // `closed` belongs here: closing participant registration is the natural step
+  // *before* recruiting judges, and leaving it out emptied this page with no
+  // explanation exactly when organisers were sending the link out.
   const activeHackathons =
     hackathons?.filter(
-      (h) => h.status === "open" || h.status === "in_progress",
+      (h) =>
+        h.status === "open" ||
+        h.status === "closed" ||
+        h.status === "in_progress",
     ) || [];
+
+  const selectedHackathon = activeHackathons.find((h) => h.id === hackathonId);
+  const trackOptions = [
+    ...(selectedHackathon?.tracks ?? []),
+    ...(selectedHackathon?.challenges ?? []),
+  ];
 
   function validateStep(s: number): boolean {
     setError("");
@@ -313,12 +325,24 @@ export default function JudgeRegisterPage() {
 
           {step === 3 && (
             <StepContainer title="Logistics & Preferences">
-              <FormInput
-                label="Preferred Track to Judge"
-                value={preferredTrack}
-                onChange={(e) => setPreferredTrack(e.target.value)}
-                placeholder="e.g. General, Health Tech, Web3, Beginner"
-              />
+              {/* The chosen edition's own labels, not free text: judging routes
+                  on an exact string match, so a typed track that does not exist
+                  filters the judge's pool to nothing. Leaving it unset means
+                  "any project", which is a real and common answer. */}
+              {trackOptions.length > 0 ? (
+                <FormChipSelect
+                  label="Preferred Track to Judge"
+                  options={trackOptions}
+                  value={preferredTrack}
+                  onChange={setPreferredTrack}
+                  allowDeselect
+                />
+              ) : (
+                <p className="text-xs font-mono text-[var(--text-subtle)]">
+                  This hackathon has no tracks published yet — organisers will
+                  assign yours.
+                </p>
+              )}
               <div className="mt-6">
                 <FormChipSelect
                   label="T-Shirt Size"

@@ -19,7 +19,19 @@ type CreateHackathonStepProps = {
   setHackathonTracks: (tracks: string) => void;
   hackathonChallenges: string;
   setHackathonChallenges: (challenges: string) => void;
+  /** `datetime-local` strings. The submission window is derived from the
+   *  hacking start time, so a wrong value here shifts every deadline. */
+  startDate: string;
+  setStartDate: (value: string) => void;
+  endDate: string;
+  setEndDate: (value: string) => void;
+  hackingStartTime: string;
+  setHackingStartTime: (value: string) => void;
   createHackathonPending: boolean;
+  /** Server-side refusal, e.g. the CONFLICT raised when a hackathon with this
+   *  name already exists. Without somewhere to render it the button simply
+   *  does nothing. */
+  createHackathonError?: string | null;
   onCreateHackathon: () => void;
 };
 
@@ -34,7 +46,14 @@ export function CreateHackathonStep({
   setHackathonTracks,
   hackathonChallenges,
   setHackathonChallenges,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
+  hackingStartTime,
+  setHackingStartTime,
   createHackathonPending,
+  createHackathonError,
   onCreateHackathon,
 }: CreateHackathonStepProps) {
   return (
@@ -103,14 +122,68 @@ export function CreateHackathonStep({
           onChange={(e) => setHackathonChallenges(e.target.value)}
           className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:outline-none focus:border-accent/40 transition-colors"
         />
+        {/* Real dates, not "now" and "now + 24h".
+            createHackathon used to stamp both from the moment the button was
+            pressed, and the whole submission window is derived from the hacking
+            start time — so every deadline the product enforces was anchored to
+            an accident. */}
+        <div className="space-y-3">
+          <label className="block">
+            <span className="block text-[10px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
+              Event starts
+            </span>
+            <input
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono focus:outline-none focus:border-accent/40 transition-colors [color-scheme:dark]"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-[10px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
+              Event ends
+            </span>
+            <input
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono focus:outline-none focus:border-accent/40 transition-colors [color-scheme:dark]"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-[10px] font-mono uppercase tracking-widest text-[var(--text-subtle)] mb-1">
+              Hacking starts (team and submission windows are measured from
+              this)
+            </span>
+            <input
+              type="datetime-local"
+              value={hackingStartTime}
+              onChange={(e) => setHackingStartTime(e.target.value)}
+              className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono focus:outline-none focus:border-accent/40 transition-colors [color-scheme:dark]"
+            />
+          </label>
+        </div>
         <button
           type="button"
           onClick={onCreateHackathon}
-          disabled={!hackathonName.trim() || createHackathonPending}
+          disabled={
+            !hackathonName.trim() ||
+            !startDate ||
+            !endDate ||
+            createHackathonPending
+          }
           className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-30 font-mono"
         >
           {createHackathonPending ? "Creating..." : "Create Event"}
         </button>
+        {createHackathonError && (
+          <p
+            role="alert"
+            className="text-xs font-mono text-red-400 leading-relaxed"
+          >
+            {createHackathonError}
+          </p>
+        )}
       </div>
     </LiquidGlass>
   );

@@ -21,6 +21,12 @@ export default function AdminSetupPage() {
   const [hackathonName, setHackathonName] = useState("");
   const [hackathonTracks, setHackathonTracks] = useState("");
   const [hackathonChallenges, setHackathonChallenges] = useState("");
+  // Real dates. These used to be `now` and `now + 24h`, and the submission
+  // window is derived from the hacking start time — so every deadline the
+  // product enforces was anchored to whenever the button happened to be pressed.
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [hackingStartTime, setHackingStartTime] = useState("");
   const [selectedHackathonId, setSelectedHackathonId] = useState<string | null>(
     null,
   );
@@ -110,7 +116,21 @@ export default function AdminSetupPage() {
             setHackathonTracks={setHackathonTracks}
             hackathonChallenges={hackathonChallenges}
             setHackathonChallenges={setHackathonChallenges}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            hackingStartTime={hackingStartTime}
+            setHackingStartTime={setHackingStartTime}
             createHackathonPending={createHackathon.isPending}
+            createHackathonError={
+              createHackathon.error
+                ? trpcErrorMessage(
+                    createHackathon.error,
+                    "Could not create the hackathon.",
+                  )
+                : null
+            }
             onCreateHackathon={() => {
               if (!hackathonName.trim()) return;
 
@@ -124,10 +144,15 @@ export default function AdminSetupPage() {
                 .map((s) => s.trim())
                 .filter(Boolean);
 
+              if (!startDate || !endDate) return;
+
               createHackathon.mutate({
                 name: hackathonName.trim(),
-                startDate: new Date(),
-                endDate: new Date(Date.now() + 86400000),
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+                hackingStartTime: hackingStartTime
+                  ? new Date(hackingStartTime)
+                  : undefined,
                 tracks: parsedTracks.length > 0 ? parsedTracks : undefined,
                 challenges:
                   parsedChallenges.length > 0 ? parsedChallenges : undefined,
@@ -193,13 +218,24 @@ export default function AdminSetupPage() {
                       judging | {promoteSubmissions.data.total} total
                     </p>
                   </div>
-                  {/* Queues are a snapshot. Anything promoted after assignment
-                      sits in nobody's queue and is silently never judged. */}
+                  {/* Queues are a snapshot, so promotion adds late projects to
+                      the queues that already exist — appending, because a
+                      rebuild reorders every queue mid-judging. */}
+                  {promoteSubmissions.data.queueRowsAdded > 0 && (
+                    <div className="p-4 bg-accent/10 border border-accent/20 rounded-none">
+                      <p className="text-accent text-xs font-mono">
+                        Added to existing judge queues in{" "}
+                        {promoteSubmissions.data.queueRowsAdded} slot(s). No
+                        re-assign needed — nobody's current queue was reordered.
+                      </p>
+                    </div>
+                  )}
                   {promoteSubmissions.data.queuesNeedRebuild && (
                     <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-none">
                       <p className="text-amber-300 text-xs font-mono">
-                        Judge queues already exist. Re-run Assign Judges or the
-                        newly synced projects will not appear in any queue.
+                        The newly synced projects reached no judge — their
+                        track is one no active judge covers. Set a judge to that
+                        track, or re-run Assign Judges.
                       </p>
                     </div>
                   )}

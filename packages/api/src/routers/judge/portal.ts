@@ -9,7 +9,7 @@ import {
   judgeQueue,
   hackathons,
 } from "@query/db";
-import { eq, ne, gt, and, asc, inArray, sql } from "drizzle-orm";
+import { eq, ne, gt, and, asc, inArray, sql , isNull } from "drizzle-orm";
 import { CacheKeys } from "../../middleware/cache";
 import { isAdmin, isJudge } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
@@ -114,6 +114,109 @@ export const judgePortalRouter = createTRPCRouter({
     return assignments;
   }),
 
+  /**
+   * Every judging application this user has made, approved or not.
+   *
+   * `getMyAssignments` deliberately shows only approved rows, so between
+   * applying and being approved a judge had no entry point, no status anywhere
+   * and no email — while the success screen promised one. The apply button also
+   * stayed live and threw "You have already applied" when pressed.
+   */
+  myApplications: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+
+    const myJudges = await db.query.judges.findMany({
+      where: eq(judges.userId, ctx.userId as string),
+      columns: { id: true, hackathonId: true, isActive: true },
+    });
+
+    if (myJudges.length === 0) return [];
+
+    const rows = await db.query.judgeAssignments.findMany({
+      where: inArray(
+        judgeAssignments.judgeId,
+        myJudges.map((j) => j.id),
+      ),
+      columns: { judgeId: true, hackathonId: true, track: true, assignedAt: true },
+    });
+
+    const activeById = new Map(myJudges.map((j) => [j.id, j.isActive]));
+
+    return rows.map((row) => ({
+      hackathonId: row.hackathonId,
+      track: row.track,
+      appliedAt: row.assignedAt,
+      // The judges row is what every judging gate reads, so it — not the
+      // assignment's own status column, which nothing reads — decides this.
+      approved: activeById.get(row.judgeId) === true,
+    }));
+  }),
+
+  /**
+   * Starts the clock by scanning the table's QR.
+   *
+   * The judge's scoring time is measured from here, not from when the queue
+   * handed them the table — walking across a ballroom is not judging. It also
+   * confirms they are standing at the right table before they score it, which
+   * nothing else in the flow checks.
+   *
+   * Idempotent: re-scanning the same table does not restart the clock, so a
+   * judge who scans twice out of uncertainty is not penalised and cannot
+   * quietly reset a long visit.
+   */
+  startByQrCode: isJudge
+    .input(z.object({ qrCode: z.string().uuid("Invalid table code") }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const project = await db.query.judgingProjects.findFirst({
+        where: eq(judgingProjects.qrCode, input.qrCode),
+      });
+
+      if (!project || project.withdrawnAt) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That code does not match a project in this event.",
+        });
+      }
+
+      // Must be in THIS judge's queue. Scanning a table somebody else was
+      // assigned would otherwise start a clock on work that is not theirs and
+      // let them score a project they were never routed to.
+      const slot = await db.query.judgeQueue.findFirst({
+        where: and(
+          eq(judgeQueue.judgeId, ctx.judge.id),
+          eq(judgeQueue.projectId, project.id),
+          eq(judgeQueue.isCompleted, false),
+        ),
+      });
+
+      if (!slot) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Table ${project.tableNumber} is not in your queue. Check the table number against your next assignment.`,
+        });
+      }
+
+      if (!slot.arrivedAt) {
+        await db
+          .update(judgeQueue)
+          .set({
+            arrivedAt: new Date(),
+            // Claim it too: a judge who walked up to a table out of order has
+            // still taken it, and another judge should route around them.
+            startedAt: slot.startedAt ?? new Date(),
+          })
+          .where(eq(judgeQueue.id, slot.id));
+      }
+
+      return {
+        project,
+        queueId: slot.id,
+        alreadyStarted: !!slot.arrivedAt,
+      };
+    }),
+
   getNextTable: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -216,7 +319,11 @@ export const judgePortalRouter = createTRPCRouter({
       const projects = await (
         ctx.db as DrizzleDB
       ).query.judgingProjects.findMany({
-        where: eq(judgingProjects.hackathonId, input.hackathonId),
+        // A withdrawn entry is no longer part of the event.
+        where: and(
+          eq(judgingProjects.hackathonId, input.hackathonId),
+          isNull(judgingProjects.withdrawnAt),
+        ),
         orderBy: [asc(judgingProjects.tableNumber)],
       });
 
@@ -431,6 +538,17 @@ export const judgePortalRouter = createTRPCRouter({
           }
         }
 
+        // Measured from the scan when there is one. The client's own figure
+        // starts when the card rendered, which includes the walk to the table;
+        // arrivedAt is stamped by the server when the judge actually got there
+        // and cannot be shaped by a stale tab or a clock that disagrees.
+        const measuredSeconds = queueItem?.arrivedAt
+          ? Math.max(
+              0,
+              Math.round((Date.now() - queueItem.arrivedAt.getTime()) / 1000),
+            )
+          : input.durationSeconds;
+
         // 2. Atomic upsert vote
         await tx
           .insert(judgeVotes)
@@ -443,7 +561,7 @@ export const judgePortalRouter = createTRPCRouter({
             scoreScope: input.scoreScope,
             scoreClarity: input.scoreClarity,
             scoreSoundness: input.scoreSoundness,
-            durationSeconds: input.durationSeconds,
+            durationSeconds: measuredSeconds,
             comment: input.comment,
           })
           .onConflictDoUpdate({
