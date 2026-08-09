@@ -45,18 +45,26 @@ export const memberRouter = createTRPCRouter({
 
   register: protectedProcedure
     .input(
+      // Nullable for the same reason `update` is: the form sends null for a
+      // field left blank, and creating with null is simply creating without it.
       z.object({
         firstName: nameSchema,
         lastName: nameSchema,
-        phoneNumber: phoneSchema,
-        school: z.string().min(1).max(200).optional(),
-        major: z.string().min(1).max(200).optional(),
-        graduationYear: z.number().int().min(2024).max(2035).optional(),
+        phoneNumber: phoneSchema.nullable().optional(),
+        school: z.string().min(1).max(200).nullable().optional(),
+        major: z.string().min(1).max(200).nullable().optional(),
+        graduationYear: z
+          .number()
+          .int()
+          .min(2024)
+          .max(2035)
+          .nullable()
+          .optional(),
         skills: z.array(z.string().max(50)).max(20).optional(),
         interests: z.array(z.string().max(50)).max(20).optional(),
-        linkedinUrl: urlSchema,
-        githubUrl: urlSchema,
-        portfolioUrl: urlSchema,
+        linkedinUrl: urlSchema.nullable(),
+        githubUrl: urlSchema.nullable(),
+        portfolioUrl: urlSchema.nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -135,20 +143,35 @@ export const memberRouter = createTRPCRouter({
    * themselves another year over tRPC without paying.
    */
 
+  /**
+   * Every optional field is nullable, and null means CLEAR IT.
+   *
+   * Reported by review: with `undefined` as the only "not set" value, a member
+   * who emptied their LinkedIn field sent nothing, the server skipped the
+   * column, and the old value came back on the next read — a save that
+   * reported success and changed nothing. `null` is the difference between
+   * "leave this alone" and "remove it".
+   */
   update: protectedProcedure
     .input(
       z.object({
         firstName: nameSchema.optional(),
         lastName: nameSchema.optional(),
-        phoneNumber: phoneSchema,
-        school: z.string().min(1).max(200).optional(),
-        major: z.string().min(1).max(200).optional(),
-        graduationYear: z.number().int().min(2024).max(2035).optional(),
+        phoneNumber: phoneSchema.nullable().optional(),
+        school: z.string().min(1).max(200).nullable().optional(),
+        major: z.string().min(1).max(200).nullable().optional(),
+        graduationYear: z
+          .number()
+          .int()
+          .min(2024)
+          .max(2035)
+          .nullable()
+          .optional(),
         skills: z.array(z.string().max(50)).max(20).optional(),
         interests: z.array(z.string().max(50)).max(20).optional(),
-        linkedinUrl: urlSchema,
-        githubUrl: urlSchema,
-        portfolioUrl: urlSchema,
+        linkedinUrl: urlSchema.nullable(),
+        githubUrl: urlSchema.nullable(),
+        portfolioUrl: urlSchema.nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -456,42 +479,62 @@ export const memberRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      const existing = await db.query.members.findFirst({
-        where: eq(members.userId, input.userId),
-      });
-
-      const now = new Date();
-      // Extending measures from the end of the current term, so a comp added
-      // mid-year is a year on top rather than a year from today — which would
-      // silently shorten somebody who had months left.
-      const base =
-        existing?.membershipEndDate && existing.membershipEndDate > now
-          ? existing.membershipEndDate
-          : now;
-      const termEnd = new Date(base);
-      termEnd.setMonth(termEnd.getMonth() + input.months);
-
-      if (existing) {
-        await db
-          .update(members)
-          .set({
-            // Removing months can leave the term in the past; the row then
-            // reads as lapsed rather than pretending to be active.
-            isActive: termEnd > now,
-            membershipEndDate: termEnd,
-            memberType: "continuous",
-            updatedAt: now,
+      /**
+       * One transaction, behind a lock on the member row.
+       *
+       * Two problems, both reported by review: the member update and its
+       * history row were separate writes, so a failure between them left a
+       * changed term with no record of why; and the new term was computed from
+       * a row read outside any lock, so two staff extending the same person at
+       * once both measured from the same end date and one of the two grants
+       * silently vanished.
+       */
+      const outcome = await db.transaction(async (tx) => {
+        const [locked] = await tx
+          .select({
+            id: members.id,
+            membershipEndDate: members.membershipEndDate,
+            membershipStartDate: members.membershipStartDate,
           })
-          .where(eq(members.id, existing.id));
+          .from(members)
+          .where(eq(members.userId, input.userId))
+          .for("update");
 
-        await db.insert(membershipHistory).values({
-          memberId: existing.id,
-          action: input.months > 0 ? "renewed" : "cancelled",
-          startDate: base,
-          endDate: termEnd,
-          notes: `Admin: ${input.note}`,
-        });
-      } else {
+        const now = new Date();
+        // Extending measures from the end of the current term, so a comp added
+        // mid-year is a year on top rather than a year from today — which would
+        // silently shorten somebody who had months left.
+        const base =
+          locked?.membershipEndDate && locked.membershipEndDate > now
+            ? locked.membershipEndDate
+            : now;
+        const termEnd = new Date(base);
+        termEnd.setMonth(termEnd.getMonth() + input.months);
+
+        if (locked) {
+          await tx
+            .update(members)
+            .set({
+              // Removing months can leave the term in the past; the row then
+              // reads as lapsed rather than pretending to be active.
+              isActive: termEnd > now,
+              membershipEndDate: termEnd,
+              memberType: "continuous",
+              updatedAt: now,
+            })
+            .where(eq(members.id, locked.id));
+
+          await tx.insert(membershipHistory).values({
+            memberId: locked.id,
+            action: input.months > 0 ? "renewed" : "cancelled",
+            startDate: base,
+            endDate: termEnd,
+            notes: `Admin: ${input.note}`,
+          });
+
+          return { termEnd, isActive: termEnd > now };
+        }
+
         if (input.months < 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -501,7 +544,7 @@ export const memberRouter = createTRPCRouter({
 
         const { firstName, lastName } = splitName(user.name);
 
-        const [created] = await db
+        const [created] = await tx
           .insert(members)
           .values({
             userId: input.userId,
@@ -516,7 +559,7 @@ export const memberRouter = createTRPCRouter({
           .returning({ id: members.id });
 
         if (created) {
-          await db.insert(membershipHistory).values({
+          await tx.insert(membershipHistory).values({
             memberId: created.id,
             action: "joined",
             startDate: now,
@@ -524,7 +567,9 @@ export const memberRouter = createTRPCRouter({
             notes: `Admin: ${input.note}`,
           });
         }
-      }
+
+        return { termEnd, isActive: true };
+      });
 
       clearMembershipCaches(input.userId);
 
@@ -541,7 +586,10 @@ export const memberRouter = createTRPCRouter({
         metadata: { months: input.months, note: input.note },
       });
 
-      return { membershipEndDate: termEnd, isActive: termEnd > now };
+      return {
+        membershipEndDate: outcome.termEnd,
+        isActive: outcome.isActive,
+      };
     }),
 
   /**
@@ -561,30 +609,39 @@ export const memberRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      const existing = await db.query.members.findFirst({
-        where: eq(members.userId, input.userId),
-      });
+      // Same reasoning as adminGrant: the end and its history row are one
+      // transaction, so a membership can never be ended with no record of why.
+      await db.transaction(async (tx) => {
+        const [locked] = await tx
+          .select({
+            id: members.id,
+            membershipStartDate: members.membershipStartDate,
+          })
+          .from(members)
+          .where(eq(members.userId, input.userId))
+          .for("update");
 
-      if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That person has no membership.",
+        if (!locked) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "That person has no membership.",
+          });
+        }
+
+        const now = new Date();
+
+        await tx
+          .update(members)
+          .set({ isActive: false, membershipEndDate: now, updatedAt: now })
+          .where(eq(members.id, locked.id));
+
+        await tx.insert(membershipHistory).values({
+          memberId: locked.id,
+          action: "cancelled",
+          startDate: locked.membershipStartDate,
+          endDate: now,
+          notes: `Admin: ${input.note}`,
         });
-      }
-
-      const now = new Date();
-
-      await db
-        .update(members)
-        .set({ isActive: false, membershipEndDate: now, updatedAt: now })
-        .where(eq(members.id, existing.id));
-
-      await db.insert(membershipHistory).values({
-        memberId: existing.id,
-        action: "cancelled",
-        startDate: existing.membershipStartDate,
-        endDate: now,
-        notes: `Admin: ${input.note}`,
       });
 
       clearMembershipCaches(input.userId);

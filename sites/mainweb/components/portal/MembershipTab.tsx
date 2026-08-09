@@ -84,23 +84,32 @@ export function MembershipTab() {
 
     const year = form.graduationYear.trim()
       ? Number(form.graduationYear)
-      : undefined;
+      : null;
     if (year !== undefined && !Number.isInteger(year)) {
       setError("That graduation year does not look right.");
       return;
     }
 
-    // Empty strings are omitted rather than sent: the schema validates these as
-    // URLs, and "" fails that instead of meaning "not set".
+    /**
+     * An emptied field sends `null`, not `undefined`.
+     *
+     * `undefined` means "leave it alone", so sending it for a field somebody
+     * just cleared made the save report success and change nothing — the old
+     * value came straight back on the next read. `""` is not an option either:
+     * these validate as URLs and as min-length strings, so an empty string is
+     * a validation error rather than a clear.
+     */
+    const orNull = (value: string) => value.trim() || null;
+
     const payload = {
-      school: form.school.trim() || undefined,
-      major: form.major.trim() || undefined,
+      school: orNull(form.school),
+      major: orNull(form.major),
       graduationYear: year,
       skills,
       interests,
-      linkedinUrl: form.linkedinUrl.trim() || undefined,
-      githubUrl: form.githubUrl.trim() || undefined,
-      portfolioUrl: form.portfolioUrl.trim() || undefined,
+      linkedinUrl: orNull(form.linkedinUrl),
+      githubUrl: orNull(form.githubUrl),
+      portfolioUrl: orNull(form.portfolioUrl),
     };
 
     if (member) {
