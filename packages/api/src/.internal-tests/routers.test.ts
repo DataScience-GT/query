@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { cache } from "../middleware/cache";
 import { db } from "@query/db";
 import { errorFormatter } from "../trpc";
-import { sanitizeInput } from "../middleware/security";
+import { scrubMarkup } from "../trpc";
 
 // Fully mock the DB at the file level
 const mockFindFirst = vi.fn();
@@ -644,12 +644,11 @@ describe("Router Integration and Access Control Verification Suite", () => {
     });
 
     it("should ensure backslash escapes in sql queries are checked securely", () => {
-      // Drizzle handles parameterization automatically, so raw inputs are never
-      // interpolated directly. We test that inputs containing backslashes are
-      // sanitized/passed as single literals.
+      // Drizzle parameterises every query, so raw input is never interpolated.
+      // The sanitizer therefore passes this through byte for byte rather than
+      // guessing at SQL — guessing rejects ordinary prose.
       const dangerousValue = "value\\' OR \\'1\\'=\\'1";
-      const cleanValue = sanitizeInput(dangerousValue);
-      expect(typeof cleanValue).toBe("string");
+      expect(scrubMarkup(dangerousValue)).toBe(dangerousValue);
     });
   });
 
@@ -706,6 +705,9 @@ describe("Router Integration and Access Control Verification Suite", () => {
             userId: "captain_user_id",
             hackathonId,
             teamId,
+            // Submitting requires the badge scan; these tests are about the
+            // window, so admission is deliberately out of the way.
+            registrationStatus: "checked_in",
           };
         }
         if (table === "hackathons") {
@@ -748,6 +750,9 @@ describe("Router Integration and Access Control Verification Suite", () => {
             userId: "captain_user_id",
             hackathonId,
             teamId,
+            // Submitting requires the badge scan; these tests are about the
+            // window, so admission is deliberately out of the way.
+            registrationStatus: "checked_in",
           };
         }
         if (table === "hackathons") {
@@ -799,6 +804,9 @@ describe("Router Integration and Access Control Verification Suite", () => {
             userId: "captain_user_id",
             hackathonId,
             teamId,
+            // Submitting requires the badge scan; these tests are about the
+            // window, so admission is deliberately out of the way.
+            registrationStatus: "checked_in",
           };
         }
         if (table === "hackathons") {

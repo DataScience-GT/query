@@ -419,7 +419,6 @@ export const hackathonEvents = pgTable(
       enum: ["workshop", "meal", "ceremony", "activity", "sponsor_session"],
     }).notNull(),
     location: text("location").notNull(),
-    points: integer("points").notNull().default(0), // For gamification
     startTime: timestamp("start_time").notNull(),
     endTime: timestamp("end_time").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -514,7 +513,15 @@ export const hackathonAnnouncements = pgTable(
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
     audience: text("audience", {
-      enum: ["interested", "registered", "approved", "checked_in"],
+      enum: [
+        "interested",
+        "registered",
+        "approved",
+        "checked_in",
+        // Rejected and waitlisted applicants, who every other audience
+        // deliberately excludes. Chosen on purpose or not at all.
+        "not_accepted",
+      ],
     }).notNull(),
     subject: text("subject").notNull(),
     heading: text("heading").notNull(),

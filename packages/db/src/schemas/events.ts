@@ -18,7 +18,6 @@ export const events = pgTable("event", {
   description: text("description"),
   location: text("location"),
   eventDate: timestamp("event_date").notNull(),
-  pointsValue: integer("points_value").notNull().default(10),
   qrCode: text("qr_code").notNull().unique(),
   checkInEnabled: boolean("check_in_enabled").notNull().default(true),
   maxCheckIns: integer("max_check_ins"),
@@ -46,7 +45,6 @@ export const eventCheckIns = pgTable(
     checkInMethod: text("check_in_method", { enum: ["qr_code", "manual"] })
       .notNull()
       .default("qr_code"),
-    pointsEarned: integer("points_earned").notNull().default(10),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
   },
   (table) => [

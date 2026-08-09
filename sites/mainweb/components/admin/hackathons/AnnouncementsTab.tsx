@@ -26,7 +26,27 @@ const AUDIENCES = [
     label: "On site",
     hint: "Checked in at the door",
   },
+  {
+    id: "not_accepted" as const,
+    label: "Not accepted",
+    hint: "Rejected and waitlisted — excluded from every other audience",
+  },
 ];
+
+/**
+ * A starting point for the one message that is hard to write, and easy to get
+ * wrong by sending the wrong tone from a blank box. Entirely editable — it is
+ * prefilled only when the audience is selected and nothing has been typed yet.
+ */
+const NOT_ACCEPTED_TEMPLATE = {
+  subject: "An update on your application",
+  heading: "An update on your application",
+  body: [
+    "Thank you for applying. We had far more applications than places this year, and we were not able to offer you one.",
+    "This is not a judgement of you or your work — the numbers simply did not allow it, and turning people down is the part of running this we like least.",
+    "We would genuinely welcome an application from you next time, and our other events are open to everyone in the meantime.",
+  ].join("\n\n"),
+};
 
 type Audience = (typeof AUDIENCES)[number]["id"];
 
@@ -211,7 +231,21 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
               <button
                 key={option.id}
                 type="button"
-                onClick={() => setAudience(option.id)}
+                onClick={() => {
+                  setAudience(option.id);
+                  // Only into an untouched form: an organiser part-way through
+                  // writing something must never have it overwritten.
+                  if (
+                    option.id === "not_accepted" &&
+                    !subject.trim() &&
+                    !heading.trim() &&
+                    !body.trim()
+                  ) {
+                    setSubject(NOT_ACCEPTED_TEMPLATE.subject);
+                    setHeading(NOT_ACCEPTED_TEMPLATE.heading);
+                    setBody(NOT_ACCEPTED_TEMPLATE.body);
+                  }
+                }}
                 aria-pressed={audience === option.id}
                 className={`p-4 text-left border rounded-none transition-colors ${
                   audience === option.id

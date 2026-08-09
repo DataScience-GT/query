@@ -27,6 +27,7 @@ import {
   CreditCard,
   ShieldCheck,
   ScrollText,
+  BookOpen,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -104,7 +105,10 @@ export default function PortalSidebar({
       name: "Judge Portal",
       href: "/judge",
       icon: ClipboardList,
-      show: portalContext?.isJudge && !portalContext?.isAdmin,
+      // Staff who are also judges see this too. Organisers judge at their own
+      // events, and hiding it from admins left them with no route in at all —
+      // the page worked, they just had to know the URL.
+      show: portalContext?.isJudge,
     },
     {
       name: "Initiatives",
@@ -147,6 +151,8 @@ export default function PortalSidebar({
     // Retention prunes routine entries at 90 days, so an unreadable log is an
     // expiring one.
     { name: "Audit Log", href: "/admin/audit", icon: ScrollText },
+    // Shipped in every build and previously reachable only by typing the URL.
+    { name: "Docs", href: "/docs", icon: BookOpen },
   ];
 
   return (

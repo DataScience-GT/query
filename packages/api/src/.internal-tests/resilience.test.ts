@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { sanitizeInput } from "../middleware/security";
+// The sanitizer the request path actually runs — see the note in
+// security.test.ts about the second, uncalled implementation these used to
+// target.
+import { scrubMarkup } from "../trpc";
 
 vi.mock("@query/db", () => ({
   db: {},
@@ -33,22 +36,28 @@ describe("Resilience and Domain Edge Cases Verification Suite", () => {
       const zalgo =
         "H\u033d\u0310\u0355e\u033d\u0310\u0355l\u033d\u0310\u0355l\u033d\u0310\u0355o\u033d\u0310\u0355";
 
-      expect(typeof sanitizeInput(zalgo)).toBe("string");
+      expect(typeof scrubMarkup(zalgo)).toBe("string");
       // Backtracking on this input would take seconds, not 250ms.
-      expect(fastestRun(() => sanitizeInput(zalgo))).toBeLessThan(250);
+      expect(fastestRun(() => scrubMarkup(zalgo))).toBeLessThan(250);
     });
 
     it("should handle massive combined character strings efficiently", () => {
       const hugeZalgo = "A" + "\u0301".repeat(5000);
 
-      expect(typeof sanitizeInput(hugeZalgo)).toBe("string");
-      expect(fastestRun(() => sanitizeInput(hugeZalgo))).toBeLessThan(500);
+      expect(typeof scrubMarkup(hugeZalgo)).toBe("string");
+      expect(fastestRun(() => scrubMarkup(hugeZalgo))).toBeLessThan(500);
     });
 
-    it("should handle long plain strings up to the maximum slice length", () => {
+    /**
+     * Long input is passed through, not truncated. Silently cutting a 15,000
+     * character project description at 10,000 is the same class of bug as
+     * rewriting markup: the author is never told, and the loss is permanent.
+     * Length limits belong in each procedure's own schema, where the error can
+     * name the field.
+     */
+    it("passes a long plain string through untouched", () => {
       const normalLongString = "b".repeat(15000);
-      const result = sanitizeInput(normalLongString) as string;
-      expect(result.length).toBe(10000); // Truncation limit
+      expect(scrubMarkup(normalLongString)).toBe(normalLongString);
     });
   });
 
@@ -70,7 +79,7 @@ describe("Resilience and Domain Edge Cases Verification Suite", () => {
 
     it("should handle double file extensions safely without modifications", () => {
       const name = "document.pdf.png";
-      const result = sanitizeInput(name);
+      const result = scrubMarkup(name);
       expect(result).toBe("document.pdf.png");
     });
   });

@@ -200,11 +200,6 @@ export function HackathonCard({
                         <h5 className="font-semibold text-[var(--text-primary)] text-sm group-hover/item:text-emerald-300 transition-colors truncate pl-2">
                           {event.name}
                         </h5>
-                        {event.points > 0 && (
-                          <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded shrink-0">
-                            +{event.points} pts
-                          </span>
-                        )}
                       </div>
 
                       {/* Advanced Analytics Section for Event */}

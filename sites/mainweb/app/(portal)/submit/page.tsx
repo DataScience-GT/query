@@ -476,6 +476,22 @@ function SubmitPortalContent() {
                     deploy the final record.
                   </p>
 
+                  {/* Admission, said before the form is filled in. Acceptance
+                      lets you form a team; submitting needs the badge scan,
+                      because judging happens in person at a table number. */}
+                  {currentReg &&
+                    currentReg.registrationStatus !== "checked_in" && (
+                      <div className="p-4 mb-6 rounded-none relative z-10 border bg-amber-500/10 border-amber-500/30">
+                        <p className="font-mono text-xs text-amber-300">
+                          {currentReg.registrationStatus === "approved"
+                            ? "You're accepted — check in at the event before submitting. Find a volunteer and have your badge scanned."
+                            : currentReg.registrationStatus === "pending"
+                              ? "Your registration is still being reviewed. You can form a team once you have been accepted."
+                              : `Your registration for this hackathon is ${currentReg.registrationStatus}.`}
+                        </p>
+                      </div>
+                    )}
+
                   {/* The window this form is gated on, said before it is filled
                       in. Without it an attendee wrote a full description and
                       learned it was refused only on submit. */}

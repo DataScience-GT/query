@@ -557,7 +557,13 @@ describe("Hackathon end-to-end flow", () => {
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathons") return hackathonStartedHoursAgo(hoursIn);
         if (table === "hackathonParticipants")
-          return participant ?? { id: PARTICIPANT, teamId: null };
+          return (
+            participant ?? {
+              id: PARTICIPANT,
+              teamId: null,
+              registrationStatus: "checked_in",
+            }
+          );
         if (table === "hackathonTeams")
           return {
             id: "team_1",
@@ -653,7 +659,13 @@ describe("Hackathon end-to-end flow", () => {
             hackingStartTime: new Date(Date.now() - 20 * HOUR),
           };
         if (table === "hackathonParticipants")
-          return opts.participant ?? { id: PARTICIPANT, teamId: null };
+          return (
+            opts.participant ?? {
+              id: PARTICIPANT,
+              teamId: null,
+              registrationStatus: "approved",
+            }
+          );
         if (table === "hackathonTeams")
           return (
             opts.team ?? {
@@ -680,7 +692,11 @@ describe("Hackathon end-to-end flow", () => {
 
     it("refuses to let someone join two teams", async () => {
       const caller = joinCaller({
-        participant: { id: PARTICIPANT, teamId: "team_existing" },
+        participant: {
+          id: PARTICIPANT,
+          teamId: "team_existing",
+          registrationStatus: "approved",
+        },
       });
 
       await expect(caller.team.joinTeam(join)).rejects.toThrow(
@@ -749,7 +765,12 @@ describe("Hackathon end-to-end flow", () => {
             hackingStartTime: new Date(Date.now() - hoursIn * HOUR),
           };
         if (table === "hackathonParticipants")
-          return { id: PARTICIPANT, teamId: "team_1" };
+          // Submitting requires the badge scan — see checkCheckedIn.
+          return {
+            id: PARTICIPANT,
+            teamId: "team_1",
+            registrationStatus: "checked_in",
+          };
         if (table === "hackathonProjects")
           return existingProject ? { id: "project_1" } : undefined;
         return undefined;

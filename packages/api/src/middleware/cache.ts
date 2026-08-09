@@ -213,11 +213,11 @@ export class CacheService {
 // Global cache instance
 export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max 10000 entries
 
-/**
- * Cache statistics for metrics/monitoring export
- * Access via cache.getStats() or cache.exportStats()
+/*
+ * There is deliberately no exported `cacheStats` snapshot. One existed, taken
+ * once at module load, so it reported zeroes forever — call cache.getStats()
+ * for a live reading.
  */
-export const cacheStats = cache.exportStats();
 
 /**
  * TTL (seconds) for state an admin can flip mid-event — hackathon status,
@@ -232,17 +232,20 @@ export const cacheStats = cache.exportStats();
  */
 export const VOLATILE_TTL = 5;
 
-// Cache key builders for consistency
+/**
+ * Cache key builders, for the keys that are actually written.
+ *
+ * `hackathons()`, `events()`, `user()`, `event()` and `member()` used to be
+ * here too, and every one described a shape nothing writes — the real keys
+ * carry a suffix (`events:list:all`, `member:me:<id>`). Builders for keys that
+ * do not exist are how the invalidation map ended up evicting nothing: they
+ * read as authoritative and match zero entries.
+ */
 export const CacheKeys = {
-  user: (userId: string) => `user:${userId}`,
   userProfile: (userId: string) => `user:${userId}:profile`,
   admin: (userId: string) => `admin:${userId}`,
   hackathon: (id: string) => `hackathon:${id}`,
-  hackathons: () => `hackathons:list`,
-  event: (id: string) => `event:${id}`,
-  events: () => `events:list`,
   judge: (userId: string) => `judge:${userId}`,
-  member: (userId: string) => `member:${userId}`,
   projectLeader: (userId: string) => `project-leader:${userId}`,
   portalContext: (userId: string) => `user:${userId}:portal`,
 } as const;
@@ -276,15 +279,10 @@ export const clearMembershipCaches = (userId: string) => {
   invalidatePortalContext(userId);
 };
 
-// Cache invalidation helpers
-export const invalidateUser = (userId: string) => {
-  cache.deletePattern(`user:${userId}*`);
-};
-
-export const invalidateHackathons = () => {
-  cache.deletePattern("hackathon*");
-};
-
-export const invalidateEvents = () => {
-  cache.deletePattern("event*");
-};
+/*
+ * `invalidateUser`, `invalidateHackathons` and `invalidateEvents` used to live
+ * here with no callers. Eviction happens through CACHE_INVALIDATION_MAP or by
+ * id in the resolver that wrote the row — a broad namespace sweep is exactly
+ * the P5 mistake (`deletePattern("hackathon*")` once wiped every attendee's
+ * cached registrations on every badge scan).
+ */

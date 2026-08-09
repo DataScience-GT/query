@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 // membershipHistory is written by createOrUpdateMembership on a real payment,
 // and by the admin operations below when somebody pays another way.
 import { members, membershipHistory, users } from "@query/db";
@@ -211,7 +211,15 @@ export const memberRouter = createTRPCRouter({
       return updatedMember;
     }),
 
-  list: publicProcedure
+  /**
+   * The member directory, for staff.
+   *
+   * Was a `publicProcedure`, so anyone on the internet could page through every
+   * member's name, school and major for a directory no page renders. Whether
+   * the club wants a public directory is an open question (D3); until it is
+   * answered, the data is staff-only rather than open by default.
+   */
+  list: isAdmin
     .input(
       z.object({
         memberType: z.enum(["new", "continuous"]).optional(),
@@ -261,7 +269,8 @@ export const memberRouter = createTRPCRouter({
       return allMembers;
     }),
 
-  getById: publicProcedure
+  /** One member's directory entry. Staff-only for the same reason as `list`. */
+  getById: isAdmin
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
