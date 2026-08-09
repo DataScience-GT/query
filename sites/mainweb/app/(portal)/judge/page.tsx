@@ -32,6 +32,12 @@ export default function JudgePage() {
     undefined,
     { enabled: !!session && !!judgeStatus?.isJudge },
   );
+  // Applications, approved or not. getMyAssignments only returns approved ones,
+  // so without this an applicant saw "Apply to Judge" again — and pressing it
+  // threw "You have already applied".
+  const { data: applications } = trpc.judge.myApplications.useQuery(undefined, {
+    enabled: !!session,
+  });
 
   useEffect(() => setMounted(true), []);
 
@@ -128,16 +134,24 @@ export default function JudgePage() {
             };
             const assignment = assignments?.find((a) => a.hackathonId === h.id);
             const isRegistered = !!assignment;
+            const application = applications?.find(
+              (a) => a.hackathonId === h.id,
+            );
+            const awaitingApproval = !isRegistered && !!application;
 
             return (
               <LiquidGlass
                 key={h.id}
                 className="h-full flex flex-col p-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-[var(--border-subtle)]"
               >
-                <Link
-                  href={`/hackathons/${h.id}/judge`}
-                  className="group block"
-                >
+                {/* The card is a plain container, not a Link.
+                    It used to wrap the whole thing in an anchor and then put
+                    the "Apply to Judge" / "Ready to Judge" links inside it —
+                    nested anchors, which React warns about and browsers
+                    resolve unpredictably: the inner link often lost its click
+                    to the outer one, so Apply took you to the judging screen
+                    instead of the application form. */}
+                <div className="group block">
                   <div className="relative flex flex-col h-full bg-[var(--bg-secondary)] rounded-none p-6 overflow-hidden">
                     <div
                       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wide mb-4 ${conf.bg} border ${conf.border}`}
@@ -232,7 +246,13 @@ export default function JudgePage() {
                             Ready to Judge
                           </Link>
                         </>
-                      ) : h.status === "open" || h.status === "in_progress" ? (
+                      ) : awaitingApproval ? (
+                        <div className="flex-1 px-4 py-2 rounded-none bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest text-center">
+                          Application pending review
+                        </div>
+                      ) : h.status === "open" ||
+                        h.status === "closed" ||
+                        h.status === "in_progress" ? (
                         <Link
                           href={`/judge/register?hackathonId=${h.id}`}
                           className="flex-1 px-4 py-2 rounded-none bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
@@ -249,7 +269,7 @@ export default function JudgePage() {
                       )}
                     </div>
                   </div>
-                </Link>
+                </div>
               </LiquidGlass>
             );
           })}
