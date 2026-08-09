@@ -141,11 +141,43 @@ export const adminRouter = createTRPCRouter({
     return allAdmins;
   }),
 
+  /**
+   * Finds the person a staff role is about to be granted to, by their exact
+   * sign-in address.
+   *
+   * Exact rather than a prefix search: this is the lookup that precedes handing
+   * out a role, and a partial match list is how the wrong Alex ends up with
+   * scanner access. It also means the endpoint cannot be used to enumerate the
+   * user table — it confirms an address somebody already knows.
+   */
+  findUserByEmail: isSuperAdmin
+    .input(z.object({ email: z.string().trim().email().max(255) }))
+    .query(async ({ ctx, input }) => {
+      const user = await (ctx.db as DrizzleDB).query.users.findFirst({
+        // Stored lowercased by every writer.
+        where: eq(users.email, input.email.toLowerCase()),
+        columns: { id: true, name: true, email: true, image: true },
+      });
+
+      if (!user) return null;
+
+      const existing = await (ctx.db as DrizzleDB).query.admins.findFirst({
+        where: eq(admins.userId, user.id),
+        columns: { id: true, role: true, isActive: true },
+      });
+
+      return { ...user, existingRole: existing ?? null };
+    }),
+
   create: isSuperAdmin
     .input(
       z.object({
         userId: z.string().min(1).max(255),
-        role: z.enum(["super_admin", "admin", "moderator"]),
+        // "volunteer" is the check-in desk tier: an active admins row that
+        // isAdmin deliberately rejects, so it grants badge scanning and
+        // nothing else. Without it here the only way to staff a scan station
+        // is a hand-written INSERT.
+        role: z.enum(["super_admin", "admin", "moderator", "volunteer"]),
         permissions: z.array(z.string().max(100)).max(50).optional(),
       }),
     )
@@ -201,7 +233,11 @@ export const adminRouter = createTRPCRouter({
     .input(
       z.object({
         adminId: z.string().uuid(),
-        role: z.enum(["super_admin", "admin", "moderator"]).optional(),
+        // Same set as create — otherwise an existing admin could be made a
+        // volunteer but a volunteer could never be promoted back.
+        role: z
+          .enum(["super_admin", "admin", "moderator", "volunteer"])
+          .optional(),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         isActive: z.boolean().optional(),
       }),

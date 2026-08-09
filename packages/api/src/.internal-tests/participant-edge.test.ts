@@ -1159,4 +1159,138 @@ describe("Participant edge cases", () => {
     });
   });
 
+  // =====================================================================
+  describe("12. Admin membership operations", () => {
+    /**
+     * A cash payer at a table, a comped officer, a refund that has to be
+     * honoured: none of these come through Stripe, and none had any path but
+     * SQL against production before this.
+     */
+    const ADMIN_ROW = { userId: "admin_user", isActive: true, role: "admin" };
+
+    const wire = (member: Record<string, unknown> | undefined) =>
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "users") return { id: "user_a", name: "Ada Lovelace" };
+        if (table === "members") return member;
+        return undefined;
+      });
+
+    it("creates a membership for somebody who has never paid", async () => {
+      wire(undefined);
+      mockInsert.mockReturnValue([{ id: "member_new" }]);
+
+      const res = await callerFor("admin_user").member.adminGrant({
+        userId: "user_a",
+        months: 12,
+        note: "Paid $15 cash at the kickoff",
+      });
+
+      expect(res.isActive).toBe(true);
+      const memberRow = insertedInto(members)[0]![2][0];
+      expect(memberRow).toMatchObject({
+        userId: "user_a",
+        firstName: "Ada",
+        lastName: "Lovelace",
+        isActive: true,
+      });
+      // The reason has to outlive the person who typed it.
+      const historyRow = insertedInto(membershipHistory)[0]![2][0];
+      expect(historyRow).toMatchObject({ action: "joined" });
+      expect(historyRow.notes).toContain("cash");
+    });
+
+    /**
+     * Extending measures from the end of the term, not from today — otherwise
+     * comping somebody mid-year silently shortens them to twelve months from
+     * the moment an organiser happened to press the button.
+     */
+    it("extends from the end of an unexpired term", async () => {
+      const existingEnd = new Date(Date.now() + 100 * DAY);
+      wire({
+        id: "member_1",
+        userId: "user_a",
+        isActive: true,
+        membershipStartDate: new Date(Date.now() - 265 * DAY),
+        membershipEndDate: existingEnd,
+      });
+
+      const res = await callerFor("admin_user").member.adminGrant({
+        userId: "user_a",
+        months: 12,
+        note: "Comped officer",
+      });
+
+      const expected = new Date(existingEnd);
+      expected.setMonth(expected.getMonth() + 12);
+      expect(res.membershipEndDate.getTime()).toBe(expected.getTime());
+    });
+
+    it("walks a mistake back with negative months", async () => {
+      wire({
+        id: "member_1",
+        userId: "user_a",
+        isActive: true,
+        membershipStartDate: new Date(),
+        membershipEndDate: new Date(Date.now() + 20 * DAY),
+      });
+
+      const res = await callerFor("admin_user").member.adminGrant({
+        userId: "user_a",
+        months: -12,
+        note: "Refunded — charged twice",
+      });
+
+      // The term lands in the past, so the row reads lapsed rather than
+      // claiming to be active with an expired date.
+      expect(res.isActive).toBe(false);
+      expect(updatedTables()).toContain(members);
+    });
+
+    it("refuses to shorten a membership that does not exist", async () => {
+      wire(undefined);
+
+      await expect(
+        callerFor("admin_user").member.adminGrant({
+          userId: "user_a",
+          months: -12,
+          note: "Nothing to take away",
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    // The history is the only record of which years somebody was a member, so
+    // revoking ends the term rather than deleting the row.
+    it("ends a membership without destroying its history", async () => {
+      wire({
+        id: "member_1",
+        userId: "user_a",
+        isActive: true,
+        membershipStartDate: new Date(Date.now() - 30 * DAY),
+        membershipEndDate: new Date(Date.now() + 300 * DAY),
+      });
+
+      await callerFor("admin_user").member.adminRevoke({
+        userId: "user_a",
+        note: "Left the club",
+      });
+
+      expect(deletedTables()).not.toContain(members);
+      expect(insertedInto(membershipHistory)[0]![2][0]).toMatchObject({
+        action: "cancelled",
+      });
+    });
+
+    it("is refused to a caller who is not staff", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+
+      await expect(
+        callerFor("user_a").member.adminGrant({
+          userId: "user_a",
+          months: 12,
+          note: "Granting myself a year",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+  });
 });

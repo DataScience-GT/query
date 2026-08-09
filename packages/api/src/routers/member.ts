@@ -2,14 +2,17 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 // membershipHistory is written by createOrUpdateMembership on a real payment,
-// not here: `register` no longer grants a term, so it has nothing to record.
-import { members } from "@query/db";
-import { eq, and } from "drizzle-orm";
+// and by the admin operations below when somebody pays another way.
+import { members, membershipHistory, users } from "@query/db";
+import { eq, and, ilike, or, desc } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {
   clearMembershipCaches,
   invalidatePortalContext,
 } from "../middleware/cache";
+import { isAdmin } from "../middleware/procedures";
+import { recordAdminAction } from "../middleware/audit";
+import { splitName } from "@query/db/services/membership";
 
 // Letters from every script, plus the combining marks, spaces, hyphens and
 // apostrophes (straight and typographic) that real names are written with.
@@ -355,4 +358,245 @@ export const memberRouter = createTRPCRouter({
       return result;
     }),
 
+  /**
+   * Staff-facing membership operations.
+   *
+   * Somebody paying in cash at a table, an officer being comped, a refund that
+   * has to be honoured — none of these come through Stripe, and until now none
+   * of them had any path but direct SQL. Every one is audit-logged, because
+   * granting a paid membership for free is exactly the action a record needs to
+   * exist for.
+   */
+  adminSearch: isAdmin
+    .input(
+      z.object({
+        query: z.string().trim().min(1).max(200),
+        limit: z.number().int().min(1).max(50).default(20),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const pattern = `%${input.query}%`;
+
+      const rows = await (ctx.db as DrizzleDB)
+        .select({
+          userId: users.id,
+          name: users.name,
+          email: users.email,
+          memberId: members.id,
+          firstName: members.firstName,
+          lastName: members.lastName,
+          isActive: members.isActive,
+          membershipEndDate: members.membershipEndDate,
+          memberType: members.memberType,
+          renewalCount: members.renewalCount,
+          bootcampMember: members.bootcampMember,
+        })
+        .from(users)
+        .leftJoin(members, eq(members.userId, users.id))
+        .where(or(ilike(users.email, pattern), ilike(users.name, pattern)))
+        .limit(input.limit);
+
+      const now = new Date();
+      return rows.map((row) => ({
+        ...row,
+        // Same rule as checkStatus and the portal context: paid and unexpired.
+        isCurrentMember: Boolean(
+          row.isActive &&
+            row.membershipEndDate &&
+            row.membershipEndDate > now,
+        ),
+      }));
+    }),
+
+  /** One person's membership history, for staff resolving a dispute. */
+  adminHistory: isAdmin
+    .input(z.object({ userId: z.string().min(1).max(255) }))
+    .query(async ({ ctx, input }) => {
+      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
+        where: eq(members.userId, input.userId),
+        columns: { id: true },
+      });
+
+      if (!member) return [];
+
+      return await (ctx.db as DrizzleDB).query.membershipHistory.findMany({
+        where: eq(membershipHistory.memberId, member.id),
+        orderBy: [desc(membershipHistory.createdAt)],
+        limit: 100,
+      });
+    }),
+
+  /**
+   * Grants or extends a membership without a payment, or shortens one.
+   *
+   * `months` is added to whatever term the person already has left, so comping
+   * somebody mid-term does not shorten them; a negative value is how a refund
+   * or a mistake is walked back.
+   */
+  adminGrant: isAdmin
+    .input(
+      z.object({
+        userId: z.string().min(1).max(255),
+        months: z.number().int().min(-24).max(24).refine((n) => n !== 0, {
+          message: "Choose a number of months to add or remove.",
+        }),
+        /** Recorded on the history row, so the reason survives the person. */
+        note: z.string().trim().min(1).max(500),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, input.userId),
+        columns: { id: true, name: true },
+      });
+
+      if (!user) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      }
+
+      const existing = await db.query.members.findFirst({
+        where: eq(members.userId, input.userId),
+      });
+
+      const now = new Date();
+      // Extending measures from the end of the current term, so a comp added
+      // mid-year is a year on top rather than a year from today — which would
+      // silently shorten somebody who had months left.
+      const base =
+        existing?.membershipEndDate && existing.membershipEndDate > now
+          ? existing.membershipEndDate
+          : now;
+      const termEnd = new Date(base);
+      termEnd.setMonth(termEnd.getMonth() + input.months);
+
+      if (existing) {
+        await db
+          .update(members)
+          .set({
+            // Removing months can leave the term in the past; the row then
+            // reads as lapsed rather than pretending to be active.
+            isActive: termEnd > now,
+            membershipEndDate: termEnd,
+            memberType: "continuous",
+            updatedAt: now,
+          })
+          .where(eq(members.id, existing.id));
+
+        await db.insert(membershipHistory).values({
+          memberId: existing.id,
+          action: input.months > 0 ? "renewed" : "cancelled",
+          startDate: base,
+          endDate: termEnd,
+          notes: `Admin: ${input.note}`,
+        });
+      } else {
+        if (input.months < 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That person has no membership to shorten.",
+          });
+        }
+
+        const { firstName, lastName } = splitName(user.name);
+
+        const [created] = await db
+          .insert(members)
+          .values({
+            userId: input.userId,
+            firstName,
+            lastName,
+            memberType: "new",
+            isActive: true,
+            membershipStartDate: now,
+            membershipEndDate: termEnd,
+            renewalCount: 0,
+          })
+          .returning({ id: members.id });
+
+        if (created) {
+          await db.insert(membershipHistory).values({
+            memberId: created.id,
+            action: "joined",
+            startDate: now,
+            endDate: termEnd,
+            notes: `Admin: ${input.note}`,
+          });
+        }
+      }
+
+      clearMembershipCaches(input.userId);
+
+      // After the writes, never inside a transaction with them: a failed audit
+      // insert aborts the Postgres session and turns the COMMIT into a silent
+      // ROLLBACK.
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "member.adminGrant",
+        resourceId: input.userId,
+        // Handing out a paid membership for nothing is precisely the action
+        // somebody may later need to account for.
+        severity: "critical",
+        metadata: { months: input.months, note: input.note },
+      });
+
+      return { membershipEndDate: termEnd, isActive: termEnd > now };
+    }),
+
+  /**
+   * Ends a membership now.
+   *
+   * The row and its history stay: deleting the member would take the record of
+   * every year they were one with it, and this is usually a correction rather
+   * than a denial that the person existed.
+   */
+  adminRevoke: isAdmin
+    .input(
+      z.object({
+        userId: z.string().min(1).max(255),
+        note: z.string().trim().min(1).max(500),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const existing = await db.query.members.findFirst({
+        where: eq(members.userId, input.userId),
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That person has no membership.",
+        });
+      }
+
+      const now = new Date();
+
+      await db
+        .update(members)
+        .set({ isActive: false, membershipEndDate: now, updatedAt: now })
+        .where(eq(members.id, existing.id));
+
+      await db.insert(membershipHistory).values({
+        memberId: existing.id,
+        action: "cancelled",
+        startDate: existing.membershipStartDate,
+        endDate: now,
+        notes: `Admin: ${input.note}`,
+      });
+
+      clearMembershipCaches(input.userId);
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "member.adminRevoke",
+        resourceId: input.userId,
+        severity: "critical",
+        metadata: { note: input.note },
+      });
+
+      return { success: true };
+    }),
 });
