@@ -849,13 +849,49 @@ export const hackathonAdminRouter = createTRPCRouter({
         throw error;
       }
 
-      // A scan changes one event's attendee count and nothing else. This runs
-      // at every door station all weekend, so it must not touch the roster or
-      // any attendee's cached registrations.
+      /**
+       * The first scan is the check-in.
+       *
+       * `checked_in` had no writer anywhere in the product: this procedure
+       * recorded attendance for one event and left the roster alone, and no
+       * screen ever passed the status to updateParticipantStatus. That was
+       * harmless while the status was only a label — but submitting a project
+       * now requires it, so an unreachable status meant nobody could submit at
+       * all, and the error told them to do the very thing they had just done.
+       *
+       * Only from `approved`, and only once: the guard above has already
+       * refused everyone else, and `checkedInAt` must keep pointing at when
+       * they actually arrived rather than at their most recent meal.
+       */
+      const promotedToCheckedIn = participant.registrationStatus === "approved";
+
+      if (promotedToCheckedIn) {
+        await (ctx.db as DrizzleDB)
+          .update(hackathonParticipants)
+          .set({
+            registrationStatus: "checked_in",
+            ...(participant.checkedInAt ? {} : { checkedInAt: new Date() }),
+            updatedAt: new Date(),
+          })
+          .where(eq(hackathonParticipants.id, input.participantId));
+      }
+
+      // A scan changes one event's attendee count, and — on the first one —
+      // this attendee's own roster row. This runs at every door station all
+      // weekend, so the eviction stays narrow: the event, and only the person
+      // scanned. The old blanket pattern wiped every attendee's cached
+      // registrations on every scan.
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
+
+      if (promotedToCheckedIn) {
+        evictParticipantCaches(ctx.cache, input.hackathonId, [
+          participant.userId,
+        ]);
+      }
 
       return {
         success: true,
+        checkedIn: promotedToCheckedIn,
         message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
       };
     }),
