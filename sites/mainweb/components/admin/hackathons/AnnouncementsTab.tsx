@@ -46,9 +46,18 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
     hackathonId,
   });
 
-  const sendAnnouncement = trpc.hackathon.sendAnnouncement.useMutation();
+  const utils = trpc.useUtils();
+  const { data: announcements } = trpc.hackathon.listAnnouncements.useQuery({
+    hackathonId,
+  });
+
+  const createAnnouncement = trpc.hackathon.createAnnouncement.useMutation();
+  const sendBatch = trpc.hackathon.sendBatch.useMutation();
 
   const recipientCount = counts?.[audience] ?? 0;
+
+  const unfinished =
+    announcements?.filter((a) => a.pending > 0) ?? [];
   const canSend =
     subject.trim().length > 0 &&
     heading.trim().length > 0 &&
@@ -57,47 +66,39 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
     !sending;
 
   /**
-   * Walks the audience in server-sized batches until it reports done.
+   * Walks an announcement's remaining recipients until the server reports none.
    *
-   * Sequential rather than concurrent: this is one provider account being
-   * asked for thousands of sends, and firing batches in parallel is how a
+   * Sequential rather than concurrent: this is one provider account being asked
+   * for thousands of sends, and firing batches in parallel is how an
    * announcement gets throttled into a partial delivery nobody notices.
+   *
+   * Every recipient is marked server-side as their message goes out, so closing
+   * the tab half-way through loses nothing — reopening offers to resume, and
+   * nobody is mailed twice.
    */
-  const handleSend = async () => {
-    if (
-      !window.confirm(
-        `Send "${subject}" to ${recipientCount} recipient(s)?\n\nThis cannot be unsent.`,
-      )
-    )
-      return;
-
+  const drain = async (announcementId: string, total: number) => {
     setSending(true);
     setError(null);
     let sent = 0;
     let failed = 0;
-    let offset = 0;
 
-    // Bounded rather than `while (true)`: a server that stopped advancing
-    // nextOffset would otherwise loop forever, mailing the same batch.
+    // Bounded rather than `while (true)`: a server that stopped decreasing
+    // `remaining` would otherwise loop forever, mailing the same batch.
     for (let guard = 0; guard < 100; guard++) {
       try {
-        const result = await sendAnnouncement.mutateAsync({
-          hackathonId,
-          audience,
-          subject: subject.trim(),
-          heading: heading.trim(),
-          body: body.trim(),
-          ctaLabel: ctaLabel.trim() || undefined,
-          ctaUrl: ctaUrl.trim() || undefined,
-          offset,
-        });
+        const result = await sendBatch.mutateAsync({ announcementId });
 
         sent += result.sent;
         failed += result.failed.length;
-        setProgress(`Sent ${sent} of ${result.totalRecipients}...`);
+        setProgress(
+          total > 0
+            ? `Sent ${sent} of ${total}, ${result.remaining} to go...`
+            : `Sent ${sent}, ${result.remaining} to go...`,
+        );
 
-        if (result.done || result.nextOffset === offset) break;
-        offset = result.nextOffset;
+        if (result.done) break;
+        // Nothing moved and nothing is left to try: stop rather than spin.
+        if (result.sent === 0 && result.failed.length === 0) break;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Announcement failed");
         break;
@@ -108,10 +109,82 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
       `Done. ${sent} delivered${failed > 0 ? `, ${failed} failed` : ""}.`,
     );
     setSending(false);
+    utils.hackathon.listAnnouncements.invalidate({ hackathonId });
+  };
+
+  const handleSend = async () => {
+    if (
+      !window.confirm(
+        `Send "${subject}" to ${recipientCount} recipient(s)?\n\nThis cannot be unsent.`,
+      )
+    )
+      return;
+
+    setSending(true);
+    setError(null);
+
+    try {
+      const created = await createAnnouncement.mutateAsync({
+        hackathonId,
+        audience,
+        subject: subject.trim(),
+        heading: heading.trim(),
+        body: body.trim(),
+        ctaLabel: ctaLabel.trim() || undefined,
+        ctaUrl: ctaUrl.trim() || undefined,
+      });
+
+      utils.hackathon.listAnnouncements.invalidate({ hackathonId });
+      await drain(created.announcementId, created.totalRecipients);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Announcement failed");
+      setSending(false);
+    }
   };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+      {/* A send that stopped part-way — a closed tab, a lost connection, a
+          timeout. The remaining recipients are recorded server-side, so this
+          continues rather than starting a second announcement. */}
+      {unfinished.length > 0 && (
+        <LiquidGlass className="p-6 border-amber-500/30">
+          <h2 className="text-sm font-bold text-amber-300 uppercase tracking-widest mb-3">
+            Unfinished sends
+          </h2>
+          <div className="space-y-3">
+            {unfinished.map((announcement) => (
+              <div
+                key={announcement.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div>
+                  <p className="text-sm text-[var(--text-primary)] font-mono">
+                    {announcement.subject}
+                  </p>
+                  <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
+                    {announcement.sent} sent · {announcement.pending} remaining
+                    {announcement.failed > 0
+                      ? ` · ${announcement.failed} rejected`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={() =>
+                    drain(announcement.id, announcement.total)
+                  }
+                  className="px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider rounded-none hover:bg-amber-500/20 transition-colors disabled:opacity-40"
+                >
+                  Resume
+                </button>
+              </div>
+            ))}
+          </div>
+        </LiquidGlass>
+      )}
+
       <LiquidGlass className="p-6 border-[var(--border-subtle)]">
         <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
           <Megaphone className="w-4 h-4 text-accent" />
@@ -279,6 +352,7 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
           </div>
         )}
       </LiquidGlass>
+
     </div>
   );
 }

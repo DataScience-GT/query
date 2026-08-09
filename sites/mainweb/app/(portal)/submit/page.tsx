@@ -8,6 +8,22 @@ import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
 
+/**
+ * Deadlines are rendered in the event's own time zone, not the viewer's. Half
+ * the field is remote, and a submission deadline shown in the wrong zone is the
+ * one rendering mistake that costs someone their entry.
+ */
+const formatMoment = (moment: Date) =>
+  moment.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone: "America/New_York",
+  });
+
 function SubmitPortalContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -59,6 +75,13 @@ function SubmitPortalContent() {
   // strings exactly, so a typo silently removes a project from a judge's pool.
   const { data: hackathonDetail } = trpc.hackathon.getById.useQuery(
     { id: selectedHackathonId },
+    { enabled: !!session && !!selectedHackathonId },
+  );
+
+  // The window the submit mutation gates on. The page never queried it, so the
+  // refusal only ever arrived after the form was filled in.
+  const submissionWindow = trpc.team.submissionWindow.useQuery(
+    { hackathonId: selectedHackathonId },
     { enabled: !!session && !!selectedHackathonId },
   );
 
@@ -446,12 +469,39 @@ function SubmitPortalContent() {
                   <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-2 relative z-10">
                     Project Repository
                   </h2>
-                  <p className="text-sm font-mono text-text-muted mb-10 relative z-10">
+                  <p className="text-sm font-mono text-text-muted mb-6 relative z-10">
                     Finalize your hackathon submission. Only the core properties
                     are required. If you are in a team, only the{" "}
                     <span className="text-accent font-bold">Captain</span> can
                     deploy the final record.
                   </p>
+
+                  {/* The window this form is gated on, said before it is filled
+                      in. Without it an attendee wrote a full description and
+                      learned it was refused only on submit. */}
+                  {submissionWindow.data && (
+                    <div
+                      className={`p-4 mb-10 rounded-none relative z-10 border ${
+                        submissionWindow.data.isOpen
+                          ? "bg-accent/5 border-accent/20"
+                          : "bg-amber-500/10 border-amber-500/30"
+                      }`}
+                    >
+                      <p
+                        className={`font-mono text-xs ${submissionWindow.data.isOpen ? "text-accent" : "text-amber-300"}`}
+                      >
+                        {submissionWindow.data.cancelled
+                          ? "This hackathon has been cancelled — nothing can be submitted."
+                          : submissionWindow.data.notYetOpen
+                            ? `Submission opens ${formatMoment(submissionWindow.data.opensAt)}. The form is here early so you can see what it asks for.`
+                            : !submissionWindow.data.isOpen
+                              ? `Submission closed ${formatMoment(submissionWindow.data.closesAt)}.`
+                              : submissionWindow.data.canEditExisting
+                                ? `Open until ${formatMoment(submissionWindow.data.closesAt)} · edits to an existing submission close ${formatMoment(submissionWindow.data.editsCloseAt)}.`
+                                : `Open until ${formatMoment(submissionWindow.data.closesAt)} — but edits to an existing submission are closed, so this can only file a first entry.`}
+                      </p>
+                    </div>
+                  )}
 
                   {error && (
                     <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-none relative z-10">

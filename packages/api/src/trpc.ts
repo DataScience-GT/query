@@ -97,6 +97,21 @@ const isPlainObject = (value: object) => {
  * arrays or plain objects (Date, Buffer, …) are handed on as-is so the
  * procedure's own validator still sees them.
  */
+/**
+ * Ceiling on any array reaching a procedure, checked before zod runs.
+ *
+ * Must stay at or above the largest bound any input schema declares, or that
+ * schema is unreachable: this throws "Array too large" first, so a procedure
+ * advertising `.max(2500)` would reject at 501 with a message that names
+ * neither the real limit nor the field. It sat at 500 while
+ * batchUpdateParticipantStatus allowed 2500, which made approving a
+ * 2000-person roster impossible in a single call.
+ *
+ * This is not the payload guard — scrubbing an array of uuids is linear and
+ * cheap. Request size is bounded separately by validateRequestSize.
+ */
+const MAX_ARRAY_LENGTH = 2500;
+
 const scrubMarkup = (input: unknown, depth = 0): unknown => {
   if (depth > 10) {
     throw new TRPCError({
@@ -125,7 +140,7 @@ const scrubMarkup = (input: unknown, depth = 0): unknown => {
   }
 
   if (Array.isArray(input)) {
-    if (input.length > 500) {
+    if (input.length > MAX_ARRAY_LENGTH) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Array too large" });
     }
     return input.map((item) => scrubMarkup(item, depth + 1));
@@ -283,8 +298,14 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
     "hackathon:*:public-projects*",
     "hackathon:*:rankings",
   ],
-  // Announcements read the audience live and write nothing cacheable.
-  "hackathon.sendAnnouncement": [],
+  // Announcements write their own rows and nothing cacheable. Empty rather than
+  // absent, so neither one falls through to sweeping the whole hackathon
+  // namespace — which includes every attendee's cached registrations.
+  "hackathon.createAnnouncement": [],
+  "hackathon.sendBatch": [],
+  // Same: the marker lives on hackathon_interest, which is not cached, and the
+  // admin list is read fresh.
+  "hackathon.notifyRegistrationOpen": [],
   "judge.assignToHackathon": ["judge:*"],
   // Member mutations
   "member.update": ["member:*", "user:*:profile"],
@@ -329,6 +350,12 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // fallback from sweeping every attendee's cached registrations.
   "hackathon.adminUpdateProject": [],
   "hackathon.adminWithdrawProject": [],
+  // Both evict precisely in the resolver. Left unmapped they fall through to
+  // deletePattern("hackathon:*"), which also matches every attendee's cached
+  // registrations and the rankings entry — and removeEventAttendance is
+  // reachable by a volunteer pressing Undo at a check-in desk.
+  "hackathon.removeEventAttendance": [],
+  "hackathon.sendMassAcceptanceEmails": [],
   // Publishing and unpublishing change what the public getResults returns.
   "judge.computeResults": ["hackathon:*:results"],
   "judge.publishResults": ["hackathon:*:results"],
@@ -474,16 +501,15 @@ export const uploadProcedure = t.procedure
   .use(enforceContentType)
   .use(cacheInvalidationMiddleware);
 
-export const judgeProcedure = t.procedure
-  .use(requiresDb)
-  .use(isAuthed)
-  .use(sanitizeInputs)
-  .use(enforceContentType)
-  .use(cacheInvalidationMiddleware);
-
-export const adminProcedure = t.procedure
-  .use(requiresDb)
-  .use(isAuthed)
-  .use(sanitizeInputs)
-  .use(enforceContentType)
-  .use(cacheInvalidationMiddleware);
+/*
+ * There is deliberately no `adminProcedure` or `judgeProcedure` here.
+ *
+ * Both used to exist and were byte-for-byte identical to `protectedProcedure` —
+ * no role check of any kind. Writing `adminProcedure.mutation(...)`, which is
+ * the obvious thing to reach for, shipped an admin endpoint open to every
+ * signed-in user, and it typechecked, linted and built cleanly. Neither had a
+ * single caller, so the names existed only to be misused.
+ *
+ * The real gates live in middleware/procedures.ts: `isAdmin` (full staff),
+ * `isSuperAdmin`, `isScanner` (volunteers included) and `isJudge`. Use those.
+ */

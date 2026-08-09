@@ -28,6 +28,35 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
     : null;
   const deadlinePassed = !!regDeadline && regDeadline < new Date();
 
+  const registrationOpen =
+    hackathon?.status === "open" || hackathon?.status === "in_progress";
+
+  /**
+   * The interest list exists for one moment — this one — and nothing used to
+   * send it, so the people who asked to be told found out from somewhere else
+   * or not at all. Offered rather than automatic: the send is thousands of
+   * messages through a consumer Gmail account, and an organiser should choose
+   * when it starts.
+   */
+  const interestStatus = trpc.hackathon.registrationOpenEmailStatus.useQuery(
+    { hackathonId },
+    { enabled: registrationOpen },
+  );
+
+  const [notifyError, setNotifyError] = React.useState<string | null>(null);
+
+  const notifyInterest = trpc.hackathon.notifyRegistrationOpen.useMutation({
+    onSuccess: (result) => {
+      setNotifyError(
+        result.failed.length > 0
+          ? `${result.failed.length} address(es) were rejected by the mail provider: ${result.failed.slice(0, 5).join(", ")}`
+          : null,
+      );
+      interestStatus.refetch();
+    },
+    onError: (error) => setNotifyError(error.message),
+  });
+
   return (
     <LiquidGlass className="p-6 border-[var(--border-subtle)] relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
@@ -119,6 +148,50 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
           </div>
         </div>
       </div>
+
+      {registrationOpen && (interestStatus.data?.total ?? 0) > 0 && (
+        <div className="mt-6 pt-6 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-mono text-[var(--text-primary)] uppercase tracking-wider">
+              Interest list
+            </p>
+            <p className="text-[11px] font-mono text-[var(--text-subtle)] mt-1">
+              {interestStatus.data?.pending ?? 0} waiting to be told ·{" "}
+              {interestStatus.data?.sent ?? 0} already emailed
+              {(interestStatus.data?.pending ?? 0) > 500
+                ? " · sends 500 at a time, press again to continue"
+                : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setNotifyError(null);
+              notifyInterest.mutate({ hackathonId });
+            }}
+            disabled={
+              notifyInterest.isPending ||
+              (interestStatus.data?.pending ?? 0) === 0
+            }
+            className="px-4 py-2.5 bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-wider rounded-none hover:bg-accent/20 transition-colors disabled:opacity-40"
+          >
+            {notifyInterest.isPending
+              ? "Sending…"
+              : (interestStatus.data?.pending ?? 0) === 0
+                ? "Everyone notified"
+                : `Email ${interestStatus.data?.pending} interested`}
+          </button>
+        </div>
+      )}
+
+      {notifyError && (
+        <p
+          role="alert"
+          className="mt-4 text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 px-3 py-2"
+        >
+          {notifyError}
+        </p>
+      )}
     </LiquidGlass>
   );
 }

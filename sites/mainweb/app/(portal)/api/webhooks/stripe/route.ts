@@ -14,6 +14,20 @@ import {
 } from "@query/api";
 
 
+/**
+ * An identifier that is safe to put in a log line.
+ *
+ * Stripe ids are `[A-Za-z0-9_]`, but the mock branch below parses the request
+ * body without verifying a signature, so in development these values are
+ * whatever the caller sent. Anything else would let a newline forge log entries
+ * (log injection) — and interpolating it into the message argument would let a
+ * `%s` be read as a format directive. Both were flagged by CodeQL.
+ */
+const safeLogId = (value: unknown) =>
+  String(value ?? "")
+    .replace(/[^\w-]/g, "")
+    .slice(0, 64);
+
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -151,8 +165,11 @@ export async function POST(req: NextRequest) {
                 bootcampMember: session.metadata?.bootcamp === "true",
               });
             } catch (e) {
+              // This id is ours (a database row), not request-derived, but it
+              // goes through the same path so the log format stays uniform.
               console.error(
-                `[Stripe webhook] Payment ${existingPayment.id} marked paid, membership grant failed:`,
+                "[Stripe webhook] payment marked paid, membership grant failed",
+                safeLogId(existingPayment.id),
                 e,
               );
             }
@@ -226,8 +243,15 @@ export async function POST(req: NextRequest) {
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {
+          // The id is passed as an argument, never interpolated into the
+          // message, and stripped to the characters a Stripe id can contain.
+          // In the mock branch the body is parsed without verifying a
+          // signature, so this value is not always Stripe's — a newline in it
+          // would forge log entries, and a `%s` would be read as a format
+          // directive. Flagged by CodeQL as both.
           console.error(
-            `[Stripe webhook] Payment ${session.id} recorded, membership grant failed:`,
+            "[Stripe webhook] membership grant failed for checkout session",
+            safeLogId(session.id),
             e,
           );
         }
@@ -334,8 +358,10 @@ export async function POST(req: NextRequest) {
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {
+          // Same reasoning as the checkout-session branch above.
           console.error(
-            `[Stripe webhook] Payment pi_${pi.id} recorded, membership grant failed:`,
+            "[Stripe webhook] membership grant failed for payment intent",
+            safeLogId(pi.id),
             e,
           );
         }
