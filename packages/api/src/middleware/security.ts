@@ -1,12 +1,23 @@
-import { TRPCError } from "@trpc/server";
-import sanitizeHtml from "sanitize-html";
 
 interface RateLimitRecord {
   tokens: number;
   lastRefill: number;
   violations: number;
   blockedUntil: number;
+  /**
+   * When this caller last exceeded their bucket.
+   *
+   * Separate from lastRefill because that is stamped on every request, so a
+   * decay measured against it can only fire for somebody who has stopped
+   * making requests entirely. Backoff is exponential in `violations`, so
+   * without a decay that actually fires, one bad afternoon escalates a
+   * legitimate user to five-minute blocks for the rest of the event.
+   */
+  lastViolation: number;
 }
+
+/** How long a caller must behave for one violation to be forgiven. */
+const VIOLATION_DECAY_MS = 10 * 60 * 1000;
 
 const MAX_RATE_LIMIT_STORE_SIZE = 10000; // Limit rate limit store size to prevent memory bloat
 const MAX_IP_TRACKING_STORE_SIZE = 50000; // Limit IP tracking store size
@@ -39,11 +50,32 @@ const TRUSTED_PROXY_HOPS = Number(process.env.TRUSTED_PROXY_HOPS ?? 1);
  * pin a bucket to a victim's address to have that victim blocked. Only the
  * entries our own proxies appended can be trusted, and those are at the end.
  */
+/**
+ * Logged once per process, so the hop count can be checked against reality
+ * instead of assumed.
+ *
+ * Getting TRUSTED_PROXY_HOPS wrong is silent in both directions and expensive
+ * both ways: too few and a CDN address becomes everyone's bucket, so one
+ * limit covers the entire internet; too many and the value is caller-supplied,
+ * letting somebody pick their own bucket or pin a block onto a victim. One
+ * line at startup is enough to confirm which shape the deployment actually
+ * has, and costs nothing per request.
+ */
+let loggedForwardedForShape = false;
+
 export const resolveClientIp = (forwardedFor: string | null | undefined) => {
   const parts = (forwardedFor ?? "")
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
+
+  if (!loggedForwardedForShape && parts.length > 0) {
+    loggedForwardedForShape = true;
+    // eslint-disable-next-line no-console
+    console.log(
+      `[Security] x-forwarded-for has ${parts.length} entr${parts.length === 1 ? "y" : "ies"}; TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS} selects index ${Math.max(0, parts.length - 1 - TRUSTED_PROXY_HOPS)}. Expect hops = entries - 1.`,
+    );
+  }
 
   if (parts.length === 0) return "unknown";
 
@@ -83,9 +115,17 @@ const evictOldest = <V>(
 const enforceSizeLimit = () => {
   const now = Date.now();
 
-  // Expired records first, so eviction usually has nothing left to do.
+  // Idle records first, so eviction usually has nothing left to do.
+  //
+  // Both halves of this condition matter. A healthy record carries
+  // `blockedUntil: 0`, so testing that alone deleted EVERY bucket on every
+  // tick — the whole token-bucket store was erased once a minute and each
+  // caller got a fresh full bucket back regardless of how they had behaved,
+  // which quietly made the limiter little more than a per-minute burst cap.
   for (const [key, value] of rateLimitStore.entries()) {
-    if (now > value.blockedUntil) {
+    const idle = now - value.lastRefill > 30 * 60 * 1000;
+    const blockElapsed = now > value.blockedUntil;
+    if (idle && blockElapsed) {
       rateLimitStore.delete(key);
     }
   }
@@ -154,6 +194,7 @@ export function rateLimit(
       lastRefill: now,
       violations: 0,
       blockedUntil: 0,
+      lastViolation: 0,
     };
     rateLimitStore.set(identifier, record);
   }
@@ -170,8 +211,23 @@ export function rateLimit(
   record.tokens = Math.min(maxTokens, record.tokens + refill);
   record.lastRefill = now;
 
+  // Decay one step per clear period since the last violation, so somebody who
+  // tripped the limit once and then behaved normally returns to a clean slate
+  // instead of carrying an escalating backoff for the rest of the weekend.
+  // Applied before the check below so a caller who has waited out their
+  // penalty is not immediately re-escalated from the old count.
+  if (record.violations > 0 && record.lastViolation > 0) {
+    const clearPeriods = Math.floor(
+      (now - record.lastViolation) / VIOLATION_DECAY_MS,
+    );
+    if (clearPeriods > 0) {
+      record.violations = Math.max(0, record.violations - clearPeriods);
+    }
+  }
+
   if (record.tokens < tokensToConsume) {
     record.violations++;
+    record.lastViolation = now;
     const backoffSeconds = Math.min(Math.pow(2, record.violations - 1), 300);
     record.blockedUntil = now + backoffSeconds * 1000;
 
@@ -182,10 +238,6 @@ export function rateLimit(
   }
 
   record.tokens -= tokensToConsume;
-
-  if (record.violations > 0 && elapsed > 600) {
-    record.violations = Math.max(0, record.violations - 1);
-  }
 
   return { allowed: true };
 }
@@ -217,135 +269,22 @@ export const RATE_LIMITS = {
   },
 } as const;
 
-const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: [],
-  allowedAttributes: {},
-  disallowedTagsMode: "discard",
-  nonTextTags: ["style", "script", "textarea", "noscript", "option", "xmp"],
-};
+/*
+ * `sanitizeInput` and its injection-pattern list used to live here.
+ *
+ * It was a second sanitizer with different semantics from the one the request
+ * path runs (`scrubMarkup` in trpc.ts): it STRIPPED markup rather than refusing
+ * it, truncated every string at 10,000 characters, and rejected any prose
+ * containing SQL keywords — "select a track from the list" among them. Nothing
+ * called it; only the tests did, so the suite was describing behaviour the
+ * product did not have. Sanitization has one implementation now.
+ */
 
-export function sanitizeInput(input: unknown, depth: number = 0): unknown {
-  if (depth > 10) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Input too deeply nested",
-    });
-  }
-
-  if (input === null || input === undefined) {
-    return input;
-  }
-
-  if (typeof input === "string") {
-    const sanitized = sanitizeHtml(input, SANITIZE_OPTIONS)
-      .trim()
-      .slice(0, 10000);
-
-    if (hasInjectionPattern(sanitized)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Invalid input",
-      });
-    }
-
-    return sanitized;
-  }
-
-  if (typeof input === "number") {
-    if (!Number.isFinite(input)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Invalid number",
-      });
-    }
-    return input;
-  }
-
-  if (typeof input === "boolean") {
-    return input;
-  }
-
-  if (Array.isArray(input)) {
-    if (input.length > 500) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Array too large",
-      });
-    }
-    return input.map((item) => sanitizeInput(item, depth + 1));
-  }
-
-  if (typeof input === "object") {
-    const keys = Object.keys(input as object);
-    if (keys.length > 50) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Object too complex",
-      });
-    }
-
-    const sanitized: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(input as object)) {
-      if (key === "__proto__" || key === "constructor" || key === "prototype") {
-        continue;
-      }
-      if (!/^[\w.-]{1,100}$/.test(key)) {
-        continue;
-      }
-      sanitized[key] = sanitizeInput(value, depth + 1);
-    }
-    return sanitized;
-  }
-
-  throw new TRPCError({
-    code: "BAD_REQUEST",
-    message: "Invalid input type",
-  });
-}
-
-function hasInjectionPattern(str: string): boolean {
-  const patterns = [
-    // SQL SELECT/INSERT/UPDATE/DELETE keywords with FROM/INTO/TABLE/DATABASE
-    /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b.*\b(from|into|table|database)\b)/i,
-    // SQL comment sequences: "--" must be followed by space or end-of-string (not in URLs like some--repo)
-    /(--\s|--$)/,
-    // Block comment: /* only when followed by * content
-    /\/\*[\s\S]*?\*\//,
-    // NoSQL injection
-    /\$where/i,
-    /\$gt|\$lt|\$ne|\$eq/i,
-    // XSS
-    /<script/i,
-    /javascript:/i,
-    /on\w+\s*=/i,
-  ];
-
-  return patterns.some((pattern) => pattern.test(str));
-}
-
-export function validateEmail(email: string): boolean {
-  if (typeof email !== "string") return false;
-  const emailRegex =
-    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-  return emailRegex.test(email) && email.length <= 254;
-}
-
-export function validateUrl(url: string): boolean {
-  if (typeof url !== "string") return false;
-  try {
-    const parsed = new URL(url);
-    return ["http:", "https:"].includes(parsed.protocol) && url.length <= 2048;
-  } catch {
-    return false;
-  }
-}
-
-export function validateUUID(uuid: string): boolean {
-  if (typeof uuid !== "string") return false;
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
+/*
+ * `validateEmail`, `validateUrl` and `validateUUID` used to live here with no
+ * callers: every input is validated by its procedure's zod schema, which is
+ * where the error can name the field.
+ */
 
 export type SecurityEvent = {
   type:
@@ -358,8 +297,6 @@ export type SecurityEvent = {
   timestamp: number;
 };
 
-const securityLog: SecurityEvent[] = [];
-const MAX_LOG_SIZE = 1000;
 
 import { db, auditLogs } from "@query/db";
 
@@ -382,19 +319,15 @@ async function flushLogs() {
     // DB unavailable — re-queue events (up to the cap) so they are not silently dropped
     const requeue = batch.slice(0, MAX_QUEUE_SIZE - flushQueue.length);
     flushQueue.unshift(...requeue);
-    // DB unavailable log dropping error handled via fallback file logging
-    try {
-      const fs = await import("fs");
-      const errorLog = `[${new Date().toISOString()}] [Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.\n`;
-      fs.appendFile(
-        "packages/api/src/.security-errors.log",
-        errorLog,
-        { encoding: "utf8" },
-        () => {},
-      );
-    } catch {
-      // Ignore fs errors
-    }
+    // stderr, not a file. This used to append to
+    // "packages/api/src/.security-errors.log" — a source path relative to the
+    // process working directory, which does not exist in the deployed
+    // container. The ENOENT went to a swallowed callback, so the one message
+    // saying security logging had stopped was itself silently dropped.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.`,
+    );
     return;
   }
 
@@ -440,6 +373,12 @@ async function flushLogs() {
     });
 
     await db.insert(auditLogs).values(values);
+
+    // The high-volume writer, so this is where retention most needs to be
+    // driven from. Rate-limit and injection events accumulate without any
+    // admin ever taking an action.
+    const { maybePruneAuditLogs } = await import("./audit");
+    maybePruneAuditLogs(db);
   } catch (err) {
     const errorMsg = `[Security] Error flushing ${batch.length} logs: ${String(err)}`;
     // Log flushing error handled via fallback file logging
@@ -451,21 +390,16 @@ async function flushLogs() {
       flushQueue.unshift(...requeue);
     }
     const dropped = batch.length - requeue.length;
-    if (dropped > 0) {
-      // Queue capacity drop handled via fallback file logging
-    }
 
-    try {
-      const fs = await import("fs");
-      const errorLog = new Date().toISOString() + "\n" + errorMsg + "\n";
-      fs.appendFile(
-        "packages/api/src/.security-errors.log",
-        errorLog,
-        { encoding: "utf8" },
-        () => {},
+    // Same reasoning as above: the container collects stderr, not a file under
+    // the source tree.
+    // eslint-disable-next-line no-console
+    console.error(errorMsg);
+    if (dropped > 0) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[Security] Dropped ${dropped} security log(s): the retry queue is full.`,
       );
-    } catch {
-      // Ignore fs errors
     }
   }
 }
@@ -496,12 +430,6 @@ export function logSecurityEvent(event: Omit<SecurityEvent, "timestamp">) {
     }
   }
 
-  // Keep in-memory for immediate/short-term checks
-  securityLog.push({ ...event, timestamp: now });
-  if (securityLog.length > MAX_LOG_SIZE) {
-    securityLog.shift();
-  }
-
   // Queue for DB persistence — respect the cap
   if (flushQueue.length < MAX_QUEUE_SIZE) {
     flushQueue.push(event);
@@ -518,10 +446,11 @@ export function logSecurityEvent(event: Omit<SecurityEvent, "timestamp">) {
   }
 }
 
-export function getRecentSecurityEvents(minutes: number = 60): SecurityEvent[] {
-  const cutoff = Date.now() - minutes * 60 * 1000;
-  return securityLog.filter((e) => e.timestamp > cutoff);
-}
+/*
+ * `getRecentSecurityEvents` used to read the in-memory ring below. Nothing
+ * called it, and the ring lives in one instance of up to ten — the durable
+ * record is the audit_log table, which /admin/audit now reads.
+ */
 
 /**
  * Coarse per-caller flood protection.
@@ -630,22 +559,6 @@ export function validateRequestSize(
   }
 }
 
-export function getDdosStats(): {
-  totalTrackedIPs: number;
-  blockedIPs: number;
-  suspiciousIPs: number;
-} {
-  let blockedCount = 0;
-  let suspiciousCount = 0;
-
-  for (const record of ipTrackingStore.values()) {
-    if (record.isBlocked) blockedCount++;
-    if (record.suspiciousActivity > 0) suspiciousCount++;
-  }
-
-  return {
-    totalTrackedIPs: ipTrackingStore.size,
-    blockedIPs: blockedCount,
-    suspiciousIPs: suspiciousCount,
-  };
-}
+/*
+ * `getDdosStats` used to expose per-instance counters that nothing read.
+ */
