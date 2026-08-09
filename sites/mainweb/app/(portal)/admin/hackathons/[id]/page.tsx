@@ -13,7 +13,8 @@ import { AnalyticsTab } from "@/components/admin/hackathons/AnalyticsTab";
 import { EventsTab } from "@/components/admin/hackathons/EventsTab";
 import { JudgesTab } from "@/components/admin/hackathons/JudgesTab";
 import { AnnouncementsTab } from "@/components/admin/hackathons/AnnouncementsTab";
-import { Gavel, Megaphone } from "lucide-react";
+import { TableCards } from "@/components/admin/hackathons/TableCards";
+import { Gavel, Megaphone, QrCode } from "lucide-react";
 
 type Tab =
   | "events"
@@ -21,7 +22,8 @@ type Tab =
   | "attendees"
   | "analytics"
   | "judges"
-  | "announcements";
+  | "announcements"
+  | "tables";
 
 export default function AdminHackathonDashboard() {
   const { status } = useSession();
@@ -59,6 +61,11 @@ export default function AdminHackathonDashboard() {
       icon: <IconChart className="w-5 h-5" />,
     },
     { id: "judges", label: "Judges", icon: <Gavel className="w-5 h-5" /> },
+    {
+      id: "tables",
+      label: "Table Cards",
+      icon: <QrCode className="w-5 h-5" />,
+    },
     {
       id: "announcements",
       label: "Email",
@@ -189,6 +196,7 @@ export default function AdminHackathonDashboard() {
             <AnalyticsTab hackathonId={hackathon.id} />
           )}
           {activeTab === "judges" && <JudgesTab hackathonId={hackathon.id} />}
+          {activeTab === "tables" && <TableCards hackathonId={hackathon.id} />}
           {activeTab === "announcements" && (
             <AnnouncementsTab hackathonId={hackathon.id} />
           )}
@@ -196,7 +204,11 @@ export default function AdminHackathonDashboard() {
       </main>
 
       {/* MOBILE BOTTOM NAVIGATION - Enhanced */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-[var(--border-subtle)] z-40 grid grid-cols-5 pb-safe">
+      {/* Scrolls horizontally rather than a fixed 5-column grid: there are
+          seven tabs, so Table Cards and Email were laid out off the right edge
+          of the phone an organiser actually carries — unreachable, with nothing
+          to suggest they existed. */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Top gradient overlay */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
@@ -204,7 +216,7 @@ export default function AdminHackathonDashboard() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`group relative flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
+            className={`group relative shrink-0 basis-1/5 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
               activeTab === tab.id ? "text-accent" : "text-text-muted"
             }`}
           >
