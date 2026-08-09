@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import { hackathonInterest, hackathons, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import {
@@ -34,15 +45,33 @@ const interestInput = z.object({
 const blankToNull = (value: string | undefined) =>
   value && value.length > 0 ? value : null;
 
+/** Recipients per request — one SMTP round trip each, and a request carrying
+ *  more than this does not finish inside Cloud Run's timeout. Matches
+ *  announce.ts. */
+const MAX_RECIPIENTS_PER_CALL = 500;
+
+/** Same reasoning as announce.ts: a claim this old belonged to a batch that
+ *  died, and must be reclaimable or the send can never finish. */
+const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
+
 /**
- * The edition the landing page is about: announced, not yet open. Soonest
- * first, so announcing the year after next does not displace the one being
- * promoted now.
+ * The edition the landing page is about.
+ *
+ * `open` and `in_progress` belong here, not just `announced`: /hacklytics is
+ * the only public entrance — the 2027 site's single CTA and the navbar both
+ * land on it — and filtering to `announced` alone meant that the moment an
+ * organiser opened registration, the one page telling the world about the
+ * hackathon said "Nothing announced yet".
+ *
+ * Soonest first, so announcing the year after next does not displace the one
+ * being promoted now.
  */
+const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "in_progress"] as const;
+
 async function findAnnounced(db: DrizzleDB) {
   return db.query.hackathons.findFirst({
     where: and(
-      eq(hackathons.status, "announced"),
+      inArray(hackathons.status, [...PUBLIC_FUNNEL_STATUSES]),
       eq(hackathons.isPublic, true),
     ),
     orderBy: asc(hackathons.startDate),
@@ -70,6 +99,12 @@ export const hackathonInterestRouter = createTRPCRouter({
       endDate: upcoming.endDate,
       theme: upcoming.theme,
       websiteUrl: upcoming.websiteUrl,
+      // The page shows an interest form or a register CTA off this: the two
+      // states are the same edition at different moments, not different pages.
+      status: upcoming.status,
+      registrationOpen:
+        upcoming.status === "open" || upcoming.status === "in_progress",
+      registrationDeadline: upcoming.registrationDeadline,
     };
   }),
 
@@ -155,6 +190,202 @@ export const hackathonInterestRouter = createTRPCRouter({
           ),
         );
       return { onList: false };
+    }),
+
+  /**
+   * How many people are waiting to be told registration opened, and how many
+   * already were — so the admin screen can offer the send, and say what it
+   * would do, before anything leaves.
+   */
+  registrationOpenEmailStatus: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const [counts] = await db
+        .select({
+          total: sql<number>`count(*)::int`,
+          sent: sql<number>`count(${hackathonInterest.registrationOpenEmailSentAt})::int`,
+          failed: sql<number>`count(${hackathonInterest.registrationOpenEmailFailedAt})::int`,
+        })
+        .from(hackathonInterest)
+        .innerJoin(users, eq(users.id, hackathonInterest.userId))
+        .where(
+          and(
+            eq(hackathonInterest.hackathonId, input.hackathonId),
+            isNotNull(users.email),
+          ),
+        );
+
+      const total = counts?.total ?? 0;
+      const sent = counts?.sent ?? 0;
+      const failed = counts?.failed ?? 0;
+      return { total, sent, failed, pending: total - sent - failed };
+    }),
+
+  /**
+   * Tells the interest list that registration opened.
+   *
+   * The list exists for this one moment and nothing sent it — organisers had to
+   * hand-compose an announcement, and the runbook said so. Marked per recipient
+   * before the next one is attempted, so a closed tab, a timeout or an
+   * impatient second click resumes rather than mailing anyone twice.
+   */
+  notifyRegistrationOpen: isAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        /** Where the CTA points. Defaults to the public funnel page. */
+        registerUrl: z.string().url().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const hackathon = await db.query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: { id: true, name: true, status: true },
+      });
+
+      if (!hackathon) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+
+      // Telling the list to go and register while registration is shut is the
+      // one failure this message cannot recover from — everyone who acts on it
+      // lands on a closed page.
+      if (hackathon.status !== "open" && hackathon.status !== "in_progress") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Registration is not open for this hackathon yet, so there is nothing to announce.",
+        });
+      }
+
+      /**
+       * Claim before sending, exactly as announce.ts does.
+       *
+       * Reading the pending rows and marking them afterwards left a window in
+       * which two overlapping requests both selected the same people and both
+       * mailed them. The claim is one atomic UPDATE, so only one request wins
+       * each row; a claim older than CLAIM_TIMEOUT_MS is reclaimable so a
+       * request that died mid-batch does not strand its recipients.
+       */
+      const claimCutoff = new Date(Date.now() - CLAIM_TIMEOUT_MS);
+
+      const claimable = db
+        .select({ id: hackathonInterest.id })
+        .from(hackathonInterest)
+        .innerJoin(users, eq(users.id, hackathonInterest.userId))
+        .where(
+          and(
+            eq(hackathonInterest.hackathonId, input.hackathonId),
+            isNull(hackathonInterest.registrationOpenEmailSentAt),
+            isNull(hackathonInterest.registrationOpenEmailFailedAt),
+            or(
+              isNull(hackathonInterest.registrationOpenEmailClaimedAt),
+              lt(hackathonInterest.registrationOpenEmailClaimedAt, claimCutoff),
+            ),
+            isNotNull(users.email),
+          ),
+        )
+        .orderBy(asc(hackathonInterest.id))
+        .limit(MAX_RECIPIENTS_PER_CALL);
+
+      const claimed = await db
+        .update(hackathonInterest)
+        .set({ registrationOpenEmailClaimedAt: new Date() })
+        .where(inArray(hackathonInterest.id, claimable))
+        .returning({
+          id: hackathonInterest.id,
+          userId: hackathonInterest.userId,
+        });
+
+      // The address is read from the users table so somebody who changed it
+      // still gets the mail; the claim above is keyed on the interest row.
+      const recipients = await db
+        .select({ id: hackathonInterest.id, email: users.email })
+        .from(hackathonInterest)
+        .innerJoin(users, eq(users.id, hackathonInterest.userId))
+        .where(
+          inArray(
+            hackathonInterest.id,
+            claimed.map((row) => row.id),
+          ),
+        );
+
+      const pending = claimed.length > 0 ? recipients : [];
+
+      const { sendRegistrationOpenEmail } = await import("@query/auth/email");
+
+      let sent = 0;
+      const failed: string[] = [];
+
+      for (const row of pending) {
+        if (!row.email) continue;
+        try {
+          await sendRegistrationOpenEmail({
+            email: row.email,
+            hackathonName: hackathon.name,
+            registerUrl: input.registerUrl,
+          });
+
+          // Stamped immediately after the send, not in a batch at the end: a
+          // crash half-way through otherwise re-mails everyone already reached.
+          await db
+            .update(hackathonInterest)
+            .set({ registrationOpenEmailSentAt: new Date() })
+            .where(eq(hackathonInterest.id, row.id));
+
+          sent++;
+        } catch (error) {
+          failed.push(row.email);
+          // Marked failed rather than left pending. Left pending, a permanently
+          // bad address is re-attempted on every batch and the send can never
+          // report itself finished.
+          await db
+            .update(hackathonInterest)
+            .set({ registrationOpenEmailFailedAt: new Date() })
+            .where(eq(hackathonInterest.id, row.id));
+          // Deliberate server-side operational logging: this is the only record
+          // of which address the provider rejected.
+          // eslint-disable-next-line no-console
+          console.error(
+            `[Email Service] Registration-open notice failed for ${row.email}:`,
+            error,
+          );
+        }
+      }
+
+      /**
+       * Counted, not inferred from the batch size.
+       *
+       * `pending.length < MAX` reported "done" while recipients that had just
+       * failed were still unsent — and with failures now marked, the only
+       * honest answer is what the table says is left.
+       */
+      const [remaining] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(hackathonInterest)
+        .innerJoin(users, eq(users.id, hackathonInterest.userId))
+        .where(
+          and(
+            eq(hackathonInterest.hackathonId, input.hackathonId),
+            isNull(hackathonInterest.registrationOpenEmailSentAt),
+            isNull(hackathonInterest.registrationOpenEmailFailedAt),
+            isNotNull(users.email),
+          ),
+        );
+
+      return {
+        sent,
+        failed,
+        remaining: remaining?.count ?? 0,
+        done: (remaining?.count ?? 0) === 0,
+      };
     }),
 
   /**
