@@ -41,6 +41,14 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showInterest, setShowInterest] = useState(false);
+
+  // The four questions the public form collects were shown to no organiser at
+  // all — the data was gathered and then only ever read as a recipient count.
+  const { data: interestRows } = trpc.hackathon.listInterest.useQuery(
+    { hackathonId },
+    { enabled: showInterest },
+  );
 
   const { data: counts } = trpc.hackathon.audienceCounts.useQuery({
     hackathonId,
@@ -353,6 +361,66 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
         )}
       </LiquidGlass>
 
+      <LiquidGlass className="p-6 border-[var(--border-subtle)]">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+              Who is on the interest list
+            </h2>
+            <p className="text-xs font-mono text-[var(--text-subtle)] mt-1">
+              School, country, graduation year and experience — the answers the
+              public form collects.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowInterest((open) => !open)}
+            className="px-4 py-2.5 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-wider rounded-none hover:bg-white/10 transition-colors"
+          >
+            {showInterest ? "Hide" : "Show"}
+          </button>
+        </div>
+
+        {showInterest && (
+          <div className="mt-4 overflow-x-auto">
+            {(interestRows?.length ?? 0) === 0 ? (
+              <p className="text-xs font-mono text-[var(--text-subtle)]">
+                Nobody has registered interest yet.
+              </p>
+            ) : (
+              <table className="w-full text-left text-[11px] font-mono">
+                <thead className="text-[var(--text-subtle)] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-2 pr-4">Name</th>
+                    <th className="py-2 pr-4">Email</th>
+                    <th className="py-2 pr-4">School</th>
+                    <th className="py-2 pr-4">Country</th>
+                    <th className="py-2 pr-4">Grad</th>
+                    <th className="py-2 pr-4">Experience</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[var(--text-muted)]">
+                  {interestRows?.map((row) => (
+                    <tr
+                      key={row.userId}
+                      className="border-t border-[var(--border-subtle)]"
+                    >
+                      <td className="py-2 pr-4 text-[var(--text-primary)]">
+                        {row.name ?? "—"}
+                      </td>
+                      <td className="py-2 pr-4">{row.email}</td>
+                      <td className="py-2 pr-4">{row.school ?? "—"}</td>
+                      <td className="py-2 pr-4">{row.country ?? "—"}</td>
+                      <td className="py-2 pr-4">{row.graduationYear ?? "—"}</td>
+                      <td className="py-2 pr-4">{row.experience ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </LiquidGlass>
     </div>
   );
 }
