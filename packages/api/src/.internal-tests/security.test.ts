@@ -1,10 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import {
-  sanitizeInput,
   validateRequestSize,
   rateLimit,
   ddosProtection,
 } from "../middleware/security";
+// The sanitizer the request path actually runs. These tests used to target
+// `sanitizeInput` in middleware/security.ts — a second implementation with
+// different semantics (it stripped markup rather than refusing it) and no
+// caller anywhere, so the suite described behaviour the product did not have.
+import { scrubMarkup } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 vi.mock("@query/db", () => ({
@@ -13,180 +17,147 @@ vi.mock("@query/db", () => ({
 }));
 
 describe("Security and Protection Verification Suite", () => {
-  describe("1. Input Sanitization - XSS Vulnerability Protections", () => {
-    it("should drop script tags completely", () => {
-      const result = sanitizeInput('<script>alert("xss")</script>hello');
-      expect(result).toBe("hello");
-    });
-
-    it("should sanitize image tag onerror events", () => {
-      try {
-        const result = sanitizeInput(
-          '<img src="invalid.jpg" onerror="alert(1)">',
-        );
-        expect(result).not.toContain("onerror");
-      } catch (err) {
-        expect(err).toBeInstanceOf(TRPCError);
-      }
-    });
-
-    it("should sanitize svg onload actions", () => {
-      try {
-        const result = sanitizeInput('<svg onload="javascript:alert(1)">');
-        expect(result).not.toContain("onload");
-        expect(result).not.toContain("javascript");
-      } catch (err) {
-        expect(err).toBeInstanceOf(TRPCError);
-      }
-    });
-
-    it("should block explicit javascript protocol references", () => {
-      const payload = 'javascript:alert("hacked")';
-      expect(() => sanitizeInput(payload)).toThrowError(TRPCError);
-    });
-
-    it("should clean nested script evasion attempts", () => {
-      const result = sanitizeInput('<<SCRIPT>alert("xss");//</SCRIPT>');
-      expect(result).not.toContain("<script");
-      expect(result).not.toContain("SCRIPT");
-    });
-
-    it("should handle benign inputs with brackets safely", () => {
-      const result = sanitizeInput(
-        "This is a text with < than and > than symbols.",
-      );
-      expect(result).toBe(
-        "This is a text with &lt; than and &gt; than symbols.",
+  /**
+   * Dangerous markup is REJECTED, never rewritten: rewriting silently changes
+   * what somebody wrote, and an HTML parser over prose eats "loss<threshold"
+   * and everything after it. The bar is "could this execute somewhere", so
+   * ordinary maths and `vector<int>` have to survive untouched.
+   */
+  describe("1. Input sanitization — executable markup", () => {
+    it("refuses script tags rather than quietly removing them", () => {
+      expect(() => scrubMarkup('<script>alert("xss")</script>hello')).toThrow(
+        TRPCError,
       );
     });
-  });
 
-  describe("2. Input Sanitization - SQL Injection Protections", () => {
-    it("should block classic union select injections", () => {
-      const payload = "1 UNION SELECT username, password FROM users";
-      expect(() => sanitizeInput(payload)).toThrowError(TRPCError);
+    it("refuses a tag carrying an event handler", () => {
+      expect(() =>
+        scrubMarkup('<img src="invalid.jpg" onerror="alert(1)">'),
+      ).toThrow(TRPCError);
+      expect(() => scrubMarkup('<svg onload="alert(1)">')).toThrow(TRPCError);
     });
 
-    it("should block SQL query stacking comments", () => {
-      const payload = "DROP TABLE hackathons; -- ";
-      expect(() => sanitizeInput(payload)).toThrowError(TRPCError);
+    it("refuses a javascript: URI even as plain text", () => {
+      // Whoever renders this into an href gets an executable link.
+      expect(() => scrubMarkup('javascript:alert("hacked")')).toThrow(
+        TRPCError,
+      );
     });
 
-    it("should block block-comment SQL injection style", () => {
-      const payload = "SELECT * FROM events /* check comments */ WHERE id = 1";
-      expect(() => sanitizeInput(payload)).toThrowError(TRPCError);
+    it("refuses nested-tag evasion attempts", () => {
+      expect(() => scrubMarkup('<<SCRIPT>alert("xss");//</SCRIPT>')).toThrow(
+        TRPCError,
+      );
     });
 
-    it("should block case-insensitive SQL keywords combinations", () => {
-      const payload = "uNiOn SeLeCt secret FROM credentials";
-      expect(() => sanitizeInput(payload)).toThrowError(TRPCError);
-    });
-  });
-
-  describe("3. Input Sanitization - NoSQL Query Injection Protections", () => {
-    it("should filter out the where MongoDB operator", () => {
-      const payload = { $where: 'this.role == "admin"' };
-      const result = sanitizeInput(payload) as Record<string, any>;
-      expect(result.$where).toBeUndefined();
-    });
-
-    it("should filter out gt and lt MongoDB operators", () => {
-      const payload = { $gt: "0", $lt: "100", validKey: "data" };
-      const result = sanitizeInput(payload) as Record<string, any>;
-      expect(result.$gt).toBeUndefined();
-      expect(result.$lt).toBeUndefined();
-      expect(result.validKey).toBe("data");
+    /**
+     * The case that makes rejection the right design: a hackathon is full of
+     * people writing comparisons and generics, and none of it may be mangled
+     * or bounced.
+     */
+    it("passes ordinary prose and code through byte for byte", () => {
+      const prose =
+        "picks the class where loss<threshold, then retrains vector<int> a<b";
+      expect(scrubMarkup(prose)).toBe(prose);
+      expect(scrubMarkup("onboarding = great")).toBe("onboarding = great");
     });
 
-    it("should filter out ne and eq MongoDB operators", () => {
-      const payload = { $ne: "admin", $eq: "user", username: "guest" };
-      const result = sanitizeInput(payload) as Record<string, any>;
-      expect(result.$ne).toBeUndefined();
-      expect(result.$eq).toBeUndefined();
-      expect(result.username).toBe("guest");
+    /**
+     * SQL is NOT guessed at. Parameterised queries already make it a non-issue,
+     * and pattern-matching prose for keywords rejects "select a track from the
+     * list" — a sentence somebody will genuinely write in a submission.
+     */
+    it("does not reject prose that happens to read like SQL", () => {
+      const text = "select a track from the list, then update your project";
+      expect(scrubMarkup(text)).toBe(text);
     });
   });
 
-  describe("4. Input Sanitization - Prototype Pollution Protections", () => {
-    it("should drop proto key assignments", () => {
+  describe("2. Input sanitization — object shape", () => {
+    it("drops prototype-polluting keys", () => {
       const payload = JSON.parse(
-        '{"__proto__": {"maliciousProperty": "injected"}}',
+        '{"__proto__": {"maliciousProperty": "injected"}, "name": "ok"}',
       );
-      const result = sanitizeInput(payload) as Record<string, any>;
+      const result = scrubMarkup(payload) as Record<string, unknown>;
       expect(Object.prototype.hasOwnProperty.call(result, "__proto__")).toBe(
         false,
       );
-      expect(({} as any).maliciousProperty).toBeUndefined();
+      expect((({}) as Record<string, unknown>).maliciousProperty).toBeUndefined();
+      expect(result.name).toBe("ok");
     });
 
-    it("should drop constructor key assignments", () => {
-      const payload = JSON.parse(
+    it("drops constructor and prototype keys", () => {
+      const withConstructor = JSON.parse(
         '{"constructor": {"prototype": {"polluted": "yes"}}}',
       );
-      const result = sanitizeInput(payload) as Record<string, any>;
-      expect(Object.prototype.hasOwnProperty.call(result, "constructor")).toBe(
-        false,
-      );
-      expect(({} as any).polluted).toBeUndefined();
-    });
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          scrubMarkup(withConstructor) as object,
+          "constructor",
+        ),
+      ).toBe(false);
 
-    it("should drop prototype key assignments", () => {
-      const payload = { prototype: { admin: true }, username: "normal" };
-      const result = sanitizeInput(payload) as Record<string, any>;
+      const result = scrubMarkup({
+        prototype: { admin: true },
+        username: "normal",
+      }) as Record<string, unknown>;
       expect(Object.prototype.hasOwnProperty.call(result, "prototype")).toBe(
         false,
       );
       expect(result.username).toBe("normal");
     });
+
+    it("drops keys that are not plain identifiers", () => {
+      // $where and friends never reach a query builder here, but a key shaped
+      // like that has no business in a payload either.
+      const result = scrubMarkup({
+        $where: 'this.role == "admin"',
+        validKey: "data",
+      }) as Record<string, unknown>;
+      expect(result.$where).toBeUndefined();
+      expect(result.validKey).toBe("data");
+    });
   });
 
-  describe("5. Input Sanitization - Complexity & Deep Nesting Limits", () => {
-    const makeNestedObject = (depth: number): any => {
-      if (depth === 0) return "leaf";
-      return { node: makeNestedObject(depth - 1) };
-    };
+  describe("3. Input sanitization — complexity limits", () => {
+    const makeNestedObject = (depth: number): unknown =>
+      depth === 0 ? "leaf" : { node: makeNestedObject(depth - 1) };
 
-    it("should allow object nesting level equal to 9", () => {
-      const payload = makeNestedObject(9);
-      expect(sanitizeInput(payload)).toBeDefined();
-    });
-
-    it("should allow object nesting level equal to 10", () => {
-      const payload = makeNestedObject(10);
-      expect(sanitizeInput(payload)).toBeDefined();
-    });
-
-    it("should reject object nesting level equal to 11", () => {
-      const payload = makeNestedObject(11);
-      expect(() => sanitizeInput(payload)).toThrowError(
+    it("allows nesting up to ten levels and refuses eleven", () => {
+      expect(scrubMarkup(makeNestedObject(9))).toBeDefined();
+      expect(scrubMarkup(makeNestedObject(10))).toBeDefined();
+      expect(() => scrubMarkup(makeNestedObject(11))).toThrow(
         "Input too deeply nested",
       );
     });
 
-    it("should allow objects with exactly 50 keys", () => {
-      const payload: Record<string, number> = {};
-      for (let i = 0; i < 50; i++) {
-        payload[`key_${i}`] = i;
-      }
-      expect(sanitizeInput(payload)).toBeDefined();
+    it("allows fifty keys and refuses fifty-one", () => {
+      const fifty: Record<string, number> = {};
+      for (let i = 0; i < 50; i++) fifty[`key_${i}`] = i;
+      expect(scrubMarkup(fifty)).toBeDefined();
+
+      const fiftyOne: Record<string, number> = { ...fifty, key_50: 50 };
+      expect(() => scrubMarkup(fiftyOne)).toThrow("Object too complex");
     });
 
-    it("should reject objects with more than 50 keys", () => {
-      const payload: Record<string, number> = {};
-      for (let i = 0; i < 51; i++) {
-        payload[`key_${i}`] = i;
-      }
-      expect(() => sanitizeInput(payload)).toThrowError("Object too complex");
+    /**
+     * The array cap must stay at or above the largest `.max()` any schema
+     * declares. It sat at 500 while batchUpdateParticipantStatus allowed 2500,
+     * which made approving a 2000-person roster impossible in one call — and
+     * the error named neither the real limit nor the field.
+     */
+    it("allows 2500 array elements and refuses 2501", () => {
+      expect(scrubMarkup(new Array(2500).fill("valid"))).toBeDefined();
+      expect(() => scrubMarkup(new Array(2501).fill("invalid"))).toThrow(
+        "Array too large",
+      );
     });
 
-    it("should allow arrays with exactly 500 elements", () => {
-      const payload = new Array(500).fill("valid");
-      expect(sanitizeInput(payload)).toBeDefined();
-    });
-
-    it("should reject arrays with more than 500 elements", () => {
-      const payload = new Array(501).fill("invalid");
-      expect(() => sanitizeInput(payload)).toThrowError("Array too large");
+    it("refuses a non-finite number", () => {
+      expect(() => scrubMarkup(Number.POSITIVE_INFINITY)).toThrow(
+        "Invalid number",
+      );
+      expect(() => scrubMarkup(Number.NaN)).toThrow("Invalid number");
     });
   });
 
@@ -256,6 +227,53 @@ describe("Security and Protection Verification Suite", () => {
       const v3 = rateLimit(user, 1, 0, 1);
       expect(v3.allowed).toBe(false);
       expect(v3.retryAfter).toBe(4); // 2^2 = 4s
+
+      vi.useRealTimers();
+    });
+
+    /**
+     * Backoff is exponential in the violation count, so without a decay that
+     * can actually fire, one bad afternoon escalates a legitimate attendee to
+     * five-minute blocks for the rest of the event.
+     *
+     * The old decay compared against lastRefill, which is stamped on every
+     * request — so it could only fire for somebody who had stopped making
+     * requests altogether, which is precisely who does not need forgiving.
+     */
+    it("forgives violations one clear period at a time", () => {
+      vi.useFakeTimers();
+      const user = "reformed-user";
+
+      // Trip it twice: the second violation costs 2s.
+      rateLimit(user, 1, 0, 1);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(1);
+      vi.advanceTimersByTime(1100);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(2);
+
+      // One clear period forgives one step: count 2 -> 1, so the next
+      // violation is priced at 2^1 rather than 2^2.
+      vi.advanceTimersByTime(11 * 60 * 1000);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(2);
+
+      // A second clear period clears the slate entirely.
+      vi.advanceTimersByTime(21 * 60 * 1000);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(1);
+
+      vi.useRealTimers();
+    });
+
+    // A caller who keeps hammering must not have their count decayed by the
+    // passage of time alone — the decay is measured from the last violation.
+    it("keeps escalating a caller who never stops violating", () => {
+      vi.useFakeTimers();
+      const user = "persistent-user";
+
+      rateLimit(user, 1, 0, 1);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(1);
+      vi.advanceTimersByTime(1100);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(2);
+      vi.advanceTimersByTime(2100);
+      expect(rateLimit(user, 1, 0, 1).retryAfter).toBe(4);
 
       vi.useRealTimers();
     });
