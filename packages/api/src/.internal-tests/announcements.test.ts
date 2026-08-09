@@ -237,18 +237,19 @@ describe("Announcements", () => {
       ctaUrl: null,
     };
 
-    it("marks every recipient as it sends, one write each", async () => {
+    /**
+     * The batch is CLAIMED with one atomic update before anything is sent —
+     * two overlapping requests would otherwise both select the same
+     * `sent_at IS NULL` rows and both mail them.
+     */
+    it("claims the batch, then marks every recipient as it sends", async () => {
       asAdmin((table) =>
         table === "hackathonAnnouncements" ? announcement : undefined,
       );
-      mockFindMany.mockImplementation((table: string) =>
-        table === "hackathonAnnouncementRecipients"
-          ? [
-              { id: "r1", email: "ada@example.com" },
-              { id: "r2", email: "grace@example.com" },
-            ]
-          : [],
-      );
+      mockUpdate.mockReturnValueOnce([
+        { id: "r1", email: "ada@example.com" },
+        { id: "r2", email: "grace@example.com" },
+      ]);
       mockSelectRows.mockReturnValue([{ count: 0 }]);
 
       const res = await callerFor(ADMIN).hackathon.sendBatch({
@@ -257,21 +258,18 @@ describe("Announcements", () => {
 
       expect(res).toMatchObject({ sent: 2, remaining: 0, done: true });
       expect(mockSendAnnouncement).toHaveBeenCalledTimes(2);
-      // Stamped per recipient rather than once at the end — that is the whole
-      // resume marker.
-      expect(mockUpdate).toHaveBeenCalledTimes(2);
-      expect(mockUpdate.mock.calls[0]![2][0]).toHaveProperty("sentAt");
+      // One claim, then one stamp per recipient — stamping once at the end
+      // would lose the resume marker for everyone already mailed.
+      expect(mockUpdate).toHaveBeenCalledTimes(3);
+      expect(mockUpdate.mock.calls[0]![2][0].claimedAt).toBeInstanceOf(Date);
+      expect(mockUpdate.mock.calls[1]![2][0].sentAt).toBeInstanceOf(Date);
     });
 
     it("reports itself unfinished while recipients remain", async () => {
       asAdmin((table) =>
         table === "hackathonAnnouncements" ? announcement : undefined,
       );
-      mockFindMany.mockImplementation((table: string) =>
-        table === "hackathonAnnouncementRecipients"
-          ? [{ id: "r1", email: "ada@example.com" }]
-          : [],
-      );
+      mockUpdate.mockReturnValueOnce([{ id: "r1", email: "ada@example.com" }]);
       mockSelectRows.mockReturnValue([{ count: 499 }]);
 
       const res = await callerFor(ADMIN).hackathon.sendBatch({
@@ -291,14 +289,10 @@ describe("Announcements", () => {
       asAdmin((table) =>
         table === "hackathonAnnouncements" ? announcement : undefined,
       );
-      mockFindMany.mockImplementation((table: string) =>
-        table === "hackathonAnnouncementRecipients"
-          ? [
-              { id: "r1", email: "bounces@example.com" },
-              { id: "r2", email: "grace@example.com" },
-            ]
-          : [],
-      );
+      mockUpdate.mockReturnValueOnce([
+        { id: "r1", email: "bounces@example.com" },
+        { id: "r2", email: "grace@example.com" },
+      ]);
       mockSelectRows.mockReturnValue([{ count: 0 }]);
       mockSendAnnouncement.mockRejectedValueOnce(new Error("550 rejected"));
 
@@ -308,7 +302,7 @@ describe("Announcements", () => {
 
       expect(res.sent).toBe(1);
       expect(res.failed).toEqual(["bounces@example.com"]);
-      const stamped = mockUpdate.mock.calls.map((c) => c[2][0]);
+      const stamped = mockUpdate.mock.calls.slice(1).map((c) => c[2][0]);
       expect(stamped.some((row) => "failedAt" in row)).toBe(true);
       expect(stamped.some((row) => "sentAt" in row)).toBe(true);
     });
@@ -318,7 +312,7 @@ describe("Announcements", () => {
       asAdmin((table) =>
         table === "hackathonAnnouncements" ? announcement : undefined,
       );
-      mockFindMany.mockReturnValue([]);
+      mockUpdate.mockReturnValue([]);
       mockSelectRows.mockReturnValue([{ count: 0 }]);
 
       const res = await callerFor(ADMIN).hackathon.sendBatch({

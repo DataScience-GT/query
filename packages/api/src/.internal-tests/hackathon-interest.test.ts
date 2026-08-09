@@ -214,12 +214,23 @@ describe("Hackathon interest list", () => {
      * The list exists for this one moment and nothing sent it — the runbook
      * told organisers to hand-compose an announcement instead.
      */
-    it("emails everyone pending and marks each one as it goes", async () => {
+    /**
+     * Claimed with one atomic update before anything is sent: two overlapping
+     * requests would otherwise both select the same pending rows and both mail
+     * them.
+     */
+    it("claims, emails everyone pending, and marks each one as it goes", async () => {
       lookups({ hackathon: announced({ status: "open" }), isAdmin: true });
-      mockSelectRows.mockReturnValue([
-        { id: "int_1", email: "ada@example.com" },
-        { id: "int_2", email: "grace@example.com" },
-      ]);
+      mockUpdate.mockReturnValueOnce([{ id: "int_1" }, { id: "int_2" }]);
+      mockSelectRows
+        // The claim's own subquery is built (and this mock's `limit` resolves
+        // eagerly) before the recipient lookup runs.
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce([
+          { id: "int_1", email: "ada@example.com" },
+          { id: "int_2", email: "grace@example.com" },
+        ])
+        .mockReturnValue([{ count: 0 }]);
 
       const res = await callerFor(ADMIN).hackathon.notifyRegistrationOpen({
         hackathonId: HACK,
@@ -227,12 +238,15 @@ describe("Hackathon interest list", () => {
 
       expect(res).toMatchObject({ sent: 2, done: true });
       expect(mockSendRegistrationOpen).toHaveBeenCalledTimes(2);
-      // The marker is what makes a closed tab safe to reopen: one write per
-      // recipient, not one at the end of the batch.
-      expect(mockUpdate).toHaveBeenCalledTimes(2);
-      expect(mockUpdate.mock.calls[0]![2][0]).toHaveProperty(
-        "registrationOpenEmailSentAt",
-      );
+      // One claim, then one marker per recipient — a marker written once at the
+      // end would leave a closed tab re-mailing everyone already reached.
+      expect(mockUpdate).toHaveBeenCalledTimes(3);
+      expect(
+        mockUpdate.mock.calls[0]![2][0].registrationOpenEmailClaimedAt,
+      ).toBeInstanceOf(Date);
+      expect(
+        mockUpdate.mock.calls[1]![2][0].registrationOpenEmailSentAt,
+      ).toBeInstanceOf(Date);
     });
 
     // Everyone who acts on the mail would land on a closed registration page.
@@ -249,12 +263,21 @@ describe("Hackathon interest list", () => {
 
     // A rejected address must not stop the rest of the batch, and must not be
     // marked as sent — otherwise it is silently never retried.
-    it("keeps going when one address is rejected", async () => {
+    /**
+     * A rejected address is marked failed rather than left pending: left
+     * pending it is retried on every batch and the send can never report
+     * itself finished.
+     */
+    it("keeps going when one address is rejected, and records the failure", async () => {
       lookups({ hackathon: announced({ status: "open" }), isAdmin: true });
-      mockSelectRows.mockReturnValue([
-        { id: "int_1", email: "bounces@example.com" },
-        { id: "int_2", email: "grace@example.com" },
-      ]);
+      mockUpdate.mockReturnValueOnce([{ id: "int_1" }, { id: "int_2" }]);
+      mockSelectRows
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce([
+          { id: "int_1", email: "bounces@example.com" },
+          { id: "int_2", email: "grace@example.com" },
+        ])
+        .mockReturnValue([{ count: 0 }]);
       mockSendRegistrationOpen.mockRejectedValueOnce(new Error("550 rejected"));
 
       const res = await callerFor(ADMIN).hackathon.notifyRegistrationOpen({
@@ -263,7 +286,13 @@ describe("Hackathon interest list", () => {
 
       expect(res.sent).toBe(1);
       expect(res.failed).toEqual(["bounces@example.com"]);
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
+      const written = mockUpdate.mock.calls.slice(1).map((c) => c[2][0]);
+      expect(
+        written.some((row) => "registrationOpenEmailFailedAt" in row),
+      ).toBe(true);
+      expect(written.some((row) => "registrationOpenEmailSentAt" in row)).toBe(
+        true,
+      );
     });
 
     it("is refused to a caller who is not an admin", async () => {

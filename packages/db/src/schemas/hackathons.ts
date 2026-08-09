@@ -318,6 +318,18 @@ export const hackathonInterest = pgTable(
      * mailing everybody again.
      */
     registrationOpenEmailSentAt: timestamp("registration_open_email_sent_at"),
+    /** Same claim mechanism as the announcement recipients above. */
+    registrationOpenEmailClaimedAt: timestamp(
+      "registration_open_email_claimed_at",
+    ),
+    /**
+     * Set when the provider rejected this address, so a retry can tell a
+     * never-attempted recipient from a failed one — and so a permanently bad
+     * address cannot keep the send reporting itself unfinished forever.
+     */
+    registrationOpenEmailFailedAt: timestamp(
+      "registration_open_email_failed_at",
+    ),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -540,6 +552,16 @@ export const hackathonAnnouncementRecipients = pgTable(
     /** The address as it was at compose time, so a later change cannot cause a
      *  second delivery to the same person under a new address. */
     email: text("email").notNull(),
+    /**
+     * Claimed by a batch that is about to send to this address.
+     *
+     * Without it, two overlapping requests — two organisers, or one impatient
+     * double-click — both select the same `sent_at IS NULL` rows and both
+     * send. The claim is an atomic UPDATE, so exactly one request wins each
+     * row. A claim older than CLAIM_TIMEOUT is reclaimable, which is what makes
+     * a batch that died mid-flight resumable rather than permanently stuck.
+     */
+    claimedAt: timestamp("claimed_at"),
     sentAt: timestamp("sent_at"),
     /** Set when the provider rejected this address, so a retry can tell a
      *  never-attempted recipient from a failed one. */

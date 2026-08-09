@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import { hackathonInterest, hackathons, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import {
@@ -38,6 +49,10 @@ const blankToNull = (value: string | undefined) =>
  *  more than this does not finish inside Cloud Run's timeout. Matches
  *  announce.ts. */
 const MAX_RECIPIENTS_PER_CALL = 500;
+
+/** Same reasoning as announce.ts: a claim this old belonged to a batch that
+ *  died, and must be reclaimable or the send can never finish. */
+const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 /**
  * The edition the landing page is about.
@@ -191,6 +206,7 @@ export const hackathonInterestRouter = createTRPCRouter({
         .select({
           total: sql<number>`count(*)::int`,
           sent: sql<number>`count(${hackathonInterest.registrationOpenEmailSentAt})::int`,
+          failed: sql<number>`count(${hackathonInterest.registrationOpenEmailFailedAt})::int`,
         })
         .from(hackathonInterest)
         .innerJoin(users, eq(users.id, hackathonInterest.userId))
@@ -203,7 +219,8 @@ export const hackathonInterestRouter = createTRPCRouter({
 
       const total = counts?.total ?? 0;
       const sent = counts?.sent ?? 0;
-      return { total, sent, pending: total - sent };
+      const failed = counts?.failed ?? 0;
+      return { total, sent, failed, pending: total - sent - failed };
     }),
 
   /**
@@ -248,22 +265,59 @@ export const hackathonInterestRouter = createTRPCRouter({
         });
       }
 
-      const pending = await db
-        .select({
-          id: hackathonInterest.id,
-          email: users.email,
-        })
+      /**
+       * Claim before sending, exactly as announce.ts does.
+       *
+       * Reading the pending rows and marking them afterwards left a window in
+       * which two overlapping requests both selected the same people and both
+       * mailed them. The claim is one atomic UPDATE, so only one request wins
+       * each row; a claim older than CLAIM_TIMEOUT_MS is reclaimable so a
+       * request that died mid-batch does not strand its recipients.
+       */
+      const claimCutoff = new Date(Date.now() - CLAIM_TIMEOUT_MS);
+
+      const claimable = db
+        .select({ id: hackathonInterest.id })
         .from(hackathonInterest)
         .innerJoin(users, eq(users.id, hackathonInterest.userId))
         .where(
           and(
             eq(hackathonInterest.hackathonId, input.hackathonId),
             isNull(hackathonInterest.registrationOpenEmailSentAt),
+            isNull(hackathonInterest.registrationOpenEmailFailedAt),
+            or(
+              isNull(hackathonInterest.registrationOpenEmailClaimedAt),
+              lt(hackathonInterest.registrationOpenEmailClaimedAt, claimCutoff),
+            ),
             isNotNull(users.email),
           ),
         )
         .orderBy(asc(hackathonInterest.id))
         .limit(MAX_RECIPIENTS_PER_CALL);
+
+      const claimed = await db
+        .update(hackathonInterest)
+        .set({ registrationOpenEmailClaimedAt: new Date() })
+        .where(inArray(hackathonInterest.id, claimable))
+        .returning({
+          id: hackathonInterest.id,
+          userId: hackathonInterest.userId,
+        });
+
+      // The address is read from the users table so somebody who changed it
+      // still gets the mail; the claim above is keyed on the interest row.
+      const recipients = await db
+        .select({ id: hackathonInterest.id, email: users.email })
+        .from(hackathonInterest)
+        .innerJoin(users, eq(users.id, hackathonInterest.userId))
+        .where(
+          inArray(
+            hackathonInterest.id,
+            claimed.map((row) => row.id),
+          ),
+        );
+
+      const pending = claimed.length > 0 ? recipients : [];
 
       const { sendRegistrationOpenEmail } = await import("@query/auth/email");
 
@@ -289,6 +343,13 @@ export const hackathonInterestRouter = createTRPCRouter({
           sent++;
         } catch (error) {
           failed.push(row.email);
+          // Marked failed rather than left pending. Left pending, a permanently
+          // bad address is re-attempted on every batch and the send can never
+          // report itself finished.
+          await db
+            .update(hackathonInterest)
+            .set({ registrationOpenEmailFailedAt: new Date() })
+            .where(eq(hackathonInterest.id, row.id));
           // Deliberate server-side operational logging: this is the only record
           // of which address the provider rejected.
           // eslint-disable-next-line no-console
@@ -299,11 +360,31 @@ export const hackathonInterestRouter = createTRPCRouter({
         }
       }
 
+      /**
+       * Counted, not inferred from the batch size.
+       *
+       * `pending.length < MAX` reported "done" while recipients that had just
+       * failed were still unsent — and with failures now marked, the only
+       * honest answer is what the table says is left.
+       */
+      const [remaining] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(hackathonInterest)
+        .innerJoin(users, eq(users.id, hackathonInterest.userId))
+        .where(
+          and(
+            eq(hackathonInterest.hackathonId, input.hackathonId),
+            isNull(hackathonInterest.registrationOpenEmailSentAt),
+            isNull(hackathonInterest.registrationOpenEmailFailedAt),
+            isNotNull(users.email),
+          ),
+        );
+
       return {
         sent,
         failed,
-        // Anything left is either a further batch or an address that failed.
-        done: pending.length < MAX_RECIPIENTS_PER_CALL,
+        remaining: remaining?.count ?? 0,
+        done: (remaining?.count ?? 0) === 0,
       };
     }),
 

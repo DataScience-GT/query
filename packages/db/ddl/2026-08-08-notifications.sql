@@ -14,6 +14,16 @@ begin;
 alter table hackathon_interest
   add column if not exists registration_open_email_sent_at timestamp;
 
+-- Claimed before sending, so two overlapping batches cannot both mail the same
+-- person; a stale claim is reclaimable so a batch that died can be resumed.
+alter table hackathon_interest
+  add column if not exists registration_open_email_claimed_at timestamp;
+
+-- A rejected address is marked rather than left pending, or a permanently bad
+-- one is retried on every batch and the send never reports itself finished.
+alter table hackathon_interest
+  add column if not exists registration_open_email_failed_at timestamp;
+
 -- W12: an announcement, frozen at compose time.
 create table if not exists hackathon_announcement (
   id uuid primary key default gen_random_uuid(),
@@ -40,6 +50,7 @@ create table if not exists hackathon_announcement_recipient (
     references hackathon_announcement (id) on delete cascade,
   user_id text not null references "user" (id) on delete cascade,
   email text not null,
+  claimed_at timestamp,
   sent_at timestamp,
   failed_at timestamp,
   constraint unique_announcement_recipient unique (announcement_id, user_id)

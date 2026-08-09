@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   hackathonAnnouncements,
   hackathonAnnouncementRecipients,
@@ -34,6 +45,15 @@ import { isAdmin } from "../../middleware/procedures";
  *  SMTP round trip, and a request carrying more does not finish inside Cloud
  *  Run's timeout. */
 const MAX_RECIPIENTS_PER_CALL = 500;
+
+/**
+ * How long a claimed-but-unsent recipient stays claimed.
+ *
+ * Long enough that a batch still working through its 500 SMTP round trips is
+ * never reclaimed underneath itself, short enough that a request killed by a
+ * deploy does not strand its rows for the rest of the event.
+ */
+const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 const AUDIENCES = [
   "interested",
@@ -274,20 +294,69 @@ export const hackathonAnnounceRouter = createTRPCRouter({
         });
       }
 
-      const pending = await db.query.hackathonAnnouncementRecipients.findMany({
-        where: and(
-          eq(
-            hackathonAnnouncementRecipients.announcementId,
-            input.announcementId,
+      /**
+       * Claim the batch before sending a single message.
+       *
+       * Selecting `sent_at IS NULL` and marking afterwards left a window: two
+       * overlapping requests — two organisers, or one impatient double-click —
+       * both read the same rows and both sent to them. The claim is a single
+       * atomic UPDATE, so exactly one request wins each row and the loser gets
+       * a smaller batch rather than a duplicate delivery.
+       *
+       * A claim older than CLAIM_TIMEOUT_MS is reclaimable: a request that died
+       * mid-flight (timeout, deploy, crash) would otherwise leave its rows
+       * claimed forever and the send permanently unfinishable. The window is
+       * generous — re-sending to somebody is worse than making an organiser
+       * wait — and only a batch that genuinely stopped can hit it.
+       */
+      const claimCutoff = new Date(Date.now() - CLAIM_TIMEOUT_MS);
+
+      const pending = await db
+        .update(hackathonAnnouncementRecipients)
+        .set({ claimedAt: new Date() })
+        .where(
+          and(
+            eq(
+              hackathonAnnouncementRecipients.announcementId,
+              input.announcementId,
+            ),
+            isNull(hackathonAnnouncementRecipients.sentAt),
+            // A previously rejected address is left alone rather than retried
+            // on every batch, which would stall the loop on a permanent
+            // failure.
+            isNull(hackathonAnnouncementRecipients.failedAt),
+            or(
+              isNull(hackathonAnnouncementRecipients.claimedAt),
+              lt(hackathonAnnouncementRecipients.claimedAt, claimCutoff),
+            ),
+            inArray(
+              hackathonAnnouncementRecipients.id,
+              db
+                .select({ id: hackathonAnnouncementRecipients.id })
+                .from(hackathonAnnouncementRecipients)
+                .where(
+                  and(
+                    eq(
+                      hackathonAnnouncementRecipients.announcementId,
+                      input.announcementId,
+                    ),
+                    isNull(hackathonAnnouncementRecipients.sentAt),
+                    isNull(hackathonAnnouncementRecipients.failedAt),
+                    or(
+                      isNull(hackathonAnnouncementRecipients.claimedAt),
+                      lt(hackathonAnnouncementRecipients.claimedAt, claimCutoff),
+                    ),
+                  ),
+                )
+                .orderBy(asc(hackathonAnnouncementRecipients.id))
+                .limit(MAX_RECIPIENTS_PER_CALL),
+            ),
           ),
-          isNull(hackathonAnnouncementRecipients.sentAt),
-          // A previously rejected address is left alone rather than retried on
-          // every batch, which would stall the loop on a permanent failure.
-          isNull(hackathonAnnouncementRecipients.failedAt),
-        ),
-        orderBy: asc(hackathonAnnouncementRecipients.id),
-        limit: MAX_RECIPIENTS_PER_CALL,
-      });
+        )
+        .returning({
+          id: hackathonAnnouncementRecipients.id,
+          email: hackathonAnnouncementRecipients.email,
+        });
 
       const { sendAnnouncementEmail } = await import("@query/auth/email");
 
