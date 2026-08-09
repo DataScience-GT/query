@@ -411,7 +411,7 @@ export const initiativeRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return (ctx.db as DrizzleDB).transaction(async (tx) => {
+      const outcome = await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // Lock BEFORE reading. Reading first and locking after leaves every
         // check below running on a pre-lock snapshot, so a concurrent archive
         // or a lowered cap is invisible and the accept goes through anyway.
@@ -442,7 +442,11 @@ export const initiativeRouter = createTRPCRouter({
         // decidedAt keeps pointing at the real decision — and no second email
         // goes out, because there is no second decision.
         if (application.status === input.decision) {
-          return { status: application.status };
+          return {
+            status: application.status,
+            applicantEmail: null,
+            initiativeTitle: initiative.title,
+          };
         }
 
         if (input.decision === "accepted" && initiative.maxMembers !== null) {
@@ -464,8 +468,45 @@ export const initiativeRouter = createTRPCRouter({
           })
           .where(eq(initiativeApplications.id, application.id));
 
-        return { status: input.decision };
+        const applicant = await tx.query.users.findFirst({
+          where: eq(users.id, input.userId),
+          columns: { email: true },
+        });
+
+        return {
+          status: input.decision,
+          applicantEmail: applicant?.email ?? null,
+          initiativeTitle: initiative.title,
+        };
       });
+
+      // After the transaction, never inside it: a mail provider timeout must
+      // not roll back a decision that has been made, and the applicant heard
+      // nothing at all before this — the decision was visible only to whoever
+      // made it.
+      if (outcome.applicantEmail) {
+        try {
+          const { sendInitiativeDecisionEmail } = await import(
+            "@query/auth/email"
+          );
+          await sendInitiativeDecisionEmail({
+            email: outcome.applicantEmail,
+            initiativeTitle: outcome.initiativeTitle,
+            accepted: input.decision === "accepted",
+            kind: "application",
+          });
+        } catch (error) {
+          // Deliberate server-side operational logging: the decision stands and
+          // this is the only record that the notice did not go out.
+          // eslint-disable-next-line no-console
+          console.error(
+            `[Email Service] Initiative decision notice failed for ${outcome.applicantEmail}:`,
+            error,
+          );
+        }
+      }
+
+      return { status: outcome.status };
     }),
 
   // ------------------------------------------------------------------ member
@@ -932,13 +973,46 @@ export const initiativeRouter = createTRPCRouter({
           }
         }
 
-        return proposal.leaderUserId;
+        const proposer = await tx.query.users.findFirst({
+          where: eq(users.id, proposal.leaderUserId),
+          columns: { email: true },
+        });
+
+        return {
+          userId: proposal.leaderUserId,
+          email: proposer?.email ?? null,
+          title: proposal.title,
+        };
       });
 
       // Outside the transaction: the role gate and the sidebar both cache, and
       // evicting before commit would let a concurrent read re-warm the old
       // answer. Approval is the moment a member gains a whole new tab.
-      if (input.decision === "approve") clearProjectLeaderCaches(proposerId);
+      if (input.decision === "approve")
+        clearProjectLeaderCaches(proposerId.userId);
+
+      // Also outside, and best-effort: the decision is made either way, and
+      // proposing used to be a thing you did and then never heard about.
+      if (proposerId.email) {
+        try {
+          const { sendInitiativeDecisionEmail } = await import(
+            "@query/auth/email"
+          );
+          await sendInitiativeDecisionEmail({
+            email: proposerId.email,
+            initiativeTitle: proposerId.title,
+            accepted: input.decision === "approve",
+            kind: "proposal",
+            note: input.note,
+          });
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[Email Service] Proposal decision notice failed for ${proposerId.email}:`,
+            error,
+          );
+        }
+      }
 
       return { id: input.id, decision: input.decision };
     }),

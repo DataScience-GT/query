@@ -30,7 +30,6 @@ export const hackathonEventsRouter = createTRPCRouter({
           location: z.string().min(1).max(500),
           startTime: z.date(),
           endTime: z.date(),
-          points: z.number().int().min(0).max(1000).default(0),
         })
         .refine((data) => data.endTime > data.startTime, {
           message: "End time must be after start time",
@@ -56,7 +55,6 @@ export const hackathonEventsRouter = createTRPCRouter({
           description: input.description,
           type: input.type,
           location: input.location,
-          points: input.points,
           startTime: input.startTime,
           endTime: input.endTime,
         })
@@ -80,7 +78,6 @@ export const hackathonEventsRouter = createTRPCRouter({
         location: z.string().min(1).max(500).optional(),
         startTime: z.date().optional(),
         endTime: z.date().optional(),
-        points: z.number().int().min(0).max(1000).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

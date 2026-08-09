@@ -112,7 +112,15 @@ const isPlainObject = (value: object) => {
  */
 const MAX_ARRAY_LENGTH = 2500;
 
-const scrubMarkup = (input: unknown, depth = 0): unknown => {
+/**
+ * Exported so the suite can test the sanitizer the product actually runs.
+ *
+ * There used to be a second one — `sanitizeInput` in middleware/security.ts —
+ * which *stripped* markup instead of refusing it, had no caller anywhere, and
+ * was what every sanitizer test asserted against. The tests passed while
+ * describing behaviour the request path did not have.
+ */
+export const scrubMarkup = (input: unknown, depth = 0): unknown => {
   if (depth > 10) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -270,9 +278,14 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // namespace fallback below from wiping every attendee's cached registrations
   // on every scan, all weekend, at every door.
   "hackathon.scanParticipantPass": [],
-  "hackathon.create": ["hackathons:list"],
-  "hackathon.update": ["hackathons:list", "hackathon:*"],
-  "hackathon.delete": ["hackathons:list", "hackathon:*"],
+  // `hackathons:list*`, not `hackathons:list`: deletePattern anchors with `$`,
+  // so a pattern with no wildcard matches no real key — every one of these
+  // carries a viewer/status/limit suffix. And because the map HAS an entry, the
+  // namespace fallback below is skipped, so the effect was that nothing at all
+  // was evicted when an edition changed.
+  "hackathon.create": ["hackathons:list*"],
+  "hackathon.update": ["hackathons:list*", "hackathon:*"],
+  "hackathon.delete": ["hackathons:list*", "hackathon:*"],
   "hackathon.createEvent": ["hackathon:*:events"],
   "hackathon.updateEvent": ["hackathon:*:events"],
   "hackathon.deleteEvent": ["hackathon:*:events"],
@@ -378,11 +391,16 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // themselves, by user id — this only sweeps the list caches.
   "initiative.setLeader": ["initiative:*"],
   "initiative.reviewProposal": ["initiative:*"],
-  // Events (club check-ins)
-  "events.create": ["events:list"],
-  "events.delete": ["events:list"],
-  "events.toggleCheckIn": ["events:list"],
-  "events.checkIn": ["events:list", "member:*"],
+  // Events (club check-ins). Same wildcard rule as the hackathon list above —
+  // the real keys are `events:list:all` and `events:list:public`.
+  "events.create": ["events:list*"],
+  "events.update": ["events:list*", "event:*"],
+  "events.delete": ["events:list*"],
+  "events.toggleCheckIn": ["events:list*"],
+  // A scan changes the caller's own attendance, which is cached per user for
+  // 60s — without these the member who just scanned sees no change and scans
+  // again.
+  "events.checkIn": ["events:list*", "events:my*", "events:stats*", "member:*"],
 };
 
 const cacheInvalidationMiddleware = t.middleware(
@@ -404,7 +422,16 @@ const cacheInvalidationMiddleware = t.middleware(
   },
 );
 
+/**
+ * `requiresDb` first, exactly as on the authenticated procedures.
+ *
+ * Without it, a public query running with no database connection fell through
+ * to whatever its own `if (!db)` branch did — and those return `null`, which
+ * renders as "nothing announced yet" rather than as a failure. A misconfigured
+ * deploy therefore looked like an empty product instead of a broken one.
+ */
 export const publicProcedure = t.procedure
+  .use(requiresDb)
   .use(sanitizeInputs)
   .use(enforceContentType)
   .use(async ({ ctx, next, type }) => {

@@ -68,7 +68,6 @@ interface EventFormData {
   location: string;
   startTime: string;
   endTime: string;
-  points: number;
 }
 
 const emptyForm: EventFormData = {
@@ -78,7 +77,6 @@ const emptyForm: EventFormData = {
   location: "",
   startTime: "",
   endTime: "",
-  points: 0,
 };
 
 export function EventsTab({ hackathonId }: { hackathonId: string }) {
@@ -139,7 +137,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
       location: event.location,
       startTime: toInputDate(event.startTime),
       endTime: toInputDate(event.endTime),
-      points: event.points,
     });
     setShowCreate(false);
   }
@@ -164,7 +161,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         location: form.location,
         startTime: new Date(form.startTime),
         endTime: new Date(form.endTime),
-        points: form.points,
       });
     } else {
       createMutation.mutate({
@@ -175,7 +171,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         location: form.location,
         startTime: new Date(form.startTime),
         endTime: new Date(form.endTime),
-        points: form.points,
       });
     }
   }
@@ -294,25 +289,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   }
                   placeholder="e.g. Room 101, Main Hall"
                   className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="points"
-                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
-                >
-                  Points
-                </label>
-                <input
-                  id="points"
-                  type="number"
-                  min={0}
-                  max={1000}
-                  value={form.points}
-                  onChange={(e) =>
-                    setForm({ ...form, points: parseInt(e.target.value) || 0 })
-                  }
-                  className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors min-w-[120px]"
                 />
               </div>
             </div>
@@ -449,11 +425,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                         />
                         {typeMeta.label}
                       </span>
-                      {event.points > 0 && (
-                        <span className="text-xs font-mono text-yellow-400/80 bg-yellow-500/10 px-2 py-0.5 rounded-md">
-                          +{event.points} pts
-                        </span>
-                      )}
                     </div>
                     <h4 className="text-[var(--text-primary)] font-bold text-base truncate">
                       {event.name}

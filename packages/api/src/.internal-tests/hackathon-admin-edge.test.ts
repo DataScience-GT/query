@@ -626,6 +626,75 @@ describe("Hackathon admin management edge cases", () => {
       expect(participantWrite?.[2][0].checkedInAt).toBeInstanceOf(Date);
     });
 
+    /**
+     * Reported by review on #325.
+     *
+     * Submitting a project now requires `checked_in`, which makes it an
+     * authorisation state rather than a note about who turned up. Setting it on
+     * somebody still pending would hand them the whole event with no review
+     * having happened — and the attendees screen offers "Select all N
+     * matching", so one wrong click could do it to every applicant at once.
+     */
+    it("refuses to check in an applicant who has not been accepted", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          registrationStatus: "pending",
+        },
+      });
+
+      await expect(
+        caller.hackathon.updateParticipantStatus({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          status: "checked_in",
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      expect(
+        mockUpdate.mock.calls.find((c) => c[1][0] === hackathonParticipants),
+      ).toBeUndefined();
+    });
+
+    it("names the remedy rather than just refusing", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          registrationStatus: "rejected",
+        },
+      });
+
+      await expect(
+        caller.hackathon.updateParticipantStatus({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          status: "checked_in",
+        }),
+      ).rejects.toThrow(/Accept them first/i);
+    });
+
+    // Re-scanning somebody already inside is ordinary, not a transition.
+    it("allows checking in somebody already checked in", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          registrationStatus: "checked_in",
+          checkedInAt: new Date(),
+        },
+      });
+
+      await expect(
+        caller.hackathon.updateParticipantStatus({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          status: "checked_in",
+        }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
     // BUG: hackathons.currentParticipants is incremented on register and never
     // decremented, so rejected applicants permanently consume capacity.
     it("frees a seat when an admin rejects a registration", async () => {

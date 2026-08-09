@@ -55,11 +55,21 @@ const MAX_RECIPIENTS_PER_CALL = 500;
  */
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
+/**
+ * `not_accepted` is deliberately its own audience and deliberately last.
+ *
+ * Rejected and waitlisted applicants are excluded from every other audience —
+ * a "see you this weekend" to somebody who was turned down is worse than no
+ * email at all. But excluding them everywhere meant nothing in the product
+ * could reach them, so the only outcome was silence. This audience exists to be
+ * chosen on purpose, for a message written for it.
+ */
 const AUDIENCES = [
   "interested",
   "registered",
   "approved",
   "checked_in",
+  "not_accepted",
 ] as const;
 
 type Audience = (typeof AUDIENCES)[number];
@@ -91,14 +101,15 @@ const resolveAudience = async (
   }
 
   // "registered" is everyone holding a seat, whatever stage they are at.
-  // Rejected and waitlisted applicants are deliberately excluded from all
-  // three: nothing here is the right channel for telling somebody they are
-  // out, and a "see you this weekend" to a rejected applicant is worse than
-  // no email at all.
+  // Rejected and waitlisted applicants are excluded from it and from the two
+  // narrower audiences; reaching them is what "not_accepted" is for, and it has
+  // to be picked deliberately.
   const statuses =
     audience === "registered"
       ? (["pending", "approved", "checked_in"] as const)
-      : ([audience] as const);
+      : audience === "not_accepted"
+        ? (["rejected", "waitlisted"] as const)
+        : ([audience] as const);
 
   return await db
     .select({ userId: hackathonParticipants.userId, email: users.email })

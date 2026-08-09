@@ -124,19 +124,54 @@ function ownProjectWhere(
 }
 
 /**
- * Rejected and waitlisted applicants were never admitted to the hackathon, so
- * they take no part in teams or submissions.
+ * Only admitted applicants take part.
+ *
+ * This used to block `rejected` and `waitlisted` alone — and every participant
+ * is created `pending`, which passed. So teams formed and projects were
+ * submitted with no review having happened at all, while the product showed
+ * organisers an approve/reject screen that decided nothing but an email.
+ * Registration is now an application: review has to land before anyone builds.
+ *
+ * `checked_in` counts because somebody standing at the door with a scanned
+ * badge has plainly been admitted, whatever their row said beforehand.
  */
+const ADMITTED_STATUSES = ["approved", "checked_in"];
+
 function checkAdmitted(registrationStatus: string) {
-  if (
-    registrationStatus === "rejected" ||
-    registrationStatus === "waitlisted"
-  ) {
+  if (ADMITTED_STATUSES.includes(registrationStatus)) return;
+
+  if (registrationStatus === "pending") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: `Your registration for this hackathon is ${registrationStatus}.`,
+      message:
+        "Your registration is still being reviewed. You can form a team once you have been accepted.",
     });
   }
+
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: `Your registration for this hackathon is ${registrationStatus}.`,
+  });
+}
+
+/**
+ * Submitting needs more than acceptance: the person has to be in the building.
+ *
+ * Acceptance is a decision made weeks earlier and says nothing about whether
+ * somebody turned up. Requiring the badge scan means a project can only come
+ * from a team that is actually at the event — which is also what the judging
+ * table numbers, the printed cards and the in-person scoring all assume.
+ */
+function checkCheckedIn(registrationStatus: string) {
+  if (registrationStatus === "checked_in") return;
+
+  checkAdmitted(registrationStatus);
+
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message:
+      "You need to check in at the event before submitting. Find a volunteer and have your badge scanned.",
+  });
 }
 
 export const teamRouter = createTRPCRouter({
@@ -626,7 +661,7 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      checkAdmitted(participant.registrationStatus);
+      checkCheckedIn(participant.registrationStatus);
 
       // 1.5. Verify hackathon is not past the submission window
       const hackathon = await (
