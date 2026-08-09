@@ -834,28 +834,87 @@ export const hackathonAdminRouter = createTRPCRouter({
       // guard: two scanners can both pass the read above, so the loser's 23505
       // has to read as the same conflict the sequential duplicate returns
       // instead of a raw INTERNAL_SERVER_ERROR.
-      try {
-        await (ctx.db as DrizzleDB).insert(hackathonEventAttendees).values({
-          eventId: input.eventId,
-          participantId: input.participantId,
-        });
-      } catch (error: unknown) {
-        if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: alreadyCheckedIn,
-          });
-        }
-        throw error;
-      }
+      /**
+       * Attendance and the roster promotion are one transaction.
+       *
+       * Separately, a promotion that failed after the attendance row committed
+       * left the scan half-done — and the retry hits the duplicate guard
+       * ("already checked into"), so the promotion could never happen and that
+       * attendee stayed unable to submit for the rest of the event. Rolling the
+       * attendance back instead makes a rescan the fix.
+       */
+      let promotedToCheckedIn = false;
 
-      // A scan changes one event's attendee count and nothing else. This runs
-      // at every door station all weekend, so it must not touch the roster or
-      // any attendee's cached registrations.
+      await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        try {
+          await tx.insert(hackathonEventAttendees).values({
+            eventId: input.eventId,
+            participantId: input.participantId,
+          });
+        } catch (error: unknown) {
+          if (isUniqueViolation(error)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: alreadyCheckedIn,
+            });
+          }
+          throw error;
+        }
+
+        /**
+         * The first scan is the check-in.
+         *
+         * `checked_in` had no writer anywhere in the product: this procedure
+         * recorded attendance for one event and left the roster alone, and no
+         * screen ever passed the status to updateParticipantStatus. That was
+         * harmless while the status was only a label — but submitting a project
+         * now requires it, so an unreachable status meant nobody could submit
+         * at all, and the error told them to do the very thing they had just
+         * done.
+         *
+         * `registrationStatus = 'approved'` is in the WHERE, not just in the
+         * read above: an organiser rejecting somebody between this scan's read
+         * and its write would otherwise have that decision overwritten, handing
+         * submission rights back to a person who had just been removed. The
+         * write is a compare-and-set, so the loser changes nothing.
+         *
+         * `checkedInAt` is stamped once, so it keeps pointing at when they
+         * arrived rather than at their most recent meal.
+         */
+        const [promoted] = await tx
+          .update(hackathonParticipants)
+          .set({
+            registrationStatus: "checked_in",
+            ...(participant.checkedInAt ? {} : { checkedInAt: new Date() }),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(hackathonParticipants.id, input.participantId),
+              eq(hackathonParticipants.registrationStatus, "approved"),
+            ),
+          )
+          .returning({ id: hackathonParticipants.id });
+
+        promotedToCheckedIn = !!promoted;
+      });
+
+      // A scan changes one event's attendee count, and — on the first one —
+      // this attendee's own roster row. This runs at every door station all
+      // weekend, so the eviction stays narrow: the event, and only the person
+      // scanned. The old blanket pattern wiped every attendee's cached
+      // registrations on every scan.
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
+
+      if (promotedToCheckedIn) {
+        evictParticipantCaches(ctx.cache, input.hackathonId, [
+          participant.userId,
+        ]);
+      }
 
       return {
         success: true,
+        checkedIn: promotedToCheckedIn,
         message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
       };
     }),
