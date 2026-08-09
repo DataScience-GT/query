@@ -260,6 +260,26 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
+      /**
+       * `checked_in` is reachable from `approved`, and from nowhere else.
+       *
+       * Submitting a project now requires it, so this status is an
+       * authorisation state and not just a note about who turned up — setting
+       * it on somebody still pending hands them the whole event with no review
+       * having happened. Refused rather than silently allowed, because the
+       * remedy is one click: approve them, then check them in.
+       */
+      if (
+        input.status === "checked_in" &&
+        participant.registrationStatus !== "approved" &&
+        participant.registrationStatus !== "checked_in"
+      ) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `This applicant is ${participant.registrationStatus}. Accept them first — checking somebody in also lets them submit a project.`,
+        });
+      }
+
       await (ctx.db as DrizzleDB)
         .update(hackathonParticipants)
         .set({
@@ -483,6 +503,22 @@ export const hackathonAdminRouter = createTRPCRouter({
           and(
             inArray(hackathonParticipants.id, participantIds),
             eq(hackathonParticipants.hackathonId, hackathonId),
+            /**
+             * Same rule as the single-participant path, applied in the WHERE so
+             * a 2000-row selection with a few unreviewed applicants in it still
+             * admits everybody else instead of failing whole.
+             *
+             * This one matters more than the single path: the attendees screen
+             * offers "Select all N matching", so one wrong click could promote
+             * every pending applicant straight to a state that lets them submit
+             * a project with no review at all.
+             */
+            status === "checked_in"
+              ? inArray(hackathonParticipants.registrationStatus, [
+                  "approved",
+                  "checked_in",
+                ])
+              : undefined,
           ),
         )
         .returning({
@@ -498,7 +534,14 @@ export const hackathonAdminRouter = createTRPCRouter({
         rows.map((row) => row.userId),
       );
 
-      return { success: true, updated: rows.length };
+      return {
+        success: true,
+        updated: rows.length,
+        // Anything not updated was either not in this hackathon or not
+        // accepted yet. Reported so a check-in run that quietly did less than
+        // it looked like cannot pass for a complete one.
+        skipped: participantIds.length - rows.length,
+      };
     }),
 
 

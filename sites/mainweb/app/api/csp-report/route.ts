@@ -22,8 +22,24 @@ const MAX_REPORT_BYTES = 8 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
+    /**
+     * Checked BEFORE the body is read, not after.
+     *
+     * `await request.text()` buffers the whole request first, so a
+     * length check on the result has already accepted whatever was sent — the
+     * cap was documentation rather than a limit. An absent or unparseable
+     * Content-Length is refused too: this endpoint is unauthenticated, and a
+     * browser sending a violation report always declares one.
+     */
+    const declared = Number(request.headers.get("content-length"));
+
+    if (!Number.isFinite(declared) || declared > MAX_REPORT_BYTES) {
+      return new NextResponse(null, { status: 413 });
+    }
+
     const body = await request.text();
 
+    // Content-Length is the sender's claim; the body is the truth.
     if (body.length > MAX_REPORT_BYTES) {
       return new NextResponse(null, { status: 413 });
     }
