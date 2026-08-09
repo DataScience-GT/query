@@ -12,6 +12,7 @@ import {
   X,
   Clock,
   Mail,
+  QrCode,
 } from "lucide-react";
 
 /**
@@ -725,6 +726,26 @@ export function AttendeesTab({
                             className="p-2 rounded-none bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-ui disabled:opacity-50 hover:scale-110"
                           >
                             <Clock className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {/* Checking somebody in by hand. The door scan does
+                            this on its own, but it needs an event to scan
+                            them into — and submitting a project requires the
+                            status, so there has to be a path that does not
+                            depend on the schedule existing yet. Offered only
+                            for people who have been accepted; the server
+                            refuses the rest. */}
+                        {attendee.registrationStatus === "approved" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStatusUpdate(attendee.id, "checked_in")
+                            }
+                            disabled={updateStatus.isPending}
+                            title="Check in"
+                            className="p-2 rounded-none bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-ui disabled:opacity-50 hover:scale-110"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

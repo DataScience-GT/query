@@ -740,6 +740,105 @@ describe("Hackathon admin management edge cases", () => {
         hackathonEventAttendees: undefined,
       });
 
+    /**
+     * The scan IS the check-in.
+     *
+     * `checked_in` had no writer anywhere: this procedure recorded attendance
+     * for one event and left the roster alone, and no screen ever passed the
+     * status to updateParticipantStatus. Harmless while the status was only a
+     * label — but submitting a project now requires it, so an unreachable
+     * status meant NOBODY could submit for the whole event, and the error told
+     * them to do the very thing they had just done. Found by an adversarial
+     * review pass after #325 merged.
+     */
+    it("promotes an approved participant to checked_in on their first scan", async () => {
+      const caller = scanCtx();
+
+      const res = await caller.hackathon.scanParticipantPass({
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      });
+
+      expect(res.checkedIn).toBe(true);
+      const rosterWrite = mockUpdate.mock.calls.find(
+        (c) => c[1][0] === hackathonParticipants,
+      );
+      expect(rosterWrite?.[2][0]).toMatchObject({
+        registrationStatus: "checked_in",
+      });
+      expect(rosterWrite?.[2][0].checkedInAt).toBeInstanceOf(Date);
+    });
+
+    /**
+     * The arrival time must keep pointing at when they arrived rather than at
+     * their most recent meal, and re-promoting somebody already inside is a
+     * write the door does not need to make.
+     */
+    it("does not restamp somebody already checked in", async () => {
+      const arrived = new Date(Date.now() - 3 * HOUR);
+      const caller = adminCaller({
+        hackathonParticipants: {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          registrationStatus: "checked_in",
+          checkedInAt: arrived,
+          user: { name: "Ada Lovelace", email: "ada@example.com" },
+        },
+        hackathonEvents: {
+          id: EVENT_A,
+          hackathonId: HACK_A,
+          name: "Lunch",
+          startTime: new Date(Date.now() - HOUR),
+          endTime: new Date(Date.now() + HOUR),
+        },
+        hackathonEventAttendees: undefined,
+      });
+
+      // A compare-and-set on `approved` matches no row for somebody already
+      // checked in; the mock cannot work that out on its own.
+      mockUpdate.mockReturnValue([]);
+
+      const res = await caller.hackathon.scanParticipantPass({
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      });
+
+      // What must not happen is the arrival time moving.
+      expect(res.checkedIn).toBe(false);
+      const rosterWrite = mockUpdate.mock.calls.find(
+        (c) => c[1][0] === hackathonParticipants,
+      );
+      expect(rosterWrite?.[2][0]).not.toHaveProperty("checkedInAt");
+    });
+
+    /**
+     * Reported by review on #327. The status was read at the top of the
+     * procedure and the write went out by id alone, so an organiser rejecting
+     * somebody between the two would have that decision overwritten — handing
+     * submission rights back to a person who had just been removed.
+     */
+    it("does not overwrite a status changed since the scan began", async () => {
+      const caller = scanCtx();
+      // The compare-and-set matches no row, exactly as it would if the status
+      // had moved on between the read and the write.
+      mockUpdate.mockReturnValue([]);
+
+      const res = await caller.hackathon.scanParticipantPass({
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      });
+
+      expect(res.checkedIn).toBe(false);
+      const rosterWrite = mockUpdate.mock.calls.find(
+        (c) => c[1][0] === hackathonParticipants,
+      );
+      // The guard has to be in the WHERE, not only in the earlier read.
+      expect(JSON.stringify(rosterWrite?.[3])).toContain("approved");
+    });
+
     // BUG: the duplicate guard is a findFirst followed by an unguarded insert.
     // unique('unique_event_participant') turns the losing racer's scan into a
     // raw 23505 -> INTERNAL_SERVER_ERROR instead of the friendly CONFLICT.
