@@ -70,14 +70,12 @@ function canManage(
 /**
  * Applying is a member benefit, so it needs a membership that has not lapsed.
  *
- * Initiatives are unscoped but membership is not — a paid year still hangs off
- * an edition, so this resolves the current one. No edition means nobody has a
- * live membership to check, which refuses rather than waving everyone through.
+ * Keyed on the person alone. This used to resolve a "current edition" and look
+ * the membership up against it, so between hackathons — when no edition
+ * qualified — it refused everybody, which is how the club half went dead
+ * outside event season.
  */
 async function requireActiveMember(db: Reader, userId: string) {
-  // Initiatives were deliberately un-scoped from hackathons; membership now is
-  // too. This previously resolved a current edition and refused everyone when
-  // none existed, which is how the club half went dead outside event season.
   const member = await db.query.members.findFirst({
     where: eq(members.userId, userId),
     columns: { isActive: true, membershipEndDate: true },

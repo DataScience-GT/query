@@ -58,7 +58,7 @@ Two entities anchor the graph:
   `user_account_link`, and `stripe_payment.linked_user_id`.
 - **`hackathon`** — every event-scoped table cascades from it: teams,
   participants, projects, hackathon events, judges, judge assignments, judging
-  projects, judge queue, and maps. `member` is also scoped to a hackathon.
+  projects, judge queue, and maps.
 
 Nearly all foreign keys are `onDelete: "cascade"`, so deleting a user or a
 hackathon removes its dependent rows rather than orphaning them.
@@ -69,14 +69,18 @@ Two aspects share the database and touch nowhere:
 
 - **Hackathon** — editions, registration, teams, project submission, judging.
   Everything here hangs off a `hackathon` row.
-- **Club** — `initiative`, its applications, and the `project_leader` role.
-  Deliberately **not** scoped to a hackathon. A club project runs whenever
-  somebody leads one, and leading is a standing appointment rather than a
-  yearly re-grant. Nothing in this half is ever judged; judges only score
-  `hackathon_project`.
+- **Club** — `member`, `membership_history`, `event`, `event_check_in`,
+  `initiative`, its applications, and the `project_leader` role. Deliberately
+  **not** scoped to a hackathon. A club project runs whenever somebody leads
+  one, and leading is a standing appointment rather than a yearly re-grant.
+  Nothing in this half is ever judged; judges only score `hackathon_project`.
 
-`member` is the one crossing case: a paid year still hangs off an edition, so
-membership resolves the current hackathon even though initiatives do not.
+The two halves no longer cross. `member` used to be `unique(user_id,
+hackathon_id)`, which welded a paid year to an edition: the day the next
+hackathon opened, every paying member read as a non-member. It is now
+`unique(user_id)` and a membership is defined entirely by its own dates, with
+`membership_history` recording which years somebody held one. The club half
+therefore works with no hackathon in the database at all.
 
 #### One-off step — only for a database that already has the edition-scoped tables
 
