@@ -11,7 +11,6 @@
     "./context": "./src/context.ts",
     "./middleware": "./src/middleware.ts",
     "./middleware/cache": "./src/middleware/cache.ts",
-    "./middleware/http-security": "./src/middleware/http-security.ts",
     "./middleware/security": "./src/middleware/security.ts",
     "./trpc": "./src/trpc.ts",
     "./pricing": "./src/services/pricing.ts"
