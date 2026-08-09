@@ -834,47 +834,70 @@ export const hackathonAdminRouter = createTRPCRouter({
       // guard: two scanners can both pass the read above, so the loser's 23505
       // has to read as the same conflict the sequential duplicate returns
       // instead of a raw INTERNAL_SERVER_ERROR.
-      try {
-        await (ctx.db as DrizzleDB).insert(hackathonEventAttendees).values({
-          eventId: input.eventId,
-          participantId: input.participantId,
-        });
-      } catch (error: unknown) {
-        if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: alreadyCheckedIn,
-          });
-        }
-        throw error;
-      }
-
       /**
-       * The first scan is the check-in.
+       * Attendance and the roster promotion are one transaction.
        *
-       * `checked_in` had no writer anywhere in the product: this procedure
-       * recorded attendance for one event and left the roster alone, and no
-       * screen ever passed the status to updateParticipantStatus. That was
-       * harmless while the status was only a label — but submitting a project
-       * now requires it, so an unreachable status meant nobody could submit at
-       * all, and the error told them to do the very thing they had just done.
-       *
-       * Only from `approved`, and only once: the guard above has already
-       * refused everyone else, and `checkedInAt` must keep pointing at when
-       * they actually arrived rather than at their most recent meal.
+       * Separately, a promotion that failed after the attendance row committed
+       * left the scan half-done — and the retry hits the duplicate guard
+       * ("already checked into"), so the promotion could never happen and that
+       * attendee stayed unable to submit for the rest of the event. Rolling the
+       * attendance back instead makes a rescan the fix.
        */
-      const promotedToCheckedIn = participant.registrationStatus === "approved";
+      let promotedToCheckedIn = false;
 
-      if (promotedToCheckedIn) {
-        await (ctx.db as DrizzleDB)
+      await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        try {
+          await tx.insert(hackathonEventAttendees).values({
+            eventId: input.eventId,
+            participantId: input.participantId,
+          });
+        } catch (error: unknown) {
+          if (isUniqueViolation(error)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: alreadyCheckedIn,
+            });
+          }
+          throw error;
+        }
+
+        /**
+         * The first scan is the check-in.
+         *
+         * `checked_in` had no writer anywhere in the product: this procedure
+         * recorded attendance for one event and left the roster alone, and no
+         * screen ever passed the status to updateParticipantStatus. That was
+         * harmless while the status was only a label — but submitting a project
+         * now requires it, so an unreachable status meant nobody could submit
+         * at all, and the error told them to do the very thing they had just
+         * done.
+         *
+         * `registrationStatus = 'approved'` is in the WHERE, not just in the
+         * read above: an organiser rejecting somebody between this scan's read
+         * and its write would otherwise have that decision overwritten, handing
+         * submission rights back to a person who had just been removed. The
+         * write is a compare-and-set, so the loser changes nothing.
+         *
+         * `checkedInAt` is stamped once, so it keeps pointing at when they
+         * arrived rather than at their most recent meal.
+         */
+        const [promoted] = await tx
           .update(hackathonParticipants)
           .set({
             registrationStatus: "checked_in",
             ...(participant.checkedInAt ? {} : { checkedInAt: new Date() }),
             updatedAt: new Date(),
           })
-          .where(eq(hackathonParticipants.id, input.participantId));
-      }
+          .where(
+            and(
+              eq(hackathonParticipants.id, input.participantId),
+              eq(hackathonParticipants.registrationStatus, "approved"),
+            ),
+          )
+          .returning({ id: hackathonParticipants.id });
+
+        promotedToCheckedIn = !!promoted;
+      });
 
       // A scan changes one event's attendee count, and — on the first one —
       // this attendee's own roster row. This runs at every door station all

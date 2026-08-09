@@ -795,6 +795,36 @@ describe("Hackathon admin management edge cases", () => {
         hackathonEventAttendees: undefined,
       });
 
+      // A compare-and-set on `approved` matches no row for somebody already
+      // checked in; the mock cannot work that out on its own.
+      mockUpdate.mockReturnValue([]);
+
+      const res = await caller.hackathon.scanParticipantPass({
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      });
+
+      // What must not happen is the arrival time moving.
+      expect(res.checkedIn).toBe(false);
+      const rosterWrite = mockUpdate.mock.calls.find(
+        (c) => c[1][0] === hackathonParticipants,
+      );
+      expect(rosterWrite?.[2][0]).not.toHaveProperty("checkedInAt");
+    });
+
+    /**
+     * Reported by review on #327. The status was read at the top of the
+     * procedure and the write went out by id alone, so an organiser rejecting
+     * somebody between the two would have that decision overwritten — handing
+     * submission rights back to a person who had just been removed.
+     */
+    it("does not overwrite a status changed since the scan began", async () => {
+      const caller = scanCtx();
+      // The compare-and-set matches no row, exactly as it would if the status
+      // had moved on between the read and the write.
+      mockUpdate.mockReturnValue([]);
+
       const res = await caller.hackathon.scanParticipantPass({
         hackathonId: HACK_A,
         eventId: EVENT_A,
@@ -802,9 +832,11 @@ describe("Hackathon admin management edge cases", () => {
       });
 
       expect(res.checkedIn).toBe(false);
-      expect(
-        mockUpdate.mock.calls.find((c) => c[1][0] === hackathonParticipants),
-      ).toBeUndefined();
+      const rosterWrite = mockUpdate.mock.calls.find(
+        (c) => c[1][0] === hackathonParticipants,
+      );
+      // The guard has to be in the WHERE, not only in the earlier read.
+      expect(JSON.stringify(rosterWrite?.[3])).toContain("approved");
     });
 
     // BUG: the duplicate guard is a findFirst followed by an unguarded insert.
