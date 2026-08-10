@@ -295,9 +295,20 @@ export function HackathonCard({
                   ? "border-green-500/20 text-green-400 hover:bg-green-500/10"
                   : "border-red-500/20 text-red-400 hover:bg-red-500/10"
               }`}
+              title={
+                hackathon.isPublic
+                  ? "Hiding removes this edition from the public funnel and from /judge/register and /scan. Staff judging tools keep showing it."
+                  : "Hidden: invisible on the public funnel, /judge/register and /scan. Staff judging tools still show it."
+              }
             >
               {hackathon.isPublic ? "● Public" : "● Hidden"}
             </button>
+            {!hackathon.isPublic && (
+              <p className="text-xs font-mono text-amber-400">
+                Hidden — judges cannot find this at /judge/register, and it is
+                absent from /scan.
+              </p>
+            )}
           </div>
 
           {/* Right group: Dashboard + Edit */}

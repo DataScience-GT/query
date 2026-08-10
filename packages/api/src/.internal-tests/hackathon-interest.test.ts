@@ -207,6 +207,44 @@ describe("Hackathon interest list", () => {
       const res = await callerFor().hackathon.getUpcoming();
       expect(res?.registrationOpen).toBe(false);
     });
+
+    /**
+     * `register` refuses any status but `open`, so reporting a running event
+     * as open put a Register button on the funnel that failed for everybody
+     * who pressed it. The page still renders — it just stops advertising.
+     */
+    it("stops advertising registration once the event is under way", async () => {
+      lookups({ hackathon: announced({ status: "in_progress" }) });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.name).toBe("Example Hackathon");
+      expect(res?.registrationOpen).toBe(false);
+    });
+
+    /** `register` refuses a passed deadline too, so the CTA has to agree. */
+    it("stops advertising registration once the deadline has passed", async () => {
+      lookups({
+        hackathon: announced({
+          status: "open",
+          registrationDeadline: new Date(Date.now() - 60_000),
+        }),
+      });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.registrationOpen).toBe(false);
+    });
+
+    it("still advertises while the deadline is in the future", async () => {
+      lookups({
+        hackathon: announced({
+          status: "open",
+          registrationDeadline: new Date(Date.now() + 60_000),
+        }),
+      });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.registrationOpen).toBe(true);
+    });
   });
 
   describe("5. Telling the list registration opened", () => {

@@ -978,4 +978,254 @@ describe("QR check-in", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
+
+  // -------------------------------------------------------------------
+  /**
+   * A kickoff or interest meeting is run to recruit members, so refusing
+   * everyone who is not one yet left exactly those events with no attendance.
+   */
+  describe("Events open to non-members", () => {
+    // clearAllMocks keeps implementations, so the write simulations the
+    // concurrency tests above install would otherwise decide these outcomes.
+    beforeEach(() => {
+      mockInsert.mockReset().mockReturnValue([]);
+      mockUpdate.mockReset().mockReturnValue([{ id: CLUB_EVENT }]);
+      mockDelete.mockReset().mockReturnValue([]);
+    });
+
+    const nonMemberAt = (overrides: Record<string, unknown>) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "events") return clubEvent(overrides);
+        if (table === "members") return undefined;
+        return undefined;
+      });
+      return appRouter.createCaller(createMockCtx("guest_user"));
+    };
+
+    it("admits a non-member to an event that is not members only", async () => {
+      await expect(
+        nonMemberAt({ membersOnly: false }).events.checkIn({ qrCode: QR_OLD }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
+    it("records the check-in with no member row attached", async () => {
+      await nonMemberAt({ membersOnly: false }).events.checkIn({
+        qrCode: QR_OLD,
+      });
+
+      const written = mockInsert.mock.calls.at(-1)?.[2]?.[0];
+      expect(written).toMatchObject({
+        userId: "guest_user",
+        memberId: null,
+        checkInMethod: "qr_code",
+      });
+    });
+
+    it("still turns a non-member away from a members-only event", async () => {
+      await expect(
+        nonMemberAt({ membersOnly: true }).events.checkIn({ qrCode: QR_OLD }),
+      ).rejects.toThrow(/Must be a member/i);
+    });
+
+    /**
+     * Fail closed. A row read before the column existed reports `undefined`,
+     * and an access gate that reads that as "open to everyone" is the wrong
+     * way round.
+     */
+    it("treats an unknown membersOnly value as members only", async () => {
+      await expect(
+        nonMemberAt({}).events.checkIn({ qrCode: QR_OLD }),
+      ).rejects.toThrow(/Must be a member/i);
+    });
+  });
+
+  // -------------------------------------------------------------------
+  /**
+   * events.checkIn is keyed on the caller's own session, so it only records
+   * people signed in and scanning for themselves. Nothing wrote the `manual`
+   * method the schema reserves.
+   */
+  describe("Officer-side manual check-in", () => {
+    beforeEach(() => {
+      mockInsert.mockReset().mockReturnValue([]);
+      mockUpdate.mockReset().mockReturnValue([{ id: CLUB_EVENT }]);
+      mockDelete.mockReset().mockReturnValue([{ id: "checkin_1" }]);
+    });
+
+    const staffCaller = (found: Record<string, unknown> | undefined) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "events") return clubEvent();
+        if (table === "users") return found;
+        if (table === "members") return undefined;
+        return undefined;
+      });
+      return appRouter.createCaller(createMockCtx("admin_user_id"));
+    };
+
+    const GUEST = { id: "guest_user", name: "Ada", email: "ada@gatech.edu" };
+
+    it("records attendance for somebody who is not a member", async () => {
+      await expect(
+        staffCaller(GUEST).events.manualCheckIn({
+          eventId: CLUB_EVENT,
+          email: "ada@gatech.edu",
+        }),
+      ).resolves.toMatchObject({ name: "Ada", isMember: false });
+    });
+
+    it("writes the manual method the schema reserves", async () => {
+      await staffCaller(GUEST).events.manualCheckIn({
+        eventId: CLUB_EVENT,
+        email: "ada@gatech.edu",
+      });
+
+      const written = mockInsert.mock.calls.at(-1)?.[2]?.[0];
+      expect(written).toMatchObject({
+        eventId: CLUB_EVENT,
+        userId: "guest_user",
+        checkInMethod: "manual",
+      });
+    });
+
+    it("lowercases the email before looking anybody up", async () => {
+      await staffCaller(GUEST).events.manualCheckIn({
+        eventId: CLUB_EVENT,
+        email: "ADA@GaTech.edu",
+      });
+
+      expect(mockInsert.mock.calls.at(-1)?.[2]?.[0]).toMatchObject({
+        userId: "guest_user",
+      });
+    });
+
+    it("says so when nobody has ever signed in with that address", async () => {
+      await expect(
+        staffCaller(undefined).events.manualCheckIn({
+          eventId: CLUB_EVENT,
+          email: "nobody@gatech.edu",
+        }),
+      ).rejects.toThrow(/signed in with that email/i);
+    });
+
+    it("is refused to somebody who is not staff", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+
+      await expect(
+        appRouter.createCaller(createMockCtx("member_user")).events.manualCheckIn({
+          eventId: CLUB_EVENT,
+          email: "ada@gatech.edu",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    /**
+     * The club QR points the other way to the hackathon one: the event holds
+     * the code and members scan it, so a door with a queue had nothing to scan.
+     */
+    it("checks a member in from their pass", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "events") return clubEvent();
+        if (table === "members")
+          return {
+            id: "member_1",
+            userId: "member_user",
+            firstName: "Ada",
+            lastName: "Lovelace",
+            isActive: true,
+            membershipEndDate: new Date(Date.now() + 90 * DAY),
+          };
+        return undefined;
+      });
+
+      const res = await appRouter
+        .createCaller(createMockCtx("admin_user_id"))
+        .events.scanMemberPass({
+          eventId: CLUB_EVENT,
+          passCode: "cccccccc-1111-4111-8111-111111111111",
+        });
+
+      expect(res).toMatchObject({
+        name: "Ada Lovelace",
+        membershipActive: true,
+      });
+      expect(mockInsert.mock.calls.at(-1)?.[2]?.[0]).toMatchObject({
+        eventId: CLUB_EVENT,
+        userId: "member_user",
+        memberId: "member_1",
+      });
+    });
+
+    /** An officer scanning has already made the call; the UI just says so. */
+    it("admits a lapsed member but reports the membership as inactive", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "events") return clubEvent();
+        if (table === "members")
+          return {
+            id: "member_1",
+            userId: "member_user",
+            firstName: "Ada",
+            lastName: "Lovelace",
+            isActive: false,
+            membershipEndDate: new Date(Date.now() - DAY),
+          };
+        return undefined;
+      });
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("admin_user_id"))
+          .events.scanMemberPass({
+            eventId: CLUB_EVENT,
+            passCode: "cccccccc-1111-4111-8111-111111111111",
+          }),
+      ).resolves.toMatchObject({ membershipActive: false });
+    });
+
+    it("rejects a pass that has been rotated away", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "events") return clubEvent();
+        return undefined;
+      });
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("admin_user_id"))
+          .events.scanMemberPass({
+            eventId: CLUB_EVENT,
+            passCode: "cccccccc-1111-4111-8111-111111111111",
+          }),
+      ).rejects.toThrow(/Unrecognised pass/i);
+    });
+
+    it("is refused to somebody who is not staff", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+
+      await expect(
+        appRouter.createCaller(createMockCtx("member_user")).events.scanMemberPass({
+          eventId: CLUB_EVENT,
+          passCode: "cccccccc-1111-4111-8111-111111111111",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("refuses to undo a check-in that is not there", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins" ? ADMIN_ROW : undefined,
+      );
+      mockDelete.mockReturnValue([]);
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("admin_user_id"))
+          .events.removeAttendance({
+            eventId: CLUB_EVENT,
+            userId: "guest_user",
+          }),
+      ).rejects.toThrow(/not checked in/i);
+    });
+  });
 });

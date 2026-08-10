@@ -38,6 +38,9 @@ export const members = pgTable(
     memberType: text("member_type", { enum: ["new", "continuous"] })
       .notNull()
       .default("new"),
+    /** The member's scannable pass. Rotatable, so a photographed one can be
+     *  killed without touching the membership. */
+    passCode: uuid("pass_code").defaultRandom().notNull().unique(),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     phoneNumber: text("phone_number"),

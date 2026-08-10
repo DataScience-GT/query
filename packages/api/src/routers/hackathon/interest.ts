@@ -102,8 +102,13 @@ export const hackathonInterestRouter = createTRPCRouter({
       // The page shows an interest form or a register CTA off this: the two
       // states are the same edition at different moments, not different pages.
       status: upcoming.status,
+      // Exactly what `register` accepts. It refuses any status but `open` and
+      // refuses a passed deadline, so reporting `in_progress` as open put a
+      // Register button on the funnel that failed for everyone who pressed it.
       registrationOpen:
-        upcoming.status === "open" || upcoming.status === "in_progress",
+        upcoming.status === "open" &&
+        (!upcoming.registrationDeadline ||
+          new Date() <= upcoming.registrationDeadline),
       registrationDeadline: upcoming.registrationDeadline,
     };
   }),
