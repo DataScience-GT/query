@@ -27,7 +27,7 @@ function StatCard({
   trend,
 }: StatCardProps) {
   return (
-    <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+    <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
       {/* Background gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute -top-20 -right-20 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -49,7 +49,7 @@ function StatCard({
                 {subtitle}
               </span>
               {trend?.positive && (
-                <span className="text-xs text-accent flex items-center gap-1 group-hover/icon:gap-2 transition-all">
+                <span className="text-xs text-accent flex items-center gap-1 group-hover/icon:gap-2 transition-ui">
                   <TrendingUp className="h-3 w-3 animate-in slide-in-from-bottom-2" />
                   {trend.percent}%
                 </span>
@@ -97,13 +97,13 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Page Header - Enhanced */}
-        <div className="relative mb-8 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
+        <div className="relative mb-8 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
             Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
         {/* Charts Section - Enhanced */}
         <div className="grid gap-6 lg:grid-cols-2 mb-8">
           {/* Registration Trend */}
-          <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+          <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <svg
@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
                 <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
+            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-ui">
               Registration Trend
             </h2>
             <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
@@ -181,7 +181,7 @@ export default function AnalyticsPage() {
           </LiquidGlass>
 
           {/* Event Types */}
-          <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+          <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <svg
@@ -193,7 +193,7 @@ export default function AnalyticsPage() {
                 <path d="M12 17.75V.188A2.02 2.02 0 009.99 0 4.02 4.02 0 005.97 2.01L4 12c0 4.17 2.96 7.7 7 9" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
+            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-ui">
               Event Distribution
             </h2>
             <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Recent Activity - Enhanced */}
-        <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+        <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
             <svg
@@ -218,7 +218,7 @@ export default function AnalyticsPage() {
               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-all">
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-ui">
             Recent Activity
           </h2>
           <div className="space-y-3">

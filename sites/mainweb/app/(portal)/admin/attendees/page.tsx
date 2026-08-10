@@ -79,12 +79,12 @@ export default function AttendeesPage() {
         </div>
 
         {/* Page Header */}
-        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-accent-dim to-transparent rounded-none overflow-hidden group hover:border-accent/25 transition-all duration-500">
+        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-accent-dim to-transparent rounded-none overflow-hidden group hover:border-accent/25 transition-ui duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/80 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-ui duration-500">
             Attendees{" "}
             <span className="text-accent italic font-bold">Registry</span>
           </h1>
@@ -100,11 +100,12 @@ export default function AttendeesPage() {
           <div className="flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center gap-3 bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none p-1.5 group-hover:border-white/20 transition-colors">
               <select
+                aria-label="Filter attendees by club event"
                 value={selectedEvent || ""}
                 onChange={(e) => setSelectedEvent(e.target.value || null)}
-                className="bg-transparent text-[var(--text-primary)] text-sm font-medium px-5 py-3 focus:outline-none cursor-pointer hover:text-[var(--text-primary)] transition-all"
+                className="bg-transparent text-[var(--text-primary)] text-sm font-medium px-5 py-3 focus:outline-none cursor-pointer hover:text-[var(--text-primary)] transition-ui"
               >
-                <option value="">Select a club event...</option>
+                <option value="">Select a club event…</option>
                 {eventList?.map((event) => (
                   <option key={event.id} value={event.id}>
                     {event.title}
@@ -115,7 +116,7 @@ export default function AttendeesPage() {
             {selectedEvent && (
               <button
                 onClick={handleDownloadCSV}
-                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/10 to-accent/10 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-all active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.1)] hover:shadow-[0_0_25px_rgba(0,168,168,0.2)]"
+                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/10 to-accent/10 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-ui active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.1)] hover:shadow-[0_0_25px_rgba(0,168,168,0.2)]"
               >
                 <Download className="h-4 w-4" />
                 Export CSV
@@ -157,7 +158,7 @@ export default function AttendeesPage() {
                 </p>
               </LiquidGlass>
             ) : (
-              <div className="overflow-x-auto rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)]/20 relative overflow-hidden group hover:border-white/20 transition-all duration-300">
+              <div className="overflow-x-auto rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)]/20 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <table className="w-full text-left">

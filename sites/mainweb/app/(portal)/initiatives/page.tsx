@@ -84,7 +84,7 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
             disabled={propose.isPending}
             className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
           >
-            {propose.isPending ? "Sending..." : "Send for review"}
+            {propose.isPending ? "Sending…" : "Send for review"}
           </button>
           <button
             type="button"
@@ -278,7 +278,7 @@ function OpenRow({
               disabled={join.isPending}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
             >
-              {join.isPending ? "Sending..." : "Send application"}
+              {join.isPending ? "Sending…" : "Send application"}
             </button>
             <button
               type="button"

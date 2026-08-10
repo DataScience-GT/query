@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -26,7 +27,7 @@ export default function AdminHackathonsPage() {
     { enabled: !!session },
   );
 
-  if (status === "loading") return null;
+  if (status === "loading") return <LoadingScreen message="Loading hackathons…" />;
   if (status === "unauthenticated") {
     router.push("/login");
     return null;
@@ -41,14 +42,14 @@ export default function AdminHackathonsPage() {
           <div className="absolute bottom-[-15%] right-[-8%] w-[600px] h-[600px] bg-gradient-to-r from-emerald-900/12 via-emerald-900/10 to-indigo-900/8 blur-[300px] rounded-sm" />
         </div>
 
-        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
+        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <Zap className="w-3 h-3" /> Hackathon Hub
           </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
             Hackathon <span className="text-accent italic">Manager</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">

@@ -220,7 +220,7 @@ export default function JudgeHackathonPage() {
   }, [status, router]);
 
   if (status === "loading") {
-    return <LoadingScreen message="Verifying Judge Access..." />;
+    return <LoadingScreen message="Verifying Judge Access…" />;
   }
   if (!session) return null;
 
@@ -228,7 +228,7 @@ export default function JudgeHackathonPage() {
   // page spins on a hackathon that does not exist.
   if (!hackathonId) {
     if (resolved.isPending) {
-      return <LoadingScreen message="Loading hackathon..." />;
+      return <LoadingScreen message="Loading hackathon…" />;
     }
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -251,7 +251,7 @@ export default function JudgeHackathonPage() {
   }
 
   if (judgeCheck.isPending) {
-    return <LoadingScreen message="Verifying Judge Access..." />;
+    return <LoadingScreen message="Verifying Judge Access…" />;
   }
 
   if (judgeCheck.data && !judgeCheck.data.isJudge) {
@@ -276,7 +276,7 @@ export default function JudgeHackathonPage() {
   }
 
   if (judgingStatus.isPending) {
-    return <LoadingScreen message="Checking judging status..." />;
+    return <LoadingScreen message="Checking judging status…" />;
   }
 
   // Said before a table is handed out, not after a score is lost.
@@ -312,7 +312,7 @@ export default function JudgeHackathonPage() {
   }
 
   if (nextTable.isPending && !current) {
-    return <LoadingScreen message="Finding your next table..." />;
+    return <LoadingScreen message="Finding your next table…" />;
   }
 
   // A failed lookup must not fall through to the "All Done" card below — a
@@ -369,7 +369,7 @@ export default function JudgeHackathonPage() {
         {progress.data && progress.data.total > 0 && (
           <div className="h-1 w-full bg-white/5 mb-12">
             <div
-              className="h-full bg-accent transition-all duration-500"
+              className="h-full bg-accent transition-ui duration-500"
               style={{ width: `${progress.data.percentage}%` }}
             />
           </div>
@@ -449,7 +449,7 @@ export default function JudgeHackathonPage() {
                   disabled={startByQr.isPending}
                   className="px-10 py-5 bg-accent text-black font-black text-sm uppercase tracking-widest rounded-none hover:bg-white transition-ui active:scale-95 disabled:opacity-40"
                 >
-                  {startByQr.isPending ? "Starting..." : "Scan Table Code"}
+                  {startByQr.isPending ? "Starting…" : "Scan Table Code"}
                 </button>
               </LiquidGlass>
             ) : (
@@ -524,7 +524,7 @@ export default function JudgeHackathonPage() {
                     className="mt-3 px-4 py-2 border border-amber-500/40 bg-amber-500/10 text-amber-200 font-mono text-xs uppercase tracking-widest hover:bg-amber-500/20 transition-colors disabled:opacity-30"
                   >
                     {forceSkip.isPending
-                      ? "Reassigning..."
+                      ? "Reassigning…"
                       : "Hand to another judge"}
                   </button>
                 </div>
@@ -546,7 +546,7 @@ export default function JudgeHackathonPage() {
                     }}
                     className="px-6 py-3 border border-[var(--border-subtle)] text-text-muted font-mono text-xs uppercase tracking-widest hover:bg-white/5 transition-colors disabled:opacity-30"
                   >
-                    {skip.isPending ? "Skipping..." : "Skip for now"}
+                    {skip.isPending ? "Skipping…" : "Skip for now"}
                   </button>
                   <button
                     type="button"
@@ -567,7 +567,7 @@ export default function JudgeHackathonPage() {
                     }}
                     className="px-8 py-3 bg-accent text-black font-black text-xs uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-30"
                   >
-                    {complete.isPending ? "Saving..." : "Submit & Next"}
+                    {complete.isPending ? "Saving…" : "Submit & Next"}
                   </button>
                 </div>
               </div>

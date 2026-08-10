@@ -164,7 +164,7 @@ export default function HackathonsPage() {
   }, [authStatus, router]);
 
   if (authStatus === "loading" || isLoading)
-    return <LoadingScreen message="Loading Hackathon Hub..." />;
+    return <LoadingScreen message="Loading Hackathon Hub…" />;
   if (!session) return null;
 
   const registeredIds = new Set(myRegs?.map((r) => r.hackathonId) ?? []);
@@ -211,7 +211,7 @@ export default function HackathonsPage() {
               key={tab.id}
               href={`#${tab.id}`}
               onClick={() => setActiveTab(tab.id as Tab)}
-              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 rounded-none text-sm font-semibold transition-all ${
+              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 rounded-none text-sm font-semibold transition-ui ${
                 activeTab === tab.id
                   ? "bg-accent/10 text-accent border border-accent/30"
                   : "text-text-muted hover:text-[var(--text-primary)] hover:bg-white/5"
@@ -237,7 +237,7 @@ export default function HackathonsPage() {
                 <button
                   key={key}
                   onClick={() => setStatusFilter(key as typeof statusFilter)}
-                  className={`flex-1 min-w-[100px] px-4 py-2.5 rounded-none text-sm font-semibold transition-all ${
+                  className={`flex-1 min-w-[100px] px-4 py-2.5 rounded-none text-sm font-semibold transition-ui ${
                     statusFilter === key
                       ? "bg-accent/10 text-accent border border-accent/30"
                       : "text-text-muted hover:text-[var(--text-primary)] hover:bg-white/5"
@@ -291,7 +291,7 @@ export default function HackathonsPage() {
                         key={h.id}
                         className="block group"
                       >
-                        <LiquidGlass className="h-full flex flex-col p-1 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-white/20">
+                        <LiquidGlass className="h-full flex flex-col p-1 transition-ui duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-white/20">
                           <div className="relative flex flex-col h-full bg-[var(--bg-tertiary)] rounded-none p-6 md:p-8 overflow-hidden z-10">
                             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
@@ -414,7 +414,7 @@ export default function HackathonsPage() {
                               )}
                             </div>
 
-                            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 rounded-sm bg-accent/10 border border-emerald-500/20 flex items-center justify-center text-accent opacity-0 transform translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-10 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 rounded-sm bg-accent/10 border border-emerald-500/20 flex items-center justify-center text-accent opacity-0 transform translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-ui duration-300 z-10 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                               <svg
                                 className="w-4 h-4"
                                 fill="none"
@@ -455,7 +455,7 @@ export default function HackathonsPage() {
                   </div>
                   <Link
                     href="/judge/register"
-                    className="shrink-0 px-8 py-4 bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 whitespace-nowrap"
+                    className="shrink-0 px-8 py-4 bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 whitespace-nowrap"
                   >
                     Apply to Judge
                   </Link>
@@ -474,9 +474,9 @@ export default function HackathonsPage() {
                   <Link
                     key={reg.id}
                     href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=INFO`}
-                    className="group flex flex-col rounded-none border border-[var(--border-subtle)] bg-gradient-to-b from-[var(--bg-card)] to-[var(--bg-primary)] p-8 transition-all hover:border-accent/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden"
+                    className="group flex flex-col rounded-none border border-[var(--border-subtle)] bg-gradient-to-b from-[var(--bg-card)] to-[var(--bg-primary)] p-8 transition-ui hover:border-accent/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden"
                   >
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-ui duration-500">
                       <FileCode2 className="w-24 h-24 text-accent" />
                     </div>
 
@@ -538,7 +538,7 @@ export default function HackathonsPage() {
                 </p>
                 <button
                   onClick={() => setActiveTab("browse")}
-                  className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold text-sm hover:scale-105 active:scale-95 transition-ui shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
                 >
                   Browse Hackathons <ArrowRight className="w-4 h-4" />
                 </button>
@@ -564,7 +564,7 @@ export default function HackathonsPage() {
                 </p>
                 <button
                   onClick={() => setActiveTab("browse")}
-                  className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold text-sm hover:scale-105 active:scale-95 transition-ui shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
                 >
                   Find a Hackathon <ArrowRight className="w-4 h-4" />
                 </button>
@@ -574,7 +574,7 @@ export default function HackathonsPage() {
                 {projects.map((project) => (
                   <div
                     key={project.id}
-                    className="group relative overflow-hidden rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-8 hover:border-accent/40 transition-all shadow-lg hover:shadow-[0_0_40px_rgba(16,185,129,0.1)]"
+                    className="group relative overflow-hidden rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-8 hover:border-accent/40 transition-ui shadow-lg hover:shadow-[0_0_40px_rgba(16,185,129,0.1)]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -604,7 +604,7 @@ export default function HackathonsPage() {
                           <Link
                             href={project.githubUrl}
                             target="_blank"
-                            className="px-5 py-2.5 rounded-none bg-white/5 hover:bg-white/10 border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                            className="px-5 py-2.5 rounded-none bg-white/5 hover:bg-white/10 border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] transition-ui flex items-center gap-2 hover:scale-105 active:scale-95"
                           >
                             <FolderGit2 className="w-4 h-4" /> Source Code
                           </Link>
@@ -613,7 +613,7 @@ export default function HackathonsPage() {
                           <Link
                             href={project.demoUrl}
                             target="_blank"
-                            className="px-5 py-2.5 rounded-none bg-accent/10 hover:bg-accent/20 border border-accent/30 text-xs font-bold text-accent transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                            className="px-5 py-2.5 rounded-none bg-accent/10 hover:bg-accent/20 border border-accent/30 text-xs font-bold text-accent transition-ui flex items-center gap-2 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                           >
                             <Globe className="w-4 h-4" /> Live Demo
                           </Link>

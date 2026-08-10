@@ -119,7 +119,7 @@ export default function Dashboard() {
   }, [isAdmin, router]);
 
   if (status === "loading")
-    return <LoadingScreen message="Loading dashboard..." />;
+    return <LoadingScreen message="Loading dashboard…" />;
   if (!session) return null;
 
   const roleLabel = isAdmin
@@ -172,7 +172,7 @@ export default function Dashboard() {
           {/* Sign out */}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="self-start sm:self-auto px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-all text-xs font-bold uppercase tracking-widest"
+            className="self-start sm:self-auto px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
           >
             Sign Out
           </button>
@@ -216,12 +216,12 @@ export default function Dashboard() {
           {/* Hackathons — open to everyone, no membership needed */}
           {view === "hackathon" && (
           <Link href="/hackathons" className="group">
-            <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
+            <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-ui">
               <div className="flex items-center justify-between">
                 <div className="p-2.5 rounded-sm bg-accent/10 border border-accent/20 group-hover:bg-accent/20 transition-colors">
                   <Zap className="w-5 h-5 text-accent" />
                 </div>
-                <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-ui" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -240,12 +240,12 @@ export default function Dashboard() {
           {view === "club" &&
           (memberStatus?.isMember ? (
             <Link href="/club" className="group">
-              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-emerald-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-emerald-500/40 transition-ui">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
                     <QrCode className="w-5 h-5 text-emerald-500" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-emerald-500 group-hover:translate-x-1 transition-ui" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -283,12 +283,12 @@ export default function Dashboard() {
               what membership actually buys before paying for it. */}
           {view === "club" && (
             <Link href="/initiatives" className="group">
-              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-sky-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-sky-500/40 transition-ui">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-sky-500/10 border border-sky-500/20 group-hover:bg-sky-500/20 transition-colors">
                     <Rocket className="w-5 h-5 text-sky-400" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-sky-400 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-sky-400 group-hover:translate-x-1 transition-ui" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -306,12 +306,12 @@ export default function Dashboard() {
           {/* Judge Portal — judges only */}
           {isJudge && (
             <Link href="/judge" className="group">
-              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-purple-500/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-purple-500/40 transition-ui">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-purple-500/10 border border-purple-500/20 group-hover:bg-purple-500/20 transition-colors">
                     <Gavel className="w-5 h-5 text-purple-400" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-purple-400 group-hover:translate-x-1 transition-ui" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -328,12 +328,12 @@ export default function Dashboard() {
           {/* Admin Panel — admins only */}
           {isAdmin && (
             <Link href="/admin" className="group">
-              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-all">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-accent/40 transition-ui">
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-sm bg-accent/10 border border-accent/20 group-hover:bg-accent/20 transition-colors">
                     <Shield className="w-5 h-5 text-accent" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-accent group-hover:translate-x-1 transition-ui" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -442,7 +442,7 @@ export default function Dashboard() {
                   href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=SCHEDULE`}
                   className="group block"
                 >
-                  <LiquidGlass printed holographic className="p-5 flex flex-col gap-3 hover:border-accent/40 transition-all h-full">
+                  <LiquidGlass printed holographic className="p-5 flex flex-col gap-3 hover:border-accent/40 transition-ui h-full">
                     <div className="flex items-start justify-between gap-3">
                       <h4 className="font-bold text-[var(--text-primary)] group-hover:text-accent transition-colors leading-tight text-sm">
                         {reg.hackathon.name}
@@ -458,7 +458,7 @@ export default function Dashboard() {
                       <span>
                         {reg.team ? `Team: ${reg.team.name}` : "No team yet"}
                       </span>
-                      <span className="flex items-center gap-1 font-semibold text-accent group-hover:gap-2 transition-all">
+                      <span className="flex items-center gap-1 font-semibold text-accent group-hover:gap-2 transition-ui">
                         View <ArrowRight className="w-3 h-3" />
                       </span>
                     </div>

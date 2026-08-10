@@ -74,12 +74,14 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
           disabled={busy}
           className="px-8 py-4 bg-accent text-black font-black text-xs uppercase tracking-widest rounded-none hover:bg-accent/90 transition-colors disabled:opacity-40"
         >
-          {busy ? "Checking in..." : "Scan Member Pass"}
+          {busy ? "Checking in…" : "Scan Member Pass"}
         </button>
 
         <div className="mt-6 flex gap-2">
           <input
             type="email"
+            autoComplete="email"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {

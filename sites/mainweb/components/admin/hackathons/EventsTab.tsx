@@ -264,7 +264,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
-                placeholder="Optional description..."
+                placeholder="Optional description…"
                 rows={2}
                 className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors resize-none"
               />
@@ -348,7 +348,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-bold text-sm rounded-none active:scale-[0.98] transition-transform disabled:opacity-50 shadow-[4px_4px_0_0_var(--accent)]"
               >
                 {isPending
-                  ? "Saving..."
+                  ? "Saving…"
                   : editingId
                     ? "Save Changes"
                     : "Create Event"}
@@ -519,7 +519,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                             className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold rounded-none hover:bg-red-500/30 transition-colors disabled:opacity-50"
                           >
                             {deleteMutation.isPending
-                              ? "..."
+                              ? "…"
                               : deleteBlocked
                                 ? "Delete anyway"
                                 : "Confirm"}

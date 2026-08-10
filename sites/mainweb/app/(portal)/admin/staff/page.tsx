@@ -77,7 +77,7 @@ export default function StaffPage() {
     onError: (e) => setError(e.message),
   });
 
-  if (contextLoading) return <LoadingScreen message="Loading..." />;
+  if (contextLoading) return <LoadingScreen message="Loading…" />;
 
   // Granting a role is super-admin only server-side; saying so beats rendering
   // a form whose every button is refused.
@@ -121,6 +121,8 @@ export default function StaffPage() {
             <input
               id="staff-email"
               type="email"
+              autoComplete="email"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="them@gatech.edu"

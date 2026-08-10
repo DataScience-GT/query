@@ -339,7 +339,7 @@ export function HackathonCard({
               disabled={deleteMutation.isPending}
               className="whitespace-nowrap px-6 py-3.5 border border-red-500/20 text-red-400 text-base font-semibold rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-50"
             >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? "Deleting…" : "Delete"}
             </button>
 
             <Link

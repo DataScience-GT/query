@@ -464,7 +464,7 @@ export function EditHackathonForm({
                 disabled={updateMutation.isPending}
                 className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] disabled:opacity-50"
               >
-                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                {updateMutation.isPending ? "Saving…" : "Save Changes"}
               </button>
               <button
                 type="button"

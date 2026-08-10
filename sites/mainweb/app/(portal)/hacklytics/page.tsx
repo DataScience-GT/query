@@ -82,7 +82,7 @@ function Field({
 }
 
 const inputClass =
-  "w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-[var(--text-muted)]/50 transition-all";
+  "w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-[var(--text-muted)]/50 transition-ui";
 
 export default function HacklyticsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -149,7 +149,7 @@ export default function HacklyticsPage() {
           <button
             type="button"
             onClick={() => upcoming.refetch()}
-            className="mt-4 px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all"
+            className="mt-4 px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-ui"
           >
             Try again
           </button>
@@ -253,7 +253,7 @@ export default function HacklyticsPage() {
               </p>
               <Link
                 href={`/hackathons/${event.id}`}
-                className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-all"
+                className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui"
               >
                 Register now
               </Link>
@@ -272,7 +272,7 @@ export default function HacklyticsPage() {
               </p>
               <Link
                 href="/login?callbackUrl=/hacklytics"
-                className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-all"
+                className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui"
               >
                 Sign in to join the list
               </Link>
@@ -377,7 +377,7 @@ export default function HacklyticsPage() {
                     <button
                       type="submit"
                       disabled={busy}
-                      className="px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-all disabled:opacity-40"
+                      className="px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui disabled:opacity-40"
                     >
                       {busy
                         ? "Saving…"
@@ -393,7 +393,7 @@ export default function HacklyticsPage() {
                           setError("");
                         }}
                         disabled={busy}
-                        className="px-6 py-4 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all disabled:opacity-40"
+                        className="px-6 py-4 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-ui disabled:opacity-40"
                       >
                         Cancel
                       </button>
@@ -405,7 +405,7 @@ export default function HacklyticsPage() {
                   <button
                     type="button"
                     onClick={() => setEditing(true)}
-                    className="px-6 py-4 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-all"
+                    className="px-6 py-4 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-ui"
                   >
                     Edit my answers
                   </button>
@@ -415,7 +415,7 @@ export default function HacklyticsPage() {
                       hackathonId && leave.mutate({ hackathonId })
                     }
                     disabled={busy}
-                    className="px-6 py-4 text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:text-rose-400 transition-all disabled:opacity-40"
+                    className="px-6 py-4 text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:text-rose-400 transition-ui disabled:opacity-40"
                   >
                     {leave.isPending ? "Leaving…" : "Take me off the list"}
                   </button>

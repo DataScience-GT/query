@@ -38,7 +38,7 @@ export default function AdminHackathonDashboard() {
   );
 
   if (status === "loading" || portalLoading || isLoading || !portalContext?.isAdmin) {
-    return <LoadingScreen message="Loading..." />;
+    return <LoadingScreen message="Loading…" />;
   }
 
   if (!hackathon) return null;
@@ -111,7 +111,7 @@ export default function AdminHackathonDashboard() {
                   Hackathons
                 </span>
               </Link>
-              <h1 className="relative text-lg md:text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight italic truncate group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-all duration-300">
+              <h1 className="relative text-lg md:text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight italic truncate group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-300">
                 {hackathon.name}
                 {/* Animated underline */}
                 <div className="absolute -bottom-2 left-0 right-0 h-[2px] bg-gradient-to-r from-accent/50 via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -124,7 +124,7 @@ export default function AdminHackathonDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("scanner")}
-                  className="group relative px-4 py-2 rounded-none bg-gradient-to-r from-accent/15 to-emerald-500/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/25 active:scale-95 transition-all overflow-hidden"
+                  className="group relative px-4 py-2 rounded-none bg-gradient-to-r from-accent/15 to-emerald-500/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/25 active:scale-95 transition-ui overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   <span className="relative flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function AdminHackathonDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`group relative flex-1 min-h-[56px] flex items-center justify-center gap-3 px-4 py-4 text-sm font-bold uppercase tracking-widest transition-all border-b-2 ${
+              className={`group relative flex-1 min-h-[56px] flex items-center justify-center gap-3 px-4 py-4 text-sm font-bold uppercase tracking-widest transition-ui border-b-2 ${
                 activeTab === tab.id
                   ? "border-accent text-[var(--text-primary)] bg-white/[0.02]"
                   : "border-transparent text-text-muted hover:text-gray-300 hover:bg-white/[0.02]"
@@ -227,7 +227,7 @@ export default function AdminHackathonDashboard() {
 
             {/* Icon container with hover effects */}
             <div
-              className={`p-2 rounded-none transition-all duration-300 ${activeTab === tab.id ? "bg-accent/10 scale-110" : "group-hover:bg-white/5"}`}
+              className={`p-2 rounded-none transition-ui duration-300 ${activeTab === tab.id ? "bg-accent/10 scale-110" : "group-hover:bg-white/5"}`}
             >
               {tab.icon}
             </div>

@@ -94,13 +94,13 @@ export default function ProjectsPage() {
         </div>
 
         {/* Page Header - Enhanced */}
-        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/12 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
+        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/12 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <Zap className="w-3 h-3" /> Hackathon Hub
           </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-all duration-500">
+          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-ui duration-500">
             Projects{" "}
             <span className="text-accent italic font-bold">Manager</span>
           </h1>
@@ -114,11 +114,12 @@ export default function ProjectsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none p-1">
               <select
+                aria-label="Filter projects by hackathon"
                 value={selectedHackathon || ""}
                 onChange={(e) => setSelectedHackathon(e.target.value || null)}
                 className="bg-transparent text-[var(--text-primary)] text-sm font-medium px-4 py-2 focus:outline-none cursor-pointer"
               >
-                <option value="">Select a hackathon...</option>
+                <option value="">Select a hackathon…</option>
                 {hackathonList?.map((h) => (
                   <option key={h.id} value={h.id}>
                     {h.name}
@@ -177,7 +178,7 @@ export default function ProjectsPage() {
                 {projects.map((project) => (
                   <LiquidGlass
                     key={project.id}
-                    className="p-5 hover:border-accent/30 transition-all group"
+                    className="p-5 hover:border-accent/30 transition-ui group"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -258,7 +259,7 @@ export default function ProjectsPage() {
                             }
                             className="px-3 py-2 bg-accent/10 border border-accent/30 text-accent text-[10px] font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors disabled:opacity-40"
                           >
-                            {updateProject.isPending ? "Saving..." : "Save"}
+                            {updateProject.isPending ? "Saving…" : "Save"}
                           </button>
                           <button
                             type="button"

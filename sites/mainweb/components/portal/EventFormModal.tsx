@@ -119,7 +119,7 @@ export function EventFormModal({
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui resize-none font-mono"
             rows={3}
-            placeholder="System details..."
+            placeholder="System details…"
           />
         </div>
 
@@ -220,7 +220,7 @@ export function EventFormModal({
           className="w-full px-8 py-5 bg-accent text-black font-black text-base uppercase tracking-[0.2em] hover:bg-accent/90 transition-ui disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(16,185,129,0.3)] mt-6 rounded-none"
         >
           {isSubmitting
-            ? "Processing..."
+            ? "Processing…"
             : mode === "edit"
               ? "SAVE CHANGES"
               : "INITIALIZE EVENT"}

@@ -409,7 +409,7 @@ export function AttendeesTab({
             {matching === 0
               ? "No matching registrations"
               : `Showing ${page * PAGE_SIZE + 1}-${page * PAGE_SIZE + filteredAttendees.length} of ${matching}`}
-            {isFetching && " • updating..."}
+            {isFetching && " • updating…"}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -449,7 +449,7 @@ export function AttendeesTab({
                 className="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent rounded-none text-xs font-bold uppercase tracking-wider hover:bg-accent/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Mail className="w-3 h-3" />{" "}
-                {emailSending ? "Sending..." : "Accept + Email"}
+                {emailSending ? "Sending…" : "Accept + Email"}
               </button>
             </div>
           )}
@@ -472,7 +472,7 @@ export function AttendeesTab({
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            {exporting ? "Exporting..." : "Export CSV"}
+            {exporting ? "Exporting…" : "Export CSV"}
           </button>
         </div>
       </div>
@@ -537,7 +537,7 @@ export function AttendeesTab({
         <input
           type="search"
           aria-label="Search attendees"
-          placeholder="Search by name, email, school, major, or response..."
+          placeholder="Search by name, email, school, major, or response…"
           value={searchQuery}
           onChange={(e) => changeSearch(e.target.value)}
           className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"

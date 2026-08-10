@@ -495,6 +495,7 @@ export function InfoTab({
                     label="Phone Number"
                     required
                     type="tel"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="(555) 123-4567"
@@ -557,7 +558,7 @@ export function InfoTab({
                   value={school}
                   onChange={setSchool}
                   options={SCHOOLS}
-                  placeholder="Start typing to search schools..."
+                  placeholder="Start typing to search schools…"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <SearchableSelect
@@ -566,7 +567,7 @@ export function InfoTab({
                     value={major}
                     onChange={setMajor}
                     options={MAJORS}
-                    placeholder="Start typing to search majors..."
+                    placeholder="Start typing to search majors…"
                   />
                   <FormInput
                     label="Graduation Year"
@@ -625,7 +626,7 @@ export function InfoTab({
                   label="Why do you want to attend?"
                   value={whyAttend}
                   onChange={(e) => setWhyAttend(e.target.value)}
-                  placeholder="Tell us what excites you about this hackathon..."
+                  placeholder="Tell us what excites you about this hackathon…"
                   maxLength={2000}
                   rows={4}
                 />
@@ -635,21 +636,21 @@ export function InfoTab({
                     type="url"
                     value={resumeUrl}
                     onChange={(e) => setResumeUrl(e.target.value)}
-                    placeholder="https://..."
+                    placeholder="https://…"
                   />
                   <FormInput
                     label="LinkedIn"
                     type="url"
                     value={linkedinUrl}
                     onChange={(e) => setLinkedinUrl(e.target.value)}
-                    placeholder="https://linkedin.com/in/..."
+                    placeholder="https://linkedin.com/in/…"
                   />
                   <FormInput
                     label="GitHub"
                     type="url"
                     value={githubUrl}
                     onChange={(e) => setGithubUrl(e.target.value)}
-                    placeholder="https://github.com/..."
+                    placeholder="https://github.com/…"
                   />
                 </div>
               </StepContainer>
@@ -681,6 +682,7 @@ export function InfoTab({
                   <FormInput
                     label="Emergency Phone"
                     type="tel"
+                    autoComplete="tel"
                     value={emergencyPhone}
                     onChange={(e) => setEmergencyPhone(e.target.value)}
                     placeholder="(555) 123-4567"

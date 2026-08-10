@@ -219,7 +219,7 @@ export function TeamsTab({
                 className="px-5 py-2.5 rounded-none bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {leaveTeam.isPending
-                  ? "Leaving..."
+                  ? "Leaving…"
                   : canLeave
                     ? "Leave Team"
                     : "Teams Locked"}
@@ -337,7 +337,7 @@ export function TeamsTab({
                   disabled={!teamName.trim() || createTeam.isPending}
                   className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
                 >
-                  {createTeam.isPending ? "Processing..." : "Create Team"}
+                  {createTeam.isPending ? "Processing…" : "Create Team"}
                 </button>
                 <button
                   type="button"
@@ -491,7 +491,7 @@ export function TeamsTab({
                       className="flex-shrink-0 group/btn px-6 py-3 rounded-none bg-accent/10 border border-accent/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-ui disabled:opacity-50 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                     >
                       <span className="text-accent font-bold text-xs uppercase tracking-widest group-hover/btn:text-emerald-300 transition-colors">
-                        {joinTeam.isPending ? "Joining..." : "Join Team"}
+                        {joinTeam.isPending ? "Joining…" : "Join Team"}
                       </span>
                     </button>
                   )}

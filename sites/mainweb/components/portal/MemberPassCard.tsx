@@ -65,7 +65,7 @@ export function MemberPassCard() {
                   disabled={rotate.isPending}
                   className="px-4 py-2 border border-red-500/20 text-red-400 text-[10px] font-mono uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
                 >
-                  {rotate.isPending ? "Rotating..." : "Confirm"}
+                  {rotate.isPending ? "Rotating…" : "Confirm"}
                 </button>
                 <button
                   type="button"

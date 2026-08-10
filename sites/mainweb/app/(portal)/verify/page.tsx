@@ -143,7 +143,7 @@ function VerifyContent() {
           </svg>
         </div>
 
-        <div className="relative w-24 h-24 rounded-sm bg-gradient-to-br from-accent/15 to-accent/10 border border-accent/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(16,185,129,0.15)] group hover:border-accent/50 hover:shadow-[0_0_50px_rgba(16,185,129,0.25)] transition-all duration-300">
+        <div className="relative w-24 h-24 rounded-sm bg-gradient-to-br from-accent/15 to-accent/10 border border-accent/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(16,185,129,0.15)] group hover:border-accent/50 hover:shadow-[0_0_50px_rgba(16,185,129,0.25)] transition-ui duration-300">
           {/* Icon glow */}
           <div className="absolute inset-0 rounded-sm bg-accent/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
           <svg
@@ -216,6 +216,9 @@ function VerifyContent() {
               }}
               type="text"
               inputMode="numeric"
+              // Six boxes with no labels read as six unnamed fields. The first
+              // also takes the pasted code, which is how most people enter it.
+              aria-label={`Verification code, digit ${i + 1} of ${code.length}`}
               maxLength={1}
               value={digit}
               onChange={(e) => handleChange(i, e.target.value)}
@@ -224,7 +227,7 @@ function VerifyContent() {
               className={`
                                 w-12 h-14 sm:w-14 sm:h-18 text-center text-xl sm:text-2xl font-mono font-black
                                 bg-[var(--bg-primary)]/40 border-[1.5px] rounded-none
-                                text-[var(--text-primary)] focus:outline-none transition-all duration-300
+                                text-[var(--text-primary)] focus:outline-none transition-ui duration-300
                                 ${
                                   error
                                     ? "border-red-500/50 focus:border-red-500 focus:bg-red-500/5 text-red-500"
@@ -252,14 +255,14 @@ function VerifyContent() {
         <button
           onClick={() => handleSubmit(code.join(""))}
           disabled={verifying || code.some((d) => d === "")}
-          className="group relative w-full sm:w-auto px-14 py-5 bg-gradient-to-r from-accent to-accent text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-all duration-300 rounded-none shadow-[0_0_30px_rgba(16,185,129,0.2)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 overflow-hidden"
+          className="group relative w-full sm:w-auto px-14 py-5 bg-gradient-to-r from-accent to-accent text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-ui duration-300 rounded-none shadow-[0_0_30px_rgba(16,185,129,0.2)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 overflow-hidden"
         >
           {/* Button shine effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
           <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-opacity duration-300" />
           <span className="relative flex items-center justify-center gap-2">
             <svg
-              className="w-4 h-4 flex-shrink-0 group-hover:animate-bounce"
+              className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:translate-y-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -271,7 +274,7 @@ function VerifyContent() {
                 d="M14 5l7 7m0 0l-7 7m7-7H3"
               />
             </svg>
-            {verifying ? "VERIFYING..." : "VERIFY CODE"}
+            {verifying ? "VERIFYING…" : "VERIFY CODE"}
           </span>
         </button>
 

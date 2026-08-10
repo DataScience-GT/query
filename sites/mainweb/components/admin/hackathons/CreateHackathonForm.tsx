@@ -366,7 +366,7 @@ export function CreateHackathonForm({
             disabled={createMutation.isPending}
             className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] disabled:opacity-50"
           >
-            {createMutation.isPending ? "Creating..." : "Create Hackathon"}
+            {createMutation.isPending ? "Creating…" : "Create Hackathon"}
           </button>
           <button
             type="button"

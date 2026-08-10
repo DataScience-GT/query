@@ -104,7 +104,10 @@ export async function fetchPortalContext(
   db: DrizzleDB,
   userId: string,
 ): Promise<PortalContext> {
-  const [admin, judgeRecord, leaderRecord] = await Promise.all([
+  // All four in one round trip. The member read used to run after the batch
+  // even though it depends on nothing in it, which made every portal page wait
+  // two round trips for a context it could have had in one.
+  const [admin, judgeRecord, leaderRecord, memberRecord] = await Promise.all([
     db.query.admins.findFirst({
       where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
     }),
@@ -121,13 +124,21 @@ export async function fetchPortalContext(
       ),
       columns: { id: true },
     }),
+    // Membership no longer depends on an edition resolving, so the portal knows
+    // who is a member even when no hackathon is running.
+    db.query.members.findFirst({
+      where: eq(members.userId, userId),
+      // buildMemberContext reads four fields; the row carries the whole
+      // profile, including free-text bio and skills arrays.
+      columns: {
+        isActive: true,
+        membershipEndDate: true,
+        memberType: true,
+        renewalCount: true,
+      },
+    }),
   ]);
 
-  // Membership no longer depends on an edition resolving, so the portal knows
-  // who is a member even when no hackathon is running.
-  const memberRecord = await db.query.members.findFirst({
-    where: eq(members.userId, userId),
-  });
   const member = buildMemberContext(memberRecord ?? null);
 
   const isProjectLeader = !!leaderRecord;

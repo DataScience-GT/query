@@ -159,7 +159,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (status === "loading") return <LoadingScreen message="Loading settings..." />;
+  if (status === "loading") return <LoadingScreen message="Loading settings…" />;
   if (!session) return null;
 
   const tabs = [
@@ -200,7 +200,7 @@ export default function SettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex flex-col items-start p-4 rounded-sm transition-all duration-200 ${
+                className={`w-full flex flex-col items-start p-4 rounded-sm transition-ui duration-200 ${
                   activeTab === tab.id
                     ? "bg-accent/10 border border-accent/25 text-[var(--text-primary)]"
                     : "bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-medium)]"
@@ -223,8 +223,9 @@ export default function SettingsPage() {
                 <div className="space-y-8 animate-in fade-in duration-200">
                   {/* Avatar */}
                   <div className="flex items-center gap-5">
-                    <label className="relative flex-shrink-0 cursor-pointer group">
+                    <label htmlFor="avatar-upload" className="relative flex-shrink-0 cursor-pointer group">
                       <input
+                      id="avatar-upload"
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         className="hidden"
@@ -266,25 +267,29 @@ export default function SettingsPage() {
                   <div className="border-t border-[var(--border-subtle)] pt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                     {/* Display Name */}
                     <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                      <label htmlFor="display-name" className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                         <User className="w-3.5 h-3.5" /> Display Name
                       </label>
                       <input
+                        id="display-name"
                         type="text"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         placeholder="Your full name"
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui text-sm"
                       />
                     </div>
 
                     {/* Email (read-only from Google) */}
                     <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                      <label htmlFor="email" className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                         <Mail className="w-3.5 h-3.5" /> Email
                       </label>
                       <input
+                        id="email"
                         type="email"
+                        autoComplete="email"
+                        spellCheck={false}
                         value={userData?.email || ""}
                         readOnly
                         className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-muted)] cursor-not-allowed text-sm"
@@ -296,44 +301,47 @@ export default function SettingsPage() {
 
                     {/* Location */}
                     <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                      <label htmlFor="location" className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                         <MapPin className="w-3.5 h-3.5" /> Location
                       </label>
                       <input
+                        id="location"
                         type="text"
                         value={form.location}
                         onChange={(e) => setForm({ ...form, location: e.target.value })}
                         placeholder="City, State"
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui text-sm"
                       />
                     </div>
 
                     {/* Website */}
                     <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                      <label htmlFor="website" className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                         <Globe className="w-3.5 h-3.5" /> Website
                       </label>
                       <input
+                        id="website"
                         type="url"
                         value={form.website}
                         onChange={(e) => setForm({ ...form, website: e.target.value })}
                         placeholder="https://yoursite.com"
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui text-sm"
                       />
                     </div>
                   </div>
 
                   {/* Bio */}
                   <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                    <label htmlFor="bio" className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                       <FileText className="w-3.5 h-3.5" /> Bio
                     </label>
                     <textarea
+                      id="bio"
                       value={form.bio}
                       onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                      placeholder="A short bio about yourself..."
+                      placeholder="A short bio about yourself…"
                       rows={4}
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm resize-none"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui text-sm resize-none"
                     />
                   </div>
 
@@ -351,7 +359,7 @@ export default function SettingsPage() {
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-accent-secondary transition-all disabled:opacity-50"
+                      className="flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-accent-secondary transition-ui disabled:opacity-50"
                     >
                       {isSaving ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-sm animate-spin" />
@@ -380,7 +388,7 @@ export default function SettingsPage() {
                       {/* Dark Mode */}
                       <button
                         onClick={() => setTheme("dark")}
-                        className={`group relative flex flex-col items-center gap-3 p-6 rounded-sm border-2 transition-all duration-200 ${
+                        className={`group relative flex flex-col items-center gap-3 p-6 rounded-sm border-2 transition-ui duration-200 ${
                           theme === "dark"
                             ? "border-accent bg-accent/10"
                             : "border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--border-medium)]"
@@ -405,7 +413,7 @@ export default function SettingsPage() {
                       {/* Light Mode */}
                       <button
                         onClick={() => setTheme("light")}
-                        className={`group relative flex flex-col items-center gap-3 p-6 rounded-sm border-2 transition-all duration-200 ${
+                        className={`group relative flex flex-col items-center gap-3 p-6 rounded-sm border-2 transition-ui duration-200 ${
                           theme === "light"
                             ? "border-accent bg-accent/10"
                             : "border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--border-medium)]"
@@ -457,14 +465,14 @@ export default function SettingsPage() {
                   {/* User ID */}
                   <div className="p-4 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
                     <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">User ID</p>
-                    <p className="text-sm font-mono text-[var(--text-subtle)] break-all">{userData?.id || "..."}</p>
+                    <p className="text-sm font-mono text-[var(--text-subtle)] break-all">{userData?.id || "…"}</p>
                   </div>
 
                   {/* Sign Out */}
                   <div className="pt-2 border-t border-[var(--border-subtle)]">
                     <button
                       onClick={() => signOut({ callbackUrl: "/login" })}
-                      className="flex items-center gap-3 px-5 py-3 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-all text-sm font-bold uppercase tracking-widest"
+                      className="flex items-center gap-3 px-5 py-3 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-sm font-bold uppercase tracking-widest"
                     >
                       <LogOut className="w-4 h-4" /> Sign Out
                     </button>

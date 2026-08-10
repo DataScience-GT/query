@@ -97,7 +97,7 @@ function ProposalRow({
             maxLength={1000}
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Too close to an existing initiative, needs a clearer scope, ..."
+            placeholder="Too close to an existing initiative, needs a clearer scope, …"
             className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
           />
           <button
@@ -224,7 +224,7 @@ export default function AdminInitiativesPage() {
             disabled={setLeader.isPending}
             className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
           >
-            {setLeader.isPending ? "Saving..." : "Make leader"}
+            {setLeader.isPending ? "Saving…" : "Make leader"}
           </button>
         </form>
 

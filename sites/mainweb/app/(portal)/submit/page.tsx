@@ -227,7 +227,7 @@ function SubmitPortalContent() {
   ]);
 
   if (status === "loading" || loadingRegs) {
-    return <LoadingScreen message="Initializing Workspace..." />;
+    return <LoadingScreen message="Initializing Workspace…" />;
   }
 
   if (!session) {
@@ -258,12 +258,12 @@ function SubmitPortalContent() {
         <div className="w-full flex justify-between items-center mb-12 group">
           <Link
             href="/dashboard"
-            className="text-text-muted hover:text-accent transition-all duration-300 font-mono text-xs tracking-widest uppercase flex items-center gap-2 group-hover:pl-2"
+            className="text-text-muted hover:text-accent transition-ui duration-300 font-mono text-xs tracking-widest uppercase flex items-center gap-2 group-hover:pl-2"
           >
             <span className="text-lg transition-transform duration-300 group-hover:-translate-x-1">
               ←
             </span>
-            <span className="bg-gradient-to-r from-gray-400 to-white bg-clip-text text-transparent group-hover:from-white group-hover:to-emerald-300 transition-all">
+            <span className="bg-gradient-to-r from-gray-400 to-white bg-clip-text text-transparent group-hover:from-white group-hover:to-emerald-300 transition-ui">
               Central Gateway
             </span>
           </Link>
@@ -287,7 +287,7 @@ function SubmitPortalContent() {
           </div>
 
           {!myRegs || myRegs.length === 0 ? (
-            <LiquidGlass className="p-12 text-center border-orange-500/20 transition-all duration-500 hover:border-orange-400/30 hover:bg-orange-500/5">
+            <LiquidGlass className="p-12 text-center border-orange-500/20 transition-ui duration-500 hover:border-orange-400/30 hover:bg-orange-500/5">
               <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-4 animate-in fade-in slide-in-from-bottom-4">
                 No Active Registrations
               </h3>
@@ -297,7 +297,7 @@ function SubmitPortalContent() {
               </p>
               <Link
                 href="/hackathons"
-                className="px-8 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold rounded-none hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300"
+                className="px-8 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold rounded-none hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-ui duration-300"
               >
                 Browse Hackathons
               </Link>
@@ -308,10 +308,11 @@ function SubmitPortalContent() {
               <div className="lg:col-span-4 space-y-8">
                 <LiquidGlass className="p-6">
                   <div className="space-y-2 mb-6">
-                    <label className="text-[10px] font-mono text-text-muted uppercase tracking-widest font-bold ml-1">
+                    <label htmlFor="event-context" className="text-[10px] font-mono text-text-muted uppercase tracking-widest font-bold ml-1">
                       Context: Event
                     </label>
                     <select
+                      id="event-context"
                       className="w-full bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors"
                       value={selectedHackathonId}
                       onChange={(e) => {
@@ -378,7 +379,7 @@ function SubmitPortalContent() {
                               className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
                             >
                               {disbandTeam.isPending
-                                ? "Disbanding..."
+                                ? "Disbanding…"
                                 : "Disband Team"}
                             </button>
                             {!canLeaveTeam && (
@@ -399,7 +400,7 @@ function SubmitPortalContent() {
                               disabled={leaveTeam.isPending || !canLeaveTeam}
                               className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
                             >
-                              {leaveTeam.isPending ? "Leaving..." : "Leave Team"}
+                              {leaveTeam.isPending ? "Leaving…" : "Leave Team"}
                             </button>
                             {!canLeaveTeam && (
                               <p className="text-[10px] font-mono text-text-muted">
@@ -447,10 +448,10 @@ function SubmitPortalContent() {
                             });
                           }}
                           disabled={createTeam.isPending || !teamsOpen}
-                          className="w-full py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-white/10 transition-all font-mono disabled:opacity-40"
+                          className="w-full py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-white/10 transition-ui font-mono disabled:opacity-40"
                         >
                           {createTeam.isPending
-                            ? "Deploying..."
+                            ? "Deploying…"
                             : "Create Team"}
                         </button>
                       </div>
@@ -466,7 +467,7 @@ function SubmitPortalContent() {
                       <div className="space-y-3">
                         <input
                           type="text"
-                          placeholder="Paste Invite ID..."
+                          placeholder="Paste Invite ID…"
                           value={joinTeamId}
                           onChange={(e) => setJoinTeamId(e.target.value)}
                           className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
@@ -483,9 +484,9 @@ function SubmitPortalContent() {
                             joinTeamId.trim().length === 0 ||
                             !teamsOpen
                           }
-                          className="w-full py-3 bg-white/5 text-[var(--text-muted)] text-xs uppercase tracking-widest rounded-none hover:bg-white/10 hover:text-[var(--text-primary)] transition-all font-mono disabled:opacity-40"
+                          className="w-full py-3 bg-white/5 text-[var(--text-muted)] text-xs uppercase tracking-widest rounded-none hover:bg-white/10 hover:text-[var(--text-primary)] transition-ui font-mono disabled:opacity-40"
                         >
-                          {joinTeam.isPending ? "Syncing..." : "Join Team"}
+                          {joinTeam.isPending ? "Syncing…" : "Join Team"}
                         </button>
                       </div>
                     </div>
@@ -495,7 +496,7 @@ function SubmitPortalContent() {
 
               {/* RIGHT ALCOVE - PROJECT SUBMISSION */}
               <div className="lg:col-span-8 flex flex-col">
-                <LiquidGlass className="p-8 md:p-12 relative overflow-hidden flex-1 border-t-2 border-accent/30 transition-all duration-500 hover:border-accent/50 hover:shadow-[inset_0_0_50px_rgba(16,185,129,0.05)]">
+                <LiquidGlass className="p-8 md:p-12 relative overflow-hidden flex-1 border-t-2 border-accent/30 transition-ui duration-500 hover:border-accent/50 hover:shadow-[inset_0_0_50px_rgba(16,185,129,0.05)]">
                   <div className="absolute top-0 right-0 p-8 opacity-5">
                     <svg
                       className="w-48 h-48 text-accent"
@@ -601,28 +602,30 @@ function SubmitPortalContent() {
                     {/* Name & Desc */}
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
+                        <label htmlFor="project-name" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
                           Code Name <span className="text-accent">*</span>
                         </label>
                         <input
+                          id="project-name"
                           type="text"
                           required
                           value={projectName}
                           onChange={(e) => setProjectName(e.target.value)}
                           placeholder="Project Apollo"
-                          className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-all duration-300 focus:shadow-[4px_4px_0_0_var(--accent)] hover:border-white/20 group"
+                          className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-ui duration-300 focus:shadow-[4px_4px_0_0_var(--accent)] hover:border-white/20 group"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
+                        <label htmlFor="project-description" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
                           Mission Briefing{" "}
                           <span className="text-accent">*</span>
                         </label>
                         <textarea
+                          id="project-description"
                           required
                           value={projectDesc}
                           onChange={(e) => setProjectDesc(e.target.value)}
-                          placeholder="Explain the problem you solved and how you built it..."
+                          placeholder="Explain the problem you solved and how you built it…"
                           rows={5}
                           className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors resize-none"
                         />
@@ -699,8 +702,9 @@ function SubmitPortalContent() {
                           </div>
                         )}
 
-                        <label className="flex items-center gap-3 text-xs font-mono text-gray-300 cursor-pointer">
+                        <label htmlFor="is-createx" className="flex items-center gap-3 text-xs font-mono text-gray-300 cursor-pointer">
                           <input
+                          id="is-createx"
                             type="checkbox"
                             checked={isCreateX}
                             onChange={(e) => setIsCreateX(e.target.checked)}
@@ -720,38 +724,41 @@ function SubmitPortalContent() {
 
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
+                          <label htmlFor="github-url" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
                             Repository (GitHub)
                           </label>
                           <input
+                            id="github-url"
                             type="url"
                             value={githubUrl}
                             onChange={(e) => setGithubUrl(e.target.value)}
-                            placeholder="https://github.com/..."
+                            placeholder="https://github.com/…"
                             className="w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
+                          <label htmlFor="video-url" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
                             Video Demo (YouTube)
                           </label>
                           <input
+                            id="video-url"
                             type="url"
                             value={videoUrl}
                             onChange={(e) => setVideoUrl(e.target.value)}
-                            placeholder="https://youtube.com/..."
+                            placeholder="https://youtube.com/…"
                             className="w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
+                          <label htmlFor="demo-url" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
                             Live Demo (Vercel, etc)
                           </label>
                           <input
+                            id="demo-url"
                             type="url"
                             value={demoUrl}
                             onChange={(e) => setDemoUrl(e.target.value)}
-                            placeholder="https://..."
+                            placeholder="https://…"
                             className="w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
                           />
                         </div>
@@ -778,21 +785,21 @@ function SubmitPortalContent() {
                           className="px-6 py-4 border border-red-500/30 text-red-400 font-mono text-xs uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
                         >
                           {withdrawProject.isPending
-                            ? "Withdrawing..."
+                            ? "Withdrawing…"
                             : "Withdraw Submission"}
                         </button>
                       )}
                       <button
                         type="submit"
                         disabled={submitProject.isPending}
-                        className={`px-10 py-5 font-black text-lg uppercase tracking-[0.2em] transition-all flex items-center gap-3 rounded-none shadow-[0_0_30px_rgba(16,185,129,0.2)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98] ${
+                        className={`px-10 py-5 font-black text-lg uppercase tracking-[0.2em] transition-ui flex items-center gap-3 rounded-none shadow-[0_0_30px_rgba(16,185,129,0.2)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98] ${
                           hasSubmitted
                             ? "bg-transparent border-2 border-accent text-accent hover:bg-accent hover:text-black"
                             : "bg-accent text-black hover:bg-white border-2 border-transparent"
                         }`}
                       >
                         {submitProject.isPending
-                          ? "UPLOADING..."
+                          ? "UPLOADING…"
                           : hasSubmitted
                             ? "UPDATE RECORD"
                             : "DEPLOY RECORD"}
@@ -826,7 +833,7 @@ function SubmitPortalContent() {
 
 export default function SubmitPortalPage() {
   return (
-    <Suspense fallback={<LoadingScreen message="Initializing Workspace..." />}>
+    <Suspense fallback={<LoadingScreen message="Initializing Workspace…" />}>
       <SubmitPortalContent />
     </Suspense>
   );

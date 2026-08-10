@@ -105,37 +105,23 @@ export default function PortalSidebar({
       name: "Judge Portal",
       href: "/judge",
       icon: ClipboardList,
-      // Staff who are also judges see this too. Organisers judge at their own
-      // events, and hiding it from admins left them with no route in at all —
-      // the page worked, they just had to know the URL.
-      show: portalContext?.isJudge,
+      // Admins get this in the admin nav instead, so their sidebar stays
+      // admin-only.
+      show: portalContext?.isJudge && !portalContext?.isAdmin,
     },
     {
       name: "Initiatives",
       href: "/initiatives",
       icon: Rocket,
-      // Shown to anyone signed in: somebody deciding whether to pay should be
-      // able to see what membership gets them. Applying is where the
-      // membership check bites, not browsing.
-      show: true,
+      // Somebody deciding whether to pay should be able to see what membership
+      // gets them. Applying is where the membership check bites, not browsing.
+      show: !portalContext?.isAdmin,
     },
     {
       name: "My Initiatives",
       href: "/lead",
       icon: Rocket,
-      // Admins too: /lead is the only screen that decides an initiative
-      // application, and isProjectLeader deliberately admits them so an absent
-      // leader does not strand their applicants.
-      show: portalContext?.isProjectLeader || portalContext?.isAdmin,
-    },
-    {
-      name: "Apply to Judge",
-      href: "/judge/register",
-      icon: ClipboardList,
-      // Non-judges reach this from the CTA on /judge, which admins only see
-      // once they are judges — so an organiser wanting to judge their own
-      // event had no route to the form at all.
-      show: portalContext?.isAdmin && !portalContext?.isJudge,
+      show: portalContext?.isProjectLeader && !portalContext?.isAdmin,
     },
     {
       name: "Settings",
@@ -154,6 +140,9 @@ export default function PortalSidebar({
     { name: "Judging Setup", href: "/admin/setup", icon: Upload },
     { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
     { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
+    // /lead is the only screen that decides an initiative application, and
+    // isProjectLeader admits admins so an absent leader cannot strand theirs.
+    { name: "Initiative Applications", href: "/lead", icon: Rocket },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
     { name: "Memberships", href: "/admin/members", icon: CreditCard },
     // Granting the volunteer tier is otherwise an INSERT against production,

@@ -63,10 +63,10 @@ export default function JudgeRegisterPage() {
   }, [authStatus, router]);
 
   if (authStatus === "loading" || authStatus === "unauthenticated") {
-    return <LoadingScreen message="Checking your session..." />;
+    return <LoadingScreen message="Checking your session…" />;
   }
 
-  if (isLoading) return <LoadingScreen message="Loading Hackathons..." />;
+  if (isLoading) return <LoadingScreen message="Loading Hackathons…" />;
 
   // `closed` belongs here: closing participant registration is the natural step
   // *before* recruiting judges, and leaving it out emptied this page with no
@@ -174,7 +174,7 @@ export default function JudgeRegisterPage() {
           </p>
           <Link
             href="/hackathons"
-            className="px-8 py-4 bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+            className="px-8 py-4 bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
           >
             Return to Hub
           </Link>
@@ -227,7 +227,7 @@ export default function JudgeRegisterPage() {
                     <button
                       key={h.id}
                       onClick={() => setHackathonId(h.id)}
-                      className={`text-left p-6 border rounded-none transition-all ${
+                      className={`text-left p-6 border rounded-none transition-ui ${
                         hackathonId === h.id
                           ? "bg-accent/10 border-accent/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
                           : "bg-[var(--bg-input)] border-[var(--border-subtle)] hover:border-white/20"
@@ -262,6 +262,8 @@ export default function JudgeRegisterPage() {
                   label="Email Address"
                   required
                   type="email"
+                  autoComplete="email"
+                  spellCheck={false}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jane@example.com"
@@ -308,21 +310,21 @@ export default function JudgeRegisterPage() {
                   type="url"
                   value={linkedinUrl}
                   onChange={(e) => setLinkedinUrl(e.target.value)}
-                  placeholder="https://linkedin.com/in/..."
+                  placeholder="https://linkedin.com/in/…"
                 />
                 <FormInput
                   label="GitHub URL"
                   type="url"
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
-                  placeholder="https://github.com/..."
+                  placeholder="https://github.com/…"
                 />
               </div>
               <FormTextarea
                 label="Previous Judging or Mentorship Experience"
                 value={previousExperience}
                 onChange={(e) => setPreviousExperience(e.target.value)}
-                placeholder="Have you judged hackathons or mentored students before? Please briefly describe..."
+                placeholder="Have you judged hackathons or mentored students before? Please briefly describe…"
                 rows={3}
               />
               <FormTextarea

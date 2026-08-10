@@ -423,7 +423,7 @@ export function FormNavigation({
           disabled={isSubmitting}
           className="w-full sm:w-auto px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
         >
-          {isSubmitting ? "Submitting..." : "Submit Application"}
+          {isSubmitting ? "Submitting…" : "Submit Application"}
         </button>
       )}
       <button

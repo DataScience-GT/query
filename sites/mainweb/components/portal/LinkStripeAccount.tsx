@@ -271,6 +271,8 @@ export default function LinkStripeAccount({
             <input
               id="payment-email"
               type="email"
+              autoComplete="email"
+              spellCheck={false}
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })

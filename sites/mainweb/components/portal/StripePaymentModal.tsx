@@ -351,7 +351,7 @@ export function StripePaymentModal({
             disabled={processing}
             className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-40"
           >
-            {processing ? "Recording..." : "Simulate Successful Payment"}
+            {processing ? "Recording…" : "Simulate Successful Payment"}
           </button>
           {error && (
             <p role="alert" className="text-xs font-mono text-red-400">

@@ -202,7 +202,7 @@ export default function Home() {
                 type="button"
                 onClick={handleSignIn}
                 disabled={emailSending || isRedirecting || status === "loading"}
-                className="group w-full sm:w-auto px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-gradient-to-r hover:from-accent hover:via-[#14b8a6] hover:to-accent hover:text-[var(--text-primary)] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)]"
+                className="group w-full sm:w-auto px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-gradient-to-r hover:from-accent hover:via-[#14b8a6] hover:to-accent hover:text-[var(--text-primary)] transition-ui active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)]"
               >
                 <span className="group-hover:underline decoration-2 underline-offset-4">
                   {isRedirecting ? "Authenticated" : "Sign in with Google"}
@@ -214,7 +214,7 @@ export default function Home() {
                   type="button"
                   onClick={handleGithubSignIn}
                   disabled={emailSending || isRedirecting || status === "loading"}
-                  className="group w-full sm:w-auto px-10 py-6 flex items-center justify-center gap-2.5 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="group w-full sm:w-auto px-10 py-6 flex items-center justify-center gap-2.5 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-ui active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg
                     aria-hidden="true"
@@ -235,7 +235,7 @@ export default function Home() {
                   disabled={
                     emailSending || isRedirecting || status === "loading"
                   }
-                  className="w-full sm:w-auto px-8 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-95 disabled:opacity-30"
+                  className="w-full sm:w-auto px-8 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-ui active:scale-95 disabled:opacity-30"
                 >
                   Email Login
                 </button>
@@ -244,6 +244,8 @@ export default function Home() {
                   <div className="flex w-full gap-3">
                   <input
                     type="email"
+                    autoComplete="email"
+                    spellCheck={false}
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
@@ -252,14 +254,14 @@ export default function Home() {
                     onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
                     placeholder="your@email.com"
                     disabled={emailSending || emailSent}
-                    className="flex-1 sm:w-56 px-5 py-6 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[11px] rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-gray-600 disabled:opacity-30 transition-all"
+                    className="flex-1 sm:w-56 px-5 py-6 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[11px] rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-gray-600 disabled:opacity-30 transition-ui"
                   />
                   <button
                     onClick={handleEmailLogin}
                     disabled={emailSending || emailSent || !email}
-                    className="px-6 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent/20 hover:border-accent/40 transition-all active:scale-95 disabled:opacity-30"
+                    className="px-6 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent/20 hover:border-accent/40 transition-ui active:scale-95 disabled:opacity-30"
                   >
-                    {emailSent ? "Sent" : emailSending ? "Sending..." : "Send"}
+                    {emailSent ? "Sent" : emailSending ? "Sending…" : "Send"}
                   </button>
                   </div>
                   {emailError && (
@@ -289,7 +291,7 @@ export default function Home() {
                 <img
                   src="/images/dsgt/apple-touch-icon.png"
                   alt="DSGT Logo"
-                  className="w-80 h-80 object-contain drop-shadow-[0_0_80px_rgba(16,185,129,0.3)] transition-all duration-700 group-hover:scale-110 group-hover:rotate-3"
+                  className="w-80 h-80 object-contain drop-shadow-[0_0_80px_rgba(16,185,129,0.3)] transition-ui duration-700 group-hover:scale-110 group-hover:rotate-3"
                 />
               </div>
 
@@ -299,7 +301,7 @@ export default function Home() {
                   {isRedirecting
                     ? "Handshake Verified"
                     : status === "loading"
-                      ? "Synchronizing..."
+                      ? "Synchronizing…"
                       : "Core Operational"}
                 </p>
                 <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">

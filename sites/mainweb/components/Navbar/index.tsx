@@ -75,7 +75,7 @@ export default function Navbar({
   type MenuItem = { name: string; to: string; link: boolean };
 
   const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
-    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer ${
+    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
       isMobile
         ? "text-gray-300 hover:text-white text-xl font-bold"
         : "text-gray-400 hover:text-[#00A8A8]"
@@ -114,7 +114,7 @@ export default function Navbar({
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-all ${className}`}
+        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-ui ${className}`}
       >
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
           {/* Logo Section */}
@@ -144,7 +144,7 @@ export default function Navbar({
               <Link
                 href="/login"
                 rel="noopener noreferrer"
-                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-all duration-300"
+                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
                 onClick={() => setMenuOpen(false)}
               >
                 Portal
@@ -157,13 +157,13 @@ export default function Navbar({
               aria-label="Toggle Menu"
             >
               <span
-                className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
+                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
               />
               <span
-                className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
+                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
               />
               <span
-                className={`block h-0.5 bg-white transition-all duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
+                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
               />
             </button>
           )}
@@ -171,7 +171,7 @@ export default function Navbar({
       </nav>
 
       <div
-        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-all duration-500 ease-in-out ${
+        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-ui duration-500 ease-in-out ${
           menuOpen
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none"

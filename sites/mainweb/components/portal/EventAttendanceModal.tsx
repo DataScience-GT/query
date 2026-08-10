@@ -88,6 +88,8 @@ export function EventAttendanceModal({
             <input
               id="attendance-email"
               type="email"
+              autoComplete="email"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => {
@@ -104,7 +106,7 @@ export function EventAttendanceModal({
               disabled={checkIn.isPending || email.trim().length === 0}
               className="px-6 py-3 bg-accent text-black font-black text-xs uppercase tracking-widest rounded-none hover:bg-accent/90 transition-ui disabled:opacity-40"
             >
-              {checkIn.isPending ? "..." : "Check In"}
+              {checkIn.isPending ? "…" : "Check In"}
             </button>
           </div>
           <p className="text-[10px] font-mono text-[var(--text-subtle)]">

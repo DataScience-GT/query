@@ -55,7 +55,7 @@ function AuthErrorContent() {
         <p className="text-xs font-mono text-text-muted uppercase tracking-[0.4em] mb-4">
           Status_Code: 401 // Type: {error || "Unknown"}
         </p>
-        <div className="h-[1px] w-12 bg-red-500/30 mx-auto transition-all group-hover:w-24" />
+        <div className="h-[1px] w-12 bg-red-500/30 mx-auto transition-ui group-hover:w-24" />
         <h2 className="text-xl font-bold text-gray-200 uppercase">{title}</h2>
         <p className="text-text-muted font-mono text-sm leading-relaxed lowercase">
           &gt; {desc}
@@ -65,7 +65,7 @@ function AuthErrorContent() {
       <div className="relative z-10 flex gap-4">
         <Link
           href="/login"
-          className="px-10 py-4 bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-xs uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white/20 transition-all rounded-none shadow-lg font-mono"
+          className="px-10 py-4 bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-xs uppercase tracking-[0.3em] hover:bg-white/10 hover:border-white/20 transition-ui rounded-none shadow-lg font-mono"
         >
           &lt; Return_To_Base
         </Link>
