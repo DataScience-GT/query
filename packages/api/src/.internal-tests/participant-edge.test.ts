@@ -1428,4 +1428,135 @@ describe("Participant edge cases", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
+
+  // =====================================================================
+  /**
+   * Joining a team after filing solo used to orphan the solo row: every
+   * participant-facing query resolves to the team's project once a teamId
+   * exists, so the solo one stayed `submitted`, stayed in the gallery, and was
+   * promoted into judging as a second entry nobody could withdraw.
+   */
+  describe("13. A live solo submission blocks team formation", () => {
+    const soloSubmitter = (projectStatus: string | null) => {
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") return runningHackathon(20);
+        if (table === "hackathonParticipants")
+          return {
+            id: PARTICIPANT_A,
+            hackathonId: HACK_A,
+            userId: "user_a",
+            teamId: null,
+            registrationStatus: "checked_in",
+          };
+        if (table === "hackathonTeams")
+          return {
+            id: TEAM_A,
+            hackathonId: HACK_A,
+            captainId: "user_b",
+            currentMembers: 1,
+            maxMembers: 4,
+            isOpen: true,
+          };
+        if (table === "hackathonProjects")
+          return projectStatus
+            ? { id: PROJECT_A, status: projectStatus, teamId: null }
+            : undefined;
+        return undefined;
+      });
+      mockInsert.mockReturnValue([{ id: TEAM_A, name: "meow" }]);
+      return callerFor("user_a");
+    };
+
+    it("refuses createTeam while the solo project is still submitted", async () => {
+      await expect(
+        soloSubmitter("submitted").team.createTeam({
+          hackathonId: HACK_A,
+          name: "meow",
+          maxMembers: 4,
+        }),
+      ).rejects.toThrow(/solo project/i);
+    });
+
+    it("refuses joinTeam while the solo project is still submitted", async () => {
+      await expect(
+        soloSubmitter("submitted").team.joinTeam({
+          hackathonId: HACK_A,
+          teamId: TEAM_A,
+        }),
+      ).rejects.toThrow(/solo project/i);
+    });
+
+    it("writes no team row when it refuses", async () => {
+      await expect(
+        soloSubmitter("submitted").team.createTeam({
+          hackathonId: HACK_A,
+          name: "meow",
+          maxMembers: 4,
+        }),
+      ).rejects.toThrow();
+
+      expect(insertedInto(hackathonTeams)).toHaveLength(0);
+    });
+
+    it("lets them join once the submission is withdrawn back to draft", async () => {
+      await expect(
+        soloSubmitter("draft").team.joinTeam({
+          hackathonId: HACK_A,
+          teamId: TEAM_A,
+        }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
+    it("lets them join when they never submitted anything", async () => {
+      await expect(
+        soloSubmitter(null).team.joinTeam({
+          hackathonId: HACK_A,
+          teamId: TEAM_A,
+        }),
+      ).resolves.toMatchObject({ success: true });
+    });
+  });
+
+  // =====================================================================
+  /**
+   * Withdrawal ran on the team window (+34h) while submitting ran to +36h, so
+   * for the last two hours a project could be filed and then not taken back.
+   */
+  describe("14. Withdrawal tracks the submission window", () => {
+    const atHour = (hoursIn: number) => {
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") return runningHackathon(hoursIn);
+        if (table === "hackathonParticipants")
+          return {
+            id: PARTICIPANT_A,
+            hackathonId: HACK_A,
+            userId: "user_a",
+            teamId: null,
+            registrationStatus: "checked_in",
+          };
+        if (table === "hackathonProjects")
+          return { id: PROJECT_A, status: "submitted", teamId: null };
+        return undefined;
+      });
+      return callerFor("user_a");
+    };
+
+    it("allows a withdrawal at +35h, after team edits have shut", async () => {
+      await expect(
+        atHour(35).team.withdrawProject({ hackathonId: HACK_A }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
+    it("still allows one inside the team window", async () => {
+      await expect(
+        atHour(20).team.withdrawProject({ hackathonId: HACK_A }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
+    it("refuses once the submission deadline itself has passed", async () => {
+      await expect(
+        atHour(37).team.withdrawProject({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/closed/i);
+    });
+  });
 });

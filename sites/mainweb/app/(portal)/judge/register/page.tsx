@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import {
@@ -28,6 +29,7 @@ const JUDGE_REGISTRATION_STEPS = [
 
 export default function JudgeRegisterPage() {
   const router = useRouter();
+  const { status: authStatus } = useSession();
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -53,6 +55,16 @@ export default function JudgeRegisterPage() {
   const [whyJudge, setWhyJudge] = useState("");
   const [shirtSize, setShirtSize] = useState("");
   const [dietary, setDietary] = useState<string[]>([]);
+
+  // judge.register is protected, so an outside professional following a shared
+  // link filled in all four steps and only then got "Not authenticated".
+  useEffect(() => {
+    if (authStatus === "unauthenticated") router.push("/login");
+  }, [authStatus, router]);
+
+  if (authStatus === "loading" || authStatus === "unauthenticated") {
+    return <LoadingScreen message="Checking your session..." />;
+  }
 
   if (isLoading) return <LoadingScreen message="Loading Hackathons..." />;
 

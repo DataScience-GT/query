@@ -20,6 +20,10 @@ export const events = pgTable("event", {
   eventDate: timestamp("event_date").notNull(),
   qrCode: text("qr_code").notNull().unique(),
   checkInEnabled: boolean("check_in_enabled").notNull().default(true),
+  // A kickoff or interest meeting is run to recruit members, so refusing
+  // everyone who is not one yet leaves exactly those events with no recordable
+  // attendance. Defaults true so existing events keep their current behaviour.
+  membersOnly: boolean("members_only").notNull().default(true),
   maxCheckIns: integer("max_check_ins"),
   currentCheckIns: integer("current_check_ins").notNull().default(0),
   createdById: text("created_by_id")

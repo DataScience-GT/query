@@ -11,6 +11,8 @@ import { eq, and, or, isNull, inArray, lt, sql } from "drizzle-orm";
 import { VOLATILE_TTL } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
+type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
+
 const HOUR = 60 * 60 * 1000;
 
 /** All hackathon milestones, as hour offsets from the hacking start time. */
@@ -68,15 +70,48 @@ export function computeSubmissionWindow(baseTime: Date, now: Date) {
   };
 }
 
-async function loadTeamWindow(db: DrizzleDB, hackathonId: string) {
+async function loadHackathonBaseTime(db: DrizzleDB, hackathonId: string) {
   const hackathon = await db.query.hackathons.findFirst({
     where: eq(hackathons.id, hackathonId),
   });
   if (!hackathon) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });
   }
-  const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
+  return hackathon.hackingStartTime ?? hackathon.startDate;
+}
+
+async function loadTeamWindow(db: DrizzleDB, hackathonId: string) {
+  const baseTime = await loadHackathonBaseTime(db, hackathonId);
   return computeTeamWindow(baseTime, new Date());
+}
+
+/**
+ * Withdrawal follows the submission window, not the team one. On the team
+ * window it shut at +34h while submitting ran to +36h, so for the last two
+ * hours a project could be filed and then not taken back.
+ */
+async function checkWithdrawWindow(db: DrizzleDB, hackathonId: string) {
+  const baseTime = await loadHackathonBaseTime(db, hackathonId);
+  const now = new Date();
+  const window = computeSubmissionWindow(baseTime, now);
+
+  if (window.notYetOpen) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Project submission is not open yet. It starts 12 hours after the hacking begins.",
+    });
+  }
+
+  if (now > window.closesAt) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "The submission window has closed. Ask an organiser if a project needs to be pulled.",
+    });
+  }
+
+  return window;
 }
 
 async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
@@ -174,6 +209,31 @@ function checkCheckedIn(registrationStatus: string) {
   });
 }
 
+/**
+ * Joining a team after submitting solo orphans the solo row: `ownProjectWhere`
+ * then resolves to the team's entry, so the solo one stays `submitted`, stays
+ * in the gallery, and is promoted into judging with nobody able to withdraw it.
+ * `draft` is fine — withdrawal returns a project there, and it reaches neither.
+ */
+async function assertNoLiveSoloSubmission(
+  tx: Tx,
+  hackathonId: string,
+  participantId: string,
+) {
+  const solo = await tx.query.hackathonProjects.findFirst({
+    where: ownProjectWhere(hackathonId, null, participantId),
+    columns: { status: true },
+  });
+
+  if (solo && solo.status !== "draft") {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message:
+        "You already have a solo project submitted. Withdraw it from Submit Project before joining a team.",
+    });
+  }
+}
+
 export const teamRouter = createTRPCRouter({
   createTeam: protectedProcedure
     .input(
@@ -215,6 +275,12 @@ export const teamRouter = createTRPCRouter({
                 message: "You are already in a team for this hackathon.",
               });
             }
+
+            await assertNoLiveSoloSubmission(
+              tx,
+              input.hackathonId,
+              participant.id,
+            );
 
             // 3. Create the team
             const [newTeam] = await tx
@@ -303,6 +369,12 @@ export const teamRouter = createTRPCRouter({
                 message: "You are already in a team.",
               });
             }
+
+            await assertNoLiveSoloSubmission(
+              tx,
+              input.hackathonId,
+              participant.id,
+            );
 
             // 3. Find the team and check capacity
             const team = await tx.query.hackathonTeams.findFirst({
@@ -855,7 +927,7 @@ export const teamRouter = createTRPCRouter({
   withdrawProject: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .mutation(async ({ ctx, input }) => {
-      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+      await checkWithdrawWindow(ctx.db as DrizzleDB, input.hackathonId);
 
       return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
         async (tx) => {

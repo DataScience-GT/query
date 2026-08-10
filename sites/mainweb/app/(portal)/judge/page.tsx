@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -22,6 +23,7 @@ type HackathonData = {
 
 export default function JudgePage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   const { data: judgeStatus, isLoading: checkingJudge } =
@@ -40,6 +42,12 @@ export default function JudgePage() {
   });
 
   useEffect(() => setMounted(true), []);
+
+  // The approval email points here. Rendering nothing for a signed-out visitor
+  // turned an expired session into a broken link.
+  useEffect(() => {
+    if (status === "unauthenticated") router.push("/login");
+  }, [status, router]);
 
   if (!mounted || status === "loading" || checkingJudge || hackathonsLoading) {
     return <LoadingScreen message="Syncing..." />;

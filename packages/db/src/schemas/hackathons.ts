@@ -550,9 +550,10 @@ export const hackathonAnnouncementRecipients = pgTable(
   "hackathon_announcement_recipient",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    announcementId: uuid("announcement_id")
-      .notNull()
-      .references(() => hackathonAnnouncements.id, { onDelete: "cascade" }),
+    // The FK is declared in the table extras below with an explicit name: the
+    // one drizzle generates here is 78 characters, past Postgres's 63-char
+    // identifier limit.
+    announcementId: uuid("announcement_id").notNull(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -585,6 +586,16 @@ export const hackathonAnnouncementRecipients = pgTable(
       table.announcementId,
       table.userId,
     ),
+    // Postgres truncates any identifier past 63 characters, so the generated
+    // name came back shortened while drizzle-kit went on comparing against the
+    // full one. Every `migrate:push` then dropped and recreated this
+    // constraint and reported "Changes applied", which is the release check
+    // §7 asks for — it could never say "No changes detected".
+    foreignKey({
+      columns: [table.announcementId],
+      foreignColumns: [hackathonAnnouncements.id],
+      name: "announcement_recipient_announcement_id_fk",
+    }).onDelete("cascade"),
   ],
 );
 
