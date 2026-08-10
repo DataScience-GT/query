@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
+import { MemberPassCard } from "@/components/portal/MemberPassCard";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
@@ -39,6 +40,19 @@ export default function ClubPage() {
   const { data: myEvents } = trpc.events.myEvents.useQuery(undefined, {
     enabled: !!session,
   });
+  // Members could see what they had already attended but never what was
+  // coming, so the portal gave no reason to open it between meetings.
+  const { data: allEvents } = trpc.events.list.useQuery(undefined, {
+    enabled: !!session,
+  });
+
+  const upcomingEvents = (allEvents ?? [])
+    .filter((event) => new Date(event.eventDate) >= new Date())
+    .sort(
+      (a, b) =>
+        new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime(),
+    )
+    .slice(0, 5);
 
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
@@ -308,6 +322,8 @@ export default function ClubPage() {
               </div>
 
               <div className="lg:col-span-1 space-y-6">
+                <MemberPassCard />
+
                 <div className="rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-8 shadow-xl">
                   <h3 className="text-[var(--text-subtle)] font-mono text-xs uppercase tracking-widest mb-2">
                     Total Check-Ins
@@ -318,6 +334,38 @@ export default function ClubPage() {
                     </span>
                     <span className="text-accent font-bold mb-1">Sessions</span>
                   </div>
+                </div>
+
+                <div className="rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-8 shadow-xl">
+                  <h3 className="text-[var(--text-primary)] font-bold flex items-center gap-2 mb-4">
+                    <Clock className="w-4 h-4 text-accent" />
+                    Upcoming Events
+                  </h3>
+                  {upcomingEvents.length === 0 ? (
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Nothing scheduled yet. Check back soon.
+                    </p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {upcomingEvents.map((event) => (
+                        <li key={event.id} className="space-y-1">
+                          <p className="text-sm text-[var(--text-primary)] font-medium">
+                            {event.title}
+                          </p>
+                          <p className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-widest">
+                            {new Date(event.eventDate).toLocaleString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                            {event.location ? ` · ${event.location}` : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-8 shadow-xl">

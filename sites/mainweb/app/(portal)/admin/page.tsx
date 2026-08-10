@@ -7,6 +7,7 @@ import { useState } from "react";
 import QRCode from "qrcode";
 import { QRCodeModal } from "@/components/portal/QRCodeModal";
 import { EventFormModal } from "@/components/portal/EventFormModal";
+import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { QrCode } from "lucide-react";
 
@@ -20,6 +21,7 @@ type Event = {
   checkInEnabled: boolean;
   currentCheckIns: number;
   maxCheckIns: number | null;
+  membersOnly: boolean;
 };
 
 export default function AdminPage() {
@@ -31,6 +33,7 @@ export default function AdminPage() {
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
   const { data: portalContext } = usePortalContext();
@@ -104,6 +107,7 @@ export default function AdminPage() {
     location: string;
     eventDate: string;
     maxCheckIns: string;
+    membersOnly: boolean;
   };
 
   // Empty means no cap — the column is nullable and the door gate only runs
@@ -123,6 +127,7 @@ export default function AdminPage() {
       location: formData.location || undefined,
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns),
+      membersOnly: formData.membersOnly,
     });
   };
 
@@ -136,6 +141,7 @@ export default function AdminPage() {
       location: formData.location || null,
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns) ?? null,
+      membersOnly: formData.membersOnly,
     });
   };
 
@@ -175,6 +181,7 @@ export default function AdminPage() {
             maxCheckIns: editingEvent.maxCheckIns
               ? String(editingEvent.maxCheckIns)
               : "",
+            membersOnly: editingEvent.membersOnly,
           }}
           onClose={() => {
             setEditingEvent(null);
@@ -183,6 +190,14 @@ export default function AdminPage() {
           onSubmit={handleEditEvent}
           isSubmitting={updateEventMutation.isPending}
           error={editError}
+        />
+      )}
+
+      {attendanceEvent && (
+        <EventAttendanceModal
+          eventId={attendanceEvent.id}
+          eventTitle={attendanceEvent.title}
+          onClose={() => setAttendanceEvent(null)}
         />
       )}
 
@@ -353,6 +368,12 @@ export default function AdminPage() {
                           }`}
                         >
                           {event.checkInEnabled ? "Close" : "Open"}
+                        </button>
+                        <button
+                          onClick={() => setAttendanceEvent(event)}
+                          className="px-4 py-2 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/10 transition-colors"
+                        >
+                          Attendance
                         </button>
                         <button
                           onClick={() => setEditingEvent(event)}

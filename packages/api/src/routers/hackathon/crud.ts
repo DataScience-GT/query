@@ -78,7 +78,10 @@ export const hackathonCrudRouter = createTRPCRouter({
         ctx.db as DrizzleDB
       ).query.hackathons.findMany({
         where: and(
-          eq(hackathons.isPublic, true),
+          // Hidden means hidden from the public funnel, not from the people
+          // running the event. Filtering it for staff too emptied Judging Setup
+          // and the Judging dashboard, which both pick an edition off here.
+          adminViewer ? undefined : eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
           adminViewer
             ? undefined

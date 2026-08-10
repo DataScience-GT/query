@@ -193,7 +193,11 @@ export default function HacklyticsPage() {
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-accent/80">
             {registrationOpen
               ? "Registration is open"
-              : "Registration opens soon"}
+              : event.status === "in_progress"
+                ? "The hackathon is under way"
+                : event.status === "open"
+                  ? "Registration has closed"
+                  : "Registration opens soon"}
           </span>
         </div>
 
