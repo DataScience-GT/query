@@ -59,7 +59,6 @@ migrations/
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea
-.claude/settings.local.json
 
 # Scripts & Data (sensitive/generated)
 seed-super.ts
@@ -80,9 +79,11 @@ output.txt
 # Scratch / one-off fix scripts
 fix.js
 *.fix.js
-.claude/skills/ui-ux-pro-max/SKILL.md
-.claude/skills/react-doctor/SKILL.md
-.agents/skills/react-doctor/SKILL.md
+
+# Local agent tooling. Nothing under these is shared, and listing individual
+# files here left every other one showing up as untracked.
+.claude/
+.agents/
 
 # Graphify local-only files
 graphify-out/cache/
