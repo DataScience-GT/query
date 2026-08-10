@@ -43,7 +43,7 @@ export default function AdminHackathonsPage() {
         </div>
 
         <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">

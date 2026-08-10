@@ -29,13 +29,13 @@ function StatCard({
   return (
     <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
       {/* Background gradients */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute -top-20 -right-20 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative flex items-center gap-4">
         {/* Icon container with gradient */}
         <div className="group/icon relative flex h-14 w-14 items-center justify-center rounded-none bg-gradient-to-br from-accent/20 to-accent/10 text-[var(--text-primary)] border border-[var(--border-subtle)] group-hover/icon:scale-110 transition-transform duration-300">
-          <div className="absolute inset-0 rounded-none bg-gradient-to-br from-accent/30 to-accent/20 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 pointer-events-none rounded-none bg-gradient-to-br from-accent/30 to-accent/20 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300" />
           <Icon className="h-7 w-7 relative z-10 group-hover/icon:text-[var(--text-primary)] transition-colors" />
         </div>
         <div className="flex-1">
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
 
         {/* Page Header - Enhanced */}
         <div className="relative mb-8 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-2 mb-8">
           {/* Registration Trend */}
           <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <svg
                 className="w-40 h-40 text-accent"
@@ -182,7 +182,7 @@ export default function AnalyticsPage() {
 
           {/* Event Types */}
           <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <svg
                 className="w-36 h-36 text-accent"
@@ -208,7 +208,7 @@ export default function AnalyticsPage() {
 
         {/* Recent Activity - Enhanced */}
         <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
             <svg
               className="w-32 h-32 text-accent"

@@ -167,7 +167,7 @@ export default function ClubPage() {
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-sm animate-[float_20s_ease-in-out_infinite]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#6366f1]/5 blur-[200px] rounded-sm animate-[float_25s_ease-in-out_infinite_reverse]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
       {showScanner && (
@@ -295,11 +295,11 @@ export default function ClubPage() {
           {activeTab === "general" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 group relative overflow-hidden rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] shadow-2xl transition-ui duration-500 hover:border-accent/30 p-8 md:p-12">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                 <div className="relative z-10 flex flex-col items-center justify-center text-center h-full min-h-[300px]">
                   <div className="w-24 h-24 mb-6 rounded-none bg-accent/10 border border-accent/20 flex items-center justify-center relative">
-                    <div className="absolute inset-0 bg-accent/20 blur-xl rounded-sm" />
+                    <div className="absolute inset-0 pointer-events-none bg-accent/20 blur-xl rounded-sm" />
                     <QrCode className="w-10 h-10 text-accent relative z-10" />
                   </div>
                   <h2 className="text-3xl font-black text-[var(--text-primary)] tracking-tighter uppercase italic mb-4">

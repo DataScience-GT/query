@@ -223,7 +223,7 @@ export default function AdminPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="mb-6 p-5 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-emerald-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-ui duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>

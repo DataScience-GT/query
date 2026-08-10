@@ -576,7 +576,7 @@ export default function HackathonsPage() {
                     key={project.id}
                     className="group relative overflow-hidden rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-8 hover:border-accent/40 transition-ui shadow-lg hover:shadow-[0_0_40px_rgba(16,185,129,0.1)]"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-6">

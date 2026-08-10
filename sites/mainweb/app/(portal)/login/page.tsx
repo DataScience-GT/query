@@ -127,7 +127,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)] text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-hidden flex flex-col">
       {/* Animated Background */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Gradient orbs */}
         <div className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-accent/5 blur-[250px] rounded-sm animate-[float_20s_ease-in-out_infinite]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#6366f1]/5 blur-[200px] rounded-sm animate-[float_25s_ease-in-out_infinite_reverse]" />
