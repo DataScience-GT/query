@@ -9,6 +9,7 @@ import { usePortalContext } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
+import { ClubScannerTab } from "@/components/portal/ClubScannerTab";
 
 /**
  * The check-in desk.
@@ -26,14 +27,19 @@ export default function ScanPage() {
   const { status } = useSession();
   const router = useRouter();
   const { data: portalContext, isLoading } = usePortalContext();
+  const [mode, setMode] = useState<"hackathon" | "club">("hackathon");
   const [hackathonId, setHackathonId] = useState("");
+  const [clubEventId, setClubEventId] = useState("");
 
-  // Public procedure, so a volunteer can read it. listAll is isAdmin and would
-  // reject exactly the people this page exists for.
+  // Public procedures, so a volunteer can read them. The listAll variants are
+  // isAdmin and would reject exactly the people this page exists for.
   const { data: hackathons } = trpc.hackathon.list.useQuery(
     {},
     { enabled: !!portalContext?.isScanner },
   );
+  const { data: clubEvents } = trpc.events.list.useQuery(undefined, {
+    enabled: !!portalContext?.isScanner,
+  });
 
   if (status === "loading" || isLoading) {
     return <LoadingScreen message="Checking access..." />;
@@ -77,36 +83,93 @@ export default function ScanPage() {
         </p>
       </div>
 
-      <div className="mb-6">
-        <label
-          htmlFor="scan-hackathon"
-          className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-        >
-          Hackathon
-        </label>
-        <select
-          id="scan-hackathon"
-          value={hackathonId}
-          onChange={(e) => setHackathonId(e.target.value)}
-          className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
-        >
-          <option value="">Select a hackathon...</option>
-          {hackathons?.map((h) => (
-            <option key={h.id} value={h.id}>
-              {h.name}
-            </option>
-          ))}
-        </select>
+      {/* The two halves scan opposite things: a hackathon badge encodes the
+          participant, a club pass encodes the member. */}
+      <div className="mb-6 flex gap-2">
+        {(["hackathon", "club"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`px-5 py-2 border text-xs font-mono uppercase tracking-widest transition-colors ${
+              mode === m
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-[var(--border-subtle)] text-[var(--text-subtle)] hover:bg-white/5"
+            }`}
+          >
+            {m === "hackathon" ? "Hackathon" : "Club Event"}
+          </button>
+        ))}
       </div>
 
-      {hackathonId ? (
-        <ScannerTab hackathonId={hackathonId} />
+      {mode === "hackathon" ? (
+        <>
+          <div className="mb-6">
+            <label
+              htmlFor="scan-hackathon"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
+              Hackathon
+            </label>
+            <select
+              id="scan-hackathon"
+              value={hackathonId}
+              onChange={(e) => setHackathonId(e.target.value)}
+              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+            >
+              <option value="">Select a hackathon...</option>
+              {hackathons?.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {hackathonId ? (
+            <ScannerTab hackathonId={hackathonId} />
+          ) : (
+            <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
+              <p className="text-sm text-[var(--text-subtle)] font-mono">
+                Choose a hackathon above to start scanning.
+              </p>
+            </LiquidGlass>
+          )}
+        </>
       ) : (
-        <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
-          <p className="text-sm text-[var(--text-subtle)] font-mono">
-            Choose a hackathon above to start scanning.
-          </p>
-        </LiquidGlass>
+        <>
+          <div className="mb-6">
+            <label
+              htmlFor="scan-club-event"
+              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+            >
+              Club Event
+            </label>
+            <select
+              id="scan-club-event"
+              value={clubEventId}
+              onChange={(e) => setClubEventId(e.target.value)}
+              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+            >
+              <option value="">Select an event...</option>
+              {clubEvents?.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {clubEventId ? (
+            <ClubScannerTab eventId={clubEventId} />
+          ) : (
+            <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
+              <p className="text-sm text-[var(--text-subtle)] font-mono">
+                Choose a club event above to start scanning.
+              </p>
+            </LiquidGlass>
+          )}
+        </>
       )}
     </div>
   );

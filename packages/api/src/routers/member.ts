@@ -4,7 +4,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 // membershipHistory is written by createOrUpdateMembership on a real payment,
 // and by the admin operations below when somebody pays another way.
 import { members, membershipHistory, users } from "@query/db";
-import { eq, and, ilike, or, desc } from "drizzle-orm";
+import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {
   clearMembershipCaches,
@@ -327,6 +327,34 @@ export const memberRouter = createTRPCRouter({
 
       return member.membershipHistory;
     }),
+
+  /** The caller's own pass, for the QR an officer scans at the door. */
+  myPass: protectedProcedure.query(async ({ ctx }) => {
+    const member = await (ctx.db as DrizzleDB).query.members.findFirst({
+      where: eq(members.userId, ctx.userId as string),
+      columns: { passCode: true, firstName: true, lastName: true },
+    });
+
+    return member ?? null;
+  }),
+
+  /** Kills a pass that has been photographed or shared. */
+  rotatePass: protectedProcedure.mutation(async ({ ctx }) => {
+    const [updated] = await (ctx.db as DrizzleDB)
+      .update(members)
+      .set({ passCode: sql`gen_random_uuid()`, updatedAt: new Date() })
+      .where(eq(members.userId, ctx.userId as string))
+      .returning({ passCode: members.passCode });
+
+    if (!updated) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "You do not have a member profile yet.",
+      });
+    }
+
+    return updated;
+  }),
 
   checkStatus: protectedProcedure
     .query(async ({ ctx }) => {

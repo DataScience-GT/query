@@ -114,16 +114,28 @@ export default function PortalSidebar({
       name: "Initiatives",
       href: "/initiatives",
       icon: Rocket,
-      // Shown to any signed-in non-admin: somebody deciding whether to pay
-      // should be able to see what membership gets them. Applying is where the
+      // Shown to anyone signed in: somebody deciding whether to pay should be
+      // able to see what membership gets them. Applying is where the
       // membership check bites, not browsing.
-      show: !portalContext?.isAdmin,
+      show: true,
     },
     {
       name: "My Initiatives",
       href: "/lead",
       icon: Rocket,
-      show: portalContext?.isProjectLeader && !portalContext?.isAdmin,
+      // Admins too: /lead is the only screen that decides an initiative
+      // application, and isProjectLeader deliberately admits them so an absent
+      // leader does not strand their applicants.
+      show: portalContext?.isProjectLeader || portalContext?.isAdmin,
+    },
+    {
+      name: "Apply to Judge",
+      href: "/judge/register",
+      icon: ClipboardList,
+      // Non-judges reach this from the CTA on /judge, which admins only see
+      // once they are judges — so an organiser wanting to judge their own
+      // event had no route to the form at all.
+      show: portalContext?.isAdmin && !portalContext?.isJudge,
     },
     {
       name: "Settings",

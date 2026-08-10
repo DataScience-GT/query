@@ -85,8 +85,26 @@ function SubmitPortalContent() {
     { enabled: !!session && !!selectedHackathonId },
   );
 
+  // Team create/join/leave gate on a different window to submitting: it opens
+  // at +12h, shuts at +34h, and leaving locks at +24h. The panel queried none
+  // of it, so every button outside those hours failed on click.
+  const teamWindow = trpc.team.window.useQuery(
+    { hackathonId: selectedHackathonId },
+    { enabled: !!session && !!selectedHackathonId },
+  );
+
   const availableTracks = hackathonDetail?.tracks ?? [];
   const availableChallenges = hackathonDetail?.challenges ?? [];
+
+  const teamsOpen = teamWindow.data?.isOpen ?? false;
+  const canLeaveTeam = teamWindow.data?.canLeave ?? false;
+  const teamWindowNotice = !teamWindow.data
+    ? null
+    : teamsOpen
+      ? null
+      : new Date() < new Date(teamWindow.data.opensAt)
+        ? "Team formation opens 12 hours after hacking begins."
+        : "Team formation has closed for this event.";
 
   const toggle = (
     value: string,
@@ -356,26 +374,40 @@ function SubmitPortalContent() {
                                   teamId,
                                 });
                               }}
-                              disabled={disbandTeam.isPending}
+                              disabled={disbandTeam.isPending || !canLeaveTeam}
                               className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
                             >
                               {disbandTeam.isPending
                                 ? "Disbanding..."
                                 : "Disband Team"}
                             </button>
+                            {!canLeaveTeam && (
+                              <p className="text-[10px] font-mono text-text-muted">
+                                Rosters are locked for the final 12 hours before
+                                the deadline.
+                              </p>
+                            )}
                           </div>
                         ) : (
-                          <button
-                            onClick={() =>
-                              leaveTeam.mutate({
-                                hackathonId: selectedHackathonId,
-                              })
-                            }
-                            disabled={leaveTeam.isPending}
-                            className="w-full mt-6 py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors"
-                          >
-                            {leaveTeam.isPending ? "Leaving..." : "Leave Team"}
-                          </button>
+                          <div className="mt-6 space-y-2">
+                            <button
+                              onClick={() =>
+                                leaveTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                })
+                              }
+                              disabled={leaveTeam.isPending || !canLeaveTeam}
+                              className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                            >
+                              {leaveTeam.isPending ? "Leaving..." : "Leave Team"}
+                            </button>
+                            {!canLeaveTeam && (
+                              <p className="text-[10px] font-mono text-text-muted">
+                                Rosters are locked for the final 12 hours before
+                                the deadline.
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -388,6 +420,12 @@ function SubmitPortalContent() {
                         You are currently operating SOLO. Create or join a team
                         to link your profiles for the final submission.
                       </p>
+
+                      {teamWindowNotice && (
+                        <p className="p-3 border border-amber-500/20 bg-amber-500/5 text-[11px] font-mono text-amber-400">
+                          {teamWindowNotice}
+                        </p>
+                      )}
 
                       <div className="pt-2 space-y-3">
                         <input
@@ -408,8 +446,8 @@ function SubmitPortalContent() {
                               name: teamName,
                             });
                           }}
-                          disabled={createTeam.isPending}
-                          className="w-full py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-white/10 transition-all font-mono"
+                          disabled={createTeam.isPending || !teamsOpen}
+                          className="w-full py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-white/10 transition-all font-mono disabled:opacity-40"
                         >
                           {createTeam.isPending
                             ? "Deploying..."
@@ -441,9 +479,11 @@ function SubmitPortalContent() {
                             })
                           }
                           disabled={
-                            joinTeam.isPending || joinTeamId.trim().length === 0
+                            joinTeam.isPending ||
+                            joinTeamId.trim().length === 0 ||
+                            !teamsOpen
                           }
-                          className="w-full py-3 bg-white/5 text-[var(--text-muted)] text-xs uppercase tracking-widest rounded-none hover:bg-white/10 hover:text-[var(--text-primary)] transition-all font-mono"
+                          className="w-full py-3 bg-white/5 text-[var(--text-muted)] text-xs uppercase tracking-widest rounded-none hover:bg-white/10 hover:text-[var(--text-primary)] transition-all font-mono disabled:opacity-40"
                         >
                           {joinTeam.isPending ? "Syncing..." : "Join Team"}
                         </button>
