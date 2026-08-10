@@ -188,7 +188,7 @@ export default function AdminResultsPage() {
 
         {/* Header - Enhanced */}
         <div className="relative mb-16 p-8 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/10 via-emerald-900/8 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-accent/15 rounded-sm blur-[150px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-900/15 rounded-sm blur-[150px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-150" />
 
@@ -236,10 +236,14 @@ export default function AdminResultsPage() {
             }`}
           >
             {/* Background gradients */}
+            {/* Decorative only. Without pointer-events-none it is an absolutely
+                positioned layer painting above every static sibling that
+                follows it, which swallowed the clicks on the controls below. */}
             <div
-              className={`absolute inset-0 transition-opacity duration-500 ${judgingStatus?.active ? "opacity-100" : "opacity-0"}`}
+              aria-hidden="true"
+              className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${judgingStatus?.active ? "opacity-100" : "opacity-0"}`}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/10 via-transparent to-transparent" />
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-emerald-900/10 via-transparent to-transparent" />
               <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/10 rounded-sm blur-[120px]" />
               <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/8 rounded-sm blur-[120px]" />
             </div>
@@ -302,7 +306,7 @@ export default function AdminResultsPage() {
 
             {/* Sync then assign, in that order, from the screen that starts
                 judging — rather than two presses on a separate page. */}
-            <div className="mt-8 pt-6 border-t border-[var(--border-subtle)]">
+            <div className="relative z-10 mt-8 pt-6 border-t border-[var(--border-subtle)]">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                 <div>
                   <p className="text-sm font-bold text-[var(--text-primary)]">

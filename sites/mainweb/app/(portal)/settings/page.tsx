@@ -240,7 +240,7 @@ export default function SettingsPage() {
                           height={72}
                           className={`object-cover h-full w-full ${isUploadingImage ? 'opacity-50' : ''}`}
                         />
-                        <div className="absolute inset-0 bg-[var(--ui-scrim)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute inset-0 pointer-events-none bg-[var(--ui-scrim)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="text-[var(--text-on-accent)] text-xs font-bold">Edit</span>
                         </div>
                         {isUploadingImage && (

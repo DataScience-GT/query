@@ -119,7 +119,7 @@ function VerifyContent() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/5 via-emerald-900/10 to-purple-900/8 blur-[400px] rounded-sm" />
         <div className="absolute bottom-[-15%] right-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-emerald-900/10 via-emerald-900/10 to-indigo-900/8 blur-[350px] rounded-sm" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
       <LiquidGlass className="relative z-10 w-full max-w-lg p-10 md:p-14 flex flex-col items-center relative overflow-hidden">
@@ -145,7 +145,7 @@ function VerifyContent() {
 
         <div className="relative w-24 h-24 rounded-sm bg-gradient-to-br from-accent/15 to-accent/10 border border-accent/30 flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(16,185,129,0.15)] group hover:border-accent/50 hover:shadow-[0_0_50px_rgba(16,185,129,0.25)] transition-ui duration-300">
           {/* Icon glow */}
-          <div className="absolute inset-0 rounded-sm bg-accent/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+          <div className="absolute inset-0 pointer-events-none rounded-sm bg-accent/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
           <svg
             className="relative w-12 h-12 text-accent group-hover:text-[var(--text-primary)] transition-colors duration-300"
             fill="none"
@@ -258,8 +258,8 @@ function VerifyContent() {
           className="group relative w-full sm:w-auto px-14 py-5 bg-gradient-to-r from-accent to-accent text-black font-black text-xs sm:text-sm uppercase tracking-[0.3em] hover:bg-white transition-ui duration-300 rounded-none shadow-[0_0_30px_rgba(16,185,129,0.2)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 overflow-hidden"
         >
           {/* Button shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-          <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-opacity duration-300" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+          <div className="absolute inset-0 pointer-events-none bg-white/0 group-hover:bg-white/10 transition-opacity duration-300" />
           <span className="relative flex items-center justify-center gap-2">
             <svg
               className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:translate-y-0.5"

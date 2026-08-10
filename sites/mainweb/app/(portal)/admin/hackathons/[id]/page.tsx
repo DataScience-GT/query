@@ -79,7 +79,7 @@ export default function AdminHackathonDashboard() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-15%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/6 via-emerald-900/12 to-purple-900/10 blur-[400px] rounded-sm" />
         <div className="absolute bottom-[-12%] right-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-emerald-900/12 via-emerald-900/10 to-indigo-900/10 blur-[350px] rounded-sm" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
       {/* HEADER - Enhanced */}
@@ -126,7 +126,7 @@ export default function AdminHackathonDashboard() {
                   onClick={() => setActiveTab("scanner")}
                   className="group relative px-4 py-2 rounded-none bg-gradient-to-r from-accent/15 to-emerald-500/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/25 active:scale-95 transition-ui overflow-hidden"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   <span className="relative flex items-center gap-2">
                     <svg
                       className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform"

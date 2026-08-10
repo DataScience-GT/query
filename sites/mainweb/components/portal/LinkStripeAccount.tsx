@@ -306,7 +306,7 @@ export default function LinkStripeAccount({
     <>
       <LiquidGlass className="relative h-full p-8 hover:!border-[var(--accent)]/30 transition-ui duration-300 flex flex-col group">
         {/* Decorative glow */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-inherit" />
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-inherit" />
 
         <div className="relative z-10 flex-1 flex flex-col">
           {/* Header */}

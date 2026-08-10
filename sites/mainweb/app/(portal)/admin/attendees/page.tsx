@@ -80,7 +80,7 @@ export default function AttendeesPage() {
 
         {/* Page Header */}
         <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-accent-dim to-transparent rounded-none overflow-hidden group hover:border-accent/25 transition-ui duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/80 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
           </p>
@@ -128,7 +128,7 @@ export default function AttendeesPage() {
           <div className="space-y-4">
             {isLoading ? (
               <div className="py-12 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-accent-fade to-transparent animate-pulse" />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-accent-fade to-transparent animate-pulse" />
                 <p className="relative text-text-muted font-mono text-sm animate-pulse">
                   Loading event check-ins...
                 </p>
@@ -159,7 +159,7 @@ export default function AttendeesPage() {
               </LiquidGlass>
             ) : (
               <div className="overflow-x-auto rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)]/20 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <table className="w-full text-left">
                   <thead className="bg-[var(--bg-primary)]/30 border-b border-[var(--border-subtle)]">
