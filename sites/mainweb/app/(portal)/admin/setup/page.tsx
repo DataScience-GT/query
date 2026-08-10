@@ -183,10 +183,10 @@ export default function AdminSetupPage() {
                 });
               }}
               disabled={promoteSubmissions.isPending || !selectedHackathonId}
-              className="w-full px-8 py-6 bg-accent/10 border-2 border-accent/40 text-[var(--text-primary)] font-black text-lg uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all disabled:opacity-30 font-mono"
+              className="w-full px-8 py-6 bg-accent/10 border-2 border-accent/40 text-[var(--text-primary)] font-black text-lg uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-30 font-mono"
             >
               {promoteSubmissions.isPending
-                ? "Syncing..."
+                ? "Syncing…"
                 : "Sync Submissions to Judging"}
             </button>
 
@@ -270,10 +270,10 @@ export default function AdminSetupPage() {
                 assignJudges.mutate({ hackathonId: selectedHackathonId });
               }}
               disabled={assignJudges.isPending || !selectedHackathonId}
-              className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-accent/10 border-2 border-accent/40 text-[var(--text-primary)] font-black text-lg uppercase tracking-widest rounded-none hover:from-accent/20 hover:to-accent/20 transition-all disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(16,185,129,0.1)]"
+              className="w-full px-8 py-6 bg-gradient-to-r from-accent/10 to-accent/10 border-2 border-accent/40 text-[var(--text-primary)] font-black text-lg uppercase tracking-widest rounded-none hover:from-accent/20 hover:to-accent/20 transition-ui disabled:opacity-30 font-mono shadow-[0_0_30px_rgba(16,185,129,0.1)]"
             >
               {assignJudges.isPending
-                ? "Assigning..."
+                ? "Assigning…"
                 : "Auto-Assign All Judges"}
             </button>
 
@@ -300,7 +300,7 @@ export default function AdminSetupPage() {
                       });
                     }}
                     disabled={assignJudges.isPending}
-                    className="mt-4 px-6 py-3 bg-red-500/10 border border-red-500/40 text-red-300 font-bold text-xs uppercase tracking-widest rounded-none hover:bg-red-500/20 transition-all font-mono disabled:opacity-40"
+                    className="mt-4 px-6 py-3 bg-red-500/10 border border-red-500/40 text-red-300 font-bold text-xs uppercase tracking-widest rounded-none hover:bg-red-500/20 transition-ui font-mono disabled:opacity-40"
                   >
                     Rebuild anyway
                   </button>
@@ -356,7 +356,7 @@ export default function AdminSetupPage() {
                 </p>
                 <button
                   onClick={() => router.push("/admin/judging")}
-                  className="px-10 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-all font-mono"
+                  className="px-10 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui font-mono"
                 >
                   Go to Results Dashboard
                 </button>

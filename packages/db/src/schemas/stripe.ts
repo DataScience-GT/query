@@ -49,6 +49,11 @@ export const stripePayments = pgTable(
   (table) => [
     index("stripe_payment_customer_email_idx").on(table.customerEmail),
     index("stripe_payment_linked_user_id_idx").on(table.linkedUserId),
+    // The webhook looks a payment up by intent id on every
+    // payment_intent.succeeded, and reconcileMyPayments does the same. Not
+    // unique: the column is nullable, and Postgres treats NULLs as distinct,
+    // which is the arbiter trap in the plan's known-traps list.
+    index("stripe_payment_intent_id_idx").on(table.stripePaymentIntentId),
   ],
 );
 

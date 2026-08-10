@@ -11,6 +11,8 @@ import { JudgingTools } from "@/components/admin/judging/JudgingTools";
 import { RoomAssignmentsView } from "@/components/admin/judging/RoomAssignmentsView";
 import { JudgeMatrixView } from "@/components/admin/judging/JudgeMatrixView";
 import { RankingsView } from "@/components/admin/judging/RankingsView";
+import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { JudgeLiveBoard } from "@/components/admin/hackathons/JudgeLiveBoard";
 
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
@@ -56,6 +58,50 @@ export default function AdminResultsPage() {
   const toggleJudging = trpc.judge.toggleJudging.useMutation({
     onSuccess: () => refetchJudgingStatus(),
   });
+
+  // Preparing judging was two presses on a separate page, in an order nothing
+  // enforced: sync submissions, then build the queues. Doing them in the wrong
+  // order leaves late projects in nobody's queue.
+  const utils = trpc.useUtils();
+  const [prepState, setPrepState] = useState<{
+    busy: boolean;
+    message: string | null;
+    error: string | null;
+  }>({ busy: false, message: null, error: null });
+
+  const promoteSubmissions = trpc.judge.promoteSubmissions.useMutation();
+  const assignJudges = trpc.judge.assignJudgesToProjects.useMutation();
+
+  const prepareJudging = async () => {
+    if (!selectedHackathon) return;
+    setPrepState({ busy: true, message: null, error: null });
+    try {
+      const promoted = await promoteSubmissions.mutateAsync({
+        hackathonId: selectedHackathon,
+      });
+      const assigned = await assignJudges.mutateAsync({
+        hackathonId: selectedHackathon,
+      });
+      await utils.judge.getRankings.invalidate({
+        hackathonId: selectedHackathon,
+      });
+      await refetchJudgingStatus();
+      const warning = promoted.queuesNeedRebuild
+        ? " One or more new projects carry a track no active judge covers — fix the track, then run this again."
+        : "";
+      setPrepState({
+        busy: false,
+        error: null,
+        message: `Synced ${promoted.created} new submission(s) of ${promoted.total}, and built queues for ${assigned.totalJudges} judge(s) covering ${assigned.coverage.min}-${assigned.coverage.max} projects each. Print the table cards next.${warning}`,
+      });
+    } catch (e) {
+      setPrepState({
+        busy: false,
+        message: null,
+        error: e instanceof Error ? e.message : "Could not prepare judging.",
+      });
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -128,7 +174,7 @@ export default function AdminResultsPage() {
       .sort((a, b) => b.displayScore - a.displayScore);
   }, [rankings, selectedCategory, selectedTrack]);
 
-  if (!mounted) return null;
+  if (!mounted) return <LoadingScreen message="Loading judging…" />;
 
   return (
     <>
@@ -141,7 +187,7 @@ export default function AdminResultsPage() {
         </div>
 
         {/* Header - Enhanced */}
-        <div className="relative mb-16 p-8 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/10 via-emerald-900/8 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-all duration-500">
+        <div className="relative mb-16 p-8 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/10 via-emerald-900/8 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-accent/15 rounded-sm blur-[150px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-900/15 rounded-sm blur-[150px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-150" />
@@ -167,7 +213,7 @@ export default function AdminResultsPage() {
                 <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
                   <Zap className="w-3 h-3" /> Hackathon Hub
                 </p>
-                <h1 className="text-6xl font-black text-[var(--text-primary)] uppercase tracking-tighter mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-all duration-500">
+                <h1 className="text-6xl font-black text-[var(--text-primary)] uppercase tracking-tighter mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
                   Voting <span className="text-accent italic">Results</span>
                 </h1>
                 <p className="text-sm font-mono text-text-muted uppercase tracking-widest flex items-center gap-2">
@@ -183,7 +229,7 @@ export default function AdminResultsPage() {
         {/* Judging Control Panel - Enhanced */}
         {selectedHackathon && (
           <LiquidGlass
-            className={`rounded-none p-8 mb-12 relative overflow-hidden border-t-4 transition-all duration-500 ${
+            className={`rounded-none p-8 mb-12 relative overflow-hidden border-t-4 transition-ui duration-500 ${
               judgingStatus?.active
                 ? "border-accent shadow-[0_0_40px_rgba(16,185,129,0.15)]"
                 : "border-gray-700"
@@ -201,14 +247,14 @@ export default function AdminResultsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="flex items-center gap-5">
                 <div
-                  className={`w-16 h-16 rounded-none flex items-center justify-center transition-all duration-500 ${
+                  className={`w-16 h-16 rounded-none flex items-center justify-center transition-ui duration-500 ${
                     judgingStatus?.active
                       ? "bg-accent/20 border border-accent/40 shadow-[0_0_25px_rgba(16,185,129,0.3)]"
                       : "bg-white/5 border border-[var(--border-subtle)]"
                   }`}
                 >
                   <div
-                    className={`w-4 h-4 rounded-sm transition-all duration-500 ${
+                    className={`w-4 h-4 rounded-sm transition-ui duration-500 ${
                       judgingStatus?.active
                         ? "bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.8)] animate-pulse"
                         : "bg-gray-600"
@@ -240,21 +286,74 @@ export default function AdminResultsPage() {
                   })
                 }
                 disabled={toggleJudging.isPending}
-                className={`px-12 py-6 font-black text-lg uppercase tracking-widest transition-all rounded-none font-mono border-2 disabled:opacity-50 ${
+                className={`px-12 py-6 font-black text-lg uppercase tracking-widest transition-ui rounded-none font-mono border-2 disabled:opacity-50 ${
                   judgingStatus?.active
                     ? "bg-amber-500/10 border-amber-500/40 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.1)]"
                     : "bg-accent/10 border-accent/40 text-accent hover:bg-accent/20 hover:border-accent/60 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
                 }`}
               >
                 {toggleJudging.isPending
-                  ? "Processing..."
+                  ? "Processing…"
                   : judgingStatus?.active
                     ? "END JUDGING"
                     : "START JUDGING"}
               </button>
             </div>
+
+            {/* Sync then assign, in that order, from the screen that starts
+                judging — rather than two presses on a separate page. */}
+            <div className="mt-8 pt-6 border-t border-[var(--border-subtle)]">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">
+                    Prepare judging
+                  </p>
+                  <p className="text-xs font-mono text-text-muted mt-1">
+                    Syncs submissions into judging and builds every judge&apos;s
+                    queue. Run it before starting, and again after late
+                    submissions.
+                  </p>
+                </div>
+                <button
+                  onClick={prepareJudging}
+                  disabled={prepState.busy || judgingStatus?.active}
+                  title={
+                    judgingStatus?.active
+                      ? "End judging first — rebuilding queues mid-session would reorder what judges are working through."
+                      : undefined
+                  }
+                  className="shrink-0 px-8 py-4 border-2 border-accent/40 bg-accent/10 text-accent font-black text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-40"
+                >
+                  {prepState.busy ? "Preparing…" : "Prepare Judging"}
+                </button>
+              </div>
+
+              {prepState.message && (
+                <p className="mt-4 px-4 py-3 border border-accent/30 bg-accent/10 text-sm font-mono text-accent">
+                  {prepState.message}
+                </p>
+              )}
+              {prepState.error && (
+                <p
+                  role="alert"
+                  className="mt-4 px-4 py-3 border border-red-500/30 bg-red-500/10 text-sm font-mono text-red-300"
+                >
+                  {prepState.error}
+                </p>
+              )}
+            </div>
           </LiquidGlass>
         )}
+
+        {selectedHackathon && (
+          <div className="mt-6">
+            <JudgeLiveBoard
+              hackathonId={selectedHackathon}
+              active={!!judgingStatus?.active}
+            />
+          </div>
+        )}
+
         {/* Judging Tools */}
         <JudgingTools
           hackathons={hackathons || []}

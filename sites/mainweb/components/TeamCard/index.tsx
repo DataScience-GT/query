@@ -23,12 +23,12 @@ export default function TeamCard({
   return (
     <div
       {...rest}
-      className="group relative w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 pt-24 flex flex-col items-center transition-all duration-500 hover:border-[#00A8A8]/30 hover:shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+      className="group relative w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 pt-24 flex flex-col items-center transition-ui duration-500 hover:border-[#00A8A8]/30 hover:shadow-[0_0_30px_rgba(0,168,168,0.1)]"
       style={{ minHeight: 350 }}
     >
       {/* Profile Image Container */}
       <div
-        className={`absolute -top-12 left-1/2 -translate-x-1/2 rounded-xl overflow-hidden border border-white/10 bg-[#050505] shadow-2xl transition-all duration-500 ${
+        className={`absolute -top-12 left-1/2 -translate-x-1/2 rounded-xl overflow-hidden border border-white/10 bg-[#050505] shadow-2xl transition-ui duration-500 ${
           zoom ? "group-hover:scale-110" : "group-hover:-translate-y-2"
         }`}
         style={{
@@ -40,7 +40,7 @@ export default function TeamCard({
           src={img}
           alt={name}
           fill
-          className="object-cover transition-all duration-700 group-hover:rotate-1"
+          className="object-cover transition-ui duration-700 group-hover:rotate-1"
           sizes="140px"
           priority
         />

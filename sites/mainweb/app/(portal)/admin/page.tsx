@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useState } from "react";
-import QRCode from "qrcode";
 import { QRCodeModal } from "@/components/portal/QRCodeModal";
 import { EventFormModal } from "@/components/portal/EventFormModal";
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
@@ -34,6 +33,8 @@ export default function AdminPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
+  // The QR encoder is fetched on demand, so the press has to say it is working.
+  const [generatingQR, setGeneratingQR] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
   const { data: portalContext } = usePortalContext();
@@ -88,7 +89,11 @@ export default function AdminPage() {
   });
 
   const generateQRCode = async (qrCode: string) => {
+    setGeneratingQR(qrCode);
     try {
+      // ~240KB, and only needed once somebody asks to see a QR. Loading it up
+      // front put it in the bundle of the page admins open most.
+      const { default: QRCode } = await import("qrcode");
       const url = await QRCode.toDataURL(qrCode, {
         width: 400,
         margin: 3,
@@ -98,6 +103,8 @@ export default function AdminPage() {
       setShowQRCode(qrCode);
     } catch (err) {
       console.error("Error generating QR code:", err);
+    } finally {
+      setGeneratingQR(null);
     }
   };
 
@@ -215,7 +222,7 @@ export default function AdminPage() {
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-6 p-5 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-emerald-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-all duration-500">
+        <div className="mb-6 p-5 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-emerald-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-ui duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
             <QrCode className="w-3 h-3" /> Club Events
@@ -238,7 +245,7 @@ export default function AdminPage() {
                 <button
                   key={f}
                   onClick={() => setStatusFilter(f)}
-                  className={`px-4 py-2 rounded-none text-sm font-semibold capitalize transition-all ${
+                  className={`px-4 py-2 rounded-none text-sm font-semibold capitalize transition-ui ${
                     statusFilter === f
                       ? f === "open"
                         ? "bg-accent/20 text-accent border border-accent/30"
@@ -304,7 +311,7 @@ export default function AdminPage() {
                 .map((event) => (
                   <LiquidGlass
                     key={event.id}
-                    className={`p-6 hover:border-white/20 transition-all border-l-4 ${
+                    className={`p-6 hover:border-white/20 transition-ui border-l-4 ${
                       event.checkInEnabled
                         ? "border-l-accent"
                         : "border-l-[var(--border-subtle)]"
@@ -350,9 +357,12 @@ export default function AdminPage() {
                             generateQRCode(event.qrCode);
                             setSelectedEvent(event);
                           }}
-                          className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors"
+                          disabled={generatingQR === event.qrCode}
+                          className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors disabled:opacity-50"
                         >
-                          QR Code
+                          {generatingQR === event.qrCode
+                            ? "Generating…"
+                            : "QR Code"}
                         </button>
                         <button
                           onClick={() =>

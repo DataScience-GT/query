@@ -3,5 +3,5 @@
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 export default function Loading() {
-  return <LoadingScreen message="Loading Hackathon Details..." />;
+  return <LoadingScreen message="Loading Hackathon Details…" />;
 }

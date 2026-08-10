@@ -42,7 +42,7 @@ export default function ScanPage() {
   });
 
   if (status === "loading" || isLoading) {
-    return <LoadingScreen message="Checking access..." />;
+    return <LoadingScreen message="Checking access…" />;
   }
 
   if (status === "unauthenticated") {
@@ -117,7 +117,7 @@ export default function ScanPage() {
               onChange={(e) => setHackathonId(e.target.value)}
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
             >
-              <option value="">Select a hackathon...</option>
+              <option value="">Select a hackathon…</option>
               {hackathons?.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name}
@@ -151,7 +151,7 @@ export default function ScanPage() {
               onChange={(e) => setClubEventId(e.target.value)}
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
             >
-              <option value="">Select an event...</option>
+              <option value="">Select an event…</option>
               {clubEvents?.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.title}

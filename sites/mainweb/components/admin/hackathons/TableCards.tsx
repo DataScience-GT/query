@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { Printer } from "lucide-react";
@@ -27,16 +26,24 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
     if (!cards) return;
     let cancelled = false;
     (async () => {
-      const next: Record<string, string> = {};
-      for (const card of cards) {
-        next[card.id] = await QRCode.toDataURL(card.qrCode, {
-          width: 420,
-          margin: 1,
-          // Black on white regardless of theme: a dark-mode QR printed on
-          // white paper is a grey rectangle.
-          color: { dark: "#000000", light: "#FFFFFF" },
-        });
-      }
+      const { default: QRCode } = await import("qrcode");
+
+      // Encoded in parallel. Serially, a full event's worth of table cards
+      // rendered one QR at a time while the organiser waited to print.
+      const encoded = await Promise.all(
+        cards.map(async (card) => [
+          card.id,
+          await QRCode.toDataURL(card.qrCode, {
+            width: 420,
+            margin: 1,
+            // Black on white regardless of theme: a dark-mode QR printed on
+            // white paper is a grey rectangle.
+            color: { dark: "#000000", light: "#FFFFFF" },
+          }),
+        ] as const),
+      );
+
+      const next: Record<string, string> = Object.fromEntries(encoded);
       if (!cancelled) setImages(next);
     })();
     return () => {

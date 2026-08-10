@@ -66,6 +66,80 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Keyboard focus, portal-wide.
+
+   97 elements carried `outline-none` against a single `focus-visible` ring, so
+   tabbing through the portal moved an invisible cursor — the whole product was
+   unusable without a mouse. These rules are unlayered on purpose: that is what
+   lets them outrank the `outline-none` utility already on those elements,
+   rather than editing 97 call sites and hoping the 98th remembers.
+
+   `:focus-visible`, not `:focus`, so a mouse press does not leave a ring
+   behind. `outline-offset` keeps it clear of the element's own border. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent, #00a8a8);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* Compound controls: a wrapper shows focus when anything inside has it. */
+:where(label, fieldset):focus-within {
+  outline-color: var(--accent, #00a8a8);
+}
+
+/* Removes the 300ms double-tap delay and the grey flash on tap. Both are
+   defaults phones apply to anything they suspect is a document rather than an
+   application. */
+:where(a, button, [role="button"], input, select, textarea, summary) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Native scrollbars, form controls and autofill follow the theme instead of
+   rendering light chrome on a near-black page. */
+:root {
+  color-scheme: dark;
+}
+
+.light {
+  color-scheme: light;
+}
+
+/* Touch targets, on touch devices only.
+
+   54 controls in the portal sit below the 44x44 minimum — undo buttons on
+   attendance rosters, filter chips, table actions. Scoped to a coarse pointer
+   so the dense admin tables keep their density under a mouse, where a 12px
+   target is fine, and only grow where a fingertip has to find them. */
+@media (pointer: coarse) {
+  :where(button, [role="button"], a[href], summary, input[type="checkbox"], input[type="radio"]) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Links inside a sentence are not tap targets and must not be stretched. */
+  :where(p, li, td, span, label) a[href] {
+    min-height: 0;
+    min-width: 0;
+  }
+}
+
+/* Honour the OS setting. The portal animates a lot — pulsing status dots,
+   staggered card entrances, blur transitions — and for a motion-sensitive
+   person that is not decoration, it is a symptom trigger. Kept as one near-zero
+   duration rather than `none` so animation end events still fire and nothing
+   waiting on them stalls. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Replaces `transition-all`, which animates every animatable property —
    including layout ones like width and height, causing avoidable jank.
    Lists only what the UI actually transitions. Pair with `duration-*` as usual. */

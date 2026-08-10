@@ -10,7 +10,7 @@ import {
 } from "@query/db";
 import type { DrizzleDB, Initiative } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { isAdmin, isProjectLeader } from "../middleware/procedures";
+import { isAdmin, isSuperAdmin, isProjectLeader } from "../middleware/procedures";
 import { clearProjectLeaderCaches } from "../middleware/cache";
 
 const notFound = (message = "Initiative not found") =>
@@ -1038,7 +1038,7 @@ export const initiativeRouter = createTRPCRouter({
    * Grant or revoke, by user id. Upserted rather than deleted so an
    * appointment stays on the record after it is revoked.
    */
-  setLeader: isAdmin
+  setLeader: isSuperAdmin
     .input(z.object({ userId: z.string(), isLeader: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;

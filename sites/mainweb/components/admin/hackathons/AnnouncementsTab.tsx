@@ -319,7 +319,7 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
               onChange={(e) => setBody(e.target.value)}
               maxLength={5000}
               rows={8}
-              placeholder={"Hey,\n\nApplications are open until..."}
+              placeholder={"Hey,\n\nApplications are open until…"}
               className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors resize-y"
             />
             <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
@@ -372,7 +372,7 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
           className="mt-6 w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono"
         >
           {sending
-            ? "Sending..."
+            ? "Sending…"
             : `Send to ${recipientCount} recipient(s)`}
         </button>
 

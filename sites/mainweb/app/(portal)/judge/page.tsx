@@ -50,7 +50,7 @@ export default function JudgePage() {
   }, [status, router]);
 
   if (!mounted || status === "loading" || checkingJudge || hackathonsLoading) {
-    return <LoadingScreen message="Syncing..." />;
+    return <LoadingScreen message="Syncing…" />;
   }
 
   if (!session) return null;
@@ -150,7 +150,7 @@ export default function JudgePage() {
             return (
               <LiquidGlass
                 key={h.id}
-                className="h-full flex flex-col p-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-[var(--border-subtle)]"
+                className="h-full flex flex-col p-1 transition-ui duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-[var(--border-subtle)]"
               >
                 {/* The card is a plain container, not a Link.
                     It used to wrap the whole thing in an anchor and then put

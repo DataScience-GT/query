@@ -126,7 +126,7 @@ export function QRCodeModal({
           disabled={isRegenerating}
           className="w-full px-6 py-4 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 transition-ui disabled:opacity-50 rounded-none font-mono"
         >
-          {isRegenerating ? "RENEWING..." : "REBOOT QR SYSTEM"}
+          {isRegenerating ? "RENEWING…" : "REBOOT QR SYSTEM"}
         </button>
       </div>
     </ModalWrapper>

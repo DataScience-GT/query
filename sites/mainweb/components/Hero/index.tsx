@@ -66,7 +66,7 @@ const Hero = ({ screen_width }: HeroProps) => {
         {/* Right Logo */}
         <div className="hidden md:flex md:w-1/3 justify-center md:justify-end">
           <div className="relative group">
-            <div className="absolute -inset-4 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all duration-700"></div>
+            <div className="absolute -inset-4 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-ui duration-700"></div>
             <Image
               src={herologo}
               alt="DSGT logo"

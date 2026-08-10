@@ -355,7 +355,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               className="px-5 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest rounded-none hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {computeResults.isPending
-                ? "Computing..."
+                ? "Computing…"
                 : computeConflict
                   ? "Compute anyway"
                   : hasDraft
@@ -382,7 +382,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   disabled={unpublishResults.isPending}
                   className="px-5 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-red-500/20 transition-colors disabled:opacity-30"
                 >
-                  {unpublishResults.isPending ? "..." : "Unpublish"}
+                  {unpublishResults.isPending ? "…" : "Unpublish"}
                 </button>
               ) : (
                 <button
@@ -399,7 +399,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   disabled={publishResults.isPending}
                   className="px-5 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-amber-500/20 transition-colors disabled:opacity-30"
                 >
-                  {publishResults.isPending ? "..." : "Publish"}
+                  {publishResults.isPending ? "…" : "Publish"}
                 </button>
               ))}
           </div>
@@ -505,7 +505,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   onChange={(e) => setSelectedJudgeId(e.target.value)}
                   className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
                 >
-                  <option value="">Choose a judge...</option>
+                  <option value="">Choose a judge…</option>
                   {unassignedJudges.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.user?.name || j.name || j.user?.email || "Unknown"}

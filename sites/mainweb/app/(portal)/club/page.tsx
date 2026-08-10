@@ -148,7 +148,7 @@ export default function ClubPage() {
   };
 
   if (status === "loading" || !memberStatus) {
-    return <LoadingScreen message="Verifying Access..." />;
+    return <LoadingScreen message="Verifying Access…" />;
   }
 
   if (!session || !memberStatus.isMember) return null;
@@ -200,7 +200,7 @@ export default function ClubPage() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div className="flex items-center gap-6">
               <div className="relative group shrink-0">
-                <div className="absolute -inset-1 rounded-sm bg-gradient-to-r from-accent to-purple-500 opacity-50 blur-lg transition-all duration-500 group-hover:opacity-100 group-hover:scale-110" />
+                <div className="absolute -inset-1 rounded-sm bg-gradient-to-r from-accent to-purple-500 opacity-50 blur-lg transition-ui duration-500 group-hover:opacity-100 group-hover:scale-110" />
                 {userData?.image ? (
                   <Image
                     src={userData.image}
@@ -234,7 +234,7 @@ export default function ClubPage() {
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
               <Link
                 href="/dashboard"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-none border border-[var(--border-subtle)] bg-white/5 text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-white/10 hover:border-white/20 active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-none border border-[var(--border-subtle)] bg-white/5 text-sm font-bold text-[var(--text-primary)] transition-ui hover:bg-white/10 hover:border-white/20 active:scale-95"
               >
                 <LayoutDashboard className="w-4 h-4 text-[var(--text-muted)]" />
                 Main Dashboard
@@ -246,7 +246,7 @@ export default function ClubPage() {
         {/* Hackathon Hub Banner */}
         <Link
           href="/hackathons"
-          className="group relative overflow-hidden flex items-center justify-between gap-4 w-full rounded-none border border-accent/20 bg-accent/5 hover:bg-accent/10 hover:border-accent/40 transition-all duration-300 p-5 md:p-6 mb-8 md:mb-10"
+          className="group relative overflow-hidden flex items-center justify-between gap-4 w-full rounded-none border border-accent/20 bg-accent/5 hover:bg-accent/10 hover:border-accent/40 transition-ui duration-300 p-5 md:p-6 mb-8 md:mb-10"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
@@ -273,7 +273,7 @@ export default function ClubPage() {
               <Link
                 key={tab.id}
                 href={`#${tab.id}`}
-                className={`flex items-center gap-2 px-5 py-3 rounded-none font-bold text-sm tracking-wide transition-all duration-300 ${
+                className={`flex items-center gap-2 px-5 py-3 rounded-none font-bold text-sm tracking-wide transition-ui duration-300 ${
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-accent/10 to-transparent border border-accent/30 text-accent shadow-[0_0_20px_rgba(16,185,129,0.15)]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 border border-transparent"
@@ -294,7 +294,7 @@ export default function ClubPage() {
           {/* General Check-In */}
           {activeTab === "general" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 group relative overflow-hidden rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] shadow-2xl transition-all duration-500 hover:border-accent/30 p-8 md:p-12">
+              <div className="lg:col-span-2 group relative overflow-hidden rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)] shadow-2xl transition-ui duration-500 hover:border-accent/30 p-8 md:p-12">
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                 <div className="relative z-10 flex flex-col items-center justify-center text-center h-full min-h-[300px]">
@@ -313,7 +313,7 @@ export default function ClubPage() {
                   <button
                     onClick={() => setShowScanner(true)}
                     disabled={showScanner}
-                    className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold tracking-widest text-sm uppercase transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                    className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold tracking-widest text-sm uppercase transition-ui hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                   >
                     <Search className="w-4 h-4" />
                     Launch Scanner
@@ -412,8 +412,8 @@ export default function ClubPage() {
                       key={checkIn.id}
                       className="relative pl-8 md:pl-12 group"
                     >
-                      <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-sm border-2 border-accent bg-[var(--bg-primary)] group-hover:bg-accent group-hover:scale-125 transition-all shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 md:p-8 rounded-none border border-[var(--border-subtle)] bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-primary)] group-hover:border-accent/30 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all gap-4">
+                      <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-sm border-2 border-accent bg-[var(--bg-primary)] group-hover:bg-accent group-hover:scale-125 transition-ui shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 md:p-8 rounded-none border border-[var(--border-subtle)] bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-primary)] group-hover:border-accent/30 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-ui gap-4">
                         <div>
                           <h4 className="text-xl font-bold text-[var(--text-primary)] mb-3 group-hover:text-accent transition-colors">
                             {checkIn.event.title}

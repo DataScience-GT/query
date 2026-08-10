@@ -155,7 +155,7 @@ export default function HackathonDetailPage() {
   }, [authStatus, router]);
 
   if (authStatus === "loading" || isLoading)
-    return <LoadingScreen message="Loading Hackathon..." />;
+    return <LoadingScreen message="Loading Hackathon…" />;
   if (!session) return null;
   // A hackathon can be missing (bad link, deleted event) or hidden. Without
   // this branch the loading guard below never clears and the page spins
@@ -175,7 +175,7 @@ export default function HackathonDetailPage() {
       <main className="relative z-10 max-w-7xl mx-auto py-24 px-6 md:px-12">
         <Link
           href="/hackathons"
-          className="inline-flex items-center gap-2 text-[var(--text-primary)]/40 hover:text-emerald-300 transition-all duration-300 group -ml-2 -mt-2"
+          className="inline-flex items-center gap-2 text-[var(--text-primary)]/40 hover:text-emerald-300 transition-ui duration-300 group -ml-2 -mt-2"
         >
           <div className="p-1.5 rounded-sm bg-white/5 border border-[var(--border-subtle)] group-hover:bg-emerald-500/20 group-hover:border-emerald-400/40 transition-colors">
             <svg
@@ -206,7 +206,7 @@ export default function HackathonDetailPage() {
           <div className="flex flex-wrap items-center gap-3 mb-6 relative z-10">
             {/* Status Badge */}
             <div
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm backdrop-blur-md transition-all duration-300 hover:scale-105 ${conf.bg} ${conf.border} border ${hackathon.status === "open" || hackathon.status === "in_progress" ? "hover:shadow-lg" : ""}`}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm backdrop-blur-md transition-ui duration-300 hover:scale-105 ${conf.bg} ${conf.border} border ${hackathon.status === "open" || hackathon.status === "in_progress" ? "hover:shadow-lg" : ""}`}
             >
               <div
                 className={`h-1.5 w-1.5 rounded-sm ${conf.dot} ${conf.glow} ${hackathon.status === "open" || hackathon.status === "in_progress" ? "animate-pulse" : ""}`}
@@ -242,7 +242,7 @@ export default function HackathonDetailPage() {
 
             {/* Theme */}
             {hackathon.theme && (
-              <span className="text-[11px] font-semibold text-[var(--text-primary)]/50 uppercase tracking-widest px-3 py-1.5 rounded-sm bg-white/5 border border-[var(--border-subtle)] transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:text-[var(--text-primary)]/70">
+              <span className="text-[11px] font-semibold text-[var(--text-primary)]/50 uppercase tracking-widest px-3 py-1.5 rounded-sm bg-white/5 border border-[var(--border-subtle)] transition-ui duration-300 hover:bg-white/10 hover:border-white/30 hover:text-[var(--text-primary)]/70">
                 {hackathon.theme}
               </span>
             )}

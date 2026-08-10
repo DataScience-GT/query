@@ -13,7 +13,7 @@ import {
   hackathonParticipants,
 } from "@query/db";
 import { eq, and, asc, sql, inArray, isNull } from "drizzle-orm";
-import { isAdmin } from "../../middleware/procedures";
+import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
@@ -702,7 +702,7 @@ export const judgeAdminRouter = createTRPCRouter({
    * judge.create refuses once it exists, so without this a self-registered
    * judge can never be activated by any route.
    */
-  setActive: isAdmin
+  setActive: isSuperAdmin
     .input(
       z.object({
         judgeId: z.string().uuid(),
@@ -963,7 +963,7 @@ export const judgeAdminRouter = createTRPCRouter({
       };
     }),
 
-  remove: isAdmin
+  remove: isSuperAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       // judgeVotes.judgeId cascades on delete, so removing a judge who has
@@ -1351,6 +1351,159 @@ export const judgeAdminRouter = createTRPCRouter({
     }),
 
   /** Per-judge scoring analytics for bias detection and performance review. */
+  /**
+   * Where every judge is, right now.
+   *
+   * All of this was already stored — queue order, the claim stamp, the arrival
+   * stamp, vote times and durations — and nothing put it in one place, so on
+   * the day the only way to find a stalled judge was to go and look at them.
+   *
+   * Deliberately uncached: it is read on a short poll while judging runs, and
+   * a stale answer here is worse than no answer.
+   */
+  liveProgress: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const now = new Date();
+
+      const [queueRows, voteRows] = await Promise.all([
+        db
+          .select({
+            judgeId: judgeQueue.judgeId,
+            judgeName: judges.name,
+            judgeEmail: judges.email,
+            isActive: judges.isActive,
+            isCompleted: judgeQueue.isCompleted,
+            startedAt: judgeQueue.startedAt,
+            completedAt: judgeQueue.completedAt,
+            order: judgeQueue.order,
+            tableNumber: judgingProjects.tableNumber,
+            projectName: judgingProjects.name,
+          })
+          .from(judgeQueue)
+          .innerJoin(judges, eq(judges.id, judgeQueue.judgeId))
+          .leftJoin(
+            judgingProjects,
+            eq(judgingProjects.id, judgeQueue.projectId),
+          )
+          .where(eq(judgeQueue.hackathonId, input.hackathonId))
+          .orderBy(asc(judgeQueue.order)),
+        db
+          .select({
+            judgeId: judgeVotes.judgeId,
+            votedAt: judgeVotes.votedAt,
+            durationSeconds: judgeVotes.durationSeconds,
+          })
+          .from(judgeVotes)
+          .innerJoin(
+            judgingProjects,
+            and(
+              eq(judgingProjects.id, judgeVotes.projectId),
+              eq(judgingProjects.hackathonId, input.hackathonId),
+            ),
+          ),
+      ]);
+
+      const votesByJudge = new Map<string, typeof voteRows>();
+      for (const v of voteRows) {
+        const list = votesByJudge.get(v.judgeId) ?? [];
+        list.push(v);
+        votesByJudge.set(v.judgeId, list);
+      }
+
+      const byJudge = new Map<string, (typeof queueRows)[number][]>();
+      for (const row of queueRows) {
+        const list = byJudge.get(row.judgeId) ?? [];
+        list.push(row);
+        byJudge.set(row.judgeId, list);
+      }
+
+      const minutesSince = (d: Date | null) =>
+        d ? Math.floor((now.getTime() - new Date(d).getTime()) / 60000) : null;
+
+      const judgesOut = [...byJudge.entries()].map(([judgeId, rows]) => {
+        const first = rows[0]!;
+        const done = rows.filter((r) => r.isCompleted);
+        const votes = votesByJudge.get(judgeId) ?? [];
+
+        // The project handed over but not yet scored. There is at most one:
+        // completeAndNext closes the previous row before claiming the next.
+        const current = rows.find((r) => !r.isCompleted && r.startedAt) ?? null;
+
+        const lastVoteAt = votes.reduce<Date | null>((acc, v) => {
+          const at = v.votedAt ? new Date(v.votedAt) : null;
+          return at && (!acc || at > acc) ? at : acc;
+        }, null);
+
+        const durations = votes
+          .map((v) => v.durationSeconds)
+          .filter((d): d is number => typeof d === "number" && d > 0);
+
+        const medianSeconds = durations.length
+          ? [...durations].sort((a, b) => a - b)[
+              Math.floor(durations.length / 2)
+            ]!
+          : null;
+
+        const idleMinutes = minutesSince(lastVoteAt);
+
+        const status = !first.isActive
+          ? ("suspended" as const)
+          : done.length === rows.length && rows.length > 0
+            ? ("done" as const)
+            : current
+              ? ("judging" as const)
+              : votes.length === 0
+                ? ("not_started" as const)
+                : ("between" as const);
+
+        return {
+          judgeId,
+          name: first.judgeName,
+          email: first.judgeEmail,
+          status,
+          assigned: rows.length,
+          completed: done.length,
+          remaining: rows.length - done.length,
+          scored: votes.length,
+          medianSeconds,
+          idleMinutes,
+          current: current
+            ? {
+                tableNumber: current.tableNumber,
+                projectName: current.projectName,
+                onItMinutes: minutesSince(current.startedAt),
+              }
+            : null,
+        };
+      });
+
+      // Worst first: a judge who has stopped is the reason to open this screen.
+      const rank = { not_started: 0, judging: 1, between: 2, done: 3, suspended: 4 };
+      judgesOut.sort(
+        (a, b) =>
+          rank[a.status] - rank[b.status] ||
+          (b.idleMinutes ?? 0) - (a.idleMinutes ?? 0),
+      );
+
+      const totalAssigned = queueRows.length;
+      const totalCompleted = queueRows.filter((r) => r.isCompleted).length;
+
+      return {
+        judges: judgesOut,
+        totals: {
+          judges: judgesOut.length,
+          assigned: totalAssigned,
+          completed: totalCompleted,
+          percent:
+            totalAssigned === 0
+              ? 0
+              : Math.round((totalCompleted / totalAssigned) * 100),
+        },
+      };
+    }),
+
   getJudgeAnalytics: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {

@@ -232,7 +232,10 @@ const JUDGE_ROW = {
   isActive: true,
   name: "Grace Hopper",
 };
-const ADMIN_ROW = { userId: "admin_user", isActive: true, role: "admin" };
+// Super admin, because activating and deactivating a judge is restricted to
+// that tier. It still passes isAdmin, so the rest of the suite is unaffected.
+const ADMIN_ROW = { userId: "admin_user", isActive: true, role: "super_admin" };
+const PLAIN_ADMIN_ROW = { userId: "admin_user", isActive: true, role: "admin" };
 
 /** Returns successive elements of `items`, then undefined forever. */
 const seq = (items: unknown[]) => {
@@ -1244,6 +1247,26 @@ describe("Judge edge cases", () => {
       expect(mockDelete).not.toHaveBeenCalled();
     });
 
+    /**
+     * Activating and deactivating a person is the super-admin tier. A plain
+     * admin runs the event; deciding who holds a role does not come with that.
+     */
+    it("refuses a plain admin, and writes nothing", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins" ? PLAIN_ADMIN_ROW : undefined,
+      );
+
+      await expect(
+        adminCaller().judge.setActive({ judgeId: JUDGE_ID, isActive: true }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        adminCaller().judge.remove({ judgeId: JUDGE_ID }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(mockUpdate).not.toHaveBeenCalled();
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+
     // isJudge caches the judges row for 60s under
     // `judge:<userId>:<hackathonId>:role` (procedures.ts:97-110). Nothing in
     // admin.ts clears that key explicitly — the protection comes from
@@ -1926,6 +1949,134 @@ describe("Judge edge cases", () => {
 
       expect(res.alreadyStarted).toBe(true);
       expect(mockUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  // =====================================================================
+  /**
+   * The floor view. Every column it reads was already stored; nothing put it
+   * in one place, so finding a stalled judge on the day meant walking over to
+   * look at them.
+   */
+  describe("10. Live judge progress", () => {
+    const MIN = 60 * 1000;
+
+    /** queueRows first, then voteRows — the order liveProgress selects them. */
+    const wireFloor = (queueRows: unknown[], voteRows: unknown[]) => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins" ? ADMIN_ROW : undefined,
+      );
+      mockSelect.mockReset();
+      mockSelect
+        .mockReturnValueOnce(queueRows)
+        .mockReturnValueOnce(voteRows)
+        .mockReturnValue([]);
+    };
+
+    const slot = (over: Record<string, unknown> = {}) => ({
+      judgeId: JUDGE_ID,
+      judgeName: "Ada",
+      judgeEmail: "ada@example.com",
+      isActive: true,
+      isCompleted: false,
+      startedAt: null,
+      completedAt: null,
+      order: 1,
+      tableNumber: 7,
+      projectName: "Flood Mapper",
+      ...over,
+    });
+
+    it("reports a judge who has a queue and has scored nothing", async () => {
+      wireFloor([slot()], []);
+
+      const res = await adminCaller().judge.liveProgress({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.judges[0]).toMatchObject({
+        status: "not_started",
+        assigned: 1,
+        completed: 0,
+        scored: 0,
+      });
+      expect(res.totals).toMatchObject({ assigned: 1, completed: 0, percent: 0 });
+    });
+
+    it("shows which table a judge is standing at, and for how long", async () => {
+      wireFloor(
+        [slot({ startedAt: new Date(Date.now() - 8 * MIN) })],
+        [{ judgeId: JUDGE_ID, votedAt: new Date(), durationSeconds: 300 }],
+      );
+
+      const res = await adminCaller().judge.liveProgress({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.judges[0]).toMatchObject({ status: "judging" });
+      expect(res.judges[0]!.current).toMatchObject({
+        tableNumber: 7,
+        onItMinutes: 8,
+      });
+    });
+
+    it("counts idle minutes from the last vote, not from the queue", async () => {
+      wireFloor(
+        [slot({ isCompleted: true, completedAt: new Date() }), slot({ order: 2 })],
+        [
+          {
+            judgeId: JUDGE_ID,
+            votedAt: new Date(Date.now() - 25 * MIN),
+            durationSeconds: 240,
+          },
+        ],
+      );
+
+      const res = await adminCaller().judge.liveProgress({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.judges[0]).toMatchObject({ status: "between", idleMinutes: 25 });
+    });
+
+    it("reports a finished judge as done, at 100 percent", async () => {
+      wireFloor(
+        [slot({ isCompleted: true, completedAt: new Date() })],
+        [{ judgeId: JUDGE_ID, votedAt: new Date(), durationSeconds: 200 }],
+      );
+
+      const res = await adminCaller().judge.liveProgress({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.judges[0]).toMatchObject({ status: "done" });
+      expect(res.totals.percent).toBe(100);
+    });
+
+    it("puts the judge who has not started above the one who has finished", async () => {
+      wireFloor(
+        [
+          slot({ isCompleted: true, completedAt: new Date() }),
+          slot({ judgeId: "judge_b", judgeName: "Grace", order: 1 }),
+        ],
+        [{ judgeId: JUDGE_ID, votedAt: new Date(), durationSeconds: 200 }],
+      );
+
+      const res = await adminCaller().judge.liveProgress({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.judges.map((j) => j.status)).toEqual(["not_started", "done"]);
+    });
+
+    it("is refused to somebody who is not staff", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+
+      await expect(
+        appRouter
+          .createCaller(ctxFor("random_user"))
+          .judge.liveProgress({ hackathonId: HACK_A }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
 });

@@ -78,7 +78,7 @@ function InitiativeForm({
             disabled={pending}
             className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
           >
-            {pending ? "Saving..." : initiative ? "Save changes" : "Create"}
+            {pending ? "Saving…" : initiative ? "Save changes" : "Create"}
           </button>
           <button
             type="button"

@@ -174,7 +174,7 @@ export function CreateHackathonStep({
           }
           className="w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-ui disabled:opacity-30 font-mono"
         >
-          {createHackathonPending ? "Creating..." : "Create Event"}
+          {createHackathonPending ? "Creating…" : "Create Event"}
         </button>
         {createHackathonError && (
           <p
