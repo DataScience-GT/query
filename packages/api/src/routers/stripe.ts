@@ -15,10 +15,13 @@ import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware
 import {
   createOrUpdateMembership,
   paidForBootcamp,
+  isBootcampAddOnOnly,
+  BOOTCAMP_ADDON_PAYMENT_TYPE,
 } from "@query/db/services/membership";
 import {
   priceForCents,
   formatCents,
+  BOOTCAMP_ADDON_CENTS,
   MAX_MEMBERSHIP_CHARGE_CENTS,
 } from "../services/pricing";
 import type Stripe from "stripe";
@@ -275,6 +278,25 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
+      /**
+       * A member with a year still on it buys the bootcamp alone. Decided from
+       * their own row, never an input flag — otherwise a non-member could ask
+       * for add-on pricing and get bootcamp access for $10.
+       */
+      const member = await ctx.db!.query.members.findFirst({
+        where: eq(members.userId, ctx.userId!),
+        columns: { isActive: true, membershipEndDate: true },
+      });
+      const membershipActive = !!(
+        member?.isActive &&
+        member.membershipEndDate &&
+        member.membershipEndDate > new Date()
+      );
+      const addOnOnly = input.bootcamp && membershipActive;
+      const amount = addOnOnly
+        ? BOOTCAMP_ADDON_CENTS
+        : priceForCents(input.bootcamp);
+
       // Checked before the key, matching createCheckoutSession, so local
       // development needs no Stripe key at all.
       if (isMockMode()) {
@@ -285,9 +307,13 @@ export const stripeRouter = createTRPCRouter({
         // silent no-op.
         return {
           clientSecret: "mock_pi_secret",
-          mockPaymentIntentId: `pi_mock_${crypto.randomUUID().replace(/-/g, "")}`,
+          // Purchase kind rides in the id: a mock intent is stored nowhere for
+          // confirm to look up, so otherwise only the bundle is testable.
+          mockPaymentIntentId: `pi_mock_${addOnOnly ? "addon_" : ""}${crypto.randomUUID().replace(/-/g, "")}`,
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
+          amount,
+          addOnOnly,
         };
       }
 
@@ -320,19 +346,20 @@ export const stripeRouter = createTRPCRouter({
       }
 
       try {
-        const amount = priceForCents(input.bootcamp);
-
         const paymentIntent = await stripe.paymentIntents.create({
           amount,
           currency: "usd",
           receipt_email: user.email,
-          description: input.bootcamp
-            ? `DSGT Annual Membership + Bootcamp (${formatCents(amount)}/yr)`
-            : `DSGT Annual Membership (${formatCents(amount)}/yr)`,
+          description: addOnOnly
+            ? `DSGT Bootcamp — one semester (${formatCents(amount)})`
+            : input.bootcamp
+              ? `DSGT Annual Membership + Bootcamp (${formatCents(amount)}/yr)`
+              : `DSGT Annual Membership (${formatCents(amount)}/yr)`,
           metadata: {
             userId: ctx.userId!,
             userEmail: user.email,
-            type: "membership",
+            // Every grant path reads this to tell a $10 add-on from a year.
+            type: addOnOnly ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
             // Read back when the payment is recorded, so the bootcamp flag
             // comes from what was actually charged rather than from a client
             // that could simply claim it.
@@ -345,6 +372,8 @@ export const stripeRouter = createTRPCRouter({
           clientSecret: paymentIntent.client_secret!,
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
           isMock: false,
+          amount,
+          addOnOnly,
         };
       } catch (error: unknown) {
         logSecurityEvent({
@@ -390,12 +419,18 @@ export const stripeRouter = createTRPCRouter({
       };
 
       if (mock) {
+        // createPaymentIntent encodes the purchase in the mock id.
+        const mockAddOn = input.paymentIntentId.startsWith("pi_mock_addon_");
         pi = {
           id: input.paymentIntentId,
           status: "succeeded",
-          amount: priceForCents(false),
+          amount: mockAddOn ? BOOTCAMP_ADDON_CENTS : priceForCents(false),
           currency: "usd",
-          metadata: { userId: ctx.userId!, bootcamp: "false" },
+          metadata: {
+            userId: ctx.userId!,
+            bootcamp: mockAddOn ? "true" : "false",
+            ...(mockAddOn ? { type: BOOTCAMP_ADDON_PAYMENT_TYPE } : {}),
+          },
         };
       } else {
         // No key-mode check here: this path hands no publishable key to the
@@ -439,6 +474,7 @@ export const stripeRouter = createTRPCRouter({
       // From the charged intent, not the client: the add-on is only granted
       // if it was actually paid for.
       const bootcampMember = pi.metadata?.bootcamp === "true";
+      const addOnOnly = pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE;
 
       // Check if already processed (idempotent)
       const existing = await ctx.db!.query.stripePayments.findFirst({
@@ -466,6 +502,7 @@ export const stripeRouter = createTRPCRouter({
             firstName,
             lastName,
             bootcampMember,
+            addOnOnly,
           });
         });
       } else if (!existing.linkedUserId) {
@@ -473,7 +510,7 @@ export const stripeRouter = createTRPCRouter({
         await ctx.db!.update(stripePayments)
           .set({ linkedUserId: ctx.userId!, linkedAt: new Date(), updatedAt: new Date() })
           .where(eq(stripePayments.id, existing.id));
-        await createOrUpdateMembership(ctx.db! as DrizzleDB, { userId: ctx.userId!, firstName, lastName, bootcampMember });
+        await createOrUpdateMembership(ctx.db! as DrizzleDB, { userId: ctx.userId!, firstName, lastName, bootcampMember, addOnOnly });
       }
 
       clearMembershipCaches(ctx.cache, ctx.userId!);
@@ -523,6 +560,7 @@ export const stripeRouter = createTRPCRouter({
       const firstName = names[0] || "Member";
       const lastName = names.slice(1).join(" ") || "Member";
       const bootcampMember = paidForBootcamp(payment.metadata);
+      const addOnOnly = isBootcampAddOnOnly(payment.metadata);
 
       await tx.insert(userAccountLinks).values({
         userId: ctx.userId!,
@@ -546,6 +584,7 @@ export const stripeRouter = createTRPCRouter({
             firstName,
             lastName,
             bootcampMember,
+            addOnOnly,
           });
 
       clearMembershipCaches(ctx.cache, ctx.userId!);
@@ -663,6 +702,7 @@ export const stripeRouter = createTRPCRouter({
             firstName: parts[0] || "Member",
             lastName: parts.slice(1).join(" ") || "Member",
             bootcampMember: pi.metadata?.bootcamp === "true",
+            addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
           });
           recovered += 1;
           continue;
@@ -691,6 +731,7 @@ export const stripeRouter = createTRPCRouter({
             firstName: parts[0] || "Member",
             lastName: parts.slice(1).join(" ") || "Member",
             bootcampMember: pi.metadata?.bootcamp === "true",
+            addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
           });
           recovered += 1;
         });
@@ -698,6 +739,7 @@ export const stripeRouter = createTRPCRouter({
       }
 
       const bootcampMember = pi.metadata?.bootcamp === "true";
+      const addOnOnly = pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE;
       const { firstName, lastName } = (() => {
         const parts = (user?.name || "Member").trim().split(/\s+/);
         return {
@@ -742,6 +784,7 @@ export const stripeRouter = createTRPCRouter({
             firstName,
             lastName,
             bootcampMember,
+            addOnOnly,
           });
           recovered += 1;
         });
@@ -925,6 +968,7 @@ export const stripeRouter = createTRPCRouter({
           firstName: input.firstName,
           lastName: input.lastName,
           bootcampMember: paidForBootcamp(payment.metadata),
+          addOnOnly: isBootcampAddOnOnly(payment.metadata),
         });
 
         clearMembershipCaches(ctx.cache, ctx.userId!);

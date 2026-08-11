@@ -4,6 +4,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members, users } from "@query/db";
 import { eq, and, lt, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
 
 /**
@@ -31,19 +32,36 @@ export const eventRouter = createTRPCRouter({
         eventDate: z.date(),
         maxCheckIns: z.number().int().positive().optional(),
         membersOnly: z.boolean().optional(),
+        /** Marks this event as week N of the bootcamp running this term. */
+        bootcampWeek: z.number().int().min(1).max(52).optional(),
+        bootcampOnly: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const qrCode = randomUUID();
 
+      // Term is derived, never sent — a client could otherwise file a session
+      // under a semester nobody is enrolled in.
       const [newEvent] = await (ctx.db as NonNullable<typeof ctx.db>)
         .insert(events)
         .values({
           ...input,
+          bootcampTerm: input.bootcampWeek ? currentTerm() : null,
           qrCode,
           createdById: ctx.userId as string,
         })
-        .returning();
+        .returning()
+        .catch((error: unknown) => {
+          // Guarded on the week: the QR code is unique too, and "Week
+          // undefined already exists" would be a baffling thing to read.
+          if (input.bootcampWeek && isUniqueViolation(error)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Week ${input.bootcampWeek} of this bootcamp already has a session. Edit that one instead.`,
+            });
+          }
+          throw error;
+        });
 
       // Invalidate all event-related cache entries after creation
       ctx.cache.deletePattern("event*");
@@ -69,6 +87,9 @@ export const eventRouter = createTRPCRouter({
         /** Null removes the cap. */
         maxCheckIns: z.number().int().positive().nullable().optional(),
         membersOnly: z.boolean().optional(),
+        /** Null takes the event back out of the bootcamp. */
+        bootcampWeek: z.number().int().min(1).max(52).nullable().optional(),
+        bootcampOnly: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -78,7 +99,7 @@ export const eventRouter = createTRPCRouter({
         ctx.db as NonNullable<typeof ctx.db>
       ).query.events.findFirst({
         where: eq(events.id, eventId),
-        columns: { currentCheckIns: true },
+        columns: { currentCheckIns: true, bootcampTerm: true },
       });
 
       if (!existing) {
@@ -98,11 +119,33 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
+      // Term follows the week, or an event moved out of the bootcamp keeps
+      // holding week 3 against the next one created.
+      const bootcampTerm =
+        fields.bootcampWeek === undefined
+          ? undefined
+          : fields.bootcampWeek === null
+            ? null
+            : (existing.bootcampTerm ?? currentTerm());
+
       const [updated] = await (ctx.db as NonNullable<typeof ctx.db>)
         .update(events)
-        .set({ ...fields, updatedAt: new Date() })
+        .set({
+          ...fields,
+          ...(bootcampTerm === undefined ? {} : { bootcampTerm }),
+          updatedAt: new Date(),
+        })
         .where(eq(events.id, eventId))
-        .returning();
+        .returning()
+        .catch((error: unknown) => {
+          if (fields.bootcampWeek && isUniqueViolation(error)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Week ${fields.bootcampWeek} of this bootcamp already has a session.`,
+            });
+          }
+          throw error;
+        });
 
       ctx.cache.deletePattern(`event:${eventId}`);
       ctx.cache.deletePattern("event*");
@@ -366,6 +409,15 @@ export const eventRouter = createTRPCRouter({
                 message: "Your membership is not active",
               });
             }
+          }
+
+          // Bought per semester, so last term's seat is not this term's.
+          // Officers can still check somebody in by hand.
+          if (event.bootcampOnly && member?.bootcampTerm !== currentTerm()) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "This session is for bootcamp members this semester",
+            });
           }
 
           if (existingCheckIn) {

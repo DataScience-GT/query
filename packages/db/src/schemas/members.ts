@@ -54,6 +54,12 @@ export const members = pgTable(
      * anything a client can assert.
      */
     bootcampMember: boolean("bootcamp_member").notNull().default(false),
+    /**
+     * Which bootcamp they bought, as `2026-fall`. The boolean above never
+     * expires, so it cannot be the access check for a one-semester program —
+     * every gate compares this against `currentTerm()`.
+     */
+    bootcampTerm: text("bootcamp_term"),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
     membershipStartDate: timestamp("membership_start_date").notNull(),
     membershipEndDate: timestamp("membership_end_date"),

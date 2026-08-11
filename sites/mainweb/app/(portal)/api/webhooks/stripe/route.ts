@@ -5,6 +5,7 @@ import { db, stripePayments, users } from "@query/db";
 import {
   createOrUpdateMembership,
   splitName,
+  BOOTCAMP_ADDON_PAYMENT_TYPE,
 } from "@query/db/services/membership";
 import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
@@ -163,6 +164,8 @@ export async function POST(req: NextRequest) {
                 ...splitName(customerName),
                 phoneNumber,
                 bootcampMember: session.metadata?.bootcamp === "true",
+                addOnOnly:
+                  session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
               });
             } catch (e) {
               // This id is ours (a database row), not request-derived, but it
@@ -240,6 +243,7 @@ export async function POST(req: NextRequest) {
             ...splitName(customerName),
             phoneNumber,
             bootcampMember: session.metadata?.bootcamp === "true",
+            addOnOnly: session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {
@@ -287,7 +291,12 @@ export async function POST(req: NextRequest) {
        * here — activating the membership twice and bumping renewalCount for a
        * single $15. Any unrelated charge on the account would land here too.
        */
-      if (pi.metadata?.type !== "membership") {
+      // The add-on is the second kind of intent this app creates; it has to
+      // pass too, or a browser closed before the client callback loses $10.
+      if (
+        pi.metadata?.type !== "membership" &&
+        pi.metadata?.type !== BOOTCAMP_ADDON_PAYMENT_TYPE
+      ) {
         return NextResponse.json({ received: true });
       }
 
@@ -355,6 +364,8 @@ export async function POST(req: NextRequest) {
             userId: targetUser.id,
             ...splitName(targetUser.name),
             bootcampMember: pi.metadata?.bootcamp === "true",
+            // Where an unconfirmed add-on lands. $10 must not buy a year.
+            addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {

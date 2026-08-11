@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   ScrollText,
   BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -102,6 +103,14 @@ export default function PortalSidebar({
       show: portalContext?.member.isMember && !portalContext?.isAdmin,
     },
     {
+      name: "Bootcamp",
+      // Not /bootcamp — the public curriculum page owns that path. Shown to
+      // everyone, like Initiatives, so the add-on can be seen before paying.
+      href: "/club/bootcamp",
+      icon: GraduationCap,
+      show: !portalContext?.isAdmin,
+    },
+    {
       name: "Judge Portal",
       href: "/judge",
       icon: ClipboardList,
@@ -143,6 +152,7 @@ export default function PortalSidebar({
     // /lead is the only screen that decides an initiative application, and
     // isProjectLeader admits admins so an absent leader cannot strand theirs.
     { name: "Initiative Applications", href: "/lead", icon: Rocket },
+    { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
     { name: "Memberships", href: "/admin/members", icon: CreditCard },
     // Granting the volunteer tier is otherwise an INSERT against production,

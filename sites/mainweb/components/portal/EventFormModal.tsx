@@ -13,6 +13,10 @@ interface EventFormData {
   maxCheckIns: string;
   /** Off lets non-members check themselves in — kickoffs, interest meetings. */
   membersOnly: boolean;
+  /** Empty means this is an ordinary event, not a bootcamp session. */
+  bootcampWeek: string;
+  /** Refuses anyone not enrolled in this semester's bootcamp. */
+  bootcampOnly: boolean;
 }
 
 interface EventFormModalProps {
@@ -47,6 +51,8 @@ export function EventFormModal({
     eventDate: initial?.eventDate ?? "",
     maxCheckIns: initial?.maxCheckIns ?? "",
     membersOnly: initial?.membersOnly ?? true,
+    bootcampWeek: initial?.bootcampWeek ?? "",
+    bootcampOnly: initial?.bootcampOnly ?? false,
   });
 
   // Auto-fill date/time when creating. An edit already carries the event's own
@@ -200,6 +206,60 @@ export function EventFormModal({
           <p className="text-[10px] font-mono text-[var(--text-subtle)]">
             Untick for a kickoff or interest meeting so non-members can scan
             themselves in. Officers can always check somebody in by hand.
+          </p>
+        </div>
+
+        {/* A session is an ordinary event with a week on it, so it uses this
+            same QR and check-in desk — no second form, no second scanner. */}
+        <div className="space-y-2 border-t border-[var(--border-subtle)] pt-6">
+          <label
+            htmlFor="bootcamp-week"
+            className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono block"
+          >
+            Bootcamp week (optional)
+          </label>
+          <input
+            id="bootcamp-week"
+            type="number"
+            min={1}
+            max={52}
+            value={form.bootcampWeek}
+            onChange={(e) => {
+              const value = e.target.value;
+              setForm((prev) => ({
+                ...prev,
+                bootcampWeek: value,
+                // Ticking the box is the step people forget.
+                bootcampOnly:
+                  !prev.bootcampWeek.trim() && value.trim()
+                    ? true
+                    : prev.bootcampOnly,
+              }));
+            }}
+            className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent focus:outline-none transition-ui font-mono"
+            placeholder="Leave empty for a normal event"
+          />
+          <p className="text-[10px] font-mono text-[var(--text-subtle)]">
+            Files this event as week N of the bootcamp running this semester,
+            and puts its attendance on the bootcamp grid.
+          </p>
+
+          <label className="flex items-center gap-3 cursor-pointer pt-2">
+            <input
+              type="checkbox"
+              checked={form.bootcampOnly}
+              onChange={(e) =>
+                setForm({ ...form, bootcampOnly: e.target.checked })
+              }
+              className="h-4 w-4 accent-accent"
+            />
+            <span className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+              Bootcamp members only
+            </span>
+          </label>
+          <p className="text-[10px] font-mono text-[var(--text-subtle)]">
+            Turns away anyone who has not paid for this semester&rsquo;s
+            bootcamp. Officers can still check somebody in by hand.
           </p>
         </div>
 

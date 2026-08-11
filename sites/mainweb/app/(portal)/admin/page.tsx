@@ -21,6 +21,8 @@ type Event = {
   currentCheckIns: number;
   maxCheckIns: number | null;
   membersOnly: boolean;
+  bootcampWeek: number | null;
+  bootcampOnly: boolean;
 };
 
 export default function AdminPage() {
@@ -115,12 +117,22 @@ export default function AdminPage() {
     eventDate: string;
     maxCheckIns: string;
     membersOnly: boolean;
+    bootcampWeek: string;
+    bootcampOnly: boolean;
   };
 
   // Empty means no cap — the column is nullable and the door gate only runs
   // when a number is set. The form used to hardcode undefined, so capacity was
   // unreachable from anywhere in the product.
   const parseCapacity = (value: string) => {
+    const parsed = Number(value);
+    return value.trim() && Number.isFinite(parsed) && parsed > 0
+      ? Math.floor(parsed)
+      : undefined;
+  };
+
+  /** Empty means this is not a bootcamp session; the column is nullable. */
+  const parseWeek = (value: string) => {
     const parsed = Number(value);
     return value.trim() && Number.isFinite(parsed) && parsed > 0
       ? Math.floor(parsed)
@@ -135,6 +147,8 @@ export default function AdminPage() {
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns),
       membersOnly: formData.membersOnly,
+      bootcampWeek: parseWeek(formData.bootcampWeek),
+      bootcampOnly: formData.bootcampOnly,
     });
   };
 
@@ -149,6 +163,8 @@ export default function AdminPage() {
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns) ?? null,
       membersOnly: formData.membersOnly,
+      bootcampWeek: parseWeek(formData.bootcampWeek) ?? null,
+      bootcampOnly: formData.bootcampOnly,
     });
   };
 
@@ -189,6 +205,10 @@ export default function AdminPage() {
               ? String(editingEvent.maxCheckIns)
               : "",
             membersOnly: editingEvent.membersOnly,
+            bootcampWeek: editingEvent.bootcampWeek
+              ? String(editingEvent.bootcampWeek)
+              : "",
+            bootcampOnly: editingEvent.bootcampOnly,
           }}
           onClose={() => {
             setEditingEvent(null);
