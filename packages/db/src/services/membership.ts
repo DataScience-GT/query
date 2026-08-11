@@ -79,6 +79,15 @@ export async function resolveCurrentHackathonId(
 }
 
 /**
+ * Which bootcamp a purchase made today buys into. A membership is a year and a
+ * bootcamp is a semester, so they cannot share an expiry. Summer sells fall.
+ */
+export const currentTerm = (now = new Date()) =>
+  now.getMonth() <= 4
+    ? `${now.getFullYear()}-spring`
+    : `${now.getFullYear()}-fall`;
+
+/**
  * Whether a stored payment's metadata says the bootcamp add-on was bought.
  * Metadata is a JSON string written by whichever path recorded the payment,
  * and older rows predate the field entirely, so anything unparseable is "no".
@@ -87,6 +96,26 @@ export const paidForBootcamp = (metadata: string | null | undefined) => {
   if (!metadata) return false;
   try {
     return (JSON.parse(metadata) as { bootcamp?: string }).bootcamp === "true";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Marks a payment that bought the $10 bootcamp alone. Nine paths grant
+ * memberships from a stored payment; without this every one of them reads a
+ * paid $10 row as a bought year, so the marker travels on the payment.
+ */
+export const BOOTCAMP_ADDON_PAYMENT_TYPE = "bootcamp_addon";
+
+/** Whether a stored payment bought the bootcamp alone, not a membership. */
+export const isBootcampAddOnOnly = (metadata: string | null | undefined) => {
+  if (!metadata) return false;
+  try {
+    return (
+      (JSON.parse(metadata) as { type?: string }).type ===
+      BOOTCAMP_ADDON_PAYMENT_TYPE
+    );
   } catch {
     return false;
   }
@@ -114,11 +143,12 @@ export async function createOrUpdateMembership(
     phoneNumber?: string | null;
     hackathonId?: string;
     /**
-     * Whether this payment included the bootcamp add-on. Only ever upgrades:
-     * renewing without it should not silently strip access someone already
-     * paid for, so the flag is sticky once set.
+     * Whether this payment included the bootcamp add-on. Sticky once set; the
+     * term it stamps is not, since access runs out with the semester.
      */
     bootcampMember?: boolean;
+    /** Bought the bootcamp alone, so it must not extend the membership year. */
+    addOnOnly?: boolean;
   },
 ) {
   // Keyed on the person, not the edition.
@@ -133,6 +163,23 @@ export async function createOrUpdateMembership(
   });
 
   const now = new Date();
+
+  // $10 buys the semester and nothing else — no extra year, no renewal, no
+  // history row. No member row means nothing to stamp; doing nothing leaves
+  // the paid row for staff rather than minting a year for $10.
+  if (opts.addOnOnly) {
+    if (!existing) return;
+
+    await db
+      .update(members)
+      .set({
+        bootcampMember: true,
+        bootcampTerm: currentTerm(now),
+        updatedAt: now,
+      })
+      .where(eq(members.id, existing.id));
+    return;
+  }
 
   /**
    * A membership is one paid year. Renewing early has to *extend* the term, so
@@ -159,6 +206,11 @@ export async function createOrUpdateMembership(
         memberType: "continuous",
         phoneNumber: opts.phoneNumber || existing.phoneNumber,
         bootcampMember: existing.bootcampMember || !!opts.bootcampMember,
+        // Only a purchase moves the term; a plain renewal leaves last
+        // semester's, which is what expires the access.
+        bootcampTerm: opts.bootcampMember
+          ? currentTerm(now)
+          : existing.bootcampTerm,
         updatedAt: now,
       })
       .where(eq(members.id, existing.id));
@@ -189,6 +241,7 @@ export async function createOrUpdateMembership(
       renewalCount: 0,
       phoneNumber: opts.phoneNumber ?? null,
       bootcampMember: !!opts.bootcampMember,
+      bootcampTerm: opts.bootcampMember ? currentTerm(now) : null,
     })
     .returning({ id: members.id });
 
@@ -288,6 +341,7 @@ export async function linkPaidPaymentByVerifiedEmail(
     // What they paid for is recorded on the payment, so the add-on survives
     // being claimed later by the sign-in hook or the backfill.
     bootcampMember: paidForBootcamp(payment.metadata),
+    addOnOnly: isBootcampAddOnOnly(payment.metadata),
   });
 
   notifyMembershipChanged(opts.userId);

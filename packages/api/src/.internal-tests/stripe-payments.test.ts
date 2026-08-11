@@ -19,6 +19,9 @@ import { MEMBERSHIP_CENTS, BOOTCAMP_ADDON_CENTS } from "../services/pricing";
 
 const mockFindFirst = vi.fn();
 const mockInsert = vi.fn();
+/** The values handed to `.set()`, so a test can tell an add-on stamp from a
+ *  renewal — the two differ only in which columns move. */
+const mockUpdateSet = vi.fn();
 
 /**
  * The Stripe SDK is stubbed so no test reaches the network.
@@ -81,9 +84,10 @@ vi.mock("@query/db", () => {
         },
       }),
       update: () => ({
-        set: () => ({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
+        set: (values: unknown) => {
+          mockUpdateSet(values);
+          return { where: vi.fn().mockResolvedValue(undefined) };
+        },
       }),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
@@ -367,6 +371,101 @@ describe("Membership payments", () => {
       });
 
       expect(insertedAmount()).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
+    });
+  });
+
+  // Add-on or bundle is decided from the caller's own membership row, never
+  // an input — otherwise a non-member buys bootcamp access for $10.
+  describe("bootcamp add-on for an existing member", () => {
+    const recordedAmount = () =>
+      (
+        mockInsert.mock.calls.flat(2).find(
+          (arg: any) => arg && typeof arg === "object" && "amountTotal" in arg,
+        ) as { amountTotal?: number } | undefined
+      )?.amountTotal;
+
+    const withMembership = (membershipEndDate: Date | null) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users")
+          return { id: USER, email: "member@gatech.edu", name: "Buzz Member" };
+        if (table === "members")
+          return {
+            id: "member_row",
+            userId: USER,
+            isActive: !!membershipEndDate,
+            membershipEndDate,
+            renewalCount: 1,
+            bootcampMember: false,
+            bootcampTerm: null,
+          };
+        return undefined;
+      });
+    };
+
+    const YEAR_LEFT = new Date(Date.now() + 300 * 24 * 60 * 60 * 1000);
+
+    it("charges the add-on alone when the year is still running", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+      withMembership(YEAR_LEFT);
+
+      const result = await caller().stripe.createPaymentIntent({
+        bootcamp: true,
+      });
+
+      expect(result.addOnOnly).toBe(true);
+      expect(result.amount).toBe(BOOTCAMP_ADDON_CENTS);
+    });
+
+    it("charges the bundle when the caller is not a member", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      const result = await caller().stripe.createPaymentIntent({
+        bootcamp: true,
+      });
+
+      expect(result.addOnOnly).toBe(false);
+      expect(result.amount).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
+    });
+
+    // A lapsed member is buying their way back in, so they owe the year too.
+    it("charges the bundle when the membership has run out", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+      withMembership(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+      const result = await caller().stripe.createPaymentIntent({
+        bootcamp: true,
+      });
+
+      expect(result.addOnOnly).toBe(false);
+      expect(result.amount).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
+    });
+
+    // The whole bug: $10 buys a semester, not a second year.
+    it("stamps the term without extending the membership", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+      withMembership(YEAR_LEFT);
+
+      const { mockPaymentIntentId } = await caller().stripe.createPaymentIntent(
+        { bootcamp: true },
+      );
+
+      expect(mockPaymentIntentId).toMatch(/^pi_mock_addon_/);
+
+      await caller().stripe.confirmMembershipAfterPayment({
+        paymentIntentId: mockPaymentIntentId!,
+      });
+
+      const stamped = mockUpdateSet.mock.calls
+        .map((call) => call[0] as Record<string, unknown>)
+        .find((values) => "bootcampTerm" in values);
+
+      expect(stamped).toBeDefined();
+      expect(stamped?.bootcampMember).toBe(true);
+      expect(stamped?.membershipEndDate).toBeUndefined();
+      expect(stamped?.renewalCount).toBeUndefined();
+
+      // And the $10 is what got recorded, not $35.
+      expect(recordedAmount()).toBe(BOOTCAMP_ADDON_CENTS);
     });
   });
 

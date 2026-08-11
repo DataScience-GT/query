@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
 import { db, events, eventCheckIns, hackathonEventAttendees } from "@query/db";
+// The real rule: a hardcoded "2026-fall" would fail every January.
+import { currentTerm } from "@query/db/services/membership";
 import { __onRollback } from "./_db-tx-mock";
 
 /**
@@ -107,8 +109,13 @@ vi.mock("@query/db", async () => {
       insert: (...insertArgs: any[]) => ({
         values: (...valArgs: any[]) => {
           const val = mockInsert("insert", insertArgs, valArgs);
+          // An Error from the mock rejects rather than throwing synchronously:
+          // `events.create` maps violations in `.returning().catch()`, which a
+          // throw out of `values()` lands before.
           return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
+            returning: vi.fn(() =>
+              val instanceof Error ? Promise.reject(val) : Promise.resolve(val),
+            ),
             onConflictDoUpdate: vi.fn().mockImplementation(() => ({
               returning: vi.fn().mockResolvedValue(val),
             })),
@@ -292,6 +299,143 @@ describe("QR check-in", () => {
       // No attendance row, no capacity counter movement.
       expect(mockInsert).not.toHaveBeenCalled();
       expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    // Sold by the semester while a membership runs a year, so the door asks
+    // which term was bought, not merely whether one ever was.
+    describe("Bootcamp session", () => {
+      const bootcampSession = () =>
+        clubEvent({ bootcampOnly: true, bootcampWeek: 3 });
+
+      it("turns away a member whose bootcamp was last semester", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events") return bootcampSession();
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: "1999-fall" };
+          return undefined;
+        });
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+        const err: any = await caller.events
+          .checkIn({ qrCode: QR_OLD })
+          .catch((e: unknown) => e);
+
+        expect(err.code).toBe("FORBIDDEN");
+        expect(err.message).toMatch(/bootcamp members this semester/);
+        expect(mockInsert).not.toHaveBeenCalled();
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      // Passing the membership gate is not passing the bootcamp gate.
+      it("turns away a member who never bought the bootcamp", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events") return bootcampSession();
+          if (table === "members") return { ...activeMember, bootcampTerm: null };
+          return undefined;
+        });
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+        const err: any = await caller.events
+          .checkIn({ qrCode: QR_OLD })
+          .catch((e: unknown) => e);
+
+        expect(err.code).toBe("FORBIDDEN");
+        expect(mockInsert).not.toHaveBeenCalled();
+      });
+
+      it("admits a member enrolled for this term", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events") return bootcampSession();
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: currentTerm() };
+          return undefined;
+        });
+        mockUpdate.mockReturnValue([{ id: CLUB_EVENT }]);
+        mockInsert.mockReturnValue([{ id: "checkin_1" }]);
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+
+        await expect(
+          caller.events.checkIn({ qrCode: QR_OLD }),
+        ).resolves.toMatchObject({ success: true });
+        expect(mockInsert).toHaveBeenCalled();
+      });
+
+      it("still refuses a second scan of the same badge", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events") return bootcampSession();
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: currentTerm() };
+          if (table === "eventCheckIns") return { id: "checkin_1" };
+          return undefined;
+        });
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+        const err: any = await caller.events
+          .checkIn({ qrCode: QR_OLD })
+          .catch((e: unknown) => e);
+
+        expect(err.code).toBe("CONFLICT");
+        expect(mockInsert).not.toHaveBeenCalled();
+      });
+
+      // The constraint stops two events claiming week 3 and splitting its
+      // attendance; this asserts the message, since a raw 23505 says nothing.
+      it("names the week when one already has a session", async () => {
+        mockFindFirst.mockImplementation((table: string) =>
+          table === "admins" ? ADMIN_ROW : undefined,
+        );
+        mockInsert.mockReturnValue(
+          Object.assign(new Error("duplicate key value"), { code: "23505" }),
+        );
+
+        const admin = appRouter.createCaller(createMockCtx("admin_user_id"));
+        const err: any = await admin.events
+          .create({
+            title: "Week 3",
+            eventDate: new Date(),
+            bootcampWeek: 3,
+          })
+          .catch((e: unknown) => e);
+
+        expect(err.code).toBe("CONFLICT");
+        expect(err.message).toMatch(/Week 3 of this bootcamp already has/);
+      });
+
+      // The QR code is unique too; that must not read "Week undefined".
+      it("does not blame the week when no week was given", async () => {
+        mockFindFirst.mockImplementation((table: string) =>
+          table === "admins" ? ADMIN_ROW : undefined,
+        );
+        mockInsert.mockReturnValue(
+          Object.assign(new Error("duplicate key value"), { code: "23505" }),
+        );
+
+        const admin = appRouter.createCaller(createMockCtx("admin_user_id"));
+        const err: any = await admin.events
+          .create({ title: "General Meeting", eventDate: new Date() })
+          .catch((e: unknown) => e);
+
+        expect(err.message).not.toMatch(/Week/);
+      });
+
+      // An ordinary event must not start asking about the bootcamp.
+      it("leaves a normal club event alone", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events") return clubEvent();
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: null };
+          return undefined;
+        });
+        mockUpdate.mockReturnValue([{ id: CLUB_EVENT }]);
+        mockInsert.mockReturnValue([{ id: "checkin_1" }]);
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+
+        await expect(
+          caller.events.checkIn({ qrCode: QR_OLD }),
+        ).resolves.toMatchObject({ success: true });
+      });
     });
 
     it("kills the old poster the moment an admin rotates the QR", async () => {

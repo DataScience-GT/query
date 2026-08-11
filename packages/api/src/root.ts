@@ -9,6 +9,7 @@ import { stripeRouter } from "./routers/stripe";
 import { auditRouter } from "./routers/audit";
 import { teamRouter } from "./routers/team";
 import { initiativeRouter } from "./routers/initiative";
+import { bootcampRouter } from "./routers/bootcamp";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -21,6 +22,7 @@ export const appRouter = createTRPCRouter({
   audit: auditRouter,
   team: teamRouter,
   initiative: initiativeRouter,
+  bootcamp: bootcampRouter,
 });
 
 export type AppRouter = typeof appRouter;

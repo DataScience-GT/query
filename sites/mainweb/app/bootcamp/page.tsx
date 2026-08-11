@@ -3,69 +3,11 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { BOOTCAMP_CURRICULUM } from "@/lib/bootcamp-schedule";
 
-const curriculum = [
-  {
-    week: 1,
-    title: "Python Basics & Setup",
-    desc: "Variables, data types, and environment configuration.",
-  },
-  {
-    week: 2,
-    title: "Control Flow & Structures",
-    desc: "Loops, conditionals, lists, and dictionaries.",
-  },
-  {
-    week: 3,
-    title: "Functions & Modules",
-    desc: "Writing reusable code and organizing projects.",
-  },
-  {
-    week: 4,
-    title: "Object-Oriented Programming",
-    desc: "Classes, inheritance, and Pythonic design.",
-  },
-  {
-    week: 5,
-    title: "File Handling & APIs",
-    desc: "Reading files, writing data, and making web requests.",
-  },
-  {
-    week: 6,
-    title: "Pandas & NumPy",
-    desc: "Introduction to fast numerical computing and DataFrames.",
-  },
-  {
-    week: 7,
-    title: "Data Cleaning",
-    desc: "Handling missing values, merging, and data transformations.",
-  },
-  {
-    week: 8,
-    title: "Exploratory Data Analysis",
-    desc: "Extracting insights and statistical summaries from data.",
-  },
-  {
-    week: 9,
-    title: "Data Visualization",
-    desc: "Creating stunning charts using Matplotlib and Seaborn.",
-  },
-  {
-    week: 10,
-    title: "Intro to Machine Learning",
-    desc: "Core concepts, train/test splits, and Scikit-Learn.",
-  },
-  {
-    week: 11,
-    title: "Supervised Learning",
-    desc: "Linear regression, logistic regression, and decision trees.",
-  },
-  {
-    week: 12,
-    title: "Capstone Project",
-    desc: "Build an end-to-end data science portfolio piece.",
-  },
-];
+// Shared with the portal's bootcamp page, so the syllabus a member sees signed
+// in is the one that was advertised.
+const curriculum = BOOTCAMP_CURRICULUM;
 
 export default function BootcampPage() {
   const [windowWidth, setWindowWidth] = useState<number>(1024);

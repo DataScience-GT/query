@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   createOrUpdateMembership,
+  currentTerm,
+  isBootcampAddOnOnly,
   resolveCurrentHackathonId,
   splitName,
 } from "./membership";
@@ -202,6 +204,35 @@ describe("splitName", () => {
   });
 });
 
+describe("isBootcampAddOnOnly", () => {
+  it("reads the marker the add-on payment carries", () => {
+    expect(isBootcampAddOnOnly('{"type":"bootcamp_addon"}')).toBe(true);
+  });
+
+  // Rows predating the add-on carry no type at all.
+  it("treats a membership, a malformed blob and nothing as not-an-add-on", () => {
+    expect(isBootcampAddOnOnly('{"type":"membership"}')).toBe(false);
+    expect(isBootcampAddOnOnly('{"bootcamp":"true"}')).toBe(false);
+    expect(isBootcampAddOnOnly("not json")).toBe(false);
+    expect(isBootcampAddOnOnly(null)).toBe(false);
+  });
+});
+
+describe("currentTerm", () => {
+  it("splits the year at the end of May", () => {
+    expect(currentTerm(new Date("2026-01-15T12:00:00"))).toBe("2026-spring");
+    expect(currentTerm(new Date("2026-05-31T12:00:00"))).toBe("2026-spring");
+    expect(currentTerm(new Date("2026-08-20T12:00:00"))).toBe("2026-fall");
+    expect(currentTerm(new Date("2026-12-31T12:00:00"))).toBe("2026-fall");
+  });
+
+  // What is on sale in July is the autumn intake.
+  it("sells the autumn bootcamp over the summer", () => {
+    expect(currentTerm(new Date("2026-06-10T12:00:00"))).toBe("2026-fall");
+    expect(currentTerm(new Date("2026-07-04T12:00:00"))).toBe("2026-fall");
+  });
+});
+
 describe("createOrUpdateMembership", () => {
   it("gives a brand new member a year from today", async () => {
     const { db, inserts } = fakeDb(undefined);
@@ -296,6 +327,118 @@ describe("createOrUpdateMembership", () => {
     expect(end.getTime()).toBeGreaterThan(Date.now() + 460 * DAY);
     expect(updates[0]?.renewalCount).toBe(2);
     expect(updates[0]?.memberType).toBe("continuous");
+  });
+
+  it("stamps the term a bootcamp purchase buys into", async () => {
+    const { db, inserts } = fakeDb(undefined);
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      bootcampMember: true,
+    });
+
+    expect(inserts[0]?.bootcampMember).toBe(true);
+    expect(inserts[0]?.bootcampTerm).toBe(currentTerm());
+  });
+
+  it("leaves the term null for a membership bought without the bootcamp", async () => {
+    const { db, inserts } = fakeDb(undefined);
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(inserts[0]?.bootcampTerm).toBeNull();
+  });
+
+  // Renewing the year must not silently re-buy the semester.
+  it("does not move the bootcamp term on a plain renewal", async () => {
+    const { db, updates } = fakeDb({
+      id: "m1",
+      renewalCount: 1,
+      membershipEndDate: new Date(Date.now() + 10 * DAY),
+      phoneNumber: null,
+      bootcampMember: true,
+      bootcampTerm: "1999-fall",
+    });
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(updates[0]?.bootcampMember).toBe(true);
+    expect(updates[0]?.bootcampTerm).toBe("1999-fall");
+  });
+
+  it("moves the term forward when the bootcamp is bought again", async () => {
+    const { db, updates } = fakeDb({
+      id: "m1",
+      renewalCount: 1,
+      membershipEndDate: new Date(Date.now() + 10 * DAY),
+      phoneNumber: null,
+      bootcampMember: true,
+      bootcampTerm: "1999-fall",
+    });
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      bootcampMember: true,
+    });
+
+    expect(updates[0]?.bootcampTerm).toBe(currentTerm());
+  });
+
+  // Guards a paid add-on being read as a bought year by any grant path.
+  it("stamps the term without extending the year for an add-on purchase", async () => {
+    const existingEnd = new Date(Date.now() + 100 * DAY);
+    const { db, updates, historyInserts } = fakeDb({
+      id: "m1",
+      renewalCount: 2,
+      membershipEndDate: existingEnd,
+      phoneNumber: null,
+      bootcampMember: false,
+      bootcampTerm: null,
+    });
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      bootcampMember: true,
+      addOnOnly: true,
+    });
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]?.bootcampTerm).toBe(currentTerm());
+    expect(updates[0]?.bootcampMember).toBe(true);
+    // The three things a renewal would have moved, and must not have.
+    expect(updates[0]?.membershipEndDate).toBeUndefined();
+    expect(updates[0]?.renewalCount).toBeUndefined();
+    expect(historyInserts).toHaveLength(0);
+  });
+
+  // Nothing to stamp, and minting a year for $10 would be the worse failure.
+  it("grants nothing when an add-on payment finds no membership", async () => {
+    const { db, updates, inserts } = fakeDb(undefined);
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      bootcampMember: true,
+      addOnOnly: true,
+    });
+
+    expect(updates).toHaveLength(0);
+    expect(inserts).toHaveLength(0);
   });
 
   it("restarts from today when the membership already lapsed", async () => {

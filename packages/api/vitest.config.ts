@@ -23,6 +23,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Ahead of the bare "@query/db" entry, which vite matches by prefix: it
+      // rewrote this deep import to <db/src/index.ts>/services/membership and
+      // every suite that reaches portal-context died on resolution.
+      "@query/db/services/membership": resolve(
+        __dirname,
+        "../db/src/services/membership.ts",
+      ),
       "@query/db": resolve(__dirname, "../db/src/index.ts"),
       "@query/auth/email": resolve(__dirname, "../auth/src/email.ts"),
       "drizzle-orm": pkg("drizzle-orm"),

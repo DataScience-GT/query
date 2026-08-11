@@ -12,26 +12,50 @@ import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 
-export const events = pgTable("event", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  title: text("title").notNull(),
-  description: text("description"),
-  location: text("location"),
-  eventDate: timestamp("event_date").notNull(),
-  qrCode: text("qr_code").notNull().unique(),
-  checkInEnabled: boolean("check_in_enabled").notNull().default(true),
-  // A kickoff or interest meeting is run to recruit members, so refusing
-  // everyone who is not one yet leaves exactly those events with no recordable
-  // attendance. Defaults true so existing events keep their current behaviour.
-  membersOnly: boolean("members_only").notNull().default(true),
-  maxCheckIns: integer("max_check_ins"),
-  currentCheckIns: integer("current_check_ins").notNull().default(0),
-  createdById: text("created_by_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+/**
+ * A bootcamp session is an event, not a table of its own: mark one as week N
+ * of a term and the QR flow, the check-in constraint and the capacity lock all
+ * carry its attendance already. Attendance IS `event_check_in`.
+ */
+export const events = pgTable(
+  "event",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(),
+    description: text("description"),
+    location: text("location"),
+    eventDate: timestamp("event_date").notNull(),
+    qrCode: text("qr_code").notNull().unique(),
+    checkInEnabled: boolean("check_in_enabled").notNull().default(true),
+    // A kickoff or interest meeting is run to recruit members, so refusing
+    // everyone who is not one yet leaves exactly those events with no recordable
+    // attendance. Defaults true so existing events keep their current behaviour.
+    membersOnly: boolean("members_only").notNull().default(true),
+    /** Week N of the bootcamp. Null on every event that is not a session. */
+    bootcampWeek: integer("bootcamp_week"),
+    /**
+     * Which bootcamp it belongs to, as `2026-fall`. Server-set. Without it the
+     * grid stacks every semester together and week 1 is usable once, ever.
+     */
+    bootcampTerm: text("bootcamp_term"),
+    /** Refuses anyone whose bootcamp enrolment is not for the current term. */
+    bootcampOnly: boolean("bootcamp_only").notNull().default(false),
+    maxCheckIns: integer("max_check_ins"),
+    currentCheckIns: integer("current_check_ins").notNull().default(0),
+    createdById: text("created_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // One event per week per bootcamp. Nulls count as distinct in Postgres, so
+    // ordinary events all carry (null, null) and never collide.
+    unique("unique_bootcamp_session").on(table.bootcampTerm, table.bootcampWeek),
+    // Both bootcamp pages read every session of one term.
+    index("event_bootcamp_term_idx").on(table.bootcampTerm),
+  ],
+);
 
 export const eventCheckIns = pgTable(
   "event_check_in",
