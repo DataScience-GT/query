@@ -884,6 +884,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
         graduationYear: 2026,
         levelOfStudy: "Junior",
         country: "United States",
+        whyAttend: "I want to build with data.",
         agreeToCodeOfConduct: true,
       });
 
@@ -919,6 +920,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           graduationYear: 2026,
           levelOfStudy: "Junior",
           country: "United States",
+          whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
         }),
       ).rejects.toThrowError("You are already registered for this hackathon");
@@ -952,6 +954,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           graduationYear: 2025,
           levelOfStudy: "Senior",
           country: "United States",
+          whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
         }),
       ).rejects.toThrowError("This hackathon is full");
@@ -980,6 +983,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           graduationYear: 2027,
           levelOfStudy: "Sophomore",
           country: "United States",
+          whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
         }),
       ).rejects.toThrowError("Registration is not open for this hackathon");

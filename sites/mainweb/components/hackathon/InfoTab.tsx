@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import {
+  formatPhoneAsTyped,
+  normalizePhone,
+  phoneDigits,
+} from "@/lib/phone";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import {
   FormInput,
@@ -157,6 +163,12 @@ export function InfoTab({
         setError("Phone number is required.");
         return false;
       }
+      // Ten digits is the shortest reachable number; the field accepts any
+      // punctuation, so this counts digits rather than characters.
+      if (phoneDigits(phone).length < 10) {
+        setError("Please enter a complete phone number.");
+        return false;
+      }
       if (!age || parseInt(age) < 13 || parseInt(age) > 120) {
         setError("Please enter a valid age (13-120).");
         return false;
@@ -184,6 +196,11 @@ export function InfoTab({
       }
       if (!country.trim()) {
         setError("Country is required.");
+        return false;
+      }
+    } else if (s === 2) {
+      if (!whyAttend.trim()) {
+        setError("Please tell us why you want to attend.");
         return false;
       }
     } else if (s === 3) {
@@ -214,13 +231,15 @@ export function InfoTab({
   }
 
   function handleSubmit() {
-    if (!validateStep(3)) return;
+    // Step 2 as well as 3: the essay is required, and the last step is
+    // reachable by Back-then-Next without passing through its own check again.
+    if (!validateStep(2) || !validateStep(3)) return;
     setError("");
     registerMutation.mutate({
       hackathonId: hackathon.id,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone.trim(),
+      phone: normalizePhone(phone),
       age: parseInt(age),
       gender: gender || undefined,
       school: school.trim(),
@@ -234,11 +253,11 @@ export function InfoTab({
       resumeUrl: resumeUrl.trim() || undefined,
       linkedinUrl: linkedinUrl.trim() || undefined,
       githubUrl: githubUrl.trim() || undefined,
-      whyAttend: whyAttend.trim() || undefined,
+      whyAttend: whyAttend.trim(),
       shirtSize: shirtSize || undefined,
       dietaryRestrictions: dietary.length ? dietary : undefined,
       emergencyContact: emergencyContact.trim() || undefined,
-      emergencyPhone: emergencyPhone.trim() || undefined,
+      emergencyPhone: normalizePhone(emergencyPhone) || undefined,
       needsHardware,
       agreeToCodeOfConduct: agreeToCoC,
       mlhCodeOfConduct,
@@ -453,6 +472,25 @@ export function InfoTab({
               Apply Now
             </button>
           </div>
+        ) : hackathon.status === "announced" ? (
+          /* Announced is not closed — applications have not opened yet, and the
+             interest list is the only thing to do here. The generic "Registration
+             Closed" lock below reads as "you missed it" and sent people away. */
+          <div className="text-center sm:text-left">
+            <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+              Registration Opens Soon
+            </h4>
+            <p className="text-sm text-[var(--text-primary)]/50 mb-6">
+              Applications aren&apos;t open yet. Join the interest list and
+              we&apos;ll email you the moment they are.
+            </p>
+            <Link
+              href="/hacklytics"
+              className="inline-block px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 w-full sm:w-auto text-center"
+            >
+              Join the Interest List
+            </Link>
+          </div>
         ) : isFull ? (
           <div className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 rounded-none inline-flex items-center gap-3">
             <svg
@@ -523,7 +561,7 @@ export function InfoTab({
                     type="tel"
                     autoComplete="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhoneAsTyped(e.target.value))}
                     placeholder="(555) 123-4567"
                   />
                   <FormInput
@@ -652,6 +690,7 @@ export function InfoTab({
                 />
                 <FormTextarea
                   label="Why do you want to attend?"
+                  required
                   value={whyAttend}
                   onChange={(e) => setWhyAttend(e.target.value)}
                   placeholder="Tell us what excites you about this hackathon…"
@@ -712,7 +751,9 @@ export function InfoTab({
                     type="tel"
                     autoComplete="tel"
                     value={emergencyPhone}
-                    onChange={(e) => setEmergencyPhone(e.target.value)}
+                    onChange={(e) =>
+                      setEmergencyPhone(formatPhoneAsTyped(e.target.value))
+                    }
                     placeholder="(555) 123-4567"
                   />
                 </div>

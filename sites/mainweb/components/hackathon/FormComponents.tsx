@@ -232,11 +232,46 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  /** Highlighted row for keyboard use; -1 is "nothing highlighted". */
+  const [active, setActive] = useState(-1);
 
+  /**
+   * Every word typed has to appear somewhere in the option, in any order.
+   *
+   * A plain `includes` on the whole query is why "georgia tech" used to return
+   * nothing at all: no school is spelled that way, and the one people mean is
+   * "Georgia Institute of Technology". Matching word by word finds it, and
+   * scoring keeps the ranking sane — a word at the start of the name beats one
+   * at the start of a later word, which beats one buried mid-word, and shorter
+   * names win ties so "MIT" is not pushed under everything that contains it.
+   */
   const filtered = useMemo(() => {
-    if (!search.trim()) return options.slice(0, 50);
-    const q = search.toLowerCase();
-    return options.filter((o) => o.toLowerCase().includes(q)).slice(0, 50);
+    const q = search.trim().toLowerCase();
+    if (!q) return options.slice(0, 50);
+
+    const tokens = q.split(/\s+/);
+    const scored: { opt: string; score: number }[] = [];
+
+    for (const opt of options) {
+      const lower = opt.toLowerCase();
+      let score = lower === q ? 100 : 0;
+      let matchesAll = true;
+
+      for (const token of tokens) {
+        const at = lower.indexOf(token);
+        if (at === -1) {
+          matchesAll = false;
+          break;
+        }
+        const atWordStart = at === 0 || !/[a-z0-9]/.test(lower[at - 1] ?? "");
+        score += at === 0 ? 3 : atWordStart ? 2 : 1;
+      }
+
+      if (matchesAll) scored.push({ opt, score });
+    }
+
+    scored.sort((a, b) => b.score - a.score || a.opt.length - b.opt.length);
+    return scored.slice(0, 50).map((s) => s.opt);
   }, [search, options]);
 
   /**
@@ -256,9 +291,40 @@ export function SearchableSelect({
       onChange(opt);
       setSearch("");
       setOpen(false);
+      setActive(-1);
     },
     [onChange],
   );
+
+  /** The custom row sits above the matches, so both share one index space. */
+  const rows = useMemo(
+    () => (customEntry ? [customEntry, ...filtered] : filtered),
+    [customEntry, filtered],
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setOpen(true);
+      setActive((i) => {
+        if (rows.length === 0) return -1;
+        const next = e.key === "ArrowDown" ? i + 1 : i - 1;
+        return Math.max(-1, Math.min(next, rows.length - 1));
+      });
+      return;
+    }
+    if (e.key === "Enter" && open && active >= 0 && rows[active]) {
+      // Otherwise Enter submits the step with the highlighted row ignored.
+      e.preventDefault();
+      handleSelect(rows[active]);
+      return;
+    }
+    if (e.key === "Escape" && open) {
+      e.preventDefault();
+      setOpen(false);
+      setActive(-1);
+    }
+  };
 
   const inputId = useId();
   const listId = `${inputId}-listbox`;
@@ -279,17 +345,28 @@ export function SearchableSelect({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-activedescendant={
+          open && active >= 0 ? `${listId}-${active}` : undefined
+        }
+        onKeyDown={handleKeyDown}
         required={required}
         value={open ? search : value}
         onFocus={() => {
           setOpen(true);
           setSearch(value);
+          setActive(-1);
         }}
         onChange={(e) => {
           setSearch(e.target.value);
+          setActive(-1);
           if (allowCustom) onChange(e.target.value);
         }}
-        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        onBlur={() =>
+          setTimeout(() => {
+            setOpen(false);
+            setActive(-1);
+          }, 200)
+        }
         placeholder={placeholder}
         className="w-full px-4 py-3.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
       />
@@ -298,37 +375,42 @@ export function SearchableSelect({
           {hint}
         </p>
       )}
-      {open && (filtered.length > 0 || customEntry) && (
+      {open && rows.length > 0 && (
         <div
           id={listId}
           role="listbox"
           className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl"
         >
-          {customEntry && (
-            <button
-              type="button"
-              role="option"
-              aria-selected={value === customEntry}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleSelect(customEntry)}
-              className="w-full text-left px-4 py-2.5 text-sm font-medium text-accent hover:bg-white/5 transition-colors border-b border-[var(--border-subtle)]"
-            >
-              Use “{customEntry}”
-            </button>
-          )}
-          {filtered.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              role="option"
-              aria-selected={value === opt}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleSelect(opt)}
-              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors ${value === opt ? "text-accent bg-emerald-500/5" : "text-[var(--text-primary)]/70"}`}
-            >
-              {opt}
-            </button>
-          ))}
+          {rows.map((opt, i) => {
+            const isCustom = customEntry !== null && i === 0;
+            return (
+              <button
+                key={isCustom ? `custom:${opt}` : opt}
+                id={`${listId}-${i}`}
+                type="button"
+                role="option"
+                aria-selected={value === opt}
+                ref={
+                  i === active
+                    ? (node) => node?.scrollIntoView({ block: "nearest" })
+                    : undefined
+                }
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(opt)}
+                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                  i === active ? "bg-white/10" : "hover:bg-white/5"
+                } ${
+                  isCustom
+                    ? "text-accent border-b border-[var(--border-subtle)]"
+                    : value === opt
+                      ? "text-accent bg-emerald-500/5"
+                      : "text-[var(--text-primary)]/70"
+                }`}
+              >
+                {isCustom ? `Use “${opt}”` : opt}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
