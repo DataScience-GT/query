@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { hackathonSlug } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -439,7 +440,7 @@ export default function Dashboard() {
               {activeRegs.map((reg) => (
                 <Link
                   key={reg.id}
-                  href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=SCHEDULE`}
+                  href={`/hackathons/${hackathonSlug(reg.hackathon.name)}?tab=SCHEDULE`}
                   className="group block"
                 >
                   <LiquidGlass printed holographic className="p-5 flex flex-col gap-3 hover:border-accent/40 transition-ui h-full">
@@ -494,7 +495,7 @@ export default function Dashboard() {
                 {pastRegs.map((reg) => (
                   <Link
                     key={reg.id}
-                    href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=INFO`}
+                    href={`/hackathons/${hackathonSlug(reg.hackathon.name)}?tab=INFO`}
                     className="group block"
                   >
                     <LiquidGlass printed className="p-5 flex items-center justify-between gap-3 opacity-60 hover:opacity-100 transition-opacity">

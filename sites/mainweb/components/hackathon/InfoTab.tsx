@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import {
@@ -72,6 +72,16 @@ export function InfoTab({
   const [underrepresented, setUnderrepresented] = useState(false);
 
   // Step 2: Academic
+  /**
+   * The full school list is 12k entries and ~450KB, far too much to sit in the
+   * bundle for a field most applicants reach once. SCHOOLS is the short
+   * Atlanta-first list shown immediately; the complete one loads the first time
+   * somebody actually opens the academic step. A failed fetch is not surfaced —
+   * the field takes free text either way, so the short list is a working
+   * fallback rather than an error state.
+   */
+  const [schoolOptions, setSchoolOptions] =
+    useState<readonly string[]>(SCHOOLS);
   const [school, setSchool] = useState("");
   const [major, setMajor] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
@@ -96,6 +106,22 @@ export function InfoTab({
   const [mlhCodeOfConduct, setMlhCodeOfConduct] = useState(false);
   const [mlhDataSharing, setMlhDataSharing] = useState(false);
   const [mlhInformationalEmails, setMlhInformationalEmails] = useState(false);
+
+  useEffect(() => {
+    if (step !== 1 || schoolOptions !== SCHOOLS) return;
+    let cancelled = false;
+    fetch("/schools.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
+      .then((list: string[]) => {
+        if (!cancelled && Array.isArray(list) && list.length > 0) {
+          setSchoolOptions(list);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [step, schoolOptions]);
 
   const utils = trpc.useUtils();
   const registerMutation = trpc.hackathon.register.useMutation({
@@ -557,8 +583,9 @@ export function InfoTab({
                   required
                   value={school}
                   onChange={setSchool}
-                  options={SCHOOLS}
+                  options={schoolOptions}
                   placeholder="Start typing to search schools…"
+                  hint="Not listed? Type it in — anything you enter is accepted."
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <SearchableSelect
@@ -568,6 +595,7 @@ export function InfoTab({
                     onChange={setMajor}
                     options={MAJORS}
                     placeholder="Start typing to search majors…"
+                    hint="Not listed? Type it in — anything you enter is accepted."
                   />
                   <FormInput
                     label="Graduation Year"

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
+import { hackathonSlug } from "@/lib/hackathon-slug";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { UserPlus, Gavel } from "lucide-react";
 
@@ -192,7 +193,11 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
         heading: "Results are live",
         body: `Judging for ${name} is finished and the results are published.\n\nThank you for building with us.`,
         ctaLabel: "See the results",
-        ctaUrl: `${window.location.origin}/hackathons/${hackathonId}`,
+        // Slug when the name is known, id when it is not — this link goes out
+        // in mail, so it has to resolve even if the name never loaded.
+        ctaUrl: `${window.location.origin}/hackathons/${
+          hackathon?.name ? hackathonSlug(hackathon.name) : hackathonId
+        }`,
       });
 
       let sent = 0;

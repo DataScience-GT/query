@@ -217,6 +217,7 @@ interface SearchableSelectProps {
   onChange: (value: string) => void;
   options: readonly string[];
   allowCustom?: boolean;
+  hint?: string;
 }
 
 export function SearchableSelect({
@@ -227,6 +228,7 @@ export function SearchableSelect({
   onChange,
   options,
   allowCustom = true,
+  hint,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -236,6 +238,18 @@ export function SearchableSelect({
     const q = search.toLowerCase();
     return options.filter((o) => o.toLowerCase().includes(q)).slice(0, 50);
   }, [search, options]);
+
+  /**
+   * A typed value is already committed on every keystroke, but with nothing in
+   * the list matching it the dropdown simply disappeared — which reads as "that
+   * answer was rejected". This row says out loud that the entry counts.
+   */
+  const customEntry =
+    allowCustom &&
+    search.trim().length > 0 &&
+    !options.some((o) => o.toLowerCase() === search.trim().toLowerCase())
+      ? search.trim()
+      : null;
 
   const handleSelect = useCallback(
     (opt: string) => {
@@ -279,12 +293,29 @@ export function SearchableSelect({
         placeholder={placeholder}
         className="w-full px-4 py-3.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-primary)]/20 focus:border-emerald-500/50 focus:bg-white/[0.02] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-ui"
       />
-      {open && filtered.length > 0 && (
+      {hint && (
+        <p className="mt-1.5 text-[11px] text-[var(--text-primary)]/30">
+          {hint}
+        </p>
+      )}
+      {open && (filtered.length > 0 || customEntry) && (
         <div
           id={listId}
           role="listbox"
           className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-none shadow-2xl backdrop-blur-xl"
         >
+          {customEntry && (
+            <button
+              type="button"
+              role="option"
+              aria-selected={value === customEntry}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(customEntry)}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-accent hover:bg-white/5 transition-colors border-b border-[var(--border-subtle)]"
+            >
+              Use “{customEntry}”
+            </button>
+          )}
           {filtered.map((opt) => (
             <button
               key={opt}
