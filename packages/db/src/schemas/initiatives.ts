@@ -52,7 +52,7 @@ export const projectLeaders = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("project_leader_user_id_idx").on(table.userId),
+    // The unique constraint below indexes user_id already.
     unique("unique_project_leader").on(table.userId),
   ],
 );

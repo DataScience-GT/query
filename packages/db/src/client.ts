@@ -40,13 +40,18 @@ if (DATABASE_URL) {
        */
       min: 2,
       /**
-       * Deliberately NOT raised past 10 yet: 10 instances x max is the ceiling
-       * against Postgres, and whether that is safe depends on the connection
-       * string pointing at Neon's pooled endpoint rather than the direct one.
-       * Env-tunable so it can be raised from config once that is confirmed,
-       * without a redeploy of anything but the variable.
+       * The open question here was whether the connection string points at
+       * Neon's pooled endpoint. It does — the host ends in `-pooler` — so the
+       * ceiling is PgBouncer's, which is thousands of client connections, not
+       * a compute's max_connections.
+       *
+       * At concurrency 80 a cap of 10 meant a burst queued 70 requests behind
+       * 10 connections, and connectionTimeoutMillis then failed the ones that
+       * waited longest. 20 halves that queue while 10 instances x 20 is still
+       * far inside what the pooler serves. Still env-tunable, so it can be put
+       * back from config without a redeploy.
        */
-      max: Number(process.env.DB_POOL_MAX ?? 10),
+      max: Number(process.env.DB_POOL_MAX ?? 20),
       ssl:
         process.env.NODE_ENV === "production"
           ? { rejectUnauthorized: true }

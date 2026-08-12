@@ -192,15 +192,21 @@ export const hackathonParticipants = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("participant_hackathon_id_idx").on(table.hackathonId),
+    // No standalone hackathon_id index: it is the leading column of both the
+    // composite below and unique_participant_per_hackathon, so a lookup by
+    // hackathon alone already has two indexes to choose from. Carrying a third
+    // only made every registration insert write another entry.
     index("participant_user_id_idx").on(table.userId),
     index("participant_team_id_idx").on(table.teamId),
-    // syncCurrentParticipants filters on exactly this pair and runs after every
-    // approve and every check-in. Without it each call is a full scan of the
-    // participant table.
+    // syncCurrentParticipants filters on the first two columns and runs after
+    // every approve and every check-in. registered_at is here for the ordering
+    // rather than the filter: acceptWave takes the oldest pending applicants
+    // and the attendee list pages newest-first, so without it both read every
+    // matching row and sort — the whole pending set on each wave.
     index("participant_hackathon_status_idx").on(
       table.hackathonId,
       table.registrationStatus,
+      table.registeredAt,
     ),
     // Enforce one registration per user per hackathon at the DB level.
     // This prevents duplicates even under concurrent requests that race
@@ -339,7 +345,8 @@ export const hackathonInterest = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("hackathon_interest_hackathon_id_idx").on(table.hackathonId),
+    // hackathon_id alone is the leading column of unique_interest_per_hackathon
+    // below, which already serves every by-edition read.
     index("hackathon_interest_user_id_idx").on(table.userId),
     // Registering interest twice is one person changing their answers, not two
     // people. The unique index is what makes the upsert in `registerInterest`

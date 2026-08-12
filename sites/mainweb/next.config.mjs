@@ -81,6 +81,20 @@ const nextConfig = {
           { key: cspHeaderName, value: CSP_DIRECTIVES },
         ],
       },
+      {
+        // 447KB of school names that change when MLH updates its list — a few
+        // times a year. Files under /public are served no-cache by default, so
+        // every applicant who reached the academic step revalidated the whole
+        // list. A day of caching makes it one download per person; regenerating
+        // the file is a deploy, and a stale day on a school list costs nothing.
+        source: "/schools.json",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
     ];
   },
 };
