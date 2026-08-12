@@ -51,7 +51,9 @@ export const events = pgTable(
   (table) => [
     // One event per week per bootcamp. Nulls count as distinct in Postgres, so
     // ordinary events all carry (null, null) and never collide.
-    unique("unique_bootcamp_session").on(table.bootcampTerm, table.bootcampWeek),
+    // Table order, not readability order: push introspects it this way and a
+    // reversed spelling diffs against itself forever.
+    unique("unique_bootcamp_session").on(table.bootcampWeek, table.bootcampTerm),
     // Both bootcamp pages read every session of one term.
     index("event_bootcamp_term_idx").on(table.bootcampTerm),
   ],

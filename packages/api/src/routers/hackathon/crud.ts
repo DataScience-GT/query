@@ -25,10 +25,7 @@ const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
   "draft",
 ];
 
-/**
- * Must match `hackathonSlug` in sites/mainweb/lib/hackathon-slug.ts, which is
- * what builds the links this resolves.
- */
+/** Must match `hackathonSlug` in sites/mainweb/lib/hackathon-slug.ts. */
 const toSlug = (value: string) =>
   value
     .toLowerCase()
@@ -36,14 +33,8 @@ const toSlug = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 /**
- * Resolve a non-uuid argument: the exact name first, then the slugged form the
- * portal links with.
- *
- * The slug pass reads every edition rather than filtering in SQL because the
- * normalisation is a Postgres expression this table has no index for — scanning
- * a handful of rows in JS is cheaper than the function-call scan, and it
- * guarantees the two sides normalise the same way. It only runs when the exact
- * name misses.
+ * Exact name first, then the slug the portal links with. The slug pass reads
+ * every edition — there are a handful, and no index covers the normalisation.
  */
 async function findByNameOrSlug(db: DrizzleDB, value: string) {
   const exact = await db.query.hackathons.findFirst({

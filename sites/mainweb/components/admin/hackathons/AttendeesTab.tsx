@@ -37,6 +37,7 @@ function useDebounced<T>(value: T, ms: number): T {
   return debounced;
 }
 import { RegistrationControls } from "./RegistrationControls";
+import { AcceptanceWaves } from "./AcceptanceWaves";
 import { AttendeeStats } from "./AttendeeStats";
 import { statusColors, statusIcon } from "./attendee-status";
 import type { RegistrationStatus } from "./attendee-status";
@@ -392,6 +393,8 @@ export function AttendeesTab({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
       <RegistrationControls hackathonId={hackathonId} />
+
+      <AcceptanceWaves hackathonId={hackathonId} />
 
       <AttendeeStats
         stats={stats}

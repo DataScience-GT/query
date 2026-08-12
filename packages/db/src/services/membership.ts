@@ -22,21 +22,30 @@ import { stripePayments, userAccountLinks } from "../schemas/stripe";
  * a membership granted during sign-in sat behind a "not a member" entry with a
  * 5-minute TTL — the member signs in, pays, and is still told to pay.
  */
-let onMembershipChanged: ((userId: string) => void) | undefined;
+class MembershipChangeNotifier {
+  private handler: ((userId: string) => void) | undefined;
+
+  subscribe(handler: (userId: string) => void) {
+    this.handler = handler;
+  }
+
+  emit(userId: string) {
+    try {
+      this.handler?.(userId);
+    } catch {
+      // Cache eviction must never fail the write that succeeded.
+    }
+  }
+}
+
+const membershipChanges = new MembershipChangeNotifier();
 
 export const setMembershipChangeHandler = (
   handler: (userId: string) => void,
-) => {
-  onMembershipChanged = handler;
-};
+) => membershipChanges.subscribe(handler);
 
-const notifyMembershipChanged = (userId: string) => {
-  try {
-    onMembershipChanged?.(userId);
-  } catch {
-    // Cache eviction must never fail the write that succeeded.
-  }
-};
+const notifyMembershipChanged = (userId: string) =>
+  membershipChanges.emit(userId);
 
 /**
  * The hackathon a membership belongs to when nobody names one: the edition

@@ -182,6 +182,11 @@ export const hackathonParticipants = pgTable(
     // per-row marker the only safe retry is none, and the unsafe one mails
     // everybody twice.
     acceptanceEmailSentAt: timestamp("acceptance_email_sent_at"),
+    /**
+     * Which acceptance wave took this applicant, 1-based. Null while pending,
+     * and null forever for anyone accepted one at a time from the table.
+     */
+    acceptanceWave: integer("acceptance_wave"),
 
     registeredAt: timestamp("registered_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

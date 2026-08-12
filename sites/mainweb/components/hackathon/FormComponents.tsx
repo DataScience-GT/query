@@ -236,14 +236,9 @@ export function SearchableSelect({
   const [active, setActive] = useState(-1);
 
   /**
-   * Every word typed has to appear somewhere in the option, in any order.
-   *
-   * A plain `includes` on the whole query is why "georgia tech" used to return
-   * nothing at all: no school is spelled that way, and the one people mean is
-   * "Georgia Institute of Technology". Matching word by word finds it, and
-   * scoring keeps the ranking sane — a word at the start of the name beats one
-   * at the start of a later word, which beats one buried mid-word, and shorter
-   * names win ties so "MIT" is not pushed under everything that contains it.
+   * Every typed word has to appear somewhere in the option, in any order — a
+   * plain `includes` on the whole query meant "georgia tech" found nothing.
+   * Scored so earlier and word-start matches rank first, shortest wins ties.
    */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -274,11 +269,8 @@ export function SearchableSelect({
     return scored.slice(0, 50).map((s) => s.opt);
   }, [search, options]);
 
-  /**
-   * A typed value is already committed on every keystroke, but with nothing in
-   * the list matching it the dropdown simply disappeared — which reads as "that
-   * answer was rejected". This row says out loud that the entry counts.
-   */
+  // Without this row an unmatched entry just empties the dropdown, which reads
+  // as rejection even though the typed value is already accepted.
   const customEntry =
     allowCustom &&
     search.trim().length > 0 &&
@@ -314,7 +306,6 @@ export function SearchableSelect({
       return;
     }
     if (e.key === "Enter" && open && active >= 0 && rows[active]) {
-      // Otherwise Enter submits the step with the highlighted row ignored.
       e.preventDefault();
       handleSelect(rows[active]);
       return;

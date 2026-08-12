@@ -10,6 +10,7 @@
   },
   "scripts": {
     "migrate:push": "drizzle-kit push",
+    "db:check": "tsx scripts/check-drift.mts",
     "migrate:generate": "drizzle-kit generate",
     "studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",

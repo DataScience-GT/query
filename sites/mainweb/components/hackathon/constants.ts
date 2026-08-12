@@ -41,13 +41,9 @@ export const REGISTRATION_STEPS = [
 ] as const;
 
 /**
- * The instant-render fallback, Atlanta first — not the answer set.
- *
- * The event is national, so the real list is MLH's 12k verified schools in
- * `public/schools.json`, fetched the first time an applicant opens the academic
- * step. Both lists are suggestions: the field takes free text and the server
- * accepts any string up to 300 characters, so a school in neither list is still
- * a valid answer.
+ * Instant-render fallback, Atlanta first. The real list is MLH's 12k schools in
+ * `public/schools.json`, fetched when the academic step opens. Both are
+ * suggestions — the field takes free text.
  */
 export const SCHOOLS = [
   "Georgia Institute of Technology",
@@ -103,14 +99,7 @@ export const SCHOOLS = [
   "Other",
 ] as const;
 
-/**
- * Suggestions across every field family, not a list of eligible majors.
- *
- * A data science hackathon draws history and music students too, and the old
- * list was engineering plus a handful of others — anyone else read their own
- * subject's absence as "this event is not for me". As with SCHOOLS the field
- * takes free text, so an unlisted major is still a valid answer.
- */
+/** Suggestions across every field family, not a list of eligible majors. */
 export const MAJORS = [
   // Computing and information
   "Computer Science",

@@ -1560,4 +1560,119 @@ describe("Participant edge cases", () => {
       ).rejects.toThrow(/closed/i);
     });
   });
+
+  // =====================================================================
+  describe("Acceptance waves", () => {
+    const ADMIN = "admin_user_id";
+
+    /** Admin gate + the hackathon the wave runs against. */
+    const asAdmin = () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins")
+          return { userId: ADMIN, isActive: true, role: "admin" };
+        if (table === "hackathons") return runningHackathon(1);
+        return undefined;
+      });
+      return callerFor(ADMIN);
+    };
+
+    /**
+     * acceptWave reads twice: the highest wave so far, then the applicants to
+     * take. They are told apart by the columns each one asks for.
+     */
+    const selectReturns = (
+      highestWave: number | null,
+      picked: { id: string; userId: string }[],
+    ) =>
+      mockSelect.mockImplementation((_trace: any, selectArgs: any[]) => {
+        const columns = Object.keys(selectArgs?.[0] ?? {});
+        if (columns.includes("max")) return [{ max: highestWave }];
+        if (columns.includes("userId")) return picked;
+        return [{ count: 0 }];
+      });
+
+    it("accepts the oldest pending applicants and stamps them as one wave", async () => {
+      selectReturns(null, [
+        { id: PARTICIPANT_A, userId: "user_a" },
+        { id: PARTICIPANT_B, userId: "user_b" },
+      ]);
+
+      const res = await asAdmin().hackathon.acceptWave({
+        hackathonId: HACK_A,
+        size: 2,
+      });
+
+      expect(res).toMatchObject({
+        wave: 1,
+        accepted: 2,
+        participantIds: [PARTICIPANT_A, PARTICIPANT_B],
+      });
+
+      const stamped = mockUpdate.mock.calls.find((call) =>
+        call.some(
+          (arg: any) =>
+            Array.isArray(arg) &&
+            arg.some((v: any) => v?.acceptanceWave !== undefined),
+        ),
+      );
+      expect(stamped).toBeDefined();
+    });
+
+    it("numbers the next wave from the highest already used", async () => {
+      selectReturns(2, [{ id: PARTICIPANT_A, userId: "user_a" }]);
+
+      const res = await asAdmin().hackathon.acceptWave({
+        hackathonId: HACK_A,
+        size: 1,
+      });
+
+      expect(res.wave).toBe(3);
+    });
+
+    it("locks its picks so two organisers cannot take the same applicants", async () => {
+      selectReturns(null, [{ id: PARTICIPANT_A, userId: "user_a" }]);
+
+      await asAdmin().hackathon.acceptWave({ hackathonId: HACK_A, size: 1 });
+
+      const lockedSkippingLocked = mockSelect.mock.calls.some(([trace]: any) =>
+        trace?.some(
+          ([method, args]: [string, any[]]) =>
+            method === "for" &&
+            args?.[0] === "update" &&
+            args?.[1]?.skipLocked === true,
+        ),
+      );
+      expect(lockedSkippingLocked).toBe(true);
+    });
+
+    it("says so plainly when nothing is left to accept, and writes nothing", async () => {
+      selectReturns(1, []);
+
+      const res = await asAdmin().hackathon.acceptWave({
+        hackathonId: HACK_A,
+        size: 50,
+      });
+
+      expect(res).toMatchObject({ accepted: 0, participantIds: [] });
+      expect(res.message).toMatch(/no pending/i);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses a wave larger than one mailable batch", async () => {
+      await expect(
+        asAdmin().hackathon.acceptWave({ hackathonId: HACK_A, size: 501 }),
+      ).rejects.toThrow();
+    });
+
+    it("is admin-only", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+
+      await expect(
+        callerFor("random_user").hackathon.acceptWave({
+          hackathonId: HACK_A,
+          size: 10,
+        }),
+      ).rejects.toThrow(/admin/i);
+    });
+  });
 });

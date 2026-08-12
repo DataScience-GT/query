@@ -1023,4 +1023,54 @@ describe("Hackathon end-to-end flow", () => {
       ).rejects.toThrow(/Admin access required/);
     });
   });
+
+  // ---------------------------------------------------------------------
+  describe("9. Portal links resolve", () => {
+    const bloom = () =>
+      openHackathon({ name: "Hacklytics: Digital Bloom", status: "announced" });
+
+    it("opens an edition from the slug the portal links with", async () => {
+      // Nothing is named "hacklytics-digital-bloom", so the name lookup misses
+      // and the slug pass has to find it.
+      mockFindFirst.mockImplementation(() => undefined);
+      mockFindMany.mockImplementation((table) =>
+        table === "hackathons" ? [bloom()] : [],
+      );
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      const res = await caller.hackathon.getById({
+        id: "hacklytics-digital-bloom",
+      });
+      expect(res.id).toBe(HACK_A);
+    });
+
+    it("still opens it from the exact name, without scanning", async () => {
+      mockFindFirst.mockImplementation((table) =>
+        table === "hackathons" ? bloom() : undefined,
+      );
+      mockFindMany.mockReturnValue([]);
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      const res = await caller.hackathon.getById({
+        id: "Hacklytics: Digital Bloom",
+      });
+      expect(res.id).toBe(HACK_A);
+      expect(mockFindMany).not.toHaveBeenCalledWith(
+        "hackathons",
+        expect.anything(),
+      );
+    });
+
+    it("404s on a slug matching no edition", async () => {
+      mockFindFirst.mockImplementation(() => undefined);
+      mockFindMany.mockImplementation((table) =>
+        table === "hackathons" ? [bloom()] : [],
+      );
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      await expect(
+        caller.hackathon.getById({ id: "hacklytics-2019" }),
+      ).rejects.toThrow(/not found/i);
+    });
+  });
 });
