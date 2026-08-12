@@ -210,6 +210,7 @@ describe("Hackathon end-to-end flow", () => {
     graduationYear: 2027,
     levelOfStudy: "Junior" as const,
     country: "United States",
+    whyAttend: "I want to build with data.",
     agreeToCodeOfConduct: true as const,
   });
 
