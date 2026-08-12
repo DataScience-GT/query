@@ -73,7 +73,8 @@ export const members = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("member_user_id_idx").on(table.userId),
+    // user_id is indexed by unique_member_per_user below; a second copy only
+    // slowed every membership write.
     // Optimized for "Active Members" directory listing
     index("member_active_type_idx").on(table.isActive, table.memberType),
     // One membership per person, full stop.

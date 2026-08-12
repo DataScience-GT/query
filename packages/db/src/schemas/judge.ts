@@ -41,7 +41,8 @@ export const judges = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("judge_user_id_idx").on(table.userId),
+    // user_id alone is the leading column of the unique constraint below, which
+    // is what the portal's per-user judge lookup uses.
     index("judge_hackathon_id_idx").on(table.hackathonId),
     unique("unique_judge_per_hackathon").on(table.userId, table.hackathonId),
   ],

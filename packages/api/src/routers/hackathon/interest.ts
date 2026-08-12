@@ -21,6 +21,7 @@ import {
 } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
 import { rateLimit } from "../../middleware/security";
+import { VOLATILE_TTL } from "../../middleware/cache";
 
 /**
  * The interest list for an edition that has been announced but is not yet
@@ -69,6 +70,21 @@ const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
  */
 const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "in_progress"] as const;
 
+/** What the landing page reads; also the shape held in the cache. */
+type UpcomingEdition = {
+  id: string;
+  name: string;
+  description: string | null;
+  location: string | null;
+  startDate: Date;
+  endDate: Date;
+  theme: string | null;
+  websiteUrl: string | null;
+  status: string;
+  registrationOpen: boolean;
+  registrationDeadline: Date | null;
+};
+
 async function findAnnounced(db: DrizzleDB) {
   return db.query.hackathons.findFirst({
     where: and(
@@ -88,10 +104,20 @@ export const hackathonInterestRouter = createTRPCRouter({
     const db = ctx.db as DrizzleDB | null;
     if (!db) return null;
 
+    // The landing page is the funnel, so this is the most-read query on the
+    // site and its answer changes about twice a year. Keyed under `hackathons:`
+    // so the eviction every edition write already runs clears it too.
+    const cacheKey = "hackathons:upcoming";
+    const cached = ctx.cache.get<UpcomingEdition | null>(cacheKey);
+    if (cached !== null) return cached;
+
+    // The empty case is deliberately not cached: `get` returns null for a miss
+    // too, so storing null would read as a hit that never happens. It is also
+    // the cheap case — no edition announced means the index scan finds nothing.
     const upcoming = await findAnnounced(db);
     if (!upcoming) return null;
 
-    return {
+    const payload = {
       id: upcoming.id,
       name: upcoming.name,
       description: upcoming.description,
@@ -112,6 +138,13 @@ export const hackathonInterestRouter = createTRPCRouter({
           new Date() <= upcoming.registrationDeadline),
       registrationDeadline: upcoming.registrationDeadline,
     };
+
+    // Short TTL, because `registrationOpen` is time-dependent: the deadline can
+    // pass while an entry is live, and five seconds bounds how long the page
+    // can offer a Register button the server would refuse.
+    ctx.cache.set(cacheKey, payload, VOLATILE_TTL);
+
+    return payload;
   }),
 
   /** Whether the caller is already on the list, and what they told us. */
