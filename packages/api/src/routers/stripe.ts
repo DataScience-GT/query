@@ -27,8 +27,37 @@ import {
 import type Stripe from "stripe";
 import crypto from "crypto";
 
-let stripeClient: Stripe | null | undefined;
-let stripeClientKey: string | undefined;
+/**
+ * Caches the Stripe SDK client against the key it was built from.
+ *
+ * The pairing is the whole point, and two loose variables let them be updated
+ * independently — a client cached under a stale key is a client talking to the
+ * wrong Stripe account.
+ */
+class StripeClientProvider {
+  private client: Stripe | null = null;
+  private builtFromKey: string | undefined;
+
+  /**
+   * Only a successfully constructed client is memoized, and only for the key it
+   * was built from. A single call made before the environment was populated
+   * used to cache `null` for the lifetime of the process, so every later
+   * request returned "payment service unavailable" even once the key was
+   * present — the failure was permanent and only a restart cleared it.
+   */
+  async get(): Promise<Stripe | null> {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return null;
+    if (this.client && this.builtFromKey === key) return this.client;
+
+    const { default: StripeSDK } = await import("stripe");
+    this.client = new StripeSDK(key);
+    this.builtFromKey = key;
+    return this.client;
+  }
+}
+
+const stripeClients = new StripeClientProvider();
 
 /**
  * Mock mode is a local-development affordance: it records a paid payment and
@@ -90,22 +119,7 @@ const describeKeyProblem = (key: string | undefined) => {
   return null;
 };
 
-async function getStripe(): Promise<Stripe | null> {
-  const key = process.env.STRIPE_SECRET_KEY;
-
-  // Only a successfully constructed client is memoized, and only for the key it
-  // was built from. Previously a single call made before the environment was
-  // populated cached `null` for the lifetime of the process, so every later
-  // request returned "payment service unavailable" even once the key was
-  // present — the failure was permanent and only a restart cleared it.
-  if (!key) return null;
-  if (stripeClient && stripeClientKey === key) return stripeClient;
-
-  const { default: StripeSDK } = await import("stripe");
-  stripeClient = new StripeSDK(key);
-  stripeClientKey = key;
-  return stripeClient;
-}
+const getStripe = (): Promise<Stripe | null> => stripeClients.get();
 
 // Shared with the Stripe webhook so both paths evict the identical key set.
 function clearMembershipCaches(_cache: unknown, userId: string) {

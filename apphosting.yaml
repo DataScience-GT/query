@@ -1,8 +1,12 @@
 # Monorepo — the deployed app is sites/mainweb (workspace name: web).
 # There is no sites/portal; the portal is a route group inside mainweb.
 
+# Schema first, then the app. `push` applies additive changes; anything
+# destructive stops for a confirmation that </dev/null cannot give, so it aborts
+# rather than dropping a column. push exits 0 even then, so `db:check` is the
+# real gate — it fails the build if any declared column is still missing.
 scripts:
-  buildCommand: pnpm install && pnpm turbo run build --filter=web && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
+  buildCommand: pnpm install && pnpm --filter @query/db exec drizzle-kit push --verbose < /dev/null && pnpm --filter @query/db db:check && pnpm turbo run build --filter=web && mkdir -p sites/mainweb/.next/standalone/sites/mainweb/.next && cp -r sites/mainweb/.next/static sites/mainweb/.next/standalone/sites/mainweb/.next/static && (cp -r sites/mainweb/public sites/mainweb/.next/standalone/sites/mainweb/public || true)
   runCommand: node sites/mainweb/.next/standalone/sites/mainweb/server.js
 
 runConfig:
@@ -18,8 +22,14 @@ env:
     value: "8080"
   - variable: HOSTNAME
     value: "0.0.0.0"
+  # BUILD too, for the schema push above. Grant the build service account
+  # access once:
+  #   firebase apphosting:secrets:grantaccess DATABASE_URL --backend query
   - variable: DATABASE_URL
     secret: DATABASE_URL
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: AUTH_SECRET
     secret: AUTH_SECRET
   - variable: NEXTAUTH_SECRET
@@ -49,6 +59,14 @@ env:
     secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production
+  # Consumer Gmail, which caps around 500 recipients a day — shared between
+  # sign-in codes and every acceptance or announcement send. Acceptance waves
+  # are capped at 500 for that reason. Moving to a real provider is these three
+  # values plus the secret, and no code change:
+  #   HOST -> email-smtp.<region>.amazonaws.com | smtp.postmarkapp.com | smtp.sendgrid.net
+  #   USER -> the provider's SMTP username (not an address)
+  #   EMAIL_SERVER_PASSWORD secret -> the provider's SMTP password
+  # EMAIL_FROM must then be an address on a domain verified with that provider.
   - variable: EMAIL_SERVER_HOST
     value: smtp.gmail.com
   - variable: EMAIL_SERVER_PORT

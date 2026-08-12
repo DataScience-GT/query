@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
 /**
- * One pooled transporter for the process, built on first use.
+ * Owns the pooled SMTP connection for the process.
  *
  * `pool: true` only does anything if the transporter outlives the message.
  * Built per call it was worse than useless: every recipient paid a fresh
@@ -10,31 +10,79 @@ import type { Transporter } from "nodemailer";
  * A mass acceptance send is thousands of messages, so that is the difference
  * between a batch that finishes and one that times out.
  *
- * Lazily created so importing this module never requires SMTP config —
- * the send path is the only thing that needs it.
+ * The connection is built on first send, so importing this module never
+ * requires SMTP config. A transport can be injected instead, which is what
+ * lets a test observe what would have been sent.
  */
-let transporter: Transporter | null = null;
+export class Mailer {
+  private transporter: Transporter | null;
 
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_SERVER_HOST,
-      port: Number(process.env.EMAIL_SERVER_PORT || "587"),
-      auth: {
-        user: process.env.EMAIL_SERVER_USER,
-        pass: process.env.EMAIL_SERVER_PASSWORD,
-      },
-      pool: true,
-      // Deliberately env-tunable. A consumer Gmail account tolerates far less
-      // than a bulk provider, and the same code has to serve both: point
-      // EMAIL_SERVER_* at Mailgun/SendGrid/SES and raise these, no redeploy of
-      // anything but config.
-      maxConnections: Number(process.env.EMAIL_MAX_CONNECTIONS || "5"),
-      maxMessages: Number(process.env.EMAIL_MAX_MESSAGES || "100"),
+  constructor(transport?: Transporter) {
+    this.transporter = transport ?? null;
+  }
+
+  private connection(): Transporter {
+    if (!this.transporter) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT || "587"),
+        auth: {
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+        pool: true,
+        // Deliberately env-tunable. A consumer Gmail account tolerates far
+        // less than a bulk provider, and the same code has to serve both:
+        // point EMAIL_SERVER_* at Mailgun/SendGrid/SES and raise these, no
+        // redeploy of anything but config.
+        maxConnections: Number(process.env.EMAIL_MAX_CONNECTIONS || "5"),
+        maxMessages: Number(process.env.EMAIL_MAX_MESSAGES || "100"),
+      });
+    }
+    return this.transporter;
+  }
+
+  /**
+   * The one send path. Templates describe a message; this puts it on the wire,
+   * so the shell, the from address and the plain-text alternative cannot drift
+   * apart between them.
+   */
+  async send({
+    email,
+    subject,
+    heading,
+    paragraphs,
+    ctaLabel,
+    ctaUrl,
+  }: TransactionalEmail) {
+    const bodyHtml = paragraphs
+      .map(
+        (paragraph) =>
+          `<p style="margin: 0 0 16px 0;">${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`,
+      )
+      .join("");
+
+    // Text alternative, not an afterthought: a Gmail clipping or a plain-text
+    // client otherwise shows a blank message, and the CTA is the whole point.
+    const text = [
+      ...paragraphs,
+      ctaUrl ? `${ctaLabel ?? "Open"}: ${ctaUrl}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    await this.connection().sendMail({
+      from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
+      to: email,
+      subject,
+      text,
+      html: renderShell({ heading, bodyHtml, ctaLabel, ctaUrl }),
     });
   }
-  return transporter;
-};
+}
+
+/** One per process, so the pool is shared by every template below. */
+export const mailer = new Mailer();
 
 const escapeHtml = (value: string) =>
   value
@@ -113,39 +161,9 @@ export type TransactionalEmail = {
   ctaUrl?: string;
 };
 
-/**
- * The one send path. Templates below describe a message; this is what puts it
- * on the wire, so the shell, the from address and the plain-text alternative
- * cannot drift apart between them.
- */
-export async function sendTransactionalEmail({
-  email,
-  subject,
-  heading,
-  paragraphs,
-  ctaLabel,
-  ctaUrl,
-}: TransactionalEmail) {
-  const bodyHtml = paragraphs
-    .map(
-      (paragraph) =>
-        `<p style="margin: 0 0 16px 0;">${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`,
-    )
-    .join("");
-
-  // Text alternative, not an afterthought: a Gmail clipping or a plain-text
-  // client otherwise shows a blank message, and the CTA is the whole point.
-  const text = [...paragraphs, ctaUrl ? `${ctaLabel ?? "Open"}: ${ctaUrl}` : ""]
-    .filter(Boolean)
-    .join("\n\n");
-
-  await getTransporter().sendMail({
-    from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
-    to: email,
-    subject,
-    text,
-    html: renderShell({ heading, bodyHtml, ctaLabel, ctaUrl }),
-  });
+/** Kept as the module's entry point; the templates and callers both use it. */
+export async function sendTransactionalEmail(message: TransactionalEmail) {
+  await mailer.send(message);
 }
 
 /**

@@ -300,6 +300,159 @@ export const hackathonAdminRouter = createTRPCRouter({
     }),
 
 
+  /** What the next wave would take, and what the previous ones did. */
+  waveStatus: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const [totals] = await db
+        .select({
+          pending: sql<number>`count(*) filter (where ${hackathonParticipants.registrationStatus} = 'pending')::int`,
+          accepted: sql<number>`count(*) filter (where ${hackathonParticipants.registrationStatus} in ('approved', 'checked_in'))::int`,
+        })
+        .from(hackathonParticipants)
+        .where(eq(hackathonParticipants.hackathonId, input.hackathonId));
+
+      const waves = await db
+        .select({
+          wave: hackathonParticipants.acceptanceWave,
+          accepted: sql<number>`count(*)::int`,
+          emailed: sql<number>`count(${hackathonParticipants.acceptanceEmailSentAt})::int`,
+        })
+        .from(hackathonParticipants)
+        .where(
+          and(
+            eq(hackathonParticipants.hackathonId, input.hackathonId),
+            sql`${hackathonParticipants.acceptanceWave} is not null`,
+          ),
+        )
+        .groupBy(hackathonParticipants.acceptanceWave)
+        .orderBy(hackathonParticipants.acceptanceWave);
+
+      return {
+        pending: totals?.pending ?? 0,
+        accepted: totals?.accepted ?? 0,
+        waves: waves.map((row) => ({
+          wave: row.wave ?? 0,
+          accepted: row.accepted,
+          emailed: row.emailed,
+        })),
+        nextWave: waves.reduce((max, row) => Math.max(max, row.wave ?? 0), 0) + 1,
+      };
+    }),
+
+  /**
+   * Accepts the oldest N pending applications as one numbered wave.
+   *
+   * Approving only — the acceptance mail is a separate call, because a send of
+   * hundreds can die mid-flight and the two must not share a fate: the wave is
+   * already committed and its per-row email markers make the send resumable.
+   *
+   * The pick is locked with SKIP LOCKED so two organisers starting a wave at
+   * once take disjoint applicants instead of both accepting the same people.
+   */
+  acceptWave: isAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        // Matches sendMassAcceptanceEmails: one wave is one mailable batch.
+        size: z.number().int().min(1).max(500),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const hackathon = await db.query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: { id: true },
+      });
+
+      if (!hackathon) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+
+      const { wave, picked } = await db.transaction(async (tx) => {
+        const [highest] = await tx
+          .select({
+            max: sql<number | null>`max(${hackathonParticipants.acceptanceWave})`,
+          })
+          .from(hackathonParticipants)
+          .where(eq(hackathonParticipants.hackathonId, input.hackathonId));
+
+        const wave = (highest?.max ?? 0) + 1;
+
+        const picked = await tx
+          .select({
+            id: hackathonParticipants.id,
+            userId: hackathonParticipants.userId,
+          })
+          .from(hackathonParticipants)
+          .where(
+            and(
+              eq(hackathonParticipants.hackathonId, input.hackathonId),
+              eq(hackathonParticipants.registrationStatus, "pending"),
+            ),
+          )
+          .orderBy(hackathonParticipants.registeredAt)
+          .limit(input.size)
+          .for("update", { skipLocked: true });
+
+        if (picked.length === 0) return { wave, picked };
+
+        await tx
+          .update(hackathonParticipants)
+          .set({
+            registrationStatus: "approved",
+            acceptanceWave: wave,
+            updatedAt: new Date(),
+          })
+          .where(
+            inArray(
+              hackathonParticipants.id,
+              picked.map((row) => row.id),
+            ),
+          );
+
+        return { wave, picked };
+      });
+
+      if (picked.length === 0) {
+        return {
+          wave,
+          accepted: 0,
+          participantIds: [] as string[],
+          message: "No pending applications left to accept.",
+        };
+      }
+
+      await syncCurrentParticipants(db, input.hackathonId);
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "hackathon.acceptWave",
+        resourceId: input.hackathonId,
+        severity: "warn",
+        metadata: { wave, accepted: picked.length, requested: input.size },
+      });
+
+      evictParticipantCaches(
+        ctx.cache,
+        input.hackathonId,
+        picked.map((row) => row.userId),
+      );
+
+      return {
+        wave,
+        accepted: picked.length,
+        participantIds: picked.map((row) => row.id),
+        message: `Wave ${wave}: ${picked.length} accepted. They are not emailed yet.`,
+      };
+    }),
+
   sendMassAcceptanceEmails: isAdmin
     .input(
       z.object({

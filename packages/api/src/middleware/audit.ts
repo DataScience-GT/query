@@ -24,29 +24,42 @@ const RETAIN_CRITICAL_DAYS = 365;
 /** At most one prune per process per interval, however many rows are written. */
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 
-let lastPruneAt = 0;
-let pruneInFlight = false;
-
 const cutoff = (days: number) =>
   new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
 /**
- * Deletes expired audit rows, at most hourly per process.
- *
- * Deliberately not awaited by callers and deliberately silent on failure:
- * retention is housekeeping, and a full audit table is a much smaller problem
- * than an admin action that fails because housekeeping did.
+ * Holds the "have we pruned recently" state that decides whether a write also
+ * triggers retention. Two loose module flags could be read and written by any
+ * code in the file; the throttle only works if nothing else can touch them.
  */
-export const maybePruneAuditLogs = (db: DrizzleDB) => {
-  const now = Date.now();
-  if (pruneInFlight || now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+export class AuditRetention {
+  private lastPruneAt = 0;
+  private inFlight = false;
 
-  // Stamped before the await, so concurrent requests in the same process do
-  // not all decide to prune at once.
-  lastPruneAt = now;
-  pruneInFlight = true;
+  constructor(private readonly intervalMs: number = PRUNE_INTERVAL_MS) {}
 
-  void (async () => {
+  /**
+   * Deletes expired audit rows, at most once per interval per process.
+   *
+   * Deliberately not awaited by callers and deliberately silent on failure:
+   * retention is housekeeping, and a full audit table is a much smaller problem
+   * than an admin action that fails because housekeeping did.
+   */
+  maybePrune(db: DrizzleDB) {
+    const now = Date.now();
+    if (this.inFlight || now - this.lastPruneAt < this.intervalMs) return;
+
+    // Stamped before the await, so concurrent requests in the same process do
+    // not all decide to prune at once.
+    this.lastPruneAt = now;
+    this.inFlight = true;
+
+    void this.prune(db).finally(() => {
+      this.inFlight = false;
+    });
+  }
+
+  private async prune(db: DrizzleDB) {
     try {
       // Both bound on created_at, which audit_created_at_idx covers.
       await db
@@ -64,11 +77,13 @@ export const maybePruneAuditLogs = (db: DrizzleDB) => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("[Audit] Retention prune failed:", error);
-    } finally {
-      pruneInFlight = false;
     }
-  })();
-};
+  }
+}
+
+const retention = new AuditRetention();
+
+export const maybePruneAuditLogs = (db: DrizzleDB) => retention.maybePrune(db);
 
 /**
  * Records an administrative action.

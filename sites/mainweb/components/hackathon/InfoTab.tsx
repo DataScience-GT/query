@@ -78,14 +78,8 @@ export function InfoTab({
   const [underrepresented, setUnderrepresented] = useState(false);
 
   // Step 2: Academic
-  /**
-   * The full school list is 12k entries and ~450KB, far too much to sit in the
-   * bundle for a field most applicants reach once. SCHOOLS is the short
-   * Atlanta-first list shown immediately; the complete one loads the first time
-   * somebody actually opens the academic step. A failed fetch is not surfaced —
-   * the field takes free text either way, so the short list is a working
-   * fallback rather than an error state.
-   */
+  // 12k schools / ~450KB, so it loads on the academic step rather than in the
+  // bundle. A failed fetch leaves the short list, which still works.
   const [schoolOptions, setSchoolOptions] =
     useState<readonly string[]>(SCHOOLS);
   const [school, setSchool] = useState("");
@@ -163,8 +157,6 @@ export function InfoTab({
         setError("Phone number is required.");
         return false;
       }
-      // Ten digits is the shortest reachable number; the field accepts any
-      // punctuation, so this counts digits rather than characters.
       if (phoneDigits(phone).length < 10) {
         setError("Please enter a complete phone number.");
         return false;
@@ -231,8 +223,7 @@ export function InfoTab({
   }
 
   function handleSubmit() {
-    // Step 2 as well as 3: the essay is required, and the last step is
-    // reachable by Back-then-Next without passing through its own check again.
+    // Step 2 too — the last step is reachable by Back-then-Next.
     if (!validateStep(2) || !validateStep(3)) return;
     setError("");
     registerMutation.mutate({
@@ -473,9 +464,7 @@ export function InfoTab({
             </button>
           </div>
         ) : hackathon.status === "announced" ? (
-          /* Announced is not closed — applications have not opened yet, and the
-             interest list is the only thing to do here. The generic "Registration
-             Closed" lock below reads as "you missed it" and sent people away. */
+          /* Announced is not closed — the lock below reads as "you missed it". */
           <div className="text-center sm:text-left">
             <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">
               Registration Opens Soon

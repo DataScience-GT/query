@@ -70,9 +70,11 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
         linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
         githubUrl: z.string().url().max(500).optional().or(z.literal("")),
-        // Required: it is the only free-text answer review reads, and an
-        // optional one came back blank often enough to make review guesswork.
-        whyAttend: z.string().trim().min(1, "Tell us why you want to attend").max(2000),
+        whyAttend: z
+          .string()
+          .trim()
+          .min(1, "Tell us why you want to attend")
+          .max(2000),
         // Logistics
         shirtSize: z.enum(["XS", "S", "M", "L", "XL", "XXL"]).optional(),
         dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
