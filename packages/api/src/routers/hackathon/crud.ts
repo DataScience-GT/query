@@ -25,6 +25,39 @@ const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
   "draft",
 ];
 
+/**
+ * Must match `hackathonSlug` in sites/mainweb/lib/hackathon-slug.ts, which is
+ * what builds the links this resolves.
+ */
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+/**
+ * Resolve a non-uuid argument: the exact name first, then the slugged form the
+ * portal links with.
+ *
+ * The slug pass reads every edition rather than filtering in SQL because the
+ * normalisation is a Postgres expression this table has no index for — scanning
+ * a handful of rows in JS is cheaper than the function-call scan, and it
+ * guarantees the two sides normalise the same way. It only runs when the exact
+ * name misses.
+ */
+async function findByNameOrSlug(db: DrizzleDB, value: string) {
+  const exact = await db.query.hackathons.findFirst({
+    where: eq(hackathons.name, value),
+  });
+  if (exact) return exact;
+
+  const slug = toSlug(value);
+  if (!slug) return undefined;
+
+  const all = await db.query.hackathons.findMany();
+  return all.find((row) => toSlug(row.name) === slug);
+}
+
 export const hackathonCrudRouter = createTRPCRouter({
   list: publicProcedure
     .input(
@@ -168,11 +201,11 @@ export const hackathonCrudRouter = createTRPCRouter({
         }
       }
 
-      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: isUuid
-          ? eq(hackathons.id, input.id)
-          : eq(hackathons.name, input.id),
-      });
+      const hackathon = isUuid
+        ? await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+            where: eq(hackathons.id, input.id),
+          })
+        : await findByNameOrSlug(ctx.db as DrizzleDB, input.id);
 
       if (!hackathon) {
         throw new TRPCError({

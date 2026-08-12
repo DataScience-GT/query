@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { hackathonSlug } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -287,7 +288,7 @@ export default function HackathonsPage() {
                     const isRegistered = registeredIds.has(h.id);
                     return (
                       <Link
-                        href={`/hackathons/${encodeURIComponent(h.name)}`}
+                        href={`/hackathons/${hackathonSlug(h.name)}`}
                         key={h.id}
                         className="block group"
                       >
@@ -473,7 +474,7 @@ export default function HackathonsPage() {
                 {myRegs.map((reg) => (
                   <Link
                     key={reg.id}
-                    href={`/hackathons/${encodeURIComponent(reg.hackathon.name)}?tab=INFO`}
+                    href={`/hackathons/${hackathonSlug(reg.hackathon.name)}?tab=INFO`}
                     className="group flex flex-col rounded-none border border-[var(--border-subtle)] bg-gradient-to-b from-[var(--bg-card)] to-[var(--bg-primary)] p-8 transition-ui hover:border-accent/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-ui duration-500">

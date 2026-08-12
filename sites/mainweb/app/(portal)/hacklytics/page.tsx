@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { hackathonSlug } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 /**
@@ -252,7 +253,7 @@ export default function HacklyticsPage() {
                   : "Spots are limited and applications are reviewed as they arrive."}
               </p>
               <Link
-                href={`/hackathons/${event.id}`}
+                href={`/hackathons/${hackathonSlug(event.name)}`}
                 className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui"
               >
                 Register now
