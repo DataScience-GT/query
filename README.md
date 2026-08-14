@@ -4,15 +4,16 @@ The central monorepo for club operations and digital infrastructure.
 
 ## Workspace layout
 
-| Path | Contents |
-| --- | --- |
-| `sites/mainweb` | Public club site |
-| `sites/hacklytics2027` | Hacklytics 2027 event site (static export) |
-| `packages/db` | Drizzle schema, client, seed script |
-| `packages/api` | tRPC routers |
-| `packages/auth` | NextAuth configuration |
-| `packages/ui`, `packages/consts` | Shared components and constants |
-| `tooling/*` | Shared eslint / tailwind / tsconfig |
+| Path                             | Contents                                   |
+| -------------------------------- | ------------------------------------------ |
+| `apps/dsgt-slack`                | Custom Slack Bolt bot (`@dsgt`)            |
+| `sites/mainweb`                  | Public club site                           |
+| `sites/hacklytics2027`           | Hacklytics 2027 event site (static export) |
+| `packages/db`                    | Drizzle schema, client, seed script        |
+| `packages/api`                   | tRPC routers                               |
+| `packages/auth`                  | NextAuth configuration                     |
+| `packages/ui`, `packages/consts` | Shared components and constants            |
+| `tooling/*`                      | Shared eslint / tailwind / tsconfig        |
 
 ## Database
 

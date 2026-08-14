@@ -1,0 +1,30 @@
+{
+  "name": "@query/dsgt-slack",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@slack/bolt": "^5.0.0",
+    "dotenv": "^16.6.1",
+    "undici": "^6.27.0",
+    "zod": "3.25.53"
+  },
+  "devDependencies": {
+    "@query/eslint-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.15.32",
+    "eslint": "10.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "6.0.2",
+    "vitest": "^4.1.8"
+  }
+}
