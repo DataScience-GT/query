@@ -2,6 +2,8 @@
 
 This guide explains how to set up your local environment to work with the GCP-hosted backend (Firebase App Hosting + Secret Manager).
 
+Related: [docs/operations/deployment.md](./docs/operations/deployment.md), [docs/operations/environment.md](./docs/operations/environment.md), [docs/getting-started.md](./docs/getting-started.md).
+
 ## 1. Prerequisites
 
 Install the following CLI tools:
