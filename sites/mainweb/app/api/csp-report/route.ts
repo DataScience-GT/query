@@ -46,11 +46,12 @@ export async function POST(request: NextRequest) {
 
     // Two formats in the wild: the legacy `report-uri` shape
     // ({"csp-report": {...}}) and the newer Reporting API array. Log a
-    // newline-stripped copy — the body is attacker-controlled (this endpoint
-    // is unauthenticated) and a raw CR/LF would forge extra log lines.
+    // control-char-stripped copy — the body is attacker-controlled (this
+    // endpoint is unauthenticated) and control bytes can forge/mangle log
+    // output in some sinks.
     const forLog = body
       .slice(0, MAX_REPORT_BYTES)
-      .replace(/[\n\r]/g, " ");
+      .replace(/[\x00-\x1F\x7F\u2028\u2029]/g, " ");
     console.warn("[CSP] violation report:", forLog);
   } catch (error) {
     console.error("[CSP] failed to read a violation report:", error);

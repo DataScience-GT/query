@@ -130,20 +130,22 @@ const isNameBoundary = (ch: string | undefined) => {
  * `onerror=` / `onload=` only count inside a tag. Matched loosely it would
  * reject prose like "onboarding = great".
  *
+ * A start-of-handler is a word boundary, same as the old `\bon` regex: `/`
+ * counts (`<div/onmouseover=` is valid HTML), letters and digits do not.
  * `end` is already bounded (next `>` or 2048 chars), so this is linear in a
  * small window rather than in the whole payload.
  */
+const isWordChar = (ch: string) =>
+  (ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9") || ch === "_";
+
 const hasInlineHandler = (lower: string, start: number, end: number) => {
   let pos = start;
   while (pos < end) {
     const on = lower.indexOf("on", pos);
     if (on === -1 || on >= end) return false;
-    if (on > start) {
-      const prev = lower[on - 1]!;
-      if (!isHtmlSpace(prev) && prev !== "<") {
-        pos = on + 1;
-        continue;
-      }
+    if (on > start && isWordChar(lower[on - 1]!)) {
+      pos = on + 1;
+      continue;
     }
     let k = on + 2;
     let n = 0;
