@@ -6,6 +6,10 @@ on:
       - main
       - dev
       - "dependabot/**"
+      # Cloud-agent branches already open a PR into main as the human owner.
+      # Auto-opening a second PR into dev (authored by github-actions, titled
+      # with the cursor/ prefix) duplicates review and is not wanted.
+      - "cursor/**"
 
 jobs:
   create-pull-request:

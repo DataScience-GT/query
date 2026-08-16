@@ -35,6 +35,12 @@ describe("Security and Protection Verification Suite", () => {
         scrubMarkup('<img src="invalid.jpg" onerror="alert(1)">'),
       ).toThrow(TRPCError);
       expect(() => scrubMarkup('<svg onload="alert(1)">')).toThrow(TRPCError);
+      // Slash is an attribute separator in HTML; the old `\bon` regex
+      // rejected this, and so must the linear scan.
+      expect(() =>
+        scrubMarkup("<div/onmouseover=alert(1)>"),
+      ).toThrow(TRPCError);
+      expect(() => scrubMarkup("<body/onload=alert(1)>")).toThrow(TRPCError);
     });
 
     it("refuses a javascript: URI even as plain text", () => {
