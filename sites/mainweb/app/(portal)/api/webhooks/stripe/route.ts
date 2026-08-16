@@ -27,7 +27,13 @@ import {
 const safeLogId = (value: unknown) =>
   String(value ?? "")
     .replace(/[^\w-]/g, "")
+    .replace(/[\n\r]/g, "")
     .slice(0, 64);
+
+const safeLogError = (err: unknown) =>
+  err instanceof Error
+    ? err.name.replace(/[\n\r]/g, "")
+    : "Error";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -173,7 +179,7 @@ export async function POST(req: NextRequest) {
               console.error(
                 "[Stripe webhook] payment marked paid, membership grant failed",
                 safeLogId(existingPayment.id),
-                e,
+                safeLogError(e),
               );
             }
           }
@@ -256,7 +262,7 @@ export async function POST(req: NextRequest) {
           console.error(
             "[Stripe webhook] membership grant failed for checkout session",
             safeLogId(session.id),
-            e,
+            safeLogError(e),
           );
         }
       }
@@ -373,7 +379,7 @@ export async function POST(req: NextRequest) {
           console.error(
             "[Stripe webhook] membership grant failed for payment intent",
             safeLogId(pi.id),
-            e,
+            safeLogError(e),
           );
         }
       }
