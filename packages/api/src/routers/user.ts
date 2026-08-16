@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { CacheKeys } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { fetchPortalContext } from "../services/portal-context";
+import { readImageDimensions } from "../services/image-dimensions";
 
 // z.string().url() is backed by new URL(), which accepts any scheme — a stored
 // data: or javascript: URI is handed straight back to whoever renders it.
@@ -185,9 +186,8 @@ export const userRouter = createTRPCRouter({
       const buffer = Buffer.from(base64Data, "base64");
 
       try {
-        const { imageSize } = await import("image-size");
-        const dimensions = imageSize(buffer);
-        if (!dimensions.width || !dimensions.height) {
+        const dimensions = readImageDimensions(buffer);
+        if (!dimensions?.width || !dimensions.height) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Invalid image dimensions. File may be corrupt.",
@@ -200,8 +200,8 @@ export const userRouter = createTRPCRouter({
               "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
           });
         }
-        const allowedTypes = ["jpg", "jpeg", "png", "webp"];
-        if (!dimensions.type || !allowedTypes.includes(dimensions.type)) {
+        const allowedTypes = ["jpeg", "png", "webp"];
+        if (!allowedTypes.includes(dimensions.type)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:

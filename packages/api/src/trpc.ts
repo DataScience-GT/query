@@ -72,16 +72,134 @@ const requiresDb = t.middleware(async ({ ctx, next }) => {
  * places a value might reach an HTML sink, and a hackathon full of people
  * writing `vector<int>` or `a<b` must not be caught by it.
  */
-const DANGEROUS_TAG =
-  /<\s*\/?\s*(script|iframe|object|embed|link|meta|base|svg|math|style|form|input|button|img|video|audio|source|track|template|noscript|textarea|xmp|frame|frameset|applet)\b/i;
+/**
+ * Tag names that could execute somewhere if they reached an HTML sink.
+ *
+ * Matched with a linear scan, not a regex. The previous patterns
+ * (`/<\s*\/?\s*(script|…)\b/` and `/<[a-zA-Z][^>]*\bon[a-z]+\s*=/`) were
+ * polynomial in the length of attacker-controlled input (CodeQL #804/#805):
+ * nested `\s*` and `[^>]*` plus a later alternative make the matcher walk the
+ * same prefix over and over. A hackathon payload is large enough for that to
+ * stall the instance; a linear walk cannot.
+ */
+const DANGEROUS_TAGS = [
+  "script",
+  "iframe",
+  "object",
+  "embed",
+  "link",
+  "meta",
+  "base",
+  "svg",
+  "math",
+  "style",
+  "form",
+  "input",
+  "button",
+  "img",
+  "video",
+  "audio",
+  "source",
+  "track",
+  "template",
+  "noscript",
+  "textarea",
+  "xmp",
+  "frame",
+  "frameset",
+  "applet",
+] as const;
 
-// An event handler only means anything inside a tag; matched loosely it would
-// reject prose like "onboarding = great".
-const TAG_WITH_HANDLER = /<[a-zA-Z][^>]*\bon[a-z]+\s*=/i;
+const isHtmlSpace = (ch: string) =>
+  ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f";
 
-// Still dangerous as plain text: whoever renders it into an href gets an
-// executable link.
-const SCRIPTABLE_URI = /javascript:/i;
+const isAsciiLetter = (ch: string) =>
+  (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z");
+
+const isNameBoundary = (ch: string | undefined) => {
+  if (ch === undefined) return true;
+  const c = ch.toLowerCase();
+  return !(
+    (c >= "a" && c <= "z") ||
+    (c >= "0" && c <= "9") ||
+    c === "-"
+  );
+};
+
+/**
+ * `onerror=` / `onload=` only count inside a tag. Matched loosely it would
+ * reject prose like "onboarding = great".
+ *
+ * `end` is already bounded (next `>` or 2048 chars), so this is linear in a
+ * small window rather than in the whole payload.
+ */
+const hasInlineHandler = (lower: string, start: number, end: number) => {
+  let pos = start;
+  while (pos < end) {
+    const on = lower.indexOf("on", pos);
+    if (on === -1 || on >= end) return false;
+    if (on > start) {
+      const prev = lower[on - 1]!;
+      if (!isHtmlSpace(prev) && prev !== "<") {
+        pos = on + 1;
+        continue;
+      }
+    }
+    let k = on + 2;
+    let n = 0;
+    while (k < end && n < 32) {
+      const ch = lower[k]!;
+      if (ch < "a" || ch > "z") break;
+      k += 1;
+      n += 1;
+    }
+    if (n === 0) {
+      pos = on + 1;
+      continue;
+    }
+    while (k < end && isHtmlSpace(lower[k]!)) k += 1;
+    if (k < end && lower[k] === "=") return true;
+    pos = on + 1;
+  }
+  return false;
+};
+
+/**
+ * True when the string could execute if it reached an HTML sink.
+ *
+ * `javascript:` is a substring check (case-insensitive). Tags and handlers
+ * are found by walking `<` … `>` so combining characters / long runs of
+ * spaces cannot force backtracking.
+ */
+export const hasDangerousMarkup = (value: string): boolean => {
+  const lower = value.toLowerCase();
+  if (lower.includes("javascript:")) return true;
+
+  for (let i = 0; i < lower.length; i += 1) {
+    if (lower[i] !== "<") continue;
+
+    let j = i + 1;
+    while (j < lower.length && isHtmlSpace(lower[j]!)) j += 1;
+    if (j < lower.length && lower[j] === "/") {
+      j += 1;
+      while (j < lower.length && isHtmlSpace(lower[j]!)) j += 1;
+    }
+    for (const tag of DANGEROUS_TAGS) {
+      if (lower.startsWith(tag, j) && isNameBoundary(lower[j + tag.length])) {
+        return true;
+      }
+    }
+
+    // Original handler regex required a letter immediately after `<`.
+    if (i + 1 < lower.length && isAsciiLetter(lower[i + 1]!)) {
+      const gt = lower.indexOf(">", i + 1);
+      const end = gt === -1 ? Math.min(lower.length, i + 2048) : gt;
+      if (hasInlineHandler(lower, i, end)) return true;
+    }
+  }
+
+  return false;
+};
 
 const isPlainObject = (value: object) => {
   const proto = Object.getPrototypeOf(value) as object | null;
@@ -129,11 +247,7 @@ export const scrubMarkup = (input: unknown, depth = 0): unknown => {
   }
 
   if (typeof input === "string") {
-    if (
-      DANGEROUS_TAG.test(input) ||
-      TAG_WITH_HANDLER.test(input) ||
-      SCRIPTABLE_URI.test(input)
-    ) {
+    if (hasDangerousMarkup(input)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Invalid input: HTML and script content are not allowed",
