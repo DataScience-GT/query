@@ -1,0 +1,73 @@
+# Alerts, evaluated by Prometheus and visible at http://localhost:9090/alerts.
+#
+# There is no Alertmanager in this stack, so nothing routes these anywhere on
+# its own — they fire in the Prometheus UI and in Grafana's alert list. Piping a
+# firing alert into ClickUp is one webhook away; see monitoring/README.md.
+
+groups:
+  - name: payments
+    rules:
+      # Money taken, nothing granted. The recovery paths exist precisely because
+      # this state happens; the alert is what stops it sitting there for a week.
+      - alert: MembershipGrantFailing
+        expr: increase(dsgt_membership_grant_failures_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: "A membership grant failed after the payment was recorded"
+          description: >-
+            Source {{ $labels.source }} failed in the last 15 minutes. The
+            payment row exists with no membership behind it. reconcileMyPayments
+            repairs it on the member's next portal load, but check whether the
+            cause is systemic.
+
+      # Growth, not the absolute count.
+      #
+      # The count is not zero and never has been — most paid rows predate the
+      # portal or belong to people who paid through Stripe and have not signed
+      # in since, and they get claimed the moment they do. A threshold on the
+      # total would fire permanently and teach everyone to ignore it. What
+      # actually indicates a broken link path is the number climbing faster than
+      # sign-ins clear it.
+      - alert: UnlinkedPaymentsClimbing
+        expr: delta(dsgt_payments_unlinked[24h]) > 5
+        for: 1h
+        annotations:
+          summary: "Unlinked payments grew by {{ $value }} in a day"
+          description: >-
+            Paid rows with linked_user_id null are accumulating. Expected during
+            a membership drive; otherwise check attemptAutoLink and the sign-in
+            linker, because these people paid and are still being asked to.
+
+      # The backstop firing repeatedly means the fast path is broken, not that
+      # the backstop is working well.
+      - alert: ReconcileRecoveringOften
+        expr: increase(dsgt_payments_recovered_total[1h]) > 3
+        annotations:
+          summary: "Reconcile is recovering charges the app never recorded"
+          description: >-
+            The webhook or the client confirm call is dropping payments. Check
+            that payment_intent.succeeded is subscribed in the Stripe dashboard.
+
+  - name: app
+    rules:
+      - alert: PortalApiErrorRate
+        expr: >-
+          sum(rate(dsgt_trpc_duration_seconds_count{ok="false"}[5m]))
+            /
+          sum(rate(dsgt_trpc_duration_seconds_count[5m]))
+            > 0.1
+        for: 10m
+        annotations:
+          summary: "More than 10% of portal API calls are failing"
+
+      - alert: PortalApiSlow
+        expr: >-
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(dsgt_trpc_duration_seconds_bucket[5m]))
+          ) > 2
+        for: 10m
+        annotations:
+          summary: "p95 portal API latency above 2s"

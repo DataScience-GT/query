@@ -18,9 +18,12 @@ import {
   BOOTCAMP_ROOM,
   BOOTCAMP_WORKSPACE_URL,
 } from "@/lib/bootcamp-schedule";
-import type { RouterOutputs } from "@query/api";
-
-type Session = RouterOutputs["bootcamp"]["myProgress"]["sessions"][number];
+import {
+  MEMBERSHIP_CENTS,
+  SEMESTER_MEMBERSHIP_CENTS,
+  BOOTCAMP_ADDON_CENTS,
+  formatCents,
+} from "@query/api/pricing";
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
 function termLabel(term: string) {
@@ -38,66 +41,35 @@ const dateLabel = (date: Date) =>
     minute: "2-digit",
   });
 
-/** Written out, not a coloured dot — colour alone is unreadable to some. */
-function StatusBadge({ session }: { session: Session | undefined }) {
-  const [label, tone] = !session
-    ? ["Not scheduled", "text-[var(--text-subtle)] border-[var(--border-subtle)]"]
-    : session.attended
-      ? ["Attended", "text-emerald-400 border-emerald-500/40 bg-emerald-500/10"]
-      : session.past
-        ? ["Missed", "text-red-300 border-red-500/40 bg-red-500/10"]
-        : ["Upcoming", "text-accent border-accent/40 bg-accent/10"];
-
+/**
+ * What an enrolled member sees for now.
+ *
+ * Room, meeting time and workspace URL are all still unset, so the real page
+ * would be a grid of "to be announced" — this says the same thing once, and
+ * honestly. It goes away when the schedule lands.
+ */
+function WorkInProgress({ term }: { term: string }) {
   return (
-    <span
-      className={`shrink-0 border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest ${tone}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-/** Room and time, plus the workspace the material actually lives in. */
-function MeetingCard({ nextSession }: { nextSession: Session | undefined }) {
-  const room = nextSession?.location ?? BOOTCAMP_ROOM;
-
-  return (
-    <div className="mb-8 grid gap-4 sm:grid-cols-2">
-      <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-6">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-          Where it meets
-        </p>
-        <p className="mt-3 flex items-center gap-2 text-xl font-black tracking-tight text-[var(--text-primary)]">
-          <MapPin className="h-5 w-5 shrink-0 text-accent" />
-          {room ?? "To be announced"}
-        </p>
-        <p className="mt-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-          <Clock className="h-4 w-4 shrink-0 text-[var(--text-subtle)]" />
-          {BOOTCAMP_MEETING_TIME ?? "Time to be announced"}
-        </p>
-      </div>
-
-      <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-6">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-          Next session
-        </p>
-        {nextSession ? (
-          <>
-            <p className="mt-3 flex items-center gap-2 text-xl font-black tracking-tight text-[var(--text-primary)]">
-              <CalendarDays className="h-5 w-5 shrink-0 text-accent" />
-              Week {nextSession.week}
-            </p>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">
-              {nextSession.title} · {dateLabel(nextSession.eventDate)}
-            </p>
-          </>
-        ) : (
-          <p className="mt-3 text-sm text-[var(--text-muted)]">
-            Nothing on the calendar right now. Sessions appear here as soon as
-            they are scheduled.
-          </p>
-        )}
-      </div>
+    <div className="border border-accent/30 bg-accent/[0.06] p-8">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+        Work in progress
+      </p>
+      <h2 className="mt-3 text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
+        You are in the {term} bootcamp
+      </h2>
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
+        Your spot is confirmed — nothing else to do. We are still putting the
+        schedule, the room and the notebooks together, so this page is not
+        finished yet. Session times, attendance and the workspace link all show
+        up here once they are set, and you will hear from us before the first
+        meeting.
+      </p>
+      <p className="mt-4 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        <MapPin className="h-4 w-4 shrink-0 text-[var(--text-subtle)]" />
+        {BOOTCAMP_ROOM ?? "Room to be announced"}
+        <Clock className="ml-3 h-4 w-4 shrink-0 text-[var(--text-subtle)]" />
+        {BOOTCAMP_MEETING_TIME ?? "Time to be announced"}
+      </p>
     </div>
   );
 }
@@ -132,7 +104,11 @@ function NotEnrolled({ term }: { term: string }) {
       <p className="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
         Twelve weeks of Python and data science, taught in person, with the
         notebooks to keep. It runs for one semester, so joining covers this
-        term{isMember ? "" : " — $10 on top of the $25 membership"}.
+        term
+        {isMember
+          ? ""
+          : ` — ${formatCents(BOOTCAMP_ADDON_CENTS)} on top of a membership (${formatCents(MEMBERSHIP_CENTS)} a year or ${formatCents(SEMESTER_MEMBERSHIP_CENTS)} a semester)`}
+        .
       </p>
 
       {isMember ? (
@@ -160,6 +136,7 @@ export default function BootcampPortalPage() {
   }
 
   const data = progress.data;
+  const enrolled = !!data?.enrolled;
   const sessions = data?.sessions ?? [];
   const byWeek = new Map(sessions.map((row) => [row.week, row]));
 
@@ -184,14 +161,6 @@ export default function BootcampPortalPage() {
     })),
   ];
 
-  const now = new Date();
-  const nextSession = sessions
-    .filter((row) => new Date(row.eventDate) > now)
-    .sort(
-      (a, b) =>
-        new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime(),
-    )[0];
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 text-[var(--text-muted)]">
       <main className="mx-auto max-w-5xl px-6 pt-12 md:pt-20">
@@ -209,16 +178,13 @@ export default function BootcampPortalPage() {
               </p>
             </div>
 
-            {data?.enrolled && (
-              <div className="border border-[var(--border-subtle)] px-5 py-3 text-right">
+            {enrolled && (
+              <div className="border border-accent/30 bg-accent/[0.06] px-5 py-3 text-right">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-                  Attendance
+                  Status
                 </p>
-                <p className="text-2xl font-black text-[var(--text-primary)]">
-                  {data.attended}
-                  <span className="text-[var(--text-subtle)]">
-                    /{data.held}
-                  </span>
+                <p className="text-lg font-black uppercase text-accent">
+                  Enrolled
                 </p>
               </div>
             )}
@@ -231,75 +197,73 @@ export default function BootcampPortalPage() {
           </p>
         )}
 
-        {data && !data.enrolled ? (
-          <NotEnrolled term={data.term} />
+        {enrolled && data ? (
+          <WorkInProgress term={termLabel(data.term)} />
         ) : (
-          <MeetingCard nextSession={nextSession} />
-        )}
+          <>
+            {data && <NotEnrolled term={data.term} />}
 
-        <div className="my-8">
-          <WorkspaceLink />
-        </div>
+            <div className="my-8">
+              <WorkspaceLink />
+            </div>
 
-        <section>
-          <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-            The twelve weeks
-          </h2>
+            <section>
+              <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
+                The twelve weeks
+              </h2>
 
-          <ol className="space-y-3">
-            {weeks.map((entry) => (
-              <li
-                key={entry.week}
-                className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5 transition-ui hover:border-white/20"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
-                      Week {String(entry.week).padStart(2, "0")}
-                    </p>
-                    <h3 className="mt-1 text-lg font-bold text-[var(--text-primary)]">
-                      {entry.title}
-                    </h3>
-                    {entry.desc && (
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">
-                        {entry.desc}
+              <ol className="space-y-3">
+                {weeks.map((entry) => (
+                  <li
+                    key={entry.week}
+                    className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5 transition-ui hover:border-white/20"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+                        Week {String(entry.week).padStart(2, "0")}
                       </p>
-                    )}
+                      <h3 className="mt-1 text-lg font-bold text-[var(--text-primary)]">
+                        {entry.title}
+                      </h3>
+                      {entry.desc && (
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                          {entry.desc}
+                        </p>
+                      )}
 
-                    {entry.session && (
-                      <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-subtle)]">
-                        <span className="inline-flex items-center gap-1.5">
-                          <CalendarDays className="h-3.5 w-3.5" />
-                          {dateLabel(entry.session.eventDate)}
-                        </span>
-                        {entry.session.location && (
+                      {entry.session && (
+                        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-subtle)]">
                           <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5" />
-                            {entry.session.location}
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            {dateLabel(entry.session.eventDate)}
                           </span>
-                        )}
-                      </p>
-                    )}
+                          {entry.session.location && (
+                            <span className="inline-flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5" />
+                              {entry.session.location}
+                            </span>
+                          )}
+                        </p>
+                      )}
 
-                    {entry.deepnoteUrl && (
-                      <a
-                        href={entry.deepnoteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Notebook
-                      </a>
-                    )}
-                  </div>
-
-                  {data?.enrolled && <StatusBadge session={entry.session} />}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
+                      {entry.deepnoteUrl && (
+                        <a
+                          href={entry.deepnoteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Notebook
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

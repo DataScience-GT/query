@@ -1,0 +1,50 @@
+# Scrape config for the local stack.
+#
+# 30s, not the usual 15s: half the series here are recomputed from Postgres on
+# a 60s cache, so a faster interval buys duplicate samples and nothing else.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # `next dev` on the host machine — port 3001, which is what mainweb's dev
+  # script binds. No token, because the metrics route only demands one in
+  # production.
+  - job_name: mainweb-local
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ["host.docker.internal:3001"]
+        labels:
+          env: local
+
+  # Production, on Firebase App Hosting.
+  #
+  # Commented out because it needs two things this repo cannot supply: the
+  # deployed hostname, and a token written to monitoring/secrets/metrics-token
+  # (gitignored) that matches METRICS_TOKEN on the deployment.
+  #
+  # Read the numbers it returns with the instance model in mind. App Hosting
+  # autoscales, so each scrape lands on one arbitrary instance:
+  #   - dsgt_members_*, dsgt_payments_* are read from the database on scrape and
+  #     are therefore correct regardless of which instance answered.
+  #   - counters and histograms are that one instance's, since its own start,
+  #     and vanish when it scales down. Treat them as a sample, not a total.
+  #
+  # - job_name: mainweb-prod
+  #   metrics_path: /api/metrics
+  #   scheme: https
+  #   authorization:
+  #     type: Bearer
+  #     credentials_file: /etc/prometheus/secrets/metrics-token
+  #   static_configs:
+  #     - targets: ["your-app-hosting-domain"]
+  #       labels:
+  #         env: prod
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -5,6 +5,7 @@ import { db, stripePayments, users } from "@query/db";
 import {
   createOrUpdateMembership,
   splitName,
+  readPlan,
   BOOTCAMP_ADDON_PAYMENT_TYPE,
 } from "@query/db/services/membership";
 import type { DrizzleDB } from "@query/db";
@@ -13,6 +14,10 @@ import {
   clearMembershipCaches,
   MAX_MEMBERSHIP_CHARGE_CENTS,
 } from "@query/api";
+import {
+  membershipGrants,
+  membershipGrantFailures,
+} from "@query/api/metrics";
 
 
 /**
@@ -166,8 +171,14 @@ export async function POST(req: NextRequest) {
                 bootcampMember: session.metadata?.bootcamp === "true",
                 addOnOnly:
                   session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
+                plan: readPlan(session.metadata?.plan),
+              });
+              membershipGrants.inc({
+                source: "webhook_checkout",
+                plan: readPlan(session.metadata?.plan),
               });
             } catch (e) {
+              membershipGrantFailures.inc({ source: "webhook_checkout" });
               // This id is ours (a database row), not request-derived, but it
               // goes through the same path so the log format stays uniform.
               console.error(
@@ -244,9 +255,15 @@ export async function POST(req: NextRequest) {
             phoneNumber,
             bootcampMember: session.metadata?.bootcamp === "true",
             addOnOnly: session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
+            plan: readPlan(session.metadata?.plan),
+          });
+          membershipGrants.inc({
+            source: "webhook_checkout",
+            plan: readPlan(session.metadata?.plan),
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {
+          membershipGrantFailures.inc({ source: "webhook_checkout" });
           // The id is passed as an argument, never interpolated into the
           // message, and stripped to the characters a Stripe id can contain.
           // In the mock branch the body is parsed without verifying a
@@ -366,9 +383,16 @@ export async function POST(req: NextRequest) {
             bootcampMember: pi.metadata?.bootcamp === "true",
             // Where an unconfirmed add-on lands. $10 must not buy a year.
             addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
+            // Nor may $15 — the plan comes off the charged intent, not a client.
+            plan: readPlan(pi.metadata?.plan),
+          });
+          membershipGrants.inc({
+            source: "webhook_intent",
+            plan: readPlan(pi.metadata?.plan),
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {
+          membershipGrantFailures.inc({ source: "webhook_intent" });
           // Same reasoning as the checkout-session branch above.
           console.error(
             "[Stripe webhook] membership grant failed for payment intent",

@@ -97,6 +97,54 @@ export const currentTerm = (now = new Date()) =>
     : `${now.getFullYear()}-fall`;
 
 /**
+ * How long a membership was bought for. A year and a semester are the same
+ * membership with the same access — only the expiry differs.
+ */
+export type MembershipPlan = "annual" | "semester";
+
+/**
+ * Anything that is not the word "semester" is a year.
+ *
+ * Payments predate the field, and Stripe metadata is free-form strings written
+ * by whichever path minted the intent, so an unreadable value must fall back to
+ * the plan that was the only one on offer when those rows were written.
+ */
+export const readPlan = (value: string | null | undefined): MembershipPlan =>
+  value === "semester" ? "semester" : "annual";
+
+/** The plan a stored payment's JSON metadata bought. */
+export const planFromMetadata = (
+  metadata: string | null | undefined,
+): MembershipPlan => {
+  if (!metadata) return "annual";
+  try {
+    return readPlan((JSON.parse(metadata) as { plan?: string }).plan);
+  } catch {
+    return "annual";
+  }
+};
+
+/**
+ * The end of the semester a date falls in: spring runs out at the end of May,
+ * fall at the end of December — the same boundary `currentTerm` draws.
+ *
+ * Always strictly after the date given, so renewing a semester membership early
+ * lands on the *next* semester's end rather than the one already paid for.
+ */
+export const semesterEndDate = (from = new Date()) => {
+  const endOf = (year: number, month: number, day: number) =>
+    new Date(year, month, day, 23, 59, 59, 999);
+
+  const year = from.getFullYear();
+  const springEnd = endOf(year, 4, 31); // May 31
+  const fallEnd = endOf(year, 11, 31); // Dec 31
+
+  if (from < springEnd) return springEnd;
+  if (from < fallEnd) return fallEnd;
+  return endOf(year + 1, 4, 31);
+};
+
+/**
  * Whether a stored payment's metadata says the bootcamp add-on was bought.
  * Metadata is a JSON string written by whichever path recorded the payment,
  * and older rows predate the field entirely, so anything unparseable is "no".
@@ -158,6 +206,8 @@ export async function createOrUpdateMembership(
     bootcampMember?: boolean;
     /** Bought the bootcamp alone, so it must not extend the membership year. */
     addOnOnly?: boolean;
+    /** How long this payment bought. Defaults to the year. */
+    plan?: MembershipPlan;
   },
 ) {
   // Keyed on the person, not the edition.
@@ -191,10 +241,10 @@ export async function createOrUpdateMembership(
   }
 
   /**
-   * A membership is one paid year. Renewing early has to *extend* the term, so
-   * the new year starts where the old one ends — measuring from today instead
-   * would silently throw away whatever time was left, and someone who renews a
-   * month early would have paid to lose a month.
+   * A membership is one paid year, or one paid semester. Renewing early has to
+   * *extend* the term, so the new one starts where the old one ends — measuring
+   * from today instead would silently throw away whatever time was left, and
+   * someone who renews a month early would have paid to lose a month.
    *
    * A lapsed membership restarts from today; there is no credit for the gap.
    */
@@ -202,8 +252,20 @@ export async function createOrUpdateMembership(
     existing?.membershipEndDate && existing.membershipEndDate > now
       ? existing.membershipEndDate
       : now;
-  const termEnd = new Date(termStart);
-  termEnd.setFullYear(termEnd.getFullYear() + 1);
+
+  /**
+   * The semester plan expires with the semester rather than a fixed number of
+   * months out, so a term always ends when the term does — which is what the
+   * bootcamp, the roster and everything else already treat as a semester.
+   */
+  const termEnd =
+    opts.plan === "semester"
+      ? semesterEndDate(termStart)
+      : (() => {
+          const end = new Date(termStart);
+          end.setFullYear(end.getFullYear() + 1);
+          return end;
+        })();
 
   if (existing) {
     await db
@@ -351,6 +413,7 @@ export async function linkPaidPaymentByVerifiedEmail(
     // being claimed later by the sign-in hook or the backfill.
     bootcampMember: paidForBootcamp(payment.metadata),
     addOnOnly: isBootcampAddOnOnly(payment.metadata),
+    plan: planFromMetadata(payment.metadata),
   });
 
   notifyMembershipChanged(opts.userId);

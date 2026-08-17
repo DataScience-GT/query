@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: dsgt
+    type: file
+    # Edits made in the UI are overwritten from disk on the next scan, so the
+    # JSON in monitoring/grafana/dashboards is the source of truth.
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

@@ -102,3 +102,10 @@ graphify-out/cost.json
 # build dirtied the working tree.
 .cache/
 bash.exe.stackdump
+
+# The bearer token Prometheus uses to scrape production. Same value as
+# METRICS_TOKEN on the deployment, so it is a credential. The directory itself
+# stays tracked — Prometheus bind-mounts it and a missing path is a start-up
+# failure on a fresh clone.
+monitoring/secrets/*
+!monitoring/secrets/.gitkeep

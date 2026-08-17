@@ -10,6 +10,7 @@ import {
   ddosProtection,
   validateRequestSize,
 } from "./middleware/security";
+import { trpcDuration } from "./services/metrics";
 
 export const errorFormatter = ({
   shape,
@@ -40,6 +41,21 @@ const t = initTRPC.context<Context>().create({
 
 export const createTRPCRouter = t.router;
 export const mergeRouters = t.mergeRouters;
+
+/**
+ * Times every procedure. Outermost on purpose: a request rejected by the rate
+ * limiter or the sanitizer is still a request, and a spike in cheap rejections
+ * is exactly the shape of an incident worth seeing.
+ *
+ * `path` is the procedure name, a fixed set from the router, so this cannot mint
+ * unbounded label values the way a raw URL would.
+ */
+const recordDuration = t.middleware(async ({ next, path, type }) => {
+  const stop = trpcDuration.startTimer({ procedure: path, type });
+  const result = await next();
+  stop({ ok: String(result.ok) });
+  return result;
+});
 
 const requiresDb = t.middleware(async ({ ctx, next }) => {
   if (!ctx.db) {
@@ -431,6 +447,7 @@ const cacheInvalidationMiddleware = t.middleware(
  * deploy therefore looked like an empty product instead of a broken one.
  */
 export const publicProcedure = t.procedure
+  .use(recordDuration)
   .use(requiresDb)
   .use(sanitizeInputs)
   .use(enforceContentType)
@@ -515,6 +532,7 @@ const isAuthed = t.middleware(async ({ ctx, next, type }) => {
 });
 
 export const protectedProcedure = t.procedure
+  .use(recordDuration)
   .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
@@ -522,6 +540,7 @@ export const protectedProcedure = t.procedure
   .use(cacheInvalidationMiddleware);
 
 export const uploadProcedure = t.procedure
+  .use(recordDuration)
   .use(requiresDb)
   .use(isAuthed)
   .use(uploadSanitizeInputs)
