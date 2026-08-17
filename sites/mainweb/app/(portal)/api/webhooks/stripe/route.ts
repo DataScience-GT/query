@@ -29,10 +29,20 @@ import {
  * (log injection) — and interpolating it into the message argument would let a
  * `%s` be read as a format directive. Both were flagged by CodeQL.
  */
-const safeLogId = (value: unknown) =>
+const sanitizeLogText = (value: unknown, max: number) =>
   String(value ?? "")
-    .replace(/[^\w-]/g, "")
-    .slice(0, 64);
+    .replace(/[\x00-\x1F\x7F\u2028\u2029]/g, " ")
+    .slice(0, max);
+
+const safeLogId = (value: unknown) =>
+  sanitizeLogText(String(value ?? "").replace(/[^\w-]/g, ""), 64);
+
+const safeLogError = (err: unknown) => {
+  if (!(err instanceof Error)) return "Error";
+  const name = sanitizeLogText(err.name, 64);
+  const message = sanitizeLogText(err.message, 180);
+  return message ? `${name}: ${message}` : name;
+};
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -184,7 +194,7 @@ export async function POST(req: NextRequest) {
               console.error(
                 "[Stripe webhook] payment marked paid, membership grant failed",
                 safeLogId(existingPayment.id),
-                e,
+                safeLogError(e),
               );
             }
           }
@@ -273,7 +283,7 @@ export async function POST(req: NextRequest) {
           console.error(
             "[Stripe webhook] membership grant failed for checkout session",
             safeLogId(session.id),
-            e,
+            safeLogError(e),
           );
         }
       }
@@ -397,7 +407,7 @@ export async function POST(req: NextRequest) {
           console.error(
             "[Stripe webhook] membership grant failed for payment intent",
             safeLogId(pi.id),
-            e,
+            safeLogError(e),
           );
         }
       }
