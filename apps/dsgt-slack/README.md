@@ -13,6 +13,27 @@ Production traffic is **HTTP Events API** on the existing Firebase App Hosting
 backend (`sites/mainweb` / Cloud Run). There is no second Cloud Run service and
 no Socket Mode process in production.
 
+## Grok Bot (the LLM / MCP teammate)
+
+This Firebase app is **not** Grok Bot. It is a small FAQ process: help, ping,
+and the August 26 join answer. It cannot use your Grok Bot computer, Google
+connectors, or MCP tools.
+
+If club Slack should talk to **your Grok Bot** (the Yodo pattern: people DM
+`@dsgt`, and the teammate uses Slack, Drive, Slides, Forms, Gmail), do that in
+the Grok Bot app, not here:
+
+1. Open Grok Bot and open the teammate you want as `@dsgt`.
+2. Connect **Slack** to the **DS@GT club workspace** (not Campus Leads).
+3. When Slack asks to install the app, click **Allow** as a workspace admin.
+4. Add Google Workspace connectors there (Drive / Slides / Forms). MCP for
+   those products lives on Grok Bot.
+5. Name the Slack bot user `dsgt` so it matches the club identity.
+
+You can keep this FAQ webhook as a fallback, or skip installing it if Grok Bot
+is the only `@dsgt` in the workspace. Do not run both against the same bot
+tokens or they will fight over events.
+
 ## Create the Slack app from the manifest
 
 1. Open [https://api.slack.com/apps](https://api.slack.com/apps) and sign in to
