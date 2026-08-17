@@ -50,7 +50,14 @@ const cspHeaderName =
 const nextConfig = {
   output: "standalone",
   reactCompiler: true,
-  transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
+  transpilePackages: [
+    "@query/api",
+    "@query/auth",
+    "@query/db",
+    "@query/dsgt-slack",
+    "@query/ui",
+  ],
+  serverExternalPackages: ["@slack/web-api", "@slack/bolt"],
   outputFileTracingRoot: path.join(__dirname, "../../"),
   async headers() {
     return [
