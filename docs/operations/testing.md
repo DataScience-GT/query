@@ -9,7 +9,7 @@ pnpm test
 That is:
 
 ```bash
-vitest run packages/api packages/db sites/mainweb/lib
+vitest run packages/api packages/db sites/mainweb/lib apps/dsgt-slack
 ```
 
 CI: `.github/workflows/test.yml` on pushes to `main`/`dev` and on pull requests.
@@ -40,6 +40,12 @@ Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts`
 ## `@query/db`
 
 `src/services/membership.test.ts` — grant, lapse, current-edition resolution, payment linking.
+
+## `@query/dsgt-slack`
+
+`apps/dsgt-slack/src/replies.test.ts` — join FAQ copy (August 26 / 8/26 / datasciencegt.org) and slash-command routing.
+
+`apps/dsgt-slack/src/http.test.ts` — Slack signature verification, `url_verification` challenge, `app_mention` join reply, `/dsgt join` ack.
 
 ## Mainweb
 

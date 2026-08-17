@@ -57,6 +57,19 @@ env:
     secret: projects/672446353769/secrets/NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   - variable: STRIPE_WEBHOOK_SECRET
     secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
+  # Slack Events API for @dsgt (HTTP, not Socket Mode). Create these secrets
+  # once before the deploy that references them, or App Hosting cannot start:
+  #   gcloud secrets create SLACK_BOT_TOKEN --project=dsgt-website
+  #   gcloud secrets create SLACK_SIGNING_SECRET --project=dsgt-website
+  #   firebase apphosting:secrets:grantaccess SLACK_BOT_TOKEN --backend query
+  #   firebase apphosting:secrets:grantaccess SLACK_SIGNING_SECRET --backend query
+  # Steps and Request URL: apps/dsgt-slack/README.md
+  - variable: SLACK_BOT_TOKEN
+    secret: projects/672446353769/secrets/SLACK_BOT_TOKEN
+  - variable: SLACK_SIGNING_SECRET
+    secret: projects/672446353769/secrets/SLACK_SIGNING_SECRET
+  - variable: SLACK_SOCKET_MODE
+    value: "false"
   - variable: NODE_ENV
     value: production
   # Consumer Gmail, which caps around 500 recipients a day — shared between
