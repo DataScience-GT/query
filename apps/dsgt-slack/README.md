@@ -42,8 +42,10 @@ tokens or they will fight over events.
 3. Select the workspace, then paste the contents of
    [`manifest.yaml`](./manifest.yaml) (YAML is accepted).
 4. Confirm the summary. The app name and bot user display name should both be
-   `dsgt`. Socket Mode should be **off**. Request URLs are left unset in the
-   manifest so you can create the app before the webhook is deployed.
+   `dsgt`. Socket Mode should be **off**. The manifest does **not** declare
+   Event Subscriptions, Interactivity, or `/dsgt` — Slack rejects those without
+   a Request URL or Socket Mode (`invalid_manifest`). You can add them in the
+   app settings after `{AUTH_URL}/api/webhooks/slack` is live.
 5. Click **Create**.
 
 You now have a real Slack app whose bot user is **dsgt**.
@@ -77,8 +79,11 @@ for the club site, host `datasciencegt.org`) and append the path:
 ```
 
 Set those three URLs in the Slack app settings **after** the App Hosting
-deploy that includes this route is live. Slack will POST a
-`url_verification` challenge; the Next.js route answers it.
+deploy that includes this route is live (Event Subscriptions, Slash Commands
+`/dsgt`, Interactivity). They are not in `manifest.yaml` because Slack will
+not create the app with those features unless a Request URL or Socket Mode is
+set. Slack will POST a `url_verification` challenge; the Next.js route
+answers it.
 
 The Next.js route is
 `sites/mainweb/app/(portal)/api/webhooks/stripe`’s neighbor:
