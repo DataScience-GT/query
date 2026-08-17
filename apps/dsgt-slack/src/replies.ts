@@ -32,8 +32,6 @@ export const DEFAULT_REPLY =
 export const UNKNOWN_COMMAND_REPLY =
   "I did not recognize that request. Send help for the topics I can answer.";
 
-const BOT_MENTION = /<@[^>]+>/g;
-
 const JOIN_PATTERN =
   /\b(join|sign[ -]?up|membership|member|get involved|first (event|meeting)|8\/26|august 26|26th)\b/i;
 
@@ -43,8 +41,41 @@ const HELP_PATTERN = /\b(help|commands|what can you do)\b/i;
 
 export type ReplyIntent = "join" | "health" | "help" | "default";
 
+/**
+ * Slack mentions are `<@U…>` (optionally `<@U…|label>`). Walk the string once
+ * with indexOf so a flood of `<@` without a closing `>` cannot backtrack.
+ */
 export function stripBotMention(text: string): string {
-  return text.replace(BOT_MENTION, " ").replace(/\s+/g, " ").trim();
+  let output = "";
+  let i = 0;
+  while (i < text.length) {
+    const start = text.indexOf("<@", i);
+    if (start === -1) {
+      output += text.slice(i);
+      break;
+    }
+    output += text.slice(i, start);
+    const end = text.indexOf(">", start + 2);
+    if (end === -1) {
+      output += text.slice(start);
+      break;
+    }
+    output += " ";
+    i = end + 1;
+  }
+
+  let collapsed = "";
+  for (const ch of output) {
+    const isSpace = ch === " " || ch === "\t" || ch === "\n" || ch === "\r";
+    if (isSpace) {
+      if (collapsed.length > 0 && collapsed[collapsed.length - 1] !== " ") {
+        collapsed += " ";
+      }
+    } else {
+      collapsed += ch;
+    }
+  }
+  return collapsed.trim();
 }
 
 export function detectIntent(text: string): ReplyIntent {

@@ -6,6 +6,7 @@ import {
   detectIntent,
   replyForSlashCommand,
   replyForText,
+  stripBotMention,
 } from "./replies";
 
 describe("join FAQ reply", () => {
@@ -38,5 +39,16 @@ describe("slash command routing", () => {
 
   it("returns the join FAQ for /dsgt join", () => {
     expect(replyForSlashCommand("join")).toBe(JOIN_FAQ_REPLY);
+  });
+});
+
+describe("stripBotMention", () => {
+  it("removes a Slack user mention before the rest of the text", () => {
+    expect(stripBotMention("<@U123> how do I join?")).toBe("how do I join?");
+  });
+
+  it("is linear on a long run of incomplete <@ prefixes", () => {
+    const noisy = `${"<@".repeat(200)} how do I join?`;
+    expect(detectIntent(noisy)).toBe("join");
   });
 });
