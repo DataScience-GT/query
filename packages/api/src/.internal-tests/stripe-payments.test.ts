@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
 import { db } from "@query/db";
-import { MEMBERSHIP_CENTS, BOOTCAMP_ADDON_CENTS } from "../services/pricing";
+import {
+  MEMBERSHIP_CENTS,
+  SEMESTER_MEMBERSHIP_CENTS,
+  BOOTCAMP_ADDON_CENTS,
+} from "../services/pricing";
 
 /**
  * Membership payment flow.
@@ -371,6 +375,59 @@ describe("Membership payments", () => {
       });
 
       expect(insertedAmount()).toBe(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS);
+    });
+
+    it("charges the semester price for the semester plan", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      await caller().stripe.createCheckoutSession({
+        returnUrl: RETURN_URL,
+        plan: "semester",
+      });
+
+      expect(insertedAmount()).toBe(SEMESTER_MEMBERSHIP_CENTS);
+    });
+
+    // The add-on is a flat fee on either plan — the bootcamp runs one semester
+    // whichever membership is underneath it.
+    it("adds the same bootcamp fee on top of the semester plan", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      const result = await caller().stripe.createPaymentIntent({
+        bootcamp: true,
+        plan: "semester",
+      });
+
+      expect(result.amount).toBe(
+        SEMESTER_MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS,
+      );
+    });
+
+    // $15 must not buy the year $25 buys.
+    it("grants a semester, not a year, when the semester plan is bought", async () => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      const { mockPaymentIntentId } = await caller().stripe.createPaymentIntent(
+        { plan: "semester" },
+      );
+
+      expect(mockPaymentIntentId).toMatch(/^pi_mock_sem_/);
+
+      await caller().stripe.confirmMembershipAfterPayment({
+        paymentIntentId: mockPaymentIntentId!,
+      });
+
+      const granted = mockInsert.mock.calls
+        .flat(2)
+        .find(
+          (arg: any) =>
+            arg && typeof arg === "object" && "membershipEndDate" in arg,
+        ) as { membershipEndDate?: Date } | undefined;
+
+      expect(granted?.membershipEndDate).toBeInstanceOf(Date);
+      expect(granted!.membershipEndDate!.getTime()).toBeLessThan(
+        Date.now() + 365 * 24 * 60 * 60 * 1000,
+      );
     });
   });
 

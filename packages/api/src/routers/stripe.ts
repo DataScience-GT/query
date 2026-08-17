@@ -16,6 +16,8 @@ import {
   createOrUpdateMembership,
   paidForBootcamp,
   isBootcampAddOnOnly,
+  planFromMetadata,
+  readPlan,
   BOOTCAMP_ADDON_PAYMENT_TYPE,
 } from "@query/db/services/membership";
 import {
@@ -24,6 +26,12 @@ import {
   BOOTCAMP_ADDON_CENTS,
   MAX_MEMBERSHIP_CHARGE_CENTS,
 } from "../services/pricing";
+import {
+  paymentIntents,
+  membershipGrants,
+  membershipGrantFailures,
+  paymentsRecovered,
+} from "../services/metrics";
 import type Stripe from "stripe";
 import crypto from "crypto";
 
@@ -58,6 +66,12 @@ class StripeClientProvider {
 }
 
 const stripeClients = new StripeClientProvider();
+
+/** Both plans buy the same membership; only the expiry differs. */
+const planInput = z.enum(["annual", "semester"]).default("annual");
+
+const planLabel = (plan: "annual" | "semester") =>
+  plan === "semester" ? "one semester" : "one year";
 
 /**
  * Mock mode is a local-development affordance: it records a paid payment and
@@ -135,6 +149,7 @@ export const stripeRouter = createTRPCRouter({
       z.object({
         returnUrl: z.string().url(),
         bootcamp: z.boolean().default(false),
+        plan: planInput,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -166,7 +181,7 @@ export const stripeRouter = createTRPCRouter({
             stripePaymentIntentId: "pi_mock_123",
             customerEmail: user.email!.toLowerCase(),
             customerName: user.name || "Member",
-            amountTotal: priceForCents(input.bootcamp),
+            amountTotal: priceForCents(input.bootcamp, input.plan),
             currency: "usd",
             paymentStatus: "paid",
             linkedUserId: ctx.userId!,
@@ -174,6 +189,7 @@ export const stripeRouter = createTRPCRouter({
             metadata: JSON.stringify({
               userId: ctx.userId!,
               bootcamp: input.bootcamp ? "true" : "false",
+              plan: input.plan,
             }),
           });
 
@@ -182,6 +198,7 @@ export const stripeRouter = createTRPCRouter({
             firstName,
             lastName,
             bootcampMember,
+            plan: input.plan,
           });
         });
 
@@ -236,12 +253,12 @@ export const stripeRouter = createTRPCRouter({
                     ? "DSGT Membership + Bootcamp"
                     : "DSGT Membership",
                   description: input.bootcamp
-                    ? "One year membership to Data Science at Georgia Tech, including bootcamp access"
-                    : "One year membership to Data Science at Georgia Tech",
+                    ? `Membership to Data Science at Georgia Tech for ${planLabel(input.plan)}, including bootcamp access`
+                    : `Membership to Data Science at Georgia Tech for ${planLabel(input.plan)}`,
                 },
                 // From the shared pricing module, so this can no longer drift
                 // from what createPaymentIntent charges or the portal quotes.
-                unit_amount: priceForCents(input.bootcamp),
+                unit_amount: priceForCents(input.bootcamp, input.plan),
               },
               quantity: 1,
             },
@@ -253,6 +270,9 @@ export const stripeRouter = createTRPCRouter({
           metadata: {
             userId: ctx.userId!,
             bootcamp: input.bootcamp ? "true" : "false",
+            // Read back by the webhook: what expiry was actually paid for is
+            // decided here, never by whatever the browser claims later.
+            plan: input.plan,
           },
         });
 
@@ -279,7 +299,11 @@ export const stripeRouter = createTRPCRouter({
    * Returns client_secret for use with Stripe Payment Element
    */
   createPaymentIntent: protectedProcedure
-    .input(z.object({ bootcamp: z.boolean().default(false) }).default({}))
+    .input(
+      z
+        .object({ bootcamp: z.boolean().default(false), plan: planInput })
+        .default({}),
+    )
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db!.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId!),
@@ -309,7 +333,15 @@ export const stripeRouter = createTRPCRouter({
       const addOnOnly = input.bootcamp && membershipActive;
       const amount = addOnOnly
         ? BOOTCAMP_ADDON_CENTS
-        : priceForCents(input.bootcamp);
+        : priceForCents(input.bootcamp, input.plan);
+
+      // Counted where the price is decided, so the plan mix in the dashboard is
+      // what the server charged rather than what a client asked for.
+      paymentIntents.inc({
+        plan: input.plan,
+        bootcamp: String(input.bootcamp),
+        addon_only: String(addOnOnly),
+      });
 
       // Checked before the key, matching createCheckoutSession, so local
       // development needs no Stripe key at all.
@@ -322,8 +354,10 @@ export const stripeRouter = createTRPCRouter({
         return {
           clientSecret: "mock_pi_secret",
           // Purchase kind rides in the id: a mock intent is stored nowhere for
-          // confirm to look up, so otherwise only the bundle is testable.
-          mockPaymentIntentId: `pi_mock_${addOnOnly ? "addon_" : ""}${crypto.randomUUID().replace(/-/g, "")}`,
+          // confirm to look up, so otherwise only the bundle is testable. The
+          // plan rides along for the same reason — a mock semester purchase
+          // that granted a year would hide the bug it exists to catch.
+          mockPaymentIntentId: `pi_mock_${addOnOnly ? "addon_" : input.plan === "semester" ? "sem_" : ""}${crypto.randomUUID().replace(/-/g, "")}`,
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
           amount,
@@ -367,13 +401,16 @@ export const stripeRouter = createTRPCRouter({
           description: addOnOnly
             ? `DSGT Bootcamp — one semester (${formatCents(amount)})`
             : input.bootcamp
-              ? `DSGT Annual Membership + Bootcamp (${formatCents(amount)}/yr)`
-              : `DSGT Annual Membership (${formatCents(amount)}/yr)`,
+              ? `DSGT Membership (${planLabel(input.plan)}) + Bootcamp (${formatCents(amount)})`
+              : `DSGT Membership — ${planLabel(input.plan)} (${formatCents(amount)})`,
           metadata: {
             userId: ctx.userId!,
             userEmail: user.email,
             // Every grant path reads this to tell a $10 add-on from a year.
             type: addOnOnly ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
+            // And this to tell a year from a semester. The add-on extends
+            // neither, so it carries the default and is ignored.
+            plan: input.plan,
             // Read back when the payment is recorded, so the bootcamp flag
             // comes from what was actually charged rather than from a client
             // that could simply claim it.
@@ -435,14 +472,20 @@ export const stripeRouter = createTRPCRouter({
       if (mock) {
         // createPaymentIntent encodes the purchase in the mock id.
         const mockAddOn = input.paymentIntentId.startsWith("pi_mock_addon_");
+        const mockPlan = input.paymentIntentId.startsWith("pi_mock_sem_")
+          ? "semester"
+          : "annual";
         pi = {
           id: input.paymentIntentId,
           status: "succeeded",
-          amount: mockAddOn ? BOOTCAMP_ADDON_CENTS : priceForCents(false),
+          amount: mockAddOn
+            ? BOOTCAMP_ADDON_CENTS
+            : priceForCents(false, mockPlan),
           currency: "usd",
           metadata: {
             userId: ctx.userId!,
             bootcamp: mockAddOn ? "true" : "false",
+            plan: mockPlan,
             ...(mockAddOn ? { type: BOOTCAMP_ADDON_PAYMENT_TYPE } : {}),
           },
         };
@@ -489,42 +532,58 @@ export const stripeRouter = createTRPCRouter({
       // if it was actually paid for.
       const bootcampMember = pi.metadata?.bootcamp === "true";
       const addOnOnly = pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE;
+      const plan = readPlan(pi.metadata?.plan);
 
       // Check if already processed (idempotent)
       const existing = await ctx.db!.query.stripePayments.findFirst({
         where: eq(stripePayments.stripePaymentIntentId, pi.id),
       });
 
-      if (!existing) {
-        await ctx.db!.transaction(async (tx) => {
-          await tx.insert(stripePayments).values({
-            stripeSessionId: `pi_${pi.id}`,
-            stripeCustomerId: typeof pi.customer === "string" ? pi.customer : (pi.customer?.id ?? ""),
-            stripePaymentIntentId: pi.id,
-            customerEmail: (pi.receipt_email ?? user?.email ?? "").toLowerCase(),
-            customerName: user?.name ?? "Member",
-            amountTotal: pi.amount,
-            currency: pi.currency,
-            paymentStatus: "paid",
-            linkedUserId: ctx.userId!,
-            linkedAt: new Date(),
-            metadata: JSON.stringify(pi.metadata ?? {}),
+      /**
+       * A grant that throws leaves a recorded payment and no membership. The
+       * reconcile path can repair that, but only once somebody knows to look —
+       * so the failure is counted here rather than only logged.
+       */
+      try {
+        if (!existing) {
+          await ctx.db!.transaction(async (tx) => {
+            await tx.insert(stripePayments).values({
+              stripeSessionId: `pi_${pi.id}`,
+              stripeCustomerId: typeof pi.customer === "string" ? pi.customer : (pi.customer?.id ?? ""),
+              stripePaymentIntentId: pi.id,
+              customerEmail: (pi.receipt_email ?? user?.email ?? "").toLowerCase(),
+              customerName: user?.name ?? "Member",
+              amountTotal: pi.amount,
+              currency: pi.currency,
+              paymentStatus: "paid",
+              linkedUserId: ctx.userId!,
+              linkedAt: new Date(),
+              metadata: JSON.stringify(pi.metadata ?? {}),
+            });
+
+            await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+              userId: ctx.userId!,
+              firstName,
+              lastName,
+              bootcampMember,
+              addOnOnly,
+              plan,
+            });
           });
 
-          await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-            userId: ctx.userId!,
-            firstName,
-            lastName,
-            bootcampMember,
-            addOnOnly,
-          });
-        });
-      } else if (!existing.linkedUserId) {
-        // Payment exists but wasn't linked — link it now
-        await ctx.db!.update(stripePayments)
-          .set({ linkedUserId: ctx.userId!, linkedAt: new Date(), updatedAt: new Date() })
-          .where(eq(stripePayments.id, existing.id));
-        await createOrUpdateMembership(ctx.db! as DrizzleDB, { userId: ctx.userId!, firstName, lastName, bootcampMember, addOnOnly });
+          membershipGrants.inc({ source: "confirm", plan });
+        } else if (!existing.linkedUserId) {
+          // Payment exists but wasn't linked — link it now
+          await ctx.db!.update(stripePayments)
+            .set({ linkedUserId: ctx.userId!, linkedAt: new Date(), updatedAt: new Date() })
+            .where(eq(stripePayments.id, existing.id));
+          await createOrUpdateMembership(ctx.db! as DrizzleDB, { userId: ctx.userId!, firstName, lastName, bootcampMember, addOnOnly, plan });
+
+          membershipGrants.inc({ source: "confirm", plan });
+        }
+      } catch (error) {
+        membershipGrantFailures.inc({ source: "confirm" });
+        throw error;
       }
 
       clearMembershipCaches(ctx.cache, ctx.userId!);
@@ -575,6 +634,7 @@ export const stripeRouter = createTRPCRouter({
       const lastName = names.slice(1).join(" ") || "Member";
       const bootcampMember = paidForBootcamp(payment.metadata);
       const addOnOnly = isBootcampAddOnOnly(payment.metadata);
+      const plan = planFromMetadata(payment.metadata);
 
       await tx.insert(userAccountLinks).values({
         userId: ctx.userId!,
@@ -599,8 +659,10 @@ export const stripeRouter = createTRPCRouter({
             lastName,
             bootcampMember,
             addOnOnly,
+            plan,
           });
 
+      membershipGrants.inc({ source: "autolink", plan });
       clearMembershipCaches(ctx.cache, ctx.userId!);
 
       return { success: true };
@@ -717,6 +779,7 @@ export const stripeRouter = createTRPCRouter({
             lastName: parts.slice(1).join(" ") || "Member",
             bootcampMember: pi.metadata?.bootcamp === "true",
             addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
+            plan: readPlan(pi.metadata?.plan),
           });
           recovered += 1;
           continue;
@@ -746,6 +809,7 @@ export const stripeRouter = createTRPCRouter({
             lastName: parts.slice(1).join(" ") || "Member",
             bootcampMember: pi.metadata?.bootcamp === "true",
             addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
+            plan: readPlan(pi.metadata?.plan),
           });
           recovered += 1;
         });
@@ -754,6 +818,7 @@ export const stripeRouter = createTRPCRouter({
 
       const bootcampMember = pi.metadata?.bootcamp === "true";
       const addOnOnly = pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE;
+      const plan = readPlan(pi.metadata?.plan);
       const { firstName, lastName } = (() => {
         const parts = (user?.name || "Member").trim().split(/\s+/);
         return {
@@ -799,6 +864,7 @@ export const stripeRouter = createTRPCRouter({
             lastName,
             bootcampMember,
             addOnOnly,
+            plan,
           });
           recovered += 1;
         });
@@ -811,7 +877,13 @@ export const stripeRouter = createTRPCRouter({
       }
     }
 
-    if (recovered > 0) clearMembershipCaches(ctx.cache, ctx.userId!);
+    if (recovered > 0) {
+      // Every one of these is a charge that reached Stripe and never reached
+      // this app — the backstop working means something upstream did not.
+      paymentsRecovered.inc(recovered);
+      membershipGrants.inc({ source: "reconcile", plan: "unknown" }, recovered);
+      clearMembershipCaches(ctx.cache, ctx.userId!);
+    }
 
     return { recovered };
   }),
@@ -983,8 +1055,13 @@ export const stripeRouter = createTRPCRouter({
           lastName: input.lastName,
           bootcampMember: paidForBootcamp(payment.metadata),
           addOnOnly: isBootcampAddOnOnly(payment.metadata),
+          plan: planFromMetadata(payment.metadata),
         });
 
+        membershipGrants.inc({
+          source: "link",
+          plan: planFromMetadata(payment.metadata),
+        });
         clearMembershipCaches(ctx.cache, ctx.userId!);
 
         return {

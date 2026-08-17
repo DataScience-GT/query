@@ -1,0 +1,29 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: dsgt-prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      # Must match the scrape interval, or Grafana's rate() windows come out
+      # empty at short time ranges.
+      timeInterval: 30s
+
+  # Needs the grafana-clickhouse-datasource plugin, installed on first boot by
+  # GF_INSTALL_PLUGINS in docker-compose.yml. If the container came up without a
+  # network, this datasource shows as unknown-type until it is restarted.
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
+    uid: dsgt-clickhouse
+    jsonData:
+      host: clickhouse
+      port: 9000
+      protocol: native
+      secure: false
+      username: dsgt
+      defaultDatabase: dsgt
+    secureJsonData:
+      password: dsgt

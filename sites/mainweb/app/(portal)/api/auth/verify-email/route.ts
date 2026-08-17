@@ -13,6 +13,7 @@ import {
   createOrUpdateMembership,
   paidForBootcamp,
   isBootcampAddOnOnly,
+  planFromMetadata,
 } from "@query/db/services/membership";
 import { eq, and, isNull } from "drizzle-orm";
 import { rateLimit, cache, resolveClientIp } from "@query/api";
@@ -203,6 +204,7 @@ export async function POST(request: NextRequest) {
               lastName,
               bootcampMember: paidForBootcamp(payment.metadata),
               addOnOnly: isBootcampAddOnOnly(payment.metadata),
+              plan: planFromMetadata(payment.metadata),
             });
           }
         }

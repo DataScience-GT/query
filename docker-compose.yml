@@ -31,5 +31,93 @@ services:
       retries: 10
       start_period: 10s
 
+  # ── Monitoring ───────────────────────────────────────────────────────────
+  #
+  # Behind a profile, so `docker compose up -d` still starts Postgres alone.
+  # The stack is opt-in:
+  #
+  #   docker compose --profile monitoring up -d
+  #
+  # Grafana on http://localhost:3002 (admin/admin), Prometheus on :9090,
+  # ClickHouse on :8123. See monitoring/README.md.
+  #
+  # None of this touches the application database beyond read-only counts —
+  # Neon is capped at 0.5 GB and every byte of history lives in these volumes.
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: monorepo-prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      # 15 days at a 30s interval is a few hundred MB at most for this many
+      # series, and it keeps the volume from growing without bound.
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+      - ./monitoring/secrets:/etc/prometheus/secrets:ro
+      - promdata:/prometheus
+    extra_hosts:
+      # `next dev` runs on the host, not in this network. Linux does not resolve
+      # host.docker.internal on its own; Docker Desktop does, and repeating it
+      # here is harmless there.
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:11.5.1
+    container_name: monorepo-grafana
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      # 3002, not 3001: mainweb's `next dev` already binds 3001.
+      - "3002:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Local only. Anonymous viewing keeps the dashboard one click away.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Pulled on first boot, so this container needs the network once.
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: monorepo-clickhouse
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "8123:8123" # HTTP interface — what the export script and Grafana use
+      - "9000:9000" # native protocol
+    environment:
+      CLICKHOUSE_DB: dsgt
+      CLICKHOUSE_USER: dsgt
+      CLICKHOUSE_PASSWORD: dsgt
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - ./monitoring/clickhouse/init:/docker-entrypoint-initdb.d:ro
+      - chdata:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pgdata:
+  promdata:
+  grafanadata:
+  chdata:

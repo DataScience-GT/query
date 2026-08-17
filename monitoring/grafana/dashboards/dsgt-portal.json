@@ -1,0 +1,295 @@
+{
+  "uid": "dsgt-portal",
+  "title": "DSGT Portal",
+  "tags": ["dsgt", "payments"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+        "query": "label_values(dsgt_members_active, env)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": false,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Membership (read from the database — correct in production)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Active members",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "green" } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dsgt_members_active{env=~\"$env\"})",
+          "legendFormat": "active"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Lapsed",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dsgt_members_lapsed{env=~\"$env\"})",
+          "legendFormat": "lapsed"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Bootcamp enrolled (current term)",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (term) (dsgt_bootcamp_enrolled{env=~\"$env\"})",
+          "legendFormat": "{{term}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Paid, claimed by nobody",
+      "description": "Paid rows no account has linked. A large standing number is expected — most are people who paid through Stripe and have not signed in since, and they get claimed when they do. Watch the panel next to it instead.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 3, "x": 13, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dsgt_payments_unlinked{env=~\"$env\"})",
+          "legendFormat": "unlinked"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "…new in the last 24h",
+      "description": "Growth is the signal. Climbing outside a membership drive means the link paths are failing and paying members are being asked to pay again.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 2, "x": 16, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 6 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(delta(dsgt_payments_unlinked{env=~\"$env\"}[24h]))",
+          "legendFormat": "24h"
+        }
+      ]
+    },
+    {
+      "type": "piechart",
+      "title": "Plan mix (paid payments)",
+      "description": "Was the $15 semester plan worth adding.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right", "showLegend": true },
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (plan) (dsgt_payments_by_plan{env=~\"$env\"})",
+          "legendFormat": "{{plan}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Payments (per-instance counters — a sample in production)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Grant failures",
+      "description": "Payment recorded, membership not. Non-zero means money taken with nothing given.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 7 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 1 },
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (source) (increase(dsgt_membership_grant_failures_total{env=~\"$env\"}[1h]))",
+          "legendFormat": "{{source}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Grants by source",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 7 },
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50, "stacking": { "mode": "normal" } } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (source) (increase(dsgt_membership_grants_total{env=~\"$env\"}[1h]))",
+          "legendFormat": "{{source}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Intents minted, by what was bought",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 7 },
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (plan, bootcamp, addon_only) (increase(dsgt_payment_intents_total{env=~\"$env\"}[1h]))",
+          "legendFormat": "{{plan}} bootcamp={{bootcamp}} addon={{addon_only}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "App health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Portal API calls / sec",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (ok) (rate(dsgt_trpc_duration_seconds_count{env=~\"$env\"}[5m]))",
+          "legendFormat": "ok={{ok}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50 / p95",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Slowest procedures (p95)",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(5, histogram_quantile(0.95, sum by (le, procedure) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m]))))",
+          "legendFormat": "{{procedure}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Process memory",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 22 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dsgt_process_resident_memory_bytes{env=~\"$env\"}",
+          "legendFormat": "rss"
+        },
+        {
+          "refId": "B",
+          "expr": "dsgt_nodejs_heap_size_used_bytes{env=~\"$env\"}",
+          "legendFormat": "heap used"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Event loop lag (p99)",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 22 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dsgt_nodejs_eventloop_lag_p99_seconds{env=~\"$env\"}",
+          "legendFormat": "p99"
+        }
+      ]
+    }
+  ]
+}

@@ -9,7 +9,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
-import { MEMBERSHIP_CENTS, formatCents } from "@query/api/pricing";
+import {
+  MEMBERSHIP_CENTS,
+  SEMESTER_MEMBERSHIP_CENTS,
+  formatCents,
+} from "@query/api/pricing";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
@@ -399,6 +403,10 @@ export default function Dashboard() {
                     Join DSGT as a full member for{" "}
                     <span className="text-[var(--text-primary)] font-semibold">
                       {formatCents(MEMBERSHIP_CENTS)}/year
+                    </span>{" "}
+                    or{" "}
+                    <span className="text-[var(--text-primary)] font-semibold">
+                      {formatCents(SEMESTER_MEMBERSHIP_CENTS)}/semester
                     </span>{" "}
                     to unlock the Club Portal, event check-ins, and member-only
                     resources.

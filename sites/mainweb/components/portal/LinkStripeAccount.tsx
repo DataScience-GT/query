@@ -8,10 +8,12 @@ import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { CreditCard, Link as LinkIcon } from "lucide-react";
 import {
   MEMBERSHIP_CENTS,
+  SEMESTER_MEMBERSHIP_CENTS,
   BOOTCAMP_ADDON_CENTS,
   priceForCents,
   formatCents,
 } from "@query/api/pricing";
+import type { MembershipPlan } from "@query/db/services/membership";
 
 const StripePaymentModal = dynamic(
   () =>
@@ -37,6 +39,7 @@ export default function LinkStripeAccount({
   });
   const [error, setError] = useState<string | null>(null);
   const [wantsBootcamp, setWantsBootcamp] = useState(false);
+  const [plan, setPlan] = useState<MembershipPlan>("annual");
   const [success, setSuccess] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -126,7 +129,7 @@ export default function LinkStripeAccount({
 
   const handleOpenModal = () => {
     setError(null);
-    createIntentMutation.mutate({ bootcamp: wantsBootcamp });
+    createIntentMutation.mutate({ bootcamp: wantsBootcamp, plan });
   };
 
   const handlePaymentSuccess = () => {
@@ -328,11 +331,50 @@ export default function LinkStripeAccount({
           </div>
 
           <p className="text-sm text-[var(--text-muted)] mb-4 leading-relaxed">
-            Membership verification required for portal access.{" "}
-            <span className="font-bold text-[var(--text-primary)]">
-              {formatCents(MEMBERSHIP_CENTS)} / year
-            </span>
+            Membership verification required for portal access. Same access
+            either way — pick how long you want it for.
           </p>
+
+          {/* Term choice. The server prices from the same constants, so a
+              tampered selection cannot buy a year for the semester price. */}
+          <fieldset className="mb-3">
+            <legend className="sr-only">Membership length</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { value: "annual", label: "Yearly", cents: MEMBERSHIP_CENTS, note: "Full year" },
+                  { value: "semester", label: "Semester", cents: SEMESTER_MEMBERSHIP_CENTS, note: "Ends with the term" },
+                ] as const
+              ).map((option) => (
+                <label
+                  key={option.value}
+                  className={`cursor-pointer rounded-sm border p-3 transition-ui ${
+                    plan === option.value
+                      ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                      : "border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--border-medium)]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="membership-plan"
+                    value={option.value}
+                    checked={plan === option.value}
+                    onChange={() => setPlan(option.value)}
+                    className="sr-only"
+                  />
+                  <span className="block text-[10px] uppercase tracking-widest font-mono text-[var(--text-subtle)]">
+                    {option.label}
+                  </span>
+                  <span className="mt-1 block text-lg font-bold text-[var(--text-primary)]">
+                    {formatCents(option.cents)}
+                  </span>
+                  <span className="block text-[10px] text-[var(--text-subtle)]">
+                    {option.note}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           {/* Add-on, priced from the same constants the server charges from. */}
           <label className="flex items-start gap-3 mb-6 p-3 rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] cursor-pointer hover:border-[var(--border-medium)] transition-ui">
@@ -366,7 +408,7 @@ export default function LinkStripeAccount({
               ) : (
                 <>
                   <CreditCard className="w-3.5 h-3.5" />
-                  Pay Membership Dues ({formatCents(priceForCents(wantsBootcamp))})
+                  Pay Membership Dues ({formatCents(priceForCents(wantsBootcamp, plan))})
                 </>
               )}
             </button>
@@ -402,7 +444,7 @@ export default function LinkStripeAccount({
             await confirmMutation.mutateAsync({ paymentIntentId });
           }}
           onUnconfirmed={handlePaymentUnconfirmed}
-          amountCents={priceForCents(wantsBootcamp)}
+          amountCents={priceForCents(wantsBootcamp, plan)}
           onClose={() => {
             setShowModal(false);
             setPaymentData(null);

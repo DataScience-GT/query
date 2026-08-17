@@ -1,4 +1,11 @@
 /**
+ * Type-only, so nothing from @query/db reaches the client bundle this module is
+ * also imported into. The union lives with the grant logic in @query/db because
+ * that is what has to honour it; here it only prices.
+ */
+import type { MembershipPlan } from "@query/db/services/membership";
+
+/**
  * Membership pricing, in one place.
  *
  * These numbers previously lived inline in createPaymentIntent, in the Checkout
@@ -10,11 +17,22 @@
  */
 export const MEMBERSHIP_CENTS = 2500;
 
-/** Charged on top of the membership, not instead of it. */
+/** The same membership, bought for one semester instead of a year. */
+export const SEMESTER_MEMBERSHIP_CENTS = 1500;
+
+/**
+ * Charged on top of the membership, not instead of it — and on top of either
+ * plan, since the bootcamp runs for a semester either way.
+ */
 export const BOOTCAMP_ADDON_CENTS = 1000;
 
-export const priceForCents = (withBootcamp: boolean) =>
-  MEMBERSHIP_CENTS + (withBootcamp ? BOOTCAMP_ADDON_CENTS : 0);
+export const membershipCentsFor = (plan: MembershipPlan) =>
+  plan === "semester" ? SEMESTER_MEMBERSHIP_CENTS : MEMBERSHIP_CENTS;
+
+export const priceForCents = (
+  withBootcamp: boolean,
+  plan: MembershipPlan = "annual",
+) => membershipCentsFor(plan) + (withBootcamp ? BOOTCAMP_ADDON_CENTS : 0);
 
 /** "$25.00" — for UI copy and Stripe product descriptions. */
 export const formatCents = (cents: number) =>

@@ -3,7 +3,10 @@ import {
   createOrUpdateMembership,
   currentTerm,
   isBootcampAddOnOnly,
+  planFromMetadata,
+  readPlan,
   resolveCurrentHackathonId,
+  semesterEndDate,
   splitName,
 } from "./membership";
 import type { DrizzleDB } from "../client";
@@ -233,6 +236,52 @@ describe("currentTerm", () => {
   });
 });
 
+describe("semesterEndDate", () => {
+  it("runs spring out at the end of May", () => {
+    expect(semesterEndDate(new Date("2026-02-10T12:00:00"))).toEqual(
+      new Date(2026, 4, 31, 23, 59, 59, 999),
+    );
+  });
+
+  it("runs fall out at the end of December", () => {
+    expect(semesterEndDate(new Date("2026-09-03T12:00:00"))).toEqual(
+      new Date(2026, 11, 31, 23, 59, 59, 999),
+    );
+  });
+
+  // Summer sells fall, the same boundary currentTerm draws.
+  it("sells fall over the summer", () => {
+    expect(semesterEndDate(new Date("2026-06-20T12:00:00"))).toEqual(
+      new Date(2026, 11, 31, 23, 59, 59, 999),
+    );
+  });
+
+  // Otherwise renewing on the last day of a term buys nothing.
+  it("never returns a date that has already passed", () => {
+    const fallEnd = new Date(2026, 11, 31, 23, 59, 59, 999);
+    expect(semesterEndDate(fallEnd)).toEqual(
+      new Date(2027, 4, 31, 23, 59, 59, 999),
+    );
+  });
+});
+
+describe("readPlan / planFromMetadata", () => {
+  it("reads the semester plan", () => {
+    expect(readPlan("semester")).toBe("semester");
+    expect(planFromMetadata('{"plan":"semester"}')).toBe("semester");
+  });
+
+  // Every payment written before the plan existed bought a year.
+  it("treats anything else as a year", () => {
+    expect(readPlan("annual")).toBe("annual");
+    expect(readPlan(undefined)).toBe("annual");
+    expect(readPlan("SEMESTER")).toBe("annual");
+    expect(planFromMetadata('{"bootcamp":"true"}')).toBe("annual");
+    expect(planFromMetadata("not json")).toBe("annual");
+    expect(planFromMetadata(null)).toBe("annual");
+  });
+});
+
 describe("createOrUpdateMembership", () => {
   it("gives a brand new member a year from today", async () => {
     const { db, inserts } = fakeDb(undefined);
@@ -327,6 +376,47 @@ describe("createOrUpdateMembership", () => {
     expect(end.getTime()).toBeGreaterThan(Date.now() + 460 * DAY);
     expect(updates[0]?.renewalCount).toBe(2);
     expect(updates[0]?.memberType).toBe("continuous");
+  });
+
+  it("ends a semester membership with the semester, not a year later", async () => {
+    const { db, inserts } = fakeDb(undefined);
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      plan: "semester",
+    });
+
+    const end = inserts[0]?.membershipEndDate as Date;
+    expect(end.getTime()).toBe(semesterEndDate(new Date()).getTime());
+    // The whole point of the plan: $15 must not buy the same term $25 does.
+    expect(end.getTime()).toBeLessThan(Date.now() + 365 * DAY);
+  });
+
+  /**
+   * Renewing a semester early has to land on the *next* semester's end. Reusing
+   * the current one would take $15 and add nothing at all.
+   */
+  it("extends a semester renewal to the following semester", async () => {
+    const existingEnd = semesterEndDate(new Date());
+    const { db, updates } = fakeDb({
+      id: "m1",
+      renewalCount: 0,
+      membershipEndDate: existingEnd,
+      phoneNumber: null,
+    });
+
+    await createOrUpdateMembership(db, {
+      userId: "u1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      plan: "semester",
+    });
+
+    const end = updates[0]?.membershipEndDate as Date;
+    expect(end.getTime()).toBeGreaterThan(existingEnd.getTime());
+    expect(end.getTime()).toBe(semesterEndDate(existingEnd).getTime());
   });
 
   it("stamps the term a bootcamp purchase buys into", async () => {
