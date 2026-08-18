@@ -32,16 +32,61 @@ export default function AdminHackathonDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("attendees");
 
   const { data: portalContext, isLoading: portalLoading } = usePortalContext();
-  const { data: hackathon, isLoading } = trpc.hackathon.getById.useQuery(
+  const {
+    data: hackathon,
+    isLoading,
+    error,
+    refetch,
+  } = trpc.hackathon.getById.useQuery(
     { id: hackathonId },
     { enabled: !!hackathonId && !!portalContext?.isAdmin },
   );
 
-  if (status === "loading" || portalLoading || isLoading || !portalContext?.isAdmin) {
+  // isLoading is false on the render where the query flips enabled but has not
+  // started fetching, and it is false again once the query has errored. Both
+  // used to fall through to a bare `return null`, which paints the dashboard as
+  // an unexplained black screen instead of a spinner or the actual failure.
+  const settled = !!hackathon || !!error;
+
+  if (
+    status === "loading" ||
+    portalLoading ||
+    isLoading ||
+    !portalContext?.isAdmin ||
+    !settled
+  ) {
     return <LoadingScreen message="Loading…" />;
   }
 
-  if (!hackathon) return null;
+  if (!hackathon) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
+        <div className="w-full max-w-md text-center border border-[var(--border-subtle)] bg-white/[0.02] p-8">
+          <h1 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-3">
+            Hackathon unavailable
+          </h1>
+          <p className="text-sm font-mono text-text-muted mb-6 break-words">
+            {error?.message ?? "Hackathon not found"}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="px-5 py-2.5 bg-accent text-black font-black uppercase tracking-widest text-xs hover:bg-white transition-colors"
+            >
+              Retry
+            </button>
+            <Link
+              href="/admin/hackathons"
+              className="px-5 py-2.5 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
+            >
+              Back to hackathons
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     {
