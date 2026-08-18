@@ -48,43 +48,27 @@ export default function AdminHackathonDashboard() {
   // an unexplained black screen instead of a spinner or the actual failure.
   const settled = !!hackathon || !!error;
 
-  if (
-    status === "loading" ||
-    portalLoading ||
-    isLoading ||
-    !portalContext?.isAdmin ||
-    !settled
-  ) {
+  if (status === "loading" || portalLoading) {
+    return <LoadingScreen message="Loading…" />;
+  }
+
+  // Not found rather than a permission error: telling a non-admin that this
+  // edition exists behind a door they cannot open is the whole leak, and the
+  // query is disabled for them anyway, so waiting on it spun forever.
+  if (!portalContext?.isAdmin) {
+    return <DashboardUnavailable message="Hackathon not found" />;
+  }
+
+  if (isLoading || !settled) {
     return <LoadingScreen message="Loading…" />;
   }
 
   if (!hackathon) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
-        <div className="w-full max-w-md text-center border border-[var(--border-subtle)] bg-white/[0.02] p-8">
-          <h1 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-3">
-            Hackathon unavailable
-          </h1>
-          <p className="text-sm font-mono text-text-muted mb-6 break-words">
-            {error?.message ?? "Hackathon not found"}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="px-5 py-2.5 bg-accent text-black font-black uppercase tracking-widest text-xs hover:bg-white transition-colors"
-            >
-              Retry
-            </button>
-            <Link
-              href="/admin/hackathons"
-              className="px-5 py-2.5 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
-            >
-              Back to hackathons
-            </Link>
-          </div>
-        </div>
-      </div>
+      <DashboardUnavailable
+        message={error?.message ?? "Hackathon not found"}
+        onRetry={() => refetch()}
+      />
     );
   }
 
@@ -288,6 +272,44 @@ export default function AdminHackathonDashboard() {
             )}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function DashboardUnavailable({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
+      <div className="w-full max-w-md text-center border border-[var(--border-subtle)] bg-white/[0.02] p-8">
+        <h1 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-3">
+          Hackathon unavailable
+        </h1>
+        <p className="text-sm font-mono text-text-muted mb-6 break-words">
+          {message}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="px-5 py-2.5 bg-accent text-black font-black uppercase tracking-widest text-xs hover:bg-white transition-colors"
+            >
+              Retry
+            </button>
+          )}
+          <Link
+            href="/admin/hackathons"
+            className="px-5 py-2.5 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
+          >
+            Back to hackathons
+          </Link>
+        </div>
       </div>
     </div>
   );
