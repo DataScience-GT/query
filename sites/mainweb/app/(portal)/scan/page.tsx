@@ -115,7 +115,7 @@ export default function ScanPage() {
               id="scan-hackathon"
               value={hackathonId}
               onChange={(e) => setHackathonId(e.target.value)}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+              className="w-full min-h-11 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
             >
               <option value="">Select a hackathon…</option>
               {hackathons?.map((h) => (
@@ -149,7 +149,7 @@ export default function ScanPage() {
               id="scan-club-event"
               value={clubEventId}
               onChange={(e) => setClubEventId(e.target.value)}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+              className="w-full min-h-11 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
             >
               <option value="">Select an event…</option>
               {clubEvents?.map((e) => (

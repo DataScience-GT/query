@@ -13,6 +13,7 @@ import {
 import { eq, and, count, gte, inArray } from "drizzle-orm";
 import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
+import { isExpiredAdmin } from "../types/portal-context";
 import type { DrizzleDB } from "@query/db";
 
 export const adminRouter = createTRPCRouter({
@@ -44,10 +45,12 @@ export const adminRouter = createTRPCRouter({
       ),
     });
 
+    const expired = isExpiredAdmin(admin);
+
     const result = {
-      isAdmin: !!admin,
-      role: admin?.role || null,
-      permissions: admin?.permissions || [],
+      isAdmin: !!admin && !expired,
+      role: expired ? null : admin?.role || null,
+      permissions: expired ? [] : admin?.permissions || [],
     };
 
     ctx.cache.set(cacheKey, result, 60);
@@ -163,7 +166,7 @@ export const adminRouter = createTRPCRouter({
 
       const existing = await (ctx.db as DrizzleDB).query.admins.findFirst({
         where: eq(admins.userId, user.id),
-        columns: { id: true, role: true, isActive: true },
+        columns: { id: true, role: true, isActive: true, expiresAt: true },
       });
 
       return { ...user, existingRole: existing ?? null };
@@ -179,6 +182,9 @@ export const adminRouter = createTRPCRouter({
         // is a hand-written INSERT.
         role: z.enum(["super_admin", "admin", "moderator", "volunteer"]),
         permissions: z.array(z.string().max(100)).max(50).optional(),
+        // Fixed-term appointment. Omitted means standing, which is what the
+        // people who run the club hold.
+        expiresAt: z.coerce.date().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -210,6 +216,7 @@ export const adminRouter = createTRPCRouter({
           userId: input.userId,
           role: input.role,
           permissions: input.permissions || [],
+          expiresAt: input.expiresAt,
         })
         .returning();
 
@@ -240,6 +247,9 @@ export const adminRouter = createTRPCRouter({
           .optional(),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         isActive: z.boolean().optional(),
+        // How a term is renewed or made standing. null clears the end date;
+        // omitted leaves it alone.
+        expiresAt: z.coerce.date().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -283,6 +293,7 @@ export const adminRouter = createTRPCRouter({
           role: input.role,
           permissions: input.permissions,
           isActive: input.isActive,
+          expiresAt: input.expiresAt,
           updatedAt: new Date(),
         })
         .where(eq(admins.id, input.adminId))

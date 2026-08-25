@@ -31,7 +31,7 @@ import {
   buildMemberContext,
   fetchPortalContext,
 } from "./portal-context";
-import { EMPTY_MEMBER_CONTEXT } from "../types/portal-context";
+import { EMPTY_MEMBER_CONTEXT, isExpiredAdmin } from "../types/portal-context";
 
 describe("buildMemberContext", () => {
   it("returns empty context when no member record", () => {
@@ -126,6 +126,57 @@ describe("fetchPortalContext", () => {
     expect(result.member.isActive).toBe(true);
   });
 
+  it("drops a staff role whose fixed term has lapsed", async () => {
+    const db = {
+      query: {
+        admins: {
+          findFirst: async () => ({
+            role: "admin",
+            permissions: ["events"],
+            isActive: true,
+            expiresAt: new Date(Date.now() - 1000),
+          }),
+        },
+        hackathons: { findFirst: async () => null },
+        judges: { findFirst: async () => null },
+        members: { findFirst: async () => null },
+        projectLeaders: { findFirst: async () => null },
+      },
+    };
+
+    const result = await fetchPortalContext(db as never, "user-3");
+
+    expect(result.isAdmin).toBe(false);
+    // Not even a scanner: the appointment is over, not narrowed.
+    expect(result.isScanner).toBe(false);
+    expect(result.role).toBeNull();
+    expect(result.permissions).toEqual([]);
+  });
+
+  it("keeps a staff role whose term has not run out yet", async () => {
+    const db = {
+      query: {
+        admins: {
+          findFirst: async () => ({
+            role: "admin",
+            permissions: [],
+            isActive: true,
+            expiresAt: new Date(Date.now() + 60_000),
+          }),
+        },
+        hackathons: { findFirst: async () => null },
+        judges: { findFirst: async () => null },
+        members: { findFirst: async () => null },
+        projectLeaders: { findFirst: async () => null },
+      },
+    };
+
+    const result = await fetchPortalContext(db as never, "user-4");
+
+    expect(result.isAdmin).toBe(true);
+    expect(result.role).toBe("admin");
+  });
+
   it("returns defaults when user has no roles", async () => {
     const db = {
       query: {
@@ -143,5 +194,22 @@ describe("fetchPortalContext", () => {
     expect(result.isJudge).toBe(false);
     expect(result.isProjectLeader).toBe(false);
     expect(result.member).toEqual(EMPTY_MEMBER_CONTEXT);
+  });
+});
+
+describe("isExpiredAdmin", () => {
+  it("treats a missing end date as a standing appointment", () => {
+    expect(isExpiredAdmin({ expiresAt: null })).toBe(false);
+    expect(isExpiredAdmin(null)).toBe(false);
+    expect(isExpiredAdmin(undefined)).toBe(false);
+  });
+
+  it("expires only on a date already past", () => {
+    expect(isExpiredAdmin({ expiresAt: new Date(Date.now() + 1000) })).toBe(
+      false,
+    );
+    expect(isExpiredAdmin({ expiresAt: new Date(Date.now() - 1000) })).toBe(
+      true,
+    );
   });
 });

@@ -6,6 +6,7 @@ import {
   MEMBERSHIP_CENTS,
   SEMESTER_MEMBERSHIP_CENTS,
   BOOTCAMP_ADDON_CENTS,
+  entitlementForCents,
 } from "../services/pricing";
 
 /**
@@ -345,6 +346,71 @@ describe("Membership payments", () => {
       await expect(
         anonymous.stripe.createCheckoutSession({ returnUrl: RETURN_URL }),
       ).rejects.toThrow();
+    });
+  });
+
+  /**
+   * What a payment made outside the portal buys.
+   *
+   * A payment link or a Dashboard charge carries no metadata saying what it
+   * was for, and the checkout-session branch of the webhook has no
+   * `metadata.type` gate — so before this, every such session under the
+   * ceiling granted a full year, because an absent `plan` reads as "annual".
+   * A $1 link bought a membership, and so did any unrelated Checkout Session
+   * on the account belonging to someone with an account here.
+   */
+  describe("what an outside payment buys", () => {
+    it("grants the year for the annual price", () => {
+      expect(entitlementForCents(MEMBERSHIP_CENTS)).toEqual({
+        plan: "annual",
+        bootcamp: false,
+        addOnOnly: false,
+      });
+    });
+
+    it("grants a semester for the semester price", () => {
+      expect(entitlementForCents(SEMESTER_MEMBERSHIP_CENTS)).toEqual({
+        plan: "semester",
+        bootcamp: false,
+        addOnOnly: false,
+      });
+    });
+
+    it("grants the year plus the bootcamp for the bundle price", () => {
+      expect(
+        entitlementForCents(MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS),
+      ).toEqual({ plan: "annual", bootcamp: true, addOnOnly: false });
+    });
+
+    it("grants the bootcamp alone for the add-on price, never a year", () => {
+      const entitlement = entitlementForCents(BOOTCAMP_ADDON_CENTS);
+
+      expect(entitlement?.bootcamp).toBe(true);
+      // The whole point of the flag: $10 must not buy a membership year.
+      expect(entitlement?.addOnOnly).toBe(true);
+    });
+
+    it("grants nothing for an amount we do not sell", () => {
+      expect(entitlementForCents(100)).toBeNull();
+      expect(entitlementForCents(2000)).toBeNull();
+      expect(entitlementForCents(9999)).toBeNull();
+    });
+
+    it("grants nothing when the amount is absent", () => {
+      expect(entitlementForCents(null)).toBeNull();
+      expect(entitlementForCents(undefined)).toBeNull();
+    });
+
+    /**
+     * A semester plus the add-on costs exactly what a year costs, so an
+     * outside payment of that amount is genuinely ambiguous. It resolves to
+     * the year — the reading that cannot short-change someone who did buy one.
+     */
+    it("reads the ambiguous amount as the year rather than semester plus add-on", () => {
+      expect(SEMESTER_MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS).toBe(
+        MEMBERSHIP_CENTS,
+      );
+      expect(entitlementForCents(MEMBERSHIP_CENTS)?.plan).toBe("annual");
     });
   });
 

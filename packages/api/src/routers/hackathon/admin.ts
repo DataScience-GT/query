@@ -4,6 +4,7 @@ import { createTRPCRouter } from "../../trpc";
 import { isAdmin, isScanner } from "../../middleware/procedures";
 import { isUniqueViolation } from "../../middleware/db-errors";
 import { recordAdminAction } from "../../middleware/audit";
+import { MASS_EMAIL_BATCH } from "../../services/email-limits";
 import {
   hackathons,
   hackathonParticipants,
@@ -457,11 +458,14 @@ export const hackathonAdminRouter = createTRPCRouter({
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
-        // Each id is one SMTP round trip. 500 is roughly what fits inside a
-        // Cloud Run request, and it matches the daily ceiling of the consumer
-        // Gmail account this currently sends through — the UI chunks a larger
-        // selection rather than handing the request a batch it cannot finish.
-        participantIds: z.array(z.string().uuid()).min(1).max(500),
+        // Each id is one SMTP round trip. The bound is shared with the UI so
+        // the two cannot drift — see MASS_EMAIL_BATCH for what sets it. The UI
+        // chunks a larger selection rather than handing the request a batch it
+        // cannot finish.
+        participantIds: z
+          .array(z.string().uuid())
+          .min(1)
+          .max(MASS_EMAIL_BATCH),
         /** Mail people who have already had their acceptance. Off by default:
          *  the ordinary reason to run this twice is that the first run died
          *  partway, and then everyone before the failure point is already

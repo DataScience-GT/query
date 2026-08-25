@@ -19,6 +19,10 @@ export const admins = pgTable("admin", {
     .default("admin"),
   permissions: text("permissions").array(),
   isActive: boolean("is_active").notNull().default(true),
+  // End of a fixed-term appointment, e.g. an officer granted the role for one
+  // year. NULL is a standing appointment, which is what the founding super
+  // admins hold, so the column revokes nothing on its own.
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

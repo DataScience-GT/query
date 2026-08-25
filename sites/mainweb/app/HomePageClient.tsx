@@ -126,7 +126,7 @@ const HomePageClient = () => {
             </p>
             <Link
               href="/team"
-              className="inline-block text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
             >
               Meet the Team →
             </Link>
@@ -308,7 +308,7 @@ const HomePageClient = () => {
               <a
                 href="https://dsgt-arc.org/"
                 target="_blank"
-                className="text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
               >
                 View Club →
               </a>
@@ -340,7 +340,7 @@ const HomePageClient = () => {
               </p>
               <a
                 href="mailto:bjmichaels.25@gmail.com"
-                className="text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
               >
                 Contact Team →
               </a>
@@ -372,7 +372,7 @@ const HomePageClient = () => {
               </p>
               <a
                 href="mailto:wesleylu@gatech.edu"
-                className="text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
               >
                 Contact Team →
               </a>
@@ -484,14 +484,14 @@ const HomePageClient = () => {
                       href={event.l}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-block text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
                     >
                       {event.a}
                     </a>
                   ) : (
                     <Link
                       href={event.l}
-                      className="inline-block text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
                     >
                       {event.a}
                     </Link>

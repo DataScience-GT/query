@@ -223,7 +223,7 @@ export default function LinkStripeAccount({
         </p>
 
         <form onSubmit={handleLinkSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label
                 htmlFor="first-name"

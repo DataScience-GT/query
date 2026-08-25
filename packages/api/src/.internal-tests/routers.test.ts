@@ -127,9 +127,14 @@ vi.mock("@query/db", () => {
           const val = mockInsert("insert", insertArgs, valArgs);
           return Object.assign(Promise.resolve(val), {
             returning: vi.fn().mockResolvedValue(val),
-            onConflictDoUpdate: vi.fn().mockImplementation(() => ({
-              returning: vi.fn().mockResolvedValue(val),
-            })),
+            // Awaitable, like the real builder: an upsert that rejects (a
+            // unique violation, say) has to surface on await rather than
+            // resolving to a builder object the caller then ignores.
+            onConflictDoUpdate: vi.fn().mockImplementation(() =>
+              Object.assign(Promise.resolve(val), {
+                returning: vi.fn().mockResolvedValue(val),
+              }),
+            ),
           });
         },
       }),
@@ -1675,6 +1680,112 @@ describe("Router Integration and Access Control Verification Suite", () => {
       });
 
       expect(res.success).toBe(true);
+    });
+
+    /**
+     * The GT address is the one the club actually needs: most people sign in
+     * with a personal Google account, so `users.email` is not it.
+     */
+    describe("Georgia Tech email", () => {
+      // What reached the user_profile upsert.
+      const upsertedValues = () => {
+        const call = mockInsert.mock.calls.at(-1);
+        return (call?.[2] as Record<string, unknown>[])[0] as {
+          gtEmail?: string | null;
+        };
+      };
+
+      it("stores a gatech.edu address, lowercased", async () => {
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+
+        await caller.user.updateProfile({ gtEmail: "GBurdell3@GATECH.EDU" });
+
+        expect(upsertedValues().gtEmail).toBe("gburdell3@gatech.edu");
+      });
+
+      it("accepts a gatech.edu subdomain", async () => {
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+
+        await caller.user.updateProfile({ gtEmail: "burdell@cc.gatech.edu" });
+
+        expect(upsertedValues().gtEmail).toBe("burdell@cc.gatech.edu");
+      });
+
+      it("rejects an address outside gatech.edu", async () => {
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+
+        await expect(
+          caller.user.updateProfile({ gtEmail: "burdell@gmail.com" }),
+        ).rejects.toThrow();
+      });
+
+      /**
+       * The domain test is a suffix match, so a lookalike that merely ends in
+       * the same letters must not pass — every label before gatech.edu has to
+       * be followed by its own dot.
+       */
+      it("rejects a lookalike domain that ends in gatech.edu", async () => {
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+
+        await expect(
+          caller.user.updateProfile({ gtEmail: "burdell@notgatech.edu" }),
+        ).rejects.toThrow();
+      });
+
+      /**
+       * "" is the form saying "remove it". It has to reach the column as NULL:
+       * an empty string would sit in the unique index and stop the next person
+       * who clears theirs from saving.
+       */
+      it("clears the address to null rather than an empty string", async () => {
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+
+        await caller.user.updateProfile({ gtEmail: "" });
+
+        expect(upsertedValues().gtEmail).toBeNull();
+      });
+
+      it("reports a conflict when the address is on another account", async () => {
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+        // Postgres unique_violation, wrapped the way Drizzle wraps driver
+        // errors — the SQLSTATE sits on `.cause`, not the thrown object.
+        //
+        // Rejected rather than thrown: building the statement succeeds and the
+        // violation only arrives when the query runs, so a synchronous throw
+        // here would test a path the driver never takes. `Promise.resolve`
+        // hands back this same promise, so the pre-attached catch keeps the
+        // rejection from being reported as unhandled.
+        const violation = Promise.reject(
+          Object.assign(new Error("Failed query"), {
+            cause: { code: "23505" },
+          }),
+        );
+        violation.catch(() => {});
+        mockInsert.mockImplementationOnce(() => violation);
+
+        await expect(
+          caller.user.updateProfile({ gtEmail: "taken@gatech.edu" }),
+        ).rejects.toThrow(/already on another account/);
+      });
+
+      it("returns the stored address from me", async () => {
+        mockFindFirst.mockImplementation((table) =>
+          table === "users"
+            ? {
+                id: "user_100",
+                email: "personal@gmail.com",
+                name: "Sample User",
+                image: null,
+                profile: { gtEmail: "gburdell3@gatech.edu" },
+              }
+            : null,
+        );
+
+        const caller = appRouter.createCaller(createMockCtx("user_100"));
+        const profile = await caller.user.me();
+
+        expect(profile.gtEmail).toBe("gburdell3@gatech.edu");
+      });
     });
   });
 

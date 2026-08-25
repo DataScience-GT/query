@@ -22,5 +22,8 @@ export {
   MAX_MEMBERSHIP_CHARGE_CENTS,
   priceForCents,
   formatCents,
+  entitlementForCents,
 } from "./services/pricing";
+export type { PurchasedEntitlement } from "./services/pricing";
+export { MASS_EMAIL_BATCH } from "./services/email-limits";
 export type { PortalContext, MemberContext } from "./types/portal-context";

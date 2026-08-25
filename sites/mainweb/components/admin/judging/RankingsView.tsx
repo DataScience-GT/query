@@ -651,7 +651,7 @@ export function RankingsView({
                                           </span>
                                         </div>
                                         {/* Per-category breakdown */}
-                                        <div className="grid grid-cols-5 gap-2 mt-3 mb-3">
+                                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3 mb-3">
                                           {[
                                             {
                                               label: "CRE",

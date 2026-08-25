@@ -143,7 +143,7 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
                   });
                 }
               }}
-              className="px-3 py-2 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-xs font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+              className="min-h-11 px-3 py-2 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-xs font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
             />
           </div>
         </div>

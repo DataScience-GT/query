@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // output in some sinks.
     const forLog = body
       .slice(0, MAX_REPORT_BYTES)
-      .replace(/[\x00-\x1F\x7F\u2028\u2029]/g, " ");
+      .replace(/[\p{Cc}\u2028\u2029]/gu, " ");
     console.warn("[CSP] violation report:", forLog);
   } catch (error) {
     console.error("[CSP] failed to read a violation report:", error);

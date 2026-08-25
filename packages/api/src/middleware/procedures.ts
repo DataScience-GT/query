@@ -10,7 +10,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
 import { resolveHackathonId } from "../services/portal-context";
-import { isStaffRole } from "../types/portal-context";
+import { isStaffRole, isExpiredAdmin } from "../types/portal-context";
 import type { Context } from "../context";
 
 /**
@@ -33,7 +33,8 @@ export const callerIsAdmin = async (ctx: Context) => {
     where: and(eq(admins.userId, ctx.userId), eq(admins.isActive, true)),
   });
 
-  const isStaff = !!admin && admin.role !== "volunteer";
+  const isStaff =
+    !!admin && admin.role !== "volunteer" && !isExpiredAdmin(admin);
 
   ctx.cache.set(cacheKey, isStaff, 60);
 
@@ -62,6 +63,10 @@ const loadAdminRow = async (ctx: Context) => {
 
     if (admin) ctx.cache.set(cacheKey, admin, 60);
   }
+
+  // Applied after the cache read too: a fixed term can lapse inside the 60s
+  // window the row is held for.
+  if (isExpiredAdmin(admin)) return null;
 
   return admin;
 };

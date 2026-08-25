@@ -354,7 +354,7 @@ export default function DocsPageClient() {
             </h2>
             <Link
               href="/dashboard"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <svg
                 className="h-4 w-4"

@@ -117,7 +117,7 @@ export default function ProjectsPage() {
                 aria-label="Filter projects by hackathon"
                 value={selectedHackathon || ""}
                 onChange={(e) => setSelectedHackathon(e.target.value || null)}
-                className="bg-transparent text-[var(--text-primary)] text-sm font-medium px-4 py-2 focus:outline-none cursor-pointer"
+                className="bg-transparent text-[var(--text-primary)] text-sm font-medium min-h-11 px-4 py-2 focus:outline-none cursor-pointer"
               >
                 <option value="">Select a hackathon…</option>
                 {hackathonList?.map((h) => (

@@ -8,7 +8,11 @@ import {
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { cache, clearMembershipCaches } from "../middleware/cache";
-import { EMPTY_MEMBER_CONTEXT, isStaffRole } from "../types/portal-context";
+import {
+  EMPTY_MEMBER_CONTEXT,
+  isStaffRole,
+  isExpiredAdmin,
+} from "../types/portal-context";
 import type { MemberContext, PortalContext } from "../types/portal-context";
 
 const CURRENT_HACKATHON_KEY = "hackathon:current-id";
@@ -139,6 +143,10 @@ export async function fetchPortalContext(
     }),
   ]);
 
+  // A lapsed fixed-term appointment counts as no admin row at all, so the
+  // portal nav and the API gates agree on who is staff today.
+  const staff = isExpiredAdmin(admin) ? null : admin;
+
   const member = buildMemberContext(memberRecord ?? null);
 
   const isProjectLeader = !!leaderRecord;
@@ -147,10 +155,10 @@ export async function fetchPortalContext(
     // A volunteer holds an admins row but is not staff. Reporting them as
     // admin here would render the whole admin nav for someone every one of
     // those pages rejects.
-    isAdmin: isStaffRole(admin?.role),
-    isScanner: !!admin,
-    role: admin?.role ?? null,
-    permissions: admin?.permissions ?? [],
+    isAdmin: isStaffRole(staff?.role),
+    isScanner: !!staff,
+    role: staff?.role ?? null,
+    permissions: staff?.permissions ?? [],
     isJudge: !!judgeRecord,
     judgeId: judgeRecord?.id ?? null,
     judgeName: judgeRecord?.name ?? null,
@@ -159,7 +167,7 @@ export async function fetchPortalContext(
     // cannot reach. isStaffRole, not `!!admin`: a volunteer holds an admins
     // row but isProjectLeader (procedures.ts) rejects them, so the bare truthy
     // check advertised /lead to the one role that cannot open it.
-    isProjectLeader: isProjectLeader || isStaffRole(admin?.role),
+    isProjectLeader: isProjectLeader || isStaffRole(staff?.role),
     member,
   };
 }
