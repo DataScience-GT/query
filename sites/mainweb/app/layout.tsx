@@ -3,6 +3,11 @@ import type { Metadata } from "next";
 import { STIX_Two_Text, Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
+const siteOrigin =
+  process.env.AUTH_URL ??
+  process.env.NEXTAUTH_URL ??
+  "http://localhost:3001";
+
 const display = STIX_Two_Text({
   subsets: ["latin"],
   style: ["normal", "italic"],
@@ -26,7 +31,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   // Without this, every relative OG image resolves against nothing and social
   // cards render blank.
-  metadataBase: new URL("[REDACTED]"),
+  metadataBase: new URL(siteOrigin),
   title: {
     default: "DSGT | Georgia Tech",
     // Pages set their own; this keeps the organisation attached to each.
@@ -60,7 +65,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: "[REDACTED]",
+    url: siteOrigin,
     siteName: "Data Science @ Georgia Tech",
     title: "Data Science @ Georgia Tech",
     description:
@@ -100,8 +105,8 @@ export default function RootLayout({
               "@type": "Organization",
               name: "Data Science @ Georgia Tech",
               alternateName: ["DSGT", "Data Science at Georgia Tech"],
-              url: "[REDACTED]",
-              logo: "[REDACTED]/logo512.png",
+              url: siteOrigin,
+              logo: `${siteOrigin}/logo512.png`,
               description:
                 "The largest student-run data science organization at Georgia Tech.",
               parentOrganization: {
