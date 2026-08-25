@@ -6,19 +6,9 @@ import Navbar from "@/components/Navbar";
 import Section from "@/components/Section";
 import TeamCard from "@/components/TeamCard";
 
-// Asset imports
-import President from "@/assets/images/2025/aditi.jpg";
-import ViceP from "@/assets/images/2025/nitika.jpg";
-import Logistics1 from "@/assets/images/2025/alysha.jpg";
-import Logistics2 from "@/assets/images/2025/diya.jpeg";
-import Events from "@/assets/images/2025/aryan.jpeg";
-import Marketing from "@/assets/images/2025/smera.png";
-import Tech from "@/assets/images/2025/aamogh.png";
-import Content1 from "@/assets/images/2025/anushka.jpg";
-import Content2 from "@/assets/images/2025/glenne.png";
-
-import External2 from "@/assets/images/2025/vidhi.jpeg";
-import Project from "@/assets/images/2025/anika.jpg";
+// Asset imports — reuse in-repo photos only
+import Aamogh from "@/assets/images/2025/aamogh.png";
+import Diya from "@/assets/images/2025/diya.jpeg";
 import Advisor from "@/assets/images/2025/jake.png";
 import IDEaS from "@/assets/images/2025/ideas.png";
 
@@ -50,7 +40,7 @@ const Team = () => {
         {/* Simplified Header Section */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-20 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#74b1aa] text-[10px] font-mono uppercase tracking-[0.2em]">
-            Executive Board 2025-2026
+            Executive Board 2026-2027
           </div>
           <h1 className="text-white text-6xl md:text-7xl font-bold tracking-tight leading-none italic">
             Meet the{" "}
@@ -79,107 +69,85 @@ const Team = () => {
             </TeamCard>
 
             <TeamCard
-              name="Aditi Koratpallikar"
+              name="Aamogh Sawant"
               title="President"
-              img={President}
+              href="https://aamogh.vercel.app/"
+              img={Aamogh}
             >
-              Aditi oversees all operations of DSGT, leading the executive board
-              and coordinating with faculty and industry partners to shape the
-              future of data science at GT.
-            </TeamCard>
-
-            <TeamCard
-              name="Nikita Agnihotri"
-              title="Vice President"
-              img={ViceP}
-            >
-              Nikita leads <strong>Hacklytics</strong>, DSGT's flagship
-              datathon. She manages corporate sponsorships, event organization,
-              and networking initiatives.
-            </TeamCard>
-
-            <TeamCard
-              name="Alysha Irvin"
-              title="Co-Director of Logistics"
-              img={Logistics1}
-            >
-              Alysha coordinates logistics for club events and Hacklytics,
-              managing smooth operations and collaborating with external
-              sponsors.
+              Aamogh oversees DSGT operations, leading the executive board and
+              coordinating with faculty and industry partners to shape data
+              science at Georgia Tech.
             </TeamCard>
 
             <TeamCard
               name="Diya Kaimal"
-              title="Co-Director of Logistics"
-              img={Logistics2}
+              title="Vice President & Co-Director of Hacklytics"
+              img={Diya}
             >
-              Diya focuses on event management, Hacklytics logistic
-              coordination, and logistics operations, ensuring a seamless
-              experience for members and corporate partners.
+              Diya serves as Vice President and Co-Director of{" "}
+              <strong>Hacklytics</strong>, DSGT's flagship datathon, managing
+              event organization, corporate sponsorships, and member-facing
+              programming.
             </TeamCard>
 
-            <TeamCard
-              name="Aamogh Sawant"
-              title="Director of Technology"
-              img={Tech}
-            >
-              Aamogh leads the Tech Team, managing frontend and backend systems
-              for DSGT's digital infrastructure, including the Membership
-              Portal.
-            </TeamCard>
-
-            <TeamCard
-              name="Smera Bhatia"
-              title="Director of Marketing"
-              img={Marketing}
-            >
-              Smera directs social media, graphic design, and outreach
+            <TeamCard name="Nitya Patil" title="Director of Marketing">
+              Nitya directs social media, graphic design, and outreach
               strategies to increase engagement with DSGT both on and off
               campus.
             </TeamCard>
 
-            <TeamCard
-              name="Aryan Hazra"
-              title="Director of Events"
-              img={Events}
-            >
-              Aryan manages room bookings, catering, and volunteer coordination,
-              ensuring technical workshops and socials execute perfectly.
+            <TeamCard name="Samantha Forero" title="Director of Projects">
+              Samantha oversees project logistics, managing the project portal
+              and setting up research opportunities with professors and
+              industry pros.
             </TeamCard>
 
             <TeamCard
-              name="Vidhi Gupta"
+              name="Aishi Agarwal"
               title="Co-Director of External Affairs"
-              img={External2}
             >
-              Vidhi develops strategic partnerships and manages sponsor
+              Aishi develops strategic partnerships and manages sponsor
               communications to support club initiatives and industry
               collaboration.
             </TeamCard>
 
             <TeamCard
-              name="Anushka Jain"
-              title="Co-Director of Content"
-              img={Content1}
+              name="Vishal Luthra"
+              title="Co-Director of External Affairs"
             >
-              Anushka leads the Content team in managing Bootcamp and Udemy
-              courses, helping members build professional ML projects.
+              Vishal manages sponsor communications and builds industry
+              partnerships that support DSGT initiatives.
+            </TeamCard>
+
+            <TeamCard name="Minjee Yi" title="Co-Director of Logistics">
+              Minjee coordinates logistics for club events and Hacklytics,
+              managing smooth operations and collaborating with external
+              sponsors.
             </TeamCard>
 
             <TeamCard
-              name="Glenne Dela Torre"
-              title="Co-Director of Content"
-              img={Content2}
+              name="Francisco Valentinotti"
+              title="Co-Director of Logistics"
             >
-              Glenne oversees Bootcamp workshops, ensuring members learn core
-              data science skills and complete polished, industry-ready
-              projects.
+              Francisco manages event logistics so club programs and Hacklytics
+              run on schedule.
             </TeamCard>
 
-            <TeamCard name="Anika V" title="Director of Projects" img={Project}>
-              Anika oversees project logistics, managing the project portal and
-              setting up research opportunities with professors and industry
-              pros.
+            <TeamCard name="Yashika Reddy" title="Director of Events">
+              Yashika manages room bookings, catering, and volunteer
+              coordination, ensuring technical workshops and socials execute
+              perfectly.
+            </TeamCard>
+
+            <TeamCard name="Sahith Rajesh" title="Co-Director of Content">
+              Sahith leads the Content team in managing Bootcamp and Udemy
+              courses, helping members build professional ML projects.
+            </TeamCard>
+
+            <TeamCard name="Victor Gong" title="Co-Director of Content">
+              Victor oversees Bootcamp workshops, ensuring members learn core
+              data science skills and complete polished, industry-ready
+              projects.
             </TeamCard>
 
             <TeamCard name="Jacob Abernathy" title="Club Advisor" img={Advisor}>
