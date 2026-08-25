@@ -8,15 +8,14 @@ import type { DrizzleDB } from "@query/db";
 import { fetchPortalContext } from "../services/portal-context";
 import { readImageDimensions } from "../services/image-dimensions";
 
-// z.string().url() is backed by new URL(), which accepts any scheme — a stored
-// data: or javascript: URI is handed straight back to whoever renders it.
-// The settings form resubmits every field it holds on each save, so this is a
-// denylist of the schemes that execute rather than an http(s) allowlist: an
-// allowlist would let one legacy mailto:/ftp: entry block edits to every other
-// field, with no way for the owner to get out of it.
+// z.string().url() is backed by new URL(), which accepts any scheme, so a
+// stored data: or javascript: URI is handed straight to whoever renders it.
+// A denylist of executing schemes rather than an http(s) allowlist: the
+// settings form resubmits every field on each save, so an allowlist would let
+// one legacy mailto: entry block edits to every other field.
 const EXECUTABLE_SCHEMES = ["javascript:", "data:", "vbscript:", "file:"];
 // Parsing rather than pattern-matching the scheme: the URL parser drops the
-// embedded tabs/newlines a browser would also ignore in "java\nscript:".
+// embedded tabs and newlines a browser would also ignore in "java\nscript:".
 const hasSafeScheme = (value: string) => {
   try {
     return !EXECUTABLE_SCHEMES.includes(new URL(value).protocol.toLowerCase());
@@ -26,18 +25,14 @@ const hasSafeScheme = (value: string) => {
 };
 const SAFE_URL_MESSAGE = "URL scheme is not allowed";
 
-// Subdomains count — cc.gatech.edu and mail.gatech.edu are as much a GT
-// address as the bare domain. Each label before gatech.edu has to be followed
-// by its own dot, which is what stops a lookalike like "notgatech.edu" from
-// matching the tail.
+// Subdomains count — cc.gatech.edu is as much a GT address as the bare
+// domain. Each label before gatech.edu must be followed by its own dot, which
+// is what stops a lookalike like "notgatech.edu" from matching the tail.
 const GT_EMAIL_DOMAIN = /@([a-z0-9-]+\.)*gatech\.edu$/;
 const GT_EMAIL_MESSAGE = "Must be a gatech.edu address";
 
-/**
- * Postgres unique_violation, raised when a gt_email is already on another
- * account. Drizzle wraps driver errors, so the SQLSTATE sits on `.cause`
- * rather than the thrown object — the chain has to be walked.
- */
+// Postgres unique_violation, raised when a gt_email is already on another
+// account. Drizzle wraps driver errors, so the SQLSTATE sits on `.cause`.
 const isDuplicateGtEmail = (error: unknown) => {
   for (let cursor: unknown = error, depth = 0; cursor && depth < 5; depth++) {
     if (typeof cursor !== "object") break;
@@ -146,9 +141,9 @@ export const userRouter = createTRPCRouter({
             .or(z.literal(""))
             .optional(),
           location: z.string().max(200).optional(),
-          // Lowercased before the domain check so a typed "@GATECH.EDU"
-          // validates, and so the stored value matches the unique index
-          // case-insensitively. "" clears the field, same as website above.
+          // Lowercased before the domain check so a typed "@GATECH.EDU" validates and
+          // the stored value matches the unique index case-insensitively. "" clears the
+          // field, same as website above.
           gtEmail: z
             .string()
             .email()
@@ -168,9 +163,9 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { name, image, bio, website, location, gtEmail } = input;
 
-      // "" is the client saying "clear it", which has to reach the column as
-      // NULL — an empty string would occupy the unique index and stop the next
-      // person who clears theirs from saving.
+      // "" is the client saying clear it, which has to reach the column as NULL — an
+      // empty string would occupy the unique index and stop the next person who
+      // clears theirs from saving.
       const gtEmailValue =
         gtEmail === undefined ? undefined : gtEmail === "" ? null : gtEmail;
 
@@ -209,8 +204,8 @@ export const userRouter = createTRPCRouter({
                 bio: bio ?? undefined,
                 website: website ?? undefined,
                 location: location ?? undefined,
-                // Not `?? undefined`: null is the clear, and collapsing it
-                // would make clearing the field silently do nothing.
+                // Not `?? undefined`: null is the clear, and collapsing it would make
+                // clearing the field silently do nothing.
                 gtEmail: gtEmailValue,
                 updatedAt: new Date(),
               },
@@ -221,9 +216,9 @@ export const userRouter = createTRPCRouter({
       try {
         await Promise.all(ops);
       } catch (error) {
-        // The address is on somebody else's account. Saying so is safe — the
-        // person typing it either owns it or is trying to claim it, and both
-        // need to know the save did not happen.
+        // The address is on somebody else's account. Saying so is safe — whoever
+        // typed it either owns it or is claiming it, and both need to know the save
+        // did not happen.
         if (isDuplicateGtEmail(error)) {
           throw new TRPCError({
             code: "CONFLICT",

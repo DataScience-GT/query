@@ -1,11 +1,8 @@
-/**
- * Dimensions for the three types the profile-image upload already allows.
- *
- * `image-size` through 2.0.2 (the latest published release) infinite-loops on
- * crafted ICNS / JXL / HEIF buffers. There is no patched version on npm, so
- * this parser understands only PNG, JPEG and WebP — the same types the data-URI
- * regex already admits. Anything else is corrupt, not "try the next format".
- */
+// Dimensions for the three types the profile-image upload allows.
+// `image-size` through 2.0.2 (the latest release) infinite-loops on crafted
+// ICNS / JXL / HEIF buffers and there is no patched version on npm, so this
+// parser understands only PNG, JPEG and WebP — the same types the data-URI
+// regex admits. Anything else is corrupt, not "try the next format".
 
 export type ImageKind = "png" | "jpeg" | "webp";
 

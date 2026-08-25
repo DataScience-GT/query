@@ -19,33 +19,23 @@ import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { shuffleArray, buildCoverageQueues } from "./helpers";
 
-/** Rows per queue INSERT. Well under the ~16k that Postgres's 65535-parameter
- *  ceiling allows at 4 bound parameters per row. */
+// Rows per queue INSERT. Well under the ~16k that Postgres's 65535-parameter
+// ceiling allows at 4 bound parameters per row.
 const QUEUE_INSERT_CHUNK = 5000;
 
-/**
- * The projects one judge should see, in order — their whole queue.
- *
- * Shared by `initializeQueue` (an explicit per-judge rebuild) and `setActive`
- * (approval), so an approved judge cannot end up with a queue built by
- * different rules than the one the admin can rebuild by hand.
- *
- * Replaces whatever queue the judge had. Callers decide whether replacing is
- * safe — `setActive` only calls this when the queue is empty, because a judge
- * part-way through theirs must not be reshuffled mid-event.
- */
+// One judge's whole queue, in order. Shared by initializeQueue and setActive
+// so an approved judge cannot get a queue built by different rules. Replaces
+// whatever queue existed — setActive only calls it when the queue is empty,
+// since a judge part-way through must not be reshuffled mid-event.
 async function rebuildQueueForJudge(
   db: DrizzleDB,
   opts: {
     judgeId: string;
     hackathonId: string;
     shuffle?: boolean;
-    /**
-     * Leave completed slots in place and rebuild only the remainder. A
-     * completed slot cannot be reconstructed — skipProject marks one done
-     * without writing a vote — so deleting it sends the judge back to a table
-     * they already dealt with.
-     */
+    // Leave completed slots and rebuild only the remainder. A completed slot
+    // cannot be reconstructed — skipProject marks one done without a vote — so
+    // deleting it sends the judge back to a table they already dealt with.
     keepCompleted?: boolean;
   },
 ) {
@@ -59,8 +49,8 @@ async function rebuildQueueForJudge(
       ),
     );
 
-  // Projects the judge has already dealt with must not come back in the new
-  // queue, or they are asked to score the same table twice.
+  // Projects the judge already dealt with must not return, or they score the
+  // same table twice.
   const kept = opts.keepCompleted
     ? await db.query.judgeQueue.findMany({
         where: and(
@@ -77,8 +67,8 @@ async function rebuildQueueForJudge(
     0,
   );
 
-  // The assignment's track is what narrows the pool; without one the judge
-  // sees every project in the edition.
+  // The assignment's track narrows the pool; without one the judge sees every
+  // project in the edition.
   const assignment = await db.query.judgeAssignments.findFirst({
     where: and(
       eq(judgeAssignments.judgeId, opts.judgeId),
@@ -125,15 +115,10 @@ async function rebuildQueueForJudge(
   return projects.length;
 }
 
-/**
- * The labels a judge's track may actually take, for one edition.
- *
- * Routing matches these strings exactly, so anything else silently classifies
- * the judge as sponsor/special and filters their pool to zero projects — they
- * open the portal to an empty queue with nothing on any screen explaining why.
- * "createX" is included because buildCoverageQueues routes it against the
- * project flag rather than the tracks array.
- */
+// The labels a judge's track may take, for one edition. Routing matches these
+// exactly, so anything else classifies the judge as sponsor/special and
+// filters their pool to zero with nothing on screen explaining why. "createX"
+// is here because buildCoverageQueues routes it on the project flag.
 async function assertTrackExists(
   db: DrizzleDB,
   hackathonId: string,
@@ -153,8 +138,7 @@ async function assertTrackExists(
   ];
 
   // Case-insensitive match, but the stored value is the edition's own spelling:
-  // the routing comparison is exact, so "ai" must become "AI" here or it
-  // matches nothing later.
+  // routing compares exactly, so "ai" must become "AI" here.
   const match = allowed.find(
     (t) => t.toLowerCase() === track.trim().toLowerCase(),
   );
@@ -188,20 +172,11 @@ const projectMatchesTrack = (
   return inTracks || inChallenges || matchCreateX;
 };
 
-/**
- * Adds late-promoted projects to the queues that already exist, without
- * touching a single row that is already there.
- *
- * The alternative — re-running `assignJudgesToProjects` — deletes and rebuilds
- * every queue in the event, which is unsafe once judging is live. Appending is
- * the only thing that is safe mid-event, so promotion does it itself: a project
- * promoted after assignment used to sit in nobody's queue, receive zero votes,
- * and then be dropped from the standings entirely by the zero-vote rule, with
- * only an amber banner to say so.
- *
- * Coverage matches what the existing queues already give a project, so late
- * entries are judged about as many times as everything else rather than once.
- */
+// Adds late-promoted projects to existing queues without touching a row
+// already there. Re-running assignJudgesToProjects deletes and rebuilds every
+// queue, which is unsafe once judging is live — so promotion appends instead.
+// Coverage matches what existing queues already give a project, so late
+// entries are judged about as often as everything else.
 async function appendProjectsToExistingQueues(
   db: DrizzleDB,
   hackathonId: string,
@@ -220,9 +195,9 @@ async function appendProjectsToExistingQueues(
     columns: { judgeId: true, projectId: true, order: true },
   });
 
-  // Nothing has been assigned yet, so there is no queue to append to — the
-  // organiser still has to run assignment once, and doing it here would build
-  // queues out of an incomplete project list.
+  // Nothing assigned yet, so there is no queue to append to — the organiser
+  // still has to run assignment once, and doing it here would build queues from
+  // an incomplete project list.
   if (existingQueue.length === 0) return 0;
 
   const nextOrder = new Map<string, number>();
@@ -255,17 +230,16 @@ async function appendProjectsToExistingQueues(
     with: { judge: { columns: { isActive: true } } },
   });
 
-  // Only judges who already hold a queue: anyone else is either inactive or
-  // was never part of the assignment, and a queue nobody opens is coverage the
-  // event never receives.
+  // Only judges who already hold a queue: anyone else is inactive or was never
+  // assigned, and a queue nobody opens is coverage the event never receives.
   const eligible = assignments.filter(
     (a) => a.judge.isActive !== false && queueLength.has(a.judgeId),
   );
 
   if (eligible.length === 0) return 0;
 
-  // Same fallback as assignJudgesToProjects: with no tracks configured on the
-  // edition, every judge label would read as a sponsor one and get everything.
+  // Same fallback as assignJudgesToProjects: with no tracks configured, every
+  // judge label would read as a sponsor one and get everything.
   const mainTracks = new Set(
     hackathon?.tracks?.length
       ? hackathon.tracks
@@ -288,8 +262,8 @@ async function appendProjectsToExistingQueues(
       projectMatchesTrack(project, a.track ?? null),
     );
 
-    // Sponsor/special judges take their whole pool, exactly as the bulk
-    // assignment gives it to them.
+    // Sponsor/special judges take their whole pool, as the bulk assignment gives
+    // it to them.
     const special = matching.filter(
       (a) => a.track && !mainTracks.has(a.track),
     );
@@ -324,14 +298,9 @@ async function appendProjectsToExistingQueues(
 }
 
 export const judgeAdminRouter = createTRPCRouter({
-  /**
-   * Judges, optionally scoped to one hackathon.
-   *
-   * The scope matters: a judges row belongs to exactly one edition, and
-   * assignToHackathon refuses any judge from another. Listing every judge in
-   * the database meant the admin picker offered only the ones the server was
-   * guaranteed to reject.
-   */
+  // Judges, optionally scoped to one hackathon. A judges row belongs to exactly
+  // one edition and assignToHackathon refuses any judge from another, so an
+  // unscoped list offered only judges the server was guaranteed to reject.
   list: isAdmin
     .input(
       z
@@ -426,8 +395,8 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // A judges row belongs to one hackathon, and isJudge authorizes against
-      // that. Assigning across editions builds a queue nobody can ever open.
+      // A judges row belongs to one hackathon and isJudge authorizes against that.
+      // Assigning across editions builds a queue nobody can ever open.
       const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: eq(judges.id, input.judgeId),
         columns: { hackathonId: true },
@@ -518,22 +487,15 @@ export const judgeAdminRouter = createTRPCRouter({
       return result[0];
     }),
 
-  /**
-   * Turns submitted projects into judgeable ones.
-   *
-   * This is the only way a judging entry comes into existence. Teams submit
-   * through the portal, an organiser presses one button, and every submission
-   * gets a table number. Idempotent by design — run it again as late
-   * submissions land and only the new ones are added, because
-   * judging_project_source_unique pins one judgeable row per submission.
-   */
+  // Turns submitted projects into judgeable ones — the only way a judging entry
+  // is created. Idempotent: judging_project_source_unique pins one judgeable
+  // row per submission, so re-running only adds late submissions.
   promoteSubmissions: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // Serializes concurrent promotions for this event, so two organisers
-        // pressing the button together cannot both read the same max table
-        // number and hand out duplicates.
+        // Serializes concurrent promotions, so two organisers pressing the button
+        // together cannot both read the same max table number and duplicate it.
         await tx
           .select({ id: hackathons.id })
           .from(hackathons)
@@ -593,10 +555,9 @@ export const judgeAdminRouter = createTRPCRouter({
               name: submission.name,
               description: submission.description,
               tableNumber: ++nextTable,
-              // hackathon_project.teamMembers is text[]; this column is a
-              // single text field. Joined, not assigned — handing an array
-              // straight over is a type error at best and "[object Object]"
-              // on a judge's screen at worst.
+              // hackathon_project.teamMembers is text[]; this column is a single text
+              // field. Joined, not assigned — an array here is a type error at best and
+              // "[object Object]" on a judge's screen at worst.
               teamMembers:
                 submission.team?.name ??
                 (submission.teamMembers?.length
@@ -630,10 +591,9 @@ export const judgeAdminRouter = createTRPCRouter({
             );
         }
 
-        // Queues are built from a snapshot of the project list, so anything
-        // promoted after assignment has to be added to them here. Appending is
-        // the only safe move mid-judging — a rebuild reorders every queue that
-        // is already in progress.
+        // Queues are built from a snapshot of the project list, so anything promoted
+        // after assignment has to be appended here. A rebuild would reorder every
+        // queue already in progress.
         const queueRowsAdded = await appendProjectsToExistingQueues(
           tx as unknown as DrizzleDB,
           input.hackathonId,
@@ -650,9 +610,9 @@ export const judgeAdminRouter = createTRPCRouter({
           alreadyPresent: submissions.length - fresh.length,
           total: submissions.length,
           queueRowsAdded,
-          // Only still true if queues exist, something was promoted, and the
-          // append reached nobody — a track label on the new projects that no
-          // active judge covers. That one an organiser does have to resolve.
+          // Only still true if queues exist, something was promoted, and the append
+          // reached nobody — a track label no active judge covers. That one the
+          // organiser has to resolve.
           queuesNeedRebuild:
             fresh.length > 0 && (queued?.count ?? 0) > 0 && queueRowsAdded === 0,
         };
@@ -668,10 +628,9 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // A judges row belongs to one hackathon and isJudge authorizes against
-      // that, so a queue built for a judge from another edition can never be
-      // opened — the projects sit in it and are silently never scored.
-      // assignToHackathon makes exactly this check; this path did not.
+      // A judges row belongs to one hackathon and isJudge authorizes against that,
+      // so a queue built for a judge from another edition can never be opened and
+      // its projects are silently never scored. assignToHackathon checks this.
       const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: eq(judges.id, input.judgeId),
         columns: { hackathonId: true },
@@ -697,11 +656,9 @@ export const judgeAdminRouter = createTRPCRouter({
       return { success: true, projectCount };
     }),
 
-  /**
-   * Approve (or suspend) a judge. judge.register creates the row inactive and
-   * judge.create refuses once it exists, so without this a self-registered
-   * judge can never be activated by any route.
-   */
+  // Approve or suspend a judge. judge.register creates the row inactive and
+  // judge.create refuses once it exists, so without this a self-registered
+  // judge can never be activated by any route.
   setActive: isSuperAdmin
     .input(
       z.object({
@@ -710,9 +667,8 @@ export const judgeAdminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Read first, because `.returning()` hands back the row as it now is —
-      // the approval email has to know whether this click was the transition or
-      // a second press on an already-approved judge.
+      // Read first, because `.returning()` hands back the row as it now is — the
+      // approval email has to know whether this click was the transition.
       const before = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: eq(judges.id, input.judgeId),
         columns: { isActive: true },
@@ -732,14 +688,9 @@ export const judgeAdminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Judge not found" });
       }
 
-      /**
-       * Keep the assignment's own status column honest.
-       *
-       * `judges.isActive` is what every judging gate actually reads; this column
-       * was written once as "pending" at registration and never touched again,
-       * so anybody reading the table directly saw every approved judge as still
-       * pending. It is a mirror, not a second source of truth.
-       */
+      // Keeps the assignment's own status column honest. judges.isActive is what
+      // every judging gate reads; this column was written once as "pending" and
+      // never touched, so the table showed approved judges as pending. Mirror only.
       await (ctx.db as DrizzleDB)
         .update(judgeAssignments)
         .set({ status: input.isActive ? "approved" : "pending" })
@@ -753,39 +704,22 @@ export const judgeAdminRouter = createTRPCRouter({
       // isJudge and judge.isJudge both cache the role for 60s per user per
       // hackathon; approval has to take effect now, not a minute from now.
       ctx.cache.deletePattern(`${CacheKeys.judge(updated.userId)}*`);
-      // The sidebar reads the portal context, which lives for 5 minutes — so
-      // without this the approved judge waited out that TTL before the Judge
-      // tab appeared at all.
+      // The sidebar reads portal context, which lives 5 minutes — without this the
+      // approved judge waits out that TTL before the Judge tab appears.
       invalidatePortalContext(updated.userId);
 
-      /**
-       * Approval builds the queue, because nothing else will.
-       *
-       * `judge.register` always writes an assignment row, and
-       * `assignToHackathon` refuses anyone who already has one — so the
-       * documented recruitment path produced an active judge whose portal said
-       * "All Done" having judged nothing. The only remedy was
-       * `assignJudgesToProjects`, which deletes and rebuilds *every* queue in
-       * the event and is unsafe once judging is live.
-       *
-       * Only when the queue is empty: a judge suspended mid-event and
-       * reinstated must come back to the queue they were part-way through, not
-       * a fresh one that forgets what they already scored.
-       */
+      // Approval builds the queue, because nothing else will: judge.register always
+      // writes an assignment row and assignToHackathon refuses anyone who has one,
+      // so the documented path produced an active judge whose portal said "All
+      // Done". Only when the queue is empty — a judge suspended and reinstated must
+      // come back to the one they were part-way through.
       let queuedProjects: number | null = null;
 
       if (input.isActive) {
-        /**
-         * Check and build inside one transaction, behind a lock on the judge
-         * row.
-         *
-         * "Is the queue empty? then build it" is a read followed by a write,
-         * and judge_queue has no unique on (judge, project) to fall back on —
-         * so two approvals arriving together (a double-click, or two organisers
-         * working the same list) both saw an empty queue and both built one,
-         * giving the judge every project twice. The lock serialises them: the
-         * second sees the queue the first wrote and does nothing.
-         */
+        // Check and build in one transaction, behind a lock on the judge row.
+        // "Empty? then build" is a read then a write, and judge_queue has no unique
+        // on (judge, project), so two approvals arriving together both saw an empty
+        // queue and gave the judge every project twice.
         queuedProjects = await (ctx.db as DrizzleDB).transaction(async (tx) => {
           await tx
             .select({ id: judges.id })
@@ -822,15 +756,10 @@ export const judgeAdminRouter = createTRPCRouter({
         });
       }
 
-      /**
-       * The judge is told they were approved — the /judge/register success
-       * screen promises exactly this, and nothing sent it.
-       *
-       * Only on the transition, so re-pressing Approve does not mail them
-       * again, and after the queue exists so the email's "your queue is ready"
-       * is true. Best-effort: a mail provider failure must not undo an approval
-       * that already happened in the database.
-       */
+      // Tells the judge they were approved — the register success screen promises
+      // this and nothing sent it. Only on the transition, and after the queue
+      // exists so "your queue is ready" is true. Best-effort: a mail failure must
+      // not undo an approval already in the database.
       if (input.isActive && before?.isActive !== true && updated.email) {
         try {
           const hackathon = await (
@@ -846,8 +775,8 @@ export const judgeAdminRouter = createTRPCRouter({
             hackathonName: hackathon?.name ?? "the hackathon",
           });
         } catch (error) {
-          // Deliberate server-side operational logging: the approval stands and
-          // this is the only record that the notice did not go out.
+          // Deliberate operational logging: the approval stands and this is the only
+          // record that the notice did not go out.
           // eslint-disable-next-line no-console
           console.error(
             `[Email Service] Judge approval notice failed for judge ${input.judgeId}:`,
@@ -859,14 +788,9 @@ export const judgeAdminRouter = createTRPCRouter({
       return { success: true, isActive: input.isActive, queuedProjects };
     }),
 
-  /**
-   * Corrects a judge's track after the fact.
-   *
-   * Without this, a wrong track was permanent: the value routes their whole
-   * pool, `assignToHackathon` refuses anyone who already has an assignment row,
-   * and no screen could edit it — the only remedy was SQL or removing a judge
-   * who may already have scored.
-   */
+  // Corrects a judge's track after the fact. Without it a wrong track was
+  // permanent: it routes their whole pool, assignToHackathon refuses anyone who
+  // already has an assignment row, and no screen could edit it.
   updateAssignmentTrack: isAdmin
     .input(
       z.object({
@@ -874,10 +798,8 @@ export const judgeAdminRouter = createTRPCRouter({
         hackathonId: z.string().uuid(),
         /** Null clears the track, giving the judge the whole project pool. */
         track: z.string().max(200).nullable(),
-        /**
-         * Change the track even though this judge has already scored. Their
-         * completed slots are kept; only the unjudged remainder is rebuilt.
-         */
+        // Change the track even though this judge has scored. Completed slots are
+        // kept; only the unjudged remainder is rebuilt.
         force: z.boolean().default(false),
       }),
     )
@@ -905,8 +827,8 @@ export const judgeAdminRouter = createTRPCRouter({
         input.track,
       );
 
-      // Counted before anything is written, so the refusal below is decided on
-      // the state the organiser is actually looking at.
+      // Counted before anything is written, so the refusal is decided on the state
+      // the organiser is looking at.
       const [completed] = await (ctx.db as DrizzleDB)
         .select({ count: sql<number>`count(*)::int` })
         .from(judgeQueue)
@@ -918,14 +840,9 @@ export const judgeAdminRouter = createTRPCRouter({
           ),
         );
 
-      /**
-       * Refuse first, then offer the override — P3, and for a real reason.
-       *
-       * Writing the new track while leaving the old queue in place makes the
-       * assignment and the queue disagree: the judge carries on scoring the
-       * pool they were routed to before, and nothing on any screen says so.
-       * The organiser has to see the cost first.
-       */
+      // Refuse first, then offer the override. Writing the new track while leaving
+      // the old queue makes assignment and queue disagree — the judge carries on
+      // scoring the old pool and nothing says so. The organiser sees the cost.
       if ((completed?.count ?? 0) > 0 && !input.force) {
         throw new TRPCError({
           code: "CONFLICT",
@@ -938,12 +855,9 @@ export const judgeAdminRouter = createTRPCRouter({
         .set({ track })
         .where(eq(judgeAssignments.id, assignment.id));
 
-      /**
-       * Completed slots survive; everything unjudged is rebuilt against the new
-       * track. skipProject marks a slot complete without writing a vote, so
-       * those cannot be reconstructed from the votes table — deleting them
-       * would send the judge back to tables they already dealt with.
-       */
+      // Completed slots survive; the unjudged remainder is rebuilt against the new
+      // track. skipProject completes a slot without a vote, so those cannot be
+      // reconstructed from the votes table.
       const projectCount = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
         judgeId: input.judgeId,
         hackathonId: input.hackathonId,
@@ -966,9 +880,8 @@ export const judgeAdminRouter = createTRPCRouter({
   remove: isSuperAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      // judgeVotes.judgeId cascades on delete, so removing a judge who has
-      // already scored would erase those scores and shift the normalization
-      // behind every ranking.
+      // judgeVotes.judgeId cascades on delete, so removing a judge who has scored
+      // erases those scores and shifts the normalization behind every ranking.
       const existingVote = await (
         ctx.db as DrizzleDB
       ).query.judgeVotes.findFirst({
@@ -989,10 +902,9 @@ export const judgeAdminRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  /** Bulk-assign projects to all judges for a hackathon.
-   *  Main-track judges (Sports, Entertainment, Finance, Healthcare) get 3–9 randomly-selected projects.
-   *  Special-label judges (createX, sponsor challenges, etc.) get ALL matching projects.
-   */
+  // Bulk-assign projects to all judges for a hackathon. Main-track judges get
+  // 3–9 randomly-selected projects; special-label judges (createX, sponsor
+  // challenges) get ALL matching projects.
   assignJudgesToProjects: isAdmin
     .input(
       z.object({
@@ -1000,13 +912,12 @@ export const judgeAdminRouter = createTRPCRouter({
         minProjects: z.number().min(1).default(3),
         maxProjects: z.number().min(1).default(9),
         shuffle: z.boolean().default(true),
-        /** When false (default), special-label/sponsor judge projects are randomized.
-         *  When true, they stay grouped in table order. */
+        // False (default) randomizes special-label/sponsor pools; true keeps them in
+        // table order.
         groupSpecial: z.boolean().default(false),
         autoCalculate: z.boolean().default(true),
-        /** Rebuild even though judging is live or work has been completed.
-         *  Completed slots are still carried over; this only waives the
-         *  refusal, so the admin has to have seen the count first. */
+        // Rebuild even though judging is live or work is done. Completed slots still
+        // carry over; this only waives the refusal, so the admin saw the count.
         force: z.boolean().default(false),
       }),
     )
@@ -1021,10 +932,9 @@ export const judgeAdminRouter = createTRPCRouter({
             message: "Hackathon not found",
           });
 
-        // This procedure deletes and rebuilds every queue in the hackathon. Run
-        // a second time by accident — and the wizard drops you straight onto
-        // its button after a project import — it would restart judging for
-        // everyone at once, mid-event.
+        // This deletes and rebuilds every queue in the hackathon. Run twice by
+        // accident — and the wizard drops you onto its button after an import — it
+        // restarts judging for everyone, mid-event.
         if (hackathon.judgingActive && !input.force) {
           throw new TRPCError({
             code: "CONFLICT",
@@ -1033,11 +943,9 @@ export const judgeAdminRouter = createTRPCRouter({
           });
         }
 
-        // Completed slots are not reconstructible from votes: skipProject marks
-        // a slot complete without writing one, so a wipe sends judges back to
-        // tables they already dealt with. judgingActive defaults false and
-        // organisers switch it off when judging closes, so the flag above
-        // cannot be the only guard.
+        // Completed slots are not reconstructible from votes: skipProject completes a
+        // slot without writing one. judgingActive defaults false and organisers turn
+        // it off when judging closes, so that flag cannot be the only guard.
         const completed = await tx.query.judgeQueue.findMany({
           where: and(
             eq(judgeQueue.hackathonId, input.hackathonId),
@@ -1057,16 +965,14 @@ export const judgeAdminRouter = createTRPCRouter({
           with: { judge: true },
         });
 
-        // An applicant who has not been activated can never open the portal
-        // (isJudge requires judges.isActive), so a queue handed to them is
-        // coverage the event will never actually receive.
+        // An applicant who was never activated can never open the portal (isJudge
+        // requires judges.isActive), so their queue is coverage never received.
         const activeAssignments = allAssignments.filter(
           (a) => a.judge.isActive !== false,
         );
 
-        // With no tracks column configured every judge label would read as a
-        // sponsor/special one and bypass the per-judge caps, so fall back to
-        // the tracks the judges themselves carry.
+        // With no tracks column configured every judge label reads as sponsor/special
+        // and bypasses the per-judge caps, so fall back to the judges' own tracks.
         const MAIN_TRACKS = new Set(
           hackathon.tracks?.length
             ? hackathon.tracks
@@ -1091,8 +997,8 @@ export const judgeAdminRouter = createTRPCRouter({
         }
 
         if (activeAssignments.length === 0) {
-          // An empty roster and a roster still awaiting approval need different
-          // remedies from the organizer, so the message has to say which it is.
+          // An empty roster and a roster awaiting approval need different remedies, so
+          // the message has to say which it is.
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:
@@ -1127,8 +1033,8 @@ export const judgeAdminRouter = createTRPCRouter({
               (a) => !a.track || MAIN_TRACKS.has(a.track),
             ).length || 40; // Default to 40 judges as requested
 
-          // Formula: Required Grades = Max(3, Floor((Total Judges * Judging Window Hours) / (Total Projects * Avg Time Per Project)))
-          // Judging Window: 3 hours. Avg Time Per Project: 12 minutes (0.2 hours).
+          // Required grades = max(3, floor((judges * window) / (projects * avg))).
+          // Window 3 hours, average 12 minutes (0.2h) per project.
           const judgingWindowHours = 3;
           const avgTimePerProjectHours = 0.2;
           const calculatedQuota = Math.floor(
@@ -1152,10 +1058,9 @@ export const judgeAdminRouter = createTRPCRouter({
           .delete(judgeQueue)
           .where(eq(judgeQueue.hackathonId, input.hackathonId));
 
-        // ── Coverage-maximizing assignment ──────────────────────────────────
-        // Uses buildCoverageQueues to guarantee every project is seen by at
-        // least one judge before any project gets an extra judge. This replaces
-        // the old random-slice approach which could leave some projects unseen.
+        // Coverage-maximizing assignment: buildCoverageQueues guarantees every
+        // project is seen once before any gets a second judge. The old random slice
+        // could leave projects unseen.
         const judgeList = activeAssignments.map((a) => ({
           judgeId: a.judgeId,
           track: a.track ?? null,
@@ -1180,10 +1085,9 @@ export const judgeAdminRouter = createTRPCRouter({
           },
         );
 
-        // Build all insert rows in one pass, skipping pairs a judge has already
-        // finished. judge_queue has no unique on (judgeId, projectId), so
-        // without this filter the rebuild happily re-issues a completed pair as
-        // a fresh uncompleted row and getNextTable sends the judge back.
+        // One pass, skipping pairs a judge already finished. judge_queue has no
+        // unique on (judgeId, projectId), so without this the rebuild re-issues a
+        // completed pair as fresh and getNextTable sends the judge back.
         const completedKeys = new Set(
           completed.map((row) => `${row.judgeId}:${row.projectId}`),
         );
@@ -1210,8 +1114,8 @@ export const judgeAdminRouter = createTRPCRouter({
           }
         }
 
-        // Re-append the finished work past the tail of each judge's new queue,
-        // so their history survives and nothing re-serves it.
+        // Re-append finished work past the tail of each judge's new queue, so their
+        // history survives and nothing re-serves it.
         const tailByJudge = new Map<string, number>();
         for (const row of insertRows) {
           tailByJudge.set(
@@ -1233,20 +1137,18 @@ export const judgeAdminRouter = createTRPCRouter({
           });
         }
 
-        // Chunked because a single INSERT carries 4 bound parameters per row
-        // against Postgres's 65535 limit — about 16k rows. A sponsor-track
-        // judge's pool is uncapped, so a few of them over a large project list
-        // crosses it and aborts the whole assignment with an opaque driver
-        // error at the worst possible moment.
+        // Chunked: 4 bound parameters per row against Postgres's 65535 limit, about
+        // 16k rows. Sponsor-track pools are uncapped, so a few over a large project
+        // list aborts the whole assignment with an opaque driver error.
         for (let i = 0; i < insertRows.length; i += QUEUE_INSERT_CHUNK) {
           await tx
             .insert(judgeQueue)
             .values(insertRows.slice(i, i + QUEUE_INSERT_CHUNK));
         }
 
-        // Compute coverage stats for admin feedback. Counted over the merged
-        // set — over the generated rows alone, a fully-judged project reads as
-        // uncovered and the admin re-runs assignment chasing it.
+        // Coverage stats for admin feedback, counted over the merged set — over the
+        // generated rows alone a fully-judged project reads as uncovered and the
+        // admin re-runs assignment chasing it.
         const projectCoverage = new Map<string, number>();
         for (const row of insertRows) {
           projectCoverage.set(
@@ -1269,8 +1171,8 @@ export const judgeAdminRouter = createTRPCRouter({
         const maxCoverage =
           coverageValues.length > 0 ? Math.max(...coverageValues) : 0;
 
-        // Counted from the rows actually written, not from `queues` — those
-        // still hold the completed pairs that were filtered out above.
+        // Counted from the rows actually written, not `queues` — those still hold the
+        // completed pairs filtered out above.
         const countByJudge = new Map<string, number>();
         for (const row of insertRows) {
           countByJudge.set(row.judgeId, (countByJudge.get(row.judgeId) ?? 0) + 1);
@@ -1299,14 +1201,10 @@ export const judgeAdminRouter = createTRPCRouter({
         };
       });
 
-      // Deliberately AFTER the transaction commits, on ctx.db.
-      //
-      // recordAdminAction swallows its errors, which is right outside a
-      // transaction and dangerous inside one: any failed statement aborts the
-      // Postgres session, so the following COMMIT silently becomes a ROLLBACK.
-      // Called as the last statement in the tx, a failed audit insert would
-      // return success and a coverage report while every judge queue in the
-      // event quietly reverted.
+      // Deliberately AFTER the transaction commits, on ctx.db. recordAdminAction
+      // swallows its errors, which is right outside a transaction and dangerous
+      // inside one: a failed statement aborts the session, so COMMIT silently
+      // becomes ROLLBACK and every judge queue reverts behind a success response.
       await recordAdminAction(ctx.db as DrizzleDB, {
         userId: ctx.userId,
         action: "judge.assignJudgesToProjects",
@@ -1323,13 +1221,8 @@ export const judgeAdminRouter = createTRPCRouter({
       return outcome;
     }),
 
-  /**
-   * The table cards to print, one per judgeable project.
-   *
-   * Each carries the code a judge scans on arrival. Without a way to get these
-   * out of the database and onto a desk, the scan-to-start flow has no
-   * physical half.
-   */
+  // The table cards to print, one per judgeable project, each carrying the code
+  // a judge scans on arrival — the physical half of scan-to-start.
   tableCards: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -1351,16 +1244,9 @@ export const judgeAdminRouter = createTRPCRouter({
     }),
 
   /** Per-judge scoring analytics for bias detection and performance review. */
-  /**
-   * Where every judge is, right now.
-   *
-   * All of this was already stored — queue order, the claim stamp, the arrival
-   * stamp, vote times and durations — and nothing put it in one place, so on
-   * the day the only way to find a stalled judge was to go and look at them.
-   *
-   * Deliberately uncached: it is read on a short poll while judging runs, and
-   * a stale answer here is worse than no answer.
-   */
+  // Where every judge is, right now. All of it was already stored and nothing
+  // put it in one place, so finding a stalled judge meant walking the room.
+  // Uncached on purpose: read on a short poll, and stale is worse than nothing.
   liveProgress: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -1427,8 +1313,8 @@ export const judgeAdminRouter = createTRPCRouter({
         const done = rows.filter((r) => r.isCompleted);
         const votes = votesByJudge.get(judgeId) ?? [];
 
-        // The project handed over but not yet scored. There is at most one:
-        // completeAndNext closes the previous row before claiming the next.
+        // The project handed over but not yet scored. At most one: completeAndNext
+        // closes the previous row before claiming the next.
         const current = rows.find((r) => !r.isCompleted && r.startedAt) ?? null;
 
         const lastVoteAt = votes.reduce<Date | null>((acc, v) => {
@@ -1562,9 +1448,8 @@ export const judgeAdminRouter = createTRPCRouter({
 
       const round2 = (n: number) => Math.round(n * 100) / 100;
 
-      // A judge who has a queue but has not scored anything yet is exactly the
-      // one an organizer needs to find mid-event, so drive the list from the
-      // queues as well as the votes.
+      // A judge with a queue who has scored nothing is exactly who an organizer
+      // needs to find mid-event, so drive the list from queues as well as votes.
       const judgeIds = new Set([...byJudge.keys(), ...queueMap.keys()]);
 
       const analytics = [...judgeIds].map((judgeId) => {
@@ -1735,9 +1620,9 @@ export const judgeAdminRouter = createTRPCRouter({
           });
         }
 
-        // Free text used to land straight in the routing column, so a judge who
-        // typed "ai" instead of "AI" was classified sponsor/special and given
-        // an empty pool — invisible to them and to the organiser.
+        // Free text used to land straight in the routing column, so a judge who typed
+        // "ai" instead of "AI" was classified sponsor/special and given an empty
+        // pool — invisible to them and to the organiser.
         const track = await assertTrackExists(
           tx as unknown as DrizzleDB,
           input.hackathonId,

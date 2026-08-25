@@ -113,8 +113,8 @@ export const hackathonEventsRouter = createTRPCRouter({
         .where(eq(hackathonEvents.id, eventId))
         .returning();
 
-      // The schedule for this edition, and nothing else. The old blanket
-      // pattern also matched every attendee's cached registrations.
+      // The schedule for this edition, and nothing else. The old blanket pattern
+      // also matched every attendee's cached registrations.
       ctx.cache.delete(`hackathon:${existing.hackathonId}:events`);
 
       return updatedEvent;
@@ -125,8 +125,8 @@ export const hackathonEventsRouter = createTRPCRouter({
     .input(
       z.object({
         eventId: z.string().uuid("Invalid event ID"),
-        /** Delete even though people have already scanned in. Their check-in
-         *  rows go with it — there is no undo and no export first. */
+        // Delete even though people have already scanned in. Their check-in rows go
+        // with it — there is no undo and no export first.
         force: z.boolean().default(false),
       }),
     )
@@ -141,9 +141,8 @@ export const hackathonEventsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
       }
 
-      // hackathon_event_attendee cascades off this row. At a keynote that is
-      // every badge scanned at the door — thousands of rows, gone on one
-      // click, with nothing that can rebuild them.
+      // hackathon_event_attendee cascades off this row. At a keynote that is every
+      // badge scanned at the door — thousands of rows, gone on one click.
       const [scans] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(hackathonEventAttendees)
@@ -200,10 +199,9 @@ export const hackathonEventsRouter = createTRPCRouter({
 
         if (eventsData.length === 0) return [];
 
-        // Counted in the database rather than by loading the rows. This is the
-        // schedule every attendee's phone polls: eagerly joining attendees to
-        // produce a handful of integers meant ~15 events x 2000 people, and it
-        // shipped the whole array over the wire on the way back.
+        // Counted in the database rather than by loading rows. This is the schedule
+        // every attendee's phone polls: eagerly joining attendees for a handful of
+        // integers meant ~15 events x 2000 people, shipped over the wire as well.
         const counts = await db
           .select({
             eventId: hackathonEventAttendees.eventId,

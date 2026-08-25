@@ -15,22 +15,18 @@ import { isAdmin, isJudge } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
 import type { DrizzleDB } from "@query/db";
 
-/**
- * How long a judge holds a table without refreshing the claim.
- *
- * getNextTable re-stamps on every poll, so a judge with the portal open keeps
- * their table for as long as they are actually there. One who closes the tab or
- * walks off stops refreshing and the table frees itself, which is why this is a
- * timeout rather than a lock somebody has to release.
- */
+// How long a judge holds a table without refreshing the claim. getNextTable
+// re-stamps on every poll, so a judge with the portal open keeps their table;
+// one who closes the tab stops refreshing and it frees itself. A timeout
+// rather than a lock somebody has to release.
 const JUDGE_CLAIM_MINUTES = 10;
 
 export const judgePortalRouter = createTRPCRouter({
   isJudge: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      // Same rule as the isJudge middleware; ordering by start date alone
-      // picks next year's draft.
+      // Same rule as the isJudge middleware; ordering by start date alone picks
+      // next year's draft.
       const hackathonId = await resolveHackathonId(
         ctx.db as DrizzleDB,
         input?.hackathonId,
@@ -85,16 +81,14 @@ export const judgePortalRouter = createTRPCRouter({
       });
     }
 
-    // This listing spans every hackathon the caller judges, so it resolves the
-    // judge rows from the user instead of a single hackathon context — pinning
-    // it to the newest hackathon hides the assignments of everyone judging an
-    // earlier one.
+    // This listing spans every hackathon the caller judges, so it resolves judge
+    // rows from the user rather than one hackathon context — pinning it to the
+    // newest hides the assignments of everyone judging an earlier one.
     const myJudges = await db.query.judges.findMany({
       where: and(
         eq(judges.userId, ctx.userId as string),
-        // Every other judging entry point requires an active row; an applicant
-        // who was never activated should not see an assignment list here and
-        // then hit FORBIDDEN on the first thing they click.
+        // Every other judging entry point requires an active row; an applicant never
+        // activated should not see an assignment list and then hit FORBIDDEN.
         eq(judges.isActive, true),
       ),
       columns: { id: true },
@@ -114,14 +108,10 @@ export const judgePortalRouter = createTRPCRouter({
     return assignments;
   }),
 
-  /**
-   * Every judging application this user has made, approved or not.
-   *
-   * `getMyAssignments` deliberately shows only approved rows, so between
-   * applying and being approved a judge had no entry point, no status anywhere
-   * and no email — while the success screen promised one. The apply button also
-   * stayed live and threw "You have already applied" when pressed.
-   */
+  // Every judging application this user has made, approved or not.
+  // getMyAssignments shows only approved rows, so between applying and approval
+  // a judge had no entry point, no status and no email — while the success
+  // screen promised one and the apply button threw "already applied".
   myApplications: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
@@ -152,18 +142,10 @@ export const judgePortalRouter = createTRPCRouter({
     }));
   }),
 
-  /**
-   * Starts the clock by scanning the table's QR.
-   *
-   * The judge's scoring time is measured from here, not from when the queue
-   * handed them the table — walking across a ballroom is not judging. It also
-   * confirms they are standing at the right table before they score it, which
-   * nothing else in the flow checks.
-   *
-   * Idempotent: re-scanning the same table does not restart the clock, so a
-   * judge who scans twice out of uncertainty is not penalised and cannot
-   * quietly reset a long visit.
-   */
+  // Starts the clock by scanning the table's QR. Scoring time is measured from
+  // here, not from when the queue handed the table over: walking across a
+  // ballroom is not judging. It also confirms the judge is at the right table.
+  // Idempotent, so scanning twice cannot restart the clock.
   startByQrCode: isJudge
     .input(z.object({ qrCode: z.string().uuid("Invalid table code") }))
     .mutation(async ({ ctx, input }) => {
@@ -180,9 +162,8 @@ export const judgePortalRouter = createTRPCRouter({
         });
       }
 
-      // Must be in THIS judge's queue. Scanning a table somebody else was
-      // assigned would otherwise start a clock on work that is not theirs and
-      // let them score a project they were never routed to.
+      // Must be in THIS judge's queue. Scanning somebody else's table would start a
+      // clock on work that is not theirs and let them score an unrouted project.
       const slot = await db.query.judgeQueue.findFirst({
         where: and(
           eq(judgeQueue.judgeId, ctx.judge.id),
@@ -203,8 +184,8 @@ export const judgePortalRouter = createTRPCRouter({
           .update(judgeQueue)
           .set({
             arrivedAt: new Date(),
-            // Claim it too: a judge who walked up to a table out of order has
-            // still taken it, and another judge should route around them.
+            // Claim it too: a judge who walked up out of order has still taken the table,
+            // and another judge should route around them.
             startedAt: slot.startedAt ?? new Date(),
           })
           .where(eq(judgeQueue.id, slot.id));
@@ -239,10 +220,9 @@ export const judgePortalRouter = createTRPCRouter({
           return { done: true, project: null, remaining: 0 };
         }
 
-        // Tables another judge is standing at right now. Sending a second judge
-        // to a team that is already presenting helps nobody, so a claimed table
-        // is passed over and comes back on a later pass — the judge is never
-        // told about it and never has to act on it.
+        // Tables another judge is standing at right now. Sending a second judge to a
+        // team already presenting helps nobody, so a claimed table is passed over and
+        // comes back on a later pass, with nothing for the judge to act on.
         const claimedSince = new Date(
           Date.now() - JUDGE_CLAIM_MINUTES * 60 * 1000,
         );
@@ -270,10 +250,9 @@ export const judgePortalRouter = createTRPCRouter({
           );
         }
 
-        // First free table in the judge's own order. When every remaining table
-        // is busy, take the one claimed longest ago rather than stalling: two
-        // judges at a table is awkward, a judge with nothing to do is worse, and
-        // both scores count either way.
+        // First free table in the judge's own order. When every remaining table is
+        // busy, take the one claimed longest ago rather than stalling: two judges at
+        // a table is awkward, an idle judge is worse, and both scores count.
         const free = queue.find((row) => !claimedAt.has(row.projectId));
         const next =
           free ??
@@ -287,9 +266,8 @@ export const judgePortalRouter = createTRPCRouter({
           return { done: true, project: null, remaining: 0 };
         }
 
-        // Claiming doubles as a heartbeat: the portal re-runs this query while
-        // the judge has the project open, so the claim lapses only once they
-        // actually leave.
+        // Claiming doubles as a heartbeat: the portal re-runs this while the judge
+        // has the project open, so the claim lapses only once they leave.
         await db
           .update(judgeQueue)
           .set({ startedAt: new Date() })
@@ -387,8 +365,8 @@ export const judgePortalRouter = createTRPCRouter({
         input.scoreClarity +
         input.scoreSoundness;
 
-      // Closing judging has to stop scores being written, otherwise the upsert
-      // keeps overwriting results after the organizers have called the winners.
+      // Closing judging has to stop scores being written, or the upsert keeps
+      // overwriting results after the organizers have called the winners.
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
         where: eq(hackathons.id, ctx.judge.hackathonId),
         columns: { judgingActive: true },
@@ -401,10 +379,9 @@ export const judgePortalRouter = createTRPCRouter({
       }
 
       // A judge may only score what was routed to them. Without this any judge
-      // could score any project in the hackathon — including one deliberately
-      // assigned elsewhere, or one they never visited — and those scores would
-      // count towards the rankings. Completed slots still match, so revising an
-      // earlier score keeps working.
+      // could score any project — including one assigned elsewhere or never
+      // visited — and it would count towards the rankings. Completed slots still
+      // match, so revising an earlier score keeps working.
       const ownSlot = await (ctx.db as DrizzleDB).query.judgeQueue.findFirst({
         where: and(
           eq(judgeQueue.judgeId, ctx.judge.id),
@@ -487,15 +464,14 @@ export const judgePortalRouter = createTRPCRouter({
       }
 
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // 1. The queue slot is addressed by id alone, so it has to be read back
-        // and vetted before any score is written against it.
+        // 1. The queue slot is addressed by id alone, so it has to be read back and
+        // vetted before any score is written against it.
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
         });
 
-        // A queue id that no longer resolves is tolerated — the judge may be
-        // retrying a completion — but a row that does resolve has to be this
-        // judge's own slot in the hackathon they are judging.
+        // A queue id that no longer resolves is tolerated — the judge may be retrying
+        // — but a row that does resolve has to be this judge's own slot.
         if (queueItem) {
           if (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id) {
             throw new TRPCError({
@@ -509,11 +485,10 @@ export const judgePortalRouter = createTRPCRouter({
               message: "Queue item does not belong to this hackathon",
             });
           }
-          // The slot being closed and the project being scored must be the same
-          // one. Comparing hackathons alone proves nothing — every slot a judge
-          // owns is already in their hackathon — so without this a judge could
-          // score project Y while slot X is stamped complete, leaving X
-          // unscored while the coverage counters claim it was visited.
+          // The slot being closed and the project being scored must be the same one.
+          // Comparing hackathons proves nothing, since every slot a judge owns is
+          // already in theirs — so without this a judge could score Y while slot X is
+          // stamped complete, leaving X unscored but counted as visited.
           if (queueItem.projectId !== input.projectId) {
             throw new TRPCError({
               code: "BAD_REQUEST",
@@ -521,8 +496,8 @@ export const judgePortalRouter = createTRPCRouter({
             });
           }
         } else {
-          // Tolerating a missing slot must not also drop the ownership test —
-          // otherwise any queueId that matches no row scores any project.
+          // Tolerating a missing slot must not drop the ownership test — otherwise any
+          // queueId matching no row scores any project.
           const ownSlot = await tx.query.judgeQueue.findFirst({
             where: and(
               eq(judgeQueue.judgeId, ctx.judge.id),
@@ -538,10 +513,9 @@ export const judgePortalRouter = createTRPCRouter({
           }
         }
 
-        // Measured from the scan when there is one. The client's own figure
-        // starts when the card rendered, which includes the walk to the table;
-        // arrivedAt is stamped by the server when the judge actually got there
-        // and cannot be shaped by a stale tab or a clock that disagrees.
+        // Measured from the scan when there is one. The client's figure starts when
+        // the card rendered, which includes the walk to the table; arrivedAt is
+        // server-stamped and cannot be shaped by a stale tab or a skewed clock.
         const measuredSeconds = queueItem?.arrivedAt
           ? Math.max(
               0,
@@ -605,9 +579,9 @@ export const judgePortalRouter = createTRPCRouter({
           return { done: true, nextProject: null };
         }
 
-        // Handing a table over is what claims it. Stamping only in
-        // getNextTable left every project after a judge's first one unclaimed,
-        // so two judges could be sent to the same table.
+        // Handing a table over is what claims it. Stamping only in getNextTable left
+        // every project after a judge's first one unclaimed, so two judges could be
+        // sent to the same table.
         await tx
           .update(judgeQueue)
           .set({ startedAt: new Date() })
@@ -635,8 +609,8 @@ export const judgePortalRouter = createTRPCRouter({
           with: { project: true },
         });
 
-        // The queue id addresses any judge's slot, so a row owned by someone
-        // else has to read as missing rather than as an actionable item.
+        // The queue id addresses any judge's slot, so a row owned by someone else has
+        // to read as missing rather than as an actionable item.
         if (
           !queueItem ||
           (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id)
@@ -647,9 +621,8 @@ export const judgePortalRouter = createTRPCRouter({
           });
         }
 
-        // Atomically move this item to the end of the queue using a subquery.
-        // Walking away also drops the claim on that table, so another judge can
-        // take it immediately instead of waiting out the claim window.
+        // Atomically move this item to the end of the queue. Walking away drops the
+        // claim too, so another judge can take the table immediately.
         await tx
           .update(judgeQueue)
           .set({
@@ -672,8 +645,8 @@ export const judgePortalRouter = createTRPCRouter({
         });
 
         if (!nextInQueue || nextInQueue.id === input.queueId) {
-          // Only this one project left — can't skip the last one. The caller
-          // renders a project card, so hand back the project, not the queue row.
+          // Only this one project left — the last cannot be skipped. The caller renders
+          // a project card, so hand back the project, not the queue row.
           return {
             done: false,
             skippedToEnd: true,
@@ -705,8 +678,8 @@ export const judgePortalRouter = createTRPCRouter({
           where: eq(judgeQueue.id, input.queueId),
           with: { project: true },
         });
-        // The queue id addresses any judge's slot, so a row owned by someone
-        // else has to read as missing rather than as an actionable item.
+        // The queue id addresses any judge's slot, so a row owned by someone else has
+        // to read as missing rather than as an actionable item.
         if (
           !queueItem ||
           (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id)
@@ -742,10 +715,9 @@ export const judgePortalRouter = createTRPCRouter({
           // Get the project's tracks for matching
           const projectTracks = queueItem.project?.tracks || [];
 
-          // Two queries for the whole candidate set, not two per candidate.
-          // This runs inside an open transaction during judging: at 40 judges
-          // the per-candidate version was ~80 sequential round trips, holding
-          // a pool connection the entire time.
+          // Two queries for the whole candidate set, not two per candidate. This runs
+          // inside an open transaction during judging: at 40 judges the per-candidate
+          // version was ~80 sequential round trips holding a pool connection.
           const [holders, workloads] = await Promise.all([
             tx
               .select({ judgeId: judgeQueue.judgeId })
@@ -780,8 +752,8 @@ export const judgePortalRouter = createTRPCRouter({
           for (const other of otherAssignments) {
             if (other.judgeId === ctx.judge.id) continue;
 
-            // A judge who is not active can never open the portal, so handing
-            // them the project strands it with nobody able to score it.
+            // A judge who is not active can never open the portal, so handing them the
+            // project strands it with nobody able to score it.
             if (!other.judge?.isActive) continue;
 
             if (alreadyHolding.has(other.judgeId)) continue;
@@ -794,8 +766,8 @@ export const judgePortalRouter = createTRPCRouter({
             candidates.push({
               judgeId: other.judgeId,
               trackMatch,
-              // A judge with nothing left has no group row at all, which is the
-              // lightest possible load rather than a missing one.
+              // A judge with nothing left has no group row at all, which is the lightest
+              // possible load rather than a missing one.
               remaining: remainingByJudge.get(other.judgeId) ?? 0,
             });
           }
@@ -830,10 +802,9 @@ export const judgePortalRouter = createTRPCRouter({
           orderBy: [asc(judgeQueue.order)],
         });
 
-        // Claim the table being handed over, exactly as completeAndNext and
-        // skipProject do. Without this the slot stays unclaimed and the next
-        // judge to ask for work is sent to the table this judge just walked up
-        // to — two judges, one team, at the same moment.
+        // Claim the table being handed over, as completeAndNext and skipProject do.
+        // Without this the slot stays unclaimed and the next judge asking for work is
+        // sent to the table this judge just walked up to.
         if (nextInQueue) {
           await tx
             .update(judgeQueue)

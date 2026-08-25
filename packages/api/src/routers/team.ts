@@ -44,14 +44,10 @@ export function computeTeamWindow(baseTime: Date, now: Date) {
   };
 }
 
-/**
- * The submission window, as three moments and the state between them.
- *
- * Exported and used by `submitProject` itself, so the page and the procedure
- * cannot disagree: /submit rendered no window state at all, which meant an
- * attendee could write a full description and learn it was refused only when
- * they pressed submit.
- */
+// The submission window as three moments and the state between them.
+// Exported and used by submitProject itself, so the page and the procedure
+// cannot disagree: /submit rendered no window state, so an attendee could
+// write a full description and learn it was refused only on submit.
 export function computeSubmissionWindow(baseTime: Date, now: Date) {
   const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
 
@@ -85,11 +81,9 @@ async function loadTeamWindow(db: DrizzleDB, hackathonId: string) {
   return computeTeamWindow(baseTime, new Date());
 }
 
-/**
- * Withdrawal follows the submission window, not the team one. On the team
- * window it shut at +34h while submitting ran to +36h, so for the last two
- * hours a project could be filed and then not taken back.
- */
+// Withdrawal follows the submission window, not the team one. On the team
+// window it shut at +34h while submitting ran to +36h, so for two hours a
+// project could be filed and then not taken back.
 async function checkWithdrawWindow(db: DrizzleDB, hackathonId: string) {
   const baseTime = await loadHackathonBaseTime(db, hackathonId);
   const now = new Date();
@@ -135,13 +129,10 @@ async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
   return window;
 }
 
-/**
- * The single project row a participant owns in a hackathon: their team's entry
- * if they are on a team, otherwise the solo entry they filed themselves. Shared
- * by submitProject and mySubmission so the form is prefilled from exactly the
- * row a resubmit updates — two copies of this rule drifting apart is how a
- * resubmit ends up filing a duplicate instead of an edit.
- */
+// The single project row a participant owns: their team's entry, or the solo
+// entry they filed. Shared by submitProject and mySubmission so the form is
+// prefilled from exactly the row a resubmit updates — two copies of this rule
+// drifting apart is how a resubmit files a duplicate instead of an edit.
 function ownProjectWhere(
   hackathonId: string,
   teamId: string | null | undefined,
@@ -158,18 +149,11 @@ function ownProjectWhere(
   );
 }
 
-/**
- * Only admitted applicants take part.
- *
- * This used to block `rejected` and `waitlisted` alone — and every participant
- * is created `pending`, which passed. So teams formed and projects were
- * submitted with no review having happened at all, while the product showed
- * organisers an approve/reject screen that decided nothing but an email.
- * Registration is now an application: review has to land before anyone builds.
- *
- * `checked_in` counts because somebody standing at the door with a scanned
- * badge has plainly been admitted, whatever their row said beforehand.
- */
+// Only admitted applicants take part. This used to block `rejected` and
+// `waitlisted` alone, and every participant starts `pending` — so teams
+// formed and projects were submitted with no review at all while organisers
+// were shown an approve/reject screen that decided only an email.
+// `checked_in` counts: a scanned badge at the door is plainly admitted.
 const ADMITTED_STATUSES = ["approved", "checked_in"];
 
 function checkAdmitted(registrationStatus: string) {
@@ -189,14 +173,10 @@ function checkAdmitted(registrationStatus: string) {
   });
 }
 
-/**
- * Submitting needs more than acceptance: the person has to be in the building.
- *
- * Acceptance is a decision made weeks earlier and says nothing about whether
- * somebody turned up. Requiring the badge scan means a project can only come
- * from a team that is actually at the event — which is also what the judging
- * table numbers, the printed cards and the in-person scoring all assume.
- */
+// Submitting needs more than acceptance: the person has to be in the
+// building. Acceptance is a decision made weeks earlier and says nothing
+// about turning up, and the table numbers, printed cards and in-person
+// scoring all assume they did.
 function checkCheckedIn(registrationStatus: string) {
   if (registrationStatus === "checked_in") return;
 
@@ -209,12 +189,10 @@ function checkCheckedIn(registrationStatus: string) {
   });
 }
 
-/**
- * Joining a team after submitting solo orphans the solo row: `ownProjectWhere`
- * then resolves to the team's entry, so the solo one stays `submitted`, stays
- * in the gallery, and is promoted into judging with nobody able to withdraw it.
- * `draft` is fine — withdrawal returns a project there, and it reaches neither.
- */
+// Joining a team after submitting solo orphans the solo row: ownProjectWhere
+// then resolves to the team's entry, so the solo one stays `submitted`, stays
+// in the gallery, and is promoted into judging with nobody able to withdraw
+// it. `draft` is fine — it reaches neither.
 async function assertNoLiveSoloSubmission(
   tx: Tx,
   hackathonId: string,
@@ -250,8 +228,8 @@ export const teamRouter = createTRPCRouter({
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
-            // 1. Check if user is registered for this hackathon. Read inside
-            // the transaction so a double-submit cannot both see no team.
+            // 1. Registered for this hackathon? Read inside the transaction so a
+            // double-submit cannot both see no team.
             const participant = await tx.query.hackathonParticipants.findFirst({
               where: and(
                 eq(hackathonParticipants.hackathonId, input.hackathonId),
@@ -295,9 +273,8 @@ export const teamRouter = createTRPCRouter({
               })
               .returning();
 
-            // 4. Claim the participant's team slot. The `teamId is null`
-            // condition is what settles a race: whoever loses it matches no row
-            // and rolls the team it just inserted back out again.
+            // 4. Claim the participant's team slot. `teamId is null` settles the race:
+            // the loser matches no row and rolls back the team it just inserted.
             if (newTeam) {
               const claimed = await tx
                 .update(hackathonParticipants)
@@ -344,8 +321,8 @@ export const teamRouter = createTRPCRouter({
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
-            // 1. Verify user is registered for hackathon. Read inside the
-            // transaction so the slot claim below settles against the same row.
+            // 1. Verify registration. Read inside the transaction so the slot claim below
+            // settles against the same row.
             const participant = await tx.query.hackathonParticipants.findFirst({
               where: and(
                 eq(hackathonParticipants.hackathonId, input.hackathonId),
@@ -405,9 +382,8 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
-            // 4. Join the team. The `teamId is null` condition carries the
-            // check above into the write, so a racing join loses here instead
-            // of quietly moving the user off the team it already seated them on.
+            // 4. Join. `teamId is null` carries the check above into the write, so a
+            // racing join loses here instead of moving the user off the team it seated.
             const joined = await tx
               .update(hackathonParticipants)
               .set({ teamId: team.id })
@@ -425,9 +401,8 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
-            // 5. Take the seat. The count read above is a snapshot, so the
-            // increment carries the capacity test with it: whoever loses a
-            // race for the last seat updates no row and is turned away.
+            // 5. Take the seat. The count above is a snapshot, so the increment carries
+            // the capacity test: whoever loses the last seat updates no row.
             const seated = await tx
               .update(hackathonTeams)
               .set({
@@ -517,8 +492,8 @@ export const teamRouter = createTRPCRouter({
                   where: eq(hackathonProjects.teamId, team.id),
                 });
 
-                // Disbanding takes the team's project with it, so a submission
-                // has to be withdrawn deliberately, not as a side effect.
+                // Disbanding takes the team's project with it, so a submission has to be
+                // withdrawn deliberately, not as a side effect.
                 if (project && project.status !== "draft") {
                   throw new TRPCError({
                     code: "FORBIDDEN",
@@ -543,9 +518,8 @@ export const teamRouter = createTRPCRouter({
                 return { success: true, message: "Team disbanded." };
               }
 
-              // Names only what exists. There is no ownership transfer, and
-              // telling a stuck captain to do something the product cannot do
-              // leaves them with no move at all.
+              // Names only what exists. There is no ownership transfer, and telling a stuck
+              // captain to do something the product cannot do leaves them no move.
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message:
@@ -553,8 +527,8 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
-            // 1. Give up the seat. The `teamId = team.id` condition makes a
-            // second Leave match no row instead of decrementing twice.
+            // 1. Give up the seat. `teamId = team.id` makes a second Leave match no row
+            // instead of decrementing twice.
             const left = await tx
               .update(hackathonParticipants)
               .set({ teamId: null })
@@ -570,9 +544,9 @@ export const teamRouter = createTRPCRouter({
               return { success: true };
             }
 
-            // 2. Decrement, computed by the database so a concurrent join is
-            // not overwritten. Drifting low to 1 makes the captain branch above
-            // delete the team and its project with members still on it.
+            // 2. Decrement in the database so a concurrent join is not overwritten.
+            // Drifting low to 1 makes the captain branch above delete the team and its
+            // project with members still on it.
             await tx
               .update(hackathonTeams)
               .set({
@@ -607,8 +581,8 @@ export const teamRouter = createTRPCRouter({
         input.hackathonId,
       );
 
-      // Disbanding empties a roster just as leaving does, so it shuts at the
-      // same lock.
+      // Disbanding empties a roster just as leaving does, so it shuts at the same
+      // lock.
       if (!window.canLeave) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -642,8 +616,8 @@ export const teamRouter = createTRPCRouter({
               where: eq(hackathonProjects.teamId, team.id),
             });
 
-            // Disbanding takes the team's project with it, so a submission has
-            // to be withdrawn deliberately, not as a side effect.
+            // Disbanding takes the team's project with it, so a submission has to be
+            // withdrawn deliberately, not as a side effect.
             if (project && project.status !== "draft") {
               throw new TRPCError({
                 code: "FORBIDDEN",
@@ -694,8 +668,8 @@ export const teamRouter = createTRPCRouter({
         technologies: z.array(z.string()).optional(),
         tracks: z.array(z.string()).optional(),
         challenges: z.array(z.string()).optional(),
-        // Judge routing filters on exactly this, and nothing else in the
-        // product ever set it — every CreateX judge got an empty pool.
+        // Judge routing filters on exactly this, and nothing else ever set it — every
+        // CreateX judge got an empty pool.
         isCreateX: z.boolean().optional(),
         githubUrl: z
           .string()
@@ -777,19 +751,17 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      // Someone who is on a team always submits as that team, whether or not
-      // the client sent the id along.
+      // Someone on a team always submits as that team, whether or not the client
+      // sent the id.
       const teamId = input.teamId ?? participant.teamId ?? undefined;
 
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
-            // Fetch existing project to check for edit restrictions. Read
-            // inside the transaction, since the update-or-insert decision below
-            // turns on it.
-            // A solo entry is found by its author, exactly as a team entry is
-            // found by its team, so editing a submission works the same either
-            // way instead of filing a second row or being refused.
+            // Read inside the transaction, since the update-or-insert decision turns on
+            // it. A solo entry is found by its author exactly as a team entry is found by
+            // its team, so editing works the same either way instead of filing a second
+            // row or being refused.
             const existingProject = await tx.query.hackathonProjects.findFirst({
               where: ownProjectWhere(
                 input.hackathonId,
@@ -806,8 +778,8 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
-            // Validate team ownership to prevent IDOR attacks
-            // Use teamId from participant record instead of nested team object
+            // Team ownership from the participant record, not the nested team object —
+            // otherwise this is an IDOR.
             if (teamId) {
               // Verify team belongs to this hackathon
               const team = await tx.query.hackathonTeams.findFirst({
@@ -854,11 +826,10 @@ export const teamRouter = createTRPCRouter({
                   githubUrl,
                   demoUrl,
                   videoUrl,
-                  // Only ever forward, never backwards. Writing "submitted"
-                  // unconditionally let a team editing a demo link after
-                  // promotion knock their project out of "judging" — which
-                  // re-opened withdrawProject's status guard and let them
-                  // withdraw a project judges were actively scoring.
+                  // Only ever forward. Writing "submitted" unconditionally let a team editing a
+                  // demo link after promotion knock their project out of "judging", which
+                  // re-opened withdrawProject's guard and let them withdraw a project judges
+                  // were actively scoring.
                   status:
                     existingProject.status === "judging" ||
                     existingProject.status === "winner"
@@ -915,15 +886,10 @@ export const teamRouter = createTRPCRouter({
       }
     }),
 
-  /**
-   * Puts a submission back to draft.
-   *
-   * disbandTeam and the sole-captain branch of leaveTeam both refuse while a
-   * submitted project exists and tell the user it "must be withdrawn first".
-   * Nothing could do that — submitProject is the only writer and always writes
-   * "submitted" — so that instruction named an action the product did not have
-   * and the two flows were simply dead ends.
-   */
+  // Puts a submission back to draft. disbandTeam and the sole-captain branch of
+  // leaveTeam both refuse while a submitted project exists and say it "must be
+  // withdrawn first" — nothing could do that, since submitProject always wrote
+  // "submitted", so both flows were dead ends.
   withdrawProject: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .mutation(async ({ ctx, input }) => {
@@ -960,8 +926,8 @@ export const teamRouter = createTRPCRouter({
             });
           }
 
-          // Only the captain files or withdraws on a team's behalf, matching
-          // the rule submitProject already applies.
+          // Only the captain files or withdraws on a team's behalf, matching the rule
+          // submitProject already applies.
           if (participant.teamId) {
             const team = await tx.query.hackathonTeams.findFirst({
               where: eq(hackathonTeams.id, participant.teamId),
@@ -974,8 +940,8 @@ export const teamRouter = createTRPCRouter({
             }
           }
 
-          // Once judging has it, withdrawing would pull a project out from
-          // under scores that already reference it.
+          // Once judging has it, withdrawing would pull a project out from under scores
+          // that already reference it.
           if (project.status === "judging" || project.status === "winner") {
             throw new TRPCError({
               code: "FORBIDDEN",
@@ -1006,18 +972,11 @@ export const teamRouter = createTRPCRouter({
       return await loadTeamWindow(ctx.db as DrizzleDB, input.hackathonId);
     }),
 
-  /**
-   * Every team in a hackathon.
-   *
-   * Deliberately NOT paginated. The Teams tab finds the caller's own team by
-   * searching this list, so with a page size any member of an early-created
-   * team would fall off page one and lose their entire "Your Team" panel,
-   * including Leave Team, with nothing on screen explaining why.
-   *
-   * Bounded by caching instead. The TTL is deliberately short: the tab
-   * refetches immediately after every join, leave and disband, and a long TTL
-   * served from another instance would show a roster the user just changed.
-   */
+  // Every team in a hackathon, deliberately NOT paginated: the Teams tab finds
+  // the caller's own team by searching this list, so with a page size any
+  // member of an early team would fall off page one and lose the whole "Your
+  // Team" panel, Leave included. Bounded by a short cache instead — the tab
+  // refetches after every join, leave and disband.
   list: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
@@ -1031,12 +990,10 @@ export const teamRouter = createTRPCRouter({
               columns: { id: true, name: true, image: true },
             },
             participants: {
-              // Any signed-in caller can read every team here, so it carries
-              // neither the decision made on each application —
-              // registrationStatus names everyone rejected or waitlisted — nor
-              // the participant id, which is the entire content of that
-              // participant's event pass QR. userId identifies the captain and
-              // keys the list.
+              // Any signed-in caller reads every team here, so it carries neither the
+              // decision on each application (registrationStatus names everyone rejected or
+              // waitlisted) nor the participant id, which is the entire content of that
+              // participant's pass QR. userId identifies the captain and keys the list.
               columns: {
                 userId: true,
               },
@@ -1061,17 +1018,12 @@ export const teamRouter = createTRPCRouter({
       return teams;
     }),
 
-  /**
-   * The one project the caller owns in a hackathon, so the submission form can
-   * be filled from exactly the record a resubmit would overwrite. Without this
-   * a solo hacker sees a blank form over a live submission, and saving a typo
-   * fix silently wipes the links they had already filed.
-   */
-  /**
-   * The submission window for one edition, so /submit can say whether it is
-   * open before somebody fills the form in. Same computation the mutation
-   * enforces with, so the two cannot drift.
-   */
+  // The one project the caller owns, so the form is filled from exactly the
+  // record a resubmit overwrites. Without it a solo hacker sees a blank form
+  // over a live submission and a typo fix wipes the links already filed.
+  // The submission window for one edition, so /submit can say whether it is
+  // open before somebody fills the form in. Same computation the mutation
+  // enforces with, so the two cannot drift.
   submissionWindow: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
@@ -1121,18 +1073,16 @@ export const teamRouter = createTRPCRouter({
           participant.teamId,
           participant.id,
         ),
-        // submittedById is a participant id — a pass QR — and for a team entry
-        // it belongs to the captain rather than the caller.
+        // submittedById is a participant id — a pass QR — and on a team entry it
+        // belongs to the captain rather than the caller.
         columns: { submittedById: false },
       });
 
       return project ?? null;
     }),
 
-  /**
-   * Every project the caller owns, across hackathons. Reading these off the
-   * team relation alone leaves a solo hacker's submissions invisible.
-   */
+  // Every project the caller owns, across hackathons. Reading off the team
+  // relation alone leaves a solo hacker's submissions invisible.
   myProjects: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 

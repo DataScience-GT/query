@@ -4,8 +4,8 @@ import { randomInt } from "node:crypto";
 export function shuffleArray<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
-    // CSPRNG so judging order cannot be predicted or reproduced by a team
-    // that knows when their project was queued.
+    // CSPRNG so judging order cannot be predicted by a team that knows when their
+    // project was queued.
     const j = randomInt(0, i + 1);
     const temp = result[i] as T;
     result[i] = result[j] as T;
@@ -14,11 +14,8 @@ export function shuffleArray<T>(array: T[]): T[] {
   return result;
 }
 
-/**
- * Z-score normalizes a judge's scores relative to their own mean/stddev.
- * This removes per-judge harshness/leniency bias before aggregation.
- * Returns null if fewer than 2 data points (can't compute meaningful stddev).
- */
+// Z-score normalizes a judge's scores against their own mean and stddev,
+// removing per-judge harshness before aggregation. Null under 2 data points.
 export function zNormalize(
   scores: number[],
   globalMean: number,
@@ -33,11 +30,8 @@ export function zNormalize(
   return scores.map((v) => globalMean + ((v - mean) / std) * globalStd);
 }
 
-/**
- * Coverage-maximizing round-robin assignment.
- * Guarantees every project is seen at least `minCoverage` times before
- * any project gets an extra judge. Respects track constraints.
- */
+// Coverage-maximizing round-robin: every project is seen at least
+// `minCoverage` times before any gets an extra judge. Respects tracks.
 export function buildCoverageQueues(
   judgeAssignmentsList: { judgeId: string; track: string | null }[],
   projects: {

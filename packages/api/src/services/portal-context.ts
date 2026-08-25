@@ -1,6 +1,6 @@
 import { admins, members, judges, projectLeaders } from "@query/db";
-// Deep import on purpose: this is the one rule for "which hackathon is
-// current", shared with the sign-in hook in @query/auth.
+// Deep import: the one rule for "which hackathon is current", shared
+// with the sign-in hook in @query/auth.
 import {
   resolveCurrentHackathonId,
   setMembershipChangeHandler,
@@ -17,8 +17,8 @@ import type { MemberContext, PortalContext } from "../types/portal-context";
 
 const CURRENT_HACKATHON_KEY = "hackathon:current-id";
 
-// The sign-in hook in @query/auth grants memberships and cannot reach this
-// cache; registering here is how those grants get their entries evicted.
+// The sign-in hook grants memberships and cannot reach this cache, so the
+// evictor is registered here.
 setMembershipChangeHandler(clearMembershipCaches);
 
 function buildMemberContext(
@@ -47,24 +47,12 @@ function buildMemberContext(
   }
 
   return {
-    /**
-     * Paid and unexpired, not merely "a row exists". A `member` row is also
-     * written for a profile with no payment behind it, and the row outlives the
-     * year it paid for — reporting either as a member is what let a lapsed
-     * member be greeted as active while the pay button stayed hidden.
-     *
-     * Club benefits gate on this. Hackathon participation deliberately does
-     * NOT: the hackathon is open to everyone, member or not.
-     */
+    // Paid and unexpired, not merely "a row exists". Club benefits gate on this;
+    // hackathon participation deliberately does not.
     isMember: isActive,
     isActive,
-    /**
-     * Paid once, ran out — what turns the club view into a renew prompt.
-     *
-     * Ran out, rather than revoked: a row switched off while its date is still
-     * in the future is a staff action, and prompting that person to renew a
-     * membership they still hold would be wrong.
-     */
+    // Paid once, ran out. A row switched off while its date is still future is a
+    // staff action, not a lapse.
     hasLapsed: !isActive && !!expiresAt && expiresAt <= now,
     expiresAt,
     daysRemaining,
@@ -73,29 +61,22 @@ function buildMemberContext(
   };
 }
 
-/**
- * The hackathon a membership belongs to when the caller does not name one: the
- * edition actually running, and only once nothing is running the newest one by
- * start date. Next year's edition is drafted long before it runs, so ordering
- * by start date alone hands every membership lookup to a future draft the day
- * staff create it. Every membership read and write has to agree on this, or a
- * payment lands under one edition while the status lookup asks about another.
- */
+// Default edition: the one running, else the newest by start date. Every
+// membership read and write must agree, or a payment lands under one edition
+// while the status lookup asks about another.
 export async function resolveHackathonId(
   db: DrizzleDB,
   inputId?: string,
 ): Promise<string | undefined> {
   if (inputId) return inputId;
 
-  // Two sequential queries, and this now sits on hot paths (door check-in,
-  // judge portal, every membership read). Which edition is current changes
-  // about twice a year, so it is cached; "" stands for none, since a cache
-  // miss also reads as null. Swept by the existing `hackathon*` invalidation.
+  // Cached: two queries on hot paths, and the current edition changes about
+  // twice a year. "" means none, since a miss also reads as null.
   const cached = cache.get<string>(CURRENT_HACKATHON_KEY);
   if (cached !== null) return cached || undefined;
 
-  // The rule itself lives in @query/db so the sign-in hook and the webhook run
-  // the same one; this wrapper only adds the cache.
+  // The rule lives in @query/db so sign-in and the webhook share it; this
+  // wrapper only adds the cache.
   const resolved = await resolveCurrentHackathonId(db);
 
   cache.set(CURRENT_HACKATHON_KEY, resolved ?? "", 60);
@@ -108,9 +89,8 @@ export async function fetchPortalContext(
   db: DrizzleDB,
   userId: string,
 ): Promise<PortalContext> {
-  // All four in one round trip. The member read used to run after the batch
-  // even though it depends on nothing in it, which made every portal page wait
-  // two round trips for a context it could have had in one.
+  // All four in one round trip — the member read depends on nothing in the
+  // batch and used to cost a second one.
   const [admin, judgeRecord, leaderRecord, memberRecord] = await Promise.all([
     db.query.admins.findFirst({
       where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
@@ -119,8 +99,7 @@ export async function fetchPortalContext(
       where: and(eq(judges.userId, userId), eq(judges.isActive, true)),
       columns: { id: true, name: true },
     }),
-    // Club side, so it does not wait on the edition and does not disappear
-    // between editions the way it used to.
+    // Club side, so it neither waits on the edition nor vanishes between them.
     db.query.projectLeaders.findFirst({
       where: and(
         eq(projectLeaders.userId, userId),
@@ -128,12 +107,11 @@ export async function fetchPortalContext(
       ),
       columns: { id: true },
     }),
-    // Membership no longer depends on an edition resolving, so the portal knows
-    // who is a member even when no hackathon is running.
+    // Membership does not depend on an edition resolving.
     db.query.members.findFirst({
       where: eq(members.userId, userId),
-      // buildMemberContext reads four fields; the row carries the whole
-      // profile, including free-text bio and skills arrays.
+      // Four fields only; the row carries the whole profile, bio and skills
+      // arrays included.
       columns: {
         isActive: true,
         membershipEndDate: true,
@@ -143,8 +121,8 @@ export async function fetchPortalContext(
     }),
   ]);
 
-  // A lapsed fixed-term appointment counts as no admin row at all, so the
-  // portal nav and the API gates agree on who is staff today.
+  // A lapsed fixed-term appointment counts as no admin row, so nav and the
+  // API gates agree on who is staff today.
   const staff = isExpiredAdmin(admin) ? null : admin;
 
   const member = buildMemberContext(memberRecord ?? null);
@@ -152,9 +130,8 @@ export async function fetchPortalContext(
   const isProjectLeader = !!leaderRecord;
 
   return {
-    // A volunteer holds an admins row but is not staff. Reporting them as
-    // admin here would render the whole admin nav for someone every one of
-    // those pages rejects.
+    // A volunteer holds an admins row but is not staff — reporting them as admin
+    // renders nav that every one of those pages rejects.
     isAdmin: isStaffRole(staff?.role),
     isScanner: !!staff,
     role: staff?.role ?? null,
@@ -162,11 +139,8 @@ export async function fetchPortalContext(
     isJudge: !!judgeRecord,
     judgeId: judgeRecord?.id ?? null,
     judgeName: judgeRecord?.name ?? null,
-    // Admins cover for leaders, and the middleware agrees — so the tab has to
-    // appear for them too or staff see a page they are allowed to use but
-    // cannot reach. isStaffRole, not `!!admin`: a volunteer holds an admins
-    // row but isProjectLeader (procedures.ts) rejects them, so the bare truthy
-    // check advertised /lead to the one role that cannot open it.
+    // Admins cover for leaders and the middleware agrees. isStaffRole, not
+    // !!admin: isProjectLeader rejects volunteers.
     isProjectLeader: isProjectLeader || isStaffRole(staff?.role),
     member,
   };

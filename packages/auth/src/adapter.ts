@@ -16,9 +16,9 @@ function createAdapter(): Adapter | undefined {
       verificationTokensTable: verificationTokens,
     });
 
-    // Override BOTH token methods with raw SQL to avoid Drizzle "boolin"
-    // type errors that affect all verificationToken queries in our
-    // deployment environment when using the pgTable compound primary key.
+    // Both token methods overridden with raw SQL: drizzle raises "boolin" type
+    // errors on every verificationToken query in our deployment when the pgTable
+    // uses a compound primary key.
     return {
       ...baseAdapter,
       createVerificationToken: async (

@@ -19,38 +19,23 @@ if (DATABASE_URL) {
     new Pool({
       connectionString: DATABASE_URL,
       allowExitOnIdle: true,
-      /**
-       * Fail fast rather than sit on a Cloud Run request slot.
-       *
-       * At concurrency 80 against `max` connections, a saturated pool queues
-       * the rest. Waiting ten seconds for a checkout means each waiter holds
-       * its request slot for ten seconds and then surfaces a masked "an
-       * unexpected error occurred" anyway — so the instance spends its
-       * capacity on requests that were always going to fail. Three seconds
-       * returns the slot while a retry can still succeed.
-       */
+      // Fail fast rather than sit on a Cloud Run request slot. At concurrency 80 a
+      // saturated pool queues the rest, and a ten-second wait means each waiter
+      // holds its slot for ten seconds and then surfaces a masked error anyway.
+      // Three seconds returns the slot while a retry can still succeed.
       connectionTimeoutMillis: Number(
         process.env.DB_CONNECTION_TIMEOUT_MS ?? 3000,
       ),
       idleTimeoutMillis: 10000, // 10s idle timeout
-      /**
-       * Kept warm. pg-pool's reaper drains to `min` (0 by default), so raising
-       * idleTimeoutMillis alone does nothing — every burst after a quiet spell
-       * paid a fresh connection handshake before it could run a query.
-       */
+      // Kept warm. pg-pool's reaper drains to `min` (0 by default), so raising
+      // idleTimeoutMillis alone does nothing — every burst after a quiet spell paid
+      // a fresh connection handshake first.
       min: 2,
-      /**
-       * The open question here was whether the connection string points at
-       * Neon's pooled endpoint. It does — the host ends in `-pooler` — so the
-       * ceiling is PgBouncer's, which is thousands of client connections, not
-       * a compute's max_connections.
-       *
-       * At concurrency 80 a cap of 10 meant a burst queued 70 requests behind
-       * 10 connections, and connectionTimeoutMillis then failed the ones that
-       * waited longest. 20 halves that queue while 10 instances x 20 is still
-       * far inside what the pooler serves. Still env-tunable, so it can be put
-       * back from config without a redeploy.
-       */
+      // The connection string points at Neon's pooled endpoint (the host ends in
+      // `-pooler`), so the ceiling is PgBouncer's — thousands of client
+      // connections, not a compute's max_connections. At concurrency 80 a cap of 10
+      // queued 70 requests behind 10 connections; 20 halves that and 10 instances
+      // x 20 is still far inside what the pooler serves. Env-tunable.
       max: Number(process.env.DB_POOL_MAX ?? 20),
       ssl:
         process.env.NODE_ENV === "production"

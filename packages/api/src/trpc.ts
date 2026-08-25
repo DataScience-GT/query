@@ -42,14 +42,9 @@ const t = initTRPC.context<Context>().create({
 export const createTRPCRouter = t.router;
 export const mergeRouters = t.mergeRouters;
 
-/**
- * Times every procedure. Outermost on purpose: a request rejected by the rate
- * limiter or the sanitizer is still a request, and a spike in cheap rejections
- * is exactly the shape of an incident worth seeing.
- *
- * `path` is the procedure name, a fixed set from the router, so this cannot mint
- * unbounded label values the way a raw URL would.
- */
+// Times every procedure. Outermost on purpose: a request the rate limiter
+// rejects is still a request, and cheap rejections spiking is the shape of an
+// incident. `path` is a fixed set, so no unbounded label values.
 const recordDuration = t.middleware(async ({ next, path, type }) => {
   const stop = trpcDuration.startTimer({ procedure: path, type });
   const result = await next();
@@ -73,31 +68,13 @@ const requiresDb = t.middleware(async ({ ctx, next }) => {
   });
 });
 
-/**
- * Dangerous markup is REJECTED, never rewritten.
- *
- * Rewriting means silently changing what somebody wrote, and an HTML parser
- * run over prose is destructive far beyond markup: it treats an unterminated
- * "<word" as an open tag and drops it along with everything after it. A
- * submission reading "picks the class where loss<threshold, then retrains"
- * would be stored as "picks the class where loss", with nothing to tell the
- * author it happened. Bouncing the request instead is visible and recoverable.
- *
- * The bar is deliberately "could this execute somewhere", not "does this look
- * like HTML" — React escapes on render, so this is defence in depth for the
- * places a value might reach an HTML sink, and a hackathon full of people
- * writing `vector<int>` or `a<b` must not be caught by it.
- */
-/**
- * Tag names that could execute somewhere if they reached an HTML sink.
- *
- * Matched with a linear scan, not a regex. The previous patterns
- * (`/<\s*\/?\s*(script|…)\b/` and `/<[a-zA-Z][^>]*\bon[a-z]+\s*=/`) were
- * polynomial in the length of attacker-controlled input (CodeQL #804/#805):
- * nested `\s*` and `[^>]*` plus a later alternative make the matcher walk the
- * same prefix over and over. A hackathon payload is large enough for that to
- * stall the instance; a linear walk cannot.
- */
+// Dangerous markup is REJECTED, never rewritten. An HTML parser run over
+// prose is destructive: "picks the class where loss<threshold, then retrains"
+// would be stored as "picks the class where loss". The bar is "could this
+// execute somewhere", not "looks like HTML", so `vector<int>` survives.
+// Tag names that could execute if they reached an HTML sink. Linear scan,
+// not a regex: the old patterns were polynomial in attacker-controlled input
+// (CodeQL #804/#805), and a hackathon-sized payload stalled the instance.
 const DANGEROUS_TAGS = [
   "script",
   "iframe",
@@ -142,15 +119,9 @@ const isNameBoundary = (ch: string | undefined) => {
   );
 };
 
-/**
- * `onerror=` / `onload=` only count inside a tag. Matched loosely it would
- * reject prose like "onboarding = great".
- *
- * A start-of-handler is a word boundary, same as the old `\bon` regex: `/`
- * counts (`<div/onmouseover=` is valid HTML), letters and digits do not.
- * `end` is already bounded (next `>` or 2048 chars), so this is linear in a
- * small window rather than in the whole payload.
- */
+// `onerror=` only counts inside a tag — matched loosely it would reject prose
+// like "onboarding = great". Word boundary as before: `/` counts, letters and
+// digits do not. `end` is bounded, so this is linear in a small window.
 const isWordChar = (ch: string) =>
   (ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9") || ch === "_";
 
@@ -182,13 +153,9 @@ const hasInlineHandler = (lower: string, start: number, end: number) => {
   return false;
 };
 
-/**
- * True when the string could execute if it reached an HTML sink.
- *
- * `javascript:` is a substring check (case-insensitive). Tags and handlers
- * are found by walking `<` … `>` so combining characters / long runs of
- * spaces cannot force backtracking.
- */
+// True when the string could execute at an HTML sink. `javascript:` is a
+// case-insensitive substring; tags and handlers are found by walking `<`…`>`,
+// so long runs of spaces cannot force backtracking.
 export const hasDangerousMarkup = (value: string): boolean => {
   const lower = value.toLowerCase();
   if (lower.includes("javascript:")) return true;
@@ -224,38 +191,19 @@ const isPlainObject = (value: object) => {
   return proto === Object.prototype || proto === null;
 };
 
-/**
- * Rejects executable markup anywhere in a request payload, and rebuilds the
- * object so prototype-polluting keys cannot ride along. Strings are passed
- * through byte for byte — SQL injection is already covered by parameterised
- * queries, so nothing here guesses at SQL either, and ordinary prose ("select a
- * track from the list") has to survive untouched. Values that are not strings,
- * arrays or plain objects (Date, Buffer, …) are handed on as-is so the
- * procedure's own validator still sees them.
- */
-/**
- * Ceiling on any array reaching a procedure, checked before zod runs.
- *
- * Must stay at or above the largest bound any input schema declares, or that
- * schema is unreachable: this throws "Array too large" first, so a procedure
- * advertising `.max(2500)` would reject at 501 with a message that names
- * neither the real limit nor the field. It sat at 500 while
- * batchUpdateParticipantStatus allowed 2500, which made approving a
- * 2000-person roster impossible in a single call.
- *
- * This is not the payload guard — scrubbing an array of uuids is linear and
- * cheap. Request size is bounded separately by validateRequestSize.
- */
+// Rejects executable markup anywhere in a payload and rebuilds the object so
+// prototype-polluting keys cannot ride along. Strings pass through byte for
+// byte (prose must survive); Date, Buffer and friends are handed on as-is so
+// the procedure's own validator still sees them.
+// Ceiling on any array reaching a procedure, checked before zod. Must stay at
+// or above the largest bound any input schema declares, or that schema is
+// unreachable — at 500 it made approving a 2000-person roster impossible.
+// Not the payload guard; request size is bounded by validateRequestSize.
 const MAX_ARRAY_LENGTH = 2500;
 
-/**
- * Exported so the suite can test the sanitizer the product actually runs.
- *
- * There used to be a second one — `sanitizeInput` in middleware/security.ts —
- * which *stripped* markup instead of refusing it, had no caller anywhere, and
- * was what every sanitizer test asserted against. The tests passed while
- * describing behaviour the request path did not have.
- */
+// Exported so the suite tests the sanitizer the product actually runs. The
+// old `sanitizeInput` in middleware/security.ts stripped markup instead of
+// refusing it, had no caller, and was what every sanitizer test asserted on.
 export const scrubMarkup = (input: unknown, depth = 0): unknown => {
   if (depth > 10) {
     throw new TRPCError({
@@ -332,8 +280,8 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
 
   const scrubbed = scrubMarkup(rawInput);
 
-  // The validator and the resolver both read the input through getRawInput, so
-  // replacing it here is what makes the scrubbed value the one that is stored.
+  // Validator and resolver both read input through getRawInput, so replacing it
+  // here is what makes the scrubbed value the one that is stored.
   return next({ getRawInput: () => Promise.resolve(scrubbed) });
 });
 
@@ -371,9 +319,8 @@ const uploadSanitizeInputs = t.middleware(
       });
     }
 
-    // We intentionally skip the recursive `scrubMarkup` here because it truncates
-    // strings longer than 10,000 characters (base64 strings are much larger).
-    // The zod validator on the procedure will ensure it's a valid data URI structure.
+    // Skips scrubMarkup: it truncates strings over 10,000 characters and base64
+    // is far larger. The zod validator still checks the data URI structure.
 
     const result = await next();
 
@@ -389,11 +336,8 @@ const uploadSanitizeInputs = t.middleware(
   },
 );
 
-/**
- * Surgical cache invalidation: each mutation path maps to the exact cache key
- * patterns it should evict, rather than blindly wiping an entire namespace.
- * Unmapped routes fall back to namespace-level eviction.
- */
+// Surgical invalidation: each mutation path maps to the exact key patterns it
+// should evict. Unmapped routes fall back to namespace-level eviction.
 const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // Hackathon mutations — scope by what actually changed
   "hackathon.register": ["hackathon:*:participants", "hackathon:*:analytics"],
@@ -405,24 +349,21 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
     "hackathon:*:participants",
     "hackathon:*:analytics",
   ],
-  // A badge scan changes one event's attendee count, not the roster. The
-  // resolver evicts that single key by id; an empty list here keeps the
-  // namespace fallback below from wiping every attendee's cached registrations
-  // on every scan, all weekend, at every door.
+  // A badge scan changes one event's attendee count, not the roster; the
+  // resolver evicts that key by id. Empty rather than absent, so the namespace
+  // fallback cannot wipe every attendee's registrations at every door.
   "hackathon.scanParticipantPass": [],
   // `hackathons:list*`, not `hackathons:list`: deletePattern anchors with `$`,
-  // so a pattern with no wildcard matches no real key — every one of these
-  // carries a viewer/status/limit suffix. And because the map HAS an entry, the
-  // namespace fallback below is skipped, so the effect was that nothing at all
-  // was evicted when an edition changed.
+  // and every real key carries a viewer/status/limit suffix. With an entry
+  // present the namespace fallback is skipped, so nothing was evicted at all.
   "hackathon.create": ["hackathons:list*"],
   "hackathon.update": ["hackathons:list*", "hackathon:*"],
   "hackathon.delete": ["hackathons:list*", "hackathon:*"],
   "hackathon.createEvent": ["hackathon:*:events"],
   "hackathon.updateEvent": ["hackathon:*:events"],
   "hackathon.deleteEvent": ["hackathon:*:events"],
-  // Interest list. Both writes move the admin list and the caller's own
-  // "am I on it" answer, and the two are read from the same namespace.
+  // Both writes move the admin list and the caller's own "am I on it" answer,
+  // and the two are read from the same namespace.
   "hackathon.registerInterest": ["hackathon:*:interest"],
   "hackathon.withdrawInterest": ["hackathon:*:interest"],
   // Judge mutations — only invalidate judging-related keys
@@ -436,16 +377,15 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
     "hackathon:*:rankings",
     "hackathon:*:judge-analytics",
   ],
-  // Promotion creates judgeable projects and flips submissions to "judging",
-  // so both the public project list and the rankings view move.
+  // Promotion creates judgeable projects and flips submissions to "judging", so
+  // the public project list and the rankings view both move.
   "judge.promoteSubmissions": [
     "hackathon:*:projects",
     "hackathon:*:public-projects*",
     "hackathon:*:rankings",
   ],
   // Announcements write their own rows and nothing cacheable. Empty rather than
-  // absent, so neither one falls through to sweeping the whole hackathon
-  // namespace — which includes every attendee's cached registrations.
+  // absent, so this cannot sweep the whole hackathon namespace.
   "hackathon.createAnnouncement": [],
   "hackathon.sendBatch": [],
   // Same: the marker lives on hackathon_interest, which is not cached, and the
@@ -454,12 +394,9 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "judge.assignToHackathon": ["judge:*"],
   // Member mutations
   "member.update": ["member:*", "user:*:profile"],
-  // A renewal changes the membership the portal reads, so its context must go too
-  // Team mutations — team membership is embedded in both the public roster and
-  // each participant's own registration list
-  // team.list is cached now, and the tab refetches straight after each of
-  // these — so the roster key has to go with them or the user sees the state
-  // they just changed back again.
+  // Renewal moves the membership the portal reads, so its context goes too.
+  // Team mutations: membership is embedded in the public roster and in each
+  // participant's registration list, and the tab refetches straight after.
   "team.createTeam": [
     "hackathon:*:participants",
     "hackathon:*:teams",
@@ -497,8 +434,7 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "hackathon.adminWithdrawProject": [],
   // Both evict precisely in the resolver. Left unmapped they fall through to
   // deletePattern("hackathon:*"), which also matches every attendee's cached
-  // registrations and the rankings entry — and removeEventAttendance is
-  // reachable by a volunteer pressing Undo at a check-in desk.
+  // registrations — and a volunteer pressing Undo reaches this.
   "hackathon.removeEventAttendance": [],
   "hackathon.sendMassAcceptanceEmails": [],
   // Publishing and unpublishing change what the public getResults returns.
@@ -508,7 +444,7 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // Stripe — invalidate member status after linking
   "stripe.attemptAutoLink": ["member:*"],
   "stripe.linkAccount": ["member:*"],
-  // Initiatives. Every write moves what BOTH the member list and the leader's
+  // Every initiative write moves what both the member list and the leader's
   // queue show, so neither namespace can be evicted on its own.
   "initiative.create": ["initiative:*"],
   "initiative.update": ["initiative:*"],
@@ -519,19 +455,18 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   "initiative.withdraw": ["initiative:*"],
   "initiative.propose": ["initiative:*"],
   "initiative.withdrawProposal": ["initiative:*"],
-  // setLeader and reviewProposal clear the role gate and portal context
-  // themselves, by user id — this only sweeps the list caches.
+  // setLeader and reviewProposal clear the role gate and portal context by user
+  // id themselves; this only sweeps the list caches.
   "initiative.setLeader": ["initiative:*"],
   "initiative.reviewProposal": ["initiative:*"],
-  // Events (club check-ins). Same wildcard rule as the hackathon list above —
-  // the real keys are `events:list:all` and `events:list:public`.
+  // Same wildcard rule as the hackathon list — the real keys are
+  // `events:list:all` and `events:list:public`.
   "events.create": ["events:list*"],
   "events.update": ["events:list*", "event:*"],
   "events.delete": ["events:list*"],
   "events.toggleCheckIn": ["events:list*"],
-  // A scan changes the caller's own attendance, which is cached per user for
-  // 60s — without these the member who just scanned sees no change and scans
-  // again.
+  // A scan changes the caller's own attendance, cached per user for 60s —
+  // without these the member who just scanned sees no change and scans again.
   "events.checkIn": ["events:list*", "events:my*", "events:stats*", "member:*"],
 };
 
@@ -554,24 +489,18 @@ const cacheInvalidationMiddleware = t.middleware(
   },
 );
 
-/**
- * `requiresDb` first, exactly as on the authenticated procedures.
- *
- * Without it, a public query running with no database connection fell through
- * to whatever its own `if (!db)` branch did — and those return `null`, which
- * renders as "nothing announced yet" rather than as a failure. A misconfigured
- * deploy therefore looked like an empty product instead of a broken one.
- */
+// `requiresDb` first, exactly as on the authenticated procedures. Without it
+// a public query with no database fell through to its own `if (!db)` branch
+// returning null, so a misconfigured deploy looked empty, not broken.
 export const publicProcedure = t.procedure
   .use(recordDuration)
   .use(requiresDb)
   .use(sanitizeInputs)
   .use(enforceContentType)
   .use(async ({ ctx, next, type }) => {
-    // Flood protection. Key on the signed-in user when there is one: at a
-    // 2000-person venue every attendee shares one NAT address, so an
-    // address-keyed bucket blocks the whole building the moment the schedule
-    // page gets popular. Prefixes keep the two namespaces from colliding.
+    // Flood protection, keyed on the signed-in user when there is one: at a
+    // 2000-person venue everyone shares one NAT address, so an address-keyed
+    // bucket blocks the building. Prefixes keep the namespaces from colliding.
     const ddosCheck = ddosProtection(
       ctx.userId ? `user:${ctx.userId}` : `ip:${ctx.clientIp}`,
     );
@@ -663,15 +592,8 @@ export const uploadProcedure = t.procedure
   .use(enforceContentType)
   .use(cacheInvalidationMiddleware);
 
-/*
- * There is deliberately no `adminProcedure` or `judgeProcedure` here.
- *
- * Both used to exist and were byte-for-byte identical to `protectedProcedure` —
- * no role check of any kind. Writing `adminProcedure.mutation(...)`, which is
- * the obvious thing to reach for, shipped an admin endpoint open to every
- * signed-in user, and it typechecked, linted and built cleanly. Neither had a
- * single caller, so the names existed only to be misused.
- *
- * The real gates live in middleware/procedures.ts: `isAdmin` (full staff),
- * `isSuperAdmin`, `isScanner` (volunteers included) and `isJudge`. Use those.
- */
+// No `adminProcedure` or `judgeProcedure` here. Both existed and were
+// identical to `protectedProcedure` — no role check — so the obvious call
+// shipped an admin endpoint open to every signed-in user, and it built
+// cleanly. The real gates are in middleware/procedures.ts: isAdmin,
+// isSuperAdmin, isScanner (volunteers included) and isJudge.

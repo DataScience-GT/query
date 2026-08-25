@@ -1,19 +1,11 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
-/**
- * Owns the pooled SMTP connection for the process.
- *
- * `pool: true` only does anything if the transporter outlives the message.
- * Built per call it was worse than useless: every recipient paid a fresh
- * TCP + TLS + AUTH handshake and left a pool behind to be garbage collected.
- * A mass acceptance send is thousands of messages, so that is the difference
- * between a batch that finishes and one that times out.
- *
- * The connection is built on first send, so importing this module never
- * requires SMTP config. A transport can be injected instead, which is what
- * lets a test observe what would have been sent.
- */
+// Owns the pooled SMTP connection for the process. `pool: true` only does
+// anything if the transporter outlives the message — built per call, every
+// recipient paid a fresh TCP + TLS + AUTH handshake, which is the difference
+// between a mass send finishing and timing out. Built on first send, so
+// importing never requires SMTP config; a transport can be injected for tests.
 export class Mailer {
   private transporter: Transporter | null;
 
@@ -31,10 +23,9 @@ export class Mailer {
           pass: process.env.EMAIL_SERVER_PASSWORD,
         },
         pool: true,
-        // Deliberately env-tunable. A consumer Gmail account tolerates far
-        // less than a bulk provider, and the same code has to serve both:
-        // point EMAIL_SERVER_* at Mailgun/SendGrid/SES and raise these, no
-        // redeploy of anything but config.
+        // Deliberately env-tunable. A consumer Gmail account tolerates far less than
+        // a bulk provider, and the same code serves both: point EMAIL_SERVER_* at
+        // Mailgun/SendGrid/SES and raise these, config only.
         maxConnections: Number(process.env.EMAIL_MAX_CONNECTIONS || "5"),
         maxMessages: Number(process.env.EMAIL_MAX_MESSAGES || "100"),
       });
@@ -42,11 +33,8 @@ export class Mailer {
     return this.transporter;
   }
 
-  /**
-   * The one send path. Templates describe a message; this puts it on the wire,
-   * so the shell, the from address and the plain-text alternative cannot drift
-   * apart between them.
-   */
+  // The one send path. Templates describe a message; this puts it on the wire,
+  // so the shell, the from address and the text alternative cannot drift.
   async send({
     email,
     subject,
@@ -92,10 +80,8 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-/**
- * The shared shell every transactional message uses, so an announcement looks
- * like it came from the same organisation as the acceptance.
- */
+// The shared shell every transactional message uses, so an announcement looks
+// like it came from the same organisation as the acceptance.
 const renderShell = ({
   heading,
   bodyHtml,
@@ -144,14 +130,10 @@ const renderShell = ({
 
 const DEFAULT_HOST = "https://datasciencegt.org";
 
-/**
- * Every message this product sends, in one shape.
- *
- * `paragraphs` is plain text — always. Each one is escaped and wrapped, so no
- * template can turn a name, a hackathon title or an organiser's compose box
- * into markup in thousands of inboxes. A template that needs a link says so
- * with `ctaUrl`, not by writing an anchor.
- */
+// Every message this product sends, in one shape. `paragraphs` is plain text
+// — always. Each is escaped and wrapped, so no template can turn a name or an
+// organiser's compose box into markup in thousands of inboxes. A template
+// that needs a link says so with `ctaUrl`, not by writing an anchor.
 export type TransactionalEmail = {
   email: string;
   subject: string;
@@ -166,13 +148,8 @@ export async function sendTransactionalEmail(message: TransactionalEmail) {
   await mailer.send(message);
 }
 
-/**
- * One announcement to one recipient — "registration is open", "schedule is
- * live", "results are up".
- *
- * `body` is plain text written by an organiser in the admin panel, split on
- * blank lines into paragraphs.
- */
+// One announcement to one recipient. `body` is plain text written by an
+// organiser in the admin panel, split on blank lines into paragraphs.
 export async function sendAnnouncementEmail({
   email,
   subject,
@@ -198,12 +175,8 @@ export async function sendAnnouncementEmail({
   });
 }
 
-/**
- * Registration has opened on an edition the recipient asked to hear about.
- *
- * The interest list exists for exactly this moment and nothing sent it, so the
- * people who asked to be told found out from somewhere else, or not at all.
- */
+// Registration has opened on an edition the recipient asked to hear about.
+// The interest list exists for exactly this moment and nothing sent it.
 export async function sendRegistrationOpenEmail({
   email,
   hackathonName,
@@ -228,12 +201,8 @@ export async function sendRegistrationOpenEmail({
   });
 }
 
-/**
- * A judge's application was approved.
- *
- * Between applying and approval a judge had no email and no status screen,
- * while the success screen promised one.
- */
+// A judge's application was approved. Between applying and approval a judge
+// had no email and no status screen, while the success screen promised one.
 export async function sendJudgeApprovedEmail({
   email,
   hackathonName,
@@ -256,14 +225,9 @@ export async function sendJudgeApprovedEmail({
   });
 }
 
-/**
- * A decision on an application to join an initiative, or on a proposal to run
- * one.
- *
- * People applied and then heard nothing at all: the decision was recorded and
- * visible only to whoever made it, so the applicant's only option was to keep
- * checking the page.
- */
+// A decision on an application to join an initiative, or on a proposal to run
+// one. People applied and heard nothing: the decision was visible only to
+// whoever made it, so the applicant's only option was to keep checking.
 export async function sendInitiativeDecisionEmail({
   email,
   initiativeTitle,

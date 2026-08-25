@@ -22,16 +22,11 @@ export const userProfiles = pgTable(
     bio: text("bio"),
     website: text("website"),
     location: text("location"),
-    /**
-     * The member's Georgia Tech address, self-reported.
-     *
-     * Kept apart from `users.email`, which is whatever the identity provider
-     * returned and cannot be edited — most members sign in with a personal
-     * Google account, so the address the club actually needs is not the one
-     * auth knows about. Unique so two accounts cannot claim the same one;
-     * Postgres treats NULLs as distinct, so the constraint does not stop
-     * everyone else leaving it empty.
-     */
+    // The member's Georgia Tech address, self-reported. Kept apart from
+    // users.email, which is whatever the identity provider returned and cannot be
+    // edited — most members sign in with a personal Google account. Unique so two
+    // accounts cannot claim the same one; Postgres treats NULLs as distinct, so
+    // everyone else can still leave it empty.
     gtEmail: text("gt_email").unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -49,8 +44,8 @@ export const members = pgTable(
     memberType: text("member_type", { enum: ["new", "continuous"] })
       .notNull()
       .default("new"),
-    /** The member's scannable pass. Rotatable, so a photographed one can be
-     *  killed without touching the membership. */
+    // The member's scannable pass. Rotatable, so a photographed one can be killed
+    // without touching the membership.
     passCode: uuid("pass_code").defaultRandom().notNull().unique(),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
@@ -59,17 +54,12 @@ export const members = pgTable(
     major: text("major"),
     graduationYear: integer("graduation_year"),
     isActive: boolean("is_active").notNull().default(true),
-    /**
-     * Paid the bootcamp add-on on top of the membership. Set from the payment
-     * metadata, so it reflects what the member actually bought rather than
-     * anything a client can assert.
-     */
+    // Paid the bootcamp add-on on top of the membership. Set from the payment
+    // metadata, so it reflects what was bought rather than a client assertion.
     bootcampMember: boolean("bootcamp_member").notNull().default(false),
-    /**
-     * Which bootcamp they bought, as `2026-fall`. The boolean above never
-     * expires, so it cannot be the access check for a one-semester program —
-     * every gate compares this against `currentTerm()`.
-     */
+    // Which bootcamp they bought, as `2026-fall`. The boolean above never
+    // expires, so it cannot be the access check for a one-semester program —
+    // every gate compares this against currentTerm().
     bootcampTerm: text("bootcamp_term"),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
     membershipStartDate: timestamp("membership_start_date").notNull(),
@@ -84,18 +74,14 @@ export const members = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // user_id is indexed by unique_member_per_user below; a second copy only
-    // slowed every membership write.
-    // Optimized for "Active Members" directory listing
+    // For the "Active Members" directory listing. user_id is indexed by
+    // unique_member_per_user below; a second copy only slowed every write.
     index("member_active_type_idx").on(table.isActive, table.memberType),
-    // One membership per person, full stop.
-    //
-    // This was unique(userId, hackathonId), which welded a membership to a
-    // hackathon edition: the day the next edition opened, every read resolved
-    // to it, found no row, and every paying member silently became a
-    // non-member. A membership is an annual subscription defined by its own
-    // start and end dates — the edition contributed nothing to that meaning.
-    // Which YEAR somebody was a member is recorded in membership_history.
+    // One membership per person, full stop. This was unique(userId, hackathonId),
+    // which welded a membership to an edition: the day the next one opened every
+    // read resolved to it, found no row, and every paying member silently became
+    // a non-member. A membership is an annual subscription defined by its own
+    // dates. Which YEAR somebody was a member is in membership_history.
     unique("unique_member_per_user").on(table.userId),
   ],
 );

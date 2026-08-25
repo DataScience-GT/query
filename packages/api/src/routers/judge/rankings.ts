@@ -8,13 +8,9 @@ import { recordAdminAction } from "../../middleware/audit";
 import type { DrizzleDB } from "@query/db";
 import { zNormalize } from "./helpers";
 
-/**
- * The whole ranking pipeline, in one place.
- *
- * Extracted so the live view and the frozen snapshot cannot drift: two
- * implementations of a scoring formula are two different answers to "who
- * won", and only one of them gets announced.
- */
+// The whole ranking pipeline in one place, so the live view and the frozen
+// snapshot cannot drift: two implementations of a scoring formula are two
+// answers to "who won", and only one gets announced.
 async function computeRanking(db: DrizzleDB, hackathonId: string) {
   const projects = await db.query.judgingProjects.findMany({
     // Withdrawn entries stop counting toward the ordering.
@@ -39,9 +35,8 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
 
   const round2 = (n: number) => Math.round(n * 100) / 100;
 
-  // ─── Step 1: Collect all raw scores grouped by judge ──────────────────
-  // We need per-judge score distributions to perform Z-score normalization,
-  // which eliminates the "harsh judge / lenient judge" bias problem.
+  // Step 1: raw scores grouped by judge. Per-judge distributions are what
+  // Z-score normalization needs to cancel harsh-judge / lenient-judge bias.
   type VoteWithJudge = (typeof projects)[number]["votes"][number];
   const scoresByJudge = new Map<string, number[]>();
   for (const project of projects) {
@@ -65,8 +60,7 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
       : 1;
   const globalStd = Math.sqrt(globalVariance) || 1;
 
-  // ─── Step 3: Build per-judge normalized score lookup ──────────────────
-  // For each judge, map their raw score index to a Z-normalized score.
+  // Step 3: per judge, map their raw score index to a Z-normalized score.
   const normalizedScoreLookup = new Map<string, Map<number, number>>();
   for (const [judgeId, rawScores] of scoresByJudge.entries()) {
     const normalized = zNormalize(rawScores, globalMean, globalStd);
@@ -139,8 +133,8 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
     return {
       project: {
         id: project.id,
-        // Carried through so a frozen placing can name the team that built it.
-        // Without it a winner is a judging row and nothing more.
+        // Carried through so a frozen placing can name the team that built it —
+        // without it a winner is a judging row and nothing more.
         sourceProjectId: project.sourceProjectId,
         name: project.name,
         tableNumber: project.tableNumber,
@@ -198,8 +192,8 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
         )
       : 0;
 
-  // ─── Step 6: Bayesian + Z-score combined final score ──────────────────
-  // weightedScore blends normalized avg toward the global mean when few judges voted.
+  // Step 6: Bayesian + Z-score final. weightedScore blends the normalized
+  // average toward the global mean when few judges voted.
   const rankings = rawRankings.map((r) => {
     const n = r.voteCount;
     const weightedScore =
@@ -348,24 +342,17 @@ export const judgeRankingsRouter = createTRPCRouter({
       return result;
     }),
 
-  /**
-   * Freezes the current ordering into hackathon_result.
-   *
-   * Gated on judging being closed: the z-score normalisation runs over the
-   * whole vote set, so a single vote arriving after this would have shifted
-   * every score. Computing while judging is live produces a snapshot that is
-   * already stale.
-   *
-   * Idempotent — recomputing upserts onto result_unique_placing rather than
-   * appending a second, contradictory ordering. Published placings are left
-   * alone; unpublish first if you mean to change what people have seen.
-   */
+  // Freezes the current ordering into hackathon_result. Gated on judging being
+  // closed: the z-score normalisation runs over the whole vote set, so one late
+  // vote shifts every score and a snapshot taken while judging is live is
+  // already stale. Idempotent — recomputing upserts onto result_unique_placing.
+  // Published placings are left alone; unpublish first to change them.
   computeResults: isAdmin
     .input(
       z.object({
         hackathonId: z.string().uuid(),
-        /** Compute even though judging is still open. The result is a draft
-         *  of an ordering that is still moving. */
+        // Compute even though judging is still open. The result is a draft of an
+        // ordering that is still moving.
         force: z.boolean().default(false),
       }),
     )
@@ -408,15 +395,14 @@ export const judgeRankingsRouter = createTRPCRouter({
         });
       }
 
-      // Reuses the live ranking pipeline rather than duplicating the maths —
-      // two implementations of a scoring formula is two answers to "who won".
+      // Reuses the live ranking pipeline rather than duplicating the maths — two
+      // implementations is two answers to "who won".
       const { rankings } = await computeRanking(db, input.hackathonId);
 
       // A project nobody scored is not a placing. computeRanking gives every
       // unjudged entry a weightedScore of 0, so including them would publish
-      // hundreds of rows tied at zero in arbitrary order below the real
-      // results — and "47th place" is a worse thing to tell a team than
-      // nothing at all.
+      // hundreds of rows tied at zero below the real results — and "47th place" is
+      // a worse thing to tell a team than nothing at all.
       const placed = rankings.filter((row) => row.voteCount > 0);
 
       if (placed.length === 0) {
@@ -430,8 +416,8 @@ export const judgeRankingsRouter = createTRPCRouter({
             hackathonId: input.hackathonId,
             projectId: row.project.id,
             sourceProjectId: row.project.sourceProjectId ?? null,
-            // Never null — see the column comment. A NULL here silently
-            // defeats result_unique_placing and duplicates the ordering.
+            // Never null — see the column comment. A NULL silently defeats
+            // result_unique_placing and duplicates the ordering.
             track: "overall",
             placement: index + 1,
             weightedScore: row.weightedScore.toFixed(2),
@@ -454,8 +440,8 @@ export const judgeRankingsRouter = createTRPCRouter({
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:results`);
 
-      // Reported separately so an organiser can see that, say, 40 of 300
-      // projects were never reached before they publish.
+      // Reported separately so an organiser can see that, say, 40 of 300 projects
+      // were never reached before they publish.
       return {
         computed: placed.length,
         unjudged: rankings.length - placed.length,
@@ -502,8 +488,8 @@ export const judgeRankingsRouter = createTRPCRouter({
       return { published: rows.length };
     }),
 
-  /** Takes results back down. The rows survive, so publishing is reversible
-   *  rather than a one-way door on a wrong ordering. */
+  // Takes results back down. The rows survive, so publishing is reversible
+  // rather than a one-way door on a wrong ordering.
   unpublishResults: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {

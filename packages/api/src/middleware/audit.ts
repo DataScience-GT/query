@@ -2,21 +2,12 @@ import { auditLogs } from "@query/db";
 import { and, lt, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
-/**
- * How long a security or admin event is kept.
- *
- * Retention used to run from a GitHub Actions cron hitting a public route with
- * a bearer secret. That is three moving parts — a schedule, a shared secret,
- * and an internet-reachable endpoint whose only protection is that secret —
- * for a job whose entire content is two DELETEs. If the workflow was disabled,
- * the repo was renamed, or the secret rotated, retention stopped silently and
- * nothing anywhere reported it.
- *
- * Retention is now tied to writes instead. Audit rows only accumulate when
- * something writes them, so pruning on write is self-regulating: a busy period
- * prunes often, an idle one has nothing to prune. No scheduler, no endpoint,
- * no secret.
- */
+// How long a security or admin event is kept. Retention used to run from a
+// GitHub Actions cron hitting a public route with a bearer secret — three
+// moving parts for a job whose content is two DELETEs, and if the workflow
+// was disabled or the secret rotated it stopped silently. It is tied to
+// writes now: audit rows only accumulate when something writes them, so
+// pruning on write is self-regulating.
 const RETAIN_DAYS = 90;
 /** Critical events outlive the routine window; they are the ones worth keeping. */
 const RETAIN_CRITICAL_DAYS = 365;
@@ -27,30 +18,24 @@ const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 const cutoff = (days: number) =>
   new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-/**
- * Holds the "have we pruned recently" state that decides whether a write also
- * triggers retention. Two loose module flags could be read and written by any
- * code in the file; the throttle only works if nothing else can touch them.
- */
+// Holds the "have we pruned recently" state that decides whether a write also
+// triggers retention. Two loose module flags could be touched by any code in
+// the file; the throttle only works if nothing else can.
 export class AuditRetention {
   private lastPruneAt = 0;
   private inFlight = false;
 
   constructor(private readonly intervalMs: number = PRUNE_INTERVAL_MS) {}
 
-  /**
-   * Deletes expired audit rows, at most once per interval per process.
-   *
-   * Deliberately not awaited by callers and deliberately silent on failure:
-   * retention is housekeeping, and a full audit table is a much smaller problem
-   * than an admin action that fails because housekeeping did.
-   */
+  // Deletes expired audit rows, at most once per interval per process. Not
+  // awaited and silent on failure: a full audit table is a much smaller problem
+  // than an admin action that fails because housekeeping did.
   maybePrune(db: DrizzleDB) {
     const now = Date.now();
     if (this.inFlight || now - this.lastPruneAt < this.intervalMs) return;
 
-    // Stamped before the await, so concurrent requests in the same process do
-    // not all decide to prune at once.
+    // Stamped before the await, so concurrent requests in the same process do not
+    // all decide to prune at once.
     this.lastPruneAt = now;
     this.inFlight = true;
 
@@ -85,20 +70,12 @@ const retention = new AuditRetention();
 
 export const maybePruneAuditLogs = (db: DrizzleDB) => retention.maybePrune(db);
 
-/**
- * Records an administrative action.
- *
- * `audit_logs` already had a table, an admin reader and a severity enum, but
- * its only writer was the security middleware's four rate-limit event types —
- * so every guard on the destructive paths was the last line of defence with
- * nothing behind it. When somebody forces past a confirmation at 2am, this is
- * the only thing that can say who, what and when afterwards.
- *
- * Deliberately fire-and-forget: an audit write must never be the reason an
- * organiser's action fails. A delete that succeeded and went unrecorded is bad;
- * a delete that was refused because the logging table was busy is worse, and
- * would be indistinguishable from the guard doing its job.
- */
+// Records an administrative action. `audit_logs` had a table, a reader and a
+// severity enum, but its only writer was the security middleware's four
+// rate-limit events — so every guard on the destructive paths had nothing
+// behind it. Fire-and-forget: a delete that succeeded and went unrecorded is
+// bad, but one refused because the logging table was busy is worse, and would
+// be indistinguishable from the guard doing its job.
 export const recordAdminAction = async (
   db: DrizzleDB,
   entry: {
