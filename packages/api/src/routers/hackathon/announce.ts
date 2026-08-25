@@ -24,46 +24,26 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
 
-/**
- * Mass announcements: "registration is open", "the schedule is live",
- * "results are up".
- *
- * Kept separate from sendMassAcceptanceEmails because the two differ in the
- * thing that matters — an acceptance also changes a participant's status and
- * must be exactly once, while an announcement writes nothing about the person
- * it is about. Sharing one procedure would have meant one set of guarantees
- * serving two jobs badly.
- *
- * Composing and sending are two steps. `createAnnouncement` freezes the message
- * and its audience into rows; `sendBatch` walks the un-sent ones. That split is
- * what makes a send resumable: the loop runs in an organiser's browser, and
- * before this a closed tab left no record of who had already been mailed —
- * re-running it mailed everyone again.
- */
+// Mass announcements: "registration is open", "results are up". Separate from
+// sendMassAcceptanceEmails because an acceptance also changes a participant's
+// status and must be exactly once, while an announcement writes nothing about
+// the person. Composing and sending are two steps: createAnnouncement freezes
+// the message and audience, sendBatch walks the un-sent rows. That split is
+// what makes a send resumable when an organiser's tab closes.
 
-/** Recipients per request. See MASS_EMAIL_BATCH on the client: each one is an
- *  SMTP round trip, and a request carrying more does not finish inside Cloud
- *  Run's timeout. */
+// Recipients per request. See MASS_EMAIL_BATCH on the client: each is an SMTP
+// round trip, and more does not finish inside Cloud Run's timeout.
 const MAX_RECIPIENTS_PER_CALL = 500;
 
-/**
- * How long a claimed-but-unsent recipient stays claimed.
- *
- * Long enough that a batch still working through its 500 SMTP round trips is
- * never reclaimed underneath itself, short enough that a request killed by a
- * deploy does not strand its rows for the rest of the event.
- */
+// How long a claimed-but-unsent recipient stays claimed. Long enough that a
+// batch working through 500 round trips is never reclaimed underneath itself,
+// short enough that a request killed by a deploy does not strand rows.
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
-/**
- * `not_accepted` is deliberately its own audience and deliberately last.
- *
- * Rejected and waitlisted applicants are excluded from every other audience —
- * a "see you this weekend" to somebody who was turned down is worse than no
- * email at all. But excluding them everywhere meant nothing in the product
- * could reach them, so the only outcome was silence. This audience exists to be
- * chosen on purpose, for a message written for it.
- */
+// `not_accepted` is its own audience and deliberately last. Rejected and
+// waitlisted applicants are excluded everywhere else — a "see you this
+// weekend" to somebody turned down is worse than no email — but excluding
+// them everywhere left silence as the only outcome. Chosen on purpose.
 const AUDIENCES = [
   "interested",
   "registered",
@@ -74,13 +54,10 @@ const AUDIENCES = [
 
 type Audience = (typeof AUDIENCES)[number];
 
-/**
- * Everyone in the chosen audience, as `{ userId, email }`.
- *
- * Email is read from the users table rather than stored alongside the interest
- * or participant row, so the address is the one the person actually uses — it
- * is then copied onto the recipient row, freezing the audience at compose time.
- */
+// Everyone in the chosen audience as `{ userId, email }`. Email comes from
+// the users table rather than the interest or participant row, so it is the
+// address they actually use; it is then copied onto the recipient row,
+// freezing the audience at compose time.
 const resolveAudience = async (
   db: DrizzleDB,
   hackathonId: string,
@@ -100,10 +77,9 @@ const resolveAudience = async (
       .orderBy(asc(hackathonInterest.userId));
   }
 
-  // "registered" is everyone holding a seat, whatever stage they are at.
-  // Rejected and waitlisted applicants are excluded from it and from the two
-  // narrower audiences; reaching them is what "not_accepted" is for, and it has
-  // to be picked deliberately.
+  // "registered" is everyone holding a seat, at any stage. Rejected and
+  // waitlisted are excluded from it and the two narrower audiences; reaching
+  // them is what "not_accepted" is for, and it has to be picked deliberately.
   const statuses =
     audience === "registered"
       ? (["pending", "approved", "checked_in"] as const)
@@ -126,8 +102,8 @@ const resolveAudience = async (
 };
 
 export const hackathonAnnounceRouter = createTRPCRouter({
-  /** How many people each audience would reach, so the compose screen can say
-   *  so before anything is sent. */
+  // How many people each audience would reach, so the compose screen can say so
+  // before anything is sent.
   audienceCounts: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -144,10 +120,8 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       return Object.fromEntries(entries) as Record<Audience, number>;
     }),
 
-  /**
-   * Announcements for this edition and how far each one got — so a reopened tab
-   * can pick an unfinished send back up instead of starting a duplicate.
-   */
+  // Announcements for this edition and how far each got, so a reopened tab can
+  // pick an unfinished send back up instead of starting a duplicate.
   listAnnouncements: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -182,13 +156,9 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       }));
     }),
 
-  /**
-   * Freezes a message and its audience. Sends nothing.
-   *
-   * The recipient rows written here are the resume marker: `sendBatch` only
-   * ever looks at rows with no `sentAt`, so a batch that never ran, a tab that
-   * was closed and a second click all converge on the same remaining set.
-   */
+  // Freezes a message and its audience. Sends nothing. The recipient rows are
+  // the resume marker: sendBatch only looks at rows with no sentAt, so a batch
+  // that never ran, a closed tab and a second click converge on the same set.
   createAnnouncement: isAdmin
     .input(
       z.object({
@@ -216,9 +186,8 @@ export const hackathonAnnounceRouter = createTRPCRouter({
         });
       }
 
-      // A CTA label without a target renders a dead button, and a target
-      // without a label renders nothing at all — neither is what the organiser
-      // meant, and both are only visible once it is in someone's inbox.
+      // A CTA label without a target renders a dead button, and a target without a
+      // label renders nothing — both only visible once it is in someone's inbox.
       if (!!input.ctaLabel !== !!input.ctaUrl) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -281,14 +250,10 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       };
     }),
 
-  /**
-   * Sends the next batch of an announcement. Call until `done`.
-   *
-   * Each recipient is marked the moment their send returns, so nothing depends
-   * on the caller keeping count — the client's offset arithmetic used to be the
-   * only thing standing between a dropped connection and a second delivery to
-   * everyone already reached.
-   */
+  // Sends the next batch. Call until `done`. Each recipient is marked the
+  // moment their send returns, so nothing depends on the caller keeping count —
+  // the client's offset arithmetic used to be the only thing between a dropped
+  // connection and a second delivery to everyone already reached.
   sendBatch: isAdmin
     .input(z.object({ announcementId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -305,21 +270,12 @@ export const hackathonAnnounceRouter = createTRPCRouter({
         });
       }
 
-      /**
-       * Claim the batch before sending a single message.
-       *
-       * Selecting `sent_at IS NULL` and marking afterwards left a window: two
-       * overlapping requests — two organisers, or one impatient double-click —
-       * both read the same rows and both sent to them. The claim is a single
-       * atomic UPDATE, so exactly one request wins each row and the loser gets
-       * a smaller batch rather than a duplicate delivery.
-       *
-       * A claim older than CLAIM_TIMEOUT_MS is reclaimable: a request that died
-       * mid-flight (timeout, deploy, crash) would otherwise leave its rows
-       * claimed forever and the send permanently unfinishable. The window is
-       * generous — re-sending to somebody is worse than making an organiser
-       * wait — and only a batch that genuinely stopped can hit it.
-       */
+      // Claim the batch before sending a single message. Selecting `sent_at IS
+      // NULL` and marking afterwards left a window where two overlapping requests
+      // both read the same rows and both sent. The claim is one atomic UPDATE, so
+      // the loser gets a smaller batch rather than a duplicate delivery. A claim
+      // older than CLAIM_TIMEOUT_MS is reclaimable, or a request that died
+      // mid-flight would leave its rows claimed forever.
       const claimCutoff = new Date(Date.now() - CLAIM_TIMEOUT_MS);
 
       const pending = await db
@@ -332,9 +288,8 @@ export const hackathonAnnounceRouter = createTRPCRouter({
               input.announcementId,
             ),
             isNull(hackathonAnnouncementRecipients.sentAt),
-            // A previously rejected address is left alone rather than retried
-            // on every batch, which would stall the loop on a permanent
-            // failure.
+            // A previously rejected address is left alone rather than retried on every
+            // batch, which would stall the loop on a permanent failure.
             isNull(hackathonAnnouncementRecipients.failedAt),
             or(
               isNull(hackathonAnnouncementRecipients.claimedAt),
@@ -398,8 +353,8 @@ export const hackathonAnnounceRouter = createTRPCRouter({
             .set({ failedAt: new Date() })
             .where(eq(hackathonAnnouncementRecipients.id, recipient.id));
 
-          // Deliberate server-side operational logging: this is the only
-          // record of which address the provider rejected.
+          // Deliberate operational logging: the only record of which address the
+          // provider rejected.
           // eslint-disable-next-line no-console
           console.error(
             `[Email Service] Announcement failed for ${recipient.email}:`,

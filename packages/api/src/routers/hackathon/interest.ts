@@ -23,22 +23,17 @@ import { isAdmin } from "../../middleware/procedures";
 import { rateLimit } from "../../middleware/security";
 import { VOLATILE_TTL } from "../../middleware/cache";
 
-/**
- * The interest list for an edition that has been announced but is not yet
- * taking registrations.
- *
- * Deliberately its own table rather than a `hackathon_participant` row with a
- * new status: an interested person has agreed to nothing, and putting them in
- * the participants table would have every count, export and capacity check
- * treat them as a registration. Converting one into the other is a decision
- * staff make when registration opens, not a status default.
- */
+// The interest list for an edition announced but not yet taking
+// registrations. Its own table rather than a participant row with a new
+// status: an interested person has agreed to nothing, and putting them in the
+// participants table would have every count, export and capacity check treat
+// them as a registration. Converting is a staff decision, not a default.
 
 const interestInput = z.object({
   hackathonId: z.string().uuid(),
   school: z.string().trim().max(200).optional(),
-  // Free text, not a country enum. The hackathon is global and a dropdown that
-  // is missing somebody's country is a worse failure than an untidy string.
+  // Free text, not a country enum. The hackathon is global and a dropdown
+  // missing somebody's country is a worse failure than an untidy string.
   country: z.string().trim().max(100).optional(),
   graduationYear: z.number().int().min(1900).max(2100).nullable().optional(),
   experience: z.enum(["first", "one_or_two", "three_plus"]).optional(),
@@ -47,27 +42,19 @@ const interestInput = z.object({
 const blankToNull = (value: string | undefined) =>
   value && value.length > 0 ? value : null;
 
-/** Recipients per request — one SMTP round trip each, and a request carrying
- *  more than this does not finish inside Cloud Run's timeout. Matches
- *  announce.ts. */
+// Recipients per request — one SMTP round trip each, and more than this does
+// not finish inside Cloud Run's timeout. Matches announce.ts.
 const MAX_RECIPIENTS_PER_CALL = 500;
 
-/** Same reasoning as announce.ts: a claim this old belonged to a batch that
- *  died, and must be reclaimable or the send can never finish. */
+// Same reasoning as announce.ts: a claim this old belonged to a batch that
+// died, and must be reclaimable or the send can never finish.
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
-/**
- * The edition the landing page is about.
- *
- * `open` and `in_progress` belong here, not just `announced`: /hacklytics is
- * the only public entrance — the 2027 site's single CTA and the navbar both
- * land on it — and filtering to `announced` alone meant that the moment an
- * organiser opened registration, the one page telling the world about the
- * hackathon said "Nothing announced yet".
- *
- * Soonest first, so announcing the year after next does not displace the one
- * being promoted now.
- */
+// The edition the landing page is about. `open` and `in_progress` belong here
+// too: /hacklytics is the only public entrance, so filtering to `announced`
+// meant that the moment registration opened, the one page telling the world
+// about the hackathon said "Nothing announced yet". Soonest first, so
+// announcing the year after next does not displace the one being promoted.
 const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "in_progress"] as const;
 
 /** What the landing page reads; also the shape held in the cache. */
@@ -96,24 +83,22 @@ async function findAnnounced(db: DrizzleDB) {
 }
 
 export const hackathonInterestRouter = createTRPCRouter({
-  /**
-   * Public: the coming-soon page has to render for somebody who has never
-   * signed in — that visitor is the entire audience for it.
-   */
+  // Public: the coming-soon page has to render for somebody who has never
+  // signed in — that visitor is the entire audience for it.
   getUpcoming: publicProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB | null;
     if (!db) return null;
 
-    // The landing page is the funnel, so this is the most-read query on the
-    // site and its answer changes about twice a year. Keyed under `hackathons:`
-    // so the eviction every edition write already runs clears it too.
+    // The landing page is the funnel, so this is the most-read query on the site
+    // and its answer changes about twice a year. Keyed under `hackathons:` so the
+    // eviction every edition write already runs clears it too.
     const cacheKey = "hackathons:upcoming";
     const cached = ctx.cache.get<UpcomingEdition | null>(cacheKey);
     if (cached !== null) return cached;
 
     // The empty case is deliberately not cached: `get` returns null for a miss
-    // too, so storing null would read as a hit that never happens. It is also
-    // the cheap case — no edition announced means the index scan finds nothing.
+    // too, so storing null reads as a hit that never happens. It is also the
+    // cheap case — no edition announced means the index scan finds nothing.
     const upcoming = await findAnnounced(db);
     if (!upcoming) return null;
 
@@ -126,8 +111,8 @@ export const hackathonInterestRouter = createTRPCRouter({
       endDate: upcoming.endDate,
       theme: upcoming.theme,
       websiteUrl: upcoming.websiteUrl,
-      // The page shows an interest form or a register CTA off this: the two
-      // states are the same edition at different moments, not different pages.
+      // The page shows an interest form or a register CTA off this: the two states
+      // are the same edition at different moments, not different pages.
       status: upcoming.status,
       // Exactly what `register` accepts. It refuses any status but `open` and
       // refuses a passed deadline, so reporting `in_progress` as open put a
@@ -139,9 +124,9 @@ export const hackathonInterestRouter = createTRPCRouter({
       registrationDeadline: upcoming.registrationDeadline,
     };
 
-    // Short TTL, because `registrationOpen` is time-dependent: the deadline can
-    // pass while an entry is live, and five seconds bounds how long the page
-    // can offer a Register button the server would refuse.
+    // Short TTL, because registrationOpen is time-dependent: the deadline can
+    // pass while an entry is live, and five seconds bounds how long the page can
+    // offer a Register button the server would refuse.
     ctx.cache.set(cacheKey, payload, VOLATILE_TTL);
 
     return payload;
@@ -160,11 +145,9 @@ export const hackathonInterestRouter = createTRPCRouter({
       return row ?? null;
     }),
 
-  /**
-   * Upserted, so submitting twice edits one entry rather than failing on the
-   * unique index or quietly creating a second. Somebody coming back to correct
-   * their graduation year should not have to find a delete button.
-   */
+  // Upserted, so submitting twice edits one entry rather than failing on the
+  // unique index or quietly creating a second. Somebody correcting their
+  // graduation year should not have to find a delete button.
   registerInterest: protectedProcedure
     .input(interestInput)
     .mutation(async ({ ctx, input }) => {
@@ -241,11 +224,8 @@ export const hackathonInterestRouter = createTRPCRouter({
       return { onList: false };
     }),
 
-  /**
-   * How many people are waiting to be told registration opened, and how many
-   * already were — so the admin screen can offer the send, and say what it
-   * would do, before anything leaves.
-   */
+  // How many people are waiting to be told registration opened, and how many
+  // already were — so the admin screen can say what the send would do first.
   registrationOpenEmailStatus: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -272,14 +252,10 @@ export const hackathonInterestRouter = createTRPCRouter({
       return { total, sent, failed, pending: total - sent - failed };
     }),
 
-  /**
-   * Tells the interest list that registration opened.
-   *
-   * The list exists for this one moment and nothing sent it — organisers had to
-   * hand-compose an announcement, and the runbook said so. Marked per recipient
-   * before the next one is attempted, so a closed tab, a timeout or an
-   * impatient second click resumes rather than mailing anyone twice.
-   */
+  // Tells the interest list that registration opened. The list exists for this
+  // one moment and nothing sent it. Marked per recipient before the next is
+  // attempted, so a closed tab or an impatient second click resumes rather than
+  // mailing anyone twice.
   notifyRegistrationOpen: isAdmin
     .input(
       z.object({
@@ -303,9 +279,9 @@ export const hackathonInterestRouter = createTRPCRouter({
         });
       }
 
-      // Telling the list to go and register while registration is shut is the
-      // one failure this message cannot recover from — everyone who acts on it
-      // lands on a closed page.
+      // Telling the list to go and register while registration is shut is the one
+      // failure this message cannot recover from — everyone who acts on it lands on
+      // a closed page.
       if (hackathon.status !== "open" && hackathon.status !== "in_progress") {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -314,15 +290,10 @@ export const hackathonInterestRouter = createTRPCRouter({
         });
       }
 
-      /**
-       * Claim before sending, exactly as announce.ts does.
-       *
-       * Reading the pending rows and marking them afterwards left a window in
-       * which two overlapping requests both selected the same people and both
-       * mailed them. The claim is one atomic UPDATE, so only one request wins
-       * each row; a claim older than CLAIM_TIMEOUT_MS is reclaimable so a
-       * request that died mid-batch does not strand its recipients.
-       */
+      // Claim before sending, exactly as announce.ts does. Reading the pending rows
+      // and marking them afterwards left a window where two overlapping requests
+      // both selected the same people and both mailed them. The claim is one atomic
+      // UPDATE; a claim older than CLAIM_TIMEOUT_MS is reclaimable.
       const claimCutoff = new Date(Date.now() - CLAIM_TIMEOUT_MS);
 
       const claimable = db
@@ -353,8 +324,8 @@ export const hackathonInterestRouter = createTRPCRouter({
           userId: hackathonInterest.userId,
         });
 
-      // The address is read from the users table so somebody who changed it
-      // still gets the mail; the claim above is keyed on the interest row.
+      // The address is read from the users table so somebody who changed it still
+      // gets the mail; the claim above is keyed on the interest row.
       const recipients = await db
         .select({ id: hackathonInterest.id, email: users.email })
         .from(hackathonInterest)
@@ -382,8 +353,8 @@ export const hackathonInterestRouter = createTRPCRouter({
             registerUrl: input.registerUrl,
           });
 
-          // Stamped immediately after the send, not in a batch at the end: a
-          // crash half-way through otherwise re-mails everyone already reached.
+          // Stamped immediately after the send, not batched at the end: a crash
+          // half-way through otherwise re-mails everyone already reached.
           await db
             .update(hackathonInterest)
             .set({ registrationOpenEmailSentAt: new Date() })
@@ -392,15 +363,14 @@ export const hackathonInterestRouter = createTRPCRouter({
           sent++;
         } catch (error) {
           failed.push(row.email);
-          // Marked failed rather than left pending. Left pending, a permanently
-          // bad address is re-attempted on every batch and the send can never
-          // report itself finished.
+          // Marked failed rather than left pending. Left pending, a permanently bad
+          // address is re-attempted every batch and the send never reports finished.
           await db
             .update(hackathonInterest)
             .set({ registrationOpenEmailFailedAt: new Date() })
             .where(eq(hackathonInterest.id, row.id));
-          // Deliberate server-side operational logging: this is the only record
-          // of which address the provider rejected.
+          // Deliberate operational logging: the only record of which address the
+          // provider rejected.
           // eslint-disable-next-line no-console
           console.error(
             `[Email Service] Registration-open notice failed for ${row.email}:`,
@@ -409,13 +379,8 @@ export const hackathonInterestRouter = createTRPCRouter({
         }
       }
 
-      /**
-       * Counted, not inferred from the batch size.
-       *
-       * `pending.length < MAX` reported "done" while recipients that had just
-       * failed were still unsent — and with failures now marked, the only
-       * honest answer is what the table says is left.
-       */
+      // Counted, not inferred from the batch size. `pending.length < MAX` reported
+      // "done" while recipients that had just failed were still unsent.
       const [remaining] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(hackathonInterest)
@@ -437,10 +402,8 @@ export const hackathonInterestRouter = createTRPCRouter({
       };
     }),
 
-  /**
-   * The list itself, for staff. Joined to `user` rather than storing a copy of
-   * the email, so a person who changes their address stays reachable.
-   */
+  // The list itself, for staff. Joined to `user` rather than storing a copy of
+  // the email, so a person who changes their address stays reachable.
   listInterest: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {

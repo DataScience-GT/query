@@ -7,12 +7,10 @@ import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
 
-/**
- * Postgres unique_violation. Drizzle wraps every driver error in a
- * DrizzleQueryError, which carries no `code` — the pg error holding the
- * SQLSTATE sits on `.cause` — so the chain has to be walked. Checking only the
- * top-level object silently never matches in production.
- */
+// Postgres unique_violation. Drizzle wraps every driver error in a
+// DrizzleQueryError, which carries no `code` — the pg error holding the
+// SQLSTATE sits on `.cause` — so the chain has to be walked. Checking the
+// top-level object alone silently never matches in production.
 const isUniqueViolation = (error: unknown) => {
   for (let cursor = error, depth = 0; cursor && depth < 5; depth++) {
     if (typeof cursor !== "object") break;
@@ -40,8 +38,8 @@ export const eventRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const qrCode = randomUUID();
 
-      // Term is derived, never sent — a client could otherwise file a session
-      // under a semester nobody is enrolled in.
+      // Term is derived, never sent — a client could otherwise file a session under
+      // a semester nobody is enrolled in.
       const [newEvent] = await (ctx.db as NonNullable<typeof ctx.db>)
         .insert(events)
         .values({
@@ -52,8 +50,8 @@ export const eventRouter = createTRPCRouter({
         })
         .returning()
         .catch((error: unknown) => {
-          // Guarded on the week: the QR code is unique too, and "Week
-          // undefined already exists" would be a baffling thing to read.
+          // Guarded on the week: the QR code is unique too, and "Week undefined already
+          // exists" would be a baffling thing to read.
           if (input.bootcampWeek && isUniqueViolation(error)) {
             throw new TRPCError({
               code: "CONFLICT",
@@ -69,13 +67,9 @@ export const eventRouter = createTRPCRouter({
       return newEvent;
     }),
 
-  /**
-   * Corrects a club event in place.
-   *
-   * Without this the only way to fix a typo in a title was to delete the event
-   * and make a new one — which destroys every check-in already collected
-   * against it, and mints a new QR code that the printed one no longer matches.
-   */
+  // Corrects a club event in place. Without it the only way to fix a typo was
+  // to delete the event and remake it, which destroys every check-in collected
+  // against it and mints a QR the printed one no longer matches.
   update: isAdmin
     .input(
       z.object({
@@ -106,9 +100,8 @@ export const eventRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
       }
 
-      // A cap below the number of people already scanned would make the counter
-      // read as over-full forever and refuse everyone at the door, with nothing
-      // saying why.
+      // A cap below the number already scanned would make the counter read
+      // over-full forever and refuse everyone at the door, with nothing saying why.
       if (
         typeof fields.maxCheckIns === "number" &&
         fields.maxCheckIns < existing.currentCheckIns
@@ -119,8 +112,8 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
-      // Term follows the week, or an event moved out of the bootcamp keeps
-      // holding week 3 against the next one created.
+      // Term follows the week, or an event moved out of the bootcamp keeps holding
+      // week 3 against the next one created.
       const bootcampTerm =
         fields.bootcampWeek === undefined
           ? undefined
@@ -349,9 +342,8 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // The public listing stops advertising an event 24h after it starts;
-          // the door has to agree, or a photographed QR keeps admitting people
-          // long after the event is over.
+          // The public listing stops advertising an event 24h after it starts; the door
+          // has to agree, or a photographed QR keeps admitting people afterwards.
           if (event.eventDate < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
             throw new TRPCError({
               code: "BAD_REQUEST",
@@ -359,10 +351,9 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Every guard below reads state this transaction is about to change.
-          // Locking the event row first is what makes them hold: two scanners
-          // otherwise decide on identical snapshots, so the same badge lands
-          // twice and a capped event overshoots.
+          // Every guard below reads state this transaction is about to change. Locking
+          // the event row first is what makes them hold: two scanners otherwise decide
+          // on identical snapshots, so the same badge lands twice and a cap overshoots.
           const [locked] = await tx
             .select({ currentCheckIns: events.currentCheckIns })
             .from(events)
@@ -370,10 +361,9 @@ export const eventRouter = createTRPCRouter({
             .for("update");
 
           const [member, existingCheckIn] = await Promise.all([
-            // Club check-in no longer depends on a hackathon edition existing.
-            // It used to skip this lookup entirely when none resolved, and
-            // then refuse everyone at the door with "Must be a member" — at a
-            // club event that has nothing to do with any hackathon.
+            // Club check-in no longer depends on a hackathon edition existing. It used to
+            // skip this lookup when none resolved and then refuse everyone at the door
+            // with "Must be a member" — at an event with nothing to do with a hackathon.
             tx.query.members.findFirst({
               where: eq(members.userId, ctx.userId as string),
             }),
@@ -385,10 +375,10 @@ export const eventRouter = createTRPCRouter({
             }),
           ]);
 
-          // An event marked open to everyone takes attendance from non-members
-          // too — that is the whole point of a kickoff or an interest meeting.
-          // Only an explicit false opens the door: anything else, including a
-          // row read before the column existed, keeps the membership gate.
+          // An event marked open to everyone takes attendance from non-members too —
+          // that is the point of a kickoff. Only an explicit false opens the door:
+          // anything else, including a row read before the column existed, keeps the
+          // membership gate.
           if (event.membersOnly !== false) {
             if (!member) {
               throw new TRPCError({
@@ -397,8 +387,8 @@ export const eventRouter = createTRPCRouter({
               });
             }
 
-            // isActive alone still admits a lapsed membership the portal
-            // already reports as expired.
+            // isActive alone still admits a lapsed membership the portal already reports
+            // as expired.
             if (
               !member.isActive ||
               !member.membershipEndDate ||
@@ -411,8 +401,8 @@ export const eventRouter = createTRPCRouter({
             }
           }
 
-          // Bought per semester, so last term's seat is not this term's.
-          // Officers can still check somebody in by hand.
+          // Bought per semester, so last term's seat is not this term's. Officers can
+          // still check somebody in by hand.
           if (event.bootcampOnly && member?.bootcampTerm !== currentTerm()) {
             throw new TRPCError({
               code: "FORBIDDEN",
@@ -427,8 +417,8 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Someone already inside is a duplicate, not an extra body, so the
-          // capacity gate only applies once that is ruled out.
+          // Someone already inside is a duplicate, not an extra body, so the capacity
+          // gate only applies once that is ruled out.
           if (
             event.maxCheckIns &&
             locked &&
@@ -440,10 +430,9 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // unique(event_id, user_id) is what actually settles a double tap:
-          // the read above only rules out badges already committed when this
-          // transaction began, and the loser has to read as the same conflict
-          // a sequential rescan gets rather than an unexplained failure.
+          // unique(event_id, user_id) is what settles a double tap: the read above only
+          // rules out badges committed before this transaction began, and the loser has
+          // to read as the same conflict a sequential rescan gets.
           try {
             await tx.insert(eventCheckIns).values({
               eventId: event.id,
@@ -461,10 +450,9 @@ export const eventRouter = createTRPCRouter({
             throw error;
           }
 
-          // The counter is the capacity, so the increment re-tests it in the
-          // same statement. A scanner that got past the gate above on a stale
-          // count finds no row left to claim, and throwing here takes the
-          // attendance row down with the transaction.
+          // The counter is the capacity, so the increment re-tests it in the same
+          // statement. A scanner past the gate on a stale count finds no row left to
+          // claim, and throwing takes the attendance row down with the transaction.
           const claimed = await tx
             .update(events)
             .set({
@@ -499,14 +487,10 @@ export const eventRouter = createTRPCRouter({
       );
     }),
 
-  /**
-   * Officer-side check-in, by email.
-   *
-   * `checkIn` is keyed on the caller's own session, so it only records people
-   * who are signed in and scanning for themselves. Nothing wrote the `manual`
-   * method the schema reserves, which left a door with a queue, a member who
-   * forgot their phone, or a guest at a recruiting event with no way in.
-   */
+  // Officer-side check-in by email. `checkIn` is keyed on the caller's own
+  // session, so it only records people scanning for themselves — which left a
+  // queue at the door, a member without their phone, or a guest at a recruiting
+  // event with no way in.
   manualCheckIn: isScanner
     .input(
       z.object({
@@ -613,14 +597,10 @@ export const eventRouter = createTRPCRouter({
       );
     }),
 
-  /**
-   * Officer-side check-in by scanning the member's pass.
-   *
-   * The club QR points the other way to the hackathon one — the event holds the
-   * code and members scan it — so a door with a queue had no scannable path at
-   * all. Membership is reported, not enforced: an officer scanning somebody in
-   * has already made that call, and a kickoff wants the lapsed ones too.
-   */
+  // Officer-side check-in by scanning the member's pass. The club QR points the
+  // other way to the hackathon one — the event holds the code and members scan
+  // it — so a door with a queue had no scannable path. Membership is reported,
+  // not enforced: the officer has already made that call.
   scanMemberPass: isScanner
     .input(
       z.object({
@@ -790,8 +770,8 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Guarded so a double undo cannot drive the counter negative and
-          // hand out capacity the room does not have.
+          // Guarded so a double undo cannot drive the counter negative and hand out
+          // capacity the room does not have.
           await tx
             .update(events)
             .set({ currentCheckIns: sql`${events.currentCheckIns} - 1` })

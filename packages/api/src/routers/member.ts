@@ -45,8 +45,8 @@ export const memberRouter = createTRPCRouter({
 
   register: protectedProcedure
     .input(
-      // Nullable for the same reason `update` is: the form sends null for a
-      // field left blank, and creating with null is simply creating without it.
+      // Nullable for the same reason `update` is: the form sends null for a field
+      // left blank, and creating with null is creating without it.
       z.object({
         firstName: nameSchema,
         lastName: nameSchema,
@@ -81,21 +81,13 @@ export const memberRouter = createTRPCRouter({
         });
       }
 
-      /**
-       * This writes a PROFILE, not a membership.
-       *
-       * It used to stamp `membershipEndDate = now + 1 year` and let the column
-       * default `isActive` to true, which handed any signed-in caller a full
-       * paid-tier membership over tRPC for nothing — the same hole the comment
-       * below records for the deleted `renew` endpoint. A membership is one
-       * paid year and `createOrUpdateMembership`, driven by a completed
-       * payment, is the only thing that may set a term.
-       *
-       * `membershipStartDate` is not null in the schema, so it carries when the
-       * profile was created. It grants nothing on its own: `isActive` is false
-       * and `membershipEndDate` is null, and both `checkStatus` and
-       * `buildMemberContext` require an unexpired end date.
-       */
+      // This writes a PROFILE, not a membership. It used to stamp
+      // `membershipEndDate = now + 1 year` and let isActive default true, handing
+      // any signed-in caller a paid-tier membership for nothing — the same hole the
+      // note below records for the deleted `renew`. Only createOrUpdateMembership,
+      // driven by a completed payment, may set a term. membershipStartDate is not
+      // null in the schema so it carries creation time; it grants nothing, since
+      // both checkStatus and buildMemberContext require an unexpired end date.
       const result = await (ctx.db as DrizzleDB)
         .insert(members)
         .values({
@@ -128,30 +120,22 @@ export const memberRouter = createTRPCRouter({
       }
 
       // No membershipHistory "joined" row either: nothing was joined until a
-      // payment lands, and createOrUpdateMembership is what records that.
+      // payment lands, and createOrUpdateMembership records that.
 
       invalidatePortalContext(ctx.userId!);
 
       return newMember;
     }),
 
-  /**
-   * Renewal is not an endpoint. A membership is one paid year, and the only
-   * thing that extends it is a completed payment through the portal, which
-   * runs createOrUpdateMembership in @query/db. A free renew procedure lived
-   * here and, being a plain protectedProcedure, let any signed-in user grant
-   * themselves another year over tRPC without paying.
-   */
+  // Renewal is not an endpoint. A membership is one paid year and only a
+  // completed payment extends it, through createOrUpdateMembership. A free
+  // renew procedure lived here as a plain protectedProcedure and let any
+  // signed-in user grant themselves another year over tRPC.
 
-  /**
-   * Every optional field is nullable, and null means CLEAR IT.
-   *
-   * Reported by review: with `undefined` as the only "not set" value, a member
-   * who emptied their LinkedIn field sent nothing, the server skipped the
-   * column, and the old value came back on the next read — a save that
-   * reported success and changed nothing. `null` is the difference between
-   * "leave this alone" and "remove it".
-   */
+  // Every optional field is nullable, and null means CLEAR IT. With `undefined`
+  // as the only "not set" value, a member who emptied their LinkedIn sent
+  // nothing, the column was skipped, and the old value came back — a save that
+  // reported success and changed nothing.
   update: protectedProcedure
     .input(
       z.object({
@@ -211,14 +195,9 @@ export const memberRouter = createTRPCRouter({
       return updatedMember;
     }),
 
-  /**
-   * The member directory, for staff.
-   *
-   * Was a `publicProcedure`, so anyone on the internet could page through every
-   * member's name, school and major for a directory no page renders. Whether
-   * the club wants a public directory is an open question (D3); until it is
-   * answered, the data is staff-only rather than open by default.
-   */
+  // The member directory, for staff. Was a publicProcedure, so anyone could
+  // page through every member's name, school and major for a directory no page
+  // renders. Staff-only until whether the club wants a public one is answered.
   list: isAdmin
     .input(
       z.object({
@@ -400,9 +379,8 @@ export const memberRouter = createTRPCRouter({
       }
 
       const result = {
-        // Paid and unexpired. A profile row with no payment, and a row whose
-        // year has run out, both answer false — the same rule the portal
-        // context uses, so the two can never disagree.
+        // Paid and unexpired. A profile with no payment and a row whose year ran out
+        // both answer false — the same rule the portal context uses.
         isMember: isActive,
         isActive,
         // Same rule as buildMemberContext: ran out, not revoked.
@@ -418,15 +396,10 @@ export const memberRouter = createTRPCRouter({
       return result;
     }),
 
-  /**
-   * Staff-facing membership operations.
-   *
-   * Somebody paying in cash at a table, an officer being comped, a refund that
-   * has to be honoured — none of these come through Stripe, and until now none
-   * of them had any path but direct SQL. Every one is audit-logged, because
-   * granting a paid membership for free is exactly the action a record needs to
-   * exist for.
-   */
+  // Staff-facing membership operations: cash at a table, a comped officer, a
+  // refund. None come through Stripe, and none had any path but direct SQL.
+  // All audit-logged — granting a paid membership for free is exactly the
+  // action a record needs to exist for.
   adminSearch: isAdmin
     .input(
       z.object({
@@ -486,13 +459,9 @@ export const memberRouter = createTRPCRouter({
       });
     }),
 
-  /**
-   * Grants or extends a membership without a payment, or shortens one.
-   *
-   * `months` is added to whatever term the person already has left, so comping
-   * somebody mid-term does not shorten them; a negative value is how a refund
-   * or a mistake is walked back.
-   */
+  // Grants or extends a membership without a payment, or shortens one. `months`
+  // is added to whatever term is left, so comping mid-term does not shorten
+  // anyone; a negative value walks back a refund or a mistake.
   adminGrant: isAdmin
     .input(
       z.object({
@@ -516,16 +485,11 @@ export const memberRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      /**
-       * One transaction, behind a lock on the member row.
-       *
-       * Two problems, both reported by review: the member update and its
-       * history row were separate writes, so a failure between them left a
-       * changed term with no record of why; and the new term was computed from
-       * a row read outside any lock, so two staff extending the same person at
-       * once both measured from the same end date and one of the two grants
-       * silently vanished.
-       */
+      // One transaction, behind a lock on the member row. The update and its
+      // history row were separate writes, so a failure between them left a changed
+      // term with no record of why; and the new term was computed from a row read
+      // outside any lock, so two staff extending the same person both measured from
+      // the same end date and one grant vanished.
       const outcome = await db.transaction(async (tx) => {
         const [locked] = await tx
           .select({
@@ -539,8 +503,7 @@ export const memberRouter = createTRPCRouter({
 
         const now = new Date();
         // Extending measures from the end of the current term, so a comp added
-        // mid-year is a year on top rather than a year from today — which would
-        // silently shorten somebody who had months left.
+        // mid-year is a year on top rather than a year from today.
         const base =
           locked?.membershipEndDate && locked.membershipEndDate > now
             ? locked.membershipEndDate
@@ -552,8 +515,8 @@ export const memberRouter = createTRPCRouter({
           await tx
             .update(members)
             .set({
-              // Removing months can leave the term in the past; the row then
-              // reads as lapsed rather than pretending to be active.
+              // Removing months can leave the term in the past; the row then reads as
+              // lapsed rather than pretending to be active.
               isActive: termEnd > now,
               membershipEndDate: termEnd,
               memberType: "continuous",
@@ -611,14 +574,13 @@ export const memberRouter = createTRPCRouter({
       clearMembershipCaches(input.userId);
 
       // After the writes, never inside a transaction with them: a failed audit
-      // insert aborts the Postgres session and turns the COMMIT into a silent
-      // ROLLBACK.
+      // insert aborts the session and turns COMMIT into a silent ROLLBACK.
       await recordAdminAction(db, {
         userId: ctx.userId,
         action: "member.adminGrant",
         resourceId: input.userId,
-        // Handing out a paid membership for nothing is precisely the action
-        // somebody may later need to account for.
+        // Handing out a paid membership for nothing is precisely the action somebody
+        // may later need to account for.
         severity: "critical",
         metadata: { months: input.months, note: input.note },
       });
@@ -629,13 +591,9 @@ export const memberRouter = createTRPCRouter({
       };
     }),
 
-  /**
-   * Ends a membership now.
-   *
-   * The row and its history stay: deleting the member would take the record of
-   * every year they were one with it, and this is usually a correction rather
-   * than a denial that the person existed.
-   */
+  // Ends a membership now. The row and its history stay: deleting the member
+  // would take the record of every year they were one, and this is usually a
+  // correction rather than a denial that the person existed.
   adminRevoke: isAdmin
     .input(
       z.object({
@@ -647,7 +605,7 @@ export const memberRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       // Same reasoning as adminGrant: the end and its history row are one
-      // transaction, so a membership can never be ended with no record of why.
+      // transaction, so a membership cannot be ended with no record of why.
       await db.transaction(async (tx) => {
         const [locked] = await tx
           .select({

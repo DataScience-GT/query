@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 
 // Single-row table: `id` is always "default". Modelled after the table that
-// already exists in the database so `drizzle-kit push` treats it as unchanged.
+// already exists so `drizzle-kit push` treats it as unchanged.
 export const systemSettings = pgTable("system_settings", {
   id: text("id").primaryKey().default("default"),
   systemName: text("system_name").notNull().default("DSGT Query Engine"),

@@ -59,10 +59,9 @@ export const adminRouter = createTRPCRouter({
   }),
 
   analyticsOverview: isAdmin.query(async ({ ctx }) => {
-    // The analytics page polls this every 5s and leaves it open all weekend.
-    // Five uncached aggregates per poll per open dashboard is a standing load
-    // for numbers nobody watches change second by second; a 15s entry means at
-    // most one round of aggregates per 15s no matter how many tabs are up.
+    // The analytics page polls this every 5s and stays open all weekend. Five
+    // uncached aggregates per poll per tab is a standing load for numbers nobody
+    // watches change second by second; a 15s entry caps it at one round per 15s.
     const cacheKey = "admin:analytics-overview";
     const cached = ctx.cache.get<{
       totalParticipants: number;
@@ -91,8 +90,8 @@ export const adminRouter = createTRPCRouter({
         .from(hackathons)
         .where(inArray(hackathons.status, ["open", "in_progress"])),
       // This dashboard covers both domains, and a QR scan lands in a different
-      // table depending on which one it came from: hackathon badge scans in
-      // hackathonEventAttendees, club door check-ins in eventCheckIns.
+      // table depending on which: hackathon badge scans in hackathonEventAttendees,
+      // club door check-ins in eventCheckIns.
       (ctx.db as DrizzleDB)
         .select({ count: count() })
         .from(hackathonEventAttendees)
@@ -144,15 +143,10 @@ export const adminRouter = createTRPCRouter({
     return allAdmins;
   }),
 
-  /**
-   * Finds the person a staff role is about to be granted to, by their exact
-   * sign-in address.
-   *
-   * Exact rather than a prefix search: this is the lookup that precedes handing
-   * out a role, and a partial match list is how the wrong Alex ends up with
-   * scanner access. It also means the endpoint cannot be used to enumerate the
-   * user table — it confirms an address somebody already knows.
-   */
+  // Finds the person a staff role is about to be granted to, by their exact
+  // sign-in address. Exact rather than a prefix search: a partial match list is
+  // how the wrong Alex ends up with scanner access, and it also means this
+  // cannot enumerate the user table — it confirms an address already known.
   findUserByEmail: isSuperAdmin
     .input(z.object({ email: z.string().trim().email().max(255) }))
     .query(async ({ ctx, input }) => {
@@ -176,14 +170,13 @@ export const adminRouter = createTRPCRouter({
     .input(
       z.object({
         userId: z.string().min(1).max(255),
-        // "volunteer" is the check-in desk tier: an active admins row that
-        // isAdmin deliberately rejects, so it grants badge scanning and
-        // nothing else. Without it here the only way to staff a scan station
-        // is a hand-written INSERT.
+        // "volunteer" is the check-in desk tier: an active admins row that isAdmin
+        // deliberately rejects, so it grants badge scanning and nothing else. Without
+        // it the only way to staff a scan station is a hand-written INSERT.
         role: z.enum(["super_admin", "admin", "moderator", "volunteer"]),
         permissions: z.array(z.string().max(100)).max(50).optional(),
-        // Fixed-term appointment. Omitted means standing, which is what the
-        // people who run the club hold.
+        // Fixed-term appointment. Omitted means standing, which is what the people
+        // who run the club hold.
         expiresAt: z.coerce.date().optional(),
       }),
     )
@@ -240,15 +233,15 @@ export const adminRouter = createTRPCRouter({
     .input(
       z.object({
         adminId: z.string().uuid(),
-        // Same set as create — otherwise an existing admin could be made a
-        // volunteer but a volunteer could never be promoted back.
+        // Same set as create — otherwise an existing admin could be made a volunteer
+        // but a volunteer could never be promoted back.
         role: z
           .enum(["super_admin", "admin", "moderator", "volunteer"])
           .optional(),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         isActive: z.boolean().optional(),
-        // How a term is renewed or made standing. null clears the end date;
-        // omitted leaves it alone.
+        // How a term is renewed or made standing. null clears the end date; omitted
+        // leaves it alone.
         expiresAt: z.coerce.date().nullable().optional(),
       }),
     )
@@ -267,8 +260,8 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      // Only a super admin can hand the role back out, so demoting the last
-      // one locks the org out of admin management with no in-app recovery.
+      // Only a super admin can hand the role back out, so demoting the last one
+      // locks the org out of admin management with no in-app recovery.
       if (
         targetAdmin.role === "super_admin" &&
         input.role &&

@@ -15,19 +15,12 @@ import {
 import { eq, and, inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
-/**
- * Re-derives hackathons.currentParticipants from the rows that actually hold a
- * seat. Rejected and waitlisted applicants do not hold one, and registration.ts
- * only ever increments the column, so every status change has to recompute it
- * from the participant table rather than trust the stored number — otherwise a
- * rejected applicant consumes capacity forever.
- *
- * The hackathon row is locked before the count is taken. `SET x = (subquery)`
- * plans that uncorrelated subquery once per statement, so without the lock a
- * register() committing while this UPDATE waits would have its increment
- * overwritten by a count taken before it landed: the seat total would drift
- * permanently low and eventually admit people past maxParticipants.
- */
+// Re-derives currentParticipants from the rows that actually hold a seat.
+// Rejected and waitlisted applicants do not, and registration.ts only ever
+// increments, so a rejected applicant would consume capacity forever. The
+// hackathon row is locked first: `SET x = (subquery)` plans the subquery once
+// per statement, so a register() committing mid-wait would be overwritten and
+// the seat total would drift low enough to admit people past maxParticipants.
 const syncCurrentParticipants = (db: DrizzleDB, hackathonId: string) =>
   db.transaction(async (tx) => {
     await tx
@@ -44,18 +37,11 @@ const syncCurrentParticipants = (db: DrizzleDB, hackathonId: string) =>
       .where(eq(hackathons.id, hackathonId));
   });
 
-/**
- * Evicts exactly the keys a participant status change moves.
- *
- * The old `deletePattern("hackathon*")` matched both the `hackathon:` and
- * `hackathons:` namespaces, so a single badge scan wiped every attendee's
- * cached registrations and the events list the whole venue reads. At 2000
- * people that turns a once-per-TTL query into a per-request one, during the
- * hour the schedule page is busiest.
- *
- * Each affected user's own registration list has to go too, or an acceptance
- * lands in somebody's inbox while their dashboard still says pending.
- */
+// Evicts exactly the keys a participant status change moves. The old
+// `deletePattern("hackathon*")` matched both namespaces, so one badge scan
+// wiped every attendee's cached registrations and the venue-wide events list.
+// Each affected user's own registration list goes too, or an acceptance lands
+// in their inbox while their dashboard still says pending.
 const evictParticipantCaches = (
   cache: { delete: (key: string) => boolean },
   hackathonId: string,
@@ -76,14 +62,9 @@ const PARTICIPANT_STATUSES = z.enum([
   "checked_in",
 ]);
 
-/**
- * The WHERE shared by the paged roster and the CSV export, so the file an
- * organiser downloads always matches the list they were looking at.
- *
- * Search covers the same fields the old client-side filter did. ILIKE rather
- * than lower(...) LIKE because it reads as what it is; neither uses an index
- * at this row count, and 2000 rows is well inside what a scan handles.
- */
+// The WHERE shared by the paged roster and the CSV export, so the downloaded
+// file matches the list on screen. ILIKE rather than lower(...) LIKE because
+// it reads as what it is; neither indexes at 2000 rows, which scans fine.
 const buildAttendeeWhere = (input: {
   hackathonId: string;
   search?: string;
@@ -97,8 +78,8 @@ const buildAttendeeWhere = (input: {
 
   const term = input.search?.trim();
   if (term) {
-    // Escaped so a literal % or _ in somebody's name searches for that
-    // character instead of turning into a wildcard.
+    // Escaped so a literal % or _ in a name searches for that character instead
+    // of turning into a wildcard.
     const pattern = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
     clauses.push(
       sql`(
@@ -133,11 +114,10 @@ export const hackathonAdminRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      // Filtering happens in the database, not in the browser. The old version
-      // shipped every participant row — 35 columns including resumes, phone
-      // numbers and 2000-character essays — so the client could filter an array
-      // it had already downloaded. At 2000 attendees that is megabytes of PII
-      // per keystroke-triggered refetch.
+      // Filtering happens in the database. The old version shipped every
+      // participant row — 35 columns including resumes, phone numbers and
+      // 2000-character essays — so the client could filter an array it had already
+      // downloaded: megabytes of PII per keystroke-triggered refetch.
       const where = buildAttendeeWhere(input);
 
       const [rows, [totals]] = await Promise.all([
@@ -161,28 +141,19 @@ export const hackathonAdminRouter = createTRPCRouter({
 
       return {
         attendees: rows,
-        // How many match the current filter, so the pager knows where it ends.
-        // Deliberately not the unfiltered total: those are different numbers
-        // and conflating them makes the last page unreachable.
+        // How many match the current filter, so the pager knows where it ends. Not
+        // the unfiltered total — conflating them makes the last page unreachable.
         matching: totals?.count ?? 0,
         limit: input.limit,
         offset: input.offset,
       };
     }),
 
-  /**
-   * Just the ids matching the current filter.
-   *
-   * Exists so "select all" can mean every matching applicant rather than the
-   * fifty on screen. Pagination made the header checkbox select one page, and
-   * a bulk approve that silently covers 50 of 2000 while reporting success is
-   * worse than one that fails outright — the organiser moves on believing the
-   * queue is cleared.
-   *
-   * Ids rather than rows: 2000 uuids is a small payload, and keeping the
-   * mutation id-based means the set is fixed at the moment the organiser
-   * chose it, instead of re-evaluating a filter that may have moved.
-   */
+  // Just the ids matching the current filter, so "select all" means every
+  // matching applicant rather than the fifty on screen. A bulk approve that
+  // silently covers 50 of 2000 while reporting success is worse than one that
+  // fails outright. Ids, not rows: the set is fixed at the moment the organiser
+  // chose it instead of re-evaluating a filter that may have moved.
   adminGetAttendeeIds: isAdmin
     .input(
       z.object({
@@ -203,13 +174,9 @@ export const hackathonAdminRouter = createTRPCRouter({
       return rows.map((row) => row.id);
     }),
 
-  /**
-   * The whole filtered roster, for CSV export.
-   *
-   * Its own endpoint rather than a flag on adminGetAttendees so the one call
-   * that hands over every attendee's PII is explicit at the call site and can
-   * be audited or restricted on its own later.
-   */
+  // The whole filtered roster, for CSV export. Its own endpoint rather than a
+  // flag so the one call that hands over every attendee's PII is explicit at
+  // the call site and can be audited or restricted later.
   exportAttendees: isAdmin
     .input(
       z.object({
@@ -261,15 +228,10 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      /**
-       * `checked_in` is reachable from `approved`, and from nowhere else.
-       *
-       * Submitting a project now requires it, so this status is an
-       * authorisation state and not just a note about who turned up — setting
-       * it on somebody still pending hands them the whole event with no review
-       * having happened. Refused rather than silently allowed, because the
-       * remedy is one click: approve them, then check them in.
-       */
+      // `checked_in` is reachable from `approved` and nowhere else. Submitting a
+      // project requires it, so it is an authorisation state — setting it on
+      // somebody still pending hands them the event with no review. Refused rather
+      // than silently allowed: the remedy is one click.
       if (
         input.status === "checked_in" &&
         participant.registrationStatus !== "approved" &&
@@ -285,8 +247,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         .update(hackathonParticipants)
         .set({
           registrationStatus: input.status,
-          // Stamp the arrival the first time only: re-checking someone in must
-          // not move the timestamp the attendees table shows.
+          // Stamp the arrival the first time only: re-checking someone in must not move
+          // the timestamp the attendees table shows.
           ...(input.status === "checked_in" && !participant.checkedInAt
             ? { checkedInAt: new Date() }
             : {}),
@@ -343,16 +305,10 @@ export const hackathonAdminRouter = createTRPCRouter({
       };
     }),
 
-  /**
-   * Accepts the oldest N pending applications as one numbered wave.
-   *
-   * Approving only — the acceptance mail is a separate call, because a send of
-   * hundreds can die mid-flight and the two must not share a fate: the wave is
-   * already committed and its per-row email markers make the send resumable.
-   *
-   * The pick is locked with SKIP LOCKED so two organisers starting a wave at
-   * once take disjoint applicants instead of both accepting the same people.
-   */
+  // Accepts the oldest N pending applications as one numbered wave. Approving
+  // only — the acceptance mail is a separate call, because a send of hundreds
+  // can die mid-flight and the wave is already committed. Picked with SKIP
+  // LOCKED so two organisers take disjoint applicants.
   acceptWave: isAdmin
     .input(
       z.object({
@@ -458,25 +414,22 @@ export const hackathonAdminRouter = createTRPCRouter({
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
-        // Each id is one SMTP round trip. The bound is shared with the UI so
-        // the two cannot drift — see MASS_EMAIL_BATCH for what sets it. The UI
-        // chunks a larger selection rather than handing the request a batch it
-        // cannot finish.
+        // Each id is one SMTP round trip. The bound is shared with the UI so the two
+        // cannot drift — see MASS_EMAIL_BATCH. The UI chunks larger selections.
         participantIds: z
           .array(z.string().uuid())
           .min(1)
           .max(MASS_EMAIL_BATCH),
-        /** Mail people who have already had their acceptance. Off by default:
-         *  the ordinary reason to run this twice is that the first run died
-         *  partway, and then everyone before the failure point is already
-         *  done. */
+        // Mail people who already had their acceptance. Off by default: the ordinary
+        // reason to re-run is that the first run died partway, and everyone before
+        // the failure point is already done.
         resend: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const { hackathonId } = input;
-      // Deduplicated so the skipped count below measures "not registered for
-      // this hackathon" and not "you sent the same id twice".
+      // Deduplicated so the skipped count means "not registered for this
+      // hackathon" and not "you sent the same id twice".
       const participantIds = [...new Set(input.participantIds)];
       const db = ctx.db as DrizzleDB;
 
@@ -489,11 +442,9 @@ export const hackathonAdminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
       }
 
-      // Recipients are scoped to this hackathon, exactly like the UPDATE below:
-      // a stale id pasted from another event matches no row here, so it must not
-      // be mailed "you've been accepted" for a hackathon it never applied to.
-      // The list is re-checked in memory because an acceptance email cannot be
-      // unsent — nothing outside this hackathon may reach the send loop.
+      // Recipients are scoped to this hackathon, like the UPDATE below: a stale id
+      // pasted from another event matches no row, and must not be mailed "you've
+      // been accepted". Re-checked in memory because an acceptance cannot be unsent.
       const participants = (
         await db.query.hackathonParticipants.findMany({
           where: and(
@@ -515,9 +466,9 @@ export const hackathonAdminRouter = createTRPCRouter({
         };
       }
 
-      // One statement rather than one per recipient: this runs against the
-      // full accepted list, and a 500-round-trip transaction holds a pool
-      // connection for its whole duration.
+      // One statement rather than one per recipient: this runs against the full
+      // accepted list, and a 500-round-trip transaction holds a pool connection for
+      // its whole duration.
       await db
         .update(hackathonParticipants)
         .set({ registrationStatus: "approved", updatedAt: new Date() })
@@ -543,10 +494,9 @@ export const hackathonAdminRouter = createTRPCRouter({
       for (const participant of participants) {
         if (!participant.user?.email) continue;
 
-        // The marker is read here, not just written below. Re-running this
-        // after a batch died partway through is the normal recovery, and
-        // without this check everyone before the failure point is congratulated
-        // a second time — which cannot be taken back.
+        // The marker is read here, not just written below. Re-running after a batch
+        // died partway is the normal recovery, and without this everyone before the
+        // failure point is congratulated a second time.
         if (participant.acceptanceEmailSentAt && !input.resend) {
           alreadyEmailed++;
           continue;
@@ -558,10 +508,9 @@ export const hackathonAdminRouter = createTRPCRouter({
             hackathonName: hackathon.name,
             host: process.env.NEXTAUTH_URL || "https://datasciencegt.org"
           });
-          // Stamped one row at a time, immediately after the send. A batch of
-          // hundreds can die partway through — Cloud Run kills the request at
-          // 300s — and this marker is what keeps a retry from mailing everyone
-          // who already heard from us a second time.
+          // Stamped one row at a time, right after the send. A batch of hundreds can
+          // die partway — Cloud Run kills the request at 300s — and this marker is what
+          // keeps a retry from mailing everyone twice.
           await db
             .update(hackathonParticipants)
             .set({ acceptanceEmailSentAt: new Date() })
@@ -569,8 +518,8 @@ export const hackathonAdminRouter = createTRPCRouter({
           emailed++;
         } catch (error) {
           failedEmails.push(participant.user.email);
-          // Deliberate server-side operational logging: this is the only record
-          // of which address the provider rejected.
+          // Deliberate operational logging: the only record of which address the
+          // provider rejected.
           // eslint-disable-next-line no-console
           console.error(`[Email Service] Failed to send acceptance email to ${participant.user.email}:`, error);
         }
@@ -599,9 +548,9 @@ export const hackathonAdminRouter = createTRPCRouter({
 
       const skipped = participantIds.length - participants.length;
 
-      // Approved and emailed are reported separately because they genuinely
-      // differ: the provider throttles, addresses bounce, and an organiser told
-      // "sent to 500" when 80 were delivered has no reason to look again.
+      // Approved and emailed are reported separately because they differ: the
+      // provider throttles and addresses bounce, and an organiser told "sent to
+      // 500" when 80 landed has no reason to look again.
       return {
         success: true,
         approved: participants.length,
@@ -618,9 +567,9 @@ export const hackathonAdminRouter = createTRPCRouter({
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
-        // Sized for one organiser selecting every applicant at a 2000-person
-        // event. The bound stays — an unbounded array is a memory ceiling, not
-        // a feature — but 500 silently rejected the whole selection.
+        // Sized for one organiser selecting every applicant at a 2000-person event.
+        // The bound stays — unbounded is a memory ceiling, not a feature — but 500
+        // silently rejected the whole selection.
         participantIds: z.array(z.string().uuid()).min(1).max(2500),
         status: z.enum([
           "pending",
@@ -635,21 +584,17 @@ export const hackathonAdminRouter = createTRPCRouter({
       const { hackathonId, participantIds, status } = input;
 
       // One statement, not one per id: 2000 sequential round trips would hold a
-      // pool connection open for the whole batch. Scoping by (id, hackathonId)
-      // is preserved exactly by the AND, so an id pasted from another hackathon
-      // still matches nothing, and the caller is told how many rows really
-      // changed rather than how many ids were submitted.
+      // pool connection for the whole batch. The (id, hackathonId) scoping survives
+      // in the AND, and the caller is told how many rows really changed.
       const rows = await (ctx.db as DrizzleDB)
         .update(hackathonParticipants)
         .set({
           registrationStatus: status,
           updatedAt: new Date(),
-          // coalesce so a batch that re-checks in someone who already arrived
-          // keeps their original arrival time. `at time zone 'utc'` because the
-          // column is timestamp-without-tz and drizzle reads it back as UTC — a
-          // bare now() would be cast through the session TimeZone and disagree
-          // with the `new Date()` that updateParticipantStatus writes for the
-          // very same event.
+          // coalesce so re-checking in someone who already arrived keeps their original
+          // time. `at time zone 'utc'` because the column is timestamp-without-tz: a
+          // bare now() goes through the session TimeZone and would disagree with the
+          // `new Date()` updateParticipantStatus writes for the same event.
           ...(status === "checked_in"
             ? {
                 checkedInAt: sql`coalesce(${hackathonParticipants.checkedInAt}, now() at time zone 'utc')`,
@@ -660,16 +605,10 @@ export const hackathonAdminRouter = createTRPCRouter({
           and(
             inArray(hackathonParticipants.id, participantIds),
             eq(hackathonParticipants.hackathonId, hackathonId),
-            /**
-             * Same rule as the single-participant path, applied in the WHERE so
-             * a 2000-row selection with a few unreviewed applicants in it still
-             * admits everybody else instead of failing whole.
-             *
-             * This one matters more than the single path: the attendees screen
-             * offers "Select all N matching", so one wrong click could promote
-             * every pending applicant straight to a state that lets them submit
-             * a project with no review at all.
-             */
+            // Same rule as the single-participant path, in the WHERE so a 2000-row
+            // selection with a few unreviewed applicants still admits everybody else.
+            // It matters more here: "Select all N matching" means one wrong click could
+            // promote every pending applicant to a state that lets them submit.
             status === "checked_in"
               ? inArray(hackathonParticipants.registrationStatus, [
                   "approved",
@@ -694,9 +633,8 @@ export const hackathonAdminRouter = createTRPCRouter({
       return {
         success: true,
         updated: rows.length,
-        // Anything not updated was either not in this hackathon or not
-        // accepted yet. Reported so a check-in run that quietly did less than
-        // it looked like cannot pass for a complete one.
+        // Anything not updated was either not in this hackathon or not accepted yet.
+        // Reported so a check-in run that quietly did less cannot pass for complete.
         skipped: participantIds.length - rows.length,
       };
     }),
@@ -708,9 +646,9 @@ export const hackathonAdminRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
       const scope = eq(hackathonParticipants.hackathonId, input.hackathonId);
 
-      // Counted by the database. This used to load every participant row —
-      // all 35 columns, including the essays — to produce a handful of
-      // integers, and it backs both the stat tiles and the analytics page.
+      // Counted by the database. This used to load every participant row — all 35
+      // columns, essays included — to produce a handful of integers, and it backs
+      // both the stat tiles and the analytics page.
       const [byStatus, bySize, byDiet] = await Promise.all([
         db
           .select({
@@ -728,8 +666,8 @@ export const hackathonAdminRouter = createTRPCRouter({
           .from(hackathonParticipants)
           .where(scope)
           .groupBy(hackathonParticipants.shirtSize),
-        // unnest so each restriction in the array counts once, rather than
-        // pulling every array back to be flattened in JS.
+        // unnest so each restriction counts once, rather than pulling every array
+        // back to be flattened in JS.
         db
           .select({
             restriction: sql<string>`btrim(restriction)`.as("restriction"),
@@ -780,13 +718,9 @@ export const hackathonAdminRouter = createTRPCRouter({
     }),
 
 
-  /**
-   * Who scanned into one event.
-   *
-   * The scanner writes these rows and, until now, nothing ever read or removed
-   * them — so a station left pointed at the wrong event produced dozens of
-   * check-ins an organiser could see the count of but not the contents.
-   */
+  // Who scanned into one event. The scanner writes these rows and nothing ever
+  // read them, so a station left on the wrong event produced dozens of check-ins
+  // an organiser could count but not inspect.
   getEventAttendees: isScanner
     .input(
       z.object({
@@ -799,9 +733,8 @@ export const hackathonAdminRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      // Scoped through the event's own hackathonId rather than trusting the
-      // pair in the input, so an eventId from another edition returns nothing
-      // instead of that edition's roster.
+      // Scoped through the event's own hackathonId rather than the pair in the
+      // input, so an eventId from another edition returns nothing.
       const event = await db.query.hackathonEvents.findFirst({
         where: and(
           eq(hackathonEvents.id, input.eventId),
@@ -836,13 +769,9 @@ export const hackathonAdminRouter = createTRPCRouter({
       return { attendees: rows, matching: totals?.count ?? 0 };
     }),
 
-  /**
-   * Undoes one scan.
-   *
-   * The scan path is deliberately hard to fool — a duplicate is a CONFLICT and
-   * an ended event is a FORBIDDEN — but none of that helps when the mistake is
-   * the event itself. Somebody has to be able to take a row back out.
-   */
+  // Undoes one scan. The scan path is hard to fool — duplicates CONFLICT, ended
+  // events are FORBIDDEN — but none of that helps when the mistake is the event
+  // itself. Somebody has to be able to take a row back out.
   removeEventAttendance: isScanner
     .input(
       z.object({
@@ -866,9 +795,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
       }
 
-      // RETURNING rather than a preceding existence check: it names the row
-      // this statement removed, so a scan already undone by another organiser
-      // reads as "nothing to undo" instead of a second success.
+      // RETURNING rather than a preceding existence check: it names the row this
+      // statement removed, so a scan already undone reads as "nothing to undo".
       const deleted = await db
         .delete(hackathonEventAttendees)
         .where(
@@ -886,8 +814,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      // Volunteers can reach this, so it is the widest-held destructive action
-      // in the product — worth a record of who undid which scan.
+      // Volunteers reach this, so it is the widest-held destructive action in the
+      // product — worth a record of who undid which scan.
       await recordAdminAction(db, {
         userId: ctx.userId,
         action: "hackathon.removeEventAttendance",
@@ -932,8 +860,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      // 1b. Only accepted participants may check in. Pending and waitlisted
-      // registrations are not yet admitted; rejected ones never are.
+      // 1b. Only accepted participants may check in. Pending and waitlisted are not
+      // yet admitted; rejected never are.
       if (
         participant.registrationStatus !== "approved" &&
         participant.registrationStatus !== "checked_in"
@@ -958,9 +886,9 @@ export const hackathonAdminRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
       }
 
-      // 2b. A pass is only good for the window the event actually runs in.
-      // Nothing else bounds a scan, so a scanner left on the wrong event would
-      // otherwise keep admitting people to a meal that finished hours ago.
+      // 2b. A pass is only good for the window the event runs in. Nothing else
+      // bounds a scan, so a scanner left on the wrong event would keep admitting
+      // people to a meal that finished hours ago.
       if (event.endTime < new Date()) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -987,19 +915,13 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      // 4. Record attendance. unique('unique_event_participant') is the real
-      // guard: two scanners can both pass the read above, so the loser's 23505
-      // has to read as the same conflict the sequential duplicate returns
-      // instead of a raw INTERNAL_SERVER_ERROR.
-      /**
-       * Attendance and the roster promotion are one transaction.
-       *
-       * Separately, a promotion that failed after the attendance row committed
-       * left the scan half-done — and the retry hits the duplicate guard
-       * ("already checked into"), so the promotion could never happen and that
-       * attendee stayed unable to submit for the rest of the event. Rolling the
-       * attendance back instead makes a rescan the fix.
-       */
+      // 4. Record attendance. unique('unique_event_participant') is the real guard:
+      // two scanners can both pass the read above, so the loser's 23505 has to read
+      // as the same conflict, not a raw INTERNAL_SERVER_ERROR.
+      // Attendance and the roster promotion are one transaction. Split, a promotion
+      // failing after the attendance row committed left the scan half-done — and
+      // the retry hits the duplicate guard, so that attendee could never submit.
+      // Rolling the attendance back makes a rescan the fix.
       let promotedToCheckedIn = false;
 
       await (ctx.db as DrizzleDB).transaction(async (tx) => {
@@ -1018,26 +940,12 @@ export const hackathonAdminRouter = createTRPCRouter({
           throw error;
         }
 
-        /**
-         * The first scan is the check-in.
-         *
-         * `checked_in` had no writer anywhere in the product: this procedure
-         * recorded attendance for one event and left the roster alone, and no
-         * screen ever passed the status to updateParticipantStatus. That was
-         * harmless while the status was only a label — but submitting a project
-         * now requires it, so an unreachable status meant nobody could submit
-         * at all, and the error told them to do the very thing they had just
-         * done.
-         *
-         * `registrationStatus = 'approved'` is in the WHERE, not just in the
-         * read above: an organiser rejecting somebody between this scan's read
-         * and its write would otherwise have that decision overwritten, handing
-         * submission rights back to a person who had just been removed. The
-         * write is a compare-and-set, so the loser changes nothing.
-         *
-         * `checkedInAt` is stamped once, so it keeps pointing at when they
-         * arrived rather than at their most recent meal.
-         */
+        // The first scan is the check-in. `checked_in` previously had no writer
+        // anywhere, which was harmless while it was only a label — but submitting now
+        // requires it, so nobody could submit and the error told them to do what they
+        // had just done. `registrationStatus = 'approved'` is in the WHERE, not only
+        // the read: a rejection landing between read and write would otherwise be
+        // overwritten. `checkedInAt` is stamped once, so it points at arrival.
         const [promoted] = await tx
           .update(hackathonParticipants)
           .set({
@@ -1056,11 +964,9 @@ export const hackathonAdminRouter = createTRPCRouter({
         promotedToCheckedIn = !!promoted;
       });
 
-      // A scan changes one event's attendee count, and — on the first one —
-      // this attendee's own roster row. This runs at every door station all
-      // weekend, so the eviction stays narrow: the event, and only the person
-      // scanned. The old blanket pattern wiped every attendee's cached
-      // registrations on every scan.
+      // A scan changes one event's attendee count and, on the first one, this
+      // attendee's roster row. This runs at every door all weekend, so eviction
+      // stays narrow — the old blanket pattern wiped every cached registration.
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
 
       if (promotedToCheckedIn) {

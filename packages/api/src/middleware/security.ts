@@ -5,15 +5,11 @@ interface RateLimitRecord {
   lastRefill: number;
   violations: number;
   blockedUntil: number;
-  /**
-   * When this caller last exceeded their bucket.
-   *
-   * Separate from lastRefill because that is stamped on every request, so a
-   * decay measured against it can only fire for somebody who has stopped
-   * making requests entirely. Backoff is exponential in `violations`, so
-   * without a decay that actually fires, one bad afternoon escalates a
-   * legitimate user to five-minute blocks for the rest of the event.
-   */
+  // When this caller last exceeded their bucket. Separate from lastRefill,
+  // which is stamped on every request, so a decay measured against that could
+  // only fire for somebody who stopped calling entirely. Backoff is exponential
+  // in `violations`, so without a decay that fires, one bad afternoon escalates
+  // a legitimate user to five-minute blocks for the rest of the event.
   lastViolation: number;
 }
 
@@ -33,15 +29,10 @@ const MAX_IP_TRACKING_STORE_SIZE = 50000;
 
 const SWEEP_INTERVAL_MS = 60 * 1000;
 
-/**
- * Evicts oldest-first until the store is under `max`.
- *
- * The pick is unconditional and the loop gives up when nothing was selected.
- * A version that only deleted entries matching a predicate could make zero
- * progress — a store full of fresh, never-blocked records satisfies no
- * predicate — and since this runs on an interval, that spins the event loop of
- * the whole instance until it is killed.
- */
+// Evicts oldest-first until the store is under `max`. The pick is
+// unconditional and the loop gives up when nothing was selected: a version
+// that only deleted entries matching a predicate could make zero progress and
+// spin the instance's event loop, since this runs on an interval.
 const evictOldest = <V>(
   store: Map<string, V>,
   max: number,
@@ -62,14 +53,10 @@ const evictOldest = <V>(
   }
 };
 
-/**
- * Owns the token buckets and the timer that prunes them.
- *
- * The store, its size cap and its sweep used to be three module-level things
- * that only convention kept in step, and the sweep ran from two separate
- * intervals with subtly different conditions. One object holds all of it, and
- * a test can build its own instance instead of reaching into shared state.
- */
+// Owns the token buckets and the timer that prunes them. The store, its cap
+// and its sweep used to be three module-level things kept in step by
+// convention, with the sweep running from two intervals with different
+// conditions. A test can now build its own instance.
 export class TokenBucketLimiter {
   private readonly buckets = new Map<string, RateLimitRecord>();
   private readonly sweepTimer: NodeJS.Timeout;
@@ -129,10 +116,8 @@ export class TokenBucketLimiter {
     return { allowed: true };
   }
 
-  /**
-   * Applied before the bucket check so a caller who has waited out their
-   * penalty is not immediately re-escalated from the old count.
-   */
+  // Applied before the bucket check so a caller who has waited out their
+  // penalty is not immediately re-escalated from the old count.
   private decayViolations(record: RateLimitRecord, now: number) {
     if (record.violations <= 0 || record.lastViolation <= 0) return;
     const clearPeriods = Math.floor(
@@ -143,12 +128,9 @@ export class TokenBucketLimiter {
     }
   }
 
-  /**
-   * Both halves of the idle condition matter. A healthy record carries
-   * `blockedUntil: 0`, so testing that alone deleted EVERY bucket on every
-   * tick — the whole store was erased once a minute and each caller got a
-   * fresh full bucket back regardless of how they had behaved.
-   */
+  // Both halves of the idle condition matter. A healthy record carries
+  // `blockedUntil: 0`, so testing that alone deleted EVERY bucket on every tick
+  // — the store was erased once a minute and every caller got a fresh one.
   sweep(now: number = Date.now()) {
     for (const [key, record] of this.buckets.entries()) {
       const idle = now - record.lastRefill > 30 * 60 * 1000;
@@ -198,12 +180,10 @@ export class FloodGuard {
     );
   }
 
-  /**
-   * `key` is an identity when we have one and an address only when we do not —
-   * callers must prefix it (`user:` / `ip:`) so the two namespaces can never
-   * collide. Keying on the address alone puts an entire venue behind one NAT
-   * into a single bucket, which is exactly the crowd this is supposed to serve.
-   */
+  // `key` is an identity when we have one and an address only when we do not —
+  // callers must prefix it (`user:` / `ip:`) so the namespaces cannot collide.
+  // Keying on the address alone puts a whole venue behind one NAT in a single
+  // bucket, which is exactly the crowd this is meant to serve.
   check(key: string): { allowed: boolean; retryAfter?: number } {
     const now = Date.now();
 
@@ -322,8 +302,8 @@ export type SecurityEvent = {
 };
 
 const FLUSH_INTERVAL = 5000;
-// Keep batch size small enough that PG parameter count (5 cols × N rows) never
-// approaches the 65535 limit.
+// Small enough that the PG parameter count (5 cols x N rows) never approaches
+// the 65535 limit.
 const MAX_BATCH_SIZE = 25;
 // Prevent unbounded queue growth during log storms.
 const MAX_QUEUE_SIZE = 500;
@@ -397,8 +377,8 @@ export class SecurityEventLog {
 
     if (!db) {
       this.requeue(batch);
-      // stderr, not a file: this used to append to a source path relative to
-      // the working directory, which does not exist in the deployed container.
+      // stderr, not a file: this used to append to a source path relative to the
+      // working directory, which does not exist in the deployed container.
       // eslint-disable-next-line no-console
       console.error(
         `[Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.`,
@@ -425,8 +405,8 @@ export class SecurityEventLog {
 
       await db.insert(auditLogs).values(values);
 
-      // The high-volume writer, so retention is driven from here: rate-limit
-      // and injection events accumulate without any admin taking an action.
+      // The high-volume writer, so retention is driven from here: rate-limit and
+      // injection events accumulate without any admin taking an action.
       const { maybePruneAuditLogs } = await import("./audit");
       maybePruneAuditLogs(db);
     } catch (err) {
@@ -458,22 +438,15 @@ export class SecurityEventLog {
   }
 }
 
-/**
- * The client address, taken from the right-hand end of X-Forwarded-For.
- *
- * The left-hand entries are whatever the caller sent — reading `[0]` means the
- * caller picks their own rate-limit bucket, which makes every limit here a
- * no-op (rotate the header, get a fresh bucket every request) and lets them
- * pin a bucket to a victim's address to have that victim blocked. Only the
- * entries our own proxies appended can be trusted, and those are at the end.
- */
+// The client address, from the right-hand end of X-Forwarded-For. The
+// left-hand entries are whatever the caller sent, so reading `[0]` lets them
+// pick their own bucket (rotate the header, get a fresh one every request) or
+// pin a bucket to a victim's address. Only entries our proxies appended are
+// trustworthy, and those are at the end.
 export class ClientIpResolver {
-  /**
-   * Logged once per instance, so the hop count can be checked against reality
-   * instead of assumed. Getting it wrong is silent both ways: too few and a CDN
-   * address becomes everyone's bucket; too many and the value is
-   * caller-supplied, letting somebody pick their own bucket.
-   */
+  // Logged once per instance so the hop count can be checked against reality.
+  // Getting it wrong is silent both ways: too few and a CDN address becomes
+  // everyone's bucket; too many and the value is caller-supplied.
   private logged = false;
 
   constructor(
@@ -504,7 +477,7 @@ export class ClientIpResolver {
 }
 
 // One instance each per process. The exported functions below are the API the
-// rest of the codebase already calls; they delegate here.
+// rest of the codebase calls; they delegate here.
 const ipResolver = new ClientIpResolver();
 export const securityEventLog = new SecurityEventLog();
 export const rateLimiter = new TokenBucketLimiter();
@@ -580,9 +553,7 @@ export function validateRequestSize(
   }
 }
 
-/*
- * `sanitizeInput`, `validateEmail`, `validateUrl`, `validateUUID`,
- * `getRecentSecurityEvents` and `getDdosStats` used to live here with no
- * callers. Sanitization has one implementation (`scrubMarkup` in trpc.ts) and
- * every input is validated by its procedure's zod schema.
- */
+// `sanitizeInput`, `validateEmail`, `validateUrl`, `validateUUID`,
+// `getRecentSecurityEvents` and `getDdosStats` used to live here with no
+// callers. Sanitization has one implementation (`scrubMarkup` in trpc.ts) and
+// every input is validated by its procedure's zod schema.

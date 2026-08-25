@@ -31,12 +31,9 @@ type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 /** The helpers below only read, so either handle will do. */
 type Reader = DrizzleDB | Tx;
 
-/**
- * A team is the leader plus the people they accept, so the stored cap — which
- * counts accepted members only — is one less than this. Applied when a leader
- * names no cap; an explicit null still means uncapped, for the initiatives that
- * are a standing group rather than a team.
- */
+// A team is the leader plus the people they accept, so the stored cap counts
+// accepted members only and is one less than this. Applied when a leader
+// names no cap; an explicit null still means uncapped.
 const DEFAULT_TEAM_SIZE = 4;
 
 const initiativeInput = z.object({
@@ -54,12 +51,9 @@ const initiativeInput = z.object({
     .default(DEFAULT_TEAM_SIZE - 1),
 });
 
-/**
- * Admins manage every initiative; a leader manages only their own. There is no
- * edition to cross: an initiative belongs to whoever leads it and to nothing
- * else. Callers turn a false into NOT_FOUND rather than FORBIDDEN, so a leader
- * who guesses another leader's id does not learn from the error that it exists.
- */
+// Admins manage every initiative, a leader only their own. Callers turn false
+// into NOT_FOUND rather than FORBIDDEN, so guessing another leader's id does
+// not reveal that it exists.
 function canManage(
   ctx: { userId: string; isPlatformAdmin: boolean },
   initiative: Initiative,
@@ -67,14 +61,10 @@ function canManage(
   return ctx.isPlatformAdmin || initiative.leaderUserId === ctx.userId;
 }
 
-/**
- * Applying is a member benefit, so it needs a membership that has not lapsed.
- *
- * Keyed on the person alone. This used to resolve a "current edition" and look
- * the membership up against it, so between hackathons — when no edition
- * qualified — it refused everybody, which is how the club half went dead
- * outside event season.
- */
+// Applying is a member benefit, so it needs an unlapsed membership. Keyed on
+// the person alone: this used to resolve a "current edition" and check
+// against it, so between hackathons it refused everybody — which is how the
+// club half went dead outside event season.
 async function requireActiveMember(db: Reader, userId: string) {
   const member = await db.query.members.findFirst({
     where: eq(members.userId, userId),
@@ -129,9 +119,8 @@ export const initiativeRouter = createTRPCRouter({
         id: initiatives.id,
         title: initiatives.title,
         summary: initiatives.summary,
-        // The edit form prefills from this row, and `update` writes an explicit
-        // null for anything omitted — so a field missing here is a field the
-        // first save silently clears.
+        // The edit form prefills from this row and `update` writes an explicit null
+        // for anything omitted, so a field missing here is one the first save clears.
         description: initiatives.description,
         commitment: initiatives.commitment,
         status: initiatives.status,
@@ -145,8 +134,8 @@ export const initiativeRouter = createTRPCRouter({
       .innerJoin(users, eq(users.id, initiatives.leaderUserId))
       .where(
         and(
-          // Proposals and declines live in the member's own list and the admin
-          // review queue; this screen is for initiatives that actually exist.
+          // Proposals and declines live in the member's own list and the admin review
+          // queue; this screen is for initiatives that actually exist.
           inArray(initiatives.status, ["draft", "open", "closed"]),
           ctx.isPlatformAdmin
             ? undefined
@@ -264,8 +253,8 @@ export const initiativeRouter = createTRPCRouter({
         }
         leaderUserId = input.leaderUserId;
       } else if (!ctx.projectLeader) {
-        // An admin who named nobody would otherwise become the leader by
-        // default, which is the bug this whole branch exists to stop.
+        // An admin who named nobody would otherwise become the leader by default,
+        // which is the bug this branch exists to stop.
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
@@ -308,8 +297,8 @@ export const initiativeRouter = createTRPCRouter({
       if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
       // Every nullable column reaches .set() as an explicit null: drizzle drops
-      // undefined from the update entirely, so clearing a summary would report
-      // success and change nothing.
+      // undefined from the update, so clearing a summary would report success and
+      // change nothing.
       const [updated] = await db
         .update(initiatives)
         .set({
@@ -327,12 +316,9 @@ export const initiativeRouter = createTRPCRouter({
       return updated;
     }),
 
-  /**
-   * Closing decides nothing — applications already queued can still be
-   * accepted, which is what a leader with enough applicants wants. Lowering the
-   * cap below the accepted count is likewise left alone: nobody is thrown off
-   * by an edit to a number.
-   */
+  // Closing decides nothing — queued applications can still be accepted, which
+  // is what a leader with enough applicants wants. Lowering the cap below the
+  // accepted count is likewise left alone: nobody is thrown off by an edit.
   setStatus: isProjectLeader
     .input(
       z.object({
@@ -380,8 +366,8 @@ export const initiativeRouter = createTRPCRouter({
         .update(initiatives)
         .set({
           archivedAt: input.archived ? new Date() : null,
-          // Archiving shuts the door too, so restoring later does not silently
-          // re-open applications nobody decided to re-open.
+          // Archiving shuts the door too, so restoring later does not silently re-open
+          // applications nobody decided to re-open.
           status: input.archived ? "closed" : initiative.status,
           updatedAt: new Date(),
         })
@@ -395,11 +381,9 @@ export const initiativeRouter = createTRPCRouter({
       return updated;
     }),
 
-  /**
-   * Reversible both ways: a rejection can be taken back, an acceptance can be
-   * revoked and the seat returns. The one refused transition is deciding on
-   * somebody who withdrew.
-   */
+  // Reversible both ways: a rejection can be taken back, an acceptance revoked
+  // and the seat returned. The one refused transition is deciding on somebody
+  // who withdrew.
   decide: isProjectLeader
     .input(
       z.object({
@@ -410,10 +394,9 @@ export const initiativeRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const outcome = await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // Lock BEFORE reading. Reading first and locking after leaves every
-        // check below running on a pre-lock snapshot, so a concurrent archive
-        // or a lowered cap is invisible and the accept goes through anyway.
-        // Locking an id that does not exist simply matches no row.
+        // Lock BEFORE reading. Reading first leaves every check below on a pre-lock
+        // snapshot, so a concurrent archive or lowered cap is invisible and the
+        // accept goes through anyway. Locking a missing id matches no row.
         await lockInitiative(tx, input.initiativeId);
 
         const initiative = await tx.query.initiatives.findFirst({
@@ -436,9 +419,8 @@ export const initiativeRouter = createTRPCRouter({
           });
         }
 
-        // Two leaders clicking the same button: the second is a no-op, so
-        // decidedAt keeps pointing at the real decision — and no second email
-        // goes out, because there is no second decision.
+        // Two leaders clicking the same button: the second is a no-op, so decidedAt
+        // keeps pointing at the real decision and no second email goes out.
         if (application.status === input.decision) {
           return {
             status: application.status,
@@ -478,10 +460,9 @@ export const initiativeRouter = createTRPCRouter({
         };
       });
 
-      // After the transaction, never inside it: a mail provider timeout must
-      // not roll back a decision that has been made, and the applicant heard
-      // nothing at all before this — the decision was visible only to whoever
-      // made it.
+      // After the transaction, never inside: a mail provider timeout must not roll
+      // back a decision that has been made. Before this the decision was visible
+      // only to whoever made it.
       if (outcome.applicantEmail) {
         try {
           const { sendInitiativeDecisionEmail } = await import(
@@ -494,8 +475,8 @@ export const initiativeRouter = createTRPCRouter({
             kind: "application",
           });
         } catch (error) {
-          // Deliberate server-side operational logging: the decision stands and
-          // this is the only record that the notice did not go out.
+          // Deliberate operational logging: the decision stands and this is the only
+          // record that the notice did not go out.
           // eslint-disable-next-line no-console
           console.error(
             `[Email Service] Initiative decision notice failed for ${outcome.applicantEmail}:`,
@@ -509,11 +490,9 @@ export const initiativeRouter = createTRPCRouter({
 
   // ------------------------------------------------------------------ member
 
-  /**
-   * Visible to any signed-in user, not just paid members: somebody deciding
-   * whether to join should be able to see what they would get. Applying is
-   * where the membership check bites.
-   */
+  // Visible to any signed-in user, not just paid members: somebody deciding
+  // whether to join should see what they would get. Applying is where the
+  // membership check bites.
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
@@ -619,20 +598,18 @@ export const initiativeRouter = createTRPCRouter({
       .orderBy(desc(initiativeApplications.appliedAt))
       .limit(60);
 
-    // The leader's address is contact detail for people actually on the
-    // initiative. Stripped here, not in the component — what the component
-    // does not render still rides along in the payload.
+    // The leader's address is contact detail for people on the initiative.
+    // Stripped here, not in the component — what a component does not render
+    // still rides along in the payload.
     return rows.map(({ leaderEmail, ...row }) => ({
       ...row,
       leaderEmail: row.myStatus === "accepted" ? leaderEmail : null,
     }));
   }),
 
-  /**
-   * Not `apply`: tRPC refuses a procedure named after anything on
-   * Function.prototype and throws at router construction, taking the whole API
-   * route down rather than just this procedure.
-   */
+  // Not `apply`: tRPC refuses a procedure named after anything on
+  // Function.prototype and throws at router construction, taking the whole API
+  // route down rather than just this procedure.
   requestToJoin: protectedProcedure
     .input(
       z.object({
@@ -646,10 +623,9 @@ export const initiativeRouter = createTRPCRouter({
       const pitch = input.pitch?.length ? input.pitch : null;
 
       return db.transaction(async (tx) => {
-        // Lock BEFORE reading, so every guard below sees the row as it is now
-        // rather than as it was before the lock was granted — otherwise a
-        // leader closing the initiative, archiving it, or lowering the cap
-        // mid-flight is invisible here and the application lands anyway.
+        // Lock BEFORE reading, so every guard sees the row as it is now — otherwise a
+        // leader closing, archiving or lowering the cap mid-flight is invisible and
+        // the application lands anyway.
         await lockInitiative(tx, input.initiativeId);
 
         const initiative = await tx.query.initiatives.findFirst({
@@ -657,9 +633,9 @@ export const initiativeRouter = createTRPCRouter({
         });
         if (!initiative) throw notFound();
 
-        // Anything not open is invisible to members, so it answers exactly the
-        // way a made-up id does — including `proposed` and `declined`, which
-        // would otherwise leak that somebody pitched this idea.
+        // Anything not open is invisible to members, so it answers exactly as a
+        // made-up id does — including `proposed` and `declined`, which would
+        // otherwise leak that somebody pitched this idea.
         if (
           initiative.archivedAt !== null ||
           initiative.status === "draft" ||
@@ -692,8 +668,8 @@ export const initiativeRouter = createTRPCRouter({
           ),
         });
 
-        // Tested before capacity: somebody who already applied is a duplicate,
-        // not an extra body, so they are told where they stand.
+        // Tested before capacity: somebody who already applied is a duplicate, not an
+        // extra body, so they are told where they stand.
         if (existing && existing.status !== "withdrawn") {
           throw new TRPCError({
             code: "CONFLICT",
@@ -717,8 +693,8 @@ export const initiativeRouter = createTRPCRouter({
         }
 
         if (existing) {
-          // Re-applying reuses the row the unique index already holds, and
-          // clears the stale decision with it.
+          // Re-applying reuses the row the unique index already holds, and clears the
+          // stale decision with it.
           await tx
             .update(initiativeApplications)
             .set({
@@ -740,8 +716,8 @@ export const initiativeRouter = createTRPCRouter({
             status: "pending",
           });
         } catch (error) {
-          // The read above only rules out rows committed before this
-          // transaction began; the unique index settles a true double submit.
+          // The read above only rules out rows committed before this transaction began;
+          // the unique index settles a true double submit.
           if (isUniqueViolation(error)) {
             throw new TRPCError({
               code: "CONFLICT",
@@ -776,11 +752,9 @@ export const initiativeRouter = createTRPCRouter({
 
   // --------------------------------------------------------------- proposals
 
-  /**
-   * A member asking to run something. Creates the initiative at `proposed`,
-   * with the proposer as its leader — the row is the proposal, so approving it
-   * is a status change rather than a copy from a second table that could drift.
-   */
+  // A member asking to run something. Creates the initiative at `proposed` with
+  // the proposer as leader — the row is the proposal, so approving is a status
+  // change rather than a copy from a second table that could drift.
   propose: protectedProcedure
     .input(initiativeInput)
     .mutation(async ({ ctx, input }) => {
@@ -788,8 +762,8 @@ export const initiativeRouter = createTRPCRouter({
 
       await requireActiveMember(db, ctx.userId);
 
-      // A queue an admin has to read is a shared resource. Three open at once
-      // is plenty for one person and stops a single member flooding it.
+      // A queue an admin has to read is a shared resource. Three open at once is
+      // plenty for one person and stops a single member flooding it.
       const [waiting] = await db
         .select({ total: count() })
         .from(initiatives)
@@ -830,11 +804,8 @@ export const initiativeRouter = createTRPCRouter({
       return created;
     }),
 
-  /**
-   * Everything this member has proposed, in any state. Separate from
-   * `listMine` because a member with a pending proposal is not a leader yet
-   * and cannot pass that gate.
-   */
+  // Everything this member has proposed, in any state. Separate from `listMine`
+  // because a member with a pending proposal is not a leader yet.
   myProposals: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
@@ -868,8 +839,8 @@ export const initiativeRouter = createTRPCRouter({
           and(
             eq(initiatives.id, input.id),
             eq(initiatives.leaderUserId, ctx.userId),
-            // Only while it is still untouched. Once it is approved it is a
-            // real initiative with applicants, and archiving is the way out.
+            // Only while it is still untouched. Once approved it is a real initiative
+            // with applicants, and archiving is the way out.
             eq(initiatives.status, "proposed"),
           ),
         )
@@ -908,11 +879,9 @@ export const initiativeRouter = createTRPCRouter({
       .limit(100);
   }),
 
-  /**
-   * Approving does two things at once, so they share a transaction: the
-   * initiative becomes a draft and the proposer becomes a project leader. Doing
-   * only the first would leave somebody owning an initiative they cannot reach.
-   */
+  // Approving does two things at once, so they share a transaction: the
+  // initiative becomes a draft and the proposer becomes a project leader. Doing
+  // only the first leaves somebody owning an initiative they cannot reach.
   reviewProposal: isAdmin
     .input(
       z.object({
@@ -954,8 +923,8 @@ export const initiativeRouter = createTRPCRouter({
           });
 
           if (existing) {
-            // Re-approving somebody whose role was revoked restores it rather
-            // than colliding with the unique index.
+            // Re-approving somebody whose role was revoked restores it rather than
+            // colliding with the unique index.
             if (!existing.isActive) {
               await tx
                 .update(projectLeaders)
@@ -984,8 +953,7 @@ export const initiativeRouter = createTRPCRouter({
       });
 
       // Outside the transaction: the role gate and the sidebar both cache, and
-      // evicting before commit would let a concurrent read re-warm the old
-      // answer. Approval is the moment a member gains a whole new tab.
+      // evicting before commit would let a concurrent read re-warm the old answer.
       if (input.decision === "approve")
         clearProjectLeaderCaches(proposerId.userId);
 
@@ -1034,10 +1002,8 @@ export const initiativeRouter = createTRPCRouter({
       .limit(200);
   }),
 
-  /**
-   * Grant or revoke, by user id. Upserted rather than deleted so an
-   * appointment stays on the record after it is revoked.
-   */
+  // Grant or revoke, by user id. Upserted rather than deleted so an appointment
+  // stays on the record after it is revoked.
   setLeader: isSuperAdmin
     .input(z.object({ userId: z.string(), isLeader: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
@@ -1068,8 +1034,8 @@ export const initiativeRouter = createTRPCRouter({
         });
       }
 
-      // The gate caches for 60s and the sidebar reads the portal context; both
-      // have to go or the change does not show up until they expire.
+      // The gate caches for 60s and the sidebar reads portal context; both have to
+      // go or the change does not show up until they expire.
       clearProjectLeaderCaches(input.userId);
 
       return { userId: input.userId, isLeader: input.isLeader };

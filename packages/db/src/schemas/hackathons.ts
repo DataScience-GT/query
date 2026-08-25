@@ -29,12 +29,9 @@ export const hackathons = pgTable(
     hackingStartTime: timestamp("hacking_start_time"),
     maxParticipants: integer("max_participants"),
     currentParticipants: integer("current_participants").notNull().default(0),
-    /**
-     * `announced` is the gap between "nobody can see this" and "registration is
-     * open": the edition exists publicly, has a landing page and collects
-     * interest, but is not taking registrations and — importantly — is NOT the
-     * edition memberships attach to. See PRE_CURRENT_STATUSES below.
-     */
+    // `announced` is the gap between hidden and open: the edition is public and
+    // collects interest, but takes no registrations and is NOT the edition
+    // memberships attach to. See PRE_CURRENT_STATUSES below.
     status: text("status", {
       enum: [
         "draft",
@@ -64,10 +61,9 @@ export const hackathons = pgTable(
   },
   (table) => [
     index("hackathon_status_idx").on(table.status),
-    // Every admin link builds its URL from the hackathon's name, and getById
-    // resolves a non-uuid argument with findFirst on this column. Two editions
-    // sharing a name therefore make one of them permanently unreachable
-    // through the admin UI, with no error to explain it.
+    // Every admin link builds its URL from the name, and getById resolves a
+    // non-uuid argument on this column — two editions sharing a name make one
+    // permanently unreachable through the admin UI, with no error.
     unique("unique_hackathon_name").on(table.name),
   ],
 );
@@ -178,39 +174,33 @@ export const hackathonParticipants = pgTable(
       .notNull()
       .default(false),
     // Stamped per participant as their acceptance mail leaves. A mass send is
-    // thousands of SMTP round trips and can die halfway through; without a
-    // per-row marker the only safe retry is none, and the unsafe one mails
-    // everybody twice.
+    // thousands of round trips and can die halfway; without a per-row marker the
+    // only safe retry is none, and the unsafe one mails everybody twice.
     acceptanceEmailSentAt: timestamp("acceptance_email_sent_at"),
-    /**
-     * Which acceptance wave took this applicant, 1-based. Null while pending,
-     * and null forever for anyone accepted one at a time from the table.
-     */
+    // Which acceptance wave took this applicant, 1-based. Null while pending, and
+    // null forever for anyone accepted one at a time from the table.
     acceptanceWave: integer("acceptance_wave"),
 
     registeredAt: timestamp("registered_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // No standalone hackathon_id index: it is the leading column of both the
-    // composite below and unique_participant_per_hackathon, so a lookup by
-    // hackathon alone already has two indexes to choose from. Carrying a third
-    // only made every registration insert write another entry.
+    // No standalone hackathon_id index: it leads both the composite below and
+    // unique_participant_per_hackathon, so a lookup by hackathon already has two
+    // to choose from. A third only made every insert write another entry.
     index("participant_user_id_idx").on(table.userId),
     index("participant_team_id_idx").on(table.teamId),
-    // syncCurrentParticipants filters on the first two columns and runs after
-    // every approve and every check-in. registered_at is here for the ordering
-    // rather than the filter: acceptWave takes the oldest pending applicants
-    // and the attendee list pages newest-first, so without it both read every
-    // matching row and sort — the whole pending set on each wave.
+    // syncCurrentParticipants filters on the first two columns after every
+    // approve and check-in. registered_at is here for ordering, not filtering:
+    // acceptWave takes the oldest pending and the attendee list pages
+    // newest-first, so without it both read every matching row and sort.
     index("participant_hackathon_status_idx").on(
       table.hackathonId,
       table.registrationStatus,
       table.registeredAt,
     ),
-    // Enforce one registration per user per hackathon at the DB level.
-    // This prevents duplicates even under concurrent requests that race
-    // past the application-level findFirst check inside the transaction.
+    // One registration per user per hackathon at the DB level, so duplicates
+    // cannot race past the findFirst inside the transaction.
     unique("unique_participant_per_hackathon").on(
       table.hackathonId,
       table.userId,
@@ -230,8 +220,7 @@ export const hackathonProjects = pgTable(
       onDelete: "cascade",
     }),
     // Who filed it. A solo entry has no team, so without this nothing links the
-    // row back to its author and a resubmit cannot find the project to update —
-    // it either files a duplicate or gets refused outright.
+    // row to its author and a resubmit cannot find the project to update.
     submittedById: uuid("submitted_by_id").references(
       () => hackathonParticipants.id,
       { onDelete: "set null" },
@@ -263,46 +252,31 @@ export const hackathonProjects = pgTable(
     index("project_team_id_idx").on(table.teamId),
     index("project_status_idx").on(table.status),
     // One solo entry per person per hackathon, enforced where two concurrent
-    // submits would otherwise both insert. Restricted to solo rows so a captain
-    // filing for their team is unaffected.
+    // submits would both insert. Solo rows only, so a captain filing for their
+    // team is unaffected.
     uniqueIndex("project_solo_submitter_idx")
       .on(table.hackathonId, table.submittedById)
       .where(sql`${table.teamId} is null`),
-    // The team half of the same rule. submitProject decides insert-vs-update
-    // from a read, so two concurrent submits by a captain would otherwise both
-    // insert and the team would end up with two entries.
+    // The team half of the same rule. submitProject decides insert-vs-update from
+    // a read, so two concurrent submits by a captain would both insert.
     uniqueIndex("project_team_submission_idx")
       .on(table.hackathonId, table.teamId)
       .where(sql`${table.teamId} is not null`),
   ],
 );
 
-/**
- * Editions that exist but are not yet "the current edition".
- *
- * `resolveCurrentHackathonId` skips these, which is what lets staff announce
- * next year months ahead without every membership, portal gate and club
- * check-in silently retargeting an edition nobody has registered for. An
- * edition becomes current the moment it moves to `open`.
- */
+// Editions that exist but are not yet current. resolveCurrentHackathonId
+// skips these, which is what lets staff announce next year months ahead
+// without every membership and portal gate retargeting an edition nobody
+// registered for. An edition becomes current when it moves to `open`.
 export const PRE_CURRENT_STATUSES = ["draft", "announced"] as const;
 
-/**
- * "Tell me when registration opens."
- *
- * Sign-in is required rather than taking a typed address: an entry is then a
- * real `user` row with a verified email behind it, so the list can actually be
- * mailed and an interested person converts into a participant without
- * re-entering anything. Sign-in is not a Georgia Tech gate — the hackathon is
- * open globally, and the email-code provider means anybody with any address can
- * do it without a Google or GitHub account.
- *
- * The fields here are the ones that shape pre-event planning; everything else
- * is asked at registration. `country` earns its place for a global field:
- * travel, visa lead time and time zones for pre-event programming all depend on
- * it, and it is far too late to ask once registration opens. All are optional —
- * a blank answer should never be the reason somebody abandons the form.
- */
+// "Tell me when registration opens." Sign-in is required rather than a typed
+// address, so an entry is a real user row with a verified email and converts
+// into a participant without re-entering anything — not a Georgia Tech gate,
+// since the email-code provider takes any address. The fields here shape
+// pre-event planning; the rest is asked at registration. `country` earns its
+// place for travel, visas and time zones. All optional.
 export const hackathonInterest = pgTable(
   "hackathon_interest",
   {
@@ -319,25 +293,18 @@ export const hackathonInterest = pgTable(
     experience: text("experience", {
       enum: ["first", "one_or_two", "three_plus"],
     }),
-    /**
-     * When this person was told registration opened.
-     *
-     * The whole reason the list exists is that one message, and a send of
-     * thousands runs in batches from an admin's browser — so it has to be
-     * resumable. Per recipient, exactly like `acceptanceEmailSentAt`: a closed
-     * tab, a refresh or a second click continues where it stopped instead of
-     * mailing everybody again.
-     */
+    // When this person was told registration opened. That one message is the
+    // whole reason the list exists, and a send of thousands runs in batches from
+    // an admin's browser — so it has to be resumable per recipient, exactly like
+    // acceptanceEmailSentAt.
     registrationOpenEmailSentAt: timestamp("registration_open_email_sent_at"),
     /** Same claim mechanism as the announcement recipients above. */
     registrationOpenEmailClaimedAt: timestamp(
       "registration_open_email_claimed_at",
     ),
-    /**
-     * Set when the provider rejected this address, so a retry can tell a
-     * never-attempted recipient from a failed one — and so a permanently bad
-     * address cannot keep the send reporting itself unfinished forever.
-     */
+    // Set when the provider rejected this address, so a retry can tell a
+    // never-attempted recipient from a failed one, and a permanently bad address
+    // cannot keep the send reporting itself unfinished.
     registrationOpenEmailFailedAt: timestamp(
       "registration_open_email_failed_at",
     ),
@@ -345,12 +312,12 @@ export const hackathonInterest = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // hackathon_id alone is the leading column of unique_interest_per_hackathon
-    // below, which already serves every by-edition read.
+    // hackathon_id alone leads unique_interest_per_hackathon below, which already
+    // serves every by-edition read.
     index("hackathon_interest_user_id_idx").on(table.userId),
-    // Registering interest twice is one person changing their answers, not two
-    // people. The unique index is what makes the upsert in `registerInterest`
-    // safe against a double submit.
+    // Registering interest twice is one person changing their answers. The unique
+    // index is what makes the upsert in registerInterest safe against a double
+    // submit.
     unique("unique_interest_per_hackathon").on(table.hackathonId, table.userId),
   ],
 );
@@ -458,9 +425,8 @@ export const hackathonEventAttendees = pgTable(
     index("event_attendee_participant_id_idx").on(table.participantId),
     // Prevent duplicate check-ins
     unique("unique_event_participant").on(table.eventId, table.participantId),
-    // Named explicitly: the generated name is 67 chars, Postgres truncates it
-    // to 63, and drizzle then sees a diff on every push and re-creates the
-    // constraint forever.
+    // Named explicitly: the generated name is 67 chars, Postgres truncates to 63,
+    // and drizzle then sees a diff on every push and re-creates it forever.
     foreignKey({
       name: "event_attendee_participant_id_fk",
       columns: [table.participantId],
@@ -508,15 +474,10 @@ export const hackathonProjectsRelations = relations(
   }),
 );
 
-/**
- * One announcement, composed once and sent in batches.
- *
- * The send loop runs in an organiser's browser: it walks the audience 500 at a
- * time across separate requests. Without a stored copy of what was being sent
- * and to whom, a closed tab left no way to resume — the only options were
- * "mail everybody again" or "leave the rest unmailed", and nothing on any
- * screen said which recipients had already had it.
- */
+// One announcement, composed once and sent in batches. The send loop runs in
+// an organiser's browser, 500 at a time across separate requests — without a
+// stored copy of what was sent and to whom, a closed tab left only "mail
+// everybody again" or "leave the rest unmailed".
 export const hackathonAnnouncements = pgTable(
   "hackathon_announcement",
   {
@@ -530,8 +491,8 @@ export const hackathonAnnouncements = pgTable(
         "registered",
         "approved",
         "checked_in",
-        // Rejected and waitlisted applicants, who every other audience
-        // deliberately excludes. Chosen on purpose or not at all.
+        // Rejected and waitlisted applicants, who every other audience deliberately
+        // excludes. Chosen on purpose or not at all.
         "not_accepted",
       ],
     }).notNull(),
@@ -550,41 +511,31 @@ export const hackathonAnnouncements = pgTable(
   ],
 );
 
-/**
- * The audience of one announcement, frozen at compose time, one row per person.
- *
- * Snapshotting is what makes resuming exact: the previous implementation
- * re-resolved the audience on every batch and sliced it by offset, so any row
- * that moved between requests shifted everything after it — some people were
- * mailed twice and others never at all, silently.
- */
+// The audience of one announcement, frozen at compose time, one row per
+// person. Snapshotting is what makes resuming exact: re-resolving the
+// audience per batch and slicing by offset meant any row that moved shifted
+// everything after it — some mailed twice, others never.
 export const hackathonAnnouncementRecipients = pgTable(
   "hackathon_announcement_recipient",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // The FK is declared in the table extras below with an explicit name: the
-    // one drizzle generates here is 78 characters, past Postgres's 63-char
-    // identifier limit.
+    // The FK is declared in the table extras below with an explicit name: the one
+    // drizzle generates here is 78 characters, past Postgres's 63-char limit.
     announcementId: uuid("announcement_id").notNull(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    /** The address as it was at compose time, so a later change cannot cause a
-     *  second delivery to the same person under a new address. */
+    // The address as it was at compose time, so a later change cannot cause a
+    // second delivery to the same person under a new address.
     email: text("email").notNull(),
-    /**
-     * Claimed by a batch that is about to send to this address.
-     *
-     * Without it, two overlapping requests — two organisers, or one impatient
-     * double-click — both select the same `sent_at IS NULL` rows and both
-     * send. The claim is an atomic UPDATE, so exactly one request wins each
-     * row. A claim older than CLAIM_TIMEOUT is reclaimable, which is what makes
-     * a batch that died mid-flight resumable rather than permanently stuck.
-     */
+    // Claimed by a batch about to send to this address. Without it two
+    // overlapping requests both select the same `sent_at IS NULL` rows and both
+    // send. The claim is an atomic UPDATE, so exactly one wins each row, and a
+    // claim older than CLAIM_TIMEOUT is reclaimable so a dead batch resumes.
     claimedAt: timestamp("claimed_at"),
     sentAt: timestamp("sent_at"),
-    /** Set when the provider rejected this address, so a retry can tell a
-     *  never-attempted recipient from a failed one. */
+    // Set when the provider rejected this address, so a retry can tell a
+    // never-attempted recipient from a failed one.
     failedAt: timestamp("failed_at"),
   },
   (table) => [
@@ -598,11 +549,10 @@ export const hackathonAnnouncementRecipients = pgTable(
       table.announcementId,
       table.userId,
     ),
-    // Postgres truncates any identifier past 63 characters, so the generated
-    // name came back shortened while drizzle-kit went on comparing against the
-    // full one. Every `migrate:push` then dropped and recreated this
-    // constraint and reported "Changes applied", which is the release check
-    // §7 asks for — it could never say "No changes detected".
+    // Postgres truncates identifiers past 63 characters, so the generated name
+    // came back shortened while drizzle-kit compared against the full one. Every
+    // `migrate:push` then dropped and recreated this constraint and reported
+    // "Changes applied", so it could never say "No changes detected".
     foreignKey({
       columns: [table.announcementId],
       foreignColumns: [hackathonAnnouncements.id],

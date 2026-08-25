@@ -75,13 +75,11 @@ export const authConfig: NextAuthConfig = {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       allowDangerousEmailAccountLinking: true,
-      // PKCE + state are the CSRF protection on the OAuth callback. They were
-      // previously disabled (`checks: []`), which combined with
-      // allowDangerousEmailAccountLinking let a forged callback attach an
-      // attacker's identity to an existing account. If sign-in starts failing
-      // with "State cookie was missing", the real cause is cookie/host
-      // configuration (AUTH_URL must match the public origin) — fix that rather
-      // than emptying this array again.
+      // PKCE + state are the CSRF protection on the OAuth callback. Disabled
+      // (`checks: []`) they combined with allowDangerousEmailAccountLinking to let
+      // a forged callback attach an attacker's identity to an existing account. If
+      // sign-in fails with "State cookie was missing", the cause is cookie/host
+      // config (AUTH_URL must match the public origin), not this array.
       checks: ["pkce", "state"],
       authorization: {
         params: {
@@ -92,18 +90,18 @@ export const authConfig: NextAuthConfig = {
       },
     }),
     // GitHub is optional: only registered when credentials are configured, so
-    // deployments without a GitHub OAuth app keep working unchanged.
+    // deployments without a GitHub OAuth app keep working.
     ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
       ? [
           GitHubProvider({
             clientId: process.env.GITHUB_CLIENT_ID,
             clientSecret: process.env.GITHUB_CLIENT_SECRET,
-            // Matches the Google provider: a member who first signed in with
-            // Google can also use GitHub on the same verified email instead of
-            // hitting OAuthAccountNotLinked.
+            // Matches the Google provider: a member who first signed in with Google can
+            // also use GitHub on the same verified email instead of hitting
+            // OAuthAccountNotLinked.
             allowDangerousEmailAccountLinking: true,
-            // GitHub omits the email from the profile unless this scope is
-            // requested, and the adapter requires an email.
+            // GitHub omits the email from the profile unless this scope is requested, and
+            // the adapter requires an email.
             authorization: { params: { scope: "read:user user:email" } },
           }),
         ]
@@ -121,17 +119,15 @@ export const authConfig: NextAuthConfig = {
       from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
       // 6-digit code flow — no magic link, user types the code.
       sendVerificationRequest: async ({ identifier, provider }) => {
-        // Generate a 6-digit numeric code. This code is the sole factor for
-        // email sign-in, so it must come from a CSPRNG — Math.random() is
-        // predictable from observed outputs and would let codes be guessed.
+        // This 6-digit code is the sole factor for email sign-in, so it must come
+        // from a CSPRNG — Math.random() is predictable from observed outputs.
         const code = randomInt(100000, 1000000).toString();
         const customToken = `custom:${code}`;
         const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Store code in DB. Outstanding codes for this identifier are dropped
-        // first: leaving them live lets anyone spam sign-in requests to stack
-        // up valid codes, and every extra one multiplies the odds of a blind
-        // guess against a 6-digit secret.
+        // Outstanding codes for this identifier are dropped first: leaving them live
+        // lets anyone spam sign-in requests to stack up valid codes, and every extra
+        // one multiplies the odds of a blind guess against a 6-digit secret.
         if (db) {
           const expiresISO = expires.toISOString();
           await db.execute(sql`
@@ -180,18 +176,11 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   callbacks: {
-    /**
-     * Deliberately does no database work beyond what the adapter already did.
-     *
-     * With the database session strategy this callback runs on every single
-     * request, so anything queried here is queried once per request per user.
-     * A judge lookup used to live here to set `session.user.isJudge` — with
-     * 2000 attendees, none of whom are judges, that was a second connection
-     * checkout per request across the whole fleet.
-     *
-     * Judge status is read from `user.getPortalContext` (cached) and
-     * `judge.isJudge` instead, which is where every consumer already gets it.
-     */
+    // No database work beyond what the adapter already did. With the database
+    // session strategy this runs on every request, so anything queried here is
+    // queried once per request per user — a judge lookup used to live here and
+    // cost a second connection checkout across the whole fleet. Judge status
+    // comes from user.getPortalContext (cached) and judge.isJudge.
     async session({ session, user }) {
       if (user && session.user) {
         session.user.id = user.id;
@@ -207,20 +196,12 @@ export const authConfig: NextAuthConfig = {
     },
   },
   events: {
-    /**
-     * Claim a paid-but-unlinked payment for this person, every time they sign
-     * in.
-     *
-     * Linking used to happen only inside the membership page, via a mutation
-     * the client had to fire on mount. Anyone who paid and never opened that
-     * exact page stayed unlinked forever — which is why hundreds of paid
-     * payments carry no membership. Sign-in is the one place every member
-     * passes through, and the address here is provider-verified, so it is both
-     * the right hook and sufficient proof of ownership.
-     *
-     * Failures are swallowed on purpose: a membership that cannot be granted
-     * must never block the sign-in itself.
-     */
+    // Claim a paid-but-unlinked payment on every sign-in. Linking used to happen
+    // only inside the membership page via a mutation the client fired on mount,
+    // so anyone who paid and never opened that page stayed unlinked forever.
+    // Sign-in is the one place every member passes through and the address here
+    // is provider-verified. Failures are swallowed: a membership that cannot be
+    // granted must never block the sign-in.
     async signIn({ user }) {
       if (!db || !user?.id || !user.email) return;
       try {

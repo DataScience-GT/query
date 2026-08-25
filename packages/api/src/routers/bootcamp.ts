@@ -6,23 +6,17 @@ import { currentTerm } from "@query/db/services/membership";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
 
-/**
- * The bootcamp, read side. No bootcamp table: sessions are events carrying
- * `bootcampWeek`, attendance is the ordinary `event_check_in`. This pivots it
- * two ways — one member's weeks, and everybody against every week.
- *
- * Enrolment is `member.bootcampTerm === currentTerm()`, since a bootcamp is
- * sold by the semester and does not carry into the next one.
- */
+// The bootcamp, read side. No bootcamp table: sessions are events carrying
+// `bootcampWeek` and attendance is the ordinary `event_check_in`. Enrolment
+// is `member.bootcampTerm === currentTerm()`, since a bootcamp is sold by the
+// semester and does not carry into the next one.
 
 const termInput = z
   .object({ term: z.string().trim().max(20).optional() })
   .optional();
 
-/**
- * Named so both arms of `myProgress` return the same element type — a bare
- * `sessions: []` infers as `never[]` and breaks array methods for callers.
- */
+// Named so both arms of `myProgress` return the same element type — a bare
+// `sessions: []` infers as `never[]` and breaks array methods for callers.
 type ProgressSession = Session & { attended: boolean; past: boolean };
 
 type Session = {
@@ -53,10 +47,8 @@ async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> 
 }
 
 export const bootcampRouter = createTRPCRouter({
-  /**
-   * The caller's own weeks. Not being enrolled reports `enrolled: false`
-   * rather than throwing — it is the state the page turns into an upsell.
-   */
+  // The caller's own weeks. Not being enrolled reports `enrolled: false` rather
+  // than throwing — it is the state the page turns into an upsell.
   myProgress: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
     const term = currentTerm();
@@ -115,11 +107,9 @@ export const bootcampRouter = createTRPCRouter({
     };
   }),
 
-  /**
-   * Everybody enrolled this term against every session. One procedure rather
-   * than roster + grid + stats: they read the same three tables. Counts come
-   * from the attendance rows, not `currentCheckIns`, so corrections show.
-   */
+  // Everybody enrolled this term against every session. One procedure rather
+  // than roster + grid + stats: they read the same three tables. Counts come
+  // from the attendance rows, not `currentCheckIns`, so corrections show.
   attendance: isAdmin.input(termInput).query(async ({ ctx, input }) => {
     const db = ctx.db as DrizzleDB;
     const term = input?.term || currentTerm();

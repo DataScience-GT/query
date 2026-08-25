@@ -11,31 +11,16 @@ import {
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 
-/**
- * Club initiatives: things a project leader runs year-round that members apply
- * to join. Named `initiative` rather than `project` because a hackathon
- * "project" is already a judged submission, and one word for both would make
- * every query and conversation ambiguous.
- *
- * Deliberately unscoped by hackathon. The club and the hackathon are two
- * separate aspects of the platform: the hackathon has editions, registration,
- * teams and judging; the club has initiatives that run whenever somebody is
- * willing to lead one. Nothing here is ever judged — judges only ever score
- * `hackathon_project`. Tying these tables to an edition, as they were, meant a
- * club project silently belonged to whichever hackathon happened to be current
- * on the day it was created, and vanished from every list the moment staff
- * drafted the next one.
- */
+// Club initiatives: things a project leader runs year-round that members
+// apply to join. Named `initiative` rather than `project` because a hackathon
+// project is already a judged submission. Deliberately unscoped by hackathon
+// — tying these to an edition meant a club project belonged to whichever
+// hackathon was current that day and vanished when staff drafted the next.
 
-/**
- * The project-leader role, as its own assignment table rather than a value on
- * `admin.role` — a leader is an elevated member, not staff, and nothing here
- * should widen an existing admin check.
- *
- * One row per person, not one per edition: leading is a standing appointment
- * that lasts until somebody revokes it, so there is no yearly re-grant and
- * nobody loses their initiatives when an edition rolls over.
- */
+// The project-leader role, as its own assignment table rather than a value on
+// `admin.role`: a leader is an elevated member, not staff. One row per
+// person, not per edition — leading is a standing appointment, so nobody
+// loses their initiatives when an edition rolls over.
 export const projectLeaders = pgTable(
   "project_leader",
   {
@@ -59,18 +44,12 @@ export const projectLeaders = pgTable(
 
 export type ProjectLeader = typeof projectLeaders.$inferSelect;
 
-/**
- * The whole lifecycle, including the one a member starts.
- *
- * A member with no leader role proposes an initiative; it sits at `proposed`
- * until an admin reviews it. Approving moves it to `draft` and grants the
- * proposer the leader role, so they finish writing it and open it themselves —
- * approval never publishes a half-written page to members. Declining parks it
- * at `declined` with a note the proposer can read.
- *
- * Only `open` is ever visible to members. An existing leader skips the first
- * two states entirely and creates straight into `draft`.
- */
+// The whole lifecycle, including the one a member starts. A member with no
+// leader role proposes; it sits at `proposed` until an admin reviews.
+// Approving moves it to `draft` and grants the leader role, so approval never
+// publishes a half-written page. Declining parks it at `declined` with a
+// note. Only `open` is visible to members; an existing leader creates
+// straight into `draft`.
 export const initiativeStatuses = [
   "proposed",
   "declined",
@@ -83,14 +62,10 @@ export type InitiativeStatus = (typeof initiativeStatuses)[number];
 /** What a leader may set directly — the review states are not theirs to pick. */
 export const leaderSettableStatuses = ["draft", "open", "closed"] as const;
 
-/**
- * No accepted-seat counter here on purpose: every writer takes a row lock on
- * the initiative first, so the accepted rows are counted directly and there is
- * no second number that can drift.
- *
- * `leaderUserId` points at the user, not at `project_leader.id`, so revoking
- * somebody's role leaves their initiatives intact and still attributable.
- */
+// No accepted-seat counter on purpose: every writer takes a row lock on the
+// initiative first, so accepted rows are counted directly and no second
+// number can drift. `leaderUserId` points at the user, not project_leader.id,
+// so revoking a role leaves their initiatives intact and attributable.
 export const initiatives = pgTable(
   "initiative",
   {
@@ -105,11 +80,9 @@ export const initiatives = pgTable(
     status: text("status", { enum: initiativeStatuses })
       .notNull()
       .default("draft"),
-    /**
-     * How many people the leader may accept, not counting themselves — a team
-     * of four is a leader plus three accepted members at `maxMembers = 3`.
-     * Null means uncapped. Zero would be an initiative nobody can join.
-     */
+    // How many people the leader may accept, not counting themselves — a team of
+    // four is a leader plus three at `maxMembers = 3`. Null means uncapped; zero
+    // would be an initiative nobody can join.
     maxMembers: integer("max_members"),
     archivedAt: timestamp("archived_at"),
     /** Set when an admin approves or declines a proposal. */
@@ -138,11 +111,9 @@ export const applicationStatuses = [
 ] as const;
 export type ApplicationStatus = (typeof applicationStatuses)[number];
 
-/**
- * `withdrawn` is a state rather than a deleted row: the unique index is what
- * stops a double submission, and it has to keep holding while somebody is gone
- * so re-applying reuses the row instead of racing a second insert against it.
- */
+// `withdrawn` is a state rather than a deleted row: the unique index stops a
+// double submission and has to keep holding while somebody is gone, so
+// re-applying reuses the row instead of racing a second insert.
 export const initiativeApplications = pgTable(
   "initiative_application",
   {
@@ -157,8 +128,8 @@ export const initiativeApplications = pgTable(
       .notNull()
       .default("pending"),
     pitch: text("pitch"),
-    /** Re-stamped on re-apply, so the leader's queue is ordered by when the
-     *  hand actually went up. */
+    // Re-stamped on re-apply, so the leader's queue is ordered by when the hand
+    // actually went up.
     appliedAt: timestamp("applied_at").defaultNow().notNull(),
     decidedAt: timestamp("decided_at"),
     decidedById: text("decided_by_id").references(() => users.id, {

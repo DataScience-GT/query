@@ -16,11 +16,9 @@ import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 
-// A draft has not been announced yet, so it does not belong in a participant's
-// browse list — create()'s own comment promises a draft stays invisible to
-// participants. "cancelled" is deliberately NOT hidden: the hackathon detail
-// and participants pages both ship a "Cancelled" status badge, and people who
-// already registered need to be able to open the event and see that it is off.
+// A draft has not been announced, so it does not belong in a participant's
+// browse list. "cancelled" is deliberately NOT hidden: both detail pages ship
+// a Cancelled badge, and people who already registered need to see it is off.
 const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
   "draft",
 ];
@@ -32,10 +30,8 @@ const toSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-/**
- * Exact name first, then the slug the portal links with. The slug pass reads
- * every edition — there are a handful, and no index covers the normalisation.
- */
+// Exact name first, then the slug the portal links with. The slug pass reads
+// every edition — there are a handful, and no index covers the normalisation.
 async function findByNameOrSlug(db: DrizzleDB, value: string) {
   const exact = await db.query.hackathons.findFirst({
     where: eq(hackathons.name, value),
@@ -75,9 +71,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         ReturnType<DB["query"]["hackathons"]["findMany"]>
       >;
 
-      // Staff-only statuses are still listable by admins (the admin setup and
-      // judging pages pick a hackathon off this endpoint), so both the rows and
-      // the cache entry depend on who is asking.
+      // Staff-only statuses stay listable by admins (the setup and judging pages
+      // pick a hackathon off this endpoint), so both the rows and the cache entry
+      // depend on who is asking.
       const adminViewer = await callerIsAdmin(ctx);
 
       // An explicit status filter is honoured, but for a non-admin a staff-only
@@ -102,9 +98,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         ctx.db as DrizzleDB
       ).query.hackathons.findMany({
         where: and(
-          // Hidden means hidden from the public funnel, not from the people
-          // running the event. Filtering it for staff too emptied Judging Setup
-          // and the Judging dashboard, which both pick an edition off here.
+          // Hidden means hidden from the public funnel, not from the people running the
+          // event. Filtering it for staff too emptied Judging Setup and the judging
+          // dashboard, which both pick an edition off here.
           adminViewer ? undefined : eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
           adminViewer
@@ -151,15 +147,12 @@ export const hackathonCrudRouter = createTRPCRouter({
       type HackathonItem = Awaited<
         ReturnType<DB["query"]["hackathons"]["findFirst"]>
       >;
-      /**
-       * list() hides staff-only statuses, but this endpoint is reachable by id
-       * or by name, so a draft stays fetchable by anyone who guesses either.
-       * The cache entry is shared across callers, so visibility is enforced on
-       * the way out — otherwise one admin lookup would warm the cache and then
-       * serve the unannounced hackathon to everybody for VOLATILE_TTL.
-       * Only the draft status gates here: isPublic=false is how invite-only
-       * events are marked, and their participants still need to open the link.
-       */
+      // list() hides staff-only statuses, but this endpoint is reachable by id or
+      // name, so a draft stays fetchable by anyone who guesses either. The cache
+      // entry is shared, so visibility is enforced on the way out — otherwise one
+      // admin lookup warms it and serves the unannounced hackathon to everybody.
+      // Only draft gates here: isPublic=false marks invite-only events, whose
+      // participants still need to open the link.
       const assertVisible = async (row: NonNullable<HackathonItem>) => {
         if (!STAFF_ONLY_STATUSES.includes(row.status)) return;
         if (await callerIsAdmin(ctx)) return;
@@ -174,14 +167,11 @@ export const hackathonCrudRouter = createTRPCRouter({
           input.id,
         );
 
-      /**
-       * A hackathon is cached under its own id and nothing else. This endpoint
-       * also accepts a name, but keying a second copy under the name gives the
-       * row two homes: every writer (register, update, delete) evicts by id, so
-       * the name-keyed copy would outlive the eviction and keep serving a stale
-       * seat count. A name lookup therefore always hits the database and only
-       * refreshes the id-keyed entry.
-       */
+      // A hackathon is cached under its own id and nothing else. This endpoint also
+      // accepts a name, but a second copy keyed by name gives the row two homes:
+      // every writer evicts by id, so the name-keyed copy would outlive the
+      // eviction and keep serving a stale seat count. A name lookup therefore
+      // always hits the database and only refreshes the id-keyed entry.
       if (isUuid) {
         const cached = ctx.cache.get<HackathonItem>(
           CacheKeys.hackathon(input.id),
@@ -240,10 +230,9 @@ export const hackathonCrudRouter = createTRPCRouter({
           tracks: z.array(z.string().max(100)).max(50).optional(),
           challenges: z.array(z.string().max(100)).max(50).optional(),
           websiteUrl: z.string().url().max(500).optional(),
-          // Draft keeps the hackathon invisible to participants; announced puts
-          // its landing page and interest list live without opening
-          // registration; open lets them register straight away without a
-          // second trip to the admin panel.
+          // Draft keeps the hackathon invisible to participants; announced puts its
+          // landing page and interest list live without opening registration; open lets
+          // them register straight away without a second trip to the admin panel.
           status: z.enum(["draft", "announced", "open"]).default("draft"),
         })
         .refine((data) => data.endDate > data.startDate, {
@@ -278,9 +267,9 @@ export const hackathonCrudRouter = createTRPCRouter({
           })
           .returning();
       } catch (error) {
-        // unique_hackathon_name. Admin URLs are built from the name, so a
-        // duplicate would make one of the two unreachable — worth saying
-        // plainly rather than surfacing a driver error.
+        // unique_hackathon_name. Admin URLs are built from the name, so a duplicate
+        // makes one of the two unreachable — worth saying plainly rather than
+        // surfacing a driver error.
         if (isUniqueViolation(error)) {
           throw new TRPCError({
             code: "CONFLICT",
@@ -320,9 +309,8 @@ export const hackathonCrudRouter = createTRPCRouter({
           ])
           .optional(),
         // These five are nullable as well as optional, and the distinction is
-        // load-bearing: `undefined` means "leave unchanged", `null` means
-        // "clear it". Optional alone gave the edit form no way to empty a
-        // field it had already filled — sending `[]` reads as unchanged.
+        // load-bearing: `undefined` means leave unchanged, `null` means clear it.
+        // Optional alone gave the edit form no way to empty a field it had filled.
         prizes: z
           .array(
             z.object({
@@ -338,8 +326,8 @@ export const hackathonCrudRouter = createTRPCRouter({
         theme: z.string().max(200).optional(),
         tracks: z.array(z.string().max(100)).max(50).nullable().optional(),
         challenges: z.array(z.string().max(100)).max(50).nullable().optional(),
-        // No empty-string escape hatch: "" would be stored and render as a
-        // link to nowhere. Clearing the field sends null.
+        // No empty-string escape hatch: "" would be stored and render as a link to
+        // nowhere. Clearing the field sends null.
         websiteUrl: z.string().url().max(500).nullable().optional(),
         isPublic: z.boolean().optional(),
       }),
@@ -415,21 +403,17 @@ export const hackathonCrudRouter = createTRPCRouter({
     }),
 
 
-  /**
-   * Super-admin only.
-   *
-   * isAdmin never checks `role`, so the default "admin" and "moderator" both
-   * passed — every staff account could destroy an edition. Verified three
-   * active super_admin rows exist before narrowing this, because a gate with
-   * nobody behind it is an outage rather than a control.
-   */
+  // Super-admin only. isAdmin never checks `role`, so "admin" and "moderator"
+  // both passed and every staff account could destroy an edition. Three active
+  // super_admin rows were verified first — a gate with nobody behind it is an
+  // outage rather than a control.
   delete: isSuperAdmin
     .input(
       z.object({
         hackathonId: z.string().uuid(),
-        // The hackathon's own name, typed by the caller. Eleven tables cascade
-        // off this row — every participant, team, project and judge vote for
-        // the event. A browser confirm() is one misplaced click; this is not.
+        // The hackathon's own name, typed by the caller. Eleven tables cascade off
+        // this row — every participant, team, project and judge vote. A browser
+        // confirm() is one misplaced click; this is not.
         confirmName: z.string().min(1),
       }),
     )
@@ -457,9 +441,7 @@ export const hackathonCrudRouter = createTRPCRouter({
 
       // Every child table cascades off this row, so reporting success for an id
       // that matched nothing hides a delete that never happened. RETURNING names
-      // the rows the statement itself removed, which a separate existence check
-      // cannot: that only describes the row as it was before the DELETE, and a
-      // concurrent delete landing in between would still be called a success.
+      // the rows the statement removed, which a separate existence check cannot.
       let deleted;
       try {
         deleted = await (ctx.db as DrizzleDB)
@@ -467,10 +449,9 @@ export const hackathonCrudRouter = createTRPCRouter({
           .where(eq(hackathons.id, hackathonId))
           .returning({ id: hackathons.id });
       } catch (error) {
-        // member.hackathon_id is ON DELETE RESTRICT, so this fires when paid
-        // club memberships still hang off the edition. That is the guard
-        // working, not a bug — those rows are the only record of who paid and
-        // nothing re-creates them.
+        // member.hackathon_id is ON DELETE RESTRICT, so this fires when paid club
+        // memberships still hang off the edition. That is the guard working — those
+        // rows are the only record of who paid and nothing re-creates them.
         if (isForeignKeyViolation(error)) {
           throw new TRPCError({
             code: "CONFLICT",

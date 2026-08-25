@@ -35,24 +35,17 @@ import {
 import type Stripe from "stripe";
 import crypto from "crypto";
 
-/**
- * Caches the Stripe SDK client against the key it was built from.
- *
- * The pairing is the whole point, and two loose variables let them be updated
- * independently — a client cached under a stale key is a client talking to the
- * wrong Stripe account.
- */
+// Caches the Stripe client against the key it was built from. Two loose
+// variables let them drift, and a client cached under a stale key talks to
+// the wrong Stripe account.
 class StripeClientProvider {
   private client: Stripe | null = null;
   private builtFromKey: string | undefined;
 
-  /**
-   * Only a successfully constructed client is memoized, and only for the key it
-   * was built from. A single call made before the environment was populated
-   * used to cache `null` for the lifetime of the process, so every later
-   * request returned "payment service unavailable" even once the key was
-   * present — the failure was permanent and only a restart cleared it.
-   */
+  // Only a constructed client is memoized, and only for its key. One call made
+  // before the environment was populated used to cache `null` for the life of
+  // the process, so every later request said "payment service unavailable"
+  // until a restart.
   async get(): Promise<Stripe | null> {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) return null;
@@ -73,41 +66,26 @@ const planInput = z.enum(["annual", "semester"]).default("annual");
 const planLabel = (plan: "annual" | "semester") =>
   plan === "semester" ? "one semester" : "one year";
 
-/**
- * Mock mode is a local-development affordance: it records a paid payment and
- * activates a membership without any money moving.
- *
- * Switched on by an explicit flag, never by a key prefix. This used to trigger
- * on a secret key starting with `mk_` — a prefix Stripe does not issue and
- * this repo invented. That looked enough like a credential to get committed to
- * an environment file and shipped to production, where it silently put the
- * live site into mock mode. A flag named STRIPE_MOCK_MODE cannot be mistaken
- * for a key.
- *
- * `next build`/`next start` set NODE_ENV to production, so the flag is ignored
- * there no matter how it is set — a production deploy fails closed with
- * "payment service unavailable" rather than handing out free memberships.
- */
+// Mock mode records a paid payment and activates a membership with no money
+// moving. Switched on by an explicit flag, never a key prefix: the old `mk_`
+// prefix looked enough like a credential to get committed and shipped, which
+// silently put the live site into mock mode. `next build`/`next start` set
+// NODE_ENV=production, where the flag is ignored, so production fails closed.
 const isMockMode = () =>
   process.env.STRIPE_MOCK_MODE === "true" &&
   process.env.NODE_ENV !== "production";
 
-/**
- * The secret and publishable keys must be the same Stripe mode.
- *
- * A PaymentIntent minted with a test secret cannot be confirmed by a live
- * publishable key, and vice versa. Stripe.js reports that as a vague
- * client-side error with no hint that the two keys disagree, so it is caught
- * here where the cause is obvious — this pairing is easy to get wrong when
- * only one of the two is swapped.
- */
+// Secret and publishable keys must be the same Stripe mode. An intent minted
+// with a test secret cannot be confirmed by a live publishable key, and
+// Stripe.js reports that as a vague client-side error with no hint that the
+// two disagree — easy to hit when only one is swapped.
 const assertKeyModesMatch = (secretKey: string) => {
   const publishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
   if (!publishable) return;
 
   // Restricted keys (rk_live_/rk_test_) are the recommended kind, so matching
-  // only on `sk_` would read a live restricted key as test mode and refuse to
-  // take payments.
+  // only `sk_` would read a live restricted key as test mode and refuse
+  // payments.
   const secretIsLive = /^[sr]k_live/.test(secretKey);
   const publishableIsLive = publishable.startsWith("pk_live");
 
@@ -120,14 +98,9 @@ const assertKeyModesMatch = (secretKey: string) => {
   }
 };
 
-/**
- * Why payments are unavailable, for the server log.
- *
- * "Payment service is currently unavailable" is the right thing to show a
- * member, but it is useless to whoever has to fix it: a missing key and a mock
- * key in production look identical from the outside. This names the cause
- * without ever putting key material in a log.
- */
+// Why payments are unavailable, for the server log. The member-facing string
+// is useless to whoever has to fix it — a missing key and a mock key in
+// production look identical. Names the cause without logging key material.
 const describeKeyProblem = (key: string | undefined) => {
   if (!key) return "STRIPE_SECRET_KEY is not set on this deployment";
   return null;
@@ -141,9 +114,7 @@ function clearMembershipCaches(_cache: unknown, userId: string) {
 }
 
 export const stripeRouter = createTRPCRouter({
-  /**
-   * Create a new Stripe Checkout Session for membership
-   */
+  // Create a new Stripe Checkout Session for membership.
   createCheckoutSession: protectedProcedure
     .input(
       z.object({
@@ -164,9 +135,8 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Checked before the key, so local development needs no Stripe key at
-      // all — which is the point: there is no longer any reason to invent a
-      // placeholder credential.
+      // Checked before the key, so local development needs no Stripe key at all —
+      // which is the point: no reason left to invent a placeholder credential.
       if (isMockMode()) {
         const sessionId = `cs_mock_${crypto.randomUUID().replace(/-/g, "")}`;
         const nameParts = (user.name || "Member").split(" ");
@@ -241,9 +211,8 @@ export const stripeRouter = createTRPCRouter({
 
       try {
         const session = await stripe.checkout.sessions.create({
-          // No payment_method_types on purpose: pinning it to card disables
-          // dynamic payment methods, so anything enabled in the Dashboard
-          // (Link, Cash App, wallets) never appears at checkout.
+          // No payment_method_types on purpose: pinning it to card disables dynamic
+          // payment methods, so Link, Cash App and wallets never appear at checkout.
           line_items: [
             {
               price_data: {
@@ -256,8 +225,8 @@ export const stripeRouter = createTRPCRouter({
                     ? `Membership to Data Science at Georgia Tech for ${planLabel(input.plan)}, including bootcamp access`
                     : `Membership to Data Science at Georgia Tech for ${planLabel(input.plan)}`,
                 },
-                // From the shared pricing module, so this can no longer drift
-                // from what createPaymentIntent charges or the portal quotes.
+                // From the shared pricing module, so this cannot drift from what
+                // createPaymentIntent charges or the portal quotes.
                 unit_amount: priceForCents(input.bootcamp, input.plan),
               },
               quantity: 1,
@@ -270,17 +239,16 @@ export const stripeRouter = createTRPCRouter({
           metadata: {
             userId: ctx.userId!,
             bootcamp: input.bootcamp ? "true" : "false",
-            // Read back by the webhook: what expiry was actually paid for is
-            // decided here, never by whatever the browser claims later.
+            // Read back by the webhook: what expiry was paid for is decided here, never
+            // by whatever the browser claims later.
             plan: input.plan,
           },
         });
 
         return { url: session.url };
       } catch (error: unknown) {
-        // Stripe Checkout Error
-        // Check for invalid API key errors specifically if possible, but obscure all
-        // Generic error for all Stripe failures - don't leak configuration status
+        // Generic error for every Stripe failure — the response must not leak
+        // whether the key is missing, invalid or in the wrong mode.
         logSecurityEvent({
           type: "validation_error",
           identifier: ctx.userId ?? "unknown",
@@ -294,10 +262,8 @@ export const stripeRouter = createTRPCRouter({
       }
     }),
 
-  /**
-   * Create a Stripe PaymentIntent for embedded/modal checkout
-   * Returns client_secret for use with Stripe Payment Element
-   */
+  // Create a PaymentIntent for embedded/modal checkout. Returns the
+  // client_secret for the Stripe Payment Element.
   createPaymentIntent: protectedProcedure
     .input(
       z
@@ -316,11 +282,9 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      /**
-       * A member with a year still on it buys the bootcamp alone. Decided from
-       * their own row, never an input flag — otherwise a non-member could ask
-       * for add-on pricing and get bootcamp access for $10.
-       */
+      // A member with a year still on it buys the bootcamp alone. Decided from
+      // their own row, never an input flag — otherwise a non-member could ask for
+      // add-on pricing and get bootcamp access for $10.
       const member = await ctx.db!.query.members.findFirst({
         where: eq(members.userId, ctx.userId!),
         columns: { isActive: true, membershipEndDate: true },
@@ -335,8 +299,8 @@ export const stripeRouter = createTRPCRouter({
         ? BOOTCAMP_ADDON_CENTS
         : priceForCents(input.bootcamp, input.plan);
 
-      // Counted where the price is decided, so the plan mix in the dashboard is
-      // what the server charged rather than what a client asked for.
+      // Counted where the price is decided, so the dashboard's plan mix is what the
+      // server charged rather than what a client asked for.
       paymentIntents.inc({
         plan: input.plan,
         bootcamp: String(input.bootcamp),
@@ -344,19 +308,17 @@ export const stripeRouter = createTRPCRouter({
       });
 
       // Checked before the key, matching createCheckoutSession, so local
-      // development needs no Stripe key at all.
+      // development needs no Stripe key.
       if (isMockMode()) {
-        // A real, unique id so the mock flow goes through the SAME
-        // confirmMembershipAfterPayment path production uses — including its
-        // idempotency check on stripePaymentIntentId. A fixed placeholder
-        // would collide across runs and make the second developer's payment a
-        // silent no-op.
+        // A real, unique id so the mock flow goes through the same
+        // confirmMembershipAfterPayment path production uses, idempotency check
+        // included. A fixed placeholder would collide across runs and make the second
+        // developer's payment a silent no-op.
         return {
           clientSecret: "mock_pi_secret",
-          // Purchase kind rides in the id: a mock intent is stored nowhere for
-          // confirm to look up, so otherwise only the bundle is testable. The
-          // plan rides along for the same reason — a mock semester purchase
-          // that granted a year would hide the bug it exists to catch.
+          // Purchase kind rides in the id: a mock intent is stored nowhere for confirm
+          // to look up, so otherwise only the bundle is testable. The plan rides along
+          // too — a mock semester purchase granting a year would hide the bug.
           mockPaymentIntentId: `pi_mock_${addOnOnly ? "addon_" : input.plan === "semester" ? "sem_" : ""}${crypto.randomUUID().replace(/-/g, "")}`,
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
@@ -408,12 +370,11 @@ export const stripeRouter = createTRPCRouter({
             userEmail: user.email,
             // Every grant path reads this to tell a $10 add-on from a year.
             type: addOnOnly ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
-            // And this to tell a year from a semester. The add-on extends
-            // neither, so it carries the default and is ignored.
+            // And this to tell a year from a semester. The add-on extends neither, so it
+            // carries the default and is ignored.
             plan: input.plan,
-            // Read back when the payment is recorded, so the bootcamp flag
-            // comes from what was actually charged rather than from a client
-            // that could simply claim it.
+            // Read back when the payment is recorded, so the bootcamp flag comes from
+            // what was charged rather than from a client that could claim it.
             bootcamp: input.bootcamp ? "true" : "false",
           },
           automatic_payment_methods: { enabled: true },
@@ -439,26 +400,20 @@ export const stripeRouter = createTRPCRouter({
       }
     }),
 
-  /**
-   * Called by the frontend after PaymentIntent succeeds client-side.
-   * Verifies with Stripe, records the payment in DB, and activates membership.
-   */
+  // Called by the frontend after the PaymentIntent succeeds client-side.
+  // Verifies with Stripe, records the payment, activates the membership.
   confirmMembershipAfterPayment: protectedProcedure
     .input(z.object({ paymentIntentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      // Mock mode grants the membership through this same procedure rather
-      // than a parallel branch, so local development exercises the production
-      // path: same idempotency check, same membership service, same cache
-      // eviction. Previously the modal called onSuccess() directly and the UI
-      // reported "Access Granted" with nothing written anywhere.
-      //
-      // isMockMode() is false whenever NODE_ENV=production regardless of the
-      // flag, so this cannot mint free memberships on the live site.
+      // Mock mode grants through this same procedure rather than a parallel branch,
+      // so local development exercises the production path — same idempotency
+      // check, membership service and cache eviction. isMockMode() is false
+      // whenever NODE_ENV=production, so this cannot mint free live memberships.
       const mock = isMockMode() && input.paymentIntentId.startsWith("pi_mock_");
 
-      // Only the fields this procedure reads. Structural rather than Stripe's
-      // own type so the mock object can satisfy it without inventing the
-      // hundred properties a real PaymentIntent carries.
+      // Only the fields this procedure reads. Structural rather than Stripe's own
+      // type so the mock object can satisfy it without inventing a hundred
+      // properties.
       let pi: {
         id: string;
         status: string;
@@ -490,8 +445,8 @@ export const stripeRouter = createTRPCRouter({
           },
         };
       } else {
-        // No key-mode check here: this path hands no publishable key to the
-        // client, so the two cannot disagree.
+        // No key-mode check here: this path hands no publishable key to the client,
+        // so the two cannot disagree.
         const stripe = await getStripe();
         if (!stripe) {
           throw new TRPCError({
@@ -528,8 +483,8 @@ export const stripeRouter = createTRPCRouter({
       const nameParts = (user?.name || "Member").split(" ");
       const firstName = nameParts[0] ?? "Member";
       const lastName = nameParts.slice(1).join(" ") || "Member";
-      // From the charged intent, not the client: the add-on is only granted
-      // if it was actually paid for.
+      // From the charged intent, not the client: the add-on is granted only if it
+      // was actually paid for.
       const bootcampMember = pi.metadata?.bootcamp === "true";
       const addOnOnly = pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE;
       const plan = readPlan(pi.metadata?.plan);
@@ -539,11 +494,9 @@ export const stripeRouter = createTRPCRouter({
         where: eq(stripePayments.stripePaymentIntentId, pi.id),
       });
 
-      /**
-       * A grant that throws leaves a recorded payment and no membership. The
-       * reconcile path can repair that, but only once somebody knows to look —
-       * so the failure is counted here rather than only logged.
-       */
+      // A grant that throws leaves a recorded payment and no membership. Reconcile
+      // can repair it, but only once somebody knows to look — so count the failure
+      // rather than only logging it.
       try {
         if (!existing) {
           await ctx.db!.transaction(async (tx) => {
@@ -592,9 +545,7 @@ export const stripeRouter = createTRPCRouter({
     }),
 
 
-  /**
-   * Attempt to auto-link a Stripe payment matching the user's email
-   */
+  // Auto-link a Stripe payment matching the user's email.
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
     // Basic rate limit to prevent loop hammering (max 1 request per 10 seconds per user)
     const rateLimitKey = `rl:autolink:${ctx.userId!}`;
@@ -669,27 +620,15 @@ export const stripeRouter = createTRPCRouter({
     });
   }),
 
-  /**
-   * Check if the current user has an unlinked Stripe payment
-   *
-   * that matches their email (auto-link scenario)
-   */
-  /**
-   * Recovers membership payments Stripe took but this app never recorded.
-   *
-   * The portal flow records a charge by having the browser call
-   * confirmMembershipAfterPayment once the card clears. If that call never
-   * lands — tab closed, connection dropped, instance restarted — the money is
-   * gone and nothing here knows about it. The webhook is the usual backstop,
-   * but it only fires if the endpoint is subscribed to
-   * payment_intent.succeeded, which is Dashboard configuration rather than
-   * code and therefore not something this repo can guarantee.
-   *
-   * So the portal asks Stripe directly: any succeeded membership intent
-   * carrying this user's id that has no row here is recorded and granted now.
-   * Safe to call on every load — it is keyed on the PaymentIntent id and does
-   * nothing when everything is already reconciled.
-   */
+  // Whether the current user has an unlinked Stripe payment matching their
+  // email (the auto-link case).
+  // Recovers membership payments Stripe took but this app never recorded. The
+  // portal records a charge when the browser calls confirmMembershipAfterPayment
+  // — if that never lands (tab closed, instance restarted) the money is gone
+  // and nothing here knows. The webhook is the usual backstop but depends on a
+  // Dashboard subscription this repo cannot guarantee. So ask Stripe directly:
+  // any succeeded membership intent carrying this user's id with no row here is
+  // recorded and granted. Keyed on the intent id, so it is safe on every load.
   reconcileMyPayments: protectedProcedure.mutation(async ({ ctx }) => {
     const stripe = await getStripe();
     if (!stripe) return { recovered: 0 };
@@ -700,16 +639,15 @@ export const stripeRouter = createTRPCRouter({
 
     let found;
     try {
-      // Scoped by metadata to this user, so it can only ever recover their own
-      // payments. Stripe's search index lags writes by up to a minute, which is
-      // fine for a backstop — the direct confirm call is the fast path.
+      // Scoped by metadata to this user, so it can only recover their own payments.
+      // Stripe's search index lags writes by up to a minute, fine for a backstop.
       found = await stripe.paymentIntents.search({
         query: `metadata['userId']:'${ctx.userId}' AND status:'succeeded'`,
         limit: 20,
       });
     } catch {
-      // Search is unavailable on some accounts/versions; a failed backstop
-      // must not break the page that called it.
+      // Search is unavailable on some accounts and versions; a failed backstop must
+      // not break the page that called it.
       return { recovered: 0 };
     }
 
@@ -718,42 +656,30 @@ export const stripeRouter = createTRPCRouter({
     for (const pi of found.data) {
       if (pi.metadata?.type !== "membership") continue;
       if (pi.metadata?.userId !== ctx.userId) continue;
-      // Same ceiling the webhook applies, so the two paths cannot disagree
-      // about which charges are memberships.
+      // Same ceiling the webhook applies, so the two paths cannot disagree about
+      // which charges are memberships.
       if (pi.amount > MAX_MEMBERSHIP_CHARGE_CENTS) continue;
 
       const existing = await ctx.db!.query.stripePayments.findFirst({
         where: eq(stripePayments.stripePaymentIntentId, pi.id),
       });
 
-      /**
-       * A row that exists but was never linked is exactly the half-finished
-       * state this is here to repair — treating "row exists" as "done" would
-       * strand it. Claim it and grant the membership instead.
-       */
+      // A row that exists but was never linked is the half-finished state this is
+      // here to repair — treating "row exists" as "done" would strand it.
       if (existing) {
         // Somebody else's payment. Not ours to touch.
         if (existing.linkedUserId && existing.linkedUserId !== ctx.userId) {
           continue;
         }
 
-        /**
-         * Linked to this user, which is NOT proof the membership was granted.
-         *
-         * The webhook records the payment first and grants afterwards, on
-         * purpose — sharing a transaction meant a failed grant rolled the
-         * payment row back and lost the charge entirely. But that ordering
-         * leaves a real state where the row is linked and no membership
-         * exists, and skipping every linked payment here made that state
-         * permanent: the customer is charged, the payment is on file, and
-         * nothing ever retries.
-         *
-         * `membership_history` is what tells the two apart. Every grant writes
-         * a row, so a payment with no history row at or after its own
-         * timestamp was never honoured. That distinguishes a failed grant from
-         * a membership that was granted a year ago and has since lapsed —
-         * which must NOT be silently renewed off an old payment.
-         */
+        // Linked to this user is NOT proof the membership was granted. The webhook
+        // records the payment first and grants afterwards on purpose — sharing a
+        // transaction meant a failed grant rolled the payment back and lost the
+        // charge — so linked-with-no-membership is a real state, and skipping every
+        // linked payment made it permanent. membership_history tells them apart:
+        // every grant writes a row, so a payment with no history row at or after its
+        // own timestamp was never honoured. That also keeps a membership granted a
+        // year ago and since lapsed from being silently renewed off an old payment.
         if (existing.linkedUserId) {
           const member = await ctx.db!.query.members.findFirst({
             where: eq(members.userId, ctx.userId!),
@@ -829,8 +755,8 @@ export const stripeRouter = createTRPCRouter({
 
       try {
         await ctx.db!.transaction(async (tx) => {
-          // Same synthetic session id the confirm path and the webhook use, so
-          // the unique on stripeSessionId settles any race between the three.
+          // Same synthetic session id the confirm path and the webhook use, so the
+          // unique on stripeSessionId settles any race between the three.
           const inserted = await tx
             .insert(stripePayments)
             .values({
@@ -878,8 +804,8 @@ export const stripeRouter = createTRPCRouter({
     }
 
     if (recovered > 0) {
-      // Every one of these is a charge that reached Stripe and never reached
-      // this app — the backstop working means something upstream did not.
+      // Every one of these is a charge that reached Stripe and never reached this
+      // app — the backstop working means something upstream did not.
       paymentsRecovered.inc(recovered);
       membershipGrants.inc({ source: "reconcile", plan: "unknown" }, recovered);
       clearMembershipCaches(ctx.cache, ctx.userId!);
@@ -911,15 +837,13 @@ export const stripeRouter = createTRPCRouter({
     };
   }),
 
-  /**
-   * Link a Stripe payment to the current user's account
-   * by providing the name and email used during Stripe checkout
-   */
+  // Link a Stripe payment to the current user by the name and email used at
+  // checkout.
   linkAccount: protectedProcedure
     .input(
       z.object({
-        // Trimmed before the length check: " " passes a bare min(1) and then
-        // normalizes to empty, which the ownership check below must never see.
+        // Trimmed before the length check: " " passes a bare min(1) and normalizes to
+        // empty, which the ownership check below must never see.
         firstName: z.string().trim().min(1).max(100),
         lastName: z.string().trim().min(1).max(100),
         email: z.string().email().max(255),
@@ -943,17 +867,12 @@ export const stripeRouter = createTRPCRouter({
           });
         }
 
-        /**
-         * Prove the caller is the payer. The email alone is not proof — it is
-         * the one thing about someone else's payment that is easy to know — so
-         * without this any signed-in user could take over a stranger's
-         * membership by typing their address.
-         *
-         * Either the account email matches the one that paid, or the name they
-         * typed matches the name on the payment. The second covers paying with
-         * a personal address and signing up with a school one; the first covers
-         * payments Stripe recorded without a name.
-         */
+        // Prove the caller is the payer. The email alone is not proof — it is the one
+        // thing about someone else's payment that is easy to know — so without this
+        // any signed-in user could take over a stranger's membership. Either the
+        // account email matches the payer's, or the typed name matches the name on
+        // the payment (which covers paying personally and signing up with a school
+        // address, and payments Stripe recorded without a name).
         const account = await tx.query.users.findFirst({
           where: eq(users.id, ctx.userId!),
           columns: { email: true },
@@ -966,16 +885,10 @@ export const stripeRouter = createTRPCRouter({
           !!account?.email &&
           normalize(account.email) === normalize(payment.customerEmail);
 
-        /**
-         * Every word the caller gave must be a word on the payment.
-         *
-         * Whole tokens, not `includes`: the empty string is a substring of
-         * every name and a single letter is a substring of most, so a
-         * substring test turns this guard back into "knowing the email is
-         * enough". Tokenising both sides also handles compound names — a payer
-         * recorded as "Mary Jane Watson" can enter "Jane Watson" as a surname
-         * and still match, which a field-by-field comparison would reject.
-         */
+        // Every word the caller gave must be a word on the payment. Whole tokens, not
+        // `includes`: the empty string is a substring of every name, so a substring
+        // test turns this back into "knowing the email is enough". Tokenising also
+        // lets "Mary Jane Watson" match a caller who enters "Jane Watson".
         const tokensOf = (value: string) =>
           normalize(value).split(" ").filter(Boolean);
 
@@ -996,8 +909,8 @@ export const stripeRouter = createTRPCRouter({
             identifier: ctx.userId ?? "unknown",
             details: `Failed ownership check linking payment ${payment.id}`,
           });
-          // Same message as "no payment", so this cannot be used to discover
-          // which addresses have an unclaimed payment sitting against them.
+          // Same message as "no payment", so this cannot be used to discover which
+          // addresses have an unclaimed payment against them.
           throw new TRPCError({
             code: "NOT_FOUND",
             message:
@@ -1071,9 +984,7 @@ export const stripeRouter = createTRPCRouter({
       });
     }),
 
-  /**
-   * Get the current user's linked payment status
-   */
+  // The current user's linked payment status.
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
     const link = await ctx.db!.query.userAccountLinks.findFirst({
       where: eq(userAccountLinks.userId, ctx.userId!),

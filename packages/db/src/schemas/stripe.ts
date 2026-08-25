@@ -11,10 +11,8 @@ import {
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 
-/**
- * Stores Stripe checkout/payment info from webhooks.
- * Used to track payments before they're linked to a user account.
- */
+// Stripe checkout/payment info from webhooks, so a payment is tracked before
+// it is linked to a user account.
 export const stripePayments = pgTable(
   "stripe_payment",
   {
@@ -51,16 +49,13 @@ export const stripePayments = pgTable(
     index("stripe_payment_linked_user_id_idx").on(table.linkedUserId),
     // The webhook looks a payment up by intent id on every
     // payment_intent.succeeded, and reconcileMyPayments does the same. Not
-    // unique: the column is nullable, and Postgres treats NULLs as distinct,
-    // which is the arbiter trap in the plan's known-traps list.
+    // unique: the column is nullable and Postgres treats NULLs as distinct.
     index("stripe_payment_intent_id_idx").on(table.stripePaymentIntentId),
   ],
 );
 
-/**
- * Links users who signed in with a different email (e.g., Google)
- * to their Stripe payment record.
- */
+// Links users who signed in with a different email (Google, say) to their
+// Stripe payment record.
 export const userAccountLinks = pgTable(
   "user_account_link",
   {
@@ -87,10 +82,10 @@ export const userAccountLinks = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    // linkAccount and attemptAutoLink both assume one link per user and one
-    // per payment, and both check with a read before writing. Two tabs, or two
-    // instances, otherwise both insert — which runs the membership upsert
-    // twice and bumps renewalCount for a single payment.
+    // linkAccount and attemptAutoLink both assume one link per user and one per
+    // payment, and both check with a read before writing. Two tabs otherwise both
+    // insert, running the membership upsert twice and bumping renewalCount for a
+    // single payment.
     unique("unique_link_per_user").on(table.userId),
     unique("unique_link_per_payment").on(table.stripePaymentId),
   ],

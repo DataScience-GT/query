@@ -8,10 +8,9 @@ export const admins = pgTable("admin", {
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
-  // "volunteer" is deliberately the weakest tier and is NOT full staff: it
-  // exists so the six-to-ten people running check-in desks can scan badges
-  // without holding the role that can delete the hackathon. isAdmin rejects
-  // it; only the scanner procedures accept it.
+  // "volunteer" is the weakest tier and is NOT full staff: it lets the people
+  // running check-in desks scan badges without holding the role that can delete
+  // the hackathon. isAdmin rejects it; only the scanner procedures accept it.
   role: text("role", {
     enum: ["super_admin", "admin", "moderator", "volunteer"],
   })
@@ -19,9 +18,8 @@ export const admins = pgTable("admin", {
     .default("admin"),
   permissions: text("permissions").array(),
   isActive: boolean("is_active").notNull().default(true),
-  // End of a fixed-term appointment, e.g. an officer granted the role for one
-  // year. NULL is a standing appointment, which is what the founding super
-  // admins hold, so the column revokes nothing on its own.
+  // End of a fixed-term appointment. NULL is a standing appointment, which is
+  // what the founding super admins hold, so the column revokes nothing alone.
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

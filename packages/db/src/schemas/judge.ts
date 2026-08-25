@@ -41,8 +41,8 @@ export const judges = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // user_id alone is the leading column of the unique constraint below, which
-    // is what the portal's per-user judge lookup uses.
+    // user_id alone leads the unique constraint below, which is what the portal's
+    // per-user judge lookup uses.
     index("judge_hackathon_id_idx").on(table.hackathonId),
     unique("unique_judge_per_hackathon").on(table.userId, table.hackathonId),
   ],
@@ -69,8 +69,8 @@ export const judgeAssignments = pgTable(
   (table) => [
     index("assignment_judge_id_idx").on(table.judgeId),
     index("assignment_hackathon_id_idx").on(table.hackathonId),
-    // assignToHackathon and judge.register both enforce one assignment per
-    // judge per hackathon with a read before the insert.
+    // assignToHackathon and judge.register both enforce one assignment per judge
+    // per hackathon with a read before the insert.
     unique("unique_assignment_per_hackathon").on(
       table.judgeId,
       table.hackathonId,
@@ -86,31 +86,20 @@ export const judgingProjects = pgTable(
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
-    // The submission this judgeable entry was promoted from. Judging runs on
-    // this table while participants submit into hackathon_project, and without
-    // this column the two halves share no key at all — a winner could not be
-    // mapped back to the team that built it.
-    // set null, not cascade. judge_vote and hackathon_result both cascade off
-    // judging_project.id, so cascading here would make one DELETE on a
-    // submission also erase every score judges gave it and its frozen
-    // published placing. hackathonResults.sourceProjectId is already set null
-    // for the same reason.
+    // The submission this judgeable entry was promoted from — without it the two
+    // halves share no key and a winner cannot be mapped back to its team.
+    // set null, not cascade: judge_vote and hackathon_result cascade off
+    // judging_project.id, so cascading here would make one DELETE on a submission
+    // erase every score and its frozen placing.
     sourceProjectId: uuid("source_project_id").references(
       () => hackathonProjects.id,
       { onDelete: "set null" },
     ),
-    /**
-     * The code on the team's table card.
-     *
-     * A judge scans this on arrival, which is what starts their scoring clock
-     * — being handed a table in a queue is not the same as standing in front
-     * of it, and the walk between them was previously counted as judging time.
-     * Scanning also proves the judge reached the right table.
-     *
-     * Lives on the judging entry rather than the team because this is exactly
-     * one physical table: a solo submission has no team row, and a team has no
-     * table until its project is promoted.
-     */
+    // The code on the team's table card. A judge scans it on arrival, which is
+    // what starts their scoring clock — the walk from being handed a table used
+    // to count as judging time — and proves they reached the right table. Lives
+    // on the judging entry, not the team: a solo submission has no team row, and
+    // a team has no table until its project is promoted.
     qrCode: uuid("qr_code").defaultRandom().notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
@@ -123,24 +112,18 @@ export const judgingProjects = pgTable(
     tracks: text("tracks").array(), // Enum: Sports, Entertainment, Finance, Healthcare, databricks, sphinx, growth factor, figma, actian, safety kit, GEN-AI, CYBER, NONE
     challenges: text("challenges").array(), // Enum: AGG, ASSURANT, AWS, CAPONE, GROWTH, MLH_MONGODB, MLH_STREAMLIT, MLH_TECH, MLH_CLOUDFLARE, MLH_REACH_CAPITAL
     isCreateX: boolean("is_create_x").default(false),
-    /**
-     * Set when an organiser pulls the submission out of the event.
-     *
-     * A flag rather than a delete: judge_vote cascades off this row, so
-     * deleting would erase scores judges actually gave, and the z-score
-     * normalisation over the remaining votes would shift every other
-     * project. The entry stops being served and stops counting; the record of
-     * what happened survives.
-     */
+    // Set when an organiser pulls the submission out of the event. A flag rather
+    // than a delete: judge_vote cascades off this row, so deleting would erase
+    // real scores and shift the z-score normalisation for every other project.
     withdrawnAt: timestamp("withdrawn_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
     index("judging_project_hackathon_id_idx").on(table.hackathonId),
     index("judging_project_table_idx").on(table.tableNumber),
-    // A table number identifies one physical table at one event. Without this,
-    // a retried CSV import appends the entire project list a second time with
-    // fresh numbers, and judges get routed to tables that do not exist.
+    // A table number identifies one physical table at one event. Without this a
+    // retried CSV import appends the whole project list again with fresh numbers,
+    // and judges get routed to tables that do not exist.
     uniqueIndex("judging_project_table_unique").on(
       table.hackathonId,
       table.tableNumber,
@@ -185,18 +168,12 @@ export const judgeVotes = pgTable(
   ],
 );
 
-/**
- * A frozen placing, computed once when judging closes.
- *
- * getRankings recomputes the whole ordering on every call, and its z-score
- * normalisation runs over the entire vote set — so one late vote silently
- * changes every project's score, including ones already announced. The
- * ordering existed only inside an HTTP response; nothing in the product could
- * say who won yesterday.
- *
- * A snapshot instead: computed deliberately, reviewable while unpublished, and
- * unchanged by anything that happens to the votes afterwards.
- */
+// A frozen placing, computed once when judging closes. getRankings recomputes
+// the whole ordering on every call and its z-score normalisation runs over
+// the entire vote set, so one late vote silently changes every score,
+// including ones already announced — and the ordering existed only inside an
+// HTTP response. A snapshot is reviewable while unpublished and unchanged by
+// anything that happens to the votes afterwards.
 export const hackathonResults = pgTable(
   "hackathon_result",
   {
@@ -207,29 +184,24 @@ export const hackathonResults = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => judgingProjects.id, { onDelete: "cascade" }),
-    /** Carried across at compute time so results survive the judging tables
-     *  and can name the team that actually built the thing. */
+    // Carried across at compute time so results survive the judging tables and
+    // can name the team that actually built the thing.
     sourceProjectId: uuid("source_project_id").references(
       () => hackathonProjects.id,
       { onDelete: "set null" },
     ),
-    /**
-     * Which prize this placing is for. "overall" is the main ranking.
-     *
-     * NOT NULL deliberately. Postgres unique indexes treat NULLs as distinct,
-     * so a nullable track would make result_unique_placing below match nothing
-     * — every recompute would append a second full ordering instead of
-     * upserting, and nothing in the product deletes result rows.
-     */
+    // Which prize this placing is for; "overall" is the main ranking. NOT NULL
+    // deliberately: Postgres unique indexes treat NULLs as distinct, so a
+    // nullable track would make result_unique_placing match nothing and every
+    // recompute would append a second full ordering.
     track: text("track").notNull().default("overall"),
     placement: integer("placement").notNull(),
-    /** The blended score at the moment of computation. `numeric` because the
-     *  pipeline produces a float — hackathon_project.score is an integer and
-     *  could never have held this value. */
+    // The blended score at computation time. `numeric` because the pipeline
+    // produces a float — hackathon_project.score is an integer.
     weightedScore: numeric("weighted_score", { precision: 6, scale: 2 }),
     voteCount: integer("vote_count").notNull().default(0),
-    /** Null while the snapshot is a draft. Set on publish; cleared on
-     *  unpublish, which is what makes publishing reversible. */
+    // Null while the snapshot is a draft. Set on publish, cleared on unpublish,
+    // which is what makes publishing reversible.
     publishedAt: timestamp("published_at"),
     computedAt: timestamp("computed_at").defaultNow().notNull(),
   },
@@ -263,19 +235,13 @@ export const judgeQueue = pgTable(
     isCompleted: boolean("is_completed").notNull().default(false),
     completedAt: timestamp("completed_at"),
     // Stamped when this project is handed to the judge, so a second judge whose
-    // queue reaches the same table can pass over it and come back later instead
-    // of crowding the team. Treated as a claim only while it is recent
-    // (JUDGE_CLAIM_MINUTES) — a judge who closes the tab releases the table on
-    // their own rather than blocking it until an admin steps in.
+    // queue reaches the same table passes over it and comes back later. A claim
+    // only while recent (JUDGE_CLAIM_MINUTES) — a judge who closes the tab
+    // releases the table rather than blocking it until an admin steps in.
     startedAt: timestamp("started_at"),
-    /**
-     * When the judge scanned the table's QR and actually began.
-     *
-     * Distinct from startedAt, which is the claim stamped when the queue hands
-     * the table over. The gap between them is walking, queueing behind another
-     * judge, and finding the table — none of which is time spent judging, and
-     * all of which used to be counted as it.
-     */
+    // When the judge scanned the table's QR and actually began. Distinct from
+    // startedAt, the claim stamped when the queue hands the table over: the gap
+    // is walking, queueing and finding the table, none of which is judging.
     arrivedAt: timestamp("arrived_at"),
   },
   (table) => [

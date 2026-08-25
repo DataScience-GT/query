@@ -4,24 +4,15 @@ import { members, membershipHistory } from "../schemas/members";
 import { PRE_CURRENT_STATUSES } from "../schemas/hackathons";
 import { stripePayments, userAccountLinks } from "../schemas/stripe";
 
-/**
- * Membership rules, in one place.
- *
- * These live in @query/db rather than @query/api because @query/api depends on
- * @query/auth, so auth cannot import back from it — and linking has to happen
- * at sign-in, inside auth. Keeping the logic here is what lets the sign-in
- * hook, the tRPC router and the Stripe webhook all run the same code instead
- * of the three near-copies that drifted apart before.
- */
+// Membership rules, in one place. Here rather than @query/api because
+// @query/api depends on @query/auth, and linking has to happen at sign-in —
+// so this is what lets the sign-in hook, the router and the Stripe webhook
+// run the same code instead of three copies that drifted apart.
 
-/**
- * Called after a membership is granted so caches can be evicted.
- *
- * Inverted rather than imported: the cache lives in @query/api, and @query/api
- * already depends on @query/auth, so neither can import it here. Without this,
- * a membership granted during sign-in sat behind a "not a member" entry with a
- * 5-minute TTL — the member signs in, pays, and is still told to pay.
- */
+// Called after a membership is granted so caches can be evicted. Inverted
+// rather than imported: the cache lives in @query/api, which already depends
+// on @query/auth. Without it a membership granted at sign-in sat behind a
+// "not a member" entry for 5 minutes — pay, and still be told to pay.
 class MembershipChangeNotifier {
   private handler: ((userId: string) => void) | undefined;
 
@@ -47,12 +38,10 @@ export const setMembershipChangeHandler = (
 const notifyMembershipChanged = (userId: string) =>
   membershipChanges.emit(userId);
 
-/**
- * The hackathon a membership belongs to when nobody names one: the edition
- * actually running, and only once nothing is running the newest by start date.
- * Next year's edition is drafted long before it runs, so ordering by start date
- * alone hands every membership to a future draft the day staff create it.
- */
+// The hackathon a membership belongs to when nobody names one: the edition
+// actually running, and only if nothing is running the newest by start date.
+// Ordering by start date alone hands every membership to next year's draft
+// the day staff create it.
 export async function resolveCurrentHackathonId(
   db: DrizzleDB,
 ): Promise<string | undefined> {
@@ -71,13 +60,11 @@ export async function resolveCurrentHackathonId(
   const resolved =
     inProgress ??
     (await db.query.hackathons.findFirst({
-      // The status filter is the whole point of the comment above, and this
-      // branch is the one that needed it: the in-progress query can never match
-      // a future edition, so an unopened one could only ever arrive here.
-      // Without it, the day staff draft or announce next year's edition every
-      // membership read, portal gate and club check-in silently retargets an
-      // edition nobody has registered for, and every paying member reads as
-      // lapsed. An edition joins the running only when it opens.
+      // The status filter matters most in this branch: the in-progress query can
+      // never match a future edition, so an unopened one could only arrive here.
+      // Without it, the day staff draft next year's edition every membership read,
+      // portal gate and club check-in retargets an edition nobody registered for
+      // and every paying member reads as lapsed. An edition joins when it opens.
       where: (h, { notInArray }) =>
         notInArray(h.status, [...PRE_CURRENT_STATUSES]),
       orderBy: (h, { desc }) => [desc(h.startDate)],
@@ -87,28 +74,20 @@ export async function resolveCurrentHackathonId(
   return resolved?.id;
 }
 
-/**
- * Which bootcamp a purchase made today buys into. A membership is a year and a
- * bootcamp is a semester, so they cannot share an expiry. Summer sells fall.
- */
+// Which bootcamp a purchase made today buys into. A membership is a year and
+// a bootcamp is a semester, so they cannot share an expiry. Summer sells fall.
 export const currentTerm = (now = new Date()) =>
   now.getMonth() <= 4
     ? `${now.getFullYear()}-spring`
     : `${now.getFullYear()}-fall`;
 
-/**
- * How long a membership was bought for. A year and a semester are the same
- * membership with the same access — only the expiry differs.
- */
+// How long a membership was bought for. A year and a semester are the same
+// membership with the same access — only the expiry differs.
 export type MembershipPlan = "annual" | "semester";
 
-/**
- * Anything that is not the word "semester" is a year.
- *
- * Payments predate the field, and Stripe metadata is free-form strings written
- * by whichever path minted the intent, so an unreadable value must fall back to
- * the plan that was the only one on offer when those rows were written.
- */
+// Anything that is not "semester" is a year. Payments predate the field and
+// Stripe metadata is free-form, so an unreadable value falls back to the plan
+// that was the only one on offer when those rows were written.
 export const readPlan = (value: string | null | undefined): MembershipPlan =>
   value === "semester" ? "semester" : "annual";
 
@@ -124,13 +103,9 @@ export const planFromMetadata = (
   }
 };
 
-/**
- * The end of the semester a date falls in: spring runs out at the end of May,
- * fall at the end of December — the same boundary `currentTerm` draws.
- *
- * Always strictly after the date given, so renewing a semester membership early
- * lands on the *next* semester's end rather than the one already paid for.
- */
+// The end of the semester a date falls in — spring at the end of May, fall at
+// the end of December, the same boundary currentTerm draws. Always strictly
+// after the date given, so renewing early lands on the next semester's end.
 export const semesterEndDate = (from = new Date()) => {
   const endOf = (year: number, month: number, day: number) =>
     new Date(year, month, day, 23, 59, 59, 999);
@@ -144,11 +119,9 @@ export const semesterEndDate = (from = new Date()) => {
   return endOf(year + 1, 4, 31);
 };
 
-/**
- * Whether a stored payment's metadata says the bootcamp add-on was bought.
- * Metadata is a JSON string written by whichever path recorded the payment,
- * and older rows predate the field entirely, so anything unparseable is "no".
- */
+// Whether a stored payment's metadata says the bootcamp add-on was bought.
+// Metadata is a JSON string written by whichever path recorded the payment
+// and older rows predate the field, so anything unparseable is "no".
 export const paidForBootcamp = (metadata: string | null | undefined) => {
   if (!metadata) return false;
   try {
@@ -158,11 +131,9 @@ export const paidForBootcamp = (metadata: string | null | undefined) => {
   }
 };
 
-/**
- * Marks a payment that bought the $10 bootcamp alone. Nine paths grant
- * memberships from a stored payment; without this every one of them reads a
- * paid $10 row as a bought year, so the marker travels on the payment.
- */
+// Marks a payment that bought the $10 bootcamp alone. Nine paths grant
+// memberships from a stored payment; without this every one reads a paid $10
+// row as a bought year, so the marker travels on the payment.
 export const BOOTCAMP_ADDON_PAYMENT_TYPE = "bootcamp_addon";
 
 /** Whether a stored payment bought the bootcamp alone, not a membership. */
@@ -178,11 +149,9 @@ export const isBootcampAddOnOnly = (metadata: string | null | undefined) => {
   }
 };
 
-/**
- * Exported so no caller hand-rolls it. A copied version in the Stripe webhook
- * lost a backslash and split on the letter "s" rather than whitespace, storing
- * "Chris Smith" as firstName "Chri", lastName " Smith".
- */
+// Exported so no caller hand-rolls it. A copy in the Stripe webhook lost a
+// backslash and split on the letter "s", storing "Chris Smith" as firstName
+// "Chri", lastName " Smith".
 export const splitName = (name: string | null | undefined) => {
   const parts = (name || "Member").trim().split(/\s+/);
   return {
@@ -199,10 +168,8 @@ export async function createOrUpdateMembership(
     lastName: string;
     phoneNumber?: string | null;
     hackathonId?: string;
-    /**
-     * Whether this payment included the bootcamp add-on. Sticky once set; the
-     * term it stamps is not, since access runs out with the semester.
-     */
+    // Whether this payment included the bootcamp add-on. Sticky once set; the
+    // term it stamps is not, since access runs out with the semester.
     bootcampMember?: boolean;
     /** Bought the bootcamp alone, so it must not extend the membership year. */
     addOnOnly?: boolean;
@@ -210,12 +177,10 @@ export async function createOrUpdateMembership(
     plan?: MembershipPlan;
   },
 ) {
-  // Keyed on the person, not the edition.
-  //
-  // This used to resolve a "current hackathon" and look for (userId,
-  // hackathonId) — so on the day the next edition opened, an existing member
-  // matched nothing, took the insert branch below, and had their remaining
-  // months silently replaced by a fresh term starting today. It also meant a
+  // Keyed on the person, not the edition. This used to resolve a "current
+  // hackathon" and look for (userId, hackathonId), so on the day the next
+  // edition opened an existing member matched nothing, took the insert branch,
+  // and had their remaining months replaced by a term starting today — and a
   // payment could not be honoured at all when no edition was open.
   const existing = await db.query.members.findFirst({
     where: eq(members.userId, opts.userId),
@@ -224,8 +189,8 @@ export async function createOrUpdateMembership(
   const now = new Date();
 
   // $10 buys the semester and nothing else — no extra year, no renewal, no
-  // history row. No member row means nothing to stamp; doing nothing leaves
-  // the paid row for staff rather than minting a year for $10.
+  // history row. No member row means nothing to stamp; doing nothing leaves the
+  // paid row for staff rather than minting a year for $10.
   if (opts.addOnOnly) {
     if (!existing) return;
 
@@ -240,24 +205,18 @@ export async function createOrUpdateMembership(
     return;
   }
 
-  /**
-   * A membership is one paid year, or one paid semester. Renewing early has to
-   * *extend* the term, so the new one starts where the old one ends — measuring
-   * from today instead would silently throw away whatever time was left, and
-   * someone who renews a month early would have paid to lose a month.
-   *
-   * A lapsed membership restarts from today; there is no credit for the gap.
-   */
+  // A membership is one paid year or one paid semester. Renewing early extends
+  // the term, so the new one starts where the old ends — measuring from today
+  // would throw away whatever time was left. A lapsed membership restarts from
+  // today; there is no credit for the gap.
   const termStart =
     existing?.membershipEndDate && existing.membershipEndDate > now
       ? existing.membershipEndDate
       : now;
 
-  /**
-   * The semester plan expires with the semester rather than a fixed number of
-   * months out, so a term always ends when the term does — which is what the
-   * bootcamp, the roster and everything else already treat as a semester.
-   */
+  // The semester plan expires with the semester rather than a fixed number of
+  // months out, which is what the bootcamp and the roster already treat as a
+  // semester.
   const termEnd =
     opts.plan === "semester"
       ? semesterEndDate(termStart)
@@ -277,8 +236,8 @@ export async function createOrUpdateMembership(
         memberType: "continuous",
         phoneNumber: opts.phoneNumber || existing.phoneNumber,
         bootcampMember: existing.bootcampMember || !!opts.bootcampMember,
-        // Only a purchase moves the term; a plain renewal leaves last
-        // semester's, which is what expires the access.
+        // Only a purchase moves the term; a plain renewal leaves last semester's,
+        // which is what expires the access.
         bootcampTerm: opts.bootcampMember
           ? currentTerm(now)
           : existing.bootcampTerm,
@@ -286,10 +245,9 @@ export async function createOrUpdateMembership(
       })
       .where(eq(members.id, existing.id));
 
-    // The renewal overwrites membershipEndDate in place, so without this row
-    // the previous term leaves no trace at all. Since a membership is no
-    // longer scoped to an edition, this table is the only record of which
-    // years somebody was a member.
+    // The renewal overwrites membershipEndDate in place, so without this row the
+    // previous term leaves no trace. Since a membership is no longer scoped to an
+    // edition, this table is the only record of which years somebody was a member.
     await db.insert(membershipHistory).values({
       memberId: existing.id,
       action: "renewed",
@@ -330,18 +288,12 @@ export type LinkOutcome =
   | { linked: false; reason: "no-email" | "already-linked" | "no-payment" }
   | { linked: true; paymentId: string };
 
-/**
- * Claims a paid-but-unlinked Stripe payment for a user whose email the identity
- * provider already verified, and grants the membership it paid for.
- *
- * Email is sufficient proof *here* and nowhere else: this runs against the
- * address on the signed-in account, which Google/GitHub verified or which a
- * mailbox round-trip proved. The manual linkAccount form takes a typed address
- * instead, which proves nothing, and so demands a name match as well.
- *
- * Safe to call on every sign-in: it no-ops when the user is already linked or
- * no unlinked payment matches.
- */
+// Claims a paid-but-unlinked payment for a user whose email the identity
+// provider already verified, and grants the membership it paid for. Email is
+// sufficient proof here and nowhere else: this runs against the address on
+// the signed-in account. The manual linkAccount form takes a typed address,
+// which proves nothing, and so demands a name match too. Safe on every
+// sign-in: it no-ops when already linked or nothing matches.
 export async function linkPaidPaymentByVerifiedEmail(
   db: DrizzleDB,
   opts: { userId: string; email: string | null | undefined; name?: string | null },
@@ -349,7 +301,7 @@ export async function linkPaidPaymentByVerifiedEmail(
   if (!opts.email) return { linked: false, reason: "no-email" };
 
   // customerEmail is stored lowercased by every writer, so the comparison has
-  // to be too — an account with a capitalised address matched nothing before.
+  // to be too — a capitalised address matched nothing before.
   const email = opts.email.trim().toLowerCase();
 
   const alreadyLinked = await db.query.userAccountLinks.findFirst({
@@ -369,18 +321,12 @@ export async function linkPaidPaymentByVerifiedEmail(
 
   const { firstName, lastName } = splitName(opts.name ?? payment.customerName);
 
-  /**
-   * Claim the payment first, and only then write the link row.
-   *
-   * The reverse order strands the user permanently: the link row is what makes
-   * this function report "already-linked", so if it exists while the claim
-   * failed, every later sign-in short-circuits and the membership is never
-   * granted — with no way for the person to retry.
-   *
-   * `linkedUserId is null` carries the read above into the write, so two
-   * sign-ins racing for the same payment cannot both claim it; the loser
-   * matches no row and simply reports nothing to link.
-   */
+  // Claim the payment first, then write the link row. The reverse order strands
+  // the user permanently: the link row is what makes this report
+  // "already-linked", so if it exists while the claim failed, every later
+  // sign-in short-circuits and the membership is never granted.
+  // `linkedUserId is null` carries the read into the write, so two sign-ins
+  // racing for the same payment cannot both claim it.
   const claimed = await db
     .update(stripePayments)
     .set({
@@ -409,8 +355,8 @@ export async function linkPaidPaymentByVerifiedEmail(
     userId: opts.userId,
     firstName,
     lastName,
-    // What they paid for is recorded on the payment, so the add-on survives
-    // being claimed later by the sign-in hook or the backfill.
+    // What they paid for is recorded on the payment, so the add-on survives being
+    // claimed later by the sign-in hook or the backfill.
     bootcampMember: paidForBootcamp(payment.metadata),
     addOnOnly: isBootcampAddOnOnly(payment.metadata),
     plan: planFromMetadata(payment.metadata),

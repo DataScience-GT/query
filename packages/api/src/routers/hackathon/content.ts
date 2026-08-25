@@ -13,24 +13,17 @@ import { recordAdminAction } from "../../middleware/audit";
 import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
 
-// Same visibility rule as getPublicProjects: a project only becomes public once
+// Same visibility rule as getPublicProjects: a project becomes public once
 // its team has actually submitted it. Drafts stay hidden.
 const PUBLIC_PROJECT_STATUSES: (typeof hackathonProjects.$inferSelect)["status"][] =
   ["submitted", "judging", "winner"];
 
 export const hackathonContentRouter = createTRPCRouter({
-  /**
-   * Fixes a submitted project on a team's behalf.
-   *
-   * team.submitProject refuses every edit once the submission window closes,
-   * and withdrawProject tells participants to "ask an organiser" about a
-   * project already in judging — which, until this existed, was advice nobody
-   * could act on. A dead demo link found during judging had no remedy.
-   *
-   * Deliberately narrow: the links and the copy, not the tracks. Tracks decide
-   * which judges a project reaches, and changing that mid-judging would
-   * silently rewrite who was supposed to have scored it.
-   */
+  // Fixes a submitted project on a team's behalf. team.submitProject refuses
+  // every edit once the window closes and withdrawProject tells participants to
+  // "ask an organiser" — advice nobody could act on, so a dead demo link found
+  // during judging had no remedy. Narrow on purpose: links and copy, not
+  // tracks, since tracks decide which judges a project reaches.
   adminUpdateProject: isAdmin
     .input(
       z.object({
@@ -72,19 +65,15 @@ export const hackathonContentRouter = createTRPCRouter({
       return updated;
     }),
 
-  /**
-   * Pulls a submission out of the event.
-   *
-   * The participant-facing path refuses this once judging holds the project;
-   * an organiser has to be able to do it anyway — a plagiarised or
-   * rule-breaking entry is exactly the case that arises after judging starts.
-   */
+  // Pulls a submission out of the event. The participant-facing path refuses
+  // this once judging holds the project, but a plagiarised entry is exactly the
+  // case that arises after judging starts.
   adminWithdrawProject: isAdmin
     .input(
       z.object({
         projectId: z.string().uuid(),
-        /** Withdraw even though judges have already scored it. Their votes
-         *  stay on the record; the project simply stops being eligible. */
+        // Withdraw even though judges have already scored it. Their votes stay on the
+        // record; the project simply stops being eligible.
         force: z.boolean().default(false),
       }),
     )
@@ -116,9 +105,9 @@ export const hackathonContentRouter = createTRPCRouter({
         .set({ status: "draft", submittedAt: null, updatedAt: new Date() })
         .where(eq(hackathonProjects.id, input.projectId));
 
-      // The judging entry has to go with it, or the CONFLICT message above is
-      // a lie: judges keep being routed to the table, the votes keep counting,
-      // and the project can still be computed and published as a placing.
+      // The judging entry has to go with it, or the CONFLICT message above is a
+      // lie: judges keep being routed to the table, the votes keep counting, and
+      // the project can still be published as a placing.
       await db
         .update(judgingProjects)
         .set({ withdrawnAt: new Date() })
@@ -145,13 +134,9 @@ export const hackathonContentRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  /**
-   * The published placings, for everyone.
-   *
-   * Reads only rows with publishedAt set, so a computed-but-unreviewed draft
-   * is invisible until an organiser releases it. Unpublishing takes it back
-   * down — the announcement is reversible rather than a one-way door.
-   */
+  // The published placings, for everyone. Reads only rows with publishedAt set,
+  // so a computed-but-unreviewed draft stays invisible until an organiser
+  // releases it, and unpublishing takes it back down.
   getResults: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
@@ -194,19 +179,17 @@ export const hackathonContentRouter = createTRPCRouter({
       const fetchProjects = () =>
         (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
           where: eq(hackathonProjects.hackathonId, input.hackathonId),
-          // submittedById is a participant id — the same value that is the
-          // entire content of that participant's event pass QR — and it is on
-          // every solo submission. The rows below are cached once and served to
-          // anonymous callers, so it is dropped at the query rather than on the
-          // way out. Nothing reads it outside team.ts's resubmit lookup.
+          // submittedById is a participant id — the entire content of that
+          // participant's event pass QR — and it is on every solo submission. These
+          // rows are cached once and served to anonymous callers, so it is dropped at
+          // the query rather than on the way out.
           columns: { submittedById: false },
           with: {
             team: {
               with: {
                 participants: {
-                  // Same rule as getTeams: this list is served to anonymous
-                  // callers, so it carries neither registrationStatus nor the
-                  // participant id behind each event pass QR.
+                  // Same rule as getTeams: served to anonymous callers, so it carries neither
+                  // registrationStatus nor the participant id behind each event pass QR.
                   columns: {
                     hackathonId: true,
                     userId: true,
@@ -239,10 +222,9 @@ export const hackathonContentRouter = createTRPCRouter({
         ctx.cache.set(cacheKey, projects, 120);
       }
 
-      // The rows are cached unfiltered and scrubbed on the way out, so the same
-      // entry can serve staff and the public. Admins keep the full list (the
-      // admin projects page shows draft submissions); everyone else sees only
-      // work its team has actually submitted.
+      // The rows are cached unfiltered and scrubbed on the way out, so one entry
+      // serves staff and the public. Admins keep the full list (the admin projects
+      // page shows drafts); everyone else sees only submitted work.
       if (await callerIsAdmin(ctx)) return projects;
 
       return projects.filter((project) =>
@@ -266,13 +248,9 @@ export const hackathonContentRouter = createTRPCRouter({
     }),
 
 
-  /**
-   * The public project gallery.
-   *
-   * Anonymous, and read by most of the venue at once when demos open — so it
-   * is both bounded and cached. Uncached and unbounded it was a full table
-   * read with a team join per request, at the busiest moment of the event.
-   */
+  // The public project gallery. Anonymous, and read by most of the venue at
+  // once when demos open — so it is bounded and cached. Uncached it was a full
+  // table read with a team join per request, at the busiest moment.
   getPublicProjects: publicProcedure
     .input(
       z.object({
@@ -295,8 +273,8 @@ export const hackathonContentRouter = createTRPCRouter({
               ...PUBLIC_PROJECT_STATUSES,
             ]),
           ),
-          // Same rule as `projects` above: submittedById is the participant id
-          // behind that person's event pass QR, and this endpoint is anonymous.
+          // Same rule as `projects` above: submittedById is the participant id behind
+          // that person's event pass QR, and this endpoint is anonymous.
           columns: { submittedById: false },
           with: {
             team: {
