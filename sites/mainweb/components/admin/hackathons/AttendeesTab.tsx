@@ -14,13 +14,12 @@ import {
   Mail,
   QrCode,
 } from "lucide-react";
-
 /**
- * Recipients per request. The server caps at the same number: each one is an
- * SMTP round trip, and a request that tries to carry more than this does not
- * finish inside Cloud Run's timeout.
+ * Recipients per request, shared with the server so the chunk size and the
+ * procedure's cap cannot drift — a chunk larger than the cap fails every send
+ * on input validation.
  */
-const MASS_EMAIL_BATCH = 500;
+import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
 
 /** Rows per page. The expanded detail view needs every column, so the roster
  *  is kept small by row count rather than by narrowing what each row carries. */

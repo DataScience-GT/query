@@ -178,7 +178,7 @@ export default function ProjectsPage() {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-12">
             <Link
               href="/"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center gap-4 group"
+              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
             >
               <span className="text-lg group-hover:-translate-x-2 transition-transform">
                 ←
@@ -187,7 +187,7 @@ export default function ProjectsPage() {
             </Link>
             <Link
               href="/bootcamp"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center gap-4 group"
+              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
             >
               Join_Bootcamp{" "}
               <span className="text-lg group-hover:translate-x-2 transition-transform">

@@ -336,7 +336,7 @@ export default function HackathonDetailPage() {
               aria-selected={tab === t.id}
               aria-controls={`panel-${t.id}`}
               onClick={() => selectTab(t.id)}
-              className={`px-6 py-3 rounded-none text-xs font-semibold uppercase tracking-widest transition-[color,background-color,border-color,box-shadow] duration-200 border whitespace-nowrap snap-start flex-1 min-w-[100px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70
+              className={`px-6 py-3 min-h-11 rounded-none text-xs font-semibold uppercase tracking-widest transition-[color,background-color,border-color,box-shadow] duration-200 border whitespace-nowrap snap-start flex-1 min-w-[100px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70
                                 ${
                                   tab === t.id
                                     ? "bg-white/10 text-[var(--text-primary)] border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] ring-2 ring-emerald-500/30"

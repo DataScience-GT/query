@@ -75,7 +75,15 @@ export default function Navbar({
   type MenuItem = { name: string; to: string; link: boolean };
 
   const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
-    const baseClass = `text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
+    /**
+     * `min-h-11` is the tap target, not a visual change.
+     *
+     * These render 15px tall on a phone — below even WCAG 2.2 AA's 24px
+     * minimum, let alone the ~44px a fingertip needs. Growing the box rather
+     * than the type keeps the design identical and makes the link hittable;
+     * `inline-flex items-center` keeps the label centred in the taller box.
+     */
+    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
       isMobile
         ? "text-gray-300 hover:text-white text-xl font-bold"
         : "text-gray-400 hover:text-[#00A8A8]"

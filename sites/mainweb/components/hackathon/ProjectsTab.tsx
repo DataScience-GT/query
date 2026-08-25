@@ -116,7 +116,7 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
                     href={project.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-sm bg-white/5 border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] hover:bg-white/10 transition-ui"
+                    className="w-11 h-11 sm:w-8 sm:h-8 rounded-sm bg-white/5 border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] hover:bg-white/10 transition-ui"
                   >
                     <svg
                       className="w-4 h-4"
@@ -136,7 +136,7 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
                     href={project.demoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-sm bg-accent/10 border border-emerald-500/20 flex items-center justify-center text-accent hover:bg-emerald-500/20 hover:text-emerald-300 transition-ui shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                    className="w-11 h-11 sm:w-8 sm:h-8 rounded-sm bg-accent/10 border border-emerald-500/20 flex items-center justify-center text-accent hover:bg-emerald-500/20 hover:text-emerald-300 transition-ui shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                   >
                     <svg
                       className="w-4 h-4"

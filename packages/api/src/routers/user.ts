@@ -26,6 +26,35 @@ const hasSafeScheme = (value: string) => {
 };
 const SAFE_URL_MESSAGE = "URL scheme is not allowed";
 
+// Subdomains count — cc.gatech.edu and mail.gatech.edu are as much a GT
+// address as the bare domain. Each label before gatech.edu has to be followed
+// by its own dot, which is what stops a lookalike like "notgatech.edu" from
+// matching the tail.
+const GT_EMAIL_DOMAIN = /@([a-z0-9-]+\.)*gatech\.edu$/;
+const GT_EMAIL_MESSAGE = "Must be a gatech.edu address";
+
+/**
+ * Postgres unique_violation, raised when a gt_email is already on another
+ * account. Drizzle wraps driver errors, so the SQLSTATE sits on `.cause`
+ * rather than the thrown object — the chain has to be walked.
+ */
+const isDuplicateGtEmail = (error: unknown) => {
+  for (let cursor: unknown = error, depth = 0; cursor && depth < 5; depth++) {
+    if (typeof cursor !== "object") break;
+    const candidate = cursor as {
+      code?: string;
+      constraint?: string;
+      message?: string;
+      cause?: unknown;
+    };
+    if (candidate.code === "23505") return true;
+    if (candidate.constraint?.includes("gt_email")) return true;
+    if (candidate.message?.includes("gt_email")) return true;
+    cursor = candidate.cause;
+  }
+  return false;
+};
+
 export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
     const cacheKey = CacheKeys.userProfile(ctx.userId as string);
@@ -37,6 +66,7 @@ export const userRouter = createTRPCRouter({
       bio: string | null | undefined;
       website: string | null | undefined;
       location: string | null | undefined;
+      gtEmail: string | null | undefined;
     }>(cacheKey);
     if (cached) return cached;
 
@@ -47,7 +77,12 @@ export const userRouter = createTRPCRouter({
       columns: { id: true, email: true, name: true, image: true },
       with: {
         profile: {
-          columns: { bio: true, website: true, location: true },
+          columns: {
+            bio: true,
+            website: true,
+            location: true,
+            gtEmail: true,
+          },
         },
       },
     });
@@ -64,6 +99,7 @@ export const userRouter = createTRPCRouter({
       bio: user.profile?.bio,
       website: user.profile?.website,
       location: user.profile?.location,
+      gtEmail: user.profile?.gtEmail,
     };
 
     ctx.cache.set(cacheKey, result, 120);
@@ -110,6 +146,17 @@ export const userRouter = createTRPCRouter({
             .or(z.literal(""))
             .optional(),
           location: z.string().max(200).optional(),
+          // Lowercased before the domain check so a typed "@GATECH.EDU"
+          // validates, and so the stored value matches the unique index
+          // case-insensitively. "" clears the field, same as website above.
+          gtEmail: z
+            .string()
+            .email()
+            .max(255)
+            .transform((value) => value.trim().toLowerCase())
+            .refine((value) => GT_EMAIL_DOMAIN.test(value), GT_EMAIL_MESSAGE)
+            .or(z.literal(""))
+            .optional(),
         })
         .refine(
           (fields) => Object.values(fields).some((v) => v !== undefined),
@@ -119,7 +166,13 @@ export const userRouter = createTRPCRouter({
         ),
     )
     .mutation(async ({ ctx, input }) => {
-      const { name, image, bio, website, location } = input;
+      const { name, image, bio, website, location, gtEmail } = input;
+
+      // "" is the client saying "clear it", which has to reach the column as
+      // NULL — an empty string would occupy the unique index and stop the next
+      // person who clears theirs from saving.
+      const gtEmailValue =
+        gtEmail === undefined ? undefined : gtEmail === "" ? null : gtEmail;
 
       // Run user update and profile upsert in parallel when both are needed
       const ops: Promise<unknown>[] = [];
@@ -136,26 +189,49 @@ export const userRouter = createTRPCRouter({
       if (
         bio !== undefined ||
         website !== undefined ||
-        location !== undefined
+        location !== undefined ||
+        gtEmailValue !== undefined
       ) {
         // Use upsert instead of check-then-insert (eliminates one round-trip)
         ops.push(
           (ctx.db as NonNullable<typeof ctx.db>)
             .insert(userProfiles)
-            .values({ userId: ctx.userId as string, bio, website, location })
+            .values({
+              userId: ctx.userId as string,
+              bio,
+              website,
+              location,
+              gtEmail: gtEmailValue,
+            })
             .onConflictDoUpdate({
               target: userProfiles.userId,
               set: {
                 bio: bio ?? undefined,
                 website: website ?? undefined,
                 location: location ?? undefined,
+                // Not `?? undefined`: null is the clear, and collapsing it
+                // would make clearing the field silently do nothing.
+                gtEmail: gtEmailValue,
                 updatedAt: new Date(),
               },
             }),
         );
       }
 
-      await Promise.all(ops);
+      try {
+        await Promise.all(ops);
+      } catch (error) {
+        // The address is on somebody else's account. Saying so is safe — the
+        // person typing it either owns it or is trying to claim it, and both
+        // need to know the save did not happen.
+        if (isDuplicateGtEmail(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "That Georgia Tech email is already on another account.",
+          });
+        }
+        throw error;
+      }
 
       ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
 

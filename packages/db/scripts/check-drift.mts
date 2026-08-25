@@ -12,7 +12,26 @@ dotenv.config({ path: path.resolve(here, "../../../.env") });
 
 import pg from "pg";
 import { getTableConfig } from "drizzle-orm/pg-core";
-import * as schema from "../src/schemas";
+import * as schemaNamespace from "../src/schemas";
+
+/**
+ * The schema modules are CommonJS — this package declares no `"type":
+ * "module"` — so `import * as` from this .mts file hands back the interop
+ * namespace `{ default, "module.exports" }` rather than the table exports.
+ * Iterating that namespace directly found zero tables, `getTableConfig` threw
+ * on both entries, and every one was skipped by the catch below: the check
+ * reported "every declared table and column exists" against an empty set and
+ * could never fail. Unwrap `default`, which is the real module.exports.
+ */
+const schema = (
+  (schemaNamespace as { default?: Record<string, unknown> }).default ??
+  schemaNamespace
+) as Record<string, unknown>;
+
+if (Object.keys(schema).length === 0) {
+  console.error("No schema exports found — the drift check would pass blindly.");
+  process.exit(1);
+}
 
 if (!process.env.DATABASE_URL) {
   console.error("DATABASE_URL is not set");

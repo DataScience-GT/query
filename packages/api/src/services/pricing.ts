@@ -38,6 +38,51 @@ export const priceForCents = (
 export const formatCents = (cents: number) =>
   `$${(cents / 100).toFixed(2)}`;
 
+/** What a payment bought, once it is known. */
+export type PurchasedEntitlement = {
+  plan: MembershipPlan;
+  bootcamp: boolean;
+  addOnOnly: boolean;
+};
+
+/**
+ * What a given amount buys, or null if it buys nothing.
+ *
+ * Only ever consulted for a payment that did not come from the portal — one
+ * created as a Stripe payment link or in the Dashboard, which carries no
+ * metadata saying what it was for. Those used to be granted a full year no
+ * matter what was paid, because an absent `plan` reads as "annual", so a $1
+ * link bought a membership and so did any other Checkout Session on the
+ * account under the ceiling below.
+ *
+ * Deliberately exact rather than "at least": a member who pays the wrong
+ * amount should be looked at by a person, not silently given a year.
+ *
+ * Known ambiguity: a semester plus the add-on costs the same as a year alone
+ * (1500 + 1000 = 2500), so an outside payment of that amount is read as the
+ * year — the reading that cannot short-change someone who did buy the year.
+ * Portal purchases are unaffected; they say what they bought in metadata and
+ * never reach this function.
+ */
+export const entitlementForCents = (
+  cents: number | null | undefined,
+): PurchasedEntitlement | null => {
+  switch (cents) {
+    case MEMBERSHIP_CENTS:
+      return { plan: "annual", bootcamp: false, addOnOnly: false };
+    case SEMESTER_MEMBERSHIP_CENTS:
+      return { plan: "semester", bootcamp: false, addOnOnly: false };
+    case MEMBERSHIP_CENTS + BOOTCAMP_ADDON_CENTS:
+      return { plan: "annual", bootcamp: true, addOnOnly: false };
+    case BOOTCAMP_ADDON_CENTS:
+      // Buys the semester's bootcamp and nothing else. addOnOnly is what stops
+      // $10 from minting a membership year.
+      return { plan: "annual", bootcamp: true, addOnOnly: true };
+    default:
+      return null;
+  }
+};
+
 /**
  * Upper bound for a charge this app is willing to treat as a membership.
  *

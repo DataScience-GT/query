@@ -103,7 +103,7 @@ export default function AttendeesPage() {
                 aria-label="Filter attendees by club event"
                 value={selectedEvent || ""}
                 onChange={(e) => setSelectedEvent(e.target.value || null)}
-                className="bg-transparent text-[var(--text-primary)] text-sm font-medium px-5 py-3 focus:outline-none cursor-pointer hover:text-[var(--text-primary)] transition-ui"
+                className="bg-transparent text-[var(--text-primary)] text-sm font-medium min-h-11 px-5 py-3 focus:outline-none cursor-pointer hover:text-[var(--text-primary)] transition-ui"
               >
                 <option value="">Select a club event…</option>
                 {eventList?.map((event) => (

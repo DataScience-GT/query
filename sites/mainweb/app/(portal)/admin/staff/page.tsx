@@ -41,6 +41,11 @@ const ROLES = [
 
 type Role = (typeof ROLES)[number]["id"];
 
+/** ISO day rather than a locale format: this renders on the server too, and a
+ *  locale-dependent string mismatches on hydration. */
+const termDate = (value: string | Date) =>
+  new Date(value).toISOString().slice(0, 10);
+
 export default function StaffPage() {
   const utils = trpc.useUtils();
   const { data: portalContext, isLoading: contextLoading } = usePortalContext();
@@ -167,6 +172,9 @@ export default function StaffPage() {
                 <p className="text-xs font-mono text-accent mt-2">
                   Already {lookup.data.existingRole.role}
                   {lookup.data.existingRole.isActive ? "" : " (deactivated)"}
+                  {lookup.data.existingRole.expiresAt
+                    ? ` until ${termDate(lookup.data.existingRole.expiresAt)}`
+                    : ""}
                 </p>
               )}
             </div>
@@ -268,6 +276,11 @@ export default function StaffPage() {
                   <p className="text-[11px] font-mono text-[var(--text-subtle)]">
                     {row.user?.email} · {row.role}
                     {row.isActive ? "" : " · deactivated"}
+                    {row.expiresAt
+                      ? new Date(row.expiresAt) < new Date()
+                        ? ` · expired ${termDate(row.expiresAt)}`
+                        : ` · until ${termDate(row.expiresAt)}`
+                      : ""}
                   </p>
                 </div>
                 <button

@@ -143,6 +143,7 @@ export const createTransactionMock = ({
       });
     }
 
+
     if (select) {
       tx.select = (...selectArgs: any[]) => ({
         from: (...fromArgs: any[]) => ({

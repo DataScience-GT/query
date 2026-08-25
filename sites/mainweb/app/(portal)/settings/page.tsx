@@ -16,6 +16,7 @@ import {
   User,
   CheckCircle,
   Mail,
+  GraduationCap,
   Link as LinkIcon,
   CreditCard,
 } from "lucide-react";
@@ -118,6 +119,7 @@ export default function SettingsPage() {
     bio: "",
     website: "",
     location: "",
+    gtEmail: "",
   });
 
   useEffect(() => { setMounted(true); }, []);
@@ -133,6 +135,7 @@ export default function SettingsPage() {
         bio: userData.bio || "",
         website: userData.website || "",
         location: userData.location || "",
+        gtEmail: userData.gtEmail || "",
       });
     }
   }, [userData]);
@@ -148,6 +151,7 @@ export default function SettingsPage() {
         bio: form.bio,
         website: form.website,
         location: form.location,
+        gtEmail: form.gtEmail.trim(),
       });
       await utils.user.me.invalidate();
       setSaved(true);
@@ -296,6 +300,28 @@ export default function SettingsPage() {
                       />
                       <p className="text-[10px] text-[var(--text-subtle)] font-mono">
                         Managed by your Google account
+                      </p>
+                    </div>
+
+                    {/* GT Email — editable, since most people sign in with a
+                        personal Google account and the club needs the school
+                        address on file. */}
+                    <div className="space-y-2">
+                      <label htmlFor="gt-email" className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                        <GraduationCap className="w-3.5 h-3.5" /> Georgia Tech Email
+                      </label>
+                      <input
+                        id="gt-email"
+                        type="email"
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={form.gtEmail}
+                        onChange={(e) => setForm({ ...form, gtEmail: e.target.value })}
+                        placeholder="gburdell3@gatech.edu"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui text-sm"
+                      />
+                      <p className="text-[10px] text-[var(--text-subtle)] font-mono">
+                        Any gatech.edu address. Leave blank to remove.
                       </p>
                     </div>
 

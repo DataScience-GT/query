@@ -13,7 +13,9 @@ import { eq } from "drizzle-orm";
 import {
   clearMembershipCaches,
   MAX_MEMBERSHIP_CHARGE_CENTS,
+  entitlementForCents,
 } from "@query/api";
+import type { PurchasedEntitlement } from "@query/api";
 import {
   membershipGrants,
   membershipGrantFailures,
@@ -31,7 +33,7 @@ import {
  */
 const sanitizeLogText = (value: unknown, max: number) =>
   String(value ?? "")
-    .replace(/[\x00-\x1F\x7F\u2028\u2029]/g, " ")
+    .replace(/[\p{Cc}\u2028\u2029]/gu, " ")
     .slice(0, max);
 
 const safeLogId = (value: unknown) =>
@@ -42,6 +44,40 @@ const safeLogError = (err: unknown) => {
   const name = sanitizeLogText(err.name, 64);
   const message = sanitizeLogText(err.message, 180);
   return message ? `${name}: ${message}` : name;
+};
+
+/**
+ * What a completed Checkout Session bought, or null if it bought nothing.
+ *
+ * The portal stamps every session it creates with the plan and the add-on, and
+ * that is authoritative: it is written server-side in createCheckoutSession
+ * from the same pricing module that sets the line item, so it cannot disagree
+ * with what was charged.
+ *
+ * A session with no such metadata did not come from the portal — a payment
+ * link, or something created in the Dashboard. Those were previously granted a
+ * full year regardless of the amount, because an absent `plan` reads as
+ * "annual" and this branch, unlike the payment-intent branch below, had no
+ * `metadata.type` gate at all. Any Checkout Session on the account under the
+ * ceiling therefore bought a membership for whoever's email was on it. Now the
+ * amount has to match something we actually sell.
+ */
+const entitlementForSession = (
+  session: Stripe.Checkout.Session,
+): PurchasedEntitlement | null => {
+  if (session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE) {
+    return { plan: readPlan(session.metadata?.plan), bootcamp: true, addOnOnly: true };
+  }
+
+  if (session.metadata?.plan) {
+    return {
+      plan: readPlan(session.metadata.plan),
+      bootcamp: session.metadata.bootcamp === "true",
+      addOnOnly: false,
+    };
+  }
+
+  return entitlementForCents(session.amount_total);
 };
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -172,20 +208,21 @@ export async function POST(req: NextRequest) {
             .set({ paymentStatus: "paid", updatedAt: new Date() })
             .where(eq(stripePayments.id, existingPayment.id));
 
-          if (existingPayment.linkedUserId) {
+          const entitlement = entitlementForSession(session);
+
+          if (existingPayment.linkedUserId && entitlement) {
             try {
               await createOrUpdateMembership(db as unknown as DrizzleDB, {
                 userId: existingPayment.linkedUserId,
                 ...splitName(customerName),
                 phoneNumber,
-                bootcampMember: session.metadata?.bootcamp === "true",
-                addOnOnly:
-                  session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
-                plan: readPlan(session.metadata?.plan),
+                bootcampMember: entitlement.bootcamp,
+                addOnOnly: entitlement.addOnOnly,
+                plan: entitlement.plan,
               });
               membershipGrants.inc({
                 source: "webhook_checkout",
-                plan: readPlan(session.metadata?.plan),
+                plan: entitlement.plan,
               });
             } catch (e) {
               membershipGrantFailures.inc({ source: "webhook_checkout" });
@@ -197,6 +234,15 @@ export async function POST(req: NextRequest) {
                 safeLogError(e),
               );
             }
+          } else if (existingPayment.linkedUserId && !entitlement) {
+            // Settled, recorded, and paid — but for an amount that buys
+            // nothing here. The row stays for staff to look at rather than
+            // being turned into a year nobody paid for.
+            membershipGrantFailures.inc({ source: "webhook_checkout" });
+            console.warn(
+              "[Stripe webhook] settled payment matches no known price, no membership granted",
+              safeLogId(existingPayment.id),
+            );
           }
         }
 
@@ -257,19 +303,31 @@ export async function POST(req: NextRequest) {
       // Membership is a separate, best-effort step. A failure here leaves a
       // recorded payment that the link paths can still turn into a membership;
       // failing the whole webhook would lose the payment instead.
-      if (targetUser && session.payment_status === "paid") {
+      const entitlement = entitlementForSession(session);
+
+      if (targetUser && session.payment_status === "paid" && !entitlement) {
+        // Recorded above, so nothing is lost and the link paths can still see
+        // it — but an amount that matches nothing we sell buys nothing.
+        membershipGrantFailures.inc({ source: "webhook_checkout" });
+        console.warn(
+          "[Stripe webhook] checkout session matches no known price, no membership granted",
+          safeLogId(session.id),
+        );
+      }
+
+      if (targetUser && session.payment_status === "paid" && entitlement) {
         try {
           await createOrUpdateMembership(db as unknown as DrizzleDB, {
             userId: targetUser.id,
             ...splitName(customerName),
             phoneNumber,
-            bootcampMember: session.metadata?.bootcamp === "true",
-            addOnOnly: session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
-            plan: readPlan(session.metadata?.plan),
+            bootcampMember: entitlement.bootcamp,
+            addOnOnly: entitlement.addOnOnly,
+            plan: entitlement.plan,
           });
           membershipGrants.inc({
             source: "webhook_checkout",
-            plan: readPlan(session.metadata?.plan),
+            plan: entitlement.plan,
           });
           clearMembershipCaches(targetUser.id);
         } catch (e) {

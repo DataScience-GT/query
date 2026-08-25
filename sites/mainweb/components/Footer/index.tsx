@@ -45,37 +45,37 @@ const Footer = ({
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <Link
                 href="/team"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Meet the Team
               </Link>
               <Link
                 href="mailto:hello@datasciencegt.org"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Contact
               </Link>
               <Link
                 href="/bootcamp"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Bootcamp
               </Link>
               <Link
                 href="/events"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Events
               </Link>
               <Link
                 href="/history"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 History
               </Link>
               <Link
                 href="/status"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Status
               </Link>
@@ -92,7 +92,7 @@ const Footer = ({
                 href="https://github.com/DataScience-GT"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Github
               </a>
@@ -100,7 +100,7 @@ const Footer = ({
                 href="https://www.linkedin.com/company/dsgt/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 LinkedIn
               </a>
@@ -108,13 +108,13 @@ const Footer = ({
                 href="https://www.instagram.com/datasciencegt/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Instagram
               </a>
               <a
                 href="mailto:hello@datasciencegt.org"
-                className="hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
                 Email List
               </a>

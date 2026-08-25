@@ -114,11 +114,12 @@ export default function Navbar() {
             NOTIFY ME
           </a>
 
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger. 40px square was just under a comfortable tap
+              target, and this is the only way to reach the menu on a phone. */}
           <button
             aria-label="Toggle menu"
             onClick={() => setOpen((s) => !s)}
-            className="md:hidden w-10 h-10 flex flex-col justify-center items-center gap-[6px] rounded-full border border-white/10 hover:border-white/30 transition-colors duration-300 bg-white/5"
+            className="md:hidden w-11 h-11 flex flex-col justify-center items-center gap-[6px] rounded-full border border-white/10 hover:border-white/30 transition-colors duration-300 bg-white/5"
           >
             <span className={`block w-4 h-[1px] bg-white transition-all duration-500 ${open ? "rotate-45 translate-y-[7px]" : ""}`} />
             <span className={`block w-4 h-[1px] bg-white transition-all duration-500 ${open ? "opacity-0 scale-x-0" : ""}`} />

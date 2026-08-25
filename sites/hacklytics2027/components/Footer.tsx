@@ -43,7 +43,7 @@ export default function Footer() {
                 },
               ].map(({ label, href, icon }) => (
                 <Link key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                  className="text-white/30 hover:text-white transition-colors duration-500">
+                  className="inline-flex items-center min-h-11 md:min-h-0 text-white/30 hover:text-white transition-colors duration-500">
                   {icon}
                 </Link>
               ))}
@@ -55,7 +55,7 @@ export default function Footer() {
             <span className="font-pixel text-[10px] neon-cyan mb-2">Navigation</span>
             {["about", "tracks", "prizes", "schedule", "faqs", "sponsors"].map((id) => (
               <Link key={id} href={`/#${id}`}
-                className="font-sans text-base text-white/50 hover:text-white capitalize transition-colors duration-500 w-fit font-light tracking-wide">
+                className="inline-flex items-center min-h-11 md:min-h-0 font-sans text-base text-white/50 hover:text-white capitalize transition-colors duration-500 w-fit font-light tracking-wide">
                 {id}
               </Link>
             ))}
@@ -65,11 +65,11 @@ export default function Footer() {
           <div className="flex flex-col gap-4">
             <span className="font-pixel text-[10px] neon-pink mb-2">Connect</span>
             <Link href="mailto:hello@hacklytics.io"
-              className="font-sans text-base text-white/50 hover:text-bloom-cyan transition-colors duration-500 w-fit font-light tracking-wide">
+              className="inline-flex items-center min-h-11 md:min-h-0 font-sans text-base text-white/50 hover:text-bloom-cyan transition-colors duration-500 w-fit font-light tracking-wide">
               hello@hacklytics.io
             </Link>
             <Link href="https://datasciencegt.org" target="_blank" rel="noopener noreferrer"
-              className="font-sans text-base text-white/50 hover:text-white transition-colors duration-500 w-fit font-light tracking-wide">
+              className="inline-flex items-center min-h-11 md:min-h-0 font-sans text-base text-white/50 hover:text-white transition-colors duration-500 w-fit font-light tracking-wide">
               datasciencegt.org
             </Link>
             <Link href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf" target="_blank" rel="noopener noreferrer"

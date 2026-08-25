@@ -22,6 +22,17 @@ export const userProfiles = pgTable(
     bio: text("bio"),
     website: text("website"),
     location: text("location"),
+    /**
+     * The member's Georgia Tech address, self-reported.
+     *
+     * Kept apart from `users.email`, which is whatever the identity provider
+     * returned and cannot be edited — most members sign in with a personal
+     * Google account, so the address the club actually needs is not the one
+     * auth knows about. Unique so two accounts cannot claim the same one;
+     * Postgres treats NULLs as distinct, so the constraint does not stop
+     * everyone else leaving it empty.
+     */
+    gtEmail: text("gt_email").unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

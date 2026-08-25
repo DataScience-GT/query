@@ -26,6 +26,18 @@ export type MemberContext = {
 export const isStaffRole = (role: string | null | undefined) =>
   !!role && role !== "volunteer";
 
+/**
+ * A fixed-term appointment that has run out.
+ *
+ * Checked here rather than in each query's WHERE clause so the row still comes
+ * back: the staff page has to show an expired term to renew it, and a gate that
+ * filtered it out in SQL would report the person as never having been staff.
+ * NULL is a standing appointment and never expires.
+ */
+export const isExpiredAdmin = (
+  admin: { expiresAt: Date | null } | null | undefined,
+) => !!admin?.expiresAt && admin.expiresAt.getTime() <= Date.now();
+
 export type PortalContext = {
   /** Full staff. False for volunteers, who hold an admins row but are limited
    *  to badge scanning. */

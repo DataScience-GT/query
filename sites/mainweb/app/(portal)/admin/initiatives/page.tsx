@@ -98,7 +98,7 @@ function ProposalRow({
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Too close to an existing initiative, needs a clearer scope, …"
-            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+            className="mt-2 w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
           />
           <button
             type="button"
@@ -216,7 +216,7 @@ export default function AdminInitiativesPage() {
               value={userId}
               onChange={(event) => setUserId(event.target.value)}
               placeholder="User id from the attendees list"
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+              className="mt-2 w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
             />
           </div>
           <button

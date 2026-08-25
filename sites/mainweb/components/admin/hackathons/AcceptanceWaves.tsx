@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { Waves } from "lucide-react";
+import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
 
 /**
  * Accept applicants in numbered waves: take the oldest N pending, approve them,
@@ -27,7 +28,9 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
 
   const parsedSize = parseInt(size, 10);
   const validSize =
-    Number.isFinite(parsedSize) && parsedSize > 0 && parsedSize <= 500;
+    Number.isFinite(parsedSize) &&
+    parsedSize > 0 &&
+    parsedSize <= MASS_EMAIL_BATCH;
   const pending = status?.pending ?? 0;
   const willTake = validSize ? Math.min(parsedSize, pending) : 0;
 
@@ -108,10 +111,10 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
               id="wave-size"
               type="number"
               min={1}
-              max={500}
+              max={MASS_EMAIL_BATCH}
               value={size}
               onChange={(e) => setSize(e.target.value)}
-              className="w-28 px-3 py-2.5 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+              className="w-28 min-h-11 px-3 py-2.5 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
             />
           </div>
           <button
@@ -129,11 +132,12 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
         </div>
       </div>
 
-      {/* 500 is both the mailer's per-call ceiling and the daily limit of the
-          account it sends through, so a bigger wave is refused, not truncated. */}
+      {/* The bound is the mailer's per-call ceiling, kept below the sending
+          account's daily quota so a wave cannot exhaust it and take sign-in
+          codes down with it. A bigger wave is refused, not truncated. */}
       {!validSize && (
         <p className="mt-4 text-[11px] font-mono text-amber-300/80">
-          Wave size must be between 1 and 500.
+          Wave size must be between 1 and {MASS_EMAIL_BATCH}.
         </p>
       )}
 
