@@ -1,15 +1,15 @@
 /* DSGT Portal - Minimalist Developer Aesthetic (SaaS/Vercel-inspired) */
 
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Bebas+Neue&family=Cormorant+Garamond:wght@600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@500;600;700&family=Sora:wght@500;600;700;800&family=Teko:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap");
 
 :root {
   /* ===== COMMON GROUND DESIGN SYSTEM INSPIRATION ===== */
-  --font-bebas: "Bebas Neue", sans-serif;
-  --font-oswald: "Oswald", sans-serif;
-  --font-barlow: "Barlow Condensed", sans-serif;
-  --font-cormorant: "Cormorant Garamond", serif;
-  --font-sora: "Sora", sans-serif;
-  --font-teko: "Teko", sans-serif;
+  --font-bebas: var(--font-display), serif;
+  --font-oswald: var(--font-display), serif;
+  --font-barlow: var(--font-sans), sans-serif;
+  --font-cormorant: var(--font-display), serif;
+  --font-sora: var(--font-sans), sans-serif;
+  --font-teko: var(--font-display), serif;
 
   --print-grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.84' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.72'/%3E%3C/svg%3E");
 
@@ -97,8 +97,8 @@
   --glass-border-radius: 8px;
 
   /* ===== TYPOGRAPHY ===== */
-  --font-sans: "Geist Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Geist Mono", "Roboto Mono", SFMono-Regular, Consolas, monospace;
+  --font-sans: var(--font-source), "Source Sans 3", sans-serif;
+  --font-mono: var(--font-plex), "IBM Plex Mono", monospace;
 
   /* ===== ANIMATION ===== */
   --ease-linear: linear;

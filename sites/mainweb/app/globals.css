@@ -7,14 +7,16 @@
 :root {
   --background: #050505;
   --foreground: #9ca3af;
+  --accent: #00a8a8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   --color-accent: var(--accent);
+  --font-sans: var(--font-source), "Source Sans 3", sans-serif;
+  --font-display: var(--font-stix), "STIX Two Text", serif;
+  --font-mono: var(--font-plex), "IBM Plex Mono", monospace;
 
   /* Neutrals point at variables instead of literals so Tailwind emits
      color-mix(..., var(--ui-*), ...) for every opacity variant. That makes the
@@ -63,7 +65,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* Keyboard focus, portal-wide.
@@ -152,7 +154,103 @@ body {
 }
 
 @layer components {
-  /* Glass UI Utilities */
+  .site-shell {
+    position: relative;
+    min-height: 100vh;
+    background: #050505;
+    color: #9ca3af;
+  }
+
+  .page-kicker {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: #00a8a8;
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    color: #ffffff;
+  }
+
+  .page-lede {
+    font-size: 1.125rem;
+    line-height: 1.65;
+    color: #d1d5db;
+    max-width: 38rem;
+  }
+
+  .figure-card {
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .btn-solid {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.7rem 1.25rem;
+    background: #ffffff;
+    color: #000000;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 1px solid #ffffff;
+    transition:
+      background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+
+  .btn-solid:hover {
+    background: #00a8a8;
+    border-color: #00a8a8;
+    color: #ffffff;
+  }
+
+  .btn-line {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.7rem 1.25rem;
+    background: transparent;
+    color: #00a8a8;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 1px solid rgba(0, 168, 168, 0.4);
+    transition:
+      background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+
+  .btn-line:hover {
+    background: rgba(0, 168, 168, 0.12);
+    border-color: #00a8a8;
+    color: #ffffff;
+  }
+
+  .link-measure {
+    color: #00a8a8;
+    font-weight: 600;
+    text-underline-offset: 0.2em;
+    text-decoration: underline;
+    text-decoration-color: rgba(0, 168, 168, 0.4);
+  }
+
+  .link-measure:hover {
+    color: #ffffff;
+    text-decoration-color: #ffffff;
+  }
+
+  .site-nav {
+    background: rgba(8, 8, 8, 0.78);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
   .glass {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(12px);
@@ -161,44 +259,33 @@ body {
   }
 
   .glass-dark {
-    background: rgba(10, 10, 10, 0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(10, 10, 10, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .glass-card {
-    background: rgba(15, 15, 15, 0.5);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #0a0a0a;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 4px 30px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .glass-card:hover {
-    background: rgba(20, 20, 20, 0.6);
-    border-color: rgba(0, 168, 168, 0.3);
+    border-color: rgba(0, 168, 168, 0.35);
   }
 
   .glass-navbar {
-    background: rgba(8, 8, 8, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(8, 8, 8, 0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .glass-section {
-    background: rgba(255, 255, 255, 0.01);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
   .glass-teal {
     background: rgba(0, 168, 168, 0.08);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(0, 168, 168, 0.2);
   }
 }

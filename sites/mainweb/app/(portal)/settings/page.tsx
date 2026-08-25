@@ -186,14 +186,12 @@ export default function SettingsPage() {
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-10 space-y-8">
         {/* Header */}
         <div>
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-            <UserCircle className="w-3 h-3" /> Personal Settings
-          </p>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-            My Settings
+          <p className="page-kicker mb-2">Account</p>
+          <h1 className="text-3xl font-display text-[var(--text-primary)] tracking-tight">
+            Settings
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">
-            Manage your personal profile, appearance, and account preferences.
+            Profile, appearance, and membership.
           </p>
         </div>
 
@@ -486,12 +484,6 @@ export default function SettingsPage() {
                     <span className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-sm">
                       Connected
                     </span>
-                  </div>
-
-                  {/* User ID */}
-                  <div className="p-4 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
-                    <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">User ID</p>
-                    <p className="text-sm font-mono text-[var(--text-subtle)] break-all">{userData?.id || "…"}</p>
                   </div>
 
                   {/* Sign Out */}

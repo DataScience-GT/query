@@ -6,48 +6,38 @@ import Section from "@/components/Section";
 
 export default function StatusPage() {
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
+    <div className="site-shell">
       <Navbar screen_width={1024} page="status" />
       <main className="pt-20">
-        <Section className="py-32">
+        <Section className="py-24">
           <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              Status
-            </h1>
-            <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              System status and operational updates.
+            <p className="page-kicker mb-4">Club systems</p>
+            <h1 className="page-title text-5xl mb-6">Status</h1>
+            <p className="page-lede mb-12">
+              Whether membership, events, and sign-in are up.
             </p>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  Database
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  API
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  Auth Service
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
+            <div className="figure-card p-8 mb-6 space-y-4">
+              {[
+                "Database",
+                "API",
+                "Sign-in",
+              ].map((name) => (
+                <div
+                  key={name}
+                  className="flex items-center justify-between"
+                >
+                  <span className="text-gray-300">{name}</span>
+                  <span className="px-3 py-1 text-xs font-mono text-[#00A8A8] border border-[#00A8A8]/30">
+                    Operational
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-              <h2 className="text-xl font-bold uppercase mb-4">Last Updated</h2>
-              <p className="text-gray-500 italic">
-                System check completed successfully.
-              </p>
+            <div className="figure-card p-8">
+              <h2 className="text-xl font-display text-white mb-2">
+                Last checked
+              </h2>
+              <p className="text-gray-500">Systems responded normally.</p>
             </div>
           </div>
         </Section>

@@ -84,80 +84,63 @@ export default function ProjectsPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-400/30 overflow-x-hidden">
+    <div className="site-shell selection:bg-[#00A8A8]/30 overflow-x-hidden">
       <Navbar
         screen_width={windowWidth}
         page="other"
-        className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
+        className="fixed top-0 z-30"
       />
       <main className="relative z-10 pt-44 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
-        {/* BREADCRUMB NAVIGATION */}
-        <nav className="flex items-center gap-2 mb-8 text-[10px] font-mono tracking-[0.3em] uppercase">
-          <Link href="/" className="hover:text-[#00A8A8] transition-colors">
+        <nav className="flex items-center gap-2 mb-8 text-sm">
+          <Link href="/" className="link-measure">
             Home
           </Link>
-          <span className="text-gray-800">/</span>
-          <span className="text-gray-200 italic">Project_Archive</span>
+          <span className="text-gray-600">/</span>
+          <span className="text-gray-400">Projects</span>
         </nav>
 
-        {/* HERO SECTION */}
-        <section className="max-w-3xl mb-24 space-y-6">
-          <h1 className="text-white text-6xl md:text-8xl font-black tracking-tighter leading-none uppercase italic">
-            Project <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#006e6e] not-italic">
-              Archive.
-            </span>
-          </h1>
-          <p className="text-lg text-gray-400 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
-            A technical directory of past engineering ventures led by DSGT
-            members. Organized by domain expertise and technical stack.
+        <section className="max-w-3xl mb-20 space-y-5">
+          <h1 className="page-title text-5xl md:text-7xl">Project archive</h1>
+          <p className="page-lede border-l-2 border-[#00A8A8]/40 pl-5">
+            Past engineering work led by DSGT members, grouped by domain.
           </p>
         </section>
 
-        {/* ORGANIZED CATEGORIES */}
-        <div className="space-y-32">
+        <div className="space-y-24">
           {categories.map((cat) => (
             <section
               key={cat}
               id={cat.replace(/\s+/g, "-").toLowerCase()}
               className="scroll-mt-32 relative"
             >
-              <div className="flex items-center gap-4 mb-12">
-                <h2 className="text-white text-2xl font-black tracking-tight shrink-0 italic uppercase">
-                  {cat}
-                </h2>
-                <div className="h-px bg-gradient-to-r from-[#00A8A8]/20 to-transparent w-full"></div>
+              <div className="flex items-center gap-4 mb-10">
+                <h2 className="page-title text-2xl shrink-0">{cat}</h2>
+                <div className="h-px bg-[#00A8A8]/30 w-full" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {projects
                   .filter((p) => p.category === cat)
-                  .map((project, i) => (
-                    <div
-                      key={i}
-                      className="group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/30 transition-all duration-500 shadow-2xl relative overflow-hidden"
-                    >
-                      {/* Subtle background glow on hover */}
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A8A8]/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                      <div className="flex justify-between items-start mb-6 relative z-10">
-                        <h3 className="text-white text-xl font-bold group-hover:text-[#00A8A8] transition-colors uppercase tracking-tight italic">
+                  .map((project) => (
+                    <div key={project.name} className="figure-card p-8">
+                      <div className="flex justify-between items-start mb-4 gap-4">
+                        <h3 className="text-white text-xl font-display">
                           {project.name}
                         </h3>
-                        <span className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">
-                          Lead // {project.lead.split(" ").pop()?.toUpperCase()}
+                        <span className="text-xs text-gray-500 shrink-0">
+                          Lead: {project.lead}
                         </span>
                       </div>
 
-                      <p className="text-sm text-gray-400 leading-relaxed mb-8 italic relative z-10">
+                      <p className="text-sm text-gray-400 leading-relaxed mb-6">
                         {project.description}
                       </p>
 
-                      <div className="flex flex-wrap gap-2 relative z-10">
-                        {project.tech.map((t, index) => (
+                      <div className="flex flex-wrap gap-2">
+                        {project.tech.map((t) => (
                           <span
-                            key={index}
-                            className="text-[9px] font-mono text-[#00A8A8]/70 bg-[#00A8A8]/5 border border-[#00A8A8]/10 px-2 py-1 rounded-sm uppercase tracking-tighter"
+                            key={t}
+                            className="text-xs font-mono text-[#00A8A8] border border-[#00A8A8]/20 px-2 py-1"
                           >
                             {t}
                           </span>
@@ -170,37 +153,16 @@ export default function ProjectsPage() {
           ))}
         </div>
 
-        {/* NAVIGATION FOOTER */}
-        <section className="mt-40 border-t border-white/5 pt-20 text-center">
-          <h2 className="text-white text-2xl font-black mb-12 italic uppercase tracking-tighter">
-            Back to the present?
-          </h2>
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-12">
-            <Link
-              href="/"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
-            >
-              <span className="text-lg group-hover:-translate-x-2 transition-transform">
-                ←
-              </span>{" "}
-              Return_Home
-            </Link>
-            <Link
-              href="/bootcamp"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
-            >
-              Join_Bootcamp{" "}
-              <span className="text-lg group-hover:translate-x-2 transition-transform">
-                →
-              </span>
-            </Link>
-          </div>
+        <section className="mt-32 border-t border-white/10 pt-16 flex flex-col sm:flex-row justify-center items-center gap-8">
+          <Link href="/" className="link-measure">
+            ← Home
+          </Link>
+          <Link href="/bootcamp" className="link-measure">
+            Join bootcamp →
+          </Link>
         </section>
       </main>
-      <Footer
-        screen_width={windowWidth}
-        className="relative z-10 border-t border-white/5 opacity-40"
-      />
+      <Footer screen_width={windowWidth} className="relative z-10" />
     </div>
   );
 }

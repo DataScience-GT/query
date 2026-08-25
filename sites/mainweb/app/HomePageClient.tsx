@@ -26,8 +26,8 @@ import trading from "@/assets/images/logos/trading.png";
 const Pie = dynamic(() => import("react-chartjs-2").then((mod) => mod.Pie), {
   ssr: false,
   loading: () => (
-    <div className="h-64 w-64 flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-      Initializing Analytics...
+    <div className="h-64 w-64 flex items-center justify-center text-gray-500 font-mono text-xs">
+      Loading charts…
     </div>
   ),
 });
@@ -78,16 +78,16 @@ const HomePageClient = () => {
           backgroundColor: "rgba(5, 5, 5, 0.95)",
           borderColor: "#00A8A8",
           borderWidth: 1,
-          titleFont: { family: "monospace" },
-          bodyFont: { family: "monospace" },
+          titleFont: { family: "IBM Plex Mono" },
+          bodyFont: { family: "IBM Plex Mono" },
           padding: 12,
-          cornerRadius: 4,
+          cornerRadius: 0,
         },
         legend: {
           position: "bottom" as const,
           labels: {
             color: "#94a3b8",
-            font: { family: "monospace", size: windowWidth < 640 ? 10 : 11 },
+            font: { family: "Source Sans 3", size: windowWidth < 640 ? 11 : 13 },
             padding: windowWidth < 640 ? 10 : 15,
             boxWidth: windowWidth < 640 ? 8 : 12,
           },
@@ -100,43 +100,36 @@ const HomePageClient = () => {
   return (
     <div
       id="home-page"
-      className="relative bg-[#1A1A1A] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden"
+      className="site-shell selection:bg-[#00A8A8]/30 overflow-x-hidden"
     >
       <Navbar
         screen_width={windowWidth}
         page="home"
-        className="fixed top-0 z-50 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md"
+        className="fixed top-0 z-50"
       />
       <Hero screen_width={windowWidth} />
 
-      {/* ABOUT SECTION */}
-      <Section id="about" className="py-32 relative z-10">
+      <Section id="about" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              About Us.
-            </h2>
-            <p className="text-lg text-gray-300 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
+          <div className="space-y-6">
+            <h2 className="page-title text-4xl md:text-5xl">About us</h2>
+            <p className="page-lede border-l-2 border-[#00A8A8]/40 pl-5">
               As the{" "}
-              <strong className="text-white">
+              <strong className="text-white font-semibold">
                 largest student-run data science organization at Georgia Tech
               </strong>
-              , we provide technical skill development via club projects,
-              workshops, and guest speakers.
+              , we teach through club projects, workshops, and guest speakers —
+              the same skills members later take into research and internships.
             </p>
-            <Link
-              href="/team"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
-            >
-              Meet the Team →
+            <Link href="/team" className="link-measure">
+              Meet the team
             </Link>
           </div>
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-[#00A8A8]/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div className="relative">
             <Image
               src={squad}
               alt="DSGT Executive Board"
-              className="relative rounded-xl border border-white/10 shadow-2xl transition-all duration-700"
+              className="relative border border-white/10"
               width={800}
               height={450}
               priority
@@ -146,48 +139,40 @@ const HomePageClient = () => {
         </div>
       </Section>
 
-      {/* STATS SECTION */}
-      <Section
-        id="stats"
-        className="py-32 border-y border-white/5 glass-section relative z-10"
-      >
+      <Section id="stats" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight italic leading-none uppercase">
-              Our Club.
-            </h2>
-            <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.4em]">
-              550+ Verified Members
-            </p>
+          <div className="mb-14 space-y-3">
+            <h2 className="page-title text-4xl md:text-5xl">Who shows up</h2>
+            <p className="page-kicker">550+ verified members</p>
           </div>
           <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-stretch">
-            <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-              <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
-                Class Year Distribution
+            <div className="figure-card p-6 sm:p-10 flex flex-col items-center">
+              <p className="text-sm text-white/60 mb-8 w-full text-center border-b border-white/10 pb-2">
+                Class year
               </p>
               <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
                 <div className="w-full h-full max-w-[320px] aspect-square">
                   {chartsReady ? (
                     <Pie data={ClassData} options={chartOptions} />
                   ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Initializing Analytics...
+                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs">
+                      Loading charts…
                     </div>
                   )}
                 </div>
               </div>
             </div>
-            <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-              <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
-                Academic Major Split
+            <div className="figure-card p-6 sm:p-10 flex flex-col items-center">
+              <p className="text-sm text-white/60 mb-8 w-full text-center border-b border-white/10 pb-2">
+                Major
               </p>
               <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
                 <div className="w-full h-full max-w-[320px] aspect-square">
                   {chartsReady ? (
                     <Pie data={MajorData} options={chartOptions} />
                   ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Initializing Analytics...
+                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs">
+                      Loading charts…
                     </div>
                   )}
                 </div>
@@ -197,68 +182,54 @@ const HomePageClient = () => {
         </div>
       </Section>
 
-      {/* BOOTCAMP SECTION */}
-      <Section id="bootcamp" className="py-32 relative z-10">
+      <Section id="bootcamp" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
           <div className="order-2 lg:order-1 relative">
             <Image
               src={slide9}
               alt="Bootcamp Session"
-              className="rounded-xl border border-white/10 shadow-xl transition-all duration-700"
+              className="border border-white/10"
               width={600}
               height={400}
               placeholder="blur"
             />
           </div>
-          <div className="space-y-8 order-1 lg:order-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              Bootcamp.
-            </h2>
-            <p className="text-gray-300 leading-relaxed italic border-l-2 border-[#00A8A8]/20 pl-6">
-              Teaching core skills from{" "}
-              <span className="text-white">data cleaning</span> to{" "}
-              <span className="text-white">model building</span>. Learn Python
-              and pandas through hands-on project work.
+          <div className="space-y-6 order-1 lg:order-2">
+            <h2 className="page-title text-4xl md:text-5xl">Bootcamp</h2>
+            <p className="page-lede border-l-2 border-[#00A8A8]/40 pl-5">
+              Twelve weeks from data cleaning to model building. Python and
+              pandas, taught through project work rather than slides.
             </p>
-            <Link
-              href="/bootcamp"
-              className="inline-block bg-white text-black px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-[#00A8A8] hover:text-white transition-all shadow-lg shadow-white/5"
-            >
-              Initialize Bootcamp
+            <Link href="/bootcamp" className="btn-solid">
+              See this year&apos;s bootcamp
             </Link>
           </div>
         </div>
       </Section>
 
-      {/* HACKLYTICS SECTION */}
-      <Section
-        id="golden-byte"
-        className="py-32 border-y border-white/5 relative z-10"
-      >
+      <Section id="golden-byte" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
-          <div className="space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              Hacklytics.
-            </h2>
-            <p className="text-gray-300 leading-relaxed italic border-l-2 border-amber-500/20 pl-6">
-              Georgia Tech&apos;s premier{" "}
-              <span className="text-white">36-hour datathon</span>. Join
-              hundreds of students for a weekend of data science challenges and
-              workshops.
+          <div className="space-y-6">
+            <h2 className="page-title text-4xl md:text-5xl">Hacklytics</h2>
+            <p className="page-lede border-l-2 border-[#00A8A8]/40 pl-5">
+              Georgia Tech&apos;s 36-hour datathon. Hundreds of students, a
+              weekend of data science challenges, and workshops that run all
+              night.
             </p>
             <a
               href="https://hacklytics-2025.devpost.com/"
               target="_blank"
-              className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+              rel="noopener noreferrer"
+              className="btn-line"
             >
-              View Devpost
+              View last year&apos;s Devpost
             </a>
           </div>
           <div className="relative">
             <Image
               src={slide6}
               alt="Hacklytics Event"
-              className="rounded-xl border border-white/10 shadow-xl transition-all duration-700"
+              className="border border-white/10"
               width={600}
               height={400}
               placeholder="blur"
@@ -267,137 +238,127 @@ const HomePageClient = () => {
         </div>
       </Section>
 
-      {/* PROJECTS SECTION */}
-      <Section id="projects" className="py-32 relative z-10">
+      <Section id="projects" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="mb-16 space-y-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              Projects.
-            </h2>
-            <p className="font-mono text-[10px] text-[#00A8A8] uppercase tracking-[0.4em]">
-              Protocol: Member_Initiatives
-            </p>
+          <div className="mb-12 space-y-2">
+            <h2 className="page-title text-4xl md:text-5xl">Projects</h2>
+            <p className="page-kicker">What members are building</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
+            <Card className="figure-card flex flex-col justify-between h-full p-8">
               <div className="w-full flex justify-center mb-6">
-                <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image
-                    src={arc}
-                    alt="ARC"
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 object-contain"
-                    placeholder="blur"
-                  />
-                </div>
+                <Image
+                  src={arc}
+                  alt="ARC"
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 object-contain"
+                  placeholder="blur"
+                />
               </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
+              <h3 className="text-white text-xl font-display text-center mb-2">
                 ARC Research
               </h3>
               <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
+                <span className="px-2 py-0.5 text-xs font-mono text-[#00A8A8] border border-[#00A8A8]/30">
                   Active
                 </span>
               </div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
+              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">
                 ML competition group focusing on Kaggle and TREC research
                 tracks.
               </p>
               <a
                 href="https://dsgt-arc.org/"
                 target="_blank"
-                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                rel="noopener noreferrer"
+                className="link-measure mt-auto text-center"
               >
-                View Club →
+                Visit ARC
               </a>
             </Card>
 
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
+            <Card className="figure-card flex flex-col justify-between h-full p-8">
               <div className="w-full flex justify-center mb-6">
-                <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image
-                    src={stock}
-                    alt="Robo"
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 object-contain"
-                    placeholder="blur"
-                  />
-                </div>
+                <Image
+                  src={stock}
+                  alt="Robo"
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 object-contain"
+                  placeholder="blur"
+                />
               </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
+              <h3 className="text-white text-xl font-display text-center mb-2">
                 Roboinvesting
               </h3>
               <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
+                <span className="px-2 py-0.5 text-xs font-mono text-[#00A8A8] border border-[#00A8A8]/30">
                   Active
                 </span>
               </div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
+              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">
                 ML-driven trading simulations analyzing technical indicators.
               </p>
               <a
                 href="mailto:bjmichaels.25@gmail.com"
-                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                className="link-measure mt-auto text-center"
               >
-                Contact Team →
+                Contact the team
               </a>
             </Card>
 
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
+            <Card className="figure-card flex flex-col justify-between h-full p-8">
               <div className="w-full flex justify-center mb-6">
-                <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image
-                    src={trading}
-                    alt="AI"
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 object-contain"
-                    placeholder="blur"
-                  />
-                </div>
+                <Image
+                  src={trading}
+                  alt="AI"
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 object-contain"
+                  placeholder="blur"
+                />
               </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
+              <h3 className="text-white text-xl font-display text-center mb-2">
                 AI Trading Agent
               </h3>
               <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
+                <span className="px-2 py-0.5 text-xs font-mono text-[#00A8A8] border border-[#00A8A8]/30">
                   Active
                 </span>
               </div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
+              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">
                 Conversational AI tools for real-time portfolio management.
               </p>
               <a
                 href="mailto:wesleylu@gatech.edu"
-                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                className="link-measure mt-auto text-center"
               >
-                Contact Team →
+                Contact the team
               </a>
             </Card>
 
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl group shadow-2xl">
+            <Card className="figure-card flex flex-col justify-between h-full p-8 opacity-80">
               <div className="w-full flex justify-center mb-6">
                 <Image
                   src={gtaa}
                   alt="Sports"
                   width={100}
                   height={100}
-                  className="w-24 h-24 object-contain opacity-50"
+                  className="w-24 h-24 object-contain"
                   placeholder="blur"
                 />
               </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
+              <h3 className="text-white text-xl font-display text-center mb-2">
                 Sports Analytics
               </h3>
               <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-red-500/10 text-red-400 border border-red-500/20 uppercase tracking-widest">
+                <span className="px-2 py-0.5 text-xs font-mono text-red-400 border border-red-500/30">
                   Closed
                 </span>
               </div>
-              <p className="text-sm text-gray-500 text-center leading-relaxed italic">
+              <p className="text-sm text-gray-500 text-center leading-relaxed">
                 NFL projections and NBA roster optimization using advanced
                 stats.
               </p>
@@ -405,34 +366,30 @@ const HomePageClient = () => {
 
             <Link
               href="/projects"
-              className="bg-[#00A8A8] p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
+              className="bg-[#00A8A8] p-8 flex flex-col justify-between hover:bg-[#008f8f] transition-ui group"
             >
               <div className="space-y-4">
-                <h3 className="text-black text-2xl font-bold tracking-tight italic uppercase">
-                  Past Archive.
+                <h3 className="text-black text-2xl font-display tracking-tight">
+                  Past archive
                 </h3>
-                <p className="text-black/80 text-sm font-medium leading-relaxed italic">
-                  Explore five years of machine learning projects built by DSGT
-                  members.
+                <p className="text-black/80 text-sm leading-relaxed">
+                  Five years of machine learning projects built by DSGT members.
                 </p>
               </div>
-              <span className="text-black font-mono text-[10px] uppercase tracking-[0.3em] pt-4 font-bold group-hover:translate-x-2 transition-transform">
-                Access Database →
+              <span className="text-black text-sm pt-4 font-semibold">
+                Browse past projects
               </span>
             </Link>
           </div>
         </div>
       </Section>
 
-      {/* GET INVOLVED */}
-      <Section id="getinvolved" className="py-32 bg-[#080808] relative z-10">
+      <Section id="getinvolved" className="py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold italic tracking-tight leading-none uppercase">
-              Get Involved.
-            </h2>
-            <p className="font-mono text-[10px] text-gray-500 uppercase tracking-[0.4em] font-bold underline decoration-[#00A8A8] underline-offset-8">
-              Georgia Tech Primary Data Science Organization{" "}
+          <div className="mb-14 space-y-3">
+            <h2 className="page-title text-4xl md:text-5xl">Get involved</h2>
+            <p className="page-kicker">
+              Georgia Tech&apos;s primary data science organization
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -442,41 +399,35 @@ const HomePageClient = () => {
                 d: "Join the mailing list for weekly updates.",
                 i: slide1,
                 l: "/login",
-                a: "Join Here →",
+                a: "Join here",
               },
               {
                 t: "Leadership",
                 d: "Join the executive board and lead teams.",
                 i: slide7,
                 l: "/team",
-                a: "Meet the Team →",
+                a: "Meet the team",
               },
               {
                 t: "Hacklytics",
                 d: "Attend our 36-hour flagship datathon.",
                 i: slide6,
                 l: "https://hacklytics-2025.devpost.com/",
-                a: "View Devpost →",
+                a: "View Devpost",
               },
-            ].map((event, i) => (
-              <div
-                key={i}
-                className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl"
-              >
+            ].map((event) => (
+              <div key={event.t} className="figure-card overflow-hidden">
                 <div className="h-56 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-[#00A8A8]/10 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <Image
                     src={event.i}
                     alt={event.t}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover"
                     placeholder="blur"
                   />
                 </div>
-                <div className="p-8 space-y-4">
-                  <h4 className="text-white text-lg font-bold uppercase italic tracking-tight">
-                    {event.t}
-                  </h4>
-                  <p className="text-xs text-gray-500 leading-relaxed italic">
+                <div className="p-8 space-y-3">
+                  <h3 className="text-white text-xl font-display">{event.t}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">
                     {event.d}
                   </p>
                   {event.l.startsWith("http") ? (
@@ -484,15 +435,12 @@ const HomePageClient = () => {
                       href={event.l}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                      className="link-measure"
                     >
                       {event.a}
                     </a>
                   ) : (
-                    <Link
-                      href={event.l}
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
+                    <Link href={event.l} className="link-measure">
                       {event.a}
                     </Link>
                   )}

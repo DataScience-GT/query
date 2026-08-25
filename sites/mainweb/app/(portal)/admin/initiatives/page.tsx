@@ -206,16 +206,17 @@ export default function AdminInitiativesPage() {
         >
           <div className="min-w-64 flex-1">
             <label
-              htmlFor="leader-user-id"
+              htmlFor="leader-email"
               className="text-xs font-semibold uppercase tracking-wide text-white/50"
             >
-              Grant by user id
+              Grant by email
             </label>
             <input
-              id="leader-user-id"
+              id="leader-email"
+              type="email"
               value={userId}
               onChange={(event) => setUserId(event.target.value)}
-              placeholder="User id from the attendees list"
+              placeholder="ada@gatech.edu"
               className="mt-2 w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
             />
           </div>

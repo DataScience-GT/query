@@ -16,38 +16,30 @@ const Footer = ({
 }: FooterProps) => {
   return (
     <footer
-      className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
+      className={`relative w-full py-16 bg-[#050505] border-t border-white/10 text-gray-400 ${className}`}
     >
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
-          {/* BRANDING COLUMN */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 group">
-              <Image
-                src={logo}
-                alt="DSGT Logo"
-                className="h-8 w-8 rounded shadow-lg shadow-[#00A8A8]/10 transition-transform group-hover:rotate-12"
-              />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <Image src={logo} alt="DSGT Logo" className="h-8 w-8" />
+              <span className="text-white text-xl font-display tracking-tight">
                 DSGT
               </span>
             </div>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-[240px]">
+            <p className="text-sm leading-relaxed max-w-[240px] text-gray-500">
               The largest student-run data science organization at Georgia Tech.
             </p>
           </div>
 
-          {/* NAVIGATION COLUMN */}
-          <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              Navigation
-            </h2>
-            <nav className="flex flex-col space-y-2 text-sm font-medium">
+          <div className="flex flex-col space-y-3">
+            <h2 className="text-white font-display text-lg">On campus</h2>
+            <nav className="flex flex-col space-y-1 text-sm">
               <Link
                 href="/team"
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
-                Meet the Team
+                Meet the team
               </Link>
               <Link
                 href="mailto:hello@datasciencegt.org"
@@ -82,19 +74,16 @@ const Footer = ({
             </nav>
           </div>
 
-          {/* SOCIAL COLUMN */}
-          <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              Network
-            </h2>
-            <nav className="flex flex-col space-y-2 text-sm font-medium">
+          <div className="flex flex-col space-y-3">
+            <h2 className="text-white font-display text-lg">Connect</h2>
+            <nav className="flex flex-col space-y-1 text-sm">
               <a
                 href="https://github.com/DataScience-GT"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
-                Github
+                GitHub
               </a>
               <a
                 href="https://www.linkedin.com/company/dsgt/"
@@ -116,41 +105,23 @@ const Footer = ({
                 href="mailto:hello@datasciencegt.org"
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
               >
-                Email List
+                Mailing list
               </a>
             </nav>
           </div>
 
-          {/* TECH TEAM CREDIT */}
-          <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              System
-            </h2>
-            <div className="p-4 rounded border border-[#00A8A8]/10 bg-[#00A8A8]/[0.02]">
-              <p className="text-[11px] font-mono text-gray-500 leading-relaxed italic">
-                {">"} Built with precision by the{" "}
-                <span className="text-[#00A8A8] font-bold">DSGT Tech Team</span>
-                .
-                <br />
-                {">"} Protocol: ATL_GT_V4
-              </p>
-            </div>
+          <div className="flex flex-col space-y-3">
+            <h2 className="text-white font-display text-lg">Built here</h2>
+            <p className="text-sm leading-relaxed text-gray-500">
+              Made by the DSGT tech team.
+            </p>
           </div>
         </div>
 
-        {/* BOTTOM COPYRIGHT */}
-        <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4">
-          <p className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+        <div className="mt-16 pt-6 border-t border-white/10">
+          <p className="text-xs text-gray-600">
             © {new Date().getFullYear()} Data Science at Georgia Tech
           </p>
-          <div className="flex gap-6">
-            <span className="text-[10px] font-mono text-gray-700 uppercase tracking-tighter">
-              Lat: 33.7756° N
-            </span>
-            <span className="text-[10px] font-mono text-gray-700 uppercase tracking-tighter">
-              Lon: 84.3963° W
-            </span>
-          </div>
         </div>
       </div>
     </footer>

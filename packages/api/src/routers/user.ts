@@ -59,7 +59,6 @@ export const userRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
     const cacheKey = CacheKeys.userProfile(ctx.userId as string);
     const cached = ctx.cache.get<{
-      id: string;
       email: string | null;
       name: string | null;
       image: string | null;
@@ -74,7 +73,7 @@ export const userRouter = createTRPCRouter({
       ctx.db as NonNullable<typeof ctx.db>
     ).query.users.findFirst({
       where: eq(users.id, ctx.userId as string),
-      columns: { id: true, email: true, name: true, image: true },
+      columns: { email: true, name: true, image: true },
       with: {
         profile: {
           columns: {
@@ -92,7 +91,6 @@ export const userRouter = createTRPCRouter({
     }
 
     const result = {
-      id: user.id,
       email: user.email,
       name: user.name,
       image: user.image,

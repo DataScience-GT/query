@@ -1664,7 +1664,6 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const caller = appRouter.createCaller(ctx);
       const profile = await caller.user.me();
 
-      expect(profile.id).toBe("user_100");
       expect(profile.email).toBe("user@example.com");
       expect(profile.bio).toBe("Student");
     });

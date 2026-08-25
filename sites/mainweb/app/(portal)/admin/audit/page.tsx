@@ -101,9 +101,9 @@ export default function AuditPage() {
                     {log.createdAt.toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[11px] font-mono text-[var(--text-subtle)] break-all">
-                  by {log.userId ?? "system"}
-                  {log.resourceId ? ` · on ${log.resourceId}` : ""}
+                <p className="text-[11px] font-mono text-[var(--text-subtle)]">
+                  {log.createdAt.toLocaleString()}
+                  {log.userId ? " · staff" : " · system"}
                 </p>
                 {log.metadata != null &&
                   Object.keys(log.metadata as object).length > 0 && (

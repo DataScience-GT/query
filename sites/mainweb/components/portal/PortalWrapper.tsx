@@ -22,7 +22,7 @@ export default function PortalWrapper({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="font-mono bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row">
+    <div className="font-sans bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row">
       {!isAuthPage && (
         <PortalSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       )}

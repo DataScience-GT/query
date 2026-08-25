@@ -58,27 +58,24 @@ export default async function EventsPage() {
   const upcoming = await loadUpcoming();
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
+    <div className="site-shell">
       <Navbar screen_width={1024} page="events" />
       <main className="pt-20">
-        <Section className="py-32">
+        <Section className="py-24">
           <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              Events
-            </h1>
-            <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              Track upcoming hackathons, workshops, and community gatherings.
+            <p className="page-kicker mb-4">This semester</p>
+            <h1 className="page-title text-5xl mb-6">Events</h1>
+            <p className="page-lede mb-12">
+              Workshops, socials, and the datathon. Times are Eastern.
             </p>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-              <h2 className="text-xl font-bold uppercase mb-4">
-                Upcoming Events
-              </h2>
+            <div className="figure-card p-8">
+              <h2 className="text-xl font-display text-white mb-4">Upcoming</h2>
               {upcoming.length === 0 ? (
-                <p className="text-gray-500 italic">
-                  No upcoming events scheduled. Check back soon!
+                <p className="text-gray-500">
+                  Nothing on the calendar yet. Check back soon.
                 </p>
               ) : (
-                <ul className="divide-y divide-white/5">
+                <ul className="divide-y divide-white/10">
                   {upcoming.map((event) => {
                     const full =
                       !!event.maxCheckIns &&
@@ -87,9 +84,11 @@ export default async function EventsPage() {
                     return (
                       <li key={event.id} className="py-5 first:pt-0 last:pb-0">
                         <div className="flex flex-wrap items-baseline gap-3">
-                          <h3 className="text-lg font-bold">{event.title}</h3>
+                          <h3 className="text-lg font-semibold text-white">
+                            {event.title}
+                          </h3>
                           {full && (
-                            <span className="text-[10px] font-mono uppercase tracking-widest text-amber-300 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
+                            <span className="text-xs font-mono text-red-400 border border-red-500/30 px-2 py-0.5">
                               Full
                             </span>
                           )}

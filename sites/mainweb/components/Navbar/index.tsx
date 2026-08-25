@@ -83,10 +83,10 @@ export default function Navbar({
      * than the type keeps the design identical and makes the link hittable;
      * `inline-flex items-center` keeps the label centred in the taller box.
      */
-    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
+    const baseClass = `inline-flex items-center min-h-11 transition-ui duration-300 cursor-pointer ${
       isMobile
-        ? "text-gray-300 hover:text-white text-xl font-bold"
-        : "text-gray-400 hover:text-[#00A8A8]"
+        ? "text-gray-200 text-2xl"
+        : "text-[0.95rem] text-gray-400 hover:text-[#00A8A8]"
     }`;
 
     if (item.link) {
@@ -111,7 +111,7 @@ export default function Navbar({
         offset={-navbarHeight}
         duration={500}
         className={baseClass}
-        activeClass="text-white lg:text-[#00A8A8]"
+        activeClass="text-[#00A8A8]"
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
@@ -122,10 +122,9 @@ export default function Navbar({
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-ui ${className}`}
+        className={`fixed top-0 left-0 w-full h-20 z-130 site-nav transition-ui ${className}`}
       >
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
-          {/* Logo Section */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -135,24 +134,23 @@ export default function Navbar({
               <Image
                 src={logo}
                 alt="DSGT Logo"
-                className="h-8 w-auto transition-transform duration-500 group-hover:rotate-[360deg]"
+                className="h-8 w-auto"
                 width={32}
                 height={32}
               />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">
+              <span className="text-white text-xl font-display tracking-tight">
                 DSGT
               </span>
             </Link>
           </div>
 
-          {/* Desktop Links */}
           {windowWidth >= WIDTH_THRESHOLD ? (
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-7">
               {menuItems.map((item) => renderMenuItem(item))}
               <Link
                 href="/login"
                 rel="noopener noreferrer"
-                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
+                className="btn-solid text-sm"
                 onClick={() => setMenuOpen(false)}
               >
                 Portal
@@ -163,6 +161,7 @@ export default function Navbar({
               className="relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Toggle Menu"
+              aria-expanded={menuOpen}
             >
               <span
                 className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
@@ -179,21 +178,18 @@ export default function Navbar({
       </nav>
 
       <div
-        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-ui duration-500 ease-in-out ${
+        className={`fixed inset-0 bg-[#050505] z-[120] flex flex-col items-center justify-center pt-20 transition-ui duration-500 ease-in-out ${
           menuOpen
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        {/* Subtle grid pattern for better aesthetic on the full-screen mobile menu */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
-
-        <div className="flex flex-col items-center gap-8 text-center relative z-10">
+        <div className="flex flex-col items-center gap-6 text-center relative z-10">
           {menuItems.map((item) => renderMenuItem(item, true))}
           <Link
             href="/login"
             rel="noopener noreferrer"
-            className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="mt-4 btn-solid"
             onClick={() => setMenuOpen(false)}
           >
             Portal

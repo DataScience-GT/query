@@ -5,9 +5,7 @@ import { useSession, signIn, getProviders } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { safeCallback } from "@/lib/safe-callback";
-
-// DSGT Query - Premium Landing Page
-// Ultra-modern, standout UI/UX
+import Link from "next/link";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -118,131 +116,66 @@ export default function Home() {
   };
 
   if (!mounted)
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)]" />
-    );
+    return <div className="min-h-screen bg-[var(--bg-primary)]" />;
 
   const isRedirecting = !!session;
+  const busy = emailSending || isRedirecting || status === "loading";
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-primary)] to-[var(--bg-secondary)] text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-hidden flex flex-col">
-      {/* Animated Background */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Gradient orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-accent/5 blur-[250px] rounded-sm animate-[float_20s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#6366f1]/5 blur-[200px] rounded-sm animate-[float_25s_ease-in-out_infinite_reverse]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.08)_0%,transparent_70%)]" />
+    <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-muted)] font-sans selection:bg-accent/30 flex flex-col">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 w-full">
+        <div className="w-full max-w-md space-y-8">
+          <div className="space-y-3">
+            <p className="page-kicker">Member portal</p>
+            <h1 className="page-title text-4xl md:text-5xl">Sign in</h1>
+            <p className="text-[var(--text-muted)] leading-relaxed">
+              Use the account you joined with. Google is the usual path; email
+              sends a one-time code.
+            </p>
+          </div>
 
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+          {isRedirecting && (
+            <p className="text-sm text-accent">You&apos;re signed in. Taking you in…</p>
+          )}
 
-        {/* Floating particles */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-            radial-gradient(circle at 15% 30%, rgba(0, 168, 168, 0.08) 0%, transparent 50%),
-            radial-gradient(circle at 85% 70%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-            radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.04) 0%, transparent 40%)
-          `,
-          }}
-        />
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleSignIn}
+              disabled={busy}
+              className="btn-solid w-full disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isRedirecting ? "Signed in" : "Sign in with Google"}
+            </button>
 
-        {/* Animated scanline */}
-        <div className="absolute inset-0 bg-[linear-gradient(0deg,transparent_0%,rgba(16,185,129,0.03)_50%,transparent_100%)] animate-[scanline_8s_linear_infinite] pointer-events-none" />
-      </div>
-
-      {/* Main Content */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-6 lg:px-12 w-full">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center w-full">
-          {/* Left Panel - Hero */}
-          <div className="space-y-12 lg:space-y-16 animate-[fadeInUp_1s_ease-out_forwards]">
-            {/* Status Badge */}
-            <div className="flex items-center gap-4 animate-[fadeIn_0.5s_ease-out_0.2s_forwards]">
-              <div className="h-1 w-16 bg-gradient-to-r from-accent via-[#14b8a6] to-accent rounded-sm" />
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-accent/70 uppercase tracking-[0.3em]">
-                  Query Engine
-                </span>
-                <span className="w-1 h-1 rounded-sm bg-accent" />
-                <span className="text-xs font-mono text-gray-600 uppercase tracking-widest">
-                  v.2.1.0
-                </span>
-              </div>
-            </div>
-
-            {/* Hero Title */}
-            <div className="animate-[fadeIn_0.5s_ease-out_0.3s_forwards]">
-              <h1 className="text-7xl lg:text-9xl font-black text-[var(--text-primary)] leading-[0.85] tracking-wider font-oswald uppercase">
-                Query <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-[#14b8a6] to-[#0891b2] italic transform -skew-x-6">
-                  DSGT.
-                </span>
-              </h1>
-            </div>
-
-            {/* Subtitle */}
-            <div className="space-y-6 animate-[fadeIn_0.5s_ease-out_0.4s_forwards]">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-sm bg-accent/5 border border-accent/20 backdrop-blur-sm">
-                <div className="w-2 h-2 rounded-sm bg-accent animate-pulse" />
-                <span className="text-sm font-mono text-accent/80 uppercase tracking-widest">
-                  Georgia Tech Data Science Community
-                </span>
-              </div>
-              <p className="text-base text-[var(--text-muted)] leading-relaxed max-w-md border-l-2 border-accent/30 pl-5 italic font-medium">
-                The collective intelligence of Georgia Tech's largest data
-                science community. Connect with peers, discover events, and
-                contribute to groundbreaking research.
-              </p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-5 animate-[fadeIn_0.5s_ease-out_0.5s_forwards]">
+            {hasProvider("github") && (
               <button
                 type="button"
-                onClick={handleSignIn}
-                disabled={emailSending || isRedirecting || status === "loading"}
-                className="group w-full sm:w-auto px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-gradient-to-r hover:from-accent hover:via-[#14b8a6] hover:to-accent hover:text-[var(--text-primary)] transition-ui active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_rgba(16,185,129,0.3)]"
+                onClick={handleGithubSignIn}
+                disabled={busy}
+                className="btn-line w-full disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span className="group-hover:underline decoration-2 underline-offset-4">
-                  {isRedirecting ? "Authenticated" : "Sign in with Google"}
-                </span>
+                Sign in with GitHub
               </button>
+            )}
 
-              {hasProvider("github") && (
-                <button
-                  type="button"
-                  onClick={handleGithubSignIn}
-                  disabled={emailSending || isRedirecting || status === "loading"}
-                  className="group w-full sm:w-auto px-10 py-6 flex items-center justify-center gap-2.5 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-ui active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 16 16"
-                    className="w-4 h-4 fill-current"
-                  >
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-                  </svg>
-                  Sign in with GitHub
-                </button>
-              )}
-
-              {!showEmailInput ? (
-                <button
-                  onClick={() => {
-                    setShowEmailInput(true);
-                  }}
-                  disabled={
-                    emailSending || isRedirecting || status === "loading"
-                  }
-                  className="w-full sm:w-auto px-8 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 hover:border-white/20 transition-ui active:scale-95 disabled:opacity-30"
-                >
-                  Email Login
-                </button>
-              ) : (
-                <div className="flex w-full sm:w-auto flex-col gap-2">
-                  <div className="flex w-full gap-3">
+            {!showEmailInput ? (
+              <button
+                type="button"
+                onClick={() => setShowEmailInput(true)}
+                disabled={busy}
+                className="w-full min-h-11 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-ui disabled:opacity-40"
+              >
+                Use email instead
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <label htmlFor="login-email" className="text-sm text-[var(--text-muted)]">
+                  Email
+                </label>
+                <div className="flex gap-2">
                   <input
+                    id="login-email"
                     type="email"
                     autoComplete="email"
                     spellCheck={false}
@@ -252,138 +185,33 @@ export default function Home() {
                       setEmailError("");
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
-                    placeholder="your@email.com"
+                    placeholder="you@gatech.edu"
                     disabled={emailSending || emailSent}
-                    className="flex-1 sm:w-56 px-5 py-6 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[11px] rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-gray-600 disabled:opacity-30 transition-ui"
+                    className="flex-1 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm placeholder:text-gray-600 disabled:opacity-30"
                   />
                   <button
+                    type="button"
                     onClick={handleEmailLogin}
                     disabled={emailSending || emailSent || !email}
-                    className="px-6 py-6 border border-[var(--border-subtle)] text-[var(--text-primary)] font-black text-[11px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent/20 hover:border-accent/40 transition-ui active:scale-95 disabled:opacity-30"
+                    className="btn-line shrink-0 disabled:opacity-30"
                   >
-                    {emailSent ? "Sent" : emailSending ? "Sending…" : "Send"}
+                    {emailSent ? "Sent" : emailSending ? "Sending…" : "Send code"}
                   </button>
-                  </div>
-                  {emailError && (
-                    <p className="text-rose-400 font-mono text-[10px] tracking-wide">
-                      {emailError}
-                    </p>
-                  )}
                 </div>
-              )}
-            </div>
+                {emailError && (
+                  <p className="text-red-400 text-sm">{emailError}</p>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Right Panel - Visual */}
-          <div className="hidden lg:flex flex-col items-center justify-center relative animate-[fadeIn_0.6s_ease-out_forwards]">
-            {/* Background glow */}
-            <div className="absolute w-[500px] h-[500px] bg-gradient-to-br from-accent/10 via-[#6366f1]/5 to-transparent blur-[150px] rounded-sm animate-[pulse_8s_ease-in-out_infinite]" />
-
-            {/* Central visual */}
-            <div className="relative group animate-[float_6s_ease-in-out_infinite]">
-              {/* Rotating rings */}
-              <div className="absolute -inset-8 border border-[var(--border-subtle)] rounded-sm animate-[spin_25s_linear_infinite]" />
-              <div className="absolute -inset-12 border border-[var(--border-subtle)] rounded-sm animate-[spin_40s_linear_infinite_reverse] opacity-40" />
-              <div className="absolute -inset-16 border border-[var(--border-subtle)] rounded-sm animate-[spin_55s_linear_infinite] opacity-20" />
-
-              {/* Central content */}
-              <div className="relative z-10 p-12">
-                <img
-                  src="/images/dsgt/apple-touch-icon.png"
-                  alt="DSGT Logo"
-                  className="w-80 h-80 object-contain drop-shadow-[0_0_80px_rgba(16,185,129,0.3)] transition-ui duration-700 group-hover:scale-110 group-hover:rotate-3"
-                />
-              </div>
-
-              {/* Status indicator */}
-              <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-full text-center space-y-3">
-                <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.5em] animate-pulse">
-                  {isRedirecting
-                    ? "Handshake Verified"
-                    : status === "loading"
-                      ? "Synchronizing…"
-                      : "Core Operational"}
-                </p>
-                <div className="flex justify-center gap-4 text-[9px] font-mono text-gray-700">
-                  <span className="flex items-center gap-1">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-sm ${session ? "bg-green-500 animate-pulse" : "bg-accent"}`}
-                    />
-                    <span className={session ? "text-green-500/80" : ""}>
-                      {status.toUpperCase()}
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-accent rounded-sm" />
-                    REGION: ATL-08
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-sm animate-pulse" />
-                    JUDGE: {portalContext?.isJudge ? "ACTIVE" : "OPEN"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Decorative element */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 border border-accent/20 rounded-sm animate-[spin_10s_linear_infinite]" />
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 border border-[var(--border-subtle)] rounded-sm animate-[spin_15s_linear_infinite_reverse]" />
-            </div>
-          </div>
+          <p className="text-sm">
+            <Link href="/" className="link-measure">
+              Back to the club site
+            </Link>
+          </p>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="relative z-10 px-6 py-4">
-        <div className="flex justify-between items-center text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">
-          <div>Internal Terminal // Auth Gateway v2.1</div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-1.5 h-1.5 rounded-sm ${isRedirecting ? "bg-green-500" : "bg-accent"}`}
-            />
-            <span>ACCESS NODE: 0812-ATL</span>
-          </div>
-        </div>
-      </footer>
-
-      {/* Global styles for custom animations */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes scanline {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100%); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes fadeInRight {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `,
-        }}
-      />
     </div>
   );
 }

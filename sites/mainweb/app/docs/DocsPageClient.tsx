@@ -273,33 +273,15 @@ export default function DocsPageClient() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] font-sans text-gray-400 selection:bg-[#00A8A8]/30">
-      {/* Subtle grid background */}
-      <div
-        className="fixed inset-0 z-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      {/* Top faded gradient line */}
-      <div className="fixed top-0 right-0 left-0 z-50 h-[2px] bg-gradient-to-r from-transparent via-[#00A8A8]/30 to-transparent lg:hidden" />
-
+    <div className="site-shell selection:bg-[#00A8A8]/30">
       <div className="relative z-10 flex min-h-screen items-start">
         {/* SIDEBAR */}
-        <aside className="sticky top-0 z-50 hidden h-screen w-72 flex-col border-r border-white/5 bg-[#050505]/80 p-8 shadow-[20px_0_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl lg:flex">
-          <Link href="/" className="group mb-12 block">
-            <h2 className="origin-left text-2xl font-black tracking-tighter text-white uppercase transition-transform group-hover:scale-[1.02]">
-              QUERY<span className="text-[#00A8A8] italic">DOCS</span>
+        <aside className="sticky top-0 z-50 hidden h-screen w-72 flex-col border-r border-white/10 bg-[#050505] p-8 lg:flex">
+          <Link href="/" className="mb-12 block">
+            <h2 className="text-2xl font-display text-white tracking-tight">
+              Query docs
             </h2>
-            <div className="mt-2 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-              <p className="font-mono text-[9px] tracking-[0.4em] text-gray-500 uppercase">
-                v1.0.0 // Active
-              </p>
-            </div>
+            <p className="page-kicker mt-2">Internal reference</p>
           </Link>
 
           <nav className="flex-1 space-y-2">
@@ -307,10 +289,10 @@ export default function DocsPageClient() {
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`flex w-full items-center gap-4 rounded-xl px-5 py-3.5 text-left font-mono text-xs tracking-widest uppercase transition-all duration-300 ${
+                className={`flex w-full items-center gap-4 px-4 py-3 text-left text-sm transition-ui ${
                   activeSection === item.id
-                    ? "translate-x-1 border border-[#00A8A8]/20 bg-[#00A8A8]/10 font-black text-[#00A8A8] shadow-[inset_0_0_20px_rgba(0,168,168,0.05)]"
-                    : "border border-transparent text-gray-500 hover:translate-x-1 hover:bg-white/5 hover:text-white"
+                    ? "border-l-2 border-[#00A8A8]/40 bg-white/5 font-semibold text-white"
+                    : "border-l-2 border-transparent text-gray-500 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <span
@@ -341,7 +323,7 @@ export default function DocsPageClient() {
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Return to Nexus
+              Back to portal
             </Link>
           </div>
         </aside>

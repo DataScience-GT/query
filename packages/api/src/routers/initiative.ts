@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import {
   initiativeApplications,
   initiatives,
@@ -1035,16 +1035,20 @@ export const initiativeRouter = createTRPCRouter({
   }),
 
   /**
-   * Grant or revoke, by user id. Upserted rather than deleted so an
-   * appointment stays on the record after it is revoked.
+   * Grant or revoke by account email (or an internal key for revoke from the
+   * list). Upserted rather than deleted so an appointment stays on the record
+   * after it is revoked.
    */
   setLeader: isSuperAdmin
     .input(z.object({ userId: z.string(), isLeader: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
+      const raw = input.userId.trim();
 
       const target = await db.query.users.findFirst({
-        where: eq(users.id, input.userId),
+        where: raw.includes("@")
+          ? sql`lower(${users.email}) = ${raw.toLowerCase()}`
+          : eq(users.id, raw),
         columns: { id: true },
       });
       if (!target) {
@@ -1052,7 +1056,7 @@ export const initiativeRouter = createTRPCRouter({
       }
 
       const existing = await db.query.projectLeaders.findFirst({
-        where: eq(projectLeaders.userId, input.userId),
+        where: eq(projectLeaders.userId, target.id),
       });
 
       if (existing) {
@@ -1062,7 +1066,7 @@ export const initiativeRouter = createTRPCRouter({
           .where(eq(projectLeaders.id, existing.id));
       } else if (input.isLeader) {
         await db.insert(projectLeaders).values({
-          userId: input.userId,
+          userId: target.id,
           isActive: true,
           appointedBy: ctx.userId,
         });
@@ -1070,8 +1074,8 @@ export const initiativeRouter = createTRPCRouter({
 
       // The gate caches for 60s and the sidebar reads the portal context; both
       // have to go or the change does not show up until they expire.
-      clearProjectLeaderCaches(input.userId);
+      clearProjectLeaderCaches(target.id);
 
-      return { userId: input.userId, isLeader: input.isLeader };
+      return { isLeader: input.isLeader };
     }),
 });

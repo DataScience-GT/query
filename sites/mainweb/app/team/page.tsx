@@ -37,28 +37,19 @@ const Team = () => {
   return (
     <div
       id="team-page"
-      className="relative min-h-screen bg-[#1A1A1A] text-gray-400 font-sans selection:bg-indigo-500/30"
+      className="site-shell selection:bg-[#00A8A8]/30"
     >
-      {/* Navbar fixed with glassmorphism */}
       <Navbar
         screen_width={windowWidth}
-        className="fixed top-0 left-0 w-full z-30 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md"
+        className="fixed top-0 left-0 w-full z-30"
         page="team"
       />
 
       <main className="relative z-10 pt-40 pb-32">
-        {/* Simplified Header Section */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-20 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#74b1aa] text-[10px] font-mono uppercase tracking-[0.2em]">
-            Executive Board 2025-2026
-          </div>
-          <h1 className="text-white text-6xl md:text-7xl font-bold tracking-tight leading-none italic">
-            Meet the{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500 not-italic">
-              Team.
-            </span>
-          </h1>
-          <p className="text-lg text-gray-400 max-w-2xl leading-relaxed">
+          <p className="page-kicker">Executive board 2025–2026</p>
+          <h1 className="page-title text-5xl md:text-7xl">Meet the team</h1>
+          <p className="page-lede">
             The engineers, designers, and organizers behind the largest
             student-run data science organization at Georgia Tech.
           </p>
@@ -191,10 +182,7 @@ const Team = () => {
           </div>
         </Section>
 
-        <Footer
-          screen_width={windowWidth}
-          className="mt-32 border-t border-white/5"
-        />
+        <Footer screen_width={windowWidth} className="mt-32" />
       </main>
     </div>
   );

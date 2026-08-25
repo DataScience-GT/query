@@ -140,12 +140,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-tertiary)]">
-      {/* Ambient glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[5%]  w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
-      </div>
-
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-8">
         {/* ── HEADER ─────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
@@ -164,7 +158,7 @@ export default function Dashboard() {
               />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+              <h1 className="text-3xl font-display text-[var(--text-primary)] tracking-tight">
                 Welcome back, {userData?.name?.split(" ")[0] ?? "there"}
               </h1>
               <p className="text-sm text-[var(--text-muted)] mt-0.5">
@@ -423,8 +417,8 @@ export default function Dashboard() {
         {/* ── MY HACKATHONS ───────────────────────────────── */}
         <div className={`space-y-4 ${view === "hackathon" ? "" : "hidden"}`}>
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-              My Hackathons
+            <h2 className="text-xl font-display text-[var(--text-primary)]">
+              My hackathons
             </h2>
             <Link
               href="/hackathons"

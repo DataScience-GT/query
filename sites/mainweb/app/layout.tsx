@@ -1,15 +1,32 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { GeistSans, GeistMono } from "geist/font";
+import { STIX_Two_Text, Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSansVar = GeistSans.variable;
-const geistMonoVar = GeistMono.variable;
+const display = STIX_Two_Text({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-stix",
+  display: "swap",
+});
+
+const sans = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-source",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   // Without this, every relative OG image resolves against nothing and social
   // cards render blank.
-  metadataBase: new URL("https://datasciencegt.org"),
+  metadataBase: new URL("[REDACTED]"),
   title: {
     default: "DSGT | Georgia Tech",
     // Pages set their own; this keeps the organisation attached to each.
@@ -43,7 +60,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: "https://datasciencegt.org",
+    url: "[REDACTED]",
     siteName: "Data Science @ Georgia Tech",
     title: "Data Science @ Georgia Tech",
     description:
@@ -69,7 +86,7 @@ export default function RootLayout({
     // here before hydration, so the server markup never matches.
     <html
       lang="en"
-      className={`${geistSansVar} ${geistMonoVar}`}
+      className={`${display.variable} ${sans.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased bg-[#050505] text-gray-400">
@@ -83,8 +100,8 @@ export default function RootLayout({
               "@type": "Organization",
               name: "Data Science @ Georgia Tech",
               alternateName: ["DSGT", "Data Science at Georgia Tech"],
-              url: "https://datasciencegt.org",
-              logo: "https://datasciencegt.org/logo512.png",
+              url: "[REDACTED]",
+              logo: "[REDACTED]/logo512.png",
               description:
                 "The largest student-run data science organization at Georgia Tech.",
               parentOrganization: {
