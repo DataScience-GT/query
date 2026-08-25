@@ -1,6 +1,6 @@
 /* DSGT Portal - Minimalist Developer Aesthetic (SaaS/Vercel-inspired) */
 
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap");
+/* DSGT Portal tokens. Fonts come from next/font on the root layout. */
 
 :root {
   /* ===== COMMON GROUND DESIGN SYSTEM INSPIRATION ===== */
