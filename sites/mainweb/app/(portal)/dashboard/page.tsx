@@ -308,6 +308,34 @@ export default function Dashboard() {
             </Link>
           )}
 
+          {/* Become a Member — sits beside Initiatives so the club view says
+              what is missing where the rest of the club lives. The pay UI is
+              the block below; this jumps to it. */}
+          {view === "club" && !memberStatus?.isMember && !isAdmin && (
+            <a href="#membership" className="group">
+              <LiquidGlass printed holographic className="p-6 h-full flex flex-col gap-3 hover:border-amber-500/40 transition-ui">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-sm bg-amber-500/10 border border-amber-500/20 group-hover:bg-amber-500/20 transition-colors">
+                    <Users className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-amber-500 group-hover:translate-x-1 transition-ui" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    {memberStatus?.hasLapsed
+                      ? "Renew Membership"
+                      : "Become a Member"}
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mt-1">
+                    {formatCents(MEMBERSHIP_CENTS)}/year or{" "}
+                    {formatCents(SEMESTER_MEMBERSHIP_CENTS)}/semester — unlocks
+                    the Club Portal, event check-ins, and member resources.
+                  </p>
+                </div>
+              </LiquidGlass>
+            </a>
+          )}
+
           {/* Judge Portal — judges only */}
           {isJudge && (
             <Link href="/judge" className="group">
@@ -386,38 +414,12 @@ export default function Dashboard() {
           </LiquidGlass>
         )}
 
+        {/* The pay UI itself, below the tiles. The tile above is the label;
+            this is the block. */}
         {view === "club" && !memberStatus?.isMember && !isAdmin && (
-          <LiquidGlass printed holographic className="p-6 border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-yellow-500/5">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-sm bg-amber-500/10 border border-amber-500/20 flex-shrink-0">
-                  <Users className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    {memberStatus?.hasLapsed
-                      ? "Renew your membership"
-                      : "Become a Member"}
-                  </h3>
-                  <p className="text-sm text-[var(--text-muted)] mt-1">
-                    Join DSGT as a full member for{" "}
-                    <span className="text-[var(--text-primary)] font-semibold">
-                      {formatCents(MEMBERSHIP_CENTS)}/year
-                    </span>{" "}
-                    or{" "}
-                    <span className="text-[var(--text-primary)] font-semibold">
-                      {formatCents(SEMESTER_MEMBERSHIP_CENTS)}/semester
-                    </span>{" "}
-                    to unlock the Club Portal, event check-ins, and member-only
-                    resources.
-                  </p>
-                </div>
-              </div>
-              <div className="flex-shrink-0">
-                <LinkStripeAccount />
-              </div>
-            </div>
-          </LiquidGlass>
+          <div id="membership" className="scroll-mt-8 max-w-md">
+            <LinkStripeAccount />
+          </div>
         )}
 
         {/* ── MY HACKATHONS ───────────────────────────────── */}
