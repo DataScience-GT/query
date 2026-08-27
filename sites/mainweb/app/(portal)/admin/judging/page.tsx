@@ -123,7 +123,7 @@ export default function AdminResultsPage() {
   // /admin/setup used to, and now redirects here.
   const rebuildQueuesAnyway = async () => {
     if (!selectedHackathon) return;
-    setPrepState({ busy: true, message: null, error: null });
+    setPrepState((s) => ({ ...s, busy: true }));
     try {
       const assigned = await assignJudges.mutateAsync({
         hackathonId: selectedHackathon,
