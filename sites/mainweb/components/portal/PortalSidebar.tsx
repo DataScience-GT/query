@@ -6,32 +6,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
-  LayoutDashboard,
-  Code,
-  ClipboardList,
-  Users,
-  BarChart3,
   LogOut,
   Menu,
-  QrCode,
-  Zap,
   X,
   Sun,
   Moon,
   Home,
-  ShieldAlert,
-  UserCircle,
-  Rocket,
-  Upload,
-  FolderGit2,
-  CreditCard,
-  ShieldCheck,
-  ScrollText,
-  BookOpen,
-  GraduationCap,
+  Zap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { isPortalNavActive, portalNavSections } from "@/lib/portal-nav";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
 interface PortalSidebarProps {
@@ -50,6 +35,7 @@ export default function PortalSidebar({
   const [mounted, setMounted] = useState(false);
 
   const { data: portalContext } = usePortalContext();
+  const sections = portalNavSections(portalContext);
 
   useEffect(() => {
     setMounted(true);
@@ -65,106 +51,6 @@ export default function PortalSidebar({
   }, [isMobileOpen]);
 
   if (pathname === "/login" || pathname === "/verify") return null;
-
-  const mainRoutes = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-      show: !portalContext?.isAdmin,
-    },
-    {
-      name: "Hackathons",
-      href: "/hackathons",
-      icon: Zap,
-      show: !portalContext?.isAdmin,
-    },
-    {
-      name: "Check-In Desk",
-      href: "/scan",
-      icon: QrCode,
-      // Volunteers hold an admins row but isAdmin rejects them, so the admin
-      // nav below is invisible to them — this is their only entry point.
-      show: portalContext?.isScanner && !portalContext?.isAdmin,
-    },
-    {
-      name: "Submit Project",
-      href: "/submit",
-      icon: Upload,
-      // The only route to team.submitProject, and nothing else in the product
-      // linked to it — so no project could be submitted, and with submissions
-      // now feeding judging, nothing could be judged either.
-      show: !portalContext?.isAdmin,
-    },
-    {
-      name: "Club Portal",
-      href: "/club",
-      icon: QrCode,
-      show: portalContext?.member.isMember && !portalContext?.isAdmin,
-    },
-    {
-      name: "Bootcamp",
-      // Not /bootcamp — the public curriculum page owns that path. Shown to
-      // everyone, like Initiatives, so the add-on can be seen before paying.
-      href: "/club/bootcamp",
-      icon: GraduationCap,
-      show: !portalContext?.isAdmin,
-    },
-    {
-      name: "Judge Portal",
-      href: "/judge",
-      icon: ClipboardList,
-      // Admins get this in the admin nav instead, so their sidebar stays
-      // admin-only.
-      show: portalContext?.isJudge && !portalContext?.isAdmin,
-    },
-    {
-      name: "Initiatives",
-      href: "/initiatives",
-      icon: Rocket,
-      // Somebody deciding whether to pay should be able to see what membership
-      // gets them. Applying is where the membership check bites, not browsing.
-      show: !portalContext?.isAdmin,
-    },
-    {
-      name: "My Initiatives",
-      href: "/lead",
-      icon: Rocket,
-      show: portalContext?.isProjectLeader && !portalContext?.isAdmin,
-    },
-    {
-      name: "Settings",
-      href: "/settings",
-      icon: UserCircle,
-      show: true,
-    },
-  ].filter((r) => r.show);
-
-  const adminRoutes = [
-    { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
-    { name: "Hackathons", href: "/admin/hackathons", icon: Code },
-    { name: "Judging", href: "/admin/judging", icon: ClipboardList },
-    // Judge import and queue assignment live only here. Without this entry the
-    // page is reachable by typed URL alone, which means judging never starts.
-    { name: "Judging Setup", href: "/admin/setup", icon: Upload },
-    { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
-    { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
-    // /lead is the only screen that decides an initiative application, and
-    // isProjectLeader admits admins so an absent leader cannot strand theirs.
-    { name: "Initiative Applications", href: "/lead", icon: Rocket },
-    { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
-    { name: "Attendees", href: "/admin/attendees", icon: Users },
-    { name: "Memberships", href: "/admin/members", icon: CreditCard },
-    // Granting the volunteer tier is otherwise an INSERT against production,
-    // and /scan's rejection screen tells people to ask an organiser for it.
-    { name: "Staff & Roles", href: "/admin/staff", icon: ShieldCheck },
-    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-    // Retention prunes routine entries at 90 days, so an unreadable log is an
-    // expiring one.
-    { name: "Audit Log", href: "/admin/audit", icon: ScrollText },
-    // Shipped in every build and previously reachable only by typing the URL.
-    { name: "Docs", href: "/docs", icon: BookOpen },
-  ];
 
   return (
     <>
@@ -205,52 +91,20 @@ export default function PortalSidebar({
           </button>
 
           <div className="w-full max-w-sm flex flex-col items-center gap-10 mt-4">
-            {mainRoutes.length > 0 && (
-              <div className="w-full text-center">
-                <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
-                  <Code className="w-6 h-6 opacity-50" />
-                  Main Navigation
-                </h3>
-                <div className="flex flex-col gap-3">
-                  {mainRoutes.map((route) => {
-                    const isActive =
-                      pathname === route.href ||
-                      (route.href !== "/dashboard" &&
-                        pathname.startsWith(route.href + "/"));
-                    return (
-                      <Link
-                        key={route.href}
-                        href={route.href}
-                        onClick={() => setIsMobileOpen(false)}
-                        className={`flex items-center justify-center gap-3 py-4 rounded-none transition-ui ${
-                          isActive
-                            ? "bg-accent/10 text-accent border border-accent/20 font-bold"
-                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                        }`}
-                      >
-                        <route.icon className="w-5 h-5" />
-                        <span className="text-lg">{route.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {portalContext?.isAdmin && (
-              <>
-                <div className="w-full h-px bg-[var(--border-subtle)]" />
-                <div className="w-full text-center">
-                  <h3 className="text-xs uppercase tracking-widest text-[var(--text-subtle)] font-bold mb-6 flex flex-col items-center gap-2">
-                    <ShieldAlert className="w-6 h-6 opacity-50" />
-                    Admin Area
+            {sections.map((section, index) => {
+              const SectionIcon = section.id === "hackathon" ? Zap : Home;
+              return (
+                <div key={section.id} className="w-full text-center">
+                  {index > 0 && (
+                    <div className="w-full h-px bg-[var(--border-subtle)] mb-10" />
+                  )}
+                  <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
+                    <SectionIcon className="w-6 h-6 opacity-50" />
+                    {section.label}
                   </h3>
                   <div className="flex flex-col gap-3">
-                    {adminRoutes.map((route) => {
-                      const isActive =
-                        pathname === route.href ||
-                        (route.href !== "/admin" &&
-                          pathname.startsWith(route.href + "/"));
+                    {section.items.map((route) => {
+                      const isActive = isPortalNavActive(pathname, route.href);
                       return (
                         <Link
                           key={route.href}
@@ -269,8 +123,8 @@ export default function PortalSidebar({
                     })}
                   </div>
                 </div>
-              </>
-            )}
+              );
+            })}
 
             {/* Mobile User Section */}
             <div className="mt-auto w-full pt-8 flex flex-col items-center gap-4">
@@ -371,74 +225,29 @@ export default function PortalSidebar({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {/* Main Navigation Section */}
-          {mainRoutes.length > 0 && (
-            <div className="mb-1">
-              {isOpen && (
-                <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                  <Code className="h-3 w-3 text-accent/60 flex-shrink-0" />
-                  <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
-                    Portal
-                  </span>
-                </div>
-              )}
-              {!isOpen && (
-                <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />
-              )}
-              <div className="space-y-1">
-                {mainRoutes.map((route) => {
-                  const isActive =
-                    pathname === route.href ||
-                    (route.href !== "/dashboard" &&
-                      pathname.startsWith(route.href + "/"));
-                  return (
-                    <Link
-                      key={route.href}
-                      href={route.href}
-                      title={!isOpen ? route.name : undefined}
-                      className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-ui ${
-                        isActive
-                          ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
-                          : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-                      }`}
-                    >
-                      <route.icon
-                        className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-accent" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
-                      />
-                      {isOpen && (
-                        <span className="text-sm truncate">{route.name}</span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {portalContext?.isAdmin && (
-            <>
-              <div
-                className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}
-              />
-
-              <div className="mb-4">
+          {sections.map((section, index) => {
+            const SectionIcon = section.id === "hackathon" ? Zap : Home;
+            return (
+              <div key={section.id} className={index === 0 ? "mb-1" : "mb-4"}>
+                {index > 0 && (
+                  <div
+                    className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}
+                  />
+                )}
                 {isOpen && (
                   <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                    <ShieldAlert className="h-3 w-3 text-[var(--text-subtle)] flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-[0.2em]">
-                      Admin Area
+                    <SectionIcon className="h-3 w-3 text-accent/60 flex-shrink-0" />
+                    <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
+                      {section.label}
                     </span>
                   </div>
                 )}
                 {!isOpen && (
-                  <div className="w-8 h-px bg-[var(--border-medium)] mx-auto mb-3" />
+                  <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />
                 )}
                 <div className="space-y-1">
-                  {adminRoutes.map((route) => {
-                    const isActive =
-                      pathname === route.href ||
-                      (route.href !== "/admin" &&
-                        pathname.startsWith(route.href + "/"));
+                  {section.items.map((route) => {
+                    const isActive = isPortalNavActive(pathname, route.href);
                     return (
                       <Link
                         key={route.href}
@@ -461,8 +270,8 @@ export default function PortalSidebar({
                   })}
                 </div>
               </div>
-            </>
-          )}
+            );
+          })}
         </nav>
 
         {/* User section */}
