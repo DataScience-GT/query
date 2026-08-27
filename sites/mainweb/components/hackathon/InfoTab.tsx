@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import {
   formatPhoneAsTyped,
@@ -30,6 +29,8 @@ import {
   MAJORS,
 } from "@/components/hackathon/constants";
 import type { ShirtSize, LevelOfStudy } from "@/components/hackathon/constants";
+import { InterestForm } from "@/components/hackathon/InterestForm";
+import { hackathonSlug } from "@/lib/hackathon-slug";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
 
@@ -464,22 +465,13 @@ export function InfoTab({
             </button>
           </div>
         ) : hackathon.status === "announced" ? (
-          /* Announced is not closed — the lock below reads as "you missed it". */
-          <div className="text-center sm:text-left">
-            <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-              Registration Opens Soon
-            </h4>
-            <p className="text-sm text-[var(--text-primary)]/50 mb-6">
-              Applications aren&apos;t open yet. Join the interest list and
-              we&apos;ll email you the moment they are.
-            </p>
-            <Link
-              href="/hacklytics"
-              className="inline-block px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 w-full sm:w-auto text-center"
-            >
-              Join the Interest List
-            </Link>
-          </div>
+          /* Announced is not closed — the lock below reads as "you missed it".
+             Join against THIS edition's id, not a bounce to /hacklytics which
+             follows whichever event getUpcoming picks. */
+          <InterestForm
+            hackathonId={hackathon.id}
+            callbackPath={`/hackathons/${hackathonSlug(hackathon.name)}`}
+          />
         ) : isFull ? (
           <div className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 rounded-none inline-flex items-center gap-3">
             <svg

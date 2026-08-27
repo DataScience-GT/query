@@ -31,6 +31,10 @@ export function HackathonCard({
 
   const { data: events, isLoading: eventsLoading } =
     trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
+  const { data: interestCount } = trpc.hackathon.interestCount.useQuery(
+    { hackathonId: hackathon.id },
+    { enabled: hackathon.status === "announced" },
+  );
 
   const updateMutation = trpc.hackathon.update.useMutation({
     onSuccess: () => {
@@ -90,9 +94,12 @@ export function HackathonCard({
             <div className="p-5 bg-white/[0.02] border border-[var(--border-subtle)] rounded-none hover:bg-white/[0.04] transition-colors">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-xs font-mono text-[var(--text-subtle)] uppercase tracking-wider">
-                  Participants
+                  {hackathon.status === "announced"
+                    ? "Interest list"
+                    : "Participants"}
                 </p>
-                {hackathon.maxParticipants && (
+                {hackathon.status !== "announced" &&
+                  hackathon.maxParticipants && (
                   <span className="text-xs font-mono text-accent font-bold">
                     {Math.round(
                       (hackathon.currentParticipants /
@@ -104,16 +111,19 @@ export function HackathonCard({
                 )}
               </div>
               <p className="text-base font-semibold text-accent font-mono">
-                {hackathon.currentParticipants}
-                {hackathon.maxParticipants
-                  ? ` / ${hackathon.maxParticipants}`
-                  : " registered"}
+                {hackathon.status === "announced"
+                  ? `${interestCount ?? "…"} interested`
+                  : `${hackathon.currentParticipants}${
+                      hackathon.maxParticipants
+                        ? ` / ${hackathon.maxParticipants}`
+                        : " registered"
+                    }`}
               </p>
             </div>
           </div>
 
           {/* Registration Progress Bar */}
-          {hackathon.maxParticipants && (
+          {hackathon.status !== "announced" && hackathon.maxParticipants && (
             <div className="mt-6 space-y-2">
               <div className="h-2 w-full bg-white/5 rounded-sm overflow-hidden border border-[var(--border-subtle)]">
                 <div
