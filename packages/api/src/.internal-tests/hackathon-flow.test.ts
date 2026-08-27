@@ -1061,6 +1061,22 @@ describe("Hackathon end-to-end flow", () => {
       );
     });
 
+    it("opens an edition from a percent-encoded name (old admin dashboard links)", async () => {
+      // `/admin/hackathons/${encodeURIComponent(name)}` used to put
+      // "Hacklytics%3A%20Digital%20Bloom" in the path. That string is not the
+      // stored name, and slugging it produces "hacklytics-3a-20digital-20bloom".
+      mockFindFirst.mockImplementation(() => undefined);
+      mockFindMany.mockImplementation((table) =>
+        table === "hackathons" ? [bloom()] : [],
+      );
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      const res = await caller.hackathon.getById({
+        id: encodeURIComponent("Hacklytics: Digital Bloom"),
+      });
+      expect(res.id).toBe(HACK_A);
+    });
+
     it("404s on a slug matching no edition", async () => {
       mockFindFirst.mockImplementation(() => undefined);
       mockFindMany.mockImplementation((table) =>

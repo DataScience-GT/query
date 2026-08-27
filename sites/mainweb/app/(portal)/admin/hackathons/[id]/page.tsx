@@ -6,6 +6,7 @@ import { usePortalContext } from "@/lib/use-portal-context";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
 import { AttendeesTab } from "@/components/admin/hackathons/AttendeesTab";
@@ -28,7 +29,10 @@ type Tab =
 export default function AdminHackathonDashboard() {
   const { status } = useSession();
   const params = useParams();
-  const hackathonId = params?.id as string;
+  const rawId = params?.id;
+  const hackathonId = decodeHackathonParam(
+    Array.isArray(rawId) ? (rawId[0] ?? "") : ((rawId as string | undefined) ?? ""),
+  );
   const [activeTab, setActiveTab] = useState<Tab>("attendees");
 
   const { data: portalContext, isLoading: portalLoading } = usePortalContext();

@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { adminHackathonPath } from "@/lib/hackathon-slug";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
 export function HackathonCard({
@@ -54,7 +55,7 @@ export function HackathonCard({
         <div className="min-w-0">
           <div className="flex items-center gap-4 mb-4">
             <Link
-              href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+              href={adminHackathonPath(hackathon.name, hackathon.id)}
             >
               <h3 className="text-3xl md:text-4xl font-extrabold text-[var(--text-primary)] tracking-tight hover:text-accent transition-colors leading-tight">
                 {hackathon.name}
@@ -134,7 +135,7 @@ export function HackathonCard({
               </h4>
               {events && events.length > 0 && (
                 <Link
-                  href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+                  href={adminHackathonPath(hackathon.name, hackathon.id)}
                   className="text-xs font-mono text-accent hover:underline flex items-center gap-1"
                 >
                   Manage Events ({events.length}) →
@@ -263,7 +264,7 @@ export function HackathonCard({
                 {events.length > 4 && (
                   <div className="md:col-span-2 p-3 bg-white/[0.01] border border-[var(--border-subtle)] rounded-none text-center">
                     <Link
-                      href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+                      href={adminHackathonPath(hackathon.name, hackathon.id)}
                       className="text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                     >
                       + {events.length - 4} more scheduled events (Click to view
@@ -343,7 +344,7 @@ export function HackathonCard({
             </button>
 
             <Link
-              href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+              href={adminHackathonPath(hackathon.name, hackathon.id)}
               className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-ui flex items-center gap-2"
             >
               Dashboard <span className="text-lg leading-none">→</span>
