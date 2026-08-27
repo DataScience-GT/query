@@ -84,6 +84,7 @@ export function InterestForm({
     await Promise.all([
       utils.hackathon.myInterest.invalidate({ hackathonId }),
       utils.hackathon.interestCount.invalidate({ hackathonId }),
+      utils.hackathon.listInterest.invalidate({ hackathonId }),
     ]);
   };
 
