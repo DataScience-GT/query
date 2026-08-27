@@ -61,7 +61,7 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showInterest, setShowInterest] = useState(false);
+  const [showInterest, setShowInterest] = useState(true);
 
   // The four questions the public form collects were shown to no organiser at
   // all — the data was gathered and then only ever read as a recipient count.
