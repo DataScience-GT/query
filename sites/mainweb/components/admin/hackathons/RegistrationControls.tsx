@@ -40,7 +40,16 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
    */
   const interestStatus = trpc.hackathon.registrationOpenEmailStatus.useQuery(
     { hackathonId },
-    { enabled: registrationOpen },
+    {
+      enabled:
+        hackathon?.status === "announced" ||
+        hackathon?.status === "open" ||
+        hackathon?.status === "in_progress",
+    },
+  );
+  const { data: interestCount } = trpc.hackathon.interestCount.useQuery(
+    { hackathonId },
+    { enabled: hackathon?.status === "announced" },
   );
 
   const [notifyError, setNotifyError] = React.useState<string | null>(null);
@@ -148,6 +157,19 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
           </div>
         </div>
       </div>
+
+      {hackathon?.status === "announced" && (
+        <div className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
+          <p className="text-xs font-mono text-[var(--text-primary)] uppercase tracking-wider">
+            Interest list for this edition
+          </p>
+          <p className="text-[11px] font-mono text-[var(--text-subtle)] mt-1">
+            {(interestCount ?? 0) === 0
+              ? "Nobody has joined yet. The public form writes to this hackathon."
+              : `${interestCount} ${interestCount === 1 ? "person is" : "people are"} on this edition's list. Applications stay empty until you open registration. The Email tab has the roster.`}
+          </p>
+        </div>
+      )}
 
       {registrationOpen && (interestStatus.data?.total ?? 0) > 0 && (
         <div className="mt-6 pt-6 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
