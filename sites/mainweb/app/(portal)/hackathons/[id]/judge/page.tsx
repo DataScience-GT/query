@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
+import { decodeHackathonParam } from "@/lib/hackathon-slug";
 
 type Project = {
   id: string;
@@ -49,7 +50,10 @@ export default function JudgeHackathonPage() {
    * procedures take a uuid, so a by-name URL would fail input validation.
    * Resolve it first when it is not already an id.
    */
-  const routeParam = params.id as string;
+  const rawId = params.id;
+  const routeParam = decodeHackathonParam(
+    Array.isArray(rawId) ? (rawId[0] ?? "") : ((rawId as string | undefined) ?? ""),
+  );
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       routeParam,

@@ -45,17 +45,17 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 | `/judge`, `/judge/register` | Judge home / apply |
 | `/scan` | QR scanning |
 | `/admin` | Staff home |
-| `/admin/hackathons`, `/admin/hackathons/[id]` | Edition admin (attendees, waves, announcements, analytics, events) |
+| `/admin/hackathons`, `/admin/hackathons/[id]` | Edition admin (attendees, waves, announcements, analytics, events). `[id]` is the name slug (`hacklytics-digital-bloom`), not a percent-encoded name. |
 | `/admin/members` | Membership admin |
 | `/admin/attendees` | Attendee tools |
-| `/admin/judging` | Judging admin |
+| `/admin/judging` | Judging admin (sync submissions + assign judges live here) |
 | `/admin/initiatives` | Initiative / proposal review |
 | `/admin/bootcamp` | Bootcamp attendance |
 | `/admin/staff` | Admin users |
 | `/admin/analytics` | Overview |
 | `/admin/audit` | Audit log |
 | `/admin/projects` | Project admin |
-| `/admin/setup` | First-run wizard |
+| `/admin/setup` | Redirects to `/admin/judging`. Do not create a second hackathon from judging — create it under Hackathons. |
 
 ## API routes
 
