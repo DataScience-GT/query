@@ -40,13 +40,16 @@ import { AcceptanceWaves } from "./AcceptanceWaves";
 import { AttendeeStats } from "./AttendeeStats";
 import { statusColors, statusIcon } from "./attendee-status";
 import type { RegistrationStatus } from "./attendee-status";
+import type { HackathonStatus } from "./constants";
 
 export function AttendeesTab({
   hackathonId,
   hackathonName,
+  status,
 }: {
   hackathonId: string;
   hackathonName: string;
+  status: HackathonStatus;
 }) {
   const utils = trpc.useUtils();
 
@@ -79,10 +82,13 @@ export function AttendeesTab({
   // Stat tiles come from the aggregate, not from counting the rows on screen.
   // Counting a page would report "12 pending" when 400 are.
   const { data: analytics } = trpc.hackathon.analytics.useQuery({ hackathonId });
+  // Parent already fetched getById with the route slug; this UUID query
+  // misses that cache. Until it returns, fall back to the status the
+  // dashboard already has so announced editions don't flash the empty queue.
   const { data: hackathon } = trpc.hackathon.getById.useQuery({
     id: hackathonId,
   });
-  const announced = hackathon?.status === "announced";
+  const announced = (hackathon?.status ?? status) === "announced";
   const { data: interestRows, isLoading: interestLoading } =
     trpc.hackathon.listInterest.useQuery(
       { hackathonId },
@@ -400,7 +406,7 @@ export function AttendeesTab({
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
-      <RegistrationControls hackathonId={hackathonId} />
+      <RegistrationControls hackathonId={hackathonId} status={status} />
 
       {announced ? (
         <LiquidGlass className="p-6 border-[var(--border-subtle)]">

@@ -223,6 +223,7 @@ export default function AdminHackathonDashboard() {
             <AttendeesTab
               hackathonId={hackathon.id}
               hackathonName={hackathon.name}
+              status={hackathon.status}
             />
           )}
           {activeTab === "analytics" && (
