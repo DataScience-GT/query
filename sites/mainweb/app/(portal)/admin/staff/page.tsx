@@ -20,7 +20,7 @@ const ROLES = [
   {
     id: "volunteer" as const,
     label: "Volunteer",
-    hint: "Badge scanning at /scan. Nothing else — the admin pages refuse them.",
+    hint: "Hackathon badge scanning at /scan and club pass scanning at /scan/club. Nothing else — the admin pages refuse them.",
   },
   {
     id: "moderator" as const,

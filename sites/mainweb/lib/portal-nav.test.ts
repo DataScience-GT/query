@@ -87,6 +87,8 @@ describe("portalNavSections", () => {
       "Judge Portal",
       "Check-In Desk",
     ]);
+    expect(names(sections, "portal")).toContain("Club Check-In");
+    expect(names(sections, "hackathon")).not.toContain("Club Check-In");
     expect(names(sections, "portal")).not.toContain("Judge Portal");
   });
 
@@ -102,10 +104,13 @@ describe("portalNavSections", () => {
       "Hackathons",
       "Judging",
       "Projects",
-      "Attendees",
     ]);
+    expect(names(sections, "hackathon")).not.toContain("Attendees");
+    expect(names(sections, "hackathon")).not.toContain("Club Attendees");
     expect(names(sections, "portal")).toEqual([
       "Club Hub",
+      "Club Attendees",
+      "Club Check-In",
       "Initiatives",
       "Initiative Applications",
       "Bootcamp",
@@ -141,5 +146,11 @@ describe("isPortalNavActive", () => {
     expect(isPortalNavActive("/club", "/club")).toBe(true);
     expect(isPortalNavActive("/club/bootcamp", "/club")).toBe(false);
     expect(isPortalNavActive("/club/bootcamp", "/club/bootcamp")).toBe(true);
+  });
+
+  it("does not treat /scan as a prefix of /scan/club", () => {
+    expect(isPortalNavActive("/scan", "/scan")).toBe(true);
+    expect(isPortalNavActive("/scan/club", "/scan")).toBe(false);
+    expect(isPortalNavActive("/scan/club", "/scan/club")).toBe(true);
   });
 });

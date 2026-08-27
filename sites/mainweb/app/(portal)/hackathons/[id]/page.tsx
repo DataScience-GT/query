@@ -196,7 +196,7 @@ export default function HackathonDetailPage() {
               />
             </svg>
           </div>
-          <span className="font-medium tracking-wide">All Events</span>
+          <span className="font-medium tracking-wide">All Hackathons</span>
         </Link>
 
         {/* Header Card */}

@@ -17,6 +17,7 @@ import {
   BookOpen,
   GraduationCap,
   UserCircle,
+  Calendar,
 } from "lucide-react";
 import type { PortalContext } from "@query/api";
 
@@ -58,6 +59,9 @@ function flags(ctx: PortalContext | undefined | null): NavFlags {
  * Staff see the same split on the admin tools. Judging Setup is gone — an
  * edition created from /admin/hackathons is the judging edition, and queue
  * prep lives on /admin/judging.
+ *
+ * Club meetings (Hub, attendees, pass scan) stay on Portal. They are not a
+ * tab or mode of a hackathon edition.
  */
 export function portalNavSections(
   ctx: PortalContext | undefined | null,
@@ -73,7 +77,6 @@ export function portalNavSections(
           { name: "Hackathons", href: "/admin/hackathons", icon: Code },
           { name: "Judging", href: "/admin/judging", icon: ClipboardList },
           { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
-          { name: "Attendees", href: "/admin/attendees", icon: Users },
         ],
       },
       {
@@ -81,6 +84,8 @@ export function portalNavSections(
         label: "Portal",
         items: [
           { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
+          { name: "Club Attendees", href: "/admin/attendees", icon: Users },
+          { name: "Club Check-In", href: "/scan/club", icon: Calendar },
           { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
           {
             name: "Initiative Applications",
@@ -126,6 +131,9 @@ export function portalNavSections(
           { name: "Club Portal", href: "/club", icon: QrCode },
         ]
       : []),
+    ...(f.isScanner
+      ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
+      : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
     { name: "Initiatives", href: "/initiatives", icon: Rocket },
     ...(f.isProjectLeader
@@ -143,7 +151,12 @@ export function portalNavSections(
 export function isPortalNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   // Prefixes that own a child route with its own nav item.
-  if (href === "/dashboard" || href === "/admin" || href === "/club") {
+  if (
+    href === "/dashboard" ||
+    href === "/admin" ||
+    href === "/club" ||
+    href === "/scan"
+  ) {
     return false;
   }
   return pathname.startsWith(`${href}/`);
