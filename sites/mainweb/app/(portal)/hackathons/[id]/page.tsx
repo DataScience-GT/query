@@ -15,6 +15,7 @@ import { ProjectsTab } from "@/components/hackathon/ProjectsTab";
 import { ResultsTab } from "@/components/hackathon/ResultsTab";
 import { TeamsTab } from "@/components/hackathon/TeamsTab";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
+import { decodeHackathonParam } from "@/lib/hackathon-slug";
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
@@ -124,7 +125,10 @@ export default function HackathonDetailPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const hackathonId = params.id as string;
+  const rawId = params.id;
+  const hackathonId = decodeHackathonParam(
+    Array.isArray(rawId) ? (rawId[0] ?? "") : ((rawId as string | undefined) ?? ""),
+  );
 
   const tabParam = searchParams.get("tab") as TabType | null;
   const [tab, setTab] = useState<TabType>(
