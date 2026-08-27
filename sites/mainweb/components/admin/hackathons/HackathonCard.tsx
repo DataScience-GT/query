@@ -138,7 +138,7 @@ export function HackathonCard({
                   href={adminHackathonPath(hackathon.name, hackathon.id)}
                   className="text-xs font-mono text-accent hover:underline flex items-center gap-1"
                 >
-                  Manage Events ({events.length}) →
+                  Manage Itinerary ({events.length}) →
                 </Link>
               )}
             </div>
@@ -149,8 +149,8 @@ export function HackathonCard({
               </div>
             ) : !events || events.length === 0 ? (
               <div className="p-4 bg-white/[0.01] border border-dashed border-[var(--border-subtle)] rounded-none text-center text-xs font-mono text-gray-600">
-                No events scheduled for this hackathon yet. Click Dashboard to
-                add some!
+                No weekend itinerary yet. Open the dashboard to add workshops
+                and meals for this edition — club meetings stay on Club Hub.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
