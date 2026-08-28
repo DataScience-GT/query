@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -13,6 +13,7 @@ import { JudgeMatrixView } from "@/components/admin/judging/JudgeMatrixView";
 import { RankingsView } from "@/components/admin/judging/RankingsView";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { JudgeLiveBoard } from "@/components/admin/hackathons/JudgeLiveBoard";
+import { judgingPrepIsCurrent } from "@/lib/judging-prep";
 
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
@@ -68,9 +69,15 @@ export default function AdminResultsPage() {
     message: string | null;
     error: string | null;
   }>({ busy: false, message: null, error: null });
-  // Set only when assignJudgesToProjects itself refused. A failed promote
-  // must not relabel into a button that sends force: true.
-  const [assignConflict, setAssignConflict] = useState(false);
+  // The edition whose assign call was refused. Rebuild anyway sends force
+  // for this id, not whatever is selected now — a late CONFLICT from A must
+  // not rebuild B.
+  const [assignConflictId, setAssignConflictId] = useState<string | null>(
+    null,
+  );
+  const selectedHackathonRef = useRef(selectedHackathon);
+  selectedHackathonRef.current = selectedHackathon;
+  const prepGen = useRef(0);
 
   const promoteSubmissions = trpc.judge.promoteSubmissions.useMutation();
   const assignJudges = trpc.judge.assignJudgesToProjects.useMutation();
@@ -81,35 +88,52 @@ export default function AdminResultsPage() {
     "data" in error &&
     (error as { data?: { code?: string } }).data?.code === "CONFLICT";
 
-  const finishPrepare = async (message: string) => {
-    if (!selectedHackathon) return;
-    await utils.judge.getRankings.invalidate({
-      hackathonId: selectedHackathon,
-    });
+  const stillThisRun = (hackathonId: string, gen: number) =>
+    judgingPrepIsCurrent(
+      hackathonId,
+      gen,
+      selectedHackathonRef.current,
+      prepGen.current,
+    );
+
+  const finishPrepare = async (
+    hackathonId: string,
+    gen: number,
+    message: string,
+  ) => {
+    await utils.judge.getRankings.invalidate({ hackathonId });
+    if (!stillThisRun(hackathonId, gen)) return;
     await refetchJudgingStatus();
-    setAssignConflict(false);
+    if (!stillThisRun(hackathonId, gen)) return;
+    setAssignConflictId(null);
     setPrepState({ busy: false, error: null, message });
   };
 
   const prepareJudging = async () => {
-    if (!selectedHackathon) return;
-    setAssignConflict(false);
+    const hackathonId = selectedHackathon;
+    if (!hackathonId) return;
+    const gen = ++prepGen.current;
+    setAssignConflictId(null);
     setPrepState({ busy: true, message: null, error: null });
     try {
       const promoted = await promoteSubmissions.mutateAsync({
-        hackathonId: selectedHackathon,
+        hackathonId,
       });
       const assigned = await assignJudges.mutateAsync({
-        hackathonId: selectedHackathon,
+        hackathonId,
       });
+      if (!stillThisRun(hackathonId, gen)) return;
       const warning = promoted.queuesNeedRebuild
         ? " One or more new projects carry a track no active judge covers — fix the track, then run this again."
         : "";
       await finishPrepare(
+        hackathonId,
+        gen,
         `Synced ${promoted.created} new submission(s) of ${promoted.total}, and built queues for ${assigned.totalJudges} judge(s) covering ${assigned.coverage.min}-${assigned.coverage.max} projects each. Print the table cards next.${warning}`,
       );
     } catch (e) {
-      setAssignConflict(isAssignConflict(e));
+      if (!stillThisRun(hackathonId, gen)) return;
+      setAssignConflictId(isAssignConflict(e) ? hackathonId : null);
       setPrepState({
         busy: false,
         message: null,
@@ -122,18 +146,24 @@ export default function AdminResultsPage() {
   // asks for confirmation. This is the only control that sends force: true —
   // /admin/setup used to, and now redirects here.
   const rebuildQueuesAnyway = async () => {
-    if (!selectedHackathon) return;
+    const hackathonId = assignConflictId;
+    if (!hackathonId || hackathonId !== selectedHackathonRef.current) return;
+    const gen = ++prepGen.current;
     setPrepState((s) => ({ ...s, busy: true }));
     try {
       const assigned = await assignJudges.mutateAsync({
-        hackathonId: selectedHackathon,
+        hackathonId,
         force: true,
       });
+      if (!stillThisRun(hackathonId, gen)) return;
       await finishPrepare(
+        hackathonId,
+        gen,
         `Rebuilt queues for ${assigned.totalJudges} judge(s) covering ${assigned.coverage.min}-${assigned.coverage.max} projects each. Completed slots were kept.`,
       );
     } catch (e) {
-      setAssignConflict(isAssignConflict(e));
+      if (!stillThisRun(hackathonId, gen)) return;
+      setAssignConflictId(isAssignConflict(e) ? hackathonId : null);
       setPrepState({
         busy: false,
         message: null,
@@ -160,7 +190,8 @@ export default function AdminResultsPage() {
   }, [hackathons, selectedHackathon]);
 
   useEffect(() => {
-    setAssignConflict(false);
+    prepGen.current += 1;
+    setAssignConflictId(null);
     setPrepState({ busy: false, message: null, error: null });
   }, [selectedHackathon]);
 
@@ -385,13 +416,13 @@ export default function AdminResultsPage() {
                 <div
                   role="alert"
                   className={`mt-4 px-4 py-3 text-sm font-mono ${
-                    assignConflict
+                    assignConflictId === selectedHackathon
                       ? "border border-amber-500/30 bg-amber-500/10 text-amber-200"
                       : "border border-red-500/30 bg-red-500/10 text-red-300"
                   }`}
                 >
                   <p>{prepState.error}</p>
-                  {assignConflict && (
+                  {assignConflictId === selectedHackathon && (
                     <button
                       type="button"
                       onClick={rebuildQueuesAnyway}
