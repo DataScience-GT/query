@@ -1,137 +1,52 @@
 "use client";
 import React from "react";
-import Image from "next/image";
-import { PixelLabel } from "../pixel/PixelBits";
-import PixelSprite from "../pixel/PixelSprite";
-import { MUSHROOM } from "../pixel/sprites";
+import Eyebrow from "./Eyebrow";
 
-// ─── Grand Prize Card ──────────────────────────────────────────────────────
-const GrandPrize: React.FC<{
-  rank: "1st" | "2nd" | "3rd";
-  prize: string;
-  image: string;
-  featured?: boolean;
-}> = ({ rank, prize, image, featured }) => {
-  const rankColor = rank === "1st" ? "var(--bloom-lime)" : rank === "2nd" ? "var(--bloom-cyan)" : "var(--bloom-pink)";
-  return (
-    <div className={`flex flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1 ${
-      featured
-        ? "pixel-frame pixel-lime bg-white/[0.05]"
-        : "pixel-frame pixel-cyan bg-white/[0.03]"
-    }`}>
-      {/* Image area */}
-      <div className="relative h-48 md:h-64 flex items-center justify-center p-8 overflow-hidden group">
-        <div className="absolute inset-0 opacity-[0.15] transition-opacity duration-700 group-hover:opacity-[0.25]" style={{ background: `radial-gradient(circle at center, ${rankColor}, transparent 70%)` }} />
-        <Image src={image} alt={prize} fill className="object-contain p-8 md:p-12 filter drop-shadow-2xl group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" />
-      </div>
-      {/* Info */}
-      <div className="px-8 py-6 border-t border-white/5 relative z-10 bg-black/20">
-        <span className="font-pixel text-[10px] block mb-2" style={{ color: rankColor }}>{rank} Place</span>
-        <p className="font-sans font-medium text-xl md:text-2xl text-white leading-tight tracking-tight">{prize}</p>
-      </div>
-    </div>
-  );
-};
+const otherPrizes = [
+  { label: "Track", detail: "First and second in each track." },
+  { label: "MLH", detail: "Sponsor challenges stack on top." },
+  { label: "Beginner", detail: "Beginner-friendly award." },
+];
 
-// ─── Track Prize Row ────────────────────────────────────────────────────────
-const TrackRow: React.FC<{
-  num: string;
-  trackName: string;
-  description: string;
-  prizes: string[];
-  color: string;
-}> = ({ num, trackName, description, prizes, color }) => (
-  <div className="group grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-10 border-b border-white/5 py-8 md:py-10 hover:bg-white/[0.015] transition-colors duration-500 rounded-2xl px-4 md:px-6 -mx-4 md:-mx-6">
-    <div className="md:col-span-2 flex items-start gap-6">
-      <span className="font-mono text-sm text-white/20 mt-1 shrink-0 group-hover:text-[var(--c)] transition-colors duration-500" style={{ "--c": color } as React.CSSProperties}>{num}</span>
-      <div>
-        <h3 className="font-sans font-medium text-2xl md:text-3xl text-white group-hover:text-[var(--c)] transition-colors duration-500 tracking-tight [--c:inherit]" style={{ "--c": color } as React.CSSProperties}>{trackName}</h3>
-        <p className="font-sans text-base text-white/40 mt-2 leading-relaxed font-light">{description}</p>
-      </div>
-    </div>
-    <div className="md:col-span-3 flex flex-wrap items-center gap-3">
-      {prizes.map((p, i) => (
-        <span key={i} className="pixel-frame pixel-purple font-sans text-sm text-white/70 px-5 py-2 hover:text-white transition-colors duration-200 font-light cursor-default bg-white/[0.02]">
-          <span className="font-mono text-[10px] mr-2" style={{ color: ["var(--bloom-lime)","var(--bloom-cyan)","var(--bloom-pink)"][i] }}>{["1st","2nd","3rd"][i]}</span>
-          {p}
-        </span>
-      ))}
-    </div>
-  </div>
-);
-
-// ─── Speaker Avatar ─────────────────────────────────────────────────────────
-const SpeakerCard: React.FC<{ name: string; title: string; company: string; color: string }> = ({ name, title, company, color }) => (
-  <div className="pixel-frame pixel-pink flex flex-col items-center text-center gap-5 p-8 bg-white/[0.03] group">
-    {/* Avatar placeholder */}
-    <div className="w-24 h-24 rounded-full border border-white/10 group-hover:border-[var(--c)] transition-colors duration-500 bg-white/[0.02] flex items-center justify-center [--c:inherit] shadow-inner" style={{ "--c": color } as React.CSSProperties}>
-      <PixelSprite map={MUSHROOM} palette="purple" scale={4} glow className="animate-bob" />
-    </div>
-    <div>
-      <p className="font-sans font-medium text-white text-lg md:text-xl tracking-tight mb-1">{name}</p>
-      <p className="font-sans text-sm text-white/40 font-light">{title}</p>
-      <p className="font-pixel text-[9px] mt-2" style={{ color }}>{company}</p>
-    </div>
-  </div>
-);
-
-// ─── Main Section ───────────────────────────────────────────────────────────
 export default function PrizeAndSpeakerSection() {
-  const grandPrizes = [
-    { rank: "2nd" as const, prize: "Apple AirPods Max", image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/airpods-max-select-spacegray-202011?wid=400&hei=400&fmt=png-alpha" },
-    { rank: "1st" as const, prize: "Apple MacBook Air M4", image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/macbook-air-midnight-select-20220606?wid=400&hei=400&fmt=png-alpha", featured: true },
-    { rank: "3rd" as const, prize: "Samsung Odyssey G5 Monitor", image: "/prizes/samsung-monitor.jpg" },
-  ];
-
-  const trackPrizes = [
-    { num: "01", trackName: "Finance",          description: "Market trends & fintech",          color: "var(--bloom-lime)",   prizes: ["Nespresso Virtuo Next", "JBL Grip Speaker", "Clay Poker Set"] },
-    { num: "02", trackName: "Sports Analytics", description: "Player performance & data",        color: "var(--bloom-cyan)",   prizes: ["Apple Watch SE 3", "JBL Grip Speaker", "Pickleball Set"] },
-    { num: "03", trackName: "Healthcare",       description: "Bioinformatics & health tech",    color: "var(--bloom-pink)",   prizes: ["Theragun Mini Gen 3", "Fitbit Inspire 3", "Owala Waterbottle"] },
-    { num: "04", trackName: "Entertainment",    description: "AI in media & gaming",            color: "var(--bloom-purple)", prizes: ["Projector", "Karaoke Machine", "Vinyl Turntable"] },
-    { num: "05", trackName: "Pure Imagination", description: "Wildcard — most creative project", color: "var(--bloom-lime)",   prizes: ["Ninja CREAMi Soft Serve"] },
-  ];
-
-  const speakers = [
-    { name: "TBD", title: "Keynote Speaker",  company: "Coming Soon", color: "var(--bloom-purple)" },
-    { name: "TBD", title: "Guest Speaker",    company: "Coming Soon", color: "var(--bloom-pink)" },
-    { name: "TBD", title: "Workshop Lead",    company: "Coming Soon", color: "var(--bloom-lime)" },
-    { name: "TBD", title: "Guest Speaker",    company: "Coming Soon", color: "var(--bloom-cyan)" },
-  ];
-
   return (
-    <section id="prizes" className="section-anchor text-white relative">
+    <section id="prizes" className="section-anchor text-white relative border-t border-white/[0.06]">
       <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
-
-        {/* Grand Prizes */}
-        <PixelLabel text="Grand Prizes" tint="lime" />
-        <h2 className="font-sans font-medium text-5xl md:text-7xl lg:text-[6rem] text-white leading-[0.9] tracking-[-0.03em] mb-16 md:mb-24">
-          Win <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/40">Big</span>
+        <Eyebrow>Prizes</Eyebrow>
+        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-12 md:mb-16">
+          Bloom, then win.
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10 mb-24 md:mb-32">
-          {grandPrizes.map((p) => <GrandPrize key={p.rank} {...p} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
+          <div>
+            <p className="font-sans text-[11px] uppercase tracking-[0.28em] text-white/40 mb-4">
+              Best Overall
+            </p>
+            <p className="font-sans font-bold text-3xl md:text-4xl text-white tracking-tight">
+              Purse TBA.
+            </p>
+            <p className="font-sans text-base text-white/45 mt-4 max-w-sm leading-relaxed">
+              Top projects across all tracks. Dollar amounts and hardware land
+              closer to the event — we are not inventing 2027 figures here.
+            </p>
+          </div>
+
+          <ul className="flex flex-col border-t border-white/10">
+            {otherPrizes.map((p) => (
+              <li
+                key={p.label}
+                className="flex items-baseline justify-between gap-6 border-b border-white/10 py-5"
+              >
+                <span className="font-sans text-[11px] uppercase tracking-[0.22em] text-white/40 shrink-0">
+                  {p.label}
+                </span>
+                <span className="font-sans text-base text-white text-right">
+                  {p.detail}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
-
-        {/* Track Prizes */}
-        <PixelLabel text="Track Prizes" tint="purple" />
-        <h2 className="font-sans font-medium text-4xl md:text-6xl text-white leading-[0.9] tracking-[-0.03em] mb-12">
-          By Track
-        </h2>
-
-        <div className="border-t border-white/5 mb-24 md:mb-32">
-          {trackPrizes.map((t) => <TrackRow key={t.num} {...t} />)}
-        </div>
-
-        {/* Speakers */}
-        <PixelLabel text="Guest Speakers" tint="pink" />
-        <h2 className="font-sans font-medium text-4xl md:text-6xl text-white leading-[0.9] tracking-[-0.03em] mb-12">
-          Speakers
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {speakers.map((s, i) => <SpeakerCard key={i} {...s} />)}
-        </div>
-
       </div>
     </section>
   );
