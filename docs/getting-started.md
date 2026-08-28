@@ -22,7 +22,7 @@ corepack prepare pnpm@10.33.2 --activate
 pnpm install
 ```
 
-Workspaces are defined in `pnpm-workspace.yaml`: `sites/*`, `packages/*`, and `tooling/*`.
+Workspaces are defined in `pnpm-workspace.yaml`: `apps/*`, `sites/*`, `packages/*`, and `tooling/*`.
 
 ## Local database
 
@@ -88,7 +88,7 @@ pnpm --filter @query/db studio        # Drizzle Studio
 | `pnpm build` | `turbo run build` |
 | `pnpm lint` | ESLint across workspaces (`--max-warnings 0`) |
 | `pnpm typecheck` | `tsc --noEmit` via Turbo |
-| `pnpm test` | Vitest: `packages/api`, `packages/db`, `sites/mainweb/lib` |
+| `pnpm test` | Vitest: `packages/api`, `packages/db`, `sites/mainweb/lib`, `apps/dsgt-slack` |
 | `pnpm format` | Prettier write |
 
 Database scripts live on `@query/db`:

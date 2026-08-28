@@ -65,6 +65,7 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 | `/api/auth/[...nextauth]` | NextAuth handlers |
 | `/api/auth/verify-email` | Email-code verification |
 | `/api/webhooks/stripe` | Stripe webhooks |
+| `/api/webhooks/slack` | Slack Events API, `/dsgt`, interactivity (`@query/dsgt-slack`) |
 
 ## Client data
 
@@ -77,7 +78,7 @@ Helpers: `lib/hackathon-slug.ts`, `lib/phone.ts`, `lib/bootcamp-schedule.ts`, `l
 
 ## Config highlights (`next.config.mjs`)
 
-- Transpiles `@query/api`, `@query/auth`, `@query/db`, `@query/ui`
+- Transpiles `@query/api`, `@query/auth`, `@query/db`, `@query/dsgt-slack`, `@query/ui`
 - `outputFileTracingRoot` is the monorepo root (needed for standalone on App Hosting)
 - Security headers: HSTS, CSP (report-only unless `CSP_ENFORCE=true`), frame options SAMEORIGIN (admin print/QR iframes), Permissions-Policy (camera **not** denied — `/scan` needs it)
 - React Compiler enabled

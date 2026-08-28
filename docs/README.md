@@ -25,6 +25,12 @@ Start here, then jump to the page that matches the work you are doing.
 | [Database](./packages/db.md) | `@query/db` | Drizzle schema, client, membership rules |
 | [UI](./packages/ui.md) | `@query/ui` | Shared React components and styles |
 
+## Apps
+
+| Document | Workspace | Role |
+| --- | --- | --- |
+| [dsgt Slack bot](../apps/dsgt-slack/README.md) | `@query/dsgt-slack` | `@dsgt` Slack bot; production HTTP on mainweb |
+
 ## Sites
 
 | Document | Workspace | Role |
