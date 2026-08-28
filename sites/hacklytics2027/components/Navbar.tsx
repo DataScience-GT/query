@@ -90,7 +90,7 @@ export default function Navbar() {
             className="flex items-center gap-3 group shrink-0"
           >
             <PixelSprite map={SPROUT} palette="lime" scale={2} />
-            <span className="font-sans font-bold text-sm tracking-tight text-white group-hover:text-bloom-cyan transition-colors">
+            <span className="font-sans font-bold text-sm tracking-tight text-white group-hover:text-white/80 transition-colors">
               DS @ GT
             </span>
           </Link>

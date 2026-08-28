@@ -26,8 +26,8 @@ export default function PrizeAndSpeakerSection() {
               Purse TBA.
             </p>
             <p className="font-sans text-base text-white/45 mt-4 max-w-sm leading-relaxed">
-              Top projects across all tracks. Dollar amounts and hardware land
-              closer to the event — we are not inventing 2027 figures here.
+              Top projects across all tracks. Prize details land closer to the
+              event.
             </p>
           </div>
 
