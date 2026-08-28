@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
-            <QrCode className="w-3 h-3" /> Club Events
+            <QrCode className="w-3 h-3" /> Operations
           </p>
           <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
             Analytics <span className="text-accent italic">Dashboard</span>

@@ -480,5 +480,22 @@ describe("Hackathon interest list", () => {
       // changes their address stays reachable.
       expect(rows[0]!.email).toBe("ada@example.com");
     });
+
+    it("counts this edition's interest rows for staff", async () => {
+      lookups({ hackathon: announced(), isAdmin: true });
+      mockSelectRows.mockReturnValue([{ count: 34 }]);
+
+      await expect(
+        callerFor(ADMIN).hackathon.interestCount({ hackathonId: HACK }),
+      ).resolves.toBe(34);
+    });
+
+    it("hides the count from a caller who is not staff", async () => {
+      lookups({ hackathon: announced(), isAdmin: false });
+
+      await expect(
+        callerFor(VISITOR).hackathon.interestCount({ hackathonId: HACK }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
   });
 });
