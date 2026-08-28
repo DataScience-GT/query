@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "1.7.1",
+    "@auth/drizzle-adapter": "1.11.3",
     "@query/db": "workspace:*",
     "drizzle-orm": "0.45.2",
     "next-auth": "5.0.0-beta.32",
@@ -25,9 +25,9 @@
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/node": "^20",
-    "@typescript-eslint/eslint-plugin": "^8.59.2",
-    "@typescript-eslint/parser": "^8.59.2",
-    "@typescript-eslint/utils": "^8.59.2",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "@typescript-eslint/utils": "^8.67.0",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.5",
     "typescript": "^6.0.2"

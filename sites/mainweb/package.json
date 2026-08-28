@@ -29,7 +29,7 @@
     "chart.js": "^4.5.1",
     "drizzle-orm": "0.45.2",
     "geist": "^1.5.1",
-    "lucide-react": "^1.14.0",
+    "lucide-react": "^1.31.0",
     "minimatch": "10.2.3",
     "next": "16.3.0",
     "next-auth": "5.0.0-beta.32",
@@ -66,6 +66,6 @@
     "tailwindcss": "4.3.0",
     "turbo": "^2.9.14",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.59.2"
+    "typescript-eslint": "^8.67.0"
   }
 }

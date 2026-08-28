@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "turbo": "^2.9.14",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.10"
   },
   "pnpm": {
     "overrides": {
