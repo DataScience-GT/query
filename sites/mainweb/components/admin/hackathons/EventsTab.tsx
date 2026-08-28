@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -184,11 +185,16 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight">
-            Events
+            Weekend Itinerary
           </h2>
           <p className="text-xs text-[var(--text-subtle)] font-mono mt-1">
-            {events?.length || 0} event{events?.length !== 1 ? "s" : ""}{" "}
-            scheduled
+            {events?.length || 0} session
+            {events?.length !== 1 ? "s" : ""} this edition — workshops, meals,
+            ceremonies.{" "}
+            <Link href="/admin" className="text-accent hover:underline">
+              Club meetings are on Club Hub
+            </Link>
+            .
           </p>
         </div>
         <button
@@ -394,10 +400,11 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             </svg>
           </div>
           <h3 className="text-[var(--text-primary)] font-semibold mb-1">
-            No events yet
+            No itinerary yet
           </h3>
           <p className="text-text-muted text-sm font-mono">
-            Create workshops, meals, ceremonies and more.
+            Add workshops, meals, and ceremonies for this weekend. Club
+            meetings belong on Club Hub, not here.
           </p>
         </LiquidGlass>
       ) : (

@@ -89,7 +89,8 @@ export default function AttendeesPage() {
             <span className="text-accent italic font-bold">Registry</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
-            View and manage attendee registrations for club events.
+            View and manage attendee check-ins for club meetings. Hackathon
+            applications live on each edition&apos;s dashboard.
           </p>
           {/* Decorative Corner Accent */}
           <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-accent/5 rounded-sm blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

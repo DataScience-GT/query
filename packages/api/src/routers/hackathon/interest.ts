@@ -424,4 +424,17 @@ export const hackathonInterestRouter = createTRPCRouter({
         .orderBy(desc(hackathonInterest.createdAt))
         .limit(5000);
     }),
+
+  // How many people asked to be told about THIS edition. The admin card used
+  // to show currentParticipants (registrations), which is zero while the
+  // event is announced — so a live interest list looked unlinked.
+  interestCount: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const [row] = await (ctx.db as DrizzleDB)
+        .select({ count: sql<number>`count(*)::int` })
+        .from(hackathonInterest)
+        .where(eq(hackathonInterest.hackathonId, input.hackathonId));
+      return row?.count ?? 0;
+    }),
 });
