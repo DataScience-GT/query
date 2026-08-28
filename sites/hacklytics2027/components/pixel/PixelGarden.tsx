@@ -79,7 +79,7 @@ function plantField(
       delay: -rnd() * 8,
       duration: 4 + rnd() * 6,
       flip: rnd() > 0.5,
-      hideOnMobile: scale >= 6,
+      hideOnMobile: scale >= 8,
     };
   });
 }
@@ -359,10 +359,11 @@ function Spores({ count = 18, seed = 3 }: { count?: number; seed?: number }) {
 /* ─── Full-fold Digital Bloom: vines + dense flora, scoped to the hero ─── */
 
 export default function PixelGarden() {
-  const far = useMemo(() => plantField(11, 28, [2, 96], [4, 78], [2, 3]), []);
-  const mid = useMemo(() => plantField(23, 24, [38, 96], [8, 72], [3, 5]), []);
-  const near = useMemo(() => plantField(47, 16, [48, 94], [18, 68], [5, 8]), []);
-  const vineBloom = useMemo(() => plantField(71, 14, [4, 96], [14, 62], [3, 5]), []);
+  const far = useMemo(() => plantField(11, 32, [1, 97], [2, 80], [2, 3]), []);
+  const midLeft = useMemo(() => plantField(89, 14, [2, 44], [18, 68], [3, 5]), []);
+  const mid = useMemo(() => plantField(23, 26, [36, 96], [6, 74], [3, 5]), []);
+  const near = useMemo(() => plantField(47, 16, [48, 94], [16, 70], [5, 8]), []);
+  const vineBloom = useMemo(() => plantField(71, 16, [4, 96], [12, 64], [3, 5]), []);
   const ref = usePauseOffscreen<HTMLDivElement>();
 
   return (
@@ -392,6 +393,7 @@ export default function PixelGarden() {
       <PixelSineVineVertical side="right" period={36} amplitude={4} thickness={2} scale={4} />
 
       <FloraLayer plants={far} className="opacity-70" />
+      <FloraLayer plants={midLeft} className="opacity-80" />
       <FloraLayer plants={mid} className="opacity-90" />
       <FloraLayer plants={vineBloom} className="opacity-85" />
       <FloraLayer plants={near} />

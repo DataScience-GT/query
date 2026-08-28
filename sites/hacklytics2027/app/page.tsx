@@ -113,7 +113,7 @@ export default function HomePage() {
   return (
     <main className="scanlines neo-vignette relative min-h-screen w-full overflow-x-hidden bg-[#020204] text-white selection:bg-bloom-cyan/40 selection:text-white">
       {/* ── HERO ── */}
-      <section className="relative flex min-h-screen w-full flex-col justify-center overflow-hidden">
+      <section className="relative flex min-h-screen w-full flex-col justify-start overflow-hidden">
         <PixelGarden />
 
         {/* Keep type readable over the bloom without a centered orb/scrim. */}
@@ -131,7 +131,7 @@ export default function HomePage() {
           <img src="/mlh-trust-badge.svg" alt="Major League Hacking 2027" className="w-full" />
         </a>
 
-        <div className="relative z-10 flex w-full flex-col items-start px-6 pt-28 pb-36 text-left md:px-16 md:pt-32 md:pb-40 lg:px-24 xl:px-28">
+        <div className="relative z-10 flex w-full flex-col items-start px-6 pt-28 pb-44 text-left md:px-16 md:pt-32 md:pb-48 lg:px-24 xl:px-28">
           <div className="max-w-xl lg:max-w-2xl">
             <div className="mb-8 flex items-center gap-2.5">
               <PixelSprite map={GLOBE} palette="cyan" scale={3} />
@@ -146,15 +146,15 @@ export default function HomePage() {
 
             <h1
               data-text="Hacklytics"
-              className="neo-split font-sans text-[16vw] font-bold leading-[0.86] tracking-[-0.04em] text-white sm:text-7xl md:text-8xl lg:text-9xl"
+              className="neo-split font-sans text-6xl font-bold leading-[0.86] tracking-[-0.04em] text-white sm:text-7xl md:text-8xl lg:text-9xl"
             >
               Hacklytics
             </h1>
 
-            <p className="mt-6 max-w-md font-sans text-base font-normal leading-relaxed text-white md:text-lg">
+            <p className="mt-6 max-w-lg font-sans text-base font-normal leading-relaxed text-white md:text-lg">
               36 hours of intelligence, innovation, and digital bloom. 1,000+ hackers.
             </p>
-            <p className="mt-2 max-w-md font-sans text-sm leading-relaxed text-white/55 md:text-base">
+            <p className="mt-2 max-w-lg font-sans text-sm leading-relaxed text-white/55 md:text-base">
               Feb 26–28, 2027 · Klaus Advanced Computing Building · Georgia Tech · Atlanta
             </p>
 
@@ -162,7 +162,7 @@ export default function HomePage() {
               href={INTEREST_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="pixel-btn mt-8 inline-flex items-center justify-center gap-2 px-8 py-3.5 font-sans text-sm font-bold uppercase tracking-[0.08em]"
+              className="pixel-btn mt-8 inline-flex w-full max-w-xs items-center justify-center gap-2 px-8 py-3.5 font-sans text-sm font-bold uppercase tracking-[0.08em] sm:w-auto"
             >
               Notify me
               <span aria-hidden="true">→</span>
