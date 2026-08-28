@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import { PixelImage } from "./PixelSprite";
 import { spriteToDataUri } from "./spriteUri";
 import { usePauseOffscreen } from "./useInView";
@@ -12,11 +12,9 @@ import {
   SPORE,
   SPROUT,
   TULIP,
-  VINE
-  
-  
+  VINE,
 } from "./sprites";
-import type {PaletteName, SpriteMap} from "./sprites";
+import type { PaletteName, SpriteMap } from "./sprites";
 
 /* Deterministic PRNG — same layout on server and client, no hydration mismatch. */
 function mulberry32(seed: number) {
@@ -30,32 +28,206 @@ function mulberry32(seed: number) {
 }
 
 const FLORA: SpriteMap[] = [DAISY, TULIP, BLOOM, SPROUT, MUSHROOM];
-const TINTS: PaletteName[] = ["pink", "cyan", "lime", "purple"];
+/* Magenta + lime live in the sprites. Cyan shows up as water/petal tints, not UI chrome. */
+const TINTS: PaletteName[] = ["pink", "lime", "pink", "cyan", "lime", "pink"];
 
 type Planted = {
   map: SpriteMap;
   palette: PaletteName;
   left: number;
+  top?: number;
   scale: number;
   delay: number;
   duration: number;
   flip: boolean;
+  hideOnMobile?: boolean;
 };
 
-function plant(seed: number, count: number, scaleRange: [number, number]): Planted[] {
+function plantBed(seed: number, count: number, scaleRange: [number, number]): Planted[] {
   const rnd = mulberry32(seed);
   return Array.from({ length: count }, () => {
     const t = rnd();
     return {
       map: FLORA[Math.floor(rnd() * FLORA.length)],
       palette: TINTS[Math.floor(rnd() * TINTS.length)],
-      left: rnd() * 100,
+      left: rnd() * 96,
       scale: Math.round(scaleRange[0] + t * (scaleRange[1] - scaleRange[0])),
       delay: -rnd() * 6,
       duration: 4 + rnd() * 5,
       flip: rnd() > 0.5,
     };
   });
+}
+
+function plantField(
+  seed: number,
+  count: number,
+  leftRange: [number, number],
+  topRange: [number, number],
+  scaleRange: [number, number],
+): Planted[] {
+  const rnd = mulberry32(seed);
+  return Array.from({ length: count }, () => {
+    const t = rnd();
+    const scale = Math.round(scaleRange[0] + t * (scaleRange[1] - scaleRange[0]));
+    return {
+      map: FLORA[Math.floor(rnd() * FLORA.length)],
+      palette: TINTS[Math.floor(rnd() * TINTS.length)],
+      left: leftRange[0] + rnd() * (leftRange[1] - leftRange[0]),
+      top: topRange[0] + rnd() * (topRange[1] - topRange[0]),
+      scale,
+      delay: -rnd() * 8,
+      duration: 4 + rnd() * 6,
+      flip: rnd() > 0.5,
+      hideOnMobile: scale >= 6,
+    };
+  });
+}
+
+/** Tileable sine-wave vine, painted with petal + leaf pixels so pink palette reads magenta. */
+function sineVineMap(
+  period: number,
+  amplitude: number,
+  thickness: number,
+  leafEvery = 8,
+): SpriteMap {
+  const h = amplitude * 2 + thickness + 5;
+  const rows: string[][] = Array.from({ length: h }, () =>
+    Array.from({ length: period }, () => "."),
+  );
+  const mid = amplitude + 2;
+  for (let x = 0; x < period; x++) {
+    const y = Math.round(mid + Math.sin((x / period) * Math.PI * 2) * amplitude);
+    for (let t = 0; t < thickness; t++) {
+      const yy = y + t;
+      if (yy >= 0 && yy < h) rows[yy][x] = t === 0 ? "P" : "p";
+    }
+    if (leafEvery && x % leafEvery === 3) {
+      const dir = x % (leafEvery * 2) === 3 ? -1 : 1;
+      const ly = y + (dir === -1 ? -1 : thickness);
+      if (ly >= 0 && ly < h) rows[ly][x] = "G";
+    }
+  }
+  return rows.map((r) => r.join(""));
+}
+
+function sineVineMapVertical(period: number, amplitude: number, thickness: number): SpriteMap {
+  const w = amplitude * 2 + thickness + 5;
+  const rows: string[][] = Array.from({ length: period }, () =>
+    Array.from({ length: w }, () => "."),
+  );
+  const mid = amplitude + 2;
+  for (let y = 0; y < period; y++) {
+    const x = Math.round(mid + Math.sin((y / period) * Math.PI * 2) * amplitude);
+    for (let t = 0; t < thickness; t++) {
+      const xx = x + t;
+      if (xx >= 0 && xx < w) rows[y][xx] = t === 0 ? "P" : "p";
+    }
+  }
+  return rows.map((r) => r.join(""));
+}
+
+function PixelSineVine({
+  top,
+  palette = "pink",
+  period = 56,
+  amplitude = 5,
+  thickness = 2,
+  scale = 4,
+  opacity = 0.92,
+}: {
+  top: string;
+  palette?: PaletteName;
+  period?: number;
+  amplitude?: number;
+  thickness?: number;
+  scale?: number;
+  opacity?: number;
+}) {
+  const sprite = useMemo(
+    () => spriteToDataUri(sineVineMap(period, amplitude, thickness), palette),
+    [period, amplitude, thickness, palette],
+  );
+
+  return (
+    <div
+      className="absolute left-0 right-0"
+      style={{
+        top,
+        height: sprite.h * scale,
+        backgroundImage: sprite.uri,
+        backgroundRepeat: "repeat-x",
+        backgroundSize: `${sprite.w * scale}px ${sprite.h * scale}px`,
+        imageRendering: "pixelated",
+        opacity,
+      }}
+    />
+  );
+}
+
+function PixelSineVineVertical({
+  side = "right",
+  palette = "pink",
+  period = 40,
+  amplitude = 4,
+  thickness = 2,
+  scale = 4,
+  opacity = 0.85,
+}: {
+  side?: "left" | "right";
+  palette?: PaletteName;
+  period?: number;
+  amplitude?: number;
+  thickness?: number;
+  scale?: number;
+  opacity?: number;
+}) {
+  const sprite = useMemo(
+    () => spriteToDataUri(sineVineMapVertical(period, amplitude, thickness), palette),
+    [period, amplitude, thickness, palette],
+  );
+
+  return (
+    <div
+      className={`absolute top-0 bottom-0 ${side === "left" ? "left-0" : "right-0"}`}
+      style={{
+        width: sprite.w * scale,
+        backgroundImage: sprite.uri,
+        backgroundRepeat: "repeat-y",
+        backgroundSize: `${sprite.w * scale}px ${sprite.h * scale}px`,
+        imageRendering: "pixelated",
+        opacity,
+        transform: side === "right" ? "scaleX(-1)" : undefined,
+      }}
+    />
+  );
+}
+
+function FloraLayer({ plants, className = "" }: { plants: Planted[]; className?: string }) {
+  return (
+    <div className={`absolute inset-0 ${className}`}>
+      {plants.map((f, i) => (
+        <div
+          key={i}
+          className={`absolute animate-sway origin-bottom ${f.hideOnMobile ? "hidden sm:block" : ""}`}
+          style={{
+            left: `${f.left}%`,
+            top: f.top !== undefined ? `${f.top}%` : undefined,
+            bottom: f.top === undefined ? 0 : undefined,
+            animationDelay: `${f.delay}s`,
+            animationDuration: `${f.duration}s`,
+          }}
+        >
+          <PixelImage
+            map={f.map}
+            palette={f.palette}
+            scale={f.scale}
+            style={f.flip ? { transform: "scaleX(-1)" } : undefined}
+          />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* ─── Ground: tiled grass + soil, with flora growing out of it ──────────── */
@@ -72,7 +244,7 @@ export function PixelGround({
   className?: string;
 }) {
   const ground = useMemo(() => spriteToDataUri(GROUND, "lime"), []);
-  const flora = useMemo(() => plant(seed, count, [3, 5]), [seed, count]);
+  const flora = useMemo(() => plantBed(seed, count, [3, 6]), [seed, count]);
   const ref = usePauseOffscreen<HTMLDivElement>();
 
   return (
@@ -82,8 +254,7 @@ export function PixelGround({
       className={`relative w-full select-none ${className}`}
       aria-hidden="true"
     >
-      {/* flora stands on top of the soil line */}
-      <div className="relative h-24 md:h-32">
+      <div className="relative h-28 md:h-40">
         {flora.map((f, i) => (
           <div
             key={i}
@@ -94,12 +265,10 @@ export function PixelGround({
               animationDuration: `${f.duration}s`,
             }}
           >
-            {/* flip lives on the sprite: the wrapper's transform is the sway animation */}
             <PixelImage
               map={f.map}
               palette={f.palette}
               scale={f.scale}
-              glow
               style={f.flip ? { transform: "scaleX(-1)" } : undefined}
             />
           </div>
@@ -152,9 +321,9 @@ export function PixelVine({
   );
 }
 
-/* ─── Drifting spores ──────────────────────────────────────────────────── */
+/* ─── Drifting spores / yellow embers ──────────────────────────────────── */
 
-function Spores({ count = 10, seed = 3 }: { count?: number; seed?: number }) {
+function Spores({ count = 18, seed = 3 }: { count?: number; seed?: number }) {
   const spores = useMemo(() => {
     const rnd = mulberry32(seed);
     return Array.from({ length: count }, () => ({
@@ -180,84 +349,58 @@ function Spores({ count = 10, seed = 3 }: { count?: number; seed?: number }) {
             animationDuration: `${s.duration}s`,
           }}
         >
-          <PixelImage map={SPORE} palette={s.palette} scale={s.scale} glow />
+          <PixelImage map={SPORE} palette={s.palette} scale={s.scale} />
         </div>
       ))}
     </>
   );
 }
 
-/* ─── Fixed background garden with two parallax layers ──────────────────── */
+/* ─── Full-fold Digital Bloom: vines + dense flora, scoped to the hero ─── */
 
 export default function PixelGarden() {
-  const backRef = useRef<HTMLDivElement>(null);
-  const midRef = useRef<HTMLDivElement>(null);
-
-  const back = useMemo(() => plant(11, 6, [2, 3]), []);
-  const mid = useMemo(() => plant(23, 5, [4, 6]), []);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        const y = window.scrollY;
-        if (backRef.current) backRef.current.style.transform = `translate3d(0, ${y * -0.04}px, 0)`;
-        if (midRef.current) midRef.current.style.transform = `translate3d(0, ${y * -0.09}px, 0)`;
-        frame = 0;
-      });
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, []);
+  const far = useMemo(() => plantField(11, 28, [2, 96], [4, 78], [2, 3]), []);
+  const mid = useMemo(() => plantField(23, 24, [38, 96], [8, 72], [3, 5]), []);
+  const near = useMemo(() => plantField(47, 16, [48, 94], [18, 68], [5, 8]), []);
+  const vineBloom = useMemo(() => plantField(71, 14, [4, 96], [14, 62], [3, 5]), []);
+  const ref = usePauseOffscreen<HTMLDivElement>();
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden" aria-hidden="true">
-      {/* far layer — small, dim */}
-      <div ref={backRef} className="absolute inset-0 opacity-25">
-        {back.map((f, i) => (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${f.left}%`,
-              top: `${(i * 97) % 90}%`,
-            }}
-          >
-            <PixelImage map={f.map} palette={f.palette} scale={f.scale} />
-          </div>
-        ))}
-      </div>
+    <div
+      ref={ref}
+      data-anim="running"
+      className="pointer-events-none absolute inset-0 z-[1] overflow-hidden"
+      aria-hidden="true"
+    >
+      <PixelSineVine top="16%" period={64} amplitude={6} thickness={2} scale={4} opacity={0.95} />
+      <PixelSineVine
+        top="38%"
+        period={48}
+        amplitude={5}
+        thickness={3}
+        scale={4}
+        opacity={0.88}
+      />
+      <PixelSineVine
+        top="58%"
+        period={72}
+        amplitude={4}
+        thickness={2}
+        scale={3}
+        opacity={0.8}
+      />
+      <PixelSineVineVertical side="right" period={36} amplitude={4} thickness={2} scale={4} />
 
-      {/* near layer — bigger, glowing */}
-      <div ref={midRef} className="absolute inset-0 opacity-40">
-        {mid.map((f, i) => (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${f.left}%`,
-              top: `${(i * 61 + 14) % 88}%`,
-            }}
-          >
-            <PixelImage
-              map={f.map}
-              palette={f.palette}
-              scale={f.scale}
-              glow
-              style={f.flip ? { transform: "scaleX(-1)" } : undefined}
-            />
-          </div>
-        ))}
-      </div>
+      <FloraLayer plants={far} className="opacity-70" />
+      <FloraLayer plants={mid} className="opacity-90" />
+      <FloraLayer plants={vineBloom} className="opacity-85" />
+      <FloraLayer plants={near} />
 
       <Spores />
+
+      <div className="absolute bottom-0 left-0 right-0">
+        <PixelGround seed={5} count={28} />
+      </div>
     </div>
   );
 }

@@ -104,6 +104,21 @@ export const MUSHROOM: SpriteMap = [
   "..ddddd..",
 ];
 
+/** Tiny pixel globe — DS@GT mark, not hero art. Cyan water + green land. */
+export const GLOBE: SpriteMap = [
+  "....ppp....",
+  "..ppGGGpp..",
+  ".pGGppGGpp.",
+  ".pGpppGGGp.",
+  "pGppppGGGGp",
+  "pGppGGppGGp",
+  "pGGpppppGGp",
+  ".pGGppGGpp.",
+  ".ppGGGGppp.",
+  "..ppGGGpp..",
+  "....ppp....",
+];
+
 /** Vertically tileable vine segment. */
 export const VINE: SpriteMap = [
   "...g...",
