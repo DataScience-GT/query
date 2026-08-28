@@ -30,19 +30,50 @@ const toSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-// Exact name first, then the slug the portal links with. The slug pass reads
-// every edition — there are a handful, and no index covers the normalisation.
-async function findByNameOrSlug(db: DrizzleDB, value: string) {
-  const exact = await db.query.hackathons.findFirst({
-    where: eq(hackathons.name, value),
-  });
-  if (exact) return exact;
+/** Must match `decodeHackathonParam` in sites/mainweb/lib/hackathon-slug.ts. */
+function decodeHackathonParam(value: string) {
+  let current = value;
+  for (let i = 0; i < 2; i++) {
+    try {
+      const next = decodeURIComponent(current);
+      if (next === current) break;
+      current = next;
+    } catch {
+      break;
+    }
+  }
+  return current;
+}
 
-  const slug = toSlug(value);
-  if (!slug) return undefined;
+function uniqueStrings(values: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+// Exact name first (including a percent-encoded name from old admin links),
+// then the slug the portal links with. The slug pass reads every edition —
+// there are a handful, and no index covers the normalisation.
+async function findByNameOrSlug(db: DrizzleDB, value: string) {
+  const candidates = uniqueStrings([value, decodeHackathonParam(value)]);
+
+  for (const candidate of candidates) {
+    const exact = await db.query.hackathons.findFirst({
+      where: eq(hackathons.name, candidate),
+    });
+    if (exact) return exact;
+  }
+
+  const slugs = uniqueStrings(candidates.map(toSlug));
+  if (slugs.length === 0) return undefined;
 
   const all = await db.query.hackathons.findMany();
-  return all.find((row) => toSlug(row.name) === slug);
+  return all.find((row) => slugs.includes(toSlug(row.name)));
 }
 
 export const hackathonCrudRouter = createTRPCRouter({
@@ -99,8 +130,8 @@ export const hackathonCrudRouter = createTRPCRouter({
       ).query.hackathons.findMany({
         where: and(
           // Hidden means hidden from the public funnel, not from the people running the
-          // event. Filtering it for staff too emptied Judging Setup and the judging
-          // dashboard, which both pick an edition off here.
+          // event. Filtering it for staff too emptied the judging dashboard, which
+          // picks an edition off here.
           adminViewer ? undefined : eq(hackathons.isPublic, true),
           input.status ? eq(hackathons.status, input.status) : undefined,
           adminViewer
