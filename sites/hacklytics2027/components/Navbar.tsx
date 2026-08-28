@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import PixelSprite from "./pixel/PixelSprite";
 import { SPROUT } from "./pixel/sprites";
-import { INTEREST_URL } from "@/lib/links";
+import { INTEREST_HINT, INTEREST_URL } from "@/lib/links";
 
 const navItems = [
   { name: "About",    href: "/#about" },
@@ -109,6 +109,7 @@ export default function Navbar() {
             href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={`Notify me. ${INTEREST_HINT}`}
             className="pixel-btn hidden md:inline-flex items-center justify-center px-6 py-2.5 font-pixel text-[10px] shrink-0"
           >
             NOTIFY ME
@@ -157,6 +158,7 @@ export default function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
+            aria-label={`Notify me. ${INTEREST_HINT}`}
             className="pixel-btn flex items-center justify-center w-full font-pixel text-xs px-8 py-4"
           >
             NOTIFY ME
