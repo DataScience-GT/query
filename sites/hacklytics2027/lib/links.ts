@@ -29,3 +29,7 @@ const INTEREST_PATH = "/hacklytics";
 export const INTEREST_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponent(
   INTEREST_PATH,
 )}`;
+
+/** Caption next to Notify me. This marketing site has no form. */
+export const INTEREST_HINT =
+  "Opens the DS@GT portal. We don't collect emails here.";
