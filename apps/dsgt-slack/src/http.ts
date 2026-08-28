@@ -16,6 +16,37 @@ export const SLACK_WEBHOOK_PATH = "/api/webhooks/slack";
 
 const MAX_CLOCK_SKEW_SEC = 60 * 5;
 
+/** FIFO cap so a long-lived instance cannot grow without bound. */
+const MAX_SEEN_EVENTS = 500;
+const seenEventIds = new Set<string>();
+
+export type SlackDefer = (work: Promise<void>) => void;
+
+const defaultDefer: SlackDefer = (work) => {
+  void work.catch(() => {
+    /* postMessage failures must not turn an ACK into a 400 Slack retry. */
+  });
+};
+
+/** Test helper: event_id dedupe is process-local. */
+export function resetSlackEventDedupe(): void {
+  seenEventIds.clear();
+}
+
+function alreadySeenEvent(eventId: string): boolean {
+  if (seenEventIds.has(eventId)) {
+    return true;
+  }
+  seenEventIds.add(eventId);
+  if (seenEventIds.size > MAX_SEEN_EVENTS) {
+    const oldest = seenEventIds.values().next().value;
+    if (oldest !== undefined) {
+      seenEventIds.delete(oldest);
+    }
+  }
+  return false;
+}
+
 export type SlackHttpEnv = {
   botToken: string;
   signingSecret: string;
@@ -134,6 +165,7 @@ async function handleEvent(
 async function handleJsonBody(
   payload: unknown,
   client: SlackPoster,
+  defer: SlackDefer,
 ): Promise<Response> {
   if (!isRecord(payload) || typeof payload.type !== "string") {
     return Response.json({ error: "Invalid payload" }, { status: 400 });
@@ -146,9 +178,16 @@ async function handleJsonBody(
   }
 
   if (payload.type === "event_callback") {
+    const eventId =
+      typeof payload.event_id === "string" ? payload.event_id : "";
+    if (eventId && alreadySeenEvent(eventId)) {
+      return Response.json({ ok: true });
+    }
     const event = parseMessageEvent(payload.event);
     if (event) {
-      await handleEvent(event, client);
+      // ACK first. Slack retries after ~3s; awaiting chat.postMessage here
+      // (especially after a cold start) duplicates the reply.
+      defer(handleEvent(event, client));
     }
     return Response.json({ ok: true });
   }
@@ -182,6 +221,7 @@ export async function handleSlackWebhook(
   req: Request,
   env: SlackHttpEnv,
   client: SlackPoster = new WebClient(env.botToken),
+  defer: SlackDefer = defaultDefer,
 ): Promise<Response> {
   const rawBody = await req.text();
   const valid = verifySlackSignature({
@@ -200,11 +240,13 @@ export async function handleSlackWebhook(
     contentType.includes("application/json") ||
     rawBody.trimStart().startsWith("{")
   ) {
+    let payload: unknown;
     try {
-      return await handleJsonBody(JSON.parse(rawBody) as unknown, client);
+      payload = JSON.parse(rawBody) as unknown;
     } catch {
       return Response.json({ error: "Invalid JSON body" }, { status: 400 });
     }
+    return handleJsonBody(payload, client, defer);
   }
 
   return handleFormBody(rawBody);

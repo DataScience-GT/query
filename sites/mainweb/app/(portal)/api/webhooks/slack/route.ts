@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { handleSlackWebhook } from "@query/dsgt-slack/http";
 
@@ -26,5 +26,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return handleSlackWebhook(req, { botToken, signingSecret });
+  return handleSlackWebhook(
+    req,
+    { botToken, signingSecret },
+    undefined,
+    (work) => {
+      after(() => work);
+    },
+  );
 }

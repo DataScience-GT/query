@@ -1,9 +1,10 @@
 import { createHmac } from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   SLACK_WEBHOOK_PATH,
   handleSlackWebhook,
+  resetSlackEventDedupe,
   verifySlackSignature,
 } from "./http";
 import { CLUB_SITE_URL, JOIN_FAQ_REPLY } from "./replies";
@@ -71,6 +72,10 @@ describe("verifySlackSignature", () => {
 
 describe("handleSlackWebhook", () => {
   const env = { botToken: "xoxb-test", signingSecret: SIGNING_SECRET };
+
+  beforeEach(() => {
+    resetSlackEventDedupe();
+  });
 
   it("returns the url_verification challenge", async () => {
     const rawBody = JSON.stringify({
@@ -163,5 +168,88 @@ describe("handleSlackWebhook", () => {
       response_type: "ephemeral",
       text: JOIN_FAQ_REPLY,
     });
+  });
+
+  it("acks event_callback before chat.postMessage resolves", async () => {
+    let release: (value: unknown) => void = () => {
+      /* assigned below */
+    };
+    const postMessage = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const rawBody = JSON.stringify({
+      type: "event_callback",
+      event_id: "EvACK",
+      event: {
+        type: "app_mention",
+        text: "<@U123> ping",
+        channel: "C123",
+      },
+    });
+
+    const response = await handleSlackWebhook(
+      signedRequest(rawBody, "application/json"),
+      env,
+      { chat: { postMessage } },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    release({});
+  });
+
+  it("does not post twice for a retried event_id", async () => {
+    const postMessage = vi.fn().mockResolvedValue({});
+    const rawBody = JSON.stringify({
+      type: "event_callback",
+      event_id: "EvDUP",
+      event: {
+        type: "app_mention",
+        text: "<@U123> how do I join?",
+        channel: "C123",
+      },
+    });
+    const client = { chat: { postMessage } };
+
+    const first = await handleSlackWebhook(
+      signedRequest(rawBody, "application/json"),
+      env,
+      client,
+    );
+    const retry = await handleSlackWebhook(
+      signedRequest(rawBody, "application/json"),
+      env,
+      client,
+    );
+
+    expect(first.status).toBe(200);
+    expect(retry.status).toBe(200);
+    expect(postMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not treat a slow postMessage rejection as invalid JSON", async () => {
+    const postMessage = vi.fn().mockRejectedValue(new Error("slack down"));
+    const rawBody = JSON.stringify({
+      type: "event_callback",
+      event_id: "EvFAIL",
+      event: {
+        type: "app_mention",
+        text: "<@U123> ping",
+        channel: "C123",
+      },
+    });
+
+    const response = await handleSlackWebhook(
+      signedRequest(rawBody, "application/json"),
+      env,
+      { chat: { postMessage } },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
   });
 });
