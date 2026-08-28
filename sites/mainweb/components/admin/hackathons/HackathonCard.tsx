@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { adminHackathonPath } from "@/lib/hackathon-slug";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
 export function HackathonCard({
@@ -30,6 +31,10 @@ export function HackathonCard({
 
   const { data: events, isLoading: eventsLoading } =
     trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
+  const { data: interestCount } = trpc.hackathon.interestCount.useQuery(
+    { hackathonId: hackathon.id },
+    { enabled: hackathon.status === "announced" },
+  );
 
   const updateMutation = trpc.hackathon.update.useMutation({
     onSuccess: () => {
@@ -54,7 +59,7 @@ export function HackathonCard({
         <div className="min-w-0">
           <div className="flex items-center gap-4 mb-4">
             <Link
-              href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+              href={adminHackathonPath(hackathon.name, hackathon.id)}
             >
               <h3 className="text-3xl md:text-4xl font-extrabold text-[var(--text-primary)] tracking-tight hover:text-accent transition-colors leading-tight">
                 {hackathon.name}
@@ -89,9 +94,12 @@ export function HackathonCard({
             <div className="p-5 bg-white/[0.02] border border-[var(--border-subtle)] rounded-none hover:bg-white/[0.04] transition-colors">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-xs font-mono text-[var(--text-subtle)] uppercase tracking-wider">
-                  Participants
+                  {hackathon.status === "announced"
+                    ? "Interest list"
+                    : "Participants"}
                 </p>
-                {hackathon.maxParticipants && (
+                {hackathon.status !== "announced" &&
+                  hackathon.maxParticipants && (
                   <span className="text-xs font-mono text-accent font-bold">
                     {Math.round(
                       (hackathon.currentParticipants /
@@ -103,16 +111,19 @@ export function HackathonCard({
                 )}
               </div>
               <p className="text-base font-semibold text-accent font-mono">
-                {hackathon.currentParticipants}
-                {hackathon.maxParticipants
-                  ? ` / ${hackathon.maxParticipants}`
-                  : " registered"}
+                {hackathon.status === "announced"
+                  ? `${interestCount ?? "…"} interested`
+                  : `${hackathon.currentParticipants}${
+                      hackathon.maxParticipants
+                        ? ` / ${hackathon.maxParticipants}`
+                        : " registered"
+                    }`}
               </p>
             </div>
           </div>
 
           {/* Registration Progress Bar */}
-          {hackathon.maxParticipants && (
+          {hackathon.status !== "announced" && hackathon.maxParticipants && (
             <div className="mt-6 space-y-2">
               <div className="h-2 w-full bg-white/5 rounded-sm overflow-hidden border border-[var(--border-subtle)]">
                 <div
@@ -134,10 +145,10 @@ export function HackathonCard({
               </h4>
               {events && events.length > 0 && (
                 <Link
-                  href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+                  href={adminHackathonPath(hackathon.name, hackathon.id)}
                   className="text-xs font-mono text-accent hover:underline flex items-center gap-1"
                 >
-                  Manage Events ({events.length}) →
+                  Manage Itinerary ({events.length}) →
                 </Link>
               )}
             </div>
@@ -148,8 +159,8 @@ export function HackathonCard({
               </div>
             ) : !events || events.length === 0 ? (
               <div className="p-4 bg-white/[0.01] border border-dashed border-[var(--border-subtle)] rounded-none text-center text-xs font-mono text-gray-600">
-                No events scheduled for this hackathon yet. Click Dashboard to
-                add some!
+                No weekend itinerary yet. Open the dashboard to add workshops
+                and meals for this edition — club meetings stay on Club Hub.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -263,7 +274,7 @@ export function HackathonCard({
                 {events.length > 4 && (
                   <div className="md:col-span-2 p-3 bg-white/[0.01] border border-[var(--border-subtle)] rounded-none text-center">
                     <Link
-                      href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+                      href={adminHackathonPath(hackathon.name, hackathon.id)}
                       className="text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                     >
                       + {events.length - 4} more scheduled events (Click to view
@@ -343,7 +354,7 @@ export function HackathonCard({
             </button>
 
             <Link
-              href={`/admin/hackathons/${encodeURIComponent(hackathon.name)}`}
+              href={adminHackathonPath(hackathon.name, hackathon.id)}
               className="whitespace-nowrap px-6 py-3.5 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] text-base font-bold rounded-none hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-[0.98] hover:scale-[1.02] transition-ui flex items-center gap-2"
             >
               Dashboard <span className="text-lg leading-none">→</span>

@@ -3,18 +3,28 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { toInputDate } from "@/components/admin/hackathons/constants";
+import {
+  toInputDate,
+  type HackathonStatus,
+} from "@/components/admin/hackathons/constants";
 import { Clock } from "lucide-react";
 
 /**
  * Registration status + deadline controls for one hackathon.
  * Extracted from AttendeesTab; owns its own mutation so the parent stays lean.
  */
-export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
+export function RegistrationControls({
+  hackathonId,
+  status,
+}: {
+  hackathonId: string;
+  status: HackathonStatus;
+}) {
   const utils = trpc.useUtils();
   const { data: hackathon } = trpc.hackathon.getById.useQuery({
     id: hackathonId,
   });
+  const editionStatus = hackathon?.status ?? status;
 
   const updateHackathon = trpc.hackathon.update.useMutation({
     onSuccess: () => {
@@ -29,7 +39,7 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
   const deadlinePassed = !!regDeadline && regDeadline < new Date();
 
   const registrationOpen =
-    hackathon?.status === "open" || hackathon?.status === "in_progress";
+    editionStatus === "open" || editionStatus === "in_progress";
 
   /**
    * The interest list exists for one moment — this one — and nothing used to
@@ -40,7 +50,16 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
    */
   const interestStatus = trpc.hackathon.registrationOpenEmailStatus.useQuery(
     { hackathonId },
-    { enabled: registrationOpen },
+    {
+      enabled:
+        editionStatus === "announced" ||
+        editionStatus === "open" ||
+        editionStatus === "in_progress",
+    },
+  );
+  const { data: interestCount } = trpc.hackathon.interestCount.useQuery(
+    { hackathonId },
+    { enabled: editionStatus === "announced" },
   );
 
   const [notifyError, setNotifyError] = React.useState<string | null>(null);
@@ -72,9 +91,9 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
                 Status:
               </span>
               <span
-                className={`px-2 py-1 rounded text-xs font-mono font-bold uppercase tracking-wider ${hackathon?.status === "open" ? "text-green-400 bg-green-500/10 border border-green-500/20" : "text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"}`}
+                className={`px-2 py-1 rounded text-xs font-mono font-bold uppercase tracking-wider ${editionStatus === "open" ? "text-green-400 bg-green-500/10 border border-green-500/20" : "text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"}`}
               >
-                {hackathon?.status || "unknown"}
+                {editionStatus || "unknown"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -91,7 +110,7 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {hackathon?.status !== "open" && (
+          {editionStatus !== "open" && (
             <div className="flex flex-col gap-1">
               <button
                 type="button"
@@ -118,7 +137,7 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
               )}
             </div>
           )}
-          {hackathon?.status === "open" && (
+          {editionStatus === "open" && (
             <button
               type="button"
               onClick={() =>
@@ -148,6 +167,21 @@ export function RegistrationControls({ hackathonId }: { hackathonId: string }) {
           </div>
         </div>
       </div>
+
+      {editionStatus === "announced" && (
+        <div className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
+          <p className="text-xs font-mono text-[var(--text-primary)] uppercase tracking-wider">
+            Interest list for this edition
+          </p>
+          <p className="text-[11px] font-mono text-[var(--text-subtle)] mt-1">
+            {interestCount === undefined
+              ? "Checking this edition's list…"
+              : interestCount === 0
+                ? "Nobody has joined yet. The public form writes to this hackathon."
+                : `${interestCount} ${interestCount === 1 ? "person is" : "people are"} on this edition's list. Applications stay empty until you open registration. The Email tab has the roster.`}
+          </p>
+        </div>
+      )}
 
       {registrationOpen && (interestStatus.data?.total ?? 0) > 0 && (
         <div className="mt-6 pt-6 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">

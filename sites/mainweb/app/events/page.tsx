@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
 import { gte } from "drizzle-orm";
+import Link from "next/link";
 
 /**
  * The club's upcoming events.
@@ -64,18 +65,19 @@ export default async function EventsPage() {
         <Section className="py-32">
           <div className="max-w-4xl mx-auto px-6">
             <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              Events
+              Club Events
             </h1>
             <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              Track upcoming hackathons, workshops, and community gatherings.
+              Upcoming DSGT meetings, workshops, and community gatherings.
+              Hacklytics has its own page.
             </p>
             <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
               <h2 className="text-xl font-bold uppercase mb-4">
-                Upcoming Events
+                Upcoming Club Events
               </h2>
               {upcoming.length === 0 ? (
                 <p className="text-gray-500 italic">
-                  No upcoming events scheduled. Check back soon!
+                  No upcoming club events scheduled. Check back soon!
                 </p>
               ) : (
                 <ul className="divide-y divide-white/5">
@@ -109,6 +111,16 @@ export default async function EventsPage() {
                 </ul>
               )}
             </div>
+            <p className="mt-8 text-sm text-gray-500">
+              Looking for Hacklytics?{" "}
+              <Link
+                href="/hacklytics"
+                className="text-[#00A8A8] hover:underline underline-offset-4"
+              >
+                Go to the hackathon page
+              </Link>
+              .
+            </p>
           </div>
         </Section>
       </main>
