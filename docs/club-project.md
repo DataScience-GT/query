@@ -16,9 +16,9 @@ The public pages and the portal are one Next.js app (`sites/mainweb`). Signing i
 
 | Surface | URL |
 | --- | --- |
-| Public site + portal | [https://datasciencegt.org](https://datasciencegt.org) | <!-- pragma: allowlist secret -->
-| Sign in | [https://datasciencegt.org/login](https://datasciencegt.org/login) | <!-- pragma: allowlist secret -->
-| Member home | [https://datasciencegt.org/dashboard](https://datasciencegt.org/dashboard) | <!-- pragma: allowlist secret -->
+| Public site + portal | [https://datasciencegt.org](https://datasciencegt.org) <!-- pragma: allowlist secret --> |
+| Sign in | [https://datasciencegt.org/login](https://datasciencegt.org/login) <!-- pragma: allowlist secret --> |
+| Member home | [https://datasciencegt.org/dashboard](https://datasciencegt.org/dashboard) <!-- pragma: allowlist secret --> |
 
 `member.datasciencegt.org` does **not** resolve. Do not send people there, and do not put it in copy or onboarding.
 
