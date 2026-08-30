@@ -116,13 +116,17 @@ export const CURRENT_CLUB_PROJECTS: ClubProject[] = [
     ],
   },
   {
-    slug: "cognitive-science",
-    name: "Cognitive Science",
+    slug: "atlcrime",
+    name: "AtlCrime",
     status: "needs-lead",
     lead: null,
-    description:
-      "Cognitive science connects to areas like artificial intelligence and computer science.",
-    links: [],
+    description: "Atlanta crime data mapped from histogram contours.",
+    links: [
+      {
+        label: "GitHub",
+        href: "https://github.com/DataScience-GT/AtlCrime",
+      },
+    ],
   },
 ];
 

@@ -14,7 +14,7 @@ describe("CURRENT_CLUB_PROJECTS", () => {
       "Deep Learning Playground",
       "Sports Analytics",
       "DS@GT Website",
-      "Cognitive Science",
+      "AtlCrime",
     ]);
   });
 
@@ -30,6 +30,13 @@ describe("CURRENT_CLUB_PROJECTS", () => {
     expect(blob).not.toMatch(/AI Trading Agent/i);
     expect(blob).not.toMatch(/Wesley Lu/i);
     expect(blob).not.toMatch(/wesleylu@gatech\.edu/i);
+  });
+
+  it("does not list Cognitive Science", () => {
+    const current = JSON.stringify(CURRENT_CLUB_PROJECTS);
+    const past = JSON.stringify(PAST_CLUB_PROJECTS);
+    expect(current).not.toMatch(/Cognitive Science/i);
+    expect(past).not.toMatch(/Cognitive Science/i);
   });
 
   it("uses the shared interest form", () => {
@@ -99,14 +106,13 @@ describe("CURRENT_CLUB_PROJECTS", () => {
     expect(dlp && projectStatusLabel(dlp)).toBe("Revived · needs a lead");
   });
 
-  it("lists Cognitive Science as needing a lead, with Aamogh's wording", () => {
-    const project = CURRENT_CLUB_PROJECTS.find(
-      (p) => p.slug === "cognitive-science",
-    );
+  it("lists AtlCrime as needing a lead and points at the org repo", () => {
+    const project = CURRENT_CLUB_PROJECTS.find((p) => p.slug === "atlcrime");
     expect(project?.status).toBe("needs-lead");
     expect(project?.lead).toBeNull();
-    expect(project?.description).toBe(
-      "Cognitive science connects to areas like artificial intelligence and computer science.",
+    expect(project?.description).toMatch(/Atlanta crime data/i);
+    expect(project?.links.map((l) => l.href)).toContain(
+      "https://github.com/DataScience-GT/AtlCrime",
     );
   });
 });
