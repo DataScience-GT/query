@@ -2,10 +2,11 @@
 
 This folder is the reference for **query**, the Data Science at Georgia Tech (DSGT) monorepo for club operations and digital infrastructure.
 
-Start here, then jump to the page that matches the work you are doing.
+Members looking for a club-language overview should start at [Club project](./club-project.md). For local setup and review rules, jump to the page that matches the work you are doing.
 
 | Document | What it covers |
 | --- | --- |
+| [Club project](./club-project.md) | What the live site is, who uses it, current status, how to help |
 | [Getting started](./getting-started.md) | Prerequisites, local Postgres, env vars, first `pnpm dev` |
 | [Architecture](./architecture.md) | How the two sites and four packages fit together |
 | [Contributing](./contributing.md) | Branches, scripts, tests, and review expectations |

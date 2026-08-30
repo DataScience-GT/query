@@ -27,7 +27,7 @@ type MyProposal = RouterOutputs["initiative"]["myProposals"][number];
 /**
  * Proposing something to run, rather than joining something that exists.
  *
- * An admin reviews it; approving turns the proposal into a draft initiative
+ * An admin reviews it; approving turns the proposal into a draft project
  * and makes the proposer a project leader, so this is the one place a member
  * can earn that role.
  */
@@ -61,7 +61,7 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
           onClick={() => setOpen(true)}
           className="shrink-0 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
         >
-          Propose an initiative
+          Propose a project
         </button>
       </LiquidGlass>
     );
@@ -75,7 +75,7 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
           propose.mutate(toInput(draft));
         }}
       >
-        <h2 className="mb-4 font-semibold text-white">Propose an initiative</h2>
+        <h2 className="mb-4 font-semibold text-white">Propose a project</h2>
         <InitiativeFields draft={draft} onChange={setDraft} />
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -143,7 +143,7 @@ function ProposalRow({ proposal }: { proposal: MyProposal }) {
             <p className="mt-2 text-sm text-white/60">
               Approved — finish writing it and open it from{" "}
               <Link href="/lead" className="font-semibold text-white underline">
-                My Initiatives
+                My Projects
               </Link>
               .
             </p>
@@ -180,7 +180,7 @@ function OpenRow({
   const [writing, setWriting] = useState(false);
   const [pitch, setPitch] = useState("");
 
-  // Both lists move together: applying takes an initiative out of one and puts
+  // Both lists move together: applying takes a project out of one and puts
   // it into the other, so refreshing one alone renders it twice.
   const refresh = async () => {
     await Promise.all([
@@ -239,7 +239,10 @@ function OpenRow({
       {!canApply && !initiative.isFull && (
         <p className="mt-3 text-sm text-white/50">
           An active membership is required to join.{" "}
-          <Link href="/dashboard" className="font-semibold text-white underline">
+          <Link
+            href="/dashboard"
+            className="font-semibold text-white underline"
+          >
             Become a member
           </Link>
         </p>
@@ -316,7 +319,7 @@ function ApplicationRow({ application }: { application: MyApplication }) {
     },
   });
 
-  // Nothing to leave once the leader has said no, and an archived initiative is
+  // Nothing to leave once the leader has said no, and an archived project is
   // over — the control would change nothing either way.
   const canWithdraw =
     application.myStatus !== "rejected" && application.archivedAt === null;
@@ -424,7 +427,7 @@ export default function InitiativesPage() {
       <header className="mb-8">
         <div className="flex items-center gap-3">
           <Rocket className="h-6 w-6 text-white/70" />
-          <h1 className="text-2xl font-bold text-white">Initiatives</h1>
+          <h1 className="text-2xl font-bold text-white">Projects</h1>
         </div>
         <p className="mt-2 text-white/60">
           Projects the club runs year-round. Leaders post what they are building
@@ -485,7 +488,7 @@ export default function InitiativesPage() {
             <p className="font-semibold text-white">
               {applications.length > 0
                 ? "Nothing else open right now."
-                : "No initiatives are taking applications."}
+                : "No projects are taking applications."}
             </p>
             <p className="mt-2 text-sm text-white/60">
               Leaders open these up through the year. Check back, or ask at a

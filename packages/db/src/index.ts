@@ -11,5 +11,6 @@ export {
   hackathonProjects,
 } from "./schemas/hackathons";
 export { events, eventCheckIns } from "./schemas/events";
+export { clubProjects, clubProjectStatuses } from "./schemas/club-projects";
 export { auditLogs, securitySeverityEnum } from "./schemas/security";
 export { systemSettings } from "./schemas/settings";

@@ -97,7 +97,7 @@ function ProposalRow({
             maxLength={1000}
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Too close to an existing initiative, needs a clearer scope, …"
+            placeholder="Too close to an existing project, needs a clearer scope, …"
             className="mt-2 w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
           />
           <button
@@ -165,8 +165,8 @@ export default function AdminInitiativesPage() {
           <h1 className="text-2xl font-bold text-white">Project leaders</h1>
         </div>
         <p className="mt-2 text-white/60">
-          A project leader can post initiatives and pick who joins them. It
-          grants nothing else — admin screens stay admin-only.
+          A project leader can post projects and pick who joins them. It grants
+          nothing else — admin screens stay admin-only.
         </p>
       </header>
 
@@ -188,8 +188,8 @@ export default function AdminInitiativesPage() {
         ) : (
           <LiquidGlass className="p-6 text-center">
             <p className="text-sm text-white/60">
-              Nothing waiting. Members pitch initiatives from their Initiatives
-              page; approving one makes them a project leader.
+              Nothing waiting. Members pitch projects from their Projects page;
+              approving one makes them a project leader.
             </p>
           </LiquidGlass>
         )}

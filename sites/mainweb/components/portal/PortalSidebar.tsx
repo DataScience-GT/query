@@ -105,7 +105,7 @@ export default function PortalSidebar({
     {
       name: "Bootcamp",
       // Not /bootcamp — the public curriculum page owns that path. Shown to
-      // everyone, like Initiatives, so the add-on can be seen before paying.
+      // everyone, like Projects, so the add-on can be seen before paying.
       href: "/club/bootcamp",
       icon: GraduationCap,
       show: !portalContext?.isAdmin,
@@ -119,7 +119,7 @@ export default function PortalSidebar({
       show: portalContext?.isJudge && !portalContext?.isAdmin,
     },
     {
-      name: "Initiatives",
+      name: "Projects",
       href: "/initiatives",
       icon: Rocket,
       // Somebody deciding whether to pay should be able to see what membership
@@ -127,7 +127,7 @@ export default function PortalSidebar({
       show: !portalContext?.isAdmin,
     },
     {
-      name: "My Initiatives",
+      name: "My Projects",
       href: "/lead",
       icon: Rocket,
       show: portalContext?.isProjectLeader && !portalContext?.isAdmin,
@@ -148,10 +148,10 @@ export default function PortalSidebar({
     // page is reachable by typed URL alone, which means judging never starts.
     { name: "Judging Setup", href: "/admin/setup", icon: Upload },
     { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
-    { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
-    // /lead is the only screen that decides an initiative application, and
+    { name: "Projects", href: "/admin/initiatives", icon: Rocket },
+    // /lead is the only screen that decides a project application, and
     // isProjectLeader admits admins so an absent leader cannot strand theirs.
-    { name: "Initiative Applications", href: "/lead", icon: Rocket },
+    { name: "Project Applications", href: "/lead", icon: Rocket },
     { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
     { name: "Attendees", href: "/admin/attendees", icon: Users },
     { name: "Memberships", href: "/admin/members", icon: CreditCard },
