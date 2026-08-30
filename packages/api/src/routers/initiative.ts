@@ -13,7 +13,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin, isSuperAdmin, isProjectLeader } from "../middleware/procedures";
 import { clearProjectLeaderCaches } from "../middleware/cache";
 
-const notFound = (message = "Initiative not found") =>
+const notFound = (message = "Project not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
 
 /** Postgres unique_violation. Drizzle wraps driver errors, so walk `.cause`. */
@@ -80,7 +80,7 @@ async function requireActiveMember(db: Reader, userId: string) {
   if (!active) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "An active membership is required to join an initiative.",
+      message: "An active membership is required to join a project.",
     });
   }
 }
@@ -234,7 +234,7 @@ export const initiativeRouter = createTRPCRouter({
         if (!ctx.isPlatformAdmin) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Only an admin can create an initiative for someone else.",
+            message: "Only an admin can create a project for someone else.",
           });
         }
 
@@ -258,7 +258,7 @@ export const initiativeRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            "You are not a project leader. Name the leader this initiative belongs to.",
+            "You are not a project leader. Name the leader this project belongs to.",
         });
       }
 
@@ -279,7 +279,7 @@ export const initiativeRouter = createTRPCRouter({
       if (!created) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Could not create that initiative.",
+          message: "Could not create that project.",
         });
       }
       return created;
@@ -338,7 +338,7 @@ export const initiativeRouter = createTRPCRouter({
       if (initiative.archivedAt !== null) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Restore this initiative before changing its status.",
+          message: "Restore this project before changing its status.",
         });
       }
 
@@ -434,7 +434,7 @@ export const initiativeRouter = createTRPCRouter({
           if (taken >= initiative.maxMembers) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "This initiative is full.",
+              message: "This project is full.",
             });
           }
         }
@@ -650,14 +650,14 @@ export const initiativeRouter = createTRPCRouter({
         if (initiative.status !== "open") {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "This initiative is not taking applications.",
+            message: "This project is not taking applications.",
           });
         }
 
         if (initiative.leaderUserId === userId) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "You already lead this initiative.",
+            message: "You already lead this project.",
           });
         }
 
@@ -675,9 +675,9 @@ export const initiativeRouter = createTRPCRouter({
             code: "CONFLICT",
             message:
               existing.status === "pending"
-                ? "You have already applied to this initiative."
+                ? "You have already applied to this project."
                 : existing.status === "accepted"
-                  ? "You are already on this initiative."
+                  ? "You are already on this project."
                   : "The leader has already decided on your application.",
           });
         }
@@ -687,7 +687,7 @@ export const initiativeRouter = createTRPCRouter({
           if (taken >= initiative.maxMembers) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "This initiative is full.",
+              message: "This project is full.",
             });
           }
         }
@@ -721,7 +721,7 @@ export const initiativeRouter = createTRPCRouter({
           if (isUniqueViolation(error)) {
             throw new TRPCError({
               code: "CONFLICT",
-              message: "You have already applied to this initiative.",
+              message: "You have already applied to this project.",
             });
           }
           throw error;

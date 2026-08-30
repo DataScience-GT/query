@@ -14,7 +14,7 @@ This is the club’s public site **and** the authenticated portal. There is no s
 | `/` | Home (`HomePageClient`) |
 | `/team` | Team |
 | `/events` | Public events |
-| `/projects` | Projects |
+| `/projects` | Club projects — current roster and past archive, read from `club_project` |
 | `/history` | Club history |
 | `/bootcamp` | Bootcamp marketing |
 | `/docs` | In-app docs UI |

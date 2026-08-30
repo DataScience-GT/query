@@ -180,7 +180,7 @@ export default function LeadInitiativePage({
             href="/lead"
             className="mt-4 inline-block text-sm font-semibold text-white underline"
           >
-            Back to your initiatives
+            Back to your projects
           </Link>
         </LiquidGlass>
       </div>
@@ -210,7 +210,7 @@ export default function LeadInitiativePage({
         href="/lead"
         className="mb-6 inline-flex items-center gap-1 text-sm font-semibold text-white/60 transition hover:text-white"
       >
-        <ChevronLeft className="h-4 w-4" /> Back to your initiatives
+        <ChevronLeft className="h-4 w-4" /> Back to your projects
       </Link>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -234,7 +234,7 @@ export default function LeadInitiativePage({
       {state === "draft" && (
         <p className="mt-3 text-sm text-white/60">
           This is still a draft, so members cannot see it or apply. Open it from
-          your initiatives list.
+          your projects list.
         </p>
       )}
 
@@ -243,13 +243,17 @@ export default function LeadInitiativePage({
           <p className="font-semibold text-white">Nobody has applied yet.</p>
           <p className="mt-2 text-sm text-white/60">
             {state === "open"
-              ? "It is open, so it is showing on the members' initiatives page."
-              : "Open it from your initiatives list and it will start showing to members."}
+              ? "It is open, so it is showing on the members' projects page."
+              : "Open it from your projects list and it will start showing to members."}
           </p>
         </LiquidGlass>
       ) : (
         <>
-          <Group title="Waiting on you" rows={inState("pending")} render={row} />
+          <Group
+            title="Waiting on you"
+            rows={inState("pending")}
+            render={row}
+          />
           <Group title="On the team" rows={inState("accepted")} render={row} />
           <Group
             title="Turned down and withdrawn"
