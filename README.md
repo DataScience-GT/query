@@ -6,6 +6,12 @@ Two Next.js sites share one Postgres database and four internal packages. Club m
 
 **Documentation:** start at [`docs/README.md`](./docs/README.md).
 
+## Club project
+
+The public website and member portal for Data Science at Georgia Tech, live at [datasciencegt.org](https://datasciencegt.org). This is production club infrastructure (not a greenfield student app). <!-- pragma: allowlist secret -->
+
+Member-facing overview — what it is, what members use, current status, and how to help: [`docs/club-project.md`](./docs/club-project.md). Local setup and PR workflow stay in [`docs/getting-started.md`](./docs/getting-started.md) and [`docs/contributing.md`](./docs/contributing.md).
+
 ## Workspace layout
 
 | Path | Workspace | Role |
