@@ -14,7 +14,15 @@ describe("CURRENT_CLUB_PROJECTS", () => {
       "Deep Learning Playground",
       "Sports Analytics",
       "DS@GT Website",
+      "Cognitive Science",
     ]);
+  });
+
+  it("gives every current project a short description", () => {
+    for (const project of CURRENT_CLUB_PROJECTS) {
+      expect(project.description.trim().length).toBeGreaterThan(0);
+      expect(project.description.length).toBeLessThan(160);
+    }
   });
 
   it("does not include the removed AI Trading Agent project", () => {
@@ -89,6 +97,17 @@ describe("CURRENT_CLUB_PROJECTS", () => {
   it("labels revived projects as needing a lead", () => {
     const dlp = CURRENT_CLUB_PROJECTS.find((p) => p.slug === "dlp");
     expect(dlp && projectStatusLabel(dlp)).toBe("Revived · needs a lead");
+  });
+
+  it("lists Cognitive Science as needing a lead, with Aamogh's wording", () => {
+    const project = CURRENT_CLUB_PROJECTS.find(
+      (p) => p.slug === "cognitive-science",
+    );
+    expect(project?.status).toBe("needs-lead");
+    expect(project?.lead).toBeNull();
+    expect(project?.description).toBe(
+      "Cognitive science connects to areas like artificial intelligence and computer science.",
+    );
   });
 });
 

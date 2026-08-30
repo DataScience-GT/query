@@ -115,6 +115,15 @@ export const CURRENT_CLUB_PROJECTS: ClubProject[] = [
       },
     ],
   },
+  {
+    slug: "cognitive-science",
+    name: "Cognitive Science",
+    status: "needs-lead",
+    lead: null,
+    description:
+      "Cognitive science connects to areas like artificial intelligence and computer science.",
+    links: [],
+  },
 ];
 
 export type PastClubProject = {

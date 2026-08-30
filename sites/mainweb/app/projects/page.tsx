@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import type { ClubProject } from "@/lib/club-projects";
 import {
   CURRENT_CLUB_PROJECTS,
   PAST_CLUB_PROJECTS,
   PROJECTS_INTEREST_FORM,
   projectStatusLabel,
-  type ClubProject,
 } from "@/lib/club-projects";
 
 export const metadata: Metadata = {

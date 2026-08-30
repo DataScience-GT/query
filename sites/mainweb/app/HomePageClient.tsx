@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Image, { type StaticImageData } from "next/image";
+import type { StaticImageData } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 
 import Navbar from "@/components/Navbar";
@@ -316,13 +317,7 @@ const HomePageClient = () => {
                         />
                       </div>
                     </div>
-                  ) : (
-                    <div className="w-full flex justify-center mb-6">
-                      <div className="w-20 h-20 flex items-center justify-center bg-white/5 rounded-xl text-white/30 font-black text-2xl italic">
-                        {project.name.charAt(0)}
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                   <h3 className="text-white text-xl font-bold text-center mb-2">
                     {project.name}
                   </h3>
