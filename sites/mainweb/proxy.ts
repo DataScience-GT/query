@@ -37,6 +37,7 @@ const PRIVATE_PREFIXES = [
   "/submit",
   "/verify",
   "/login",
+  "/scan",
 ];
 
 function getCacheControl(pathname: string): string {

@@ -5,17 +5,29 @@ import type { StaticImageData } from "next/image";
 import Image from "next/image";
 
 interface TeamCardProps extends HTMLAttributes<HTMLDivElement> {
-  img: string | StaticImageData;
+  img?: string | StaticImageData;
   name: string;
   title: string;
+  href?: string;
   zoom?: boolean;
   children?: ReactNode;
+}
+
+function initialsFor(name: string) {
+  return name
+    .split(/\s+/)
+    .filter((part) => /^[A-Za-z]/.test(part))
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 export default function TeamCard({
   img,
   name,
   title,
+  href,
   zoom,
   children,
   ...rest
@@ -36,14 +48,23 @@ export default function TeamCard({
           height: 140,
         }}
       >
-        <Image
-          src={img}
-          alt={name}
-          fill
-          className="object-cover transition-ui duration-700 group-hover:rotate-1"
-          sizes="140px"
-          priority
-        />
+        {img ? (
+          <Image
+            src={img}
+            alt={name}
+            fill
+            className="object-cover transition-ui duration-700 group-hover:rotate-1"
+            sizes="140px"
+            priority
+          />
+        ) : (
+          <div
+            className="flex h-full w-full items-center justify-center bg-[#111] text-3xl font-black tracking-[0.2em] text-[#00A8A8]"
+            aria-hidden="true"
+          >
+            {initialsFor(name)}
+          </div>
+        )}
         {/* Updated overlay glow to #00A8A8 */}
         <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#00A8A8]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
@@ -51,15 +72,26 @@ export default function TeamCard({
       {/* Content */}
       <div className="flex flex-col items-center text-center w-full space-y-4">
         {/* Title Tag - Updated to #00A8A8 */}
-        <div className="px-3 py-1 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/20">
-          <h2 className="text-[10px] font-mono font-bold text-[#00A8A8] uppercase tracking-[0.2em]">
+        <div className="px-3 py-1 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/20 max-w-full">
+          <h2 className="text-[10px] font-mono font-bold text-[#00A8A8] uppercase tracking-[0.15em] text-center leading-relaxed">
             {title}
           </h2>
         </div>
 
         {/* Name - High contrast white */}
         <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
-          {name}
+          {href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#00A8A8] transition-colors"
+            >
+              {name}
+            </a>
+          ) : (
+            name
+          )}
         </h1>
 
         {/* Description */}

@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useState } from "react";
+import Link from "next/link";
 import { QRCodeModal } from "@/components/portal/QRCodeModal";
 import { EventFormModal } from "@/components/portal/EventFormModal";
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
@@ -252,8 +253,9 @@ export default function AdminPage() {
             <span className="text-accent italic font-bold">Manager</span>
           </h1>
           <p className="text-text-muted text-sm relative z-10">
-            Create events, generate QR codes, and track attendance for general
-            club gatherings.
+            Club meetings, workshops, and bootcamp sessions. These are not
+            part of a Hacklytics weekend — that itinerary lives on the
+            hackathon dashboard.
           </p>
         </div>
 
@@ -283,12 +285,20 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => setShowCreateEvent(true)}
-              className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
-            >
-              + New Event
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/scan/club"
+                className="px-6 py-3 border border-accent/30 text-accent font-semibold text-sm rounded-none hover:bg-accent/10 transition-colors"
+              >
+                Scan Passes
+              </Link>
+              <button
+                onClick={() => setShowCreateEvent(true)}
+                className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
+              >
+                + New Event
+              </button>
+            </div>
           </div>
 
           {eventsLoading ? (
