@@ -40,13 +40,16 @@ import { AcceptanceWaves } from "./AcceptanceWaves";
 import { AttendeeStats } from "./AttendeeStats";
 import { statusColors, statusIcon } from "./attendee-status";
 import type { RegistrationStatus } from "./attendee-status";
+import type { HackathonStatus } from "./constants";
 
 export function AttendeesTab({
   hackathonId,
   hackathonName,
+  status,
 }: {
   hackathonId: string;
   hackathonName: string;
+  status: HackathonStatus;
 }) {
   const utils = trpc.useUtils();
 
@@ -79,6 +82,18 @@ export function AttendeesTab({
   // Stat tiles come from the aggregate, not from counting the rows on screen.
   // Counting a page would report "12 pending" when 400 are.
   const { data: analytics } = trpc.hackathon.analytics.useQuery({ hackathonId });
+  // Parent already fetched getById with the route slug; this UUID query
+  // misses that cache. Until it returns, fall back to the status the
+  // dashboard already has so announced editions don't flash the empty queue.
+  const { data: hackathon } = trpc.hackathon.getById.useQuery({
+    id: hackathonId,
+  });
+  const announced = (hackathon?.status ?? status) === "announced";
+  const { data: interestRows, isLoading: interestLoading } =
+    trpc.hackathon.listInterest.useQuery(
+      { hackathonId },
+      { enabled: announced },
+    );
 
   const attendees = data?.attendees;
 
@@ -391,8 +406,65 @@ export function AttendeesTab({
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
-      <RegistrationControls hackathonId={hackathonId} />
+      <RegistrationControls hackathonId={hackathonId} status={status} />
 
+      {announced ? (
+        <LiquidGlass className="p-6 border-[var(--border-subtle)]">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-wider">
+            Interest list
+          </h2>
+          <p className="text-sm font-mono text-[var(--text-subtle)] mt-1 mb-6">
+            People who asked to be told when{" "}
+            <span className="text-[var(--text-primary)]">{hackathonName}</span>{" "}
+            opens. This is not an application queue — opening registration lets
+            them apply.
+          </p>
+          {interestLoading ? (
+            <p className="text-xs font-mono text-[var(--text-subtle)]">
+              Loading this edition&apos;s list…
+            </p>
+          ) : (interestRows?.length ?? 0) === 0 ? (
+            <p className="text-xs font-mono text-[var(--text-subtle)]">
+              Nobody has joined this edition yet. The public form writes here.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[11px] font-mono">
+                <thead className="text-[var(--text-subtle)] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-2 pr-4">Name</th>
+                    <th className="py-2 pr-4">Email</th>
+                    <th className="py-2 pr-4">School</th>
+                    <th className="py-2 pr-4">Country</th>
+                    <th className="py-2 pr-4">Grad</th>
+                    <th className="py-2 pr-4">Experience</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[var(--text-muted)]">
+                  {interestRows?.map((row) => (
+                    <tr
+                      key={row.userId}
+                      className="border-t border-[var(--border-subtle)]"
+                    >
+                      <td className="py-2 pr-4 text-[var(--text-primary)]">
+                        {row.name ?? "—"}
+                      </td>
+                      <td className="py-2 pr-4">{row.email}</td>
+                      <td className="py-2 pr-4">{row.school ?? "—"}</td>
+                      <td className="py-2 pr-4">{row.country ?? "—"}</td>
+                      <td className="py-2 pr-4">
+                        {row.graduationYear ?? "—"}
+                      </td>
+                      <td className="py-2 pr-4">{row.experience ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </LiquidGlass>
+      ) : (
+        <>
       <AcceptanceWaves hackathonId={hackathonId} />
 
       <AttendeeStats
@@ -977,6 +1049,8 @@ export function AttendeesTab({
             Next
           </button>
         </nav>
+      )}
+        </>
       )}
     </div>
   );

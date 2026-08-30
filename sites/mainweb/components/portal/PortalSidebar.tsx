@@ -6,32 +6,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
-  LayoutDashboard,
-  Code,
-  ClipboardList,
-  Users,
-  BarChart3,
   LogOut,
   Menu,
-  QrCode,
-  Zap,
   X,
   Sun,
   Moon,
   Home,
-  ShieldAlert,
-  UserCircle,
-  Rocket,
-  Upload,
-  FolderGit2,
-  CreditCard,
-  ShieldCheck,
-  ScrollText,
-  BookOpen,
-  GraduationCap,
+  Zap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { isPortalNavActive, portalNavSections } from "@/lib/portal-nav";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
 interface PortalSidebarProps {
@@ -50,6 +35,7 @@ export default function PortalSidebar({
   const [mounted, setMounted] = useState(false);
 
   const { data: portalContext } = usePortalContext();
+  const sections = portalNavSections(portalContext);
 
   useEffect(() => {
     setMounted(true);
@@ -66,6 +52,7 @@ export default function PortalSidebar({
 
   if (pathname === "/login" || pathname === "/verify") return null;
 
+<<<<<<< HEAD
   const mainRoutes = [
     {
       name: "Dashboard",
@@ -166,6 +153,8 @@ export default function PortalSidebar({
     { name: "Docs", href: "/docs", icon: BookOpen },
   ];
 
+=======
+>>>>>>> aa924e10a20fabf8fe5162339c71b5772f0ecdd4
   return (
     <>
       {/* Mobile Top Bar */}
@@ -205,52 +194,20 @@ export default function PortalSidebar({
           </button>
 
           <div className="w-full max-w-sm flex flex-col items-center gap-10 mt-4">
-            {mainRoutes.length > 0 && (
-              <div className="w-full text-center">
-                <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
-                  <Code className="w-6 h-6 opacity-50" />
-                  Main Navigation
-                </h3>
-                <div className="flex flex-col gap-3">
-                  {mainRoutes.map((route) => {
-                    const isActive =
-                      pathname === route.href ||
-                      (route.href !== "/dashboard" &&
-                        pathname.startsWith(route.href + "/"));
-                    return (
-                      <Link
-                        key={route.href}
-                        href={route.href}
-                        onClick={() => setIsMobileOpen(false)}
-                        className={`flex items-center justify-center gap-3 py-4 rounded-none transition-ui ${
-                          isActive
-                            ? "bg-accent/10 text-accent border border-accent/20 font-bold"
-                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                        }`}
-                      >
-                        <route.icon className="w-5 h-5" />
-                        <span className="text-lg">{route.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {portalContext?.isAdmin && (
-              <>
-                <div className="w-full h-px bg-[var(--border-subtle)]" />
-                <div className="w-full text-center">
-                  <h3 className="text-xs uppercase tracking-widest text-[var(--text-subtle)] font-bold mb-6 flex flex-col items-center gap-2">
-                    <ShieldAlert className="w-6 h-6 opacity-50" />
-                    Admin Area
+            {sections.map((section, index) => {
+              const SectionIcon = section.id === "hackathon" ? Zap : Home;
+              return (
+                <div key={section.id} className="w-full text-center">
+                  {index > 0 && (
+                    <div className="w-full h-px bg-[var(--border-subtle)] mb-10" />
+                  )}
+                  <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
+                    <SectionIcon className="w-6 h-6 opacity-50" />
+                    {section.label}
                   </h3>
                   <div className="flex flex-col gap-3">
-                    {adminRoutes.map((route) => {
-                      const isActive =
-                        pathname === route.href ||
-                        (route.href !== "/admin" &&
-                          pathname.startsWith(route.href + "/"));
+                    {section.items.map((route) => {
+                      const isActive = isPortalNavActive(pathname, route.href);
                       return (
                         <Link
                           key={route.href}
@@ -269,8 +226,8 @@ export default function PortalSidebar({
                     })}
                   </div>
                 </div>
-              </>
-            )}
+              );
+            })}
 
             {/* Mobile User Section */}
             <div className="mt-auto w-full pt-8 flex flex-col items-center gap-4">
@@ -371,74 +328,29 @@ export default function PortalSidebar({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {/* Main Navigation Section */}
-          {mainRoutes.length > 0 && (
-            <div className="mb-1">
-              {isOpen && (
-                <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                  <Code className="h-3 w-3 text-accent/60 flex-shrink-0" />
-                  <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
-                    Portal
-                  </span>
-                </div>
-              )}
-              {!isOpen && (
-                <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />
-              )}
-              <div className="space-y-1">
-                {mainRoutes.map((route) => {
-                  const isActive =
-                    pathname === route.href ||
-                    (route.href !== "/dashboard" &&
-                      pathname.startsWith(route.href + "/"));
-                  return (
-                    <Link
-                      key={route.href}
-                      href={route.href}
-                      title={!isOpen ? route.name : undefined}
-                      className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-ui ${
-                        isActive
-                          ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
-                          : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-                      }`}
-                    >
-                      <route.icon
-                        className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-accent" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
-                      />
-                      {isOpen && (
-                        <span className="text-sm truncate">{route.name}</span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {portalContext?.isAdmin && (
-            <>
-              <div
-                className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}
-              />
-
-              <div className="mb-4">
+          {sections.map((section, index) => {
+            const SectionIcon = section.id === "hackathon" ? Zap : Home;
+            return (
+              <div key={section.id} className={index === 0 ? "mb-1" : "mb-4"}>
+                {index > 0 && (
+                  <div
+                    className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}
+                  />
+                )}
                 {isOpen && (
                   <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                    <ShieldAlert className="h-3 w-3 text-[var(--text-subtle)] flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-[0.2em]">
-                      Admin Area
+                    <SectionIcon className="h-3 w-3 text-accent/60 flex-shrink-0" />
+                    <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
+                      {section.label}
                     </span>
                   </div>
                 )}
                 {!isOpen && (
-                  <div className="w-8 h-px bg-[var(--border-medium)] mx-auto mb-3" />
+                  <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />
                 )}
                 <div className="space-y-1">
-                  {adminRoutes.map((route) => {
-                    const isActive =
-                      pathname === route.href ||
-                      (route.href !== "/admin" &&
-                        pathname.startsWith(route.href + "/"));
+                  {section.items.map((route) => {
+                    const isActive = isPortalNavActive(pathname, route.href);
                     return (
                       <Link
                         key={route.href}
@@ -461,8 +373,8 @@ export default function PortalSidebar({
                   })}
                 </div>
               </div>
-            </>
-          )}
+            );
+          })}
         </nav>
 
         {/* User section */}
