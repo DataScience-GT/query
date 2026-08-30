@@ -1,181 +1,193 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import type { ClubProject } from "@/lib/club-projects";
+import {
+  CURRENT_CLUB_PROJECTS,
+  PAST_CLUB_PROJECTS,
+  PROJECTS_INTEREST_FORM,
+  projectStatusLabel,
+} from "@/lib/club-projects";
 
-interface Project {
-  name: string;
-  lead: string;
-  description: string;
-  tech: string[];
-  category: "Deep Learning" | "Finance" | "Sports" | "General DS";
+export const metadata: Metadata = {
+  title: "Projects",
+  description:
+    "Current Fall 2026 DS@GT club projects. Join via the interest form.",
+};
+
+function statusClass(project: ClubProject) {
+  return project.status === "active"
+    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+    : "bg-amber-500/10 text-amber-400 border-amber-500/20";
 }
 
-const projects: Project[] = [
-  {
-    name: "Deep Learning Playground",
-    lead: "Noah Iversen",
-    category: "Deep Learning",
-    description:
-      "An interactive web application designed to demystify neural network training. At its core, the project allows users to visualize backpropagation and architecture tweaks in real-time.",
-    tech: ["AWS", "Docker", "PyTorch", "TypeScript", "NextJs", "Django"],
-  },
-  {
-    name: "AI-Driven Investment Platform",
-    lead: "Aryan Hazra",
-    category: "Finance",
-    description:
-      "Using NLP to conversationally help investors reach goals. It adapts strategies based on client information rather than static robo-investing inputs.",
-    tech: ["NLP", "Machine Learning", "Python", "Data Analytics"],
-  },
-  {
-    name: "Furnichanter",
-    lead: "Jane Ivanova",
-    category: "Deep Learning",
-    description:
-      "Seamlessly combining computer vision with interior design. Users can search for furniture via images and generate custom 3D models using text descriptions.",
-    tech: ["Deep Learning", "3D Modeling", "Python", "Computer Vision"],
-  },
-  {
-    name: "Kaggle CLEF",
-    lead: "Anthony Miyaguchi",
-    category: "General DS",
-    description:
-      "A seminar-styled introduction to data science competitions. Members build ML systems for real-world problems like the CLEF 2025 competition.",
-    tech: [
-      "Python",
-      "Machine Learning",
-      "Data Science",
-      "Algorithmic Development",
-    ],
-  },
-  {
-    name: "Sports Analysis Project",
-    lead: "Casper Guo",
-    category: "Sports",
-    description:
-      "Open-ended sports research. Projects include projecting NFL performance, building 'perfect' NBA rosters, and exploiting betting odds differences.",
-    tech: [
-      "Python",
-      "Machine Learning",
-      "Data Science",
-      "Statistical Modeling",
-    ],
-  },
-];
-
 export default function ProjectsPage() {
-  const [windowWidth, setWindowWidth] = useState<number>(
-    typeof window !== "undefined" ? window.innerWidth : 1024,
-  );
-  const categories: Project["category"][] = [
-    "Deep Learning",
-    "Finance",
-    "Sports",
-    "General DS",
-  ];
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-400/30 overflow-x-hidden">
       <Navbar
-        screen_width={windowWidth}
+        screen_width={1024}
         page="other"
         className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
       />
       <main className="relative z-10 pt-44 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
-        {/* BREADCRUMB NAVIGATION */}
         <nav className="flex items-center gap-2 mb-8 text-[10px] font-mono tracking-[0.3em] uppercase">
           <Link href="/" className="hover:text-[#00A8A8] transition-colors">
             Home
           </Link>
           <span className="text-gray-800">/</span>
-          <span className="text-gray-200 italic">Project_Archive</span>
+          <span className="text-gray-200 italic">Projects</span>
         </nav>
 
-        {/* HERO SECTION */}
-        <section className="max-w-3xl mb-24 space-y-6">
+        <section className="max-w-3xl mb-16 space-y-6">
+          <p className="font-mono text-[10px] text-[#00A8A8] uppercase tracking-[0.4em]">
+            Fall 2026
+          </p>
           <h1 className="text-white text-6xl md:text-8xl font-black tracking-tighter leading-none uppercase italic">
-            Project <br />
+            Club <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#006e6e] not-italic">
-              Archive.
+              Projects.
             </span>
           </h1>
           <p className="text-lg text-gray-400 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
-            A technical directory of past engineering ventures led by DSGT
-            members. Organized by domain expertise and technical stack.
+            Current DS@GT member projects. Several still need a lead. One
+            interest form covers all of them.
           </p>
+          <a
+            href={PROJECTS_INTEREST_FORM}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center min-h-11 px-6 py-3 bg-[#00A8A8] text-black text-[10px] font-mono font-bold uppercase tracking-[0.3em] rounded-md hover:bg-[#008f8f] transition-colors"
+          >
+            Interest form
+          </a>
         </section>
 
-        {/* ORGANIZED CATEGORIES */}
-        <div className="space-y-32">
-          {categories.map((cat) => (
-            <section
-              key={cat}
-              id={cat.replace(/\s+/g, "-").toLowerCase()}
-              className="scroll-mt-32 relative"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {CURRENT_CLUB_PROJECTS.map((project) => (
+            <article
+              key={project.slug}
+              id={project.slug}
+              className="group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/30 transition-all duration-500 shadow-2xl relative overflow-hidden scroll-mt-32"
             >
-              <div className="flex items-center gap-4 mb-12">
-                <h2 className="text-white text-2xl font-black tracking-tight shrink-0 italic uppercase">
-                  {cat}
-                </h2>
-                <div className="h-px bg-gradient-to-r from-[#00A8A8]/20 to-transparent w-full"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A8A8]/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              <div className="flex flex-wrap justify-between items-start gap-3 mb-4 relative z-10">
+                <div>
+                  <h2 className="text-white text-xl font-bold group-hover:text-[#00A8A8] transition-colors uppercase tracking-tight italic">
+                    {project.name}
+                  </h2>
+                  {project.subtitle ? (
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      {project.subtitle}
+                    </p>
+                  ) : null}
+                </div>
+                <span
+                  className={`text-[9px] font-mono uppercase tracking-widest px-2 py-1 rounded border ${statusClass(project)}`}
+                >
+                  {projectStatusLabel(project)}
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {projects
-                  .filter((p) => p.category === cat)
-                  .map((project, i) => (
-                    <div
-                      key={i}
-                      className="group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/30 transition-all duration-500 shadow-2xl relative overflow-hidden"
+              <p className="text-sm text-gray-400 leading-relaxed mb-6 relative z-10">
+                {project.description}
+              </p>
+
+              <dl className="space-y-2 text-[11px] font-mono uppercase tracking-widest text-gray-500 mb-8 relative z-10">
+                <div>
+                  <dt className="sr-only">Lead</dt>
+                  <dd>
+                    {project.lead
+                      ? `Lead · ${project.lead}`
+                      : "Needs a lead"}
+                    {project.leadNote ? ` · ${project.leadNote}` : ""}
+                  </dd>
+                </div>
+                {project.recruiting ? (
+                  <div>
+                    <dt className="sr-only">Recruiting</dt>
+                    <dd>Recruiting · {project.recruiting}</dd>
+                  </div>
+                ) : null}
+              </dl>
+
+              <div className="flex flex-wrap gap-3 relative z-10">
+                {project.links.map((link) => {
+                  const external = /^https?:\/\//.test(link.href);
+                  return (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target={external ? "_blank" : undefined}
+                      rel={external ? "noopener noreferrer" : undefined}
+                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
                     >
-                      {/* Subtle background glow on hover */}
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A8A8]/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                      <div className="flex justify-between items-start mb-6 relative z-10">
-                        <h3 className="text-white text-xl font-bold group-hover:text-[#00A8A8] transition-colors uppercase tracking-tight italic">
-                          {project.name}
-                        </h3>
-                        <span className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">
-                          Lead // {project.lead.split(" ").pop()?.toUpperCase()}
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-gray-400 leading-relaxed mb-8 italic relative z-10">
-                        {project.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-2 relative z-10">
-                        {project.tech.map((t, index) => (
-                          <span
-                            key={index}
-                            className="text-[9px] font-mono text-[#00A8A8]/70 bg-[#00A8A8]/5 border border-[#00A8A8]/10 px-2 py-1 rounded-sm uppercase tracking-tighter"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                      {link.label} →
+                    </a>
+                  );
+                })}
+                <a
+                  href={PROJECTS_INTEREST_FORM}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] hover:text-[#00A8A8] transition-colors"
+                >
+                  Interest form →
+                </a>
               </div>
-            </section>
+            </article>
           ))}
         </div>
 
-        {/* NAVIGATION FOOTER */}
+        <section id="past" className="mt-32 scroll-mt-32">
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className="text-white text-2xl font-black tracking-tight shrink-0 italic uppercase">
+              Past
+            </h2>
+            <div className="h-px bg-gradient-to-r from-[#00A8A8]/20 to-transparent w-full" />
+          </div>
+          <p className="text-sm text-gray-500 italic mb-12 max-w-xl">
+            Earlier club ventures. These are not the current Fall 2026 roster.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {PAST_CLUB_PROJECTS.map((project) => (
+              <article
+                key={`${project.name}-${project.lead}`}
+                className="bg-[#080808] border border-white/5 p-6 rounded-xl"
+              >
+                <div className="flex justify-between items-start gap-3 mb-3">
+                  <h3 className="text-gray-200 text-base font-bold uppercase tracking-tight italic">
+                    {project.name}
+                  </h3>
+                  <span className="text-[9px] font-mono text-gray-600 uppercase tracking-widest shrink-0">
+                    {project.lead}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  {project.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="mt-40 border-t border-white/5 pt-20 text-center">
           <h2 className="text-white text-2xl font-black mb-12 italic uppercase tracking-tighter">
-            Back to the present?
+            Want to join one?
           </h2>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-12">
+            <a
+              href={PROJECTS_INTEREST_FORM}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
+            >
+              Interest_Form{" "}
+              <span className="text-lg group-hover:translate-x-2 transition-transform">
+                →
+              </span>
+            </a>
             <Link
               href="/"
               className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
@@ -185,20 +197,11 @@ export default function ProjectsPage() {
               </span>{" "}
               Return_Home
             </Link>
-            <Link
-              href="/bootcamp"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
-            >
-              Join_Bootcamp{" "}
-              <span className="text-lg group-hover:translate-x-2 transition-transform">
-                →
-              </span>
-            </Link>
           </div>
         </section>
       </main>
       <Footer
-        screen_width={windowWidth}
+        screen_width={1024}
         className="relative z-10 border-t border-white/5 opacity-40"
       />
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import type { StaticImageData } from "next/image";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -19,9 +20,21 @@ import slide6 from "@/assets/images/slides/slide6.jpg";
 import slide7 from "@/assets/images/slides/slide7.jpg";
 import slide9 from "@/assets/images/slides/slide9.jpg";
 import arc from "@/assets/images/logos/arc-logo-v3.png";
+import dlp from "@/assets/images/logos/dlp4.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import stock from "@/assets/images/logos/stock.png";
-import trading from "@/assets/images/logos/trading.png";
+import {
+  CURRENT_CLUB_PROJECTS,
+  PROJECTS_INTEREST_FORM,
+  projectStatusLabel,
+} from "@/lib/club-projects";
+
+const PROJECT_LOGOS: Partial<Record<string, StaticImageData>> = {
+  arc,
+  dlp,
+  roboinvesting: stock,
+  sports: gtaa,
+};
 
 const Pie = dynamic(() => import("react-chartjs-2").then((mod) => mod.Pie), {
   ssr: false,
@@ -275,151 +288,77 @@ const HomePageClient = () => {
               Projects.
             </h2>
             <p className="font-mono text-[10px] text-[#00A8A8] uppercase tracking-[0.4em]">
-              Protocol: Member_Initiatives
+              Fall 2026 club projects
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
-              <div className="w-full flex justify-center mb-6">
-                <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image
-                    src={arc}
-                    alt="ARC"
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 object-contain"
-                    placeholder="blur"
-                  />
-                </div>
-              </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
-                ARC Research
-              </h3>
-              <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
-                  Active
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
-                ML competition group focusing on Kaggle and TREC research
-                tracks.
-              </p>
-              <a
-                href="https://dsgt-arc.org/"
-                target="_blank"
-                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
-              >
-                View Club →
-              </a>
-            </Card>
+            {CURRENT_CLUB_PROJECTS.map((project) => {
+              const logo = PROJECT_LOGOS[project.slug];
+              const statusClass =
+                project.status === "active"
+                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/20";
+              return (
+                <Card
+                  key={project.slug}
+                  className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl"
+                >
+                  {logo ? (
+                    <div className="w-full flex justify-center mb-6">
+                      <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
+                        <Image
+                          src={logo}
+                          alt=""
+                          width={80}
+                          height={80}
+                          className="w-20 h-20 object-contain"
+                          placeholder="blur"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                  <h3 className="text-white text-xl font-bold text-center mb-2">
+                    {project.name}
+                  </h3>
+                  <div className="flex justify-center mb-4">
+                    <span
+                      className={`px-2 py-0.5 text-[9px] font-mono rounded border uppercase tracking-widest ${statusClass}`}
+                    >
+                      {projectStatusLabel(project)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
+                    {project.description}
+                  </p>
+                  <Link
+                    href={`/projects#${project.slug}`}
+                    className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                  >
+                    Details →
+                  </Link>
+                </Card>
+              );
+            })}
 
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
-              <div className="w-full flex justify-center mb-6">
-                <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image
-                    src={stock}
-                    alt="Robo"
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 object-contain"
-                    placeholder="blur"
-                  />
-                </div>
-              </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
-                Roboinvesting
-              </h3>
-              <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
-                  Active
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
-                ML-driven trading simulations analyzing technical indicators.
-              </p>
-              <a
-                href="mailto:bjmichaels.25@gmail.com"
-                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
-              >
-                Contact Team →
-              </a>
-            </Card>
-
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl">
-              <div className="w-full flex justify-center mb-6">
-                <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
-                  <Image
-                    src={trading}
-                    alt="AI"
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 object-contain"
-                    placeholder="blur"
-                  />
-                </div>
-              </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
-                AI Trading Agent
-              </h3>
-              <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
-                  Active
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed italic">
-                Conversational AI tools for real-time portfolio management.
-              </p>
-              <a
-                href="mailto:wesleylu@gatech.edu"
-                className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-widest mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
-              >
-                Contact Team →
-              </a>
-            </Card>
-
-            <Card className="flex flex-col justify-between h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl group shadow-2xl">
-              <div className="w-full flex justify-center mb-6">
-                <Image
-                  src={gtaa}
-                  alt="Sports"
-                  width={100}
-                  height={100}
-                  className="w-24 h-24 object-contain opacity-50"
-                  placeholder="blur"
-                />
-              </div>
-              <h3 className="text-white text-xl font-bold text-center mb-2">
-                Sports Analytics
-              </h3>
-              <div className="flex justify-center mb-4">
-                <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-red-500/10 text-red-400 border border-red-500/20 uppercase tracking-widest">
-                  Closed
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 text-center leading-relaxed italic">
-                NFL projections and NBA roster optimization using advanced
-                stats.
-              </p>
-            </Card>
-
-            <Link
-              href="/projects"
+            <a
+              href={PROJECTS_INTEREST_FORM}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-[#00A8A8] p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
             >
               <div className="space-y-4">
                 <h3 className="text-black text-2xl font-bold tracking-tight italic uppercase">
-                  Past Archive.
+                  Join a project.
                 </h3>
                 <p className="text-black/80 text-sm font-medium leading-relaxed italic">
-                  Explore five years of machine learning projects built by DSGT
-                  members.
+                  One interest form for every Fall 2026 club project.
                 </p>
               </div>
               <span className="text-black font-mono text-[10px] uppercase tracking-[0.3em] pt-4 font-bold group-hover:translate-x-2 transition-transform">
-                Access Database →
+                Interest form →
               </span>
-            </Link>
+            </a>
           </div>
         </div>
       </Section>
