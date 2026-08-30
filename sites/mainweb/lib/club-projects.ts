@@ -99,9 +99,9 @@ export const CURRENT_CLUB_PROJECTS: ClubProject[] = [
   {
     slug: "website",
     name: "DS@GT Website",
-    status: "needs-lead",
-    lead: null,
-    leadNote: "Aamogh has been shipping it",
+    status: "active",
+    lead: "Aamogh Sawant",
+    recruiting: "Limited to 6 people",
     description:
       "Public site and member portal, live at datasciencegt.org.",
     links: [
@@ -120,7 +120,7 @@ export const CURRENT_CLUB_PROJECTS: ClubProject[] = [
     name: "AtlCrime",
     status: "needs-lead",
     lead: null,
-    description: "Atlanta crime data mapped from histogram contours.",
+    description: "Heatmap of safety in Atlanta.",
     links: [
       {
         label: "GitHub",

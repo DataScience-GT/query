@@ -90,10 +90,11 @@ describe("CURRENT_CLUB_PROJECTS", () => {
     expect(project?.revived).toBe(true);
   });
 
-  it("lists the website as live and looking for a lead", () => {
+  it("lists Aamogh as the website lead, limited to 6 people", () => {
     const project = CURRENT_CLUB_PROJECTS.find((p) => p.slug === "website");
-    expect(project?.lead).toBeNull();
-    expect(project?.leadNote).toMatch(/Aamogh/i);
+    expect(project?.status).toBe("active");
+    expect(project?.lead).toBe("Aamogh Sawant");
+    expect(project?.recruiting).toMatch(/6/);
     expect(project?.description).toMatch(/datasciencegt\.org/);
     expect(project?.links.map((l) => l.href)).toContain("/");
     expect(project?.links.map((l) => l.href)).toContain(
@@ -110,7 +111,8 @@ describe("CURRENT_CLUB_PROJECTS", () => {
     const project = CURRENT_CLUB_PROJECTS.find((p) => p.slug === "atlcrime");
     expect(project?.status).toBe("needs-lead");
     expect(project?.lead).toBeNull();
-    expect(project?.description).toMatch(/Atlanta crime data/i);
+    expect(project?.lead).not.toBe("Aamogh Sawant");
+    expect(project?.description).toMatch(/heatmap of safety in Atlanta/i);
     expect(project?.links.map((l) => l.href)).toContain(
       "https://github.com/DataScience-GT/AtlCrime",
     );
