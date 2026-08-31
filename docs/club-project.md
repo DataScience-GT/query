@@ -8,7 +8,7 @@ Aamogh Sawant ([@aamoghS](https://github.com/aamoghS)), club President, owns and
 
 ## What this is
 
-The public website visitors see, and the signed-in portal members use to join the club, pay dues, check in at events, follow bootcamp, apply to initiatives, and handle Hacklytics interest and registration.
+The public website visitors see, and the signed-in portal members use to join the club, pay dues, check in at events, follow bootcamp, apply to club projects, and handle Hacklytics interest and registration.
 
 The public pages and the portal are one Next.js app (`sites/mainweb`). Signing in does not take you to a different hostname.
 
@@ -33,7 +33,7 @@ After sign-in (Google, GitHub if configured, or email code):
 | Join / pay dues                          | Portal membership — Stripe **$25** annual membership, **$10** bootcamp add-on (on top of membership, not instead of it) |
 | Club events and check-in                 | Portal events / club pass                                                                                               |
 | Bootcamp (term-gated add-on)             | `/club/bootcamp` and the public `/bootcamp` page                                                                        |
-| Initiatives (club projects you apply to) | `/initiatives`                                                                                                          |
+| Club projects (pitch + optional resume) | `/initiatives`                                                                                                          |
 | Staff tools                              | `/admin` (appointed roles only; there is no public admin signup)                                                        |
 | Hacklytics interest and registration     | Portal `/hacklytics` (the marketing site links here after login)                                                        |
 
@@ -64,7 +64,7 @@ Route-level detail: [Main website](./sites/mainweb.md). Club vs hackathon vocabu
 | `join_url`      | External destination for projects that recruit elsewhere (ARC)                            |
 | `is_published`  | Pull a card off the site without deleting it                                              |
 
-Applying happens in the portal. A card with an `initiative_id` links to `/initiatives`, where a signed-in member can request to join; the initiative's leader accepts or declines from `/lead`. A card with no initiative falls back to `join_url`, then to the shared interest form.
+Applying happens in the portal. A card with an `initiative_id` links to `/initiatives`, where a signed-in member says why they want to join and may attach a PDF resume; the leader reads both and accepts or declines from `/lead`. A card with no initiative falls back to `join_url`, then to the shared interest form.
 
 To reset the roster to the checked-in Fall 2026 list:
 
@@ -99,7 +99,7 @@ High level only. Details live in the linked docs.
 | `packages/db`          | Schema and membership rules                          |
 | `packages/ui`          | Shared React components                              |
 
-Club operations (membership, club events, bootcamp, initiatives) and hackathon editions share one database but are modeled as separate domains. Do not hang club tables off a hackathon row.
+Club operations (membership, club events, bootcamp, club projects) and hackathon editions share one database but are modeled as separate domains. Do not hang club tables off a hackathon row.
 
 Setup, env, and first-admin bootstrap: [Getting started](./getting-started.md). How the pieces connect: [Architecture](./architecture.md). Index of the rest: [Documentation](./README.md).
 

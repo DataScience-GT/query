@@ -28,6 +28,14 @@ function ApplicantRow({
 }) {
   const utils = trpc.useUtils();
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [wantResume, setWantResume] = useState(false);
+
+  // Fetched on click, not with the queue: thirty applicants would otherwise
+  // mean thirty PDFs on page load.
+  const resume = trpc.initiative.applicantResume.useQuery(
+    { initiativeId, userId: applicant.userId },
+    { enabled: wantResume },
+  );
 
   const decide = trpc.initiative.decide.useMutation({
     onSuccess: async () => {
@@ -61,6 +69,33 @@ function ApplicantRow({
           {applicant.pitch && (
             <p className="mt-2 whitespace-pre-line border-l-2 border-white/10 pl-3 text-sm text-white/80">
               {applicant.pitch}
+            </p>
+          )}
+
+          {applicant.resumeFileName &&
+            (resume.data ? (
+              <a
+                href={resume.data.dataUrl}
+                download={resume.data.fileName}
+                className="mt-2 inline-block text-sm font-semibold text-white underline"
+              >
+                Download {resume.data.fileName}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setWantResume(true)}
+                disabled={resume.isFetching}
+                className="mt-2 text-sm font-semibold text-white/80 underline hover:text-white disabled:opacity-50"
+              >
+                {resume.isFetching
+                  ? "Loading resume…"
+                  : `Resume: ${applicant.resumeFileName}`}
+              </button>
+            ))}
+          {resume.error && (
+            <p aria-live="polite" className="mt-2 text-sm text-red-300">
+              {resume.error.message}
             </p>
           )}
         </div>

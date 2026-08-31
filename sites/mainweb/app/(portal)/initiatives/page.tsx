@@ -189,13 +189,38 @@ function OpenRow({
     ]);
   };
 
+  const [resume, setResume] = useState<{
+    fileName: string;
+    dataUrl: string;
+  } | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+
   const join = trpc.initiative.requestToJoin.useMutation({
     onSuccess: async () => {
       setWriting(false);
       setPitch("");
+      setResume(null);
       await refresh();
     },
   });
+
+  // 2 MB is the server's whole-payload cap; catching it here saves a round
+  // trip and says which file was too big.
+  const readResume = (file: File | undefined) => {
+    setResumeError(null);
+    if (!file) return setResume(null);
+    if (file.type !== "application/pdf") {
+      return setResumeError("Your resume must be a PDF.");
+    }
+    if (file.size > 1.4 * 1024 * 1024) {
+      return setResumeError("That PDF is over 1.4 MB. Please compress it.");
+    }
+    const reader = new FileReader();
+    reader.onload = () =>
+      setResume({ fileName: file.name, dataUrl: String(reader.result) });
+    reader.onerror = () => setResumeError("Could not read that file.");
+    reader.readAsDataURL(file);
+  };
 
   return (
     <LiquidGlass className="p-5">
@@ -255,7 +280,8 @@ function OpenRow({
             event.preventDefault();
             join.mutate({
               initiativeId: initiative.id,
-              pitch: pitch.trim() || undefined,
+              pitch: pitch.trim(),
+              resume: resume ?? undefined,
             });
           }}
         >
@@ -263,22 +289,47 @@ function OpenRow({
             htmlFor={`pitch-${initiative.id}`}
             className="text-xs font-semibold uppercase tracking-wide text-white/50"
           >
-            Anything the leader should know
+            Why do you want to join?
           </label>
           <textarea
             id={`pitch-${initiative.id}`}
             rows={3}
+            required
             maxLength={1000}
             value={pitch}
             onChange={(event) => setPitch(event.target.value)}
-            placeholder="Optional. What you want to work on, or what you have built before."
+            placeholder="What you want to work on, and what you have built before."
             className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
           />
+
+          <label
+            htmlFor={`resume-${initiative.id}`}
+            className="mt-4 block text-xs font-semibold uppercase tracking-wide text-white/50"
+          >
+            Resume (PDF, optional)
+          </label>
+          <input
+            id={`resume-${initiative.id}`}
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(event) => readResume(event.target.files?.[0])}
+            className="mt-2 block w-full text-sm text-white/70 file:mr-3 file:rounded-full file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-white/20"
+          />
+          {resume && (
+            <p className="mt-2 text-xs text-white/50">
+              Attached: {resume.fileName}
+            </p>
+          )}
+          {resumeError && (
+            <p aria-live="polite" className="mt-2 text-xs text-red-300">
+              {resumeError}
+            </p>
+          )}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="submit"
-              disabled={join.isPending}
+              disabled={join.isPending || !pitch.trim()}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
             >
               {join.isPending ? "Sending…" : "Send application"}
