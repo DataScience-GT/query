@@ -86,9 +86,9 @@ export function portalNavSections(
           { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
           { name: "Club Attendees", href: "/admin/attendees", icon: Users },
           { name: "Club Check-In", href: "/scan/club", icon: Calendar },
-          { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
+          { name: "Club Projects", href: "/admin/initiatives", icon: Rocket },
           {
-            name: "Initiative Applications",
+            name: "Club Project Applications",
             href: "/lead",
             icon: Rocket,
           },
@@ -135,9 +135,9 @@ export function portalNavSections(
       ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
       : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
-    { name: "Initiatives", href: "/initiatives", icon: Rocket },
+    { name: "Club Projects", href: "/initiatives", icon: Rocket },
     ...(f.isProjectLeader
-      ? [{ name: "My Initiatives", href: "/lead", icon: Rocket }]
+      ? [{ name: "My Club Projects", href: "/lead", icon: Rocket }]
       : []),
     { name: "Settings", href: "/settings", icon: UserCircle },
   ];

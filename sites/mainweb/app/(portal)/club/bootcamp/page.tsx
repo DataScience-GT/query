@@ -16,6 +16,7 @@ import {
   BOOTCAMP_CURRICULUM,
   BOOTCAMP_MEETING_TIME,
   BOOTCAMP_ROOM,
+  BOOTCAMP_START_DATE,
   BOOTCAMP_WORKSPACE_URL,
 } from "@/lib/bootcamp-schedule";
 import {
@@ -64,6 +65,12 @@ function WorkInProgress({ term }: { term: string }) {
         up here once they are set, and you will hear from us before the first
         meeting.
       </p>
+      {BOOTCAMP_START_DATE && (
+        <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+          <CalendarDays className="h-4 w-4 shrink-0 text-accent" />
+          First session {BOOTCAMP_START_DATE}
+        </p>
+      )}
       <p className="mt-4 flex items-center gap-2 text-sm text-[var(--text-muted)]">
         <MapPin className="h-4 w-4 shrink-0 text-[var(--text-subtle)]" />
         {BOOTCAMP_ROOM ?? "Room to be announced"}
@@ -103,8 +110,7 @@ function NotEnrolled({ term }: { term: string }) {
       </h2>
       <p className="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
         Twelve weeks of Python and data science, taught in person, with the
-        notebooks to keep. It runs for one semester, so joining covers this
-        term
+        notebooks to keep. It runs for one semester, so joining covers this term
         {isMember
           ? ""
           : ` — ${formatCents(BOOTCAMP_ADDON_CENTS)} on top of a membership (${formatCents(MEMBERSHIP_CENTS)} a year or ${formatCents(SEMESTER_MEMBERSHIP_CENTS)} a semester)`}
@@ -174,7 +180,8 @@ export default function BootcampPortalPage() {
                 </h1>
               </div>
               <p className="mt-2 font-mono text-xs uppercase tracking-widest text-[var(--text-subtle)]">
-                {data ? termLabel(data.term) : ""} · Data Science at Georgia Tech
+                {data ? termLabel(data.term) : ""} · Data Science at Georgia
+                Tech
               </p>
             </div>
 
@@ -209,8 +216,15 @@ export default function BootcampPortalPage() {
 
             <section>
               <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-                The twelve weeks
+                Syllabus
               </h2>
+
+              {weeks.length === 0 && (
+                <p className="border border-accent/30 bg-accent/[0.06] p-5 text-sm leading-relaxed text-[var(--text-muted)]">
+                  Updating soon — the week-by-week syllabus is being written and
+                  will appear here before the first session.
+                </p>
+              )}
 
               <ol className="space-y-3">
                 {weeks.map((entry) => (
