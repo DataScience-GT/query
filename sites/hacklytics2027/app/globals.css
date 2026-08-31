@@ -190,20 +190,32 @@ body {
 .pixel-lime:hover   { --pixel-edge: rgba(200, 255, 0, 0.9);   --pixel-glow: rgba(200, 255, 0, 0.4); }
 .pixel-purple:hover { --pixel-edge: rgba(155, 0, 255, 0.95);  --pixel-glow: rgba(155, 0, 255, 0.45); }
 
-/* Solid neon slab button — chunky, no radius, steps() so it feels 8-bit */
+/* Solid cyan slab — sharp rectangle, hard pixel edge, no bloom.
+   Glow stays on the brightest sprites, not on every CTA. */
 .pixel-btn {
   position: relative;
+  border: 0;
   border-radius: 0;
   background: var(--btn-bg, #00e5ff);
   color: #04040a;
+  font-weight: 700;
+  text-decoration: none;
   box-shadow:
-    0 -4px 0 0 rgba(255, 255, 255, 0.35),
-    0  4px 0 0 rgba(0, 0, 0, 0.6),
-    0 0 28px var(--btn-glow, rgba(0, 229, 255, 0.5));
+    0 -3px 0 0 rgba(255, 255, 255, 0.28),
+    0  3px 0 0 rgba(0, 0, 0, 0.75);
   transition: transform 120ms steps(2), box-shadow 160ms steps(2), filter 160ms linear;
 }
-.pixel-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
-.pixel-btn:active { transform: translateY(2px); }
+.pixel-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.pixel-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 -1px 0 0 rgba(255, 255, 255, 0.2),
+    0  1px 0 0 rgba(0, 0, 0, 0.8);
+}
+.pixel-btn:focus-visible {
+  outline: 2px solid #f0f0f2;
+  outline-offset: 3px;
+}
 
 /* Neon text glow, tuned per accent */
 .neon-cyan   { color: #00e5ff; text-shadow: 0 0 8px rgba(0, 229, 255, 0.65), 0 0 22px rgba(0, 229, 255, 0.35); }
