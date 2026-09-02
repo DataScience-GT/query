@@ -187,13 +187,12 @@ export const eventRouter = createTRPCRouter({
       });
 
     const cacheKey = `events:list:all`;
-    const cached =
-      ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
-    if (cached !== null) return cached;
-
-    const allEvents = await fetchEvents();
-    ctx.cache.set(cacheKey, allEvents, 30);
-    return allEvents;
+    // Same shared-key stampede as `list` below, minus the public filter.
+    return await ctx.cache.getOrSet<Awaited<ReturnType<typeof fetchEvents>>>(
+      cacheKey,
+      fetchEvents,
+      30,
+    );
   }),
 
   list: publicProcedure.query(async ({ ctx }) => {
@@ -204,14 +203,12 @@ export const eventRouter = createTRPCRouter({
       });
 
     const cacheKey = `events:list:public`;
-    const cached =
-      ctx.cache.get<Awaited<ReturnType<typeof fetchEvents>>>(cacheKey);
-    let allEvents = cached;
-
-    if (!allEvents) {
-      allEvents = await fetchEvents();
-      ctx.cache.set(cacheKey, allEvents, 30);
-    }
+    // One key for every visitor, 30 seconds long: on a plain miss the whole
+    // set of requests in flight ran this listing at once. getOrSet lets the
+    // first one stand for all of them.
+    const allEvents = await ctx.cache.getOrSet<
+      Awaited<ReturnType<typeof fetchEvents>>
+    >(cacheKey, fetchEvents, 30);
 
     const now = new Date();
     return allEvents.map((event) => {
@@ -526,16 +523,20 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
+          // Read before the row lock, not after. The FOR UPDATE below
+          // serialises every check-in on this event, and a lookup taken
+          // inside that window puts one more round trip into the critical
+          // section for every person still in the queue at the door.
+          const member = await tx.query.members.findFirst({
+            where: eq(members.userId, user.id),
+            columns: { id: true },
+          });
+
           const [locked] = await tx
             .select({ currentCheckIns: events.currentCheckIns })
             .from(events)
             .where(eq(events.id, event.id))
             .for("update");
-
-          const member = await tx.query.members.findFirst({
-            where: eq(members.userId, user.id),
-            columns: { id: true },
-          });
 
           if (
             event.maxCheckIns &&

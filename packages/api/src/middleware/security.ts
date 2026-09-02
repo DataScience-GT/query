@@ -29,28 +29,25 @@ const MAX_IP_TRACKING_STORE_SIZE = 50000;
 
 const SWEEP_INTERVAL_MS = 60 * 1000;
 
-// Evicts oldest-first until the store is under `max`. The pick is
-// unconditional and the loop gives up when nothing was selected: a version
-// that only deleted entries matching a predicate could make zero progress and
-// spin the instance's event loop, since this runs on an interval.
+// Evicts oldest-first until the store is under `max`. One ordering pass, not
+// one full scan per eviction: the previous loop re-walked the whole map to
+// pick a single key, so trimming k entries off a 50,000-entry store cost k
+// walks synchronously on an interval timer — an event-loop stall that every
+// in-flight request pays for in its tail. Eviction is still unconditional, so
+// it cannot fail to make progress.
 const evictOldest = <V>(
   store: Map<string, V>,
   max: number,
   ageOf: (value: V) => number,
 ) => {
-  while (store.size > max) {
-    let oldestKey: string | null = null;
-    let oldestTime = Infinity;
-    for (const [key, value] of store.entries()) {
-      const age = ageOf(value);
-      if (age < oldestTime) {
-        oldestTime = age;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey === null) break;
-    store.delete(oldestKey);
-  }
+  const excess = store.size - max;
+  if (excess <= 0) return;
+
+  const byAge = Array.from(store.entries()).sort(
+    (a, b) => ageOf(a[1]) - ageOf(b[1]),
+  );
+
+  for (let i = 0; i < excess; i += 1) store.delete(byAge[i]![0]);
 };
 
 // Owns the token buckets and the timer that prunes them. The store, its cap
@@ -547,7 +544,15 @@ export function validateRequestSize(
 ): boolean {
   try {
     const jsonString = JSON.stringify(payload);
-    return new TextEncoder().encode(jsonString).length <= maxSizeBytes;
+    // `undefined` (a payload JSON cannot represent) measured as the 9-byte
+    // string "undefined" before, and both call sites already guard on null,
+    // so it stays a pass.
+    if (jsonString === undefined) return true;
+    // Buffer.byteLength measures. TextEncoder().encode allocated the whole
+    // payload a second time, as bytes, only to read `.length` — on every
+    // request, and on the upload path that is two megabytes of garbage per
+    // call for a number.
+    return Buffer.byteLength(jsonString, "utf8") <= maxSizeBytes;
   } catch {
     return false;
   }

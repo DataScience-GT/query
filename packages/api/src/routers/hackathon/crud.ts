@@ -57,23 +57,30 @@ function uniqueStrings(values: string[]) {
 }
 
 // Exact name first (including a percent-encoded name from old admin links),
-// then the slug the portal links with. The slug pass reads every edition —
-// there are a handful, and no index covers the normalisation.
+// then the slug the portal links with.
+//
+// Two reads at worst, not three. The name is unique and indexed, so a link
+// carrying it exactly still stops at one key lookup and never scans. Anything
+// else is answered from the one read of every edition that the slug pass was
+// always going to make anyway — the decoded name used to cost its own round
+// trip in front of it, and the public hackathon page is reached by slug with
+// this lookup deliberately uncached, so that trip landed on every load.
 async function findByNameOrSlug(db: DrizzleDB, value: string) {
   const candidates = uniqueStrings([value, decodeHackathonParam(value)]);
+  if (candidates.length === 0) return undefined;
 
-  for (const candidate of candidates) {
-    const exact = await db.query.hackathons.findFirst({
-      where: eq(hackathons.name, candidate),
-    });
-    if (exact) return exact;
-  }
+  const exact = await db.query.hackathons.findFirst({
+    where: eq(hackathons.name, candidates[0]!),
+  });
+  if (exact) return exact;
 
   const slugs = uniqueStrings(candidates.map(toSlug));
-  if (slugs.length === 0) return undefined;
-
   const all = await db.query.hackathons.findMany();
-  return all.find((row) => slugs.includes(toSlug(row.name)));
+
+  return (
+    all.find((row) => candidates.includes(row.name)) ??
+    all.find((row) => slugs.includes(toSlug(row.name)))
+  );
 }
 
 export const hackathonCrudRouter = createTRPCRouter({
@@ -119,34 +126,33 @@ export const hackathonCrudRouter = createTRPCRouter({
 
       const cacheKey = `hackathons:list:${adminViewer ? "admin" : "public"}:${input.status || "all"}:${input.upcoming ? "upcoming" : "all"}:${input.limit}:${input.offset}`;
 
-      // Check cache first
-      const cached = ctx.cache.get<HackathonList>(cacheKey);
-      if (cached) return cached;
+      // getOrSet: the entry lives VOLATILE_TTL seconds and is shared by every
+      // caller asking the same question, so a plain miss let the whole
+      // in-flight set run this query at once, five seconds apart, forever.
+      return await ctx.cache.getOrSet<HackathonList>(
+        cacheKey,
+        async () => {
+          const now = new Date();
 
-      const now = new Date();
-
-      const allHackathons = await (
-        ctx.db as DrizzleDB
-      ).query.hackathons.findMany({
-        where: and(
-          // Hidden means hidden from the public funnel, not from the people running the
-          // event. Filtering it for staff too emptied the judging dashboard, which
-          // picks an edition off here.
-          adminViewer ? undefined : eq(hackathons.isPublic, true),
-          input.status ? eq(hackathons.status, input.status) : undefined,
-          adminViewer
-            ? undefined
-            : notInArray(hackathons.status, STAFF_ONLY_STATUSES),
-          input.upcoming ? gte(hackathons.startDate, now) : undefined,
-        ),
-        limit: input.limit,
-        offset: input.offset,
-        orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
-      });
-
-      ctx.cache.set(cacheKey, allHackathons, VOLATILE_TTL);
-
-      return allHackathons;
+          return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+            where: and(
+              // Hidden means hidden from the public funnel, not from the people running the
+              // event. Filtering it for staff too emptied the judging dashboard, which
+              // picks an edition off here.
+              adminViewer ? undefined : eq(hackathons.isPublic, true),
+              input.status ? eq(hackathons.status, input.status) : undefined,
+              adminViewer
+                ? undefined
+                : notInArray(hackathons.status, STAFF_ONLY_STATUSES),
+              input.upcoming ? gte(hackathons.startDate, now) : undefined,
+            ),
+            limit: input.limit,
+            offset: input.offset,
+            orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
+          });
+        },
+        VOLATILE_TTL,
+      );
     }),
 
 
@@ -159,15 +165,14 @@ export const hackathonCrudRouter = createTRPCRouter({
       });
     };
 
-    const cached =
-      ctx.cache.get<Awaited<ReturnType<typeof fetchAll>>>(cacheKey);
-    if (cached !== null) return cached;
-
-    const allHackathons = await fetchAll();
-
-    ctx.cache.set(cacheKey, allHackathons, VOLATILE_TTL);
-
-    return allHackathons;
+    // Five-second TTL on a key the whole instance shares, so every expiry
+    // used to put one unfiltered table read per in-flight request onto the
+    // pool at the same moment. getOrSet lets the first one stand for all.
+    return await ctx.cache.getOrSet<Awaited<ReturnType<typeof fetchAll>>>(
+      cacheKey,
+      fetchAll,
+      VOLATILE_TTL,
+    );
   }),
 
 

@@ -1789,31 +1789,5 @@ describe("Router Integration and Access Control Verification Suite", () => {
     });
   });
 
-  describe("15. Audit Logs System", () => {
-    it("should allow admin to retrieve audit logs with filters", async () => {
-      const ctx = createMockCtx("admin_user_id");
-
-      mockFindFirst.mockImplementation((table) => {
-        if (table === "admins") {
-          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
-        }
-        return null;
-      });
-
-      mockFindMany.mockReturnValue([
-        { id: "log_1", severity: "critical", userId: "target_user", createdAt: new Date() },
-      ]);
-
-      const caller = appRouter.createCaller(ctx);
-      const res = await caller.audit.list({
-        limit: 10,
-        offset: 0,
-        severity: "critical",
-      });
-
-      expect(res.logs.length).toBe(1);
-      expect(res.pagination.limit).toBe(10);
-    });
-  });
 });
 

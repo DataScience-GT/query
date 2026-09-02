@@ -1,31 +1,74 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Users, Trophy, Calendar, TrendingUp, QrCode } from "lucide-react";
+import {
+  Users,
+  Trophy,
+  Calendar,
+  TrendingUp,
+  QrCode,
+  GraduationCap,
+  UserCheck,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+const Line = dynamic(() => import("react-chartjs-2").then((m) => m.Line), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
+const Bar = dynamic(() => import("react-chartjs-2").then((m) => m.Bar), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
+
+function ChartSkeleton() {
+  return (
+    <div className="h-full w-full animate-pulse bg-white/[0.03]" aria-hidden />
+  );
+}
+
+/**
+ * Two hues, checked against the surface they sit on rather than picked by eye:
+ * teal against violet clears the colour-blind separation floor in both themes,
+ * and each theme's teal is the one that stays a colour instead of reading grey.
+ */
+const PALETTE = {
+  dark: { members: "#00a8a8", bootcamp: "#8b5cf6" },
+  light: { members: "#008b80", bootcamp: "#7c3aed" },
+};
+
+/** `2026-fall` is how it is stored; nobody should have to read it that way. */
+function termLabel(term: string) {
+  const [year, season] = term.split("-");
+  if (!year || !season) return term;
+  return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
+}
+
+/** `2026-01` becomes `Jan 26`. Twelve of these have to fit one axis. */
+function monthLabel(month: string) {
+  const [year, index] = month.split("-");
+  const date = new Date(Date.UTC(Number(year), Number(index) - 1, 1));
+  const name = date.toLocaleString("en-US", {
+    month: "short",
+    timeZone: "UTC",
+  });
+  return `${name} ${year?.slice(2)}`;
+}
 
 interface StatCardProps {
   icon: LucideIcon;
   title: string;
   value: string | number;
   subtitle?: string;
-  trend?: {
-    positive?: boolean;
-    negative?: boolean;
-    percent: number;
-  };
 }
 
-function StatCard({
-  icon: Icon,
-  title,
-  value,
-  subtitle,
-  trend,
-}: StatCardProps) {
+function StatCard({ icon: Icon, title, value, subtitle }: StatCardProps) {
   return (
     <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
       {/* Background gradients */}
@@ -44,23 +87,7 @@ function StatCard({
             {value}
           </p>
           {subtitle && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-text-muted font-mono">
-                {subtitle}
-              </span>
-              {trend?.positive && (
-                <span className="text-xs text-accent flex items-center gap-1 group-hover/icon:gap-2 transition-ui">
-                  <TrendingUp className="h-3 w-3 animate-in slide-in-from-bottom-2" />
-                  {trend.percent}%
-                </span>
-              )}
-              {trend?.negative && (
-                <span className="text-xs text-amber-500 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 rotate-180" />
-                  {trend.percent}%
-                </span>
-              )}
-            </div>
+            <span className="text-xs text-text-muted font-mono">{subtitle}</span>
           )}
           {/* Decorative accent line */}
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -70,9 +97,24 @@ function StatCard({
   );
 }
 
+function CardSkeleton() {
+  return (
+    <LiquidGlass className="p-6">
+      <div className="animate-pulse space-y-3">
+        <div className="h-14 w-14 rounded-none bg-white/5" />
+        <div className="h-4 w-24 bg-white/5 rounded" />
+        <div className="h-8 w-16 bg-white/5 rounded" />
+      </div>
+    </LiquidGlass>
+  );
+}
+
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const [chartsReady, setChartsReady] = useState(false);
+  const [showTable, setShowTable] = useState(false);
 
   const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
     undefined,
@@ -82,10 +124,138 @@ export default function AnalyticsPage() {
     { enabled: !!session, refetchInterval: 15000 },
   );
 
+  // Growth moves on a monthly clock, so it is fetched once rather than polled.
+  const growth = trpc.admin.growth.useQuery(undefined, { enabled: !!session });
+
+  useEffect(() => {
+    import("chart.js").then(
+      ({
+        Chart,
+        LineElement,
+        PointElement,
+        BarElement,
+        CategoryScale,
+        LinearScale,
+        Tooltip,
+      }) => {
+        Chart.register(
+          LineElement,
+          PointElement,
+          BarElement,
+          CategoryScale,
+          LinearScale,
+          Tooltip,
+        );
+        setChartsReady(true);
+      },
+    );
+  }, []);
+
+  // Canvas cannot read a CSS variable, so the theme is resolved here instead.
+  const light = resolvedTheme === "light";
+  const colors = PALETTE[light ? "light" : "dark"];
+  const ink = light ? "#71717a" : "#707070";
+  const grid = light ? "#e4e4e7" : "#1f1f1f";
+
+  const options = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index" as const, intersect: false },
+      plugins: {
+        // The legend is rendered as HTML above the chart, where it can carry a
+        // shape as well as a colour.
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: light ? "#ffffff" : "#121212",
+          borderColor: grid,
+          borderWidth: 1,
+          titleColor: light ? "#09090b" : "#ededed",
+          bodyColor: ink,
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { color: grid },
+          ticks: { color: ink, font: { size: 11 } },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: grid },
+          border: { display: false },
+          ticks: { color: ink, font: { size: 11 }, precision: 0 },
+        },
+      },
+    }),
+    [light, grid, ink],
+  );
+
   if (status === "unauthenticated") {
     router.push("/login");
     return null;
   }
+
+  const months = growth.data?.months ?? [];
+  const terms = growth.data?.terms ?? [];
+  const totals = growth.data?.totals;
+  const ready = chartsReady && !growth.isPending;
+
+  const growthData = {
+    labels: months.map((row) => monthLabel(row.month)),
+    datasets: [
+      {
+        label: "Members",
+        data: months.map((row) => row.members),
+        borderColor: colors.members,
+        backgroundColor: colors.members,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointStyle: "circle" as const,
+        tension: 0.25,
+      },
+      {
+        label: "Bootcamp members",
+        data: months.map((row) => row.bootcampMembers),
+        borderColor: colors.bootcamp,
+        backgroundColor: colors.bootcamp,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        // Marker shape, not colour alone, separates the two lines.
+        pointStyle: "rectRot" as const,
+        tension: 0.25,
+      },
+    ],
+  };
+
+  const joinedData = {
+    labels: months.map((row) => monthLabel(row.month)),
+    datasets: [
+      {
+        label: "Joined",
+        data: months.map((row) => row.joined),
+        backgroundColor: colors.members,
+        borderRadius: 4,
+        borderSkipped: "bottom" as const,
+      },
+    ],
+  };
+
+  const termData = {
+    labels: terms.map((row) => termLabel(row.term)),
+    datasets: [
+      {
+        label: "Enrolled",
+        data: terms.map((row) => row.enrolled),
+        backgroundColor: colors.bootcamp,
+        borderRadius: 4,
+        borderSkipped: "bottom" as const,
+      },
+    ],
+  };
 
   return (
     <>
@@ -107,23 +277,204 @@ export default function AnalyticsPage() {
             Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
           <p className="relative text-text-muted text-sm font-mono">
-            View comprehensive statistics across all events, hackathons, and
-            user engagement.
+            Membership growth, bootcamp enrolment, and turnout across every
+            event and hackathon.
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Membership */}
+        <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
+          Membership
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          {growth.isPending ? (
+            [1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)
+          ) : (
+            <>
+              <StatCard
+                icon={Users}
+                title="Members"
+                value={totals?.members ?? 0}
+                subtitle="all time"
+              />
+              <StatCard
+                icon={UserCheck}
+                title="Active Now"
+                value={totals?.activeMembers ?? 0}
+                subtitle="memberships not ended"
+              />
+              <StatCard
+                icon={GraduationCap}
+                title="Bootcamp This Term"
+                value={totals?.bootcampThisTerm ?? 0}
+                subtitle={totals ? termLabel(totals.currentTerm) : undefined}
+              />
+              <StatCard
+                icon={TrendingUp}
+                title="Bootcamp All Time"
+                value={totals?.bootcampAllTime ?? 0}
+                subtitle={
+                  totals?.members
+                    ? `${Math.round((totals.bootcampAllTime / totals.members) * 100)}% of members`
+                    : undefined
+                }
+              />
+            </>
+          )}
+        </div>
+
+        {/* Growth */}
+        <LiquidGlass className="p-6 mb-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">
+              Members and bootcamp, running total
+            </h2>
+            {/* Identity never rests on colour alone. */}
+            <ul className="flex items-center gap-4">
+              <li className="flex items-center gap-2 font-mono text-xs text-[var(--text-muted)]">
+                <span
+                  aria-hidden
+                  className="h-2 w-4"
+                  style={{ backgroundColor: colors.members }}
+                />
+                Members
+              </li>
+              <li className="flex items-center gap-2 font-mono text-xs text-[var(--text-muted)]">
+                <span
+                  aria-hidden
+                  className="h-2 w-4 rotate-45"
+                  style={{ backgroundColor: colors.bootcamp }}
+                />
+                Bootcamp members
+              </li>
+            </ul>
+          </div>
+          <div className="h-72">
+            {ready ? (
+              <Line
+                data={growthData}
+                options={options}
+                aria-label="Running total of members and of bootcamp members, by month"
+              />
+            ) : (
+              <ChartSkeleton />
+            )}
+          </div>
+          <p className="mt-3 text-xs text-[var(--text-subtle)]">
+            A bootcamp member counts from the month they joined the club, not
+            the month they bought the add-on — only the term they bought is
+            recorded.
+          </p>
+        </LiquidGlass>
+
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
+          <LiquidGlass className="p-6">
+            <h2 className="mb-4 text-lg font-bold text-[var(--text-primary)]">
+              New members per month
+            </h2>
+            <div className="h-64">
+              {ready ? (
+                <Bar
+                  data={joinedData}
+                  options={options}
+                  aria-label="Members who joined, by month"
+                />
+              ) : (
+                <ChartSkeleton />
+              )}
+            </div>
+          </LiquidGlass>
+
+          <LiquidGlass className="p-6">
+            <h2 className="mb-4 text-lg font-bold text-[var(--text-primary)]">
+              Bootcamp enrolment per term
+            </h2>
+            <div className="h-64">
+              {!ready ? (
+                <ChartSkeleton />
+              ) : terms.length === 0 ? (
+                <p className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
+                  Nobody has enrolled in a bootcamp yet.
+                </p>
+              ) : (
+                <Bar
+                  data={termData}
+                  options={options}
+                  aria-label="Bootcamp enrolment, by term"
+                />
+              )}
+            </div>
+          </LiquidGlass>
+        </div>
+
+        <div className="mb-10">
+          <button
+            type="button"
+            onClick={() => setShowTable((open) => !open)}
+            aria-expanded={showTable}
+            className="border border-[var(--border-subtle)] bg-white/5 px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] transition-colors hover:bg-white/10"
+          >
+            {showTable ? "Hide the numbers" : "Show the numbers"}
+          </button>
+
+          {showTable && (
+            <div className="mt-4 overflow-x-auto border border-[var(--border-subtle)]">
+              <table className="w-full border-collapse text-sm">
+                <caption className="sr-only">
+                  The same twelve months as the charts above, as numbers.
+                </caption>
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] bg-white/5 text-left font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
+                    <th scope="col" className="px-4 py-3">
+                      Month
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-right">
+                      Joined
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-right">
+                      Members
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-right">
+                      Bootcamp members
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {months.map((row) => (
+                    <tr
+                      key={row.month}
+                      className="border-b border-[var(--border-subtle)] last:border-b-0"
+                    >
+                      <th
+                        scope="row"
+                        className="px-4 py-3 text-left font-normal text-[var(--text-primary)]"
+                      >
+                        {monthLabel(row.month)}
+                      </th>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.joined}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.members}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.bootcampMembers}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Events and hackathons */}
+        <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
+          Events and hackathons
+        </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
           {isLoading ? (
-            [1, 2, 3, 4].map((i) => (
-              <LiquidGlass key={i} className="p-6">
-                <div className="animate-pulse space-y-3">
-                  <div className="h-14 w-14 rounded-none bg-white/5" />
-                  <div className="h-4 w-24 bg-white/5 rounded" />
-                  <div className="h-8 w-16 bg-white/5 rounded" />
-                </div>
-              </LiquidGlass>
-            ))
+            [1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)
           ) : (
             <>
               <StatCard
@@ -145,7 +496,7 @@ export default function AnalyticsPage() {
                 subtitle="active and upcoming"
               />
               <StatCard
-                icon={TrendingUp}
+                icon={QrCode}
                 title="Check-ins Today"
                 value={stats?.checkinsToday || 0}
                 subtitle="scanned via QR codes"
@@ -153,95 +504,6 @@ export default function AnalyticsPage() {
             </>
           )}
         </div>
-
-        {/* Charts Section - Enhanced */}
-        <div className="grid gap-6 lg:grid-cols-2 mb-8">
-          {/* Registration Trend */}
-          <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-              <svg
-                className="w-40 h-40 text-accent"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-ui">
-              Registration Trend
-            </h2>
-            <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
-              {/* Chart background decorations */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-              <p className="relative text-text-muted text-sm text-center z-10">
-                Chart visualization for registration trends
-              </p>
-            </div>
-          </LiquidGlass>
-
-          {/* Event Types */}
-          <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-              <svg
-                className="w-36 h-36 text-accent"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M19.5 12c0 1.232-.043 2.422-.134 3.573M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path d="M12 17.75V.188A2.02 2.02 0 009.99 0 4.02 4.02 0 005.97 2.01L4 12c0 4.17 2.96 7.7 7 9" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-ui">
-              Event Distribution
-            </h2>
-            <div className="relative h-64 bg-[var(--bg-primary)]/20 rounded-none flex items-center justify-center border border-[var(--border-subtle)] overflow-hidden">
-              {/* Chart background decorations */}
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
-              <p className="relative text-text-muted text-sm text-center z-10">
-                Pie chart for event type breakdown
-              </p>
-            </div>
-          </LiquidGlass>
-        </div>
-
-        {/* Recent Activity - Enhanced */}
-        <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg
-              className="w-32 h-32 text-accent"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white to-gray-400 transition-ui">
-            Recent Activity
-          </h2>
-          <div className="space-y-3">
-            {isLoading ? (
-              [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 p-3 rounded-none bg-white/5 animate-pulse group-hover:bg-white/[0.08] transition-colors"
-                >
-                  <div className="h-10 w-10 rounded-sm bg-white/10 group-hover:bg-accent/10 transition-colors" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-32 bg-white/10 rounded mb-2 group-hover:bg-accent/10 transition-colors" />
-                    <div className="h-3 w-48 bg-white/5 rounded group-hover:bg-accent/5 transition-colors" />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-text-muted text-sm text-center py-8 group-hover:text-[var(--text-muted)] transition-colors">
-                No recent activity to display
-              </div>
-            )}
-          </div>
-        </LiquidGlass>
       </div>
     </>
   );
