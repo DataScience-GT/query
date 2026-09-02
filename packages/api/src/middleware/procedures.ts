@@ -119,18 +119,24 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
   const userId = ctx.userId as string;
 
   const cacheKey = `${CacheKeys.projectLeader(userId)}:role`;
-  let leader = ctx.cache.get<typeof projectLeaders.$inferSelect>(cacheKey);
+  // The absent row is cached too, as `false`. An admin passes this gate
+  // without a project_leader row, so every initiative call staff make used to
+  // pay a lookup that was never going to return anything. Grants clear
+  // `project-leader:<id>*`, which covers the negative as well.
+  let leader = ctx.cache.get<typeof projectLeaders.$inferSelect | false>(
+    cacheKey,
+  );
 
-  if (!leader) {
+  if (leader === null) {
     leader =
       (await db.query.projectLeaders.findFirst({
         where: and(
           eq(projectLeaders.userId, userId),
           eq(projectLeaders.isActive, true),
         ),
-      })) ?? null;
+      })) ?? false;
 
-    if (leader) ctx.cache.set(cacheKey, leader, 60);
+    ctx.cache.set(cacheKey, leader, 60);
   }
 
   // Resolved even when a leader row exists: somebody can be both, and the
@@ -148,7 +154,7 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
   return next({
     ctx: {
       ...ctx,
-      projectLeader: leader ?? null,
+      projectLeader: leader || null,
       isPlatformAdmin,
     },
   });
@@ -216,8 +222,9 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput })
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Judge access required for this hackathon",
-    });
-  }
+      });
+    }
 
-  return next({ ctx: { ...ctx, judge } });
-});
+    return next({ ctx: { ...ctx, judge } });
+  },
+);

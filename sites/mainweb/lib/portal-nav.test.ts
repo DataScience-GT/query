@@ -112,7 +112,6 @@ describe("portalNavSections", () => {
       "Memberships",
       "Staff & Roles",
       "Analytics",
-      "Audit Log",
       "Docs",
       "Settings",
     ]);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { GraduationCap, Check } from "lucide-react";
+import { GraduationCap, Check, Copy, Mail } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { trpc } from "@/lib/trpc";
 
@@ -12,6 +12,82 @@ function termLabel(term: string) {
   const [year, season] = term.split("-");
   if (!year || !season) return term;
   return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
+}
+
+/** A mailto with the whole cohort BCC'd stops being clickable somewhere around
+ *  2000 characters, and browsers differ on where. Past that, copying is the only
+ *  thing that reliably works. */
+const MAILTO_LIMIT = 1800;
+
+function CohortEmails({ emails }: { emails: string[] }) {
+  const [copied, setCopied] = useState(false);
+  const list = emails.join(", ");
+  const mailto = `mailto:?bcc=${encodeURIComponent(emails.join(","))}`;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(list);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard is blocked without a secure context or permission; the
+      // addresses are on screen below either way.
+      setCopied(false);
+    }
+  };
+
+  return (
+    <section className="mb-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
+            Email the cohort
+          </h2>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
+            {emails.length} address{emails.length === 1 ? "" : "es"}, everyone
+            enrolled this term.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={copy}
+            className="flex items-center gap-2 border border-[var(--border-subtle)] bg-white/5 px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] transition-colors hover:bg-white/10"
+          >
+            <Copy aria-hidden="true" className="h-3.5 w-3.5" />
+            {copied ? "Copied" : "Copy addresses"}
+          </button>
+
+          {mailto.length <= MAILTO_LIMIT && (
+            <a
+              href={mailto}
+              className="flex items-center gap-2 border border-accent/40 bg-accent/10 px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest text-accent transition-colors hover:bg-accent/20"
+            >
+              <Mail aria-hidden="true" className="h-3.5 w-3.5" />
+              Open in mail app
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Selectable as well as copyable: a locked-down browser refuses the
+          clipboard API, and this still works. */}
+      <p className="mt-4 select-all break-words font-mono text-xs text-[var(--text-subtle)]">
+        {list}
+      </p>
+
+      <p aria-live="polite" className="sr-only">
+        {copied ? "Addresses copied to the clipboard." : ""}
+      </p>
+
+      {mailto.length > MAILTO_LIMIT && (
+        <p className="mt-3 text-xs text-[var(--text-subtle)]">
+          Too many addresses for a mail-app link. Copy them and paste into BCC.
+        </p>
+      )}
+    </section>
+  );
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -110,6 +186,10 @@ export default function AdminBootcampPage() {
             }
           />
         </div>
+
+        {members.length > 0 && (
+          <CohortEmails emails={members.map((member) => member.email)} />
+        )}
 
         {sessions.length === 0 ? (
           <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">

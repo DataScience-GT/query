@@ -66,7 +66,11 @@ export const trpcDuration = new Histogram({
   help: "Portal API call duration, by procedure and outcome.",
   labelNames: ["procedure", "type", "ok"] as const,
   // Tuned for a Neon round trip from a serverless instance, not for a CDN.
-  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  // 0.75 and 1.5 exist for the tail specifically: a quantile is interpolated
+  // inside whichever bucket it lands in, and p99 sits above p95, so with 1
+  // and 2.5 adjacent the number the alert fires on was a straight line drawn
+  // across the range where it actually lives.
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2.5, 5, 10],
   registers: [registry],
 });
 

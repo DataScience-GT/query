@@ -69,30 +69,36 @@ export const judgePortalRouter = createTRPCRouter({
   getMyAssignments: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
-    // A platform with no hackathon at all is a missing judging context, not an
-    // empty assignment list.
-    const anyHackathon = await db.query.hackathons.findFirst({
-      columns: { id: true },
-    });
+    // Both reads answer independent questions, so they go together. In
+    // sequence they put two Neon round trips in front of the judge landing
+    // page for no reason — the judge rows do not depend on the existence
+    // check, they only outlive it.
+    const [anyHackathon, myJudges] = await Promise.all([
+      // A platform with no hackathon at all is a missing judging context, not an
+      // empty assignment list.
+      db.query.hackathons.findFirst({
+        columns: { id: true },
+      }),
+      // This listing spans every hackathon the caller judges, so it resolves judge
+      // rows from the user rather than one hackathon context — pinning it to the
+      // newest hides the assignments of everyone judging an earlier one.
+      db.query.judges.findMany({
+        where: and(
+          eq(judges.userId, ctx.userId as string),
+          // Every other judging entry point requires an active row; an applicant never
+          // activated should not see an assignment list and then hit FORBIDDEN.
+          eq(judges.isActive, true),
+        ),
+        columns: { id: true },
+      }),
+    ]);
+
     if (!anyHackathon) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "No hackathon context found for judging",
       });
     }
-
-    // This listing spans every hackathon the caller judges, so it resolves judge
-    // rows from the user rather than one hackathon context — pinning it to the
-    // newest hides the assignments of everyone judging an earlier one.
-    const myJudges = await db.query.judges.findMany({
-      where: and(
-        eq(judges.userId, ctx.userId as string),
-        // Every other judging entry point requires an active row; an applicant never
-        // activated should not see an assignment list and then hit FORBIDDEN.
-        eq(judges.isActive, true),
-      ),
-      columns: { id: true },
-    });
 
     const assignments = await db.query.judgeAssignments.findMany({
       where: inArray(
