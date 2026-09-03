@@ -64,6 +64,17 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `DDOS_CLEANUP_INTERVAL_MS` | Code default if unset |
 | `CSP_ENFORCE` | `true` turns CSP from Report-Only into enforcing. Default is report-only |
 
+## Slack (`@dsgt`)
+
+| Variable | Notes |
+| --- | --- |
+| `SLACK_BOT_TOKEN` | Bot User OAuth Token. App Hosting secret `SLACK_BOT_TOKEN` |
+| `SLACK_SIGNING_SECRET` | Request signature. App Hosting secret `SLACK_SIGNING_SECRET` |
+| `SLACK_SOCKET_MODE` | App Hosting sets `false`. Local Socket Mode defaults to on |
+| `SLACK_APP_TOKEN` | Local Socket Mode only (`xapp-...`). Not set in production |
+
+Create the Secret Manager secrets before the App Hosting deploy that references them. Install steps: [`apps/dsgt-slack/README.md`](../../apps/dsgt-slack/README.md).
+
 ## Runtime (App Hosting)
 
 | Variable | Value |

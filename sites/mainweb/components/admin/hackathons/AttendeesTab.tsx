@@ -184,7 +184,7 @@ export function AttendeesTab({
     setExporting(true);
     let all: Awaited<
       ReturnType<typeof utils.hackathon.exportAttendees.fetch>
-    > = [];
+    >;
     try {
       all = await utils.hackathon.exportAttendees.fetch({
         hackathonId,

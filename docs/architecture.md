@@ -15,6 +15,7 @@
 │  / /team /events       /login /dashboard /admin /judge …    │
 │                             │                               │
 │                    /api/trpc  /api/auth  /api/webhooks      │
+│                         stripe + slack                      │
 └──────────┬──────────────────┴───────────────┬───────────────┘
            │                                  │
     ┌──────▼──────┐                    ┌──────▼──────┐
@@ -91,7 +92,9 @@ Stripe Checkout and Payment Intents both exist. Amounts are defined once in `@qu
 | Bootcamp add-on (on top of membership) | `1000` ($10) |
 | Max charge treated as membership | `10000` |
 
-The webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linking can also happen from the portal (`stripe.linkAccount`, `stripe.attemptAutoLink`) and at sign-in.
+The Stripe webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linking can also happen from the portal (`stripe.linkAccount`, `stripe.attemptAutoLink`) and at sign-in.
+
+The Slack Events API webhook is `sites/mainweb/app/(portal)/api/webhooks/slack/route.ts`. It imports reply text from `apps/dsgt-slack` and verifies `SLACK_SIGNING_SECRET`. Production is HTTP on App Hosting (`{AUTH_URL}/api/webhooks/slack`); Socket Mode is local-only. See [`apps/dsgt-slack/README.md`](../apps/dsgt-slack/README.md).
 
 ## Caching
 
@@ -106,9 +109,12 @@ The webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linkin
 
 The event site does not talk to the database. Interest and registration live on the portal; the marketing site links to `/login?callbackUrl=/hacklytics`.
 
+## Apps
+
+`apps/dsgt-slack` (`@query/dsgt-slack`) is the `@dsgt` Slack bot. Reply copy lives in that package. Production HTTP is the mainweb route `/api/webhooks/slack` on App Hosting. Socket Mode is a local-only process in the same package.
+
 ## What is not in this repo
 
 - `packages/consts` is mentioned in older notes and is **not** a workspace today.
-- `apps/*` is listed in `pnpm-workspace.yaml` but there is no `apps/` directory.
 - `graphify-out/` is generated graph output, not product code.
 - `trust badge/` holds MLH league badge SVGs for the event site.

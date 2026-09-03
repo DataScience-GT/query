@@ -18,6 +18,7 @@ Member-facing overview — what it is, what members use, current status, and how
 | --- | --- | --- |
 | `sites/mainweb` | `web` | Public club site + authenticated portal (App Hosting) |
 | `sites/hacklytics2027` | `hacklytics2027` | Hacklytics 2027 marketing site, static export (Firebase Hosting) |
+| `apps/dsgt-slack` | `@query/dsgt-slack` | `@dsgt` Slack bot (HTTP webhook on mainweb in production) |
 | `packages/api` | `@query/api` | tRPC routers, middleware, pricing |
 | `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
 | `packages/db` | `@query/db` | Drizzle schema, client, membership rules |

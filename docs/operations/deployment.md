@@ -28,7 +28,15 @@ Run: `node sites/mainweb/.next/standalone/sites/mainweb/server.js`
 
 Secrets are GCP Secret Manager. Grant the App Hosting backend access once per secret, e.g. `firebase apphosting:secrets:grantaccess DATABASE_URL --backend query`.
 
-Env mapping (names only) is in `apphosting.yaml`: `DATABASE_URL`, `AUTH_SECRET` (also copied to `NEXTAUTH_SECRET`), Google/GitHub OAuth, Stripe, SMTP, DDoS ceilings, `TRUSTED_PROXY_HOPS=1`.
+Env mapping (names only) is in `apphosting.yaml`: `DATABASE_URL`, `AUTH_SECRET` (also copied to `NEXTAUTH_SECRET`), Google/GitHub OAuth, Stripe, Slack (`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_SOCKET_MODE=false`), SMTP, DDoS ceilings, `TRUSTED_PROXY_HOPS=1`.
+
+Slack Event Subscriptions, slash commands, and interactivity must use the App Hosting origin (`AUTH_URL` / `NEXTAUTH_URL` in `apphosting.yaml`, host `datasciencegt.org`), not Firebase Hosting `dsgt-website` / `sites/mainweb/out`:
+
+```text
+{AUTH_URL}/api/webhooks/slack
+```
+
+Create `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` in Secret Manager before that deploy. See [`apps/dsgt-slack/README.md`](../../apps/dsgt-slack/README.md).
 
 ## Hacklytics — Firebase Hosting
 

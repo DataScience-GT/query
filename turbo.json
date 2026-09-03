@@ -82,7 +82,11 @@
     "DDOS_BLOCK_DURATION_MS",
     "DDOS_BURST_THRESHOLD",
     "DDOS_BURST_WINDOW_MS",
-    "DDOS_CLEANUP_INTERVAL_MS"
+    "DDOS_CLEANUP_INTERVAL_MS",
+    "SLACK_BOT_TOKEN",
+    "SLACK_SIGNING_SECRET",
+    "SLACK_APP_TOKEN",
+    "SLACK_SOCKET_MODE"
   ],
   "globalPassThroughEnv": ["NODE_ENV", "CI", "npm_lifecycle_event"]
 }

@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck",
-    "test": "vitest run packages/api packages/db sites/mainweb/lib"
+    "test": "vitest run packages/api packages/db sites/mainweb/lib apps/dsgt-slack"
   },
   "dependencies": {
     "next": "16.3.0",
@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "turbo": "^2.9.14",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.10"
   },
   "pnpm": {
     "overrides": {
