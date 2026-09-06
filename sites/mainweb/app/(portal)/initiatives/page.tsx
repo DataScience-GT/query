@@ -27,7 +27,7 @@ type MyProposal = RouterOutputs["initiative"]["myProposals"][number];
 /**
  * Proposing something to run, rather than joining something that exists.
  *
- * An admin reviews it; approving turns the proposal into a draft initiative
+ * An admin reviews it; approving turns the proposal into a draft project
  * and makes the proposer a project leader, so this is the one place a member
  * can earn that role.
  */
@@ -61,7 +61,7 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
           onClick={() => setOpen(true)}
           className="shrink-0 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
         >
-          Propose an initiative
+          Propose a project
         </button>
       </LiquidGlass>
     );
@@ -75,7 +75,7 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
           propose.mutate(toInput(draft));
         }}
       >
-        <h2 className="mb-4 font-semibold text-white">Propose an initiative</h2>
+        <h2 className="mb-4 font-semibold text-white">Propose a project</h2>
         <InitiativeFields draft={draft} onChange={setDraft} />
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -143,7 +143,7 @@ function ProposalRow({ proposal }: { proposal: MyProposal }) {
             <p className="mt-2 text-sm text-white/60">
               Approved — finish writing it and open it from{" "}
               <Link href="/lead" className="font-semibold text-white underline">
-                My Initiatives
+                My Projects
               </Link>
               .
             </p>
@@ -180,7 +180,7 @@ function OpenRow({
   const [writing, setWriting] = useState(false);
   const [pitch, setPitch] = useState("");
 
-  // Both lists move together: applying takes an initiative out of one and puts
+  // Both lists move together: applying takes a project out of one and puts
   // it into the other, so refreshing one alone renders it twice.
   const refresh = async () => {
     await Promise.all([
@@ -189,13 +189,38 @@ function OpenRow({
     ]);
   };
 
+  const [resume, setResume] = useState<{
+    fileName: string;
+    dataUrl: string;
+  } | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+
   const join = trpc.initiative.requestToJoin.useMutation({
     onSuccess: async () => {
       setWriting(false);
       setPitch("");
+      setResume(null);
       await refresh();
     },
   });
+
+  // 2 MB is the server's whole-payload cap; catching it here saves a round
+  // trip and says which file was too big.
+  const readResume = (file: File | undefined) => {
+    setResumeError(null);
+    if (!file) return setResume(null);
+    if (file.type !== "application/pdf") {
+      return setResumeError("Your resume must be a PDF.");
+    }
+    if (file.size > 1.4 * 1024 * 1024) {
+      return setResumeError("That PDF is over 1.4 MB. Please compress it.");
+    }
+    const reader = new FileReader();
+    reader.onload = () =>
+      setResume({ fileName: file.name, dataUrl: String(reader.result) });
+    reader.onerror = () => setResumeError("Could not read that file.");
+    reader.readAsDataURL(file);
+  };
 
   return (
     <LiquidGlass className="p-5">
@@ -239,7 +264,10 @@ function OpenRow({
       {!canApply && !initiative.isFull && (
         <p className="mt-3 text-sm text-white/50">
           An active membership is required to join.{" "}
-          <Link href="/dashboard" className="font-semibold text-white underline">
+          <Link
+            href="/dashboard"
+            className="font-semibold text-white underline"
+          >
             Become a member
           </Link>
         </p>
@@ -252,7 +280,8 @@ function OpenRow({
             event.preventDefault();
             join.mutate({
               initiativeId: initiative.id,
-              pitch: pitch.trim() || undefined,
+              pitch: pitch.trim(),
+              resume: resume ?? undefined,
             });
           }}
         >
@@ -260,22 +289,47 @@ function OpenRow({
             htmlFor={`pitch-${initiative.id}`}
             className="text-xs font-semibold uppercase tracking-wide text-white/50"
           >
-            Anything the leader should know
+            Why do you want to join?
           </label>
           <textarea
             id={`pitch-${initiative.id}`}
             rows={3}
+            required
             maxLength={1000}
             value={pitch}
             onChange={(event) => setPitch(event.target.value)}
-            placeholder="Optional. What you want to work on, or what you have built before."
+            placeholder="What you want to work on, and what you have built before."
             className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
           />
+
+          <label
+            htmlFor={`resume-${initiative.id}`}
+            className="mt-4 block text-xs font-semibold uppercase tracking-wide text-white/50"
+          >
+            Resume (PDF, optional)
+          </label>
+          <input
+            id={`resume-${initiative.id}`}
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(event) => readResume(event.target.files?.[0])}
+            className="mt-2 block w-full text-sm text-white/70 file:mr-3 file:rounded-full file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-white/20"
+          />
+          {resume && (
+            <p className="mt-2 text-xs text-white/50">
+              Attached: {resume.fileName}
+            </p>
+          )}
+          {resumeError && (
+            <p aria-live="polite" className="mt-2 text-xs text-red-300">
+              {resumeError}
+            </p>
+          )}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="submit"
-              disabled={join.isPending}
+              disabled={join.isPending || !pitch.trim()}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
             >
               {join.isPending ? "Sending…" : "Send application"}
@@ -316,7 +370,7 @@ function ApplicationRow({ application }: { application: MyApplication }) {
     },
   });
 
-  // Nothing to leave once the leader has said no, and an archived initiative is
+  // Nothing to leave once the leader has said no, and an archived project is
   // over — the control would change nothing either way.
   const canWithdraw =
     application.myStatus !== "rejected" && application.archivedAt === null;
@@ -424,7 +478,7 @@ export default function InitiativesPage() {
       <header className="mb-8">
         <div className="flex items-center gap-3">
           <Rocket className="h-6 w-6 text-white/70" />
-          <h1 className="text-2xl font-bold text-white">Initiatives</h1>
+          <h1 className="text-2xl font-bold text-white">Projects</h1>
         </div>
         <p className="mt-2 text-white/60">
           Projects the club runs year-round. Leaders post what they are building
@@ -485,7 +539,7 @@ export default function InitiativesPage() {
             <p className="font-semibold text-white">
               {applications.length > 0
                 ? "Nothing else open right now."
-                : "No initiatives are taking applications."}
+                : "No projects are taking applications."}
             </p>
             <p className="mt-2 text-sm text-white/60">
               Leaders open these up through the year. Check back, or ask at a

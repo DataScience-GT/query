@@ -71,3 +71,40 @@ groups:
         for: 10m
         annotations:
           summary: "p95 portal API latency above 2s"
+
+  # Tail latency. The p95 alert above says the median experience held; this is
+  # the one that catches a slow path only a fraction of calls take — a cold
+  # pool, a cache key expiring under load, one procedure scanning a table.
+  #
+  # Recorded, not only alerted on: histogram_quantile over a 5m rate is the
+  # most expensive expression on the dashboard, and both the alert and the
+  # per-procedure panel want it. Read it against the bucket edges — the top
+  # ones are 1s, 1.5s, 2.5s, 5s, 10s, so a p99 quoted between them is an
+  # interpolation, not a measurement.
+  - name: latency
+    rules:
+      - record: job:dsgt_trpc_duration_seconds:p99
+        expr: >-
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(dsgt_trpc_duration_seconds_bucket[5m]))
+          )
+
+      # Which procedure to open first. Same expression, kept by name.
+      - record: procedure:dsgt_trpc_duration_seconds:p99
+        expr: >-
+          histogram_quantile(
+            0.99,
+            sum by (le, procedure) (rate(dsgt_trpc_duration_seconds_bucket[5m]))
+          )
+
+      - alert: PortalApiTailSlow
+        expr: job:dsgt_trpc_duration_seconds:p99 > 5
+        for: 10m
+        annotations:
+          summary: "p99 portal API latency above 5s"
+          description: >-
+            One call in a hundred is taking over five seconds. Sort
+            procedure:dsgt_trpc_duration_seconds:p99 to see which, and check
+            dsgt_nodejs_eventloop_lag_p99_seconds alongside it — a stall in the
+            instance moves every procedure at once, a slow query moves one.

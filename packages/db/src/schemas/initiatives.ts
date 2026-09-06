@@ -127,7 +127,14 @@ export const initiativeApplications = pgTable(
     status: text("status", { enum: applicationStatuses })
       .notNull()
       .default("pending"),
+    /** Why they want to join, in their words. */
     pitch: text("pitch"),
+    // The resume as a data URL. No object storage exists here — profile images
+    // already live in the database the same way — so it is capped at 2 MB of
+    // PDF and never selected by the queue query, only by applicantResume.
+    resumeFileName: text("resume_file_name"),
+    resumeData: text("resume_data"),
+    resumeUploadedAt: timestamp("resume_uploaded_at"),
     // Re-stamped on re-apply, so the leader's queue is ordered by when the hand
     // actually went up.
     appliedAt: timestamp("applied_at").defaultNow().notNull(),

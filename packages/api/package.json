@@ -15,7 +15,9 @@
     "./trpc": "./src/trpc.ts",
     "./pricing": "./src/services/pricing.ts",
     "./email-limits": "./src/services/email-limits.ts",
-    "./metrics": "./src/services/metrics.ts"
+    "./metrics": "./src/services/metrics.ts",
+    "./portal-context": "./src/types/portal-context.ts",
+    "./resume-list": "./src/services/resume-list.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
