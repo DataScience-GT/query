@@ -14,8 +14,8 @@ import {
 import { eq, and, count, gte, inArray } from "drizzle-orm";
 import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
 import { isAdmin, isSuperAdmin } from "../middleware/procedures";
-import { currentTerm } from "@query/db/services/membership";
-import { isExpiredAdmin } from "../types/portal-context";
+import { compareTerms, currentTerm } from "@query/db/services/membership";
+import { isExpiredAdmin, isStaffRole } from "../types/portal-context";
 import type { DrizzleDB } from "@query/db";
 
 export const adminRouter = createTRPCRouter({
@@ -49,10 +49,12 @@ export const adminRouter = createTRPCRouter({
 
     const expired = isExpiredAdmin(admin);
 
+    const staff = !!admin && !expired && isStaffRole(admin.role);
+
     const result = {
-      isAdmin: !!admin && !expired,
+      isAdmin: staff,
       role: expired ? null : admin?.role || null,
-      permissions: expired ? [] : admin?.permissions || [],
+      permissions: expired || !staff ? [] : admin?.permissions || [],
     };
 
     ctx.cache.set(cacheKey, result, 60);
@@ -61,7 +63,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   analyticsOverview: isAdmin.query(async ({ ctx }) => {
-    // The analytics page polls this every 5s and stays open all weekend. Five
+    // The analytics page polls this every 15s and stays open all weekend. Five
     // uncached aggregates per poll per tab is a standing load for numbers nobody
     // watches change second by second; a 15s entry caps it at one round per 15s.
     const cacheKey = "admin:analytics-overview";
@@ -151,6 +153,7 @@ export const adminRouter = createTRPCRouter({
           .select({
             createdAt: members.createdAt,
             isActive: members.isActive,
+            membershipEndDate: members.membershipEndDate,
             bootcampMember: members.bootcampMember,
             bootcampTerm: members.bootcampTerm,
           })
@@ -222,14 +225,18 @@ export const adminRouter = createTRPCRouter({
 
         return {
           months,
-          // Newest term first is how the bootcamp page lists them; the chart
-          // reverses it so time runs left to right.
+          // Chronological: localeCompare puts `2026-fall` before `2026-spring`.
           terms: [...termCounts.entries()]
             .map(([value, enrolled]) => ({ term: value, enrolled }))
-            .sort((a, b) => a.term.localeCompare(b.term)),
+            .sort((a, b) => compareTerms(a.term, b.term)),
           totals: {
             members: rows.length,
-            activeMembers: rows.filter((row) => row.isActive).length,
+            activeMembers: rows.filter(
+              (row) =>
+                row.isActive &&
+                row.membershipEndDate &&
+                row.membershipEndDate > now,
+            ).length,
             bootcampAllTime: rows.filter((row) => row.bootcampMember).length,
             bootcampThisTerm: termCounts.get(term) ?? 0,
             currentTerm: term,

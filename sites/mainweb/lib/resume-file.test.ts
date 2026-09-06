@@ -7,6 +7,9 @@ import {
   parseResumeIds,
   MAX_BOOK_IDS,
   MAX_RESUME_BYTES,
+  uploadedResumeFileName,
+  displayResumeFileName,
+  resumeContentDisposition,
 } from "./resume-file";
 
 const bytes = (...values: number[]) => new Uint8Array(values);
@@ -59,6 +62,47 @@ describe("resumeFileName", () => {
     expect(resumeFileName("///")).toBe("resume.pdf");
     expect(resumeFileName("")).toBe("resume.pdf");
     expect(resumeFileName(null)).toBe("resume.pdf");
+  });
+});
+
+describe("uploadedResumeFileName", () => {
+  it("decodes a URI-encoded original name", () => {
+    expect(uploadedResumeFileName(encodeURIComponent("Ada Lovelace.pdf"))).toBe(
+      "Ada Lovelace.pdf",
+    );
+  });
+
+  it("does not throw when a 255-char cap splits an escape", () => {
+    const header = `${"a".repeat(254)}%2F`;
+    expect(header.length).toBe(257);
+    const sliced = header.slice(0, 255);
+    expect(sliced.endsWith("%")).toBe(true);
+    expect(() => decodeURIComponent(sliced)).toThrow();
+    expect(uploadedResumeFileName(sliced)).toBe(sliced);
+  });
+
+  it("strips CR/LF from the header", () => {
+    expect(uploadedResumeFileName("ok.pdf\r\nX-Evil: 1")).toBe("ok.pdf");
+  });
+});
+
+describe("displayResumeFileName", () => {
+  it("renders a previously stored encoded name", () => {
+    expect(displayResumeFileName("Wei%20Chen.pdf")).toBe("Wei Chen.pdf");
+  });
+
+  it("leaves a truncated escape in place instead of crashing the page", () => {
+    expect(displayResumeFileName("file%2")).toBe("file%2");
+  });
+});
+
+describe("resumeContentDisposition", () => {
+  it("keeps an ASCII fallback and a UTF-8 filename*", () => {
+    const header = resumeContentDisposition("张伟");
+    expect(header).toContain('filename="__.pdf"');
+    expect(header).toContain("filename*=UTF-8''");
+    expect(header).toContain(encodeURIComponent("张伟.pdf"));
+    expect(header).not.toMatch(/[\r\n]/);
   });
 });
 
