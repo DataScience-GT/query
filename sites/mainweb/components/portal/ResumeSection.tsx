@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { FileText, Upload, Trash2, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { MAX_RESUME_BYTES } from "@/lib/resume-file";
+import { MAX_RESUME_BYTES, decodeStoredFileName } from "@/lib/resume-file";
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -125,7 +125,7 @@ export function ResumeSection() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-[var(--text-primary)] truncate">
-                  {decodeURIComponent(resume.fileName)}
+                  {decodeStoredFileName(resume.fileName)}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5 font-mono">
                   {formatSize(resume.sizeBytes)} · uploaded{" "}

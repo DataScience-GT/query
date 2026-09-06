@@ -100,7 +100,18 @@ export async function POST(request: NextRequest) {
   // object, which is a stale resume — a row pointing at nothing is a 404 on a
   // resume the member believes they uploaded.
   const storageKey = resumeStorageKey(userId);
-  await putResume(storageKey, stored);
+  try {
+    await putResume(storageKey, stored);
+  } catch (error) {
+    // A missing bucket or a revoked service account is an outage, not a bad
+    // file: say so, and leave the detail in the logs rather than throwing the
+    // whole Storage error object at the member as a 500.
+    console.error("resume upload failed", error);
+    return NextResponse.json(
+      { error: "Resume storage is unavailable right now. Tell an officer." },
+      { status: 502 },
+    );
+  }
 
   const record = { storageKey, fileName, sizeBytes: stored.length };
 
@@ -133,8 +144,15 @@ export async function DELETE() {
     .returning({ storageKey: memberResumes.storageKey });
 
   // Row first, object after: an orphaned object costs pennies, an orphaned row
-  // serves a resume the member asked to remove.
-  if (removed) await deleteResume(removed.storageKey);
+  // serves a resume the member asked to remove. A storage failure here is the
+  // same trade — the row is already gone, so the resume is off the site.
+  if (removed) {
+    try {
+      await deleteResume(removed.storageKey);
+    } catch (error) {
+      console.error("resume object delete failed", error);
+    }
+  }
 
   cache.deletePattern("resume:*");
 
