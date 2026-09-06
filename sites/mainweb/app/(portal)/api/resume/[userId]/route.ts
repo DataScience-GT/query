@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@query/db";
-import { loadResume, resumeCaller, resumeFileName } from "@/lib/resume-access";
+import { loadResume, resumeCaller } from "@/lib/resume-access";
+import { resumeContentDisposition } from "@/lib/resume-file";
 import { readResume } from "@/lib/resume-storage";
 
 /** One stored PDF: yours, or anyone's if you are staff. Proxied, not redirected — a signed URL to storage.googleapis.com would leave the origin and CSP frame-src with it. */
@@ -54,7 +55,7 @@ export async function GET(
     headers: {
       "content-type": "application/pdf",
       "content-length": String(pdf.length),
-      "content-disposition": `inline; filename="${resumeFileName(resume.displayName)}"`,
+      "content-disposition": resumeContentDisposition(resume.displayName),
       "cache-control": "private, no-store",
       "x-content-type-options": "nosniff",
     },

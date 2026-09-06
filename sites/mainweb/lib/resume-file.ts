@@ -30,6 +30,42 @@ export function resumeFileName(name: string | null | undefined) {
   return `${safe || "resume"}.pdf`;
 }
 
+/** Decode a URI-encoded header without throwing on a truncated `%xx`. */
+function decodeHeader(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * The original filename from `x-resume-filename`. Stored decoded so the
+ * settings page can render it; a sliced `%xx` must not crash `decodeURIComponent`.
+ */
+export function uploadedResumeFileName(header: string | null | undefined) {
+  const raw = (header ?? "resume.pdf").split(/[\r\n]/)[0] ?? "resume.pdf";
+  const cleaned = decodeHeader(raw).trim().slice(0, 255);
+  return cleaned || "resume.pdf";
+}
+
+/** Labels already on file, including ones stored URI-encoded before this fix. */
+export function decodeStoredFileName(name: string) {
+  return decodeHeader(name);
+}
+
+export const displayResumeFileName = decodeStoredFileName;
+
+/** RFC 5987 so a Unicode display name survives Content-Disposition. */
+export function resumeContentDisposition(
+  displayName: string,
+  kind: "inline" | "attachment" = "inline",
+) {
+  const fileName = resumeFileName(displayName);
+  const ascii = fileName.replace(/[^\x20-\x7E]/g, "_");
+  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
 /**
  * Names inside the ZIP. Two people called Chen get `Chen.pdf` and
  * `Chen (2).pdf` rather than one silently overwriting the other on extract.
@@ -44,28 +80,19 @@ export function uniqueZipName(taken: Set<string>, displayName: string) {
   return candidate;
 }
 
-/**
- * A stored file name is whatever the uploader's browser encoded. A hand-rolled
- * POST can leave a malformed escape in there, and `decodeURIComponent` throws
- * on one — inside a render that takes the whole settings page down.
- */
-export function decodeStoredFileName(name: string) {
-  try {
-    return decodeURIComponent(name);
-  } catch {
-    return name;
-  }
-}
-
 /** Enough for every hand-picked selection the table can build, and a bound on the IN list a crafted URL can ask for. */
 export const MAX_BOOK_IDS = 1000;
 
 /** The `ids` query parameter: deduplicated, capped, or undefined for "no explicit set". */
 export function parseResumeIds(raw: string | null | undefined) {
   if (!raw) return undefined;
-  const ids = [...new Set(raw.split(",").filter(Boolean))].slice(
-    0,
-    MAX_BOOK_IDS,
-  );
+  const ids = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, MAX_BOOK_IDS);
   return ids.length > 0 ? ids : undefined;
 }
