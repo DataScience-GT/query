@@ -29,7 +29,7 @@
     "eslint-plugin-turbo": "^2.10.7",
     "globals": "15.14.0",
     "minimatch": "10.2.3",
-    "typescript-eslint": "8.59.2"
+    "typescript-eslint": "8.69.0"
   },
   "devDependencies": {
     "@query/prettier-config": "workspace:*",
