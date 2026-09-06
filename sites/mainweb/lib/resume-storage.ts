@@ -1,5 +1,15 @@
 import { Storage } from "@google-cloud/storage";
+import { setMaxListeners } from "node:events";
 import type { Readable } from "node:stream";
+
+/**
+ * Every object read goes through teeny-request, which pipelines its response
+ * into a PassThrough that already carries ten listeners from the Storage read
+ * chain — one over Node's default, so a MaxListenersExceededWarning printed on
+ * every resume view. The chain is a fixed size, so this is a ceiling that was
+ * set too low, not a leak: 15 clears it and still catches a real one.
+ */
+setMaxListeners(15);
 
 /**
  * Cloud Storage for resume PDFs.
