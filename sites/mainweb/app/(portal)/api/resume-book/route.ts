@@ -3,10 +3,11 @@ import type { NextRequest } from "next/server";
 import { Readable } from "node:stream";
 import { ZipArchive } from "archiver";
 import { db } from "@query/db";
+import { rateLimit } from "@query/api";
 import { listResumes } from "@query/api/resume-list";
 import type { DrizzleDB } from "@query/db";
 import { resumeCaller } from "@/lib/resume-access";
-import { uniqueZipName } from "@/lib/resume-file";
+import { parseResumeIds, uniqueZipName } from "@/lib/resume-file";
 import { readResume, resumeBucketName } from "@/lib/resume-storage";
 
 /**
@@ -49,15 +50,27 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // The most expensive endpoint in the app: a full book is thousands of reads
+  // and gigabytes of egress. Generous for a person clicking download, a wall
+  // for a tab that retries.
+  const limit = rateLimit(`resume-book-${caller.userId}`, 10, 10 / 3600, 1);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      {
+        error: `Too many downloads. Try again in ${limit.retryAfter} seconds.`,
+      },
+      { status: 429 },
+    );
+  }
+
   const params = request.nextUrl.searchParams;
-  const ids = params.get("ids");
   const gradYear = Number(params.get("gradYear"));
 
   const rows = await listResumes(db as DrizzleDB, {
     scope: params.get("scope") === "all" ? "all" : "members",
     search: params.get("search")?.slice(0, 200) || undefined,
     gradYear: Number.isFinite(gradYear) && gradYear > 0 ? gradYear : undefined,
-    userIds: ids ? ids.split(",").filter(Boolean) : undefined,
+    userIds: parseResumeIds(params.get("ids")),
   });
 
   if (rows.length === 0) {
@@ -71,11 +84,27 @@ export async function GET(request: NextRequest) {
   // PDFs are already compressed, so deflating them burns CPU for ~1%.
   const archive = new ZipArchive({ zlib: { level: 0 }, store: true });
 
+  // An 'error' event with no listener is an uncaught exception, and an uncaught
+  // exception in a Node server is the whole container. Every await below races
+  // this so a dead archive fails the writer instead of parking it forever.
+  const failure = new Promise<never>((_, reject) => {
+    archive.on("error", reject);
+  });
+  // The race sites report it; this only keeps a rejection before the first
+  // await from counting as unhandled.
+  failure.catch(() => {});
+
   const taken = new Set<string>();
   const named = rows.map((row) => ({
     ...row,
     zipName: uniqueZipName(taken, row.displayName),
   }));
+
+  // Paired with its own append, so the first file below waits on its own entry
+  // event rather than on the one this index emits.
+  const csvWritten = new Promise<void>((resolve) =>
+    archive.once("entry", () => resolve()),
+  );
 
   archive.append(
     [
@@ -106,13 +135,25 @@ export async function GET(request: NextRequest) {
     const prefetch = (i: number) => {
       const row = named[i];
       if (!row) return;
-      pending.set(i, readResume(row.storageKey).catch(() => null));
+      pending.set(
+        i,
+        readResume(row.storageKey).catch(() => null),
+      );
     };
 
     for (let i = 0; i < PREFETCH; i += 1) prefetch(i);
 
     try {
+      await Promise.race([csvWritten, failure]);
+
       for (const [i, row] of named.entries()) {
+        // The reader hung up — a closed tab or a cancelled download. Reading
+        // the rest of the book for nobody is the expensive part.
+        if (request.signal.aborted) {
+          archive.destroy();
+          return;
+        }
+
         const buffer = await pending.get(i);
         pending.delete(i);
         prefetch(i + PREFETCH);
@@ -127,7 +168,7 @@ export async function GET(request: NextRequest) {
           archive.once("entry", () => resolve()),
         );
         archive.append(buffer, { name: row.zipName });
-        await written;
+        await Promise.race([written, failure]);
       }
 
       if (skipped.length > 0) {
@@ -141,10 +182,12 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    await archive.finalize();
-  })().catch(() => {
+    await Promise.race([archive.finalize(), failure]);
+  })().catch((error) => {
     // The client sees a truncated ZIP, which its unzipper reports. Nothing
-    // useful can be sent once the response has started.
+    // useful can be sent once the response has started, so the log is the only
+    // place this failure is legible.
+    console.error("resume book failed", error);
     archive.destroy();
   });
 
