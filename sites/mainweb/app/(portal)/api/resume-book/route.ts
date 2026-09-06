@@ -30,6 +30,24 @@ const csvCell = (value: unknown) => {
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
+/** Resolves only for this entry, so index.csv cannot satisfy a PDF wait. */
+function waitForNamedEntry(archive: ZipArchive, name: string) {
+  return new Promise<void>((resolve, reject) => {
+    const onEntry = (entry: { name?: string }) => {
+      if (entry?.name !== name) return;
+      archive.off("entry", onEntry);
+      archive.off("error", onError);
+      resolve();
+    };
+    const onError = (error: Error) => {
+      archive.off("entry", onEntry);
+      reject(error);
+    };
+    archive.on("entry", onEntry);
+    archive.once("error", onError);
+  });
+}
+
 /**
  * GET, not POST: the browser downloads it by navigating, so a 1.5 GB book
  * streams to disk. Fetching it would put the whole thing in a Blob in the tab
@@ -100,11 +118,7 @@ export async function GET(request: NextRequest) {
     zipName: uniqueZipName(taken, row.displayName),
   }));
 
-  // Paired with its own append, so the first file below waits on its own entry
-  // event rather than on the one this index emits.
-  const csvWritten = new Promise<void>((resolve) =>
-    archive.once("entry", () => resolve()),
-  );
+  const csvWritten = waitForNamedEntry(archive, "index.csv");
 
   archive.append(
     [
@@ -164,9 +178,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        const written = new Promise<void>((resolve) =>
-          archive.once("entry", () => resolve()),
-        );
+        const written = waitForNamedEntry(archive, row.zipName);
         archive.append(buffer, { name: row.zipName });
         await Promise.race([written, failure]);
       }

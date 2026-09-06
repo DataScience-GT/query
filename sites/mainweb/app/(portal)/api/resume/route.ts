@@ -10,6 +10,7 @@ import {
   looksLikePdf,
   resumeCaller,
 } from "@/lib/resume-access";
+import { uploadedResumeFileName } from "@/lib/resume-file";
 import {
   deleteResume,
   putResume,
@@ -55,8 +56,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // A claim, so it only saves buffering an oversized body; checked again below.
-  if (Number(request.headers.get("content-length") ?? 0) > MAX_RESUME_BYTES) {
+  // A claim, so it only saves buffering an oversized body; required, so a
+  // missing length cannot turn into an unbounded read.
+  const declared = Number(request.headers.get("content-length"));
+  if (!Number.isFinite(declared) || declared < 1) {
+    return NextResponse.json({ error: "No file received." }, { status: 400 });
+  }
+  if (declared > MAX_RESUME_BYTES) {
     return NextResponse.json({ error: TOO_LARGE }, { status: 413 });
   }
 
@@ -92,9 +98,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const fileName = (request.headers.get("x-resume-filename") ?? "resume.pdf")
-    .replace(/[\r\n]/g, "")
-    .slice(0, 255);
+  const fileName = uploadedResumeFileName(
+    request.headers.get("x-resume-filename"),
+  );
 
   // Object first. A write that fails leaves the old row pointing at the old
   // object, which is a stale resume — a row pointing at nothing is a 404 on a
