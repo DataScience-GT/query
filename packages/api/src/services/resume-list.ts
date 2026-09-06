@@ -12,12 +12,36 @@ export type ResumeFilters = {
   userIds?: string[];
 };
 
+/** GET query-string cap; a longer list would blow past URL limits anyway. */
+export const MAX_RESUME_BOOK_IDS = 200;
+
+/** `%` and `_` are LIKE wildcards; they are not a search for those characters. */
+export function searchNeedle(search: string | undefined) {
+  const needle = search?.replace(/[%_\\]/g, "").replace(/\s+/g, " ").trim();
+  return needle || undefined;
+}
+
+export function parseResumeBookIds(raw: string | null | undefined) {
+  if (!raw) return undefined;
+  const ids = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (ids.length === 0) return undefined;
+  return ids.slice(0, MAX_RESUME_BOOK_IDS);
+}
+
 /**
  * `members` is a paid, unexpired membership — the same rule checkStatus uses.
  * `all` is everyone who uploaded.
  */
 const whereFor = (filters: ResumeFilters, now: Date) => {
-  const pattern = filters.search ? `%${filters.search}%` : null;
+  const needle = searchNeedle(filters.search);
+  const pattern = needle ? `%${needle}%` : null;
 
   return and(
     filters.userIds?.length
