@@ -12,6 +12,7 @@
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
+    "@google-cloud/storage": "^8.0.1",
     "@mawtech/glass-ui": "^0.2.1",
     "@query/api": "workspace:*",
     "@query/auth": "workspace:*",
@@ -25,6 +26,7 @@
     "@trpc/react-query": "11.18.0",
     "@trpc/server": "11.18.0",
     "@yudiel/react-qr-scanner": "^2.5.0",
+    "archiver": "^8.0.0",
     "chart.js": "^4.5.1",
     "drizzle-orm": "0.45.2",
     "geist": "^1.5.1",
@@ -33,6 +35,7 @@
     "next": "16.3.0",
     "next-auth": "5.0.0-beta.32",
     "next-themes": "^0.4.6",
+    "pdf-lib": "^1.17.1",
     "qrcode": "1.5.4",
     "qrcode.react": "^3.2.0",
     "react": "19.2.7",
@@ -50,6 +53,7 @@
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.3.0",
+    "@types/archiver": "^8.0.0",
     "@types/minimatch": "^6.0.0",
     "@types/node": "^22.15.32",
     "@types/qrcode": "^1.5.5",

@@ -93,6 +93,7 @@ export function portalNavSections(
           },
           { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
           { name: "Memberships", href: "/admin/members", icon: CreditCard },
+          { name: "Resume Book", href: "/admin/resumes", icon: BookOpen },
           { name: "Staff & Roles", href: "/admin/staff", icon: ShieldCheck },
           { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
           { name: "Docs", href: "/docs", icon: BookOpen },

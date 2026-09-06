@@ -2,6 +2,7 @@ import { createTRPCRouter } from "./trpc";
 import { userRouter } from "./routers/user";
 import { adminRouter } from "./routers/admin";
 import { memberRouter } from "./routers/member";
+import { resumeRouter } from "./routers/resume";
 import { hackathonRouter } from "./routers/hackathon";
 import { eventRouter } from "./routers/events";
 import { judgeRouter } from "./routers/judge";
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   admin: adminRouter,
   member: memberRouter,
+  resume: resumeRouter,
   hackathon: hackathonRouter,
   events: eventRouter,
   judge: judgeRouter,

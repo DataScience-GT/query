@@ -1,6 +1,7 @@
 // Export all schemas, avoiding conflicts
 export * from "./auth";
 export * from "./members";
+export * from "./resumes";
 export * from "./hackathons";
 export * from "./admins";
 export * from "./events";

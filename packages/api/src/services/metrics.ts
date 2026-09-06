@@ -115,6 +115,20 @@ const paymentsUnlinked = new Gauge({
   registers: [registry],
 });
 
+const resumesStored = new Gauge({
+  name: "dsgt_resumes_stored",
+  help: "Resumes on file.",
+  registers: [registry],
+});
+
+// Read from the metadata rows, not from the bucket — this is what the club is
+// paying Cloud Storage to hold, and it only ever grows.
+const resumeBytesStored = new Gauge({
+  name: "dsgt_resume_bytes_stored",
+  help: "Bytes of resumes held in Cloud Storage.",
+  registers: [registry],
+});
+
 const gaugeRefreshFailures = new Counter({
   name: "dsgt_metrics_refresh_failures_total",
   help: "Times the gauge collectors could not read the database.",
@@ -215,6 +229,17 @@ export async function refreshDbGauges(db: DrizzleDB | null | undefined) {
       paymentsByPlan.reset();
       for (const row of byPlan.rows) {
         paymentsByPlan.set({ plan: row.plan }, Number(row.total));
+      }
+
+      const resumes = await db.execute<{ files: string; bytes: string }>(sql`
+        select count(*) as files, coalesce(sum("size_bytes"), 0) as bytes
+        from "member_resume"
+      `);
+
+      const resumeTotals = resumes.rows[0];
+      if (resumeTotals) {
+        resumesStored.set(Number(resumeTotals.files));
+        resumeBytesStored.set(Number(resumeTotals.bytes));
       }
     } catch {
       // Stale gauges beat a 500 on the scrape endpoint.

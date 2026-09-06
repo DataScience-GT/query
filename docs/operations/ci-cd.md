@@ -7,7 +7,7 @@ All workflows live in `.github/workflows/`.
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
 | `pnpm-ci.yml` | Push `main`/`dev`, PRs | `pnpm install` + `pnpm turbo run build` (Node 22) |
-| `test.yml` | Push `main`/`dev`, PRs | `pnpm test` (Node 20, pnpm 8 in this file — version drift vs root `pnpm@10`) |
+| `test.yml` | Push `main`/`dev`, PRs | `pnpm test` (Node 20; pnpm comes from `packageManager`, unpinned in the workflow so it cannot drift) |
 | `codeql.yml` | Push/PR `main`/`dev`, daily 02:00 UTC | CodeQL `security-extended,security-and-quality`; PRs also run dependency review (`fail-on-severity: high`) |
 
 ## Deploy

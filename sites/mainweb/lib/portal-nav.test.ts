@@ -110,6 +110,7 @@ describe("portalNavSections", () => {
       "Club Project Applications",
       "Bootcamp",
       "Memberships",
+      "Resume Book",
       "Staff & Roles",
       "Analytics",
       "Docs",
