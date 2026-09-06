@@ -51,6 +51,12 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `DB_POOL_MAX` | `20` |
 | `DB_CONNECTION_TIMEOUT_MS` | `3000` |
 
+## Resume book
+
+| Variable | Default / notes |
+| --- | --- |
+| `RESUME_BUCKET` | Cloud Storage bucket holding resume PDFs (App Hosting sets `dsgt-resumes`). Unset means uploads return 503 rather than failing obscurely. Credentials are ADC — the runtime service account needs `roles/storage.objectAdmin`. See [Resume book](../resume-book.md) |
+
 ## Security / proxy
 
 | Variable | Default / notes |

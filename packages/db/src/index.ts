@@ -4,6 +4,7 @@ export * from "./schemas";
 export { users, accounts, sessions, verificationTokens } from "./schemas/auth";
 export { admins } from "./schemas/admins";
 export { members, membershipHistory } from "./schemas/members";
+export { memberResumes } from "./schemas/resumes";
 export {
   hackathons,
   hackathonParticipants,

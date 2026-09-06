@@ -5,7 +5,7 @@ This guide gets a local copy of **query** running: Postgres, schema, env, and bo
 ## Prerequisites
 
 - **Node.js** `>=20.16.0 <24` (`.nvmrc` pins `20`; CI also uses 20 and 22)
-- **pnpm** `10.33.2` (see `packageManager` in the root `package.json`)
+- **pnpm** `12.3.4` (see `packageManager` in the root `package.json`)
 - **Docker** (for local Postgres)
 - Optional: **gcloud** and **Firebase CLI** if you need production secrets or deploys
 
@@ -13,7 +13,7 @@ Enable Corepack so the repo’s pnpm version is used:
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.33.2 --activate
+corepack prepare pnpm@12.3.4 --activate
 ```
 
 ## Install
