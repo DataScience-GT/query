@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  emailConcurrency,
+  forEachWithConcurrency,
+} from "../../services/fanout";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter } from "../../trpc";
 import { isAdmin, isScanner } from "../../middleware/procedures";
@@ -129,7 +133,9 @@ export const hackathonAdminRouter = createTRPCRouter({
             },
             team: { columns: { id: true, name: true } },
           },
-          orderBy: (participants, { desc }) => [desc(participants.registeredAt)],
+          orderBy: (participants, { desc }) => [
+            desc(participants.registeredAt),
+          ],
           limit: input.limit,
           offset: input.offset,
         }),
@@ -196,7 +202,6 @@ export const hackathonAdminRouter = createTRPCRouter({
       });
     }),
 
-
   updateParticipantStatus: isAdmin
     .input(
       z.object({
@@ -257,11 +262,12 @@ export const hackathonAdminRouter = createTRPCRouter({
 
       await syncCurrentParticipants(ctx.db as DrizzleDB, input.hackathonId);
 
-      evictParticipantCaches(ctx.cache, input.hackathonId, [participant.userId]);
+      evictParticipantCaches(ctx.cache, input.hackathonId, [
+        participant.userId,
+      ]);
 
       return { success: true };
     }),
-
 
   /** What the next wave would take, and what the previous ones did. */
   waveStatus: isAdmin
@@ -301,7 +307,8 @@ export const hackathonAdminRouter = createTRPCRouter({
           accepted: row.accepted,
           emailed: row.emailed,
         })),
-        nextWave: waves.reduce((max, row) => Math.max(max, row.wave ?? 0), 0) + 1,
+        nextWave:
+          waves.reduce((max, row) => Math.max(max, row.wave ?? 0), 0) + 1,
       };
     }),
 
@@ -335,7 +342,9 @@ export const hackathonAdminRouter = createTRPCRouter({
       const { wave, picked } = await db.transaction(async (tx) => {
         const [highest] = await tx
           .select({
-            max: sql<number | null>`max(${hackathonParticipants.acceptanceWave})`,
+            max: sql<
+              number | null
+            >`max(${hackathonParticipants.acceptanceWave})`,
           })
           .from(hackathonParticipants)
           .where(eq(hackathonParticipants.hackathonId, input.hackathonId));
@@ -416,10 +425,7 @@ export const hackathonAdminRouter = createTRPCRouter({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
         // Each id is one SMTP round trip. The bound is shared with the UI so the two
         // cannot drift — see MASS_EMAIL_BATCH. The UI chunks larger selections.
-        participantIds: z
-          .array(z.string().uuid())
-          .min(1)
-          .max(MASS_EMAIL_BATCH),
+        participantIds: z.array(z.string().uuid()).min(1).max(MASS_EMAIL_BATCH),
         // Mail people who already had their acceptance. Off by default: the ordinary
         // reason to re-run is that the first run died partway, and everyone before
         // the failure point is already done.
@@ -435,11 +441,14 @@ export const hackathonAdminRouter = createTRPCRouter({
 
       const hackathon = await db.query.hackathons.findFirst({
         where: eq(hackathons.id, hackathonId),
-        columns: { name: true }
+        columns: { name: true },
       });
 
       if (!hackathon) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
       }
 
       // Recipients are scoped to this hackathon, like the UPDATE below: a stale id
@@ -451,7 +460,7 @@ export const hackathonAdminRouter = createTRPCRouter({
             inArray(hackathonParticipants.id, participantIds),
             eq(hackathonParticipants.hackathonId, hackathonId),
           ),
-          with: { user: { columns: { email: true } } }
+          with: { user: { columns: { email: true } } },
         })
       ).filter((participant) => participant.hackathonId === hackathonId);
 
@@ -491,39 +500,49 @@ export const hackathonAdminRouter = createTRPCRouter({
       let alreadyEmailed = 0;
       const failedEmails: string[] = [];
 
-      for (const participant of participants) {
-        if (!participant.user?.email) continue;
+      // Sent at the width of the SMTP pool rather than one at a time; the
+      // per-row marker below is what makes that safe to resume after a batch
+      // that still runs out of request time.
+      await forEachWithConcurrency(
+        participants,
+        emailConcurrency(),
+        async (participant) => {
+          if (!participant.user?.email) return;
 
-        // The marker is read here, not just written below. Re-running after a batch
-        // died partway is the normal recovery, and without this everyone before the
-        // failure point is congratulated a second time.
-        if (participant.acceptanceEmailSentAt && !input.resend) {
-          alreadyEmailed++;
-          continue;
-        }
+          // The marker is read here, not just written below. Re-running after a batch
+          // died partway is the normal recovery, and without this everyone before the
+          // failure point is congratulated a second time.
+          if (participant.acceptanceEmailSentAt && !input.resend) {
+            alreadyEmailed++;
+            return;
+          }
 
-        try {
-          await sendAcceptanceEmail({
-            email: participant.user.email,
-            hackathonName: hackathon.name,
-            host: process.env.NEXTAUTH_URL || "https://datasciencegt.org"
-          });
-          // Stamped one row at a time, right after the send. A batch of hundreds can
-          // die partway — Cloud Run kills the request at 300s — and this marker is what
-          // keeps a retry from mailing everyone twice.
-          await db
-            .update(hackathonParticipants)
-            .set({ acceptanceEmailSentAt: new Date() })
-            .where(eq(hackathonParticipants.id, participant.id));
-          emailed++;
-        } catch (error) {
-          failedEmails.push(participant.user.email);
-          // Deliberate operational logging: the only record of which address the
-          // provider rejected.
-          // eslint-disable-next-line no-console
-          console.error(`[Email Service] Failed to send acceptance email to ${participant.user.email}:`, error);
-        }
-      }
+          try {
+            await sendAcceptanceEmail({
+              email: participant.user.email,
+              hackathonName: hackathon.name,
+              host: process.env.NEXTAUTH_URL || "https://datasciencegt.org",
+            });
+            // Stamped one row at a time, right after the send. A batch of hundreds can
+            // die partway — Cloud Run kills the request at 300s — and this marker is what
+            // keeps a retry from mailing everyone twice.
+            await db
+              .update(hackathonParticipants)
+              .set({ acceptanceEmailSentAt: new Date() })
+              .where(eq(hackathonParticipants.id, participant.id));
+            emailed++;
+          } catch (error) {
+            failedEmails.push(participant.user.email);
+            // Deliberate operational logging: the only record of which address the
+            // provider rejected.
+            // eslint-disable-next-line no-console
+            console.error(
+              `[Email Service] Failed to send acceptance email to ${participant.user.email}:`,
+              error,
+            );
+          }
+        },
+      );
 
       // Thousands of emails that cannot be unsent, in one action.
       await recordAdminAction(db, {
@@ -561,7 +580,6 @@ export const hackathonAdminRouter = createTRPCRouter({
         message: `Approved ${participants.length} participant(s); ${emailed} acceptance email(s) sent.${alreadyEmailed > 0 ? ` ${alreadyEmailed} had already been emailed and were left alone.` : ""}${failedEmails.length > 0 ? ` ${failedEmails.length} could not be delivered.` : ""}${skipped > 0 ? ` ${skipped} id(s) are not registered for this hackathon and were skipped.` : ""}`,
       };
     }),
-
 
   batchUpdateParticipantStatus: isAdmin
     .input(
@@ -639,7 +657,6 @@ export const hackathonAdminRouter = createTRPCRouter({
       };
     }),
 
-
   analytics: isAdmin
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
@@ -716,7 +733,6 @@ export const hackathonAdminRouter = createTRPCRouter({
         dietaryRestrictions,
       };
     }),
-
 
   // Who scanned into one event. The scanner writes these rows and nothing ever
   // read them, so a station left on the wrong event produced dozens of check-ins
@@ -981,5 +997,4 @@ export const hackathonAdminRouter = createTRPCRouter({
         message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
       };
     }),
-
 });

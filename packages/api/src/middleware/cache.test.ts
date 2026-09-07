@@ -118,6 +118,77 @@ describe("CacheService", () => {
     });
   });
 
+  describe("null results", () => {
+    it("caches a factory that answers null instead of rerunning it", async () => {
+      const cache = service();
+      let calls = 0;
+
+      const load = () =>
+        cache.getOrSet("member:me:u1", async () => {
+          calls += 1;
+          return null;
+        });
+
+      expect(await load()).toBeNull();
+      expect(await load()).toBeNull();
+      expect(await load()).toBeNull();
+      // "This user has no member row" is the answer most portal requests get.
+      // Read through get(), null looked like a miss and every page hit the
+      // database again.
+      expect(calls).toBe(1);
+    });
+
+    it("reports a key holding null as present", () => {
+      const cache = service();
+      cache.set("resume:me:u1", null, 60);
+
+      expect(cache.has("resume:me:u1")).toBe(true);
+      expect(cache.has("resume:me:u2")).toBe(false);
+    });
+
+    it("stops serving a null once its entry expires", async () => {
+      const cache = service();
+      let calls = 0;
+
+      const load = () =>
+        cache.getOrSet(
+          "hackathons:upcoming",
+          async () => {
+            calls += 1;
+            return null;
+          },
+          0.02,
+        );
+
+      expect(await load()).toBeNull();
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      expect(await load()).toBeNull();
+      expect(calls).toBe(2);
+      expect(cache.has("hackathons:upcoming")).toBe(true);
+    });
+
+    it("counts a null hit as a hit, not a miss", async () => {
+      const cache = service();
+      await cache.getOrSet("k", async () => null);
+      const before = cache.getStats();
+      await cache.getOrSet("k", async () => null);
+      const after = cache.getStats();
+
+      expect(after.hits).toBe(before.hits + 1);
+      expect(after.misses).toBe(before.misses);
+    });
+
+    it("does not count has() as a read", () => {
+      const cache = service();
+      cache.set("k", 1, 60);
+      const before = cache.getStats();
+      cache.has("k");
+      cache.has("absent");
+
+      expect(cache.getStats()).toEqual(before);
+    });
+  });
+
   describe("deletePattern", () => {
     const seed = (cache: CacheService) => {
       for (const key of [

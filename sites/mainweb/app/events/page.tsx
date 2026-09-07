@@ -16,7 +16,16 @@ import Link from "next/link";
  * only inside the (portal) route group, and this page's whole audience is
  * people who are not signed in.
  */
-export const dynamic = "force-dynamic";
+/**
+ * Rendered every five minutes, not on every request, matching /projects.
+ *
+ * force-dynamic bought freshness nobody could observe: proxy.ts already serves
+ * this path as `public, max-age=3600, stale-while-revalidate=86400`, so a
+ * visitor's browser holds the page for an hour regardless. What it did cost was
+ * a query and a full render on every uncached hit — including the first request
+ * to a cold instance, which is where the tail lives.
+ */
+export const revalidate = 300;
 
 const formatWhen = (date: Date) =>
   date.toLocaleString("en-US", {

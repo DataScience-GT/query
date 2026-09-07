@@ -348,15 +348,6 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Every guard below reads state this transaction is about to change. Locking
-          // the event row first is what makes them hold: two scanners otherwise decide
-          // on identical snapshots, so the same badge lands twice and a cap overshoots.
-          const [locked] = await tx
-            .select({ currentCheckIns: events.currentCheckIns })
-            .from(events)
-            .where(eq(events.id, event.id))
-            .for("update");
-
           const [member, existingCheckIn] = await Promise.all([
             // Club check-in no longer depends on a hackathon edition existing. It used to
             // skip this lookup when none resolved and then refuse everyone at the door
@@ -416,15 +407,27 @@ export const eventRouter = createTRPCRouter({
 
           // Someone already inside is a duplicate, not an extra body, so the capacity
           // gate only applies once that is ruled out.
-          if (
-            event.maxCheckIns &&
-            locked &&
-            locked.currentCheckIns >= event.maxCheckIns
-          ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Event is full",
-            });
+          //
+          // The lock is taken here rather than at the top of the transaction, and
+          // only for an event that has a cap. Held from the top it covered the
+          // member and check-in lookups too, so every scan at the door waited on
+          // four round trips of someone else's transaction instead of two — the
+          // whole queue serialised behind whoever was mid-scan. Nothing above
+          // needs it: a double tap is settled by unique(event_id, user_id) on the
+          // insert below, and an uncapped event has no count to protect.
+          if (event.maxCheckIns) {
+            const [locked] = await tx
+              .select({ currentCheckIns: events.currentCheckIns })
+              .from(events)
+              .where(eq(events.id, event.id))
+              .for("update");
+
+            if (locked && locked.currentCheckIns >= event.maxCheckIns) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Event is full",
+              });
+            }
           }
 
           // unique(event_id, user_id) is what settles a double tap: the read above only
@@ -532,21 +535,23 @@ export const eventRouter = createTRPCRouter({
             columns: { id: true },
           });
 
-          const [locked] = await tx
-            .select({ currentCheckIns: events.currentCheckIns })
-            .from(events)
-            .where(eq(events.id, event.id))
-            .for("update");
+          // Only an event with a cap has a count worth locking. Taken
+          // unconditionally, this serialised every manual check-in on an event
+          // that had nothing to protect; the guarded increment below and
+          // unique(event_id, user_id) carry the rest.
+          if (event.maxCheckIns) {
+            const [locked] = await tx
+              .select({ currentCheckIns: events.currentCheckIns })
+              .from(events)
+              .where(eq(events.id, event.id))
+              .for("update");
 
-          if (
-            event.maxCheckIns &&
-            locked &&
-            locked.currentCheckIns >= event.maxCheckIns
-          ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Event is full",
-            });
+            if (locked && locked.currentCheckIns >= event.maxCheckIns) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Event is full",
+              });
+            }
           }
 
           try {
@@ -642,21 +647,22 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          const [locked] = await tx
-            .select({ currentCheckIns: events.currentCheckIns })
-            .from(events)
-            .where(eq(events.id, event.id))
-            .for("update");
+          // Same rule as the other two doors: lock only what has a cap to
+          // defend. The pass scanner is the burst path — a line of people at a
+          // table — so a lock held on an uncapped event is the queue.
+          if (event.maxCheckIns) {
+            const [locked] = await tx
+              .select({ currentCheckIns: events.currentCheckIns })
+              .from(events)
+              .where(eq(events.id, event.id))
+              .for("update");
 
-          if (
-            event.maxCheckIns &&
-            locked &&
-            locked.currentCheckIns >= event.maxCheckIns
-          ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Event is full",
-            });
+            if (locked && locked.currentCheckIns >= event.maxCheckIns) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Event is full",
+              });
+            }
           }
 
           const name = `${member.firstName} ${member.lastName}`.trim();
@@ -777,7 +783,10 @@ export const eventRouter = createTRPCRouter({
             .update(events)
             .set({ currentCheckIns: sql`${events.currentCheckIns} - 1` })
             .where(
-              and(eq(events.id, input.eventId), lt(sql`0`, events.currentCheckIns)),
+              and(
+                eq(events.id, input.eventId),
+                lt(sql`0`, events.currentCheckIns),
+              ),
             );
 
           ctx.cache.deletePattern(`event:${input.eventId}`);
