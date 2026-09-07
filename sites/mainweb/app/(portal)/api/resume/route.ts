@@ -81,13 +81,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Lossless re-save: takes 5-15% off a text resume, and refuses a PDF that
-  // will not parse here rather than handing a broken file to a sponsor later.
-  let stored: Uint8Array;
+  // Parse to refuse garbage; store the original bytes. pdf-lib's re-save is
+  // smaller on text resumes and silently broken on a lot of real ones (forms,
+  // certain fonts), which then fail to open in the browser viewer.
   try {
-    const parsed = await PDFDocument.load(bytes, { ignoreEncryption: true });
-    const compact = await parsed.save({ useObjectStreams: true });
-    stored = compact.length < bytes.length ? compact : bytes;
+    await PDFDocument.load(bytes, { ignoreEncryption: true });
   } catch {
     return NextResponse.json(
       {
@@ -97,6 +95,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+  const stored = bytes;
 
   const fileName = uploadedResumeFileName(
     request.headers.get("x-resume-filename"),

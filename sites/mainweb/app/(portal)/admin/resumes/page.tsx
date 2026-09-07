@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { ResumePreview } from "@/components/portal/ResumePreview";
 import {
   BookOpen,
   ChevronLeft,
@@ -284,11 +285,10 @@ export default function AdminResumesPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <iframe
+            <ResumePreview
               key={preview.userId}
               src={`/api/resume/${preview.userId}`}
               title={`${preview.name} resume`}
-              className="w-full h-[70vh] min-h-[420px] rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
             />
           </div>
         )}

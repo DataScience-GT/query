@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { FileText, Upload, Trash2, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { MAX_RESUME_BYTES, decodeStoredFileName } from "@/lib/resume-file";
+import { ResumePreview } from "@/components/portal/ResumePreview";
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -168,13 +169,7 @@ export function ResumeSection() {
             </div>
           </div>
 
-          {preview && (
-            <iframe
-              src="/api/resume/me"
-              title="Your resume"
-              className="w-full h-[70vh] min-h-[420px] rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
-            />
-          )}
+          {preview && <ResumePreview src="/api/resume/me" title="Your resume" />}
         </>
       ) : (
         <button
