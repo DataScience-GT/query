@@ -108,3 +108,11 @@ env:
   # ("[Security] x-forwarded-for has N entries"); expect hops = entries - 1.
   - variable: TRUSTED_PROXY_HOPS
     value: "1"
+  # Gates /api/metrics, the Prometheus scrape target that carries the tRPC
+  # duration histogram. Without it the route answers 404 in production — by
+  # design, so it does not announce itself — and the p99 exists but is
+  # unreadable. RUNTIME only: nothing in the build scrapes.
+  - variable: METRICS_TOKEN
+    secret: METRICS_TOKEN
+    availability:
+      - RUNTIME

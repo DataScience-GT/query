@@ -68,12 +68,13 @@ if (DATABASE_URL) {
  * first request's problem to report, not a reason to fail startup.
  */
 export async function warmPool(): Promise<number> {
-  if (!db) return 0;
+  const pool = db;
+  if (!pool) return 0;
 
   const target = Number(process.env.DB_POOL_MIN ?? 2);
   const probes = Array.from({ length: Math.max(1, target) }, async () => {
     try {
-      await db!.execute(sql`select 1`);
+      await pool.execute(sql`select 1`);
       return true;
     } catch {
       return false;
