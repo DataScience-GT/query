@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { BOOTCAMP_CURRICULUM } from "@/lib/bootcamp-schedule";
+import {
+  BOOTCAMP_CURRICULUM,
+  BOOTCAMP_START_DATE,
+} from "@/lib/bootcamp-schedule";
 
 // Shared with the portal's bootcamp page, so the syllabus a member sees signed
 // in is the one that was advertised.
@@ -39,36 +42,53 @@ export default function BootcampPage() {
             Master Python for data science in 12 weeks. From the fundamentals to
             machine learning, build the skills you need to succeed.
           </p>
+          {BOOTCAMP_START_DATE && (
+            <p className="font-mono text-[11px] text-[#00A8A8] uppercase tracking-[0.3em]">
+              Starts {BOOTCAMP_START_DATE}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-          {curriculum.map((item, index) => (
-            <div
-              key={index}
-              className="group relative p-[1px] rounded-xl bg-gradient-to-b from-white/10 to-transparent hover:from-[#00A8A8]/50 transition-colors duration-500 overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative h-full bg-[#0a0a0a] rounded-xl p-6 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-mono text-[#00A8A8] bg-[#00A8A8]/10 px-3 py-1 rounded-full border border-[#00A8A8]/20">
-                      Week {item.week}
-                    </span>
-                    <span className="text-white/10 text-4xl font-black italic">
-                      {item.week.toString().padStart(2, "0")}
-                    </span>
+        {curriculum.length === 0 ? (
+          <div className="mx-auto max-w-2xl rounded-xl border border-[#00A8A8]/20 bg-[#00A8A8]/[0.04] p-10">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#00A8A8]">
+              Updating soon
+            </p>
+            <p className="mt-4 text-sm text-gray-400 leading-relaxed italic">
+              The week-by-week syllabus is being written now and will be posted
+              here before the first session.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+            {curriculum.map((item, index) => (
+              <div
+                key={index}
+                className="group relative p-[1px] rounded-xl bg-gradient-to-b from-white/10 to-transparent hover:from-[#00A8A8]/50 transition-colors duration-500 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative h-full bg-[#0a0a0a] rounded-xl p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-mono text-[#00A8A8] bg-[#00A8A8]/10 px-3 py-1 rounded-full border border-[#00A8A8]/20">
+                        Week {item.week}
+                      </span>
+                      <span className="text-white/10 text-4xl font-black italic">
+                        {item.week.toString().padStart(2, "0")}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00A8A8] transition-colors duration-300">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      {item.desc}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00A8A8] transition-colors duration-300">
-                    {item.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    {item.desc}
-                  </p>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-20">
           <button className="px-8 py-4 bg-[#00A8A8] hover:bg-[#008f8f] text-white font-semibold rounded-lg transition-colors duration-300 transform hover:scale-105 active:scale-95">

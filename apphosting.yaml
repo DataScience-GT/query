@@ -59,6 +59,16 @@ env:
     secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production
+  # Cloud Storage bucket holding resume PDFs. Postgres keeps only the metadata
+  # and the object key — 5000 resumes is 1.5 GB and this database is 0.5 GB.
+  # The runtime service account needs objectAdmin on it:
+  #   gcloud storage buckets create gs://dsgt-resumes --location=us-central1 \
+  #     --uniform-bucket-level-access --public-access-prevention
+  #   gcloud storage buckets add-iam-policy-binding gs://dsgt-resumes \
+  #     --member=serviceAccount:<app-hosting-runtime-sa> \
+  #     --role=roles/storage.objectAdmin
+  - variable: RESUME_BUCKET
+    value: dsgt-resumes
   # Consumer Gmail, which caps around 500 recipients a day — shared between
   # sign-in codes and every acceptance or announcement send. Acceptance waves
   # are capped at 500 for that reason. Moving to a real provider is these three
@@ -98,3 +108,11 @@ env:
   # ("[Security] x-forwarded-for has N entries"); expect hops = entries - 1.
   - variable: TRUSTED_PROXY_HOPS
     value: "1"
+  # Gates /api/metrics, the Prometheus scrape target that carries the tRPC
+  # duration histogram. Without it the route answers 404 in production — by
+  # design, so it does not announce itself — and the p99 exists but is
+  # unreadable. RUNTIME only: nothing in the build scrapes.
+  - variable: METRICS_TOKEN
+    secret: METRICS_TOKEN
+    availability:
+      - RUNTIME

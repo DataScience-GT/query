@@ -33,7 +33,10 @@ const CSP_DIRECTIVES = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `connect-src 'self' https://api.stripe.com${isDev ? " ws: wss:" : ""}`,
-  "frame-src https://js.stripe.com https://hooks.stripe.com",
+  // 'self' for the resume previews on /settings and /admin/resumes. Without
+  // it every same-origin frame goes blank the day CSP_ENFORCE flips, and
+  // report-only means nothing would say so until then.
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -52,6 +55,9 @@ const nextConfig = {
   reactCompiler: true,
   transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
   outputFileTracingRoot: path.join(__dirname, "../../"),
+  // Native/dynamic requires that a bundler mangles. Left external so the
+  // standalone output loads them from node_modules at runtime.
+  serverExternalPackages: ["@google-cloud/storage", "archiver"],
   async headers() {
     return [
       {

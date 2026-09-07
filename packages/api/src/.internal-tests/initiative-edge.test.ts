@@ -387,7 +387,7 @@ describe("Club initiatives", () => {
       });
 
       await expect(
-        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE }),
+        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE, pitch: "Why me" }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
 
@@ -401,7 +401,7 @@ describe("Club initiatives", () => {
         });
 
         await expect(
-          callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE }),
+          callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE, pitch: "Why me" }),
         ).rejects.toMatchObject({ code: "NOT_FOUND" });
       },
     );
@@ -413,7 +413,7 @@ describe("Club initiatives", () => {
       });
 
       await expect(
-        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE }),
+        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE, pitch: "Why me" }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
 
@@ -421,7 +421,7 @@ describe("Club initiatives", () => {
       lookups({ initiative: openInitiative(), member: activeMember });
 
       await expect(
-        callerFor(LEADER).initiative.requestToJoin({ initiativeId: INITIATIVE }),
+        callerFor(LEADER).initiative.requestToJoin({ initiativeId: INITIATIVE, pitch: "Why me" }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
 
@@ -433,7 +433,7 @@ describe("Club initiatives", () => {
       onSelect = (t) => (t === initiativeApplications ? [{ taken: 3 }] : []);
 
       await expect(
-        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE }),
+        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE, pitch: "Why me" }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
 
@@ -445,7 +445,7 @@ describe("Club initiatives", () => {
       });
 
       await expect(
-        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE }),
+        callerFor(MEMBER).initiative.requestToJoin({ initiativeId: INITIATIVE, pitch: "Why me" }),
       ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
@@ -460,6 +460,7 @@ describe("Club initiatives", () => {
 
       const res = await callerFor(MEMBER).initiative.requestToJoin({
         initiativeId: INITIATIVE,
+        pitch: "Why me",
       });
 
       expect(res.status).toBe("pending");

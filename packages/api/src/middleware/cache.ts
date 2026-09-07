@@ -16,6 +16,8 @@ export class CacheService {
   private stats: CacheStats = { hits: 0, misses: 0, size: 0 };
   private cleanupInterval: NodeJS.Timeout;
   private maxCacheSize: number;
+  /** Factories running now, keyed as the cache is. See getOrSet. */
+  private inFlight = new Map<string, Promise<unknown>>();
 
   constructor(
     private defaultTTL: number = 300,
@@ -28,18 +30,30 @@ export class CacheService {
     }, 60 * 1000);
   }
 
-  get<T>(key: string): T | null {
+  /**
+   * A live entry, or undefined. Separate from `get` because `get` answers null
+   * for a miss and for a key holding null alike, so anything that needs to tell
+   * those apart — `has`, `getOrSet` — has to read the entry itself.
+   */
+  private entry<T>(key: string): CacheEntry<T> | undefined {
     const entry = this.cache.get(key) as CacheEntry<T> | undefined;
 
-    if (!entry) {
-      this.stats.misses++;
-      return null;
-    }
+    if (!entry) return undefined;
 
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
-      this.stats.misses++;
       this.stats.size = this.cache.size;
+      return undefined;
+    }
+
+    return entry;
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.entry<T>(key);
+
+    if (!entry) {
+      this.stats.misses++;
       return null;
     }
 
@@ -60,14 +74,33 @@ export class CacheService {
   }
 
   // Glob-style pattern, * wildcard.
+  //
+  // The two shapes this codebase actually writes — an exact key, and
+  // `prefix*` — are answered without building or running a regex. Every
+  // mutation evicts one to three patterns through CACHE_INVALIDATION_MAP, and
+  // the scan is O(size) either way; the regex was the per-key cost stacked on
+  // top of it.
   deletePattern(pattern: string): number {
-    let count = 0;
-    // Escape regex special chars, then convert * to .*
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`^${escaped.replace(/\*/g, ".*")}$`);
+    const star = pattern.indexOf("*");
 
+    if (star === -1) {
+      return this.delete(pattern) ? 1 : 0;
+    }
+
+    let matches: (key: string) => boolean;
+    if (star === pattern.length - 1) {
+      const prefix = pattern.slice(0, -1);
+      matches = (key) => key.startsWith(prefix);
+    } else {
+      // Escape regex special chars, then convert * to .*
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escaped.replace(/\*/g, ".*")}$`);
+      matches = (key) => regex.test(key);
+    }
+
+    let count = 0;
     for (const key of this.cache.keys()) {
-      if (regex.test(key)) {
+      if (matches(key)) {
         this.cache.delete(key);
         count++;
       }
@@ -86,23 +119,54 @@ export class CacheService {
     return { ...this.stats };
   }
 
+  /**
+   * Whether a live entry exists — including one holding null, which `get`
+   * cannot distinguish from a miss. Does not count as a hit or a miss: asking
+   * whether a key is cached is not reading it.
+   */
   has(key: string): boolean {
-    return this.get(key) !== null;
+    return this.entry(key) !== undefined;
   }
 
+  // Read through the cache, collapsing concurrent misses onto one factory
+  // call. A hot key expiring under load is otherwise a stampede: every
+  // request in flight misses in the same instant and runs the same query,
+  // which is precisely when a 0.5 GB Neon instance behind a 20-connection
+  // pool can least absorb it, and it lands as a tail spike on every
+  // procedure sharing the pool rather than only on the one that missed. The
+  // metrics gauges already work this way; this is the same rule for reads.
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T> | T,
     ttl?: number,
   ): Promise<T> {
-    const cached = this.get<T>(key);
-    if (cached !== null) {
-      return cached;
+    // Entry, not `get`: a factory that legitimately returns null — "this user
+    // has no member row" — otherwise looked like a miss on every call, so the
+    // one result most worth collapsing was the one that never cached.
+    const cached = this.entry<T>(key);
+    if (cached) {
+      this.stats.hits++;
+      return cached.value;
     }
+    this.stats.misses++;
 
-    const value = await factory();
-    this.set(key, value, ttl);
-    return value;
+    const pending = this.inFlight.get(key) as Promise<T> | undefined;
+    if (pending) return pending;
+
+    // A rejection reaches every joiner, which is what would have happened to
+    // each of them separately, and the entry is dropped either way so the
+    // next caller retries rather than inheriting the failure.
+    const load = (async () => factory())()
+      .then((value) => {
+        this.set(key, value, ttl);
+        return value;
+      })
+      .finally(() => {
+        this.inFlight.delete(key);
+      });
+
+    this.inFlight.set(key, load);
+    return load;
   }
 
   // Drops expired entries, then evicts oldest over max size (LRU).
@@ -118,21 +182,18 @@ export class CacheService {
       }
     }
 
-    // If cache is over max size, evict oldest entries (LRU - remove oldest by expiresAt as proxy)
-    while (this.cache.size > this.maxCacheSize) {
-      let oldestKey: string | null = null;
-      let oldestValue: CacheEntry<unknown> | undefined = undefined;
+    // Over max size: evict oldest by expiresAt, ordered in one pass. The
+    // previous loop re-walked all 10,000 entries to pick a single key, so a
+    // cache that overshot by k paid k walks — synchronously, on a 60s timer,
+    // stalling every request in flight at the moment it fired.
+    const excess = this.cache.size - this.maxCacheSize;
+    if (excess > 0) {
+      const byExpiry = Array.from(this.cache.entries()).sort(
+        (a, b) => a[1].expiresAt - b[1].expiresAt,
+      );
 
-      // Find the oldest entry
-      for (const [key, entry] of this.cache.entries()) {
-        if (!oldestValue || entry.expiresAt < oldestValue.expiresAt) {
-          oldestKey = key;
-          oldestValue = entry;
-        }
-      }
-
-      if (oldestKey) {
-        this.cache.delete(oldestKey);
+      for (let i = 0; i < excess; i += 1) {
+        this.cache.delete(byExpiry[i]![0]);
         removed++;
       }
     }

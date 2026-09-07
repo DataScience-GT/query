@@ -28,20 +28,20 @@ const phoneSchema = z
   .optional();
 
 export const memberRouter = createTRPCRouter({
-  me: protectedProcedure
-    .query(async ({ ctx }) => {
-      const cacheKey = `member:me:${ctx.userId}`;
-      const cached = ctx.cache.get<typeof member>(cacheKey);
-      if (cached) return cached;
-
-      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
-      });
-
-      const result = member ?? null;
-      ctx.cache.set(cacheKey, result, 60);
-      return result;
-    }),
+  me: protectedProcedure.query(async ({ ctx }) => {
+    // getOrSet, so "this user has no member row" caches like any other
+    // answer. Read through get() a null result was indistinguishable from a
+    // miss, and everyone who has signed in without registering — most signed
+    // in users — re-queried on every portal page.
+    return ctx.cache.getOrSet(
+      `member:me:${ctx.userId}`,
+      async () =>
+        (await (ctx.db as DrizzleDB).query.members.findFirst({
+          where: eq(members.userId, ctx.userId!),
+        })) ?? null,
+      60,
+    );
+  }),
 
   register: protectedProcedure
     .input(
@@ -287,25 +287,35 @@ export const memberRouter = createTRPCRouter({
       return member;
     }),
 
-  history: protectedProcedure
-    .query(async ({ ctx }) => {
-      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
-        columns: { id: true },
-        with: {
-          membershipHistory: {
-            orderBy: (h, { desc }) => [desc(h.createdAt)],
-            limit: 50,
+  history: protectedProcedure.query(async ({ ctx }) => {
+    // Rendered on the settings page, so it runs on a page load rather than on
+    // an action, and the rows only move when a membership does — which every
+    // path that writes one already evicts through `member:*`.
+    const history = await ctx.cache.getOrSet(
+      `member:history:${ctx.userId}`,
+      async () => {
+        const member = await (ctx.db as DrizzleDB).query.members.findFirst({
+          where: eq(members.userId, ctx.userId!),
+          columns: { id: true },
+          with: {
+            membershipHistory: {
+              orderBy: (h, { desc }) => [desc(h.createdAt)],
+              limit: 50,
+            },
           },
-        },
-      });
+        });
 
-      if (!member) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
-      }
+        return member?.membershipHistory ?? null;
+      },
+      60,
+    );
 
-      return member.membershipHistory;
-    }),
+    if (!history) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+    }
+
+    return history;
+  }),
 
   /** The caller's own pass, for the QR an officer scans at the door. */
   myPass: protectedProcedure.query(async ({ ctx }) => {
@@ -335,66 +345,65 @@ export const memberRouter = createTRPCRouter({
     return updated;
   }),
 
-  checkStatus: protectedProcedure
-    .query(async ({ ctx }) => {
-      const cacheKey = `member:status:${ctx.userId}`;
-      const cached = ctx.cache.get<{
-        isMember: boolean;
-        isActive: boolean;
-        hasLapsed: boolean;
-        expiresAt: Date | null;
-        daysRemaining: number | null;
-        memberType: string | null;
-        renewalCount: number;
-      }>(cacheKey);
-      if (cached) return cached;
+  checkStatus: protectedProcedure.query(async ({ ctx }) => {
+    const cacheKey = `member:status:${ctx.userId}`;
+    const cached = ctx.cache.get<{
+      isMember: boolean;
+      isActive: boolean;
+      hasLapsed: boolean;
+      expiresAt: Date | null;
+      daysRemaining: number | null;
+      memberType: string | null;
+      renewalCount: number;
+    }>(cacheKey);
+    if (cached) return cached;
 
-      const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
-      });
+    const member = await (ctx.db as DrizzleDB).query.members.findFirst({
+      where: eq(members.userId, ctx.userId!),
+    });
 
-      if (!member) {
-        const result = {
-          isMember: false,
-          isActive: false,
-          hasLapsed: false,
-          expiresAt: null,
-          daysRemaining: null,
-          memberType: null,
-          renewalCount: 0,
-        };
-        ctx.cache.set(cacheKey, result, 30);
-        return result;
-      }
-
-      const now = new Date();
-      const expiresAt = member.membershipEndDate;
-      const isActive = Boolean(member.isActive && expiresAt && expiresAt > now);
-
-      let daysRemaining: number | null = null;
-      if (expiresAt) {
-        daysRemaining = Math.ceil(
-          (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-        );
-      }
-
+    if (!member) {
       const result = {
-        // Paid and unexpired. A profile with no payment and a row whose year ran out
-        // both answer false — the same rule the portal context uses.
-        isMember: isActive,
-        isActive,
-        // Same rule as buildMemberContext: ran out, not revoked.
-        hasLapsed: !isActive && Boolean(expiresAt) && expiresAt! <= now,
-        memberType: member.memberType,
-        expiresAt,
-        daysRemaining,
-        renewalCount: member.renewalCount,
+        isMember: false,
+        isActive: false,
+        hasLapsed: false,
+        expiresAt: null,
+        daysRemaining: null,
+        memberType: null,
+        renewalCount: 0,
       };
-
       ctx.cache.set(cacheKey, result, 30);
-
       return result;
-    }),
+    }
+
+    const now = new Date();
+    const expiresAt = member.membershipEndDate;
+    const isActive = Boolean(member.isActive && expiresAt && expiresAt > now);
+
+    let daysRemaining: number | null = null;
+    if (expiresAt) {
+      daysRemaining = Math.ceil(
+        (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+    }
+
+    const result = {
+      // Paid and unexpired. A profile with no payment and a row whose year ran out
+      // both answer false — the same rule the portal context uses.
+      isMember: isActive,
+      isActive,
+      // Same rule as buildMemberContext: ran out, not revoked.
+      hasLapsed: !isActive && Boolean(expiresAt) && expiresAt! <= now,
+      memberType: member.memberType,
+      expiresAt,
+      daysRemaining,
+      renewalCount: member.renewalCount,
+    };
+
+    ctx.cache.set(cacheKey, result, 30);
+
+    return result;
+  }),
 
   // Staff-facing membership operations: cash at a table, a comped officer, a
   // refund. None come through Stripe, and none had any path but direct SQL.
@@ -434,9 +443,7 @@ export const memberRouter = createTRPCRouter({
         ...row,
         // Same rule as checkStatus and the portal context: paid and unexpired.
         isCurrentMember: Boolean(
-          row.isActive &&
-            row.membershipEndDate &&
-            row.membershipEndDate > now,
+          row.isActive && row.membershipEndDate && row.membershipEndDate > now,
         ),
       }));
     }),
@@ -466,9 +473,14 @@ export const memberRouter = createTRPCRouter({
     .input(
       z.object({
         userId: z.string().min(1).max(255),
-        months: z.number().int().min(-24).max(24).refine((n) => n !== 0, {
-          message: "Choose a number of months to add or remove.",
-        }),
+        months: z
+          .number()
+          .int()
+          .min(-24)
+          .max(24)
+          .refine((n) => n !== 0, {
+            message: "Choose a number of months to add or remove.",
+          }),
         /** Recorded on the history row, so the reason survives the person. */
         note: z.string().trim().min(1).max(500),
       }),

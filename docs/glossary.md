@@ -3,7 +3,7 @@
 | Term | Meaning in this repo |
 | --- | --- |
 | **query** | This monorepo (`package.json` name). Not a search engine. |
-| **Club** | Year-round DSGT operations: membership, club events, bootcamp, initiatives. Not keyed by hackathon. |
+| **Club** | Year-round DSGT operations: membership, club events, bootcamp, club projects. Not keyed by hackathon. |
 | **Hackathon / edition** | One `hackathon` row (e.g. Hacklytics 2027) and everything that cascades from it. |
 | **Hacklytics** | DSGT’s annual data-science hackathon. Marketing site is `sites/hacklytics2027`; operations are the portal. |
 | **Portal** | Authenticated product UI inside `sites/mainweb` route group `(portal)`. |
@@ -11,8 +11,8 @@
 | **Pass** | `member.pass_code` — rotatable QR for club check-in. Independent of membership dates. |
 | **Volunteer** | Weakest `admin.role`. Can scan badges (`isScanner`). Cannot pass `isAdmin`. |
 | **Staff** | Active admin whose role is not `volunteer`. |
-| **Project leader** | `project_leader` row. Runs club **initiatives**. Not a staff role. |
-| **Initiative** | Club project members apply to join. Never judged. Distinct from a hackathon **project**. |
+| **Project leader** | `project_leader` row. Runs **club projects**. Not a staff role. |
+| **Club project** | `initiative` row. Members apply to join with a pitch and an optional resume. Never judged. Distinct from a hackathon **project**, which is a judged submission. The UI says "club project"; the table is still `initiative`. |
 | **Hackathon project** | Team/solo submission (`hackathon_project`). Promoted into `judging_project` for scoring. |
 | **Interest** | “Tell me when registration opens” (`hackathon_interest`). Requires a signed-in user. |
 | **Current edition** | In-progress hackathon if one exists; otherwise the newest edition that is not `draft` or `announced`. |

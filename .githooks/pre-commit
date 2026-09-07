@@ -1,0 +1,44 @@
+#!/bin/sh
+# Blocks credentials and local agent files from entering a commit.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Bypass a false positive: git commit --no-verify
+#
+# .gitignore already keeps these out of `git add .`; this catches the paths that
+# reach the index another way — `git add -f`, a file that was tracked before the
+# ignore rule existed, an editor that stages on save.
+
+fail() {
+  echo "pre-commit: refusing to commit $1" >&2
+  echo "  $2" >&2
+  echo "  Bypass with --no-verify only if you are certain." >&2
+  exit 1
+}
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+for file in $staged; do
+  case "$file" in
+    .env|.env.*|*/.env|*/.env.*)
+      [ "${file##*/}" = ".env.example" ] || fail "$file" "environment files carry live credentials" ;;
+    *.pem|*.key|*.p12|*.pfx|*.jks|*id_rsa|*id_ed25519)
+      fail "$file" "private key material" ;;
+    *-key.json|*service-account*.json|*credentials*.json|*application_default_credentials.json)
+      fail "$file" "a service-account or ADC key" ;;
+    .claude/*|*/.claude/*|.agents/*|*/.agents/*)
+      fail "$file" "local agent tooling, which is not shared" ;;
+  esac
+done
+
+# Content, not just filenames: a key pasted into a config or a test fixture has
+# an innocent path. Kept to markers that cannot appear by accident — the
+# Firebase web API key in apphosting.yaml is public and deliberately not here.
+if git diff --cached -U0 | grep -qE '^\+.*(-----BEGIN [A-Z ]*PRIVATE KEY-----|sk_live_[A-Za-z0-9]|rk_live_[A-Za-z0-9]|whsec_[A-Za-z0-9]{16})'; then
+  echo "pre-commit: refusing to commit a live secret found in the diff" >&2
+  echo "  A private key block or live Stripe key is being added." >&2
+  echo "  Bypass with --no-verify only if you are certain." >&2
+  exit 1
+fi
+
+exit 0
