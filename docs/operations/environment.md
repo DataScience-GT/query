@@ -25,15 +25,19 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 
 ## Email
 
+Production uses **Resend SMTP**. The mailer still speaks SMTP (`EMAIL_SERVER_*`); the Resend API key is the SMTP password.
+
 | Variable | Default / notes |
 | --- | --- |
-| `EMAIL_SERVER_HOST` | SMTP host |
-| `EMAIL_SERVER_PORT` | `587` |
-| `EMAIL_SERVER_USER` | SMTP username |
-| `EMAIL_SERVER_PASSWORD` | Secret |
-| `EMAIL_FROM` | From address; must be verified with the provider |
+| `EMAIL_SERVER_HOST` | `smtp.resend.com` |
+| `EMAIL_SERVER_PORT` | `587` (STARTTLS). `465` also works |
+| `EMAIL_SERVER_USER` | `resend` |
+| `EMAIL_SERVER_PASSWORD` | Resend API key (`re_…`). Secret Manager `EMAIL_SERVER_PASSWORD` |
+| `EMAIL_FROM` | `Data Science GT <noreply@datasciencegt.org>` — domain must be verified in Resend |
 | `EMAIL_MAX_CONNECTIONS` | `5` |
 | `EMAIL_MAX_MESSAGES` | `100` |
+
+`GCP_SETUP.md` used to list `RESEND_API_KEY` as a separate name. The process reads `EMAIL_SERVER_PASSWORD`.
 
 ## Stripe
 
@@ -77,8 +81,6 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `PORT` | `8080` |
 | `HOSTNAME` | `0.0.0.0` |
 | `NODE_ENV` | `production` |
-
-`GCP_SETUP.md` mentions `RESEND_API_KEY`; the mailer in this repo uses SMTP (`EMAIL_SERVER_*`), not Resend.
 
 ## Local files
 

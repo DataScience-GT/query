@@ -44,7 +44,7 @@ Nodemailer SMTP. Not a magic link: a 6-digit code from `crypto.randomInt`, store
 
 HTML template is inline in `config.ts` (DSGT branding). SMTP host/user/password come from env (see [Environment](../operations/environment.md)).
 
-Production currently uses consumer Gmail (~500 recipients/day, shared with acceptance and announcement mail). Acceptance waves are capped at 500 for that reason. Switching providers is env-only: host, user, password secret, and a verified `EMAIL_FROM`.
+Production uses Resend over SMTP (`smtp.resend.com`, user `resend`, password = API key). `EMAIL_FROM` must be an address on a domain verified at [resend.com/domains](https://resend.com/domains). Wave size is still bounded by Cloud Run's request timeout, not by Gmail's daily cap.
 
 ## Adapter
 

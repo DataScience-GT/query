@@ -69,24 +69,23 @@ env:
   #     --role=roles/storage.objectAdmin
   - variable: RESUME_BUCKET
     value: dsgt-resumes
-  # Consumer Gmail, which caps around 500 recipients a day — shared between
-  # sign-in codes and every acceptance or announcement send. Acceptance waves
-  # are capped at 500 for that reason. Moving to a real provider is these three
-  # values plus the secret, and no code change:
-  #   HOST -> email-smtp.<region>.amazonaws.com | smtp.postmarkapp.com | smtp.sendgrid.net
-  #   USER -> the provider's SMTP username (not an address)
-  #   EMAIL_SERVER_PASSWORD secret -> the provider's SMTP password
-  # EMAIL_FROM must then be an address on a domain verified with that provider.
+  # Resend SMTP. Username is always `resend`; the API key is the SMTP
+  # password (secret EMAIL_SERVER_PASSWORD). EMAIL_FROM must be on a domain
+  # verified at https://resend.com/domains — datasciencegt.org until then
+  # Resend returns 550 and sign-in codes never leave the server.
+  # Add a new secret version (do not put the key in git):
+  #   printf '%s' "$RESEND_API_KEY" | gcloud secrets versions add EMAIL_SERVER_PASSWORD \
+  #     --data-file=- --project=dsgt-website
   - variable: EMAIL_SERVER_HOST
-    value: smtp.gmail.com
+    value: smtp.resend.com
   - variable: EMAIL_SERVER_PORT
     value: "587"
   - variable: EMAIL_SERVER_USER
-    value: datascience.gt@gmail.com
+    value: resend
   - variable: EMAIL_SERVER_PASSWORD
     secret: projects/672446353769/secrets/EMAIL_SERVER_PASSWORD
   - variable: EMAIL_FROM
-    value: datascience.gt@gmail.com
+    value: "Data Science GT <noreply@datasciencegt.org>"
   # Flood-protection thresholds, sized per instance for a full venue.
   # These are the ceiling for one signed-in person, not for the building —
   # the limiter keys on user id when somebody is signed in. The short block

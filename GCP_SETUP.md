@@ -45,7 +45,7 @@ This will pull the following from GCP:
 - `DATABASE_URL`
 - `AUTH_SECRET`
 - `STRIPE_SECRET_KEY`
-- `RESEND_API_KEY`
+- `EMAIL_SERVER_PASSWORD` (Resend API key, used as SMTP password)
 - etc.
 
 ## 4. Running the App
