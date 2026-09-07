@@ -68,9 +68,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // The most expensive endpoint in the app: a full book is thousands of reads
-  // and gigabytes of egress. Generous for a person clicking download, a wall
-  // for a tab that retries.
+  // The most expensive endpoint here: thousands of reads, gigabytes of egress.
   const limit = rateLimit(`resume-book-${caller.userId}`, 10, 10 / 3600, 1);
   if (!limit.allowed) {
     return NextResponse.json(
@@ -102,14 +100,11 @@ export async function GET(request: NextRequest) {
   // PDFs are already compressed, so deflating them burns CPU for ~1%.
   const archive = new ZipArchive({ zlib: { level: 0 }, store: true });
 
-  // An 'error' event with no listener is an uncaught exception, and an uncaught
-  // exception in a Node server is the whole container. Every await below races
-  // this so a dead archive fails the writer instead of parking it forever.
+  // An 'error' event with no listener takes down the container. Every await
+  // below races this, so a dead archive fails the writer instead of parking it.
   const failure = new Promise<never>((_, reject) => {
     archive.on("error", reject);
   });
-  // The race sites report it; this only keeps a rejection before the first
-  // await from counting as unhandled.
   failure.catch(() => {});
 
   const taken = new Set<string>();
@@ -161,8 +156,7 @@ export async function GET(request: NextRequest) {
       await Promise.race([csvWritten, failure]);
 
       for (const [i, row] of named.entries()) {
-        // The reader hung up — a closed tab or a cancelled download. Reading
-        // the rest of the book for nobody is the expensive part.
+        // Reader hung up. Reading the rest of the book for nobody is the cost.
         if (request.signal.aborted) {
           archive.destroy();
           return;
@@ -196,9 +190,8 @@ export async function GET(request: NextRequest) {
 
     await Promise.race([archive.finalize(), failure]);
   })().catch((error) => {
-    // The client sees a truncated ZIP, which its unzipper reports. Nothing
-    // useful can be sent once the response has started, so the log is the only
-    // place this failure is legible.
+    // The client sees a truncated ZIP; once the response starts, the log is
+    // the only place this is legible.
     console.error("resume book failed", error);
     archive.destroy();
   });

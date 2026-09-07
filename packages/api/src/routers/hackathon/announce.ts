@@ -336,9 +336,8 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       let sent = 0;
       const failed: string[] = [];
 
-      // Fanned out to the width of the SMTP pool. One at a time, a batch of a
-      // few hundred outran Cloud Run's 300s request limit long before it ran
-      // out of recipients, and the retry then re-sent from wherever it died.
+      // Fanned out to the width of the SMTP pool; one at a time, a few hundred
+      // recipients outran Cloud Run's 300s limit.
       await forEachWithConcurrency(
         pending,
         emailConcurrency(),

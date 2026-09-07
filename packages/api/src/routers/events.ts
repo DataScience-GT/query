@@ -408,13 +408,9 @@ export const eventRouter = createTRPCRouter({
           // Someone already inside is a duplicate, not an extra body, so the capacity
           // gate only applies once that is ruled out.
           //
-          // The lock is taken here rather than at the top of the transaction, and
-          // only for an event that has a cap. Held from the top it covered the
-          // member and check-in lookups too, so every scan at the door waited on
-          // four round trips of someone else's transaction instead of two — the
-          // whole queue serialised behind whoever was mid-scan. Nothing above
-          // needs it: a double tap is settled by unique(event_id, user_id) on the
-          // insert below, and an uncapped event has no count to protect.
+          // Locked here, not at the top, and only when there is a cap to defend.
+          // Held from the top it covered the two lookups above, serialising the
+          // whole queue; a double tap is settled by unique(event_id, user_id).
           if (event.maxCheckIns) {
             const [locked] = await tx
               .select({ currentCheckIns: events.currentCheckIns })
@@ -535,10 +531,8 @@ export const eventRouter = createTRPCRouter({
             columns: { id: true },
           });
 
-          // Only an event with a cap has a count worth locking. Taken
-          // unconditionally, this serialised every manual check-in on an event
-          // that had nothing to protect; the guarded increment below and
-          // unique(event_id, user_id) carry the rest.
+          // Only a capped event has a count worth locking; the guarded increment
+          // below and unique(event_id, user_id) carry the rest.
           if (event.maxCheckIns) {
             const [locked] = await tx
               .select({ currentCheckIns: events.currentCheckIns })
@@ -647,9 +641,7 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Same rule as the other two doors: lock only what has a cap to
-          // defend. The pass scanner is the burst path — a line of people at a
-          // table — so a lock held on an uncapped event is the queue.
+          // Same rule as the other two doors, and this one is the burst path.
           if (event.maxCheckIns) {
             const [locked] = await tx
               .select({ currentCheckIns: events.currentCheckIns })

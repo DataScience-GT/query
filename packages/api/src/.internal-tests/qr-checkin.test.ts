@@ -527,11 +527,8 @@ describe("QR check-in", () => {
     });
 
     // The door reads the badge, then writes it. What keeps two in-flight scans
-    // of the same badge from both passing the guard is unique(event_id, user_id):
-    // the read above only rules out badges committed before the transaction
-    // began, so the loser of a genuine race is settled by the constraint on
-    // insert, which checkIn reports as the same CONFLICT a rescan gets. The
-    // insert mock below enforces it, because that is what the table does.
+    // of the same badge from both passing the guard is unique(event_id, user_id),
+    // reported as the same CONFLICT a rescan gets. The insert mock enforces it.
     it("counts a double-tapped badge once", async () => {
       const row = clubEvent();
       const checkIns: any[] = [];

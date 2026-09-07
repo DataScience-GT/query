@@ -93,12 +93,9 @@ export const hackathonInterestRouter = createTRPCRouter({
     const db = ctx.db as DrizzleDB | null;
     if (!db) return null;
 
-    // The landing page is the funnel, so this is the most-read query on the site
-    // and its answer changes about twice a year. Keyed under `hackathons:` so the
-    // eviction every edition write already runs clears it too. getOrSet, so the
-    // empty case caches as well: it used to be skipped because a stored null was
-    // indistinguishable from a miss, and between editions — most of the year —
-    // empty is the answer the funnel keeps asking for.
+    // Most-read query on the site; its answer changes about twice a year. Keyed
+    // under `hackathons:` so edition writes already clear it. getOrSet caches the
+    // empty case too — between editions that is the answer, most of the year.
     return ctx.cache.getOrSet<UpcomingEdition | null>(
       "hackathons:upcoming",
       async () => {
@@ -348,8 +345,7 @@ export const hackathonInterestRouter = createTRPCRouter({
       let sent = 0;
       const failed: string[] = [];
 
-      // Same fan-out as the other two send sites: the SMTP pool holds five
-      // connections and a one-at-a-time batch used one of them.
+      // Same fan-out as the other two send sites.
       await forEachWithConcurrency(pending, emailConcurrency(), async (row) => {
         if (!row.email) return;
         try {

@@ -1,10 +1,8 @@
 /**
- * Runs once per server instance, before the first request is served.
+ * Runs once per server instance, before the first request.
  *
- * Only the pool warmup lives here. `register` blocks the server from accepting
- * requests until it returns, so the warmup is started and deliberately not
- * awaited: opening the sockets alongside the rest of boot is the point, and a
- * database that is slow to reach must not hold the instance out of rotation.
+ * `register` blocks the server until it returns, so the warmup is started and
+ * deliberately not awaited — a slow database must not hold boot open.
  */
 export function register() {
   // Also runs for the edge runtime, which has no pg pool to warm.
@@ -13,7 +11,6 @@ export function register() {
   void import("@query/db")
     .then(({ warmPool }) => warmPool())
     .catch(() => {
-      // Swallowed: the first query reports an unreachable database far better
-      // than a boot-time log nobody reads.
+      // The first real query reports an unreachable database better than this.
     });
 }

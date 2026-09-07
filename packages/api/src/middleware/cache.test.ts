@@ -132,9 +132,7 @@ describe("CacheService", () => {
       expect(await load()).toBeNull();
       expect(await load()).toBeNull();
       expect(await load()).toBeNull();
-      // "This user has no member row" is the answer most portal requests get.
-      // Read through get(), null looked like a miss and every page hit the
-      // database again.
+      // Through get(), null looked like a miss and every page hit the database.
       expect(calls).toBe(1);
     });
 

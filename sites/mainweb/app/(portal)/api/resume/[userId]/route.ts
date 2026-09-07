@@ -31,15 +31,13 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Read it whole rather than piping: uploads are capped at 2MB, and a stream
-  // that fails after the headers are out is a truncated PDF the viewer sees as
-  // a corrupt file instead of an error.
+  // Read it whole: uploads are capped at 2MB, and a stream that fails after the
+  // headers are out reaches the viewer as a corrupt PDF rather than an error.
   let pdf: Buffer;
   try {
     pdf = await readResume(resume.storageKey);
   } catch (error) {
-    // A row whose object is gone is genuinely missing to the reader; anything
-    // else is storage being down, which is ours to own.
+    // A row whose object is gone really is missing; anything else is an outage.
     if ((error as { code?: number }).code === 404) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
