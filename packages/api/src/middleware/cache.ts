@@ -30,11 +30,8 @@ export class CacheService {
     }, 60 * 1000);
   }
 
-  /**
-   * A live entry, or undefined. Separate from `get` because `get` answers null
-   * for a miss and for a key holding null alike, so anything that needs to tell
-   * those apart — `has`, `getOrSet` — has to read the entry itself.
-   */
+  /** A live entry, or undefined. `get` reports null for a miss and for a stored
+   * null alike, so callers that must tell those apart read the entry. */
   private entry<T>(key: string): CacheEntry<T> | undefined {
     const entry = this.cache.get(key) as CacheEntry<T> | undefined;
 
@@ -119,11 +116,7 @@ export class CacheService {
     return { ...this.stats };
   }
 
-  /**
-   * Whether a live entry exists — including one holding null, which `get`
-   * cannot distinguish from a miss. Does not count as a hit or a miss: asking
-   * whether a key is cached is not reading it.
-   */
+  /** True for a live entry, including one holding null. Not counted as a read. */
   has(key: string): boolean {
     return this.entry(key) !== undefined;
   }
@@ -140,9 +133,7 @@ export class CacheService {
     factory: () => Promise<T> | T,
     ttl?: number,
   ): Promise<T> {
-    // Entry, not `get`: a factory that legitimately returns null — "this user
-    // has no member row" — otherwise looked like a miss on every call, so the
-    // one result most worth collapsing was the one that never cached.
+    // Entry, not `get`: a factory returning null looked like a miss every call.
     const cached = this.entry<T>(key);
     if (cached) {
       this.stats.hits++;

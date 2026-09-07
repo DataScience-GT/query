@@ -56,16 +56,11 @@ if (DATABASE_URL) {
 }
 
 /**
- * Opens the connections the pool is configured to retain, before a request
- * needs one.
+ * Opens the connections the pool retains, before a request needs one.
  *
- * `min` only stops the reaper from closing idle clients; it never opens any, so
- * on a fresh instance the first requests each paid a TCP + TLS + auth handshake
- * to Neon inside their own latency. Cloud Run scales from zero and back, so
- * that cost landed on real users every time an instance started — the tail, not
- * the average. Issued in parallel because one query would only ever open one
- * socket, and failures are swallowed: an unreachable database at boot is the
- * first request's problem to report, not a reason to fail startup.
+ * `min` stops the reaper closing idle clients but never opens any, so on a
+ * fresh instance the first requests paid the Neon handshake themselves. Issued
+ * in parallel — one query opens one socket — and failures are swallowed.
  */
 export async function warmPool(): Promise<number> {
   const pool = db;

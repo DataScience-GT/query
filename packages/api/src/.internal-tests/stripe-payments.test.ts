@@ -23,9 +23,8 @@ import {
  */
 
 const mockFindFirst = vi.fn();
-// Table-aware like findFirst, and empty unless a test says otherwise. It used
-// to be a blanket `[]`, which quietly answered "no such row" to any batched
-// read — the shape reconcileMyPayments uses to avoid a query per intent.
+// Table-aware like findFirst. A blanket `[]` quietly answered "no such row" to
+// any batched read.
 const mockFindMany = vi.fn((..._args: any[]) => [] as unknown[]);
 const mockInsert = vi.fn();
 /** The values handed to `.set()`, so a test can tell an add-on stamp from a
@@ -628,7 +627,7 @@ describe("Membership payments", () => {
         createdAt: PAID_AT,
       };
 
-      // reconcile reads the payments for a whole search page in one findMany.
+      // reconcile reads a whole search page in one findMany.
       mockFindMany.mockImplementation((table: string) =>
         table === "stripePayments" ? [paymentRow] : [],
       );
@@ -638,9 +637,7 @@ describe("Membership payments", () => {
           return { id: USER, email: "member@gatech.edu", name: "Buzz Member" };
         if (table === "stripePayments") return paymentRow;
         if (table === "members") return { id: "member_1" };
-        // The newest grant on file. reconcile compares its timestamp against
-        // the payment's, so a row without `created_at` is not a row the
-        // membership_history table could ever hold — the column is NOT NULL.
+        // reconcile compares timestamps, and created_at is NOT NULL in the table.
         if (table === "membershipHistory") return opts.history;
         return undefined;
       });
@@ -679,11 +676,7 @@ describe("Membership payments", () => {
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
-    /**
-     * The comparison is "newest grant at or after this payment", so a grant
-     * that predates the charge honours nothing — that is last year's
-     * membership, not this one.
-     */
+    // A grant predating the charge honours nothing — that is last year's.
     it("recovers when the newest grant predates the payment", async () => {
       wire({
         history: {

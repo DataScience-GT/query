@@ -14,9 +14,7 @@ export async function resumeCaller() {
   const userId = session?.user?.id ?? null;
   if (!userId || !db) return { userId: null, isStaff: false };
 
-  // Same key and TTL the isAdmin middleware uses, so a role change evicts both
-  // through the `admin:<id>*` sweep the admin mutations already run. Every
-  // resume request — upload, preview, book — asked this question again.
+  // Same key and TTL as the isAdmin middleware, so a role change evicts both.
   const cacheKey = `admin:${userId}:role`;
   let admin = cache.get<typeof admins.$inferSelect>(cacheKey);
 

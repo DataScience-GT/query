@@ -689,10 +689,8 @@ export const stripeRouter = createTRPCRouter({
 
     if (candidates.length === 0) return { recovered: 0 };
 
-    // Loaded once ahead of the loop rather than per intent. Search returns up to
-    // twenty, and the two membership reads below asked the same question every
-    // time round — twenty intents meant sixty round trips to answer three
-    // questions.
+    // Once ahead of the loop, not per intent: twenty intents meant sixty round
+    // trips to answer three questions.
     const [existingRows, member] = await Promise.all([
       ctx.db!.query.stripePayments.findMany({
         where: inArray(
@@ -710,8 +708,7 @@ export const stripeRouter = createTRPCRouter({
       existingRows.map((row) => [row.stripePaymentIntentId, row]),
     );
 
-    // "A grant at or after this payment" is the same question as "is the newest
-    // grant at or after it", so one ordered read answers it for every intent.
+    // "A grant at or after this payment" is "is the newest grant at or after it".
     const newestGrant = member
       ? await ctx.db!.query.membershipHistory.findFirst({
           where: eq(membershipHistory.memberId, member.id),

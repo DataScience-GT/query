@@ -65,12 +65,9 @@ function getCacheControl(pathname: string): string {
   return "no-cache, no-store, must-revalidate";
 }
 
-// SAMEORIGIN, not DENY. next.config.mjs sets SAMEORIGIN deliberately — the QR
-// and print views are framed by the admin screens, and the resume preview
-// frames /api/resume/<id> — but this runs after those headers and overwrote
-// them, so every same-origin frame died with the browser's "refused to
-// connect". `frame-ancestors 'self'` in the CSP says the same thing; these two
-// lists have to agree.
+// SAMEORIGIN, not DENY: this runs after next.config.mjs and overwrote its
+// SAMEORIGIN, so every same-origin frame — QR, print, resume preview — died
+// with "refused to connect". The two lists have to agree.
 const securityHeaders: string[] = [
   "X-Content-Type-Options: nosniff",
   "X-Frame-Options: SAMEORIGIN",

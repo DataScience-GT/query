@@ -15,8 +15,7 @@ const filters = {
 /** Metadata only. The bytes move over /api/resume, never through tRPC. */
 export const resumeRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    // Same reason as member.me: "no resume yet" is the common answer and has
-    // to cache, which it cannot through a get() that reports null for a miss.
+    // Same as member.me: "no resume yet" is the common answer and must cache.
     return ctx.cache.getOrSet(
       `resume:me:${ctx.userId}`,
       async () => {

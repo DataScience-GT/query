@@ -29,10 +29,8 @@ const phoneSchema = z
 
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    // getOrSet, so "this user has no member row" caches like any other
-    // answer. Read through get() a null result was indistinguishable from a
-    // miss, and everyone who has signed in without registering — most signed
-    // in users — re-queried on every portal page.
+    // getOrSet, so "no member row" caches too. Through get() it read as a miss,
+    // and every unregistered user re-queried on each portal page.
     return ctx.cache.getOrSet(
       `member:me:${ctx.userId}`,
       async () =>
@@ -288,9 +286,8 @@ export const memberRouter = createTRPCRouter({
     }),
 
   history: protectedProcedure.query(async ({ ctx }) => {
-    // Rendered on the settings page, so it runs on a page load rather than on
-    // an action, and the rows only move when a membership does — which every
-    // path that writes one already evicts through `member:*`.
+    // Page-load path, and the rows only move when a membership does — which
+    // every writer already evicts through `member:*`.
     const history = await ctx.cache.getOrSet(
       `member:history:${ctx.userId}`,
       async () => {

@@ -500,9 +500,8 @@ export const hackathonAdminRouter = createTRPCRouter({
       let alreadyEmailed = 0;
       const failedEmails: string[] = [];
 
-      // Sent at the width of the SMTP pool rather than one at a time; the
-      // per-row marker below is what makes that safe to resume after a batch
-      // that still runs out of request time.
+      // Width of the SMTP pool; the per-row marker below makes a partial batch
+      // safe to resume.
       await forEachWithConcurrency(
         participants,
         emailConcurrency(),

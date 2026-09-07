@@ -16,15 +16,8 @@ import Link from "next/link";
  * only inside the (portal) route group, and this page's whole audience is
  * people who are not signed in.
  */
-/**
- * Rendered every five minutes, not on every request, matching /projects.
- *
- * force-dynamic bought freshness nobody could observe: proxy.ts already serves
- * this path as `public, max-age=3600, stale-while-revalidate=86400`, so a
- * visitor's browser holds the page for an hour regardless. What it did cost was
- * a query and a full render on every uncached hit — including the first request
- * to a cold instance, which is where the tail lives.
- */
+// Every five minutes, not every request, matching /projects. force-dynamic
+// bought freshness nobody saw — proxy.ts already serves this max-age=3600.
 export const revalidate = 300;
 
 const formatWhen = (date: Date) =>
@@ -70,12 +63,9 @@ async function loadUpcoming() {
 }
 
 /**
- * Events that have already happened, most recent first.
- *
- * An event leaving the upcoming list used to leave the site entirely, so the
- * club had no public record that it ran. Attendance is part of that record —
- * `currentCheckIns` is what the door counted — so it is shown here rather than
- * the capacity badge, which means nothing once the room has emptied.
+ * Past events, most recent first. Leaving the upcoming list used to mean leaving
+ * the site, so nothing recorded that an event ran. Attendance stands in for the
+ * capacity badge, which means nothing once the room has emptied.
  */
 async function loadPast() {
   if (!db) return [];
@@ -89,8 +79,7 @@ async function loadPast() {
 }
 
 export default async function EventsPage() {
-  // In parallel: two independent reads, and this page renders on a schedule
-  // rather than per request, so the slower of the two is the whole cost.
+  // Two independent reads; the slower one is the whole cost.
   const [upcoming, past] = await Promise.all([loadUpcoming(), loadPast()]);
 
   return (

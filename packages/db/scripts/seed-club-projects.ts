@@ -173,8 +173,7 @@ const ROSTER: Row[] = [
   },
 ];
 
-// `import type` rather than an inline `typeof import(...)`: both are erased
-// before runtime, so the dotenv ordering this file protects is unaffected.
+// Erased before runtime, so the dotenv ordering this file protects is unaffected.
 type Schema = typeof SchemaModule;
 type Database = NonNullable<Schema["db"]>;
 
