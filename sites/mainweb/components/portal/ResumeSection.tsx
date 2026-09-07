@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileText, Upload, Trash2, Eye, EyeOff } from "lucide-react";
+import { FileText, Upload, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { MAX_RESUME_BYTES, decodeStoredFileName } from "@/lib/resume-file";
 import { ResumePreview } from "@/components/portal/ResumePreview";
@@ -136,6 +136,14 @@ export function ResumeSection() {
             </div>
 
             <div className="flex items-center gap-2">
+              <a
+                href="/api/resume/me"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open
+              </a>
               <button
                 onClick={() => setPreview((open) => !open)}
                 aria-expanded={preview}
