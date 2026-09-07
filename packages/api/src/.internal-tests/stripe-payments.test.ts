@@ -26,7 +26,7 @@ const mockFindFirst = vi.fn();
 // Table-aware like findFirst, and empty unless a test says otherwise. It used
 // to be a blanket `[]`, which quietly answered "no such row" to any batched
 // read — the shape reconcileMyPayments uses to avoid a query per intent.
-const mockFindMany = vi.fn((_table: string) => [] as unknown[]);
+const mockFindMany = vi.fn((..._args: any[]) => [] as unknown[]);
 const mockInsert = vi.fn();
 /** The values handed to `.set()`, so a test can tell an add-on stamp from a
  *  renewal — the two differ only in which columns move. */
