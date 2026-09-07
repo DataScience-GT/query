@@ -15,6 +15,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 // `../src` is imported inside main(): its client reads DATABASE_URL at module
 // load, and a static import would be hoisted above the dotenv call.
 import type { ClubProjectStatus } from "../src/schemas/club-projects";
+import type * as SchemaModule from "../src";
 
 const OWNER_EMAIL =
   process.env.CLUB_PROJECT_OWNER_EMAIL ?? "aamoghsawantt@gmail.com";
@@ -172,7 +173,9 @@ const ROSTER: Row[] = [
   },
 ];
 
-type Schema = typeof import("../src");
+// `import type` rather than an inline `typeof import(...)`: both are erased
+// before runtime, so the dotenv ordering this file protects is unaffected.
+type Schema = typeof SchemaModule;
 type Database = NonNullable<Schema["db"]>;
 
 let S: Schema;

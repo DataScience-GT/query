@@ -23,6 +23,10 @@ import {
  */
 
 const mockFindFirst = vi.fn();
+// Table-aware like findFirst, and empty unless a test says otherwise. It used
+// to be a blanket `[]`, which quietly answered "no such row" to any batched
+// read — the shape reconcileMyPayments uses to avoid a query per intent.
+const mockFindMany = vi.fn((_table: string) => [] as unknown[]);
 const mockInsert = vi.fn();
 /** The values handed to `.set()`, so a test can tell an add-on stamp from a
  *  renewal — the two differ only in which columns move. */
@@ -62,7 +66,7 @@ vi.mock("stripe", () => ({
 vi.mock("@query/db", () => {
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
-    findMany: vi.fn().mockResolvedValue([]),
+    findMany: (...args: any[]) => mockFindMany(name, ...args),
   });
 
   return {
@@ -615,18 +619,28 @@ describe("Membership payments", () => {
     const wire = (opts: { history?: unknown }) => {
       process.env.STRIPE_SECRET_KEY = "sk_test_abc";
       mockSearchResults.mockReturnValue([paidIntent]);
+
+      const paymentRow = {
+        id: "pay_1",
+        stripePaymentIntentId: paidIntent.id,
+        linkedUserId: USER,
+        paymentStatus: "paid",
+        createdAt: PAID_AT,
+      };
+
+      // reconcile reads the payments for a whole search page in one findMany.
+      mockFindMany.mockImplementation((table: string) =>
+        table === "stripePayments" ? [paymentRow] : [],
+      );
+
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "users")
           return { id: USER, email: "member@gatech.edu", name: "Buzz Member" };
-        if (table === "stripePayments")
-          return {
-            id: "pay_1",
-            stripePaymentIntentId: paidIntent.id,
-            linkedUserId: USER,
-            paymentStatus: "paid",
-            createdAt: PAID_AT,
-          };
+        if (table === "stripePayments") return paymentRow;
         if (table === "members") return { id: "member_1" };
+        // The newest grant on file. reconcile compares its timestamp against
+        // the payment's, so a row without `created_at` is not a row the
+        // membership_history table could ever hold — the column is NOT NULL.
         if (table === "membershipHistory") return opts.history;
         return undefined;
       });
@@ -652,12 +666,35 @@ describe("Membership payments", () => {
      * is what distinguishes "never honoured" from "honoured and expired".
      */
     it("leaves an already-honoured payment alone", async () => {
-      wire({ history: { id: "hist_1" } });
+      wire({
+        history: {
+          id: "hist_1",
+          createdAt: new Date(PAID_AT.getTime() + 60_000),
+        },
+      });
 
       const res = await caller().stripe.reconcileMyPayments();
 
       expect(res.recovered).toBe(0);
       expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The comparison is "newest grant at or after this payment", so a grant
+     * that predates the charge honours nothing — that is last year's
+     * membership, not this one.
+     */
+    it("recovers when the newest grant predates the payment", async () => {
+      wire({
+        history: {
+          id: "hist_old",
+          createdAt: new Date(PAID_AT.getTime() - 365 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const res = await caller().stripe.reconcileMyPayments();
+
+      expect(res.recovered).toBe(1);
     });
   });
 });
