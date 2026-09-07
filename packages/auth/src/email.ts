@@ -258,7 +258,7 @@ export async function sendInitiativeDecisionEmail({
       ? [`Your proposal for ${initiativeTitle} was not taken forward this time.`]
       : [
           `Your application to ${initiativeTitle} was not accepted this time.`,
-          "Other initiatives are open, and applying again later is welcome.",
+          "Other projects are open, and applying again later is welcome.",
         ];
 
   if (note) paragraphs.push(note);
@@ -268,7 +268,7 @@ export async function sendInitiativeDecisionEmail({
     subject,
     heading: accepted ? "Good news" : "An update",
     paragraphs,
-    ctaLabel: accepted && kind === "proposal" ? "Open your initiative" : "See initiatives",
+    ctaLabel: accepted && kind === "proposal" ? "Open your project" : "See projects",
     ctaUrl:
       accepted && kind === "proposal" ? `${host}/lead` : `${host}/initiatives`,
   });

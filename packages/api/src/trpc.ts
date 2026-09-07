@@ -157,6 +157,12 @@ const hasInlineHandler = (lower: string, start: number, end: number) => {
 // case-insensitive substring; tags and handlers are found by walking `<`…`>`,
 // so long runs of spaces cannot force backtracking.
 export const hasDangerousMarkup = (value: string): boolean => {
+  // Nothing below can fire without a `<` or a `:`: the scheme check needs the
+  // colon and every tag and handler check starts from an angle bracket. The
+  // strings that carry neither are most of every payload, and they were each
+  // paying a full lowercase copy of themselves to be cleared.
+  if (!value.includes("<") && !value.includes(":")) return false;
+
   const lower = value.toLowerCase();
   if (lower.includes("javascript:")) return true;
 

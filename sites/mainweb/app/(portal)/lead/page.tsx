@@ -65,7 +65,7 @@ function InitiativeForm({
         }}
       >
         <h2 className="mb-4 font-semibold text-white">
-          {initiative ? "Edit initiative" : "New initiative"}
+          {initiative ? "Edit project" : "New project"}
         </h2>
 
         <InitiativeFields draft={draft} onChange={setDraft} />
@@ -113,12 +113,19 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
     ]);
   };
 
-  const setStatus = trpc.initiative.setStatus.useMutation({ onSuccess: refresh });
-  const archive = trpc.initiative.setArchived.useMutation({ onSuccess: refresh });
+  const setStatus = trpc.initiative.setStatus.useMutation({
+    onSuccess: refresh,
+  });
+  const archive = trpc.initiative.setArchived.useMutation({
+    onSuccess: refresh,
+  });
 
   if (editing) {
     return (
-      <InitiativeForm initiative={initiative} onDone={() => setEditing(false)} />
+      <InitiativeForm
+        initiative={initiative}
+        onDone={() => setEditing(false)}
+      />
     );
   }
 
@@ -264,7 +271,7 @@ export default function LeadPage() {
             href="/initiatives"
             className="mt-4 inline-block text-sm font-semibold text-white underline"
           >
-            Browse initiatives instead
+            Browse projects instead
           </Link>
         </LiquidGlass>
       </div>
@@ -280,7 +287,7 @@ export default function LeadPage() {
         <div>
           <div className="flex items-center gap-3">
             <Rocket className="h-6 w-6 text-white/70" />
-            <h1 className="text-2xl font-bold text-white">My initiatives</h1>
+            <h1 className="text-2xl font-bold text-white">My projects</h1>
           </div>
           <p className="mt-2 text-white/60">
             {waiting > 0
@@ -295,7 +302,7 @@ export default function LeadPage() {
             onClick={() => setCreating(true)}
             className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
           >
-            New initiative
+            New project
           </button>
         )}
       </header>
@@ -314,7 +321,7 @@ export default function LeadPage() {
         </div>
       ) : (
         <LiquidGlass className="p-8 text-center">
-          <p className="font-semibold text-white">No initiatives yet.</p>
+          <p className="font-semibold text-white">No projects yet.</p>
           <p className="mt-2 text-sm text-white/60">
             A new one starts as a draft, so you can write it up now and open it
             to members when you are ready.

@@ -227,7 +227,7 @@
     },
     {
       "type": "timeseries",
-      "title": "Latency p50 / p95",
+      "title": "Latency p50 / p95 / p99",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
       "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
@@ -241,19 +241,24 @@
           "refId": "B",
           "expr": "histogram_quantile(0.95, sum by (le) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m])))",
           "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m])))",
+          "legendFormat": "p99"
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Slowest procedures (p95)",
+      "title": "Slowest procedures (p99)",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
       "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(5, histogram_quantile(0.95, sum by (le, procedure) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m]))))",
+          "expr": "topk(5, histogram_quantile(0.99, sum by (le, procedure) (rate(dsgt_trpc_duration_seconds_bucket{env=~\"$env\"}[5m]))))",
           "legendFormat": "{{procedure}}"
         }
       ]

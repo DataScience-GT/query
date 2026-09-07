@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  compareTerms,
   createOrUpdateMembership,
   currentTerm,
   isBootcampAddOnOnly,
@@ -233,6 +234,14 @@ describe("currentTerm", () => {
   it("sells the autumn bootcamp over the summer", () => {
     expect(currentTerm(new Date("2026-06-10T12:00:00"))).toBe("2026-fall");
     expect(currentTerm(new Date("2026-07-04T12:00:00"))).toBe("2026-fall");
+  });
+});
+
+describe("compareTerms", () => {
+  it("orders spring before fall in the same year", () => {
+    expect(
+      ["2026-fall", "2026-spring", "2025-fall"].sort(compareTerms),
+    ).toEqual(["2025-fall", "2026-spring", "2026-fall"]);
   });
 });
 

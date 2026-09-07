@@ -66,7 +66,11 @@ export const trpcDuration = new Histogram({
   help: "Portal API call duration, by procedure and outcome.",
   labelNames: ["procedure", "type", "ok"] as const,
   // Tuned for a Neon round trip from a serverless instance, not for a CDN.
-  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  // 0.75 and 1.5 exist for the tail specifically: a quantile is interpolated
+  // inside whichever bucket it lands in, and p99 sits above p95, so with 1
+  // and 2.5 adjacent the number the alert fires on was a straight line drawn
+  // across the range where it actually lives.
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2.5, 5, 10],
   registers: [registry],
 });
 
@@ -108,6 +112,20 @@ const paymentsByPlan = new Gauge({
 const paymentsUnlinked = new Gauge({
   name: "dsgt_payments_unlinked",
   help: "Payments marked paid that no account has claimed.",
+  registers: [registry],
+});
+
+const resumesStored = new Gauge({
+  name: "dsgt_resumes_stored",
+  help: "Resumes on file.",
+  registers: [registry],
+});
+
+// Read from the metadata rows, not from the bucket — this is what the club is
+// paying Cloud Storage to hold, and it only ever grows.
+const resumeBytesStored = new Gauge({
+  name: "dsgt_resume_bytes_stored",
+  help: "Bytes of resumes held in Cloud Storage.",
   registers: [registry],
 });
 
@@ -211,6 +229,17 @@ export async function refreshDbGauges(db: DrizzleDB | null | undefined) {
       paymentsByPlan.reset();
       for (const row of byPlan.rows) {
         paymentsByPlan.set({ plan: row.plan }, Number(row.total));
+      }
+
+      const resumes = await db.execute<{ files: string; bytes: string }>(sql`
+        select count(*) as files, coalesce(sum("size_bytes"), 0) as bytes
+        from "member_resume"
+      `);
+
+      const resumeTotals = resumes.rows[0];
+      if (resumeTotals) {
+        resumesStored.set(Number(resumeTotals.files));
+        resumeBytesStored.set(Number(resumeTotals.bytes));
       }
     } catch {
       // Stale gauges beat a 500 on the scrape endpoint.

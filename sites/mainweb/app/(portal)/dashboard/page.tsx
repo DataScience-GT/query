@@ -284,7 +284,7 @@ export default function Dashboard() {
             </div>
           ))}
 
-          {/* Initiatives — club side, but browsing is open so anyone can see
+          {/* Projects — club side, but browsing is open so anyone can see
               what membership actually buys before paying for it. */}
           {view === "club" && (
             <Link href="/initiatives" className="group">
@@ -297,7 +297,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Initiatives
+                    Projects
                   </h3>
                   <p className="text-sm text-[var(--text-muted)] mt-1">
                     Projects the club runs year-round. Join one, or pitch your
@@ -308,7 +308,7 @@ export default function Dashboard() {
             </Link>
           )}
 
-          {/* Become a Member — sits beside Initiatives so the club view says
+          {/* Become a Member — sits beside Projects so the club view says
               what is missing where the rest of the club lives. The pay UI is
               the block below; this jumps to it. */}
           {view === "club" && !memberStatus?.isMember && !isAdmin && (

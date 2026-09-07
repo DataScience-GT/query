@@ -81,6 +81,16 @@ export const currentTerm = (now = new Date()) =>
     ? `${now.getFullYear()}-spring`
     : `${now.getFullYear()}-fall`;
 
+/** Chronological order for `YYYY-spring` / `YYYY-fall` labels. Locale compare puts fall first. */
+export const compareTerms = (a: string, b: string) => {
+  const [ay = "", as = ""] = a.split("-");
+  const [by = "", bs = ""] = b.split("-");
+  if (ay !== by) return ay.localeCompare(by);
+  const rank = (season: string) =>
+    season === "spring" ? 0 : season === "fall" ? 1 : 2;
+  return rank(as) - rank(bs);
+};
+
 // How long a membership was bought for. A year and a semester are the same
 // membership with the same access — only the expiry differs.
 export type MembershipPlan = "annual" | "semester";

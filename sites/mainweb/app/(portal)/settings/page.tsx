@@ -21,6 +21,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { MembershipTab } from "@/components/portal/MembershipTab";
+import { ResumeSection } from "@/components/portal/ResumeSection";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
@@ -370,6 +371,8 @@ export default function SettingsPage() {
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui text-sm resize-none"
                     />
                   </div>
+
+                  <ResumeSection />
 
                   {updateProfile.error && (
                     <div className="px-4 py-3 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-sm">

@@ -1,9 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { PortalContext } from "@query/api";
-import {
-  isPortalNavActive,
-  portalNavSections,
-} from "./portal-nav";
+import { isPortalNavActive, portalNavSections } from "./portal-nav";
 
 const emptyMember = {
   isMember: false,
@@ -52,7 +49,7 @@ describe("portalNavSections", () => {
     ]);
     expect(names(sections, "portal")).toEqual([
       "Bootcamp",
-      "Initiatives",
+      "Club Projects",
       "Settings",
     ]);
     expect(names(sections, "portal")).not.toContain("Club Portal");
@@ -71,15 +68,13 @@ describe("portalNavSections", () => {
       "Dashboard",
       "Club Portal",
       "Bootcamp",
-      "Initiatives",
+      "Club Projects",
       "Settings",
     ]);
   });
 
   it("adds judge and scanner links only on the hackathon side", () => {
-    const sections = portalNavSections(
-      ctx({ isJudge: true, isScanner: true }),
-    );
+    const sections = portalNavSections(ctx({ isJudge: true, isScanner: true }));
     expect(names(sections, "hackathon")).toEqual([
       "Dashboard",
       "Hackathons",
@@ -92,10 +87,10 @@ describe("portalNavSections", () => {
     expect(names(sections, "portal")).not.toContain("Judge Portal");
   });
 
-  it("adds My Initiatives on the portal side for a project leader", () => {
+  it("adds My Club Projects on the portal side for a project leader", () => {
     const sections = portalNavSections(ctx({ isProjectLeader: true }));
-    expect(names(sections, "portal")).toContain("My Initiatives");
-    expect(names(sections, "hackathon")).not.toContain("My Initiatives");
+    expect(names(sections, "portal")).toContain("My Club Projects");
+    expect(names(sections, "hackathon")).not.toContain("My Club Projects");
   });
 
   it("splits admin tools the same way and omits Judging Setup", () => {
@@ -111,13 +106,13 @@ describe("portalNavSections", () => {
       "Club Hub",
       "Club Attendees",
       "Club Check-In",
-      "Initiatives",
-      "Initiative Applications",
+      "Club Projects",
+      "Club Project Applications",
       "Bootcamp",
       "Memberships",
+      "Resume Book",
       "Staff & Roles",
       "Analytics",
-      "Audit Log",
       "Docs",
       "Settings",
     ]);

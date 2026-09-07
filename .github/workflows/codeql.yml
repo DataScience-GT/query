@@ -35,9 +35,10 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+        # No version pin: the one in packageManager is the one that reads
+        # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
+        # silently installed an older pnpm that ignores both.
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node
         uses: actions/setup-node@v6

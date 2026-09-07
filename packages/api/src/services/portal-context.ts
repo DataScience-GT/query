@@ -72,16 +72,20 @@ export async function resolveHackathonId(
 
   // Cached: two queries on hot paths, and the current edition changes about
   // twice a year. "" means none, since a miss also reads as null.
-  const cached = cache.get<string>(CURRENT_HACKATHON_KEY);
-  if (cached !== null) return cached || undefined;
+  //
+  // getOrSet, not get/set: this is one key shared by the whole instance, and
+  // when it expires every request in flight resolves the edition again. The
+  // judge gate reads it on the fallback path, so at a running event that is
+  // a burst of identical queries once a minute.
+  const resolved = await cache.getOrSet(
+    CURRENT_HACKATHON_KEY,
+    // The rule lives in @query/db so sign-in and the webhook share it; this
+    // wrapper only adds the cache.
+    async () => (await resolveCurrentHackathonId(db)) ?? "",
+    60,
+  );
 
-  // The rule lives in @query/db so sign-in and the webhook share it; this
-  // wrapper only adds the cache.
-  const resolved = await resolveCurrentHackathonId(db);
-
-  cache.set(CURRENT_HACKATHON_KEY, resolved ?? "", 60);
-
-  return resolved;
+  return resolved || undefined;
 }
 
 /** Loads admin, judge, and member flags for the current user in one round-trip batch. */
