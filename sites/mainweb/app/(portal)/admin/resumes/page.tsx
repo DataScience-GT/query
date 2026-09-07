@@ -277,13 +277,23 @@ export default function AdminResumesPage() {
               <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 {preview.name}
               </p>
-              <button
-                onClick={() => setPreview(null)}
-                aria-label="Close preview"
-                className="p-1.5 rounded-sm text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-ui"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <a
+                  href={`/api/resume/${preview.userId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-1.5 rounded-sm text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-ui"
+                >
+                  Open
+                </a>
+                <button
+                  onClick={() => setPreview(null)}
+                  aria-label="Close preview"
+                  className="p-1.5 rounded-sm text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-ui"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <ResumePreview
               key={preview.userId}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { looksLikePdf } from "@/lib/resume-file";
 
 /**
  * Fetch the PDF as a blob and frame that, rather than pointing the iframe at
@@ -27,11 +28,13 @@ export function ResumePreview({ src, title }: { src: string; title: string }) {
           } | null;
           throw new Error(body?.error ?? "Could not load that resume.");
         }
-        const type = res.headers.get("content-type") ?? "";
-        if (!type.includes("pdf")) {
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (!looksLikePdf(bytes)) {
           throw new Error("Could not load that resume.");
         }
-        return res.blob();
+        // Force the PDF MIME. `res.blob()` keeps whatever Content-Type the
+        // proxy sent, and Chrome's viewer refuses anything else.
+        return new Blob([bytes], { type: "application/pdf" });
       })
       .then((blob) => {
         if (cancelled) return;
@@ -54,7 +57,15 @@ export function ResumePreview({ src, title }: { src: string; title: string }) {
   if (error) {
     return (
       <p className="px-4 py-8 rounded-sm border border-red-500/20 bg-red-500/10 text-red-400 text-sm text-center">
-        {error}
+        {error}{" "}
+        <a
+          href={src}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:text-red-300"
+        >
+          Open in a new tab
+        </a>
       </p>
     );
   }
