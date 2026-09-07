@@ -35,7 +35,9 @@ describe("forEachWithConcurrency", () => {
 
   it("is faster than one at a time for the same work", async () => {
     const items = Array.from({ length: 20 }, (_, i) => i);
-    const delay = () => new Promise((resolve) => setTimeout(resolve, 10));
+    const delay = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    };
 
     const start = Date.now();
     await forEachWithConcurrency(items, 5, delay);
