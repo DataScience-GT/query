@@ -1,0 +1,14 @@
+#!/bin/sh
+# Keeps generated attribution out of commit messages.
+#
+# These lines put a bot in the GitHub contributor list for this repo, which is
+# the reason they are unwanted here — not the tooling itself.
+
+if grep -qiE '^(Co-Authored-By: Claude|Claude-Session:)|Generated with \[Claude Code\]' "$1"; then
+  echo "commit-msg: refusing an attribution line in the commit message" >&2
+  echo "  Drop the Co-Authored-By: Claude / Claude-Session / Generated with lines." >&2
+  echo "  They show up in GitHub Contributors for this repo." >&2
+  exit 1
+fi
+
+exit 0

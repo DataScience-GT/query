@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
-import { gte } from "drizzle-orm";
+import { gte, lt } from "drizzle-orm";
 import Link from "next/link";
 
 /**
@@ -38,34 +38,60 @@ const formatWhen = (date: Date) =>
     timeZoneName: "short",
   });
 
+// qrCode is deliberately absent: publishing it would let anyone check
+// themselves in without being in the room.
+const listedColumns = {
+  id: true,
+  title: true,
+  description: true,
+  location: true,
+  eventDate: true,
+  maxCheckIns: true,
+  currentCheckIns: true,
+} as const;
+
+// From the start of today, so an event running this afternoon counts as
+// upcoming until it is actually over rather than dropping off at lunchtime.
+function startOfToday() {
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  return since;
+}
+
 async function loadUpcoming() {
   if (!db) return [];
 
-  // From the start of today, so an event running this afternoon does not
-  // disappear from the list at lunchtime.
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-
   return await db.query.events.findMany({
-    where: gte(events.eventDate, since),
+    where: gte(events.eventDate, startOfToday()),
     orderBy: (event, { asc }) => [asc(event.eventDate)],
     limit: 20,
-    // qrCode is deliberately absent: publishing it would let anyone check
-    // themselves in without being in the room.
-    columns: {
-      id: true,
-      title: true,
-      description: true,
-      location: true,
-      eventDate: true,
-      maxCheckIns: true,
-      currentCheckIns: true,
-    },
+    columns: listedColumns,
+  });
+}
+
+/**
+ * Events that have already happened, most recent first.
+ *
+ * An event leaving the upcoming list used to leave the site entirely, so the
+ * club had no public record that it ran. Attendance is part of that record —
+ * `currentCheckIns` is what the door counted — so it is shown here rather than
+ * the capacity badge, which means nothing once the room has emptied.
+ */
+async function loadPast() {
+  if (!db) return [];
+
+  return await db.query.events.findMany({
+    where: lt(events.eventDate, startOfToday()),
+    orderBy: (event, { desc }) => [desc(event.eventDate)],
+    limit: 20,
+    columns: listedColumns,
   });
 }
 
 export default async function EventsPage() {
-  const upcoming = await loadUpcoming();
+  // In parallel: two independent reads, and this page renders on a schedule
+  // rather than per request, so the slower of the two is the whole cost.
+  const [upcoming, past] = await Promise.all([loadUpcoming(), loadPast()]);
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">
@@ -120,6 +146,38 @@ export default async function EventsPage() {
                 </ul>
               )}
             </div>
+            {past.length > 0 && (
+              <div className="mt-8 bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
+                <h2 className="text-xl font-bold uppercase mb-4">
+                  Past Club Events
+                </h2>
+                <ul className="divide-y divide-white/5">
+                  {past.map((event) => (
+                    <li key={event.id} className="py-5 first:pt-0 last:pb-0">
+                      <div className="flex flex-wrap items-baseline gap-3">
+                        <h3 className="text-lg font-bold text-gray-300">
+                          {event.title}
+                        </h3>
+                        {event.currentCheckIns > 0 && (
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 border border-white/10 bg-white/5 px-2 py-0.5">
+                            {event.currentCheckIns} checked in
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {formatWhen(event.eventDate)}
+                        {event.location ? ` · ${event.location}` : ""}
+                      </p>
+                      {event.description && (
+                        <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                          {event.description}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <p className="mt-8 text-sm text-gray-500">
               Looking for Hacklytics?{" "}
               <Link

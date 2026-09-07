@@ -110,3 +110,28 @@ bash.exe.stackdump
 # failure on a fresh clone.
 monitoring/secrets/*
 !monitoring/secrets/.gitkeep
+
+# ── Never commit ────────────────────────────────────────────────────────────
+# Credentials. `*.pem` and the env files above cover some of this; these are the
+# shapes that slipped past them — a downloaded service-account key, an ADC file
+# copied out of ~/.config, an env file for an environment nobody listed.
+*.key
+*.p12
+*.pfx
+*.jks
+*-key.json
+service-account*.json
+*credentials*.json
+application_default_credentials.json
+gha-creds-*.json
+id_rsa
+id_ed25519
+
+# Every .env variant, not only the four spelled out above. `.env.example` is
+# the one that belongs in the repo, so it is exempted.
+.env.*
+!.env.example
+
+# Firebase local state, which carries project ids and cached tokens.
+.firebase/
+.firebaserc.local
