@@ -28,6 +28,14 @@ function ApplicantRow({
 }) {
   const utils = trpc.useUtils();
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [wantResume, setWantResume] = useState(false);
+
+  // Fetched on click, not with the queue: thirty applicants would otherwise
+  // mean thirty PDFs on page load.
+  const resume = trpc.initiative.applicantResume.useQuery(
+    { initiativeId, userId: applicant.userId },
+    { enabled: wantResume },
+  );
 
   const decide = trpc.initiative.decide.useMutation({
     onSuccess: async () => {
@@ -61,6 +69,33 @@ function ApplicantRow({
           {applicant.pitch && (
             <p className="mt-2 whitespace-pre-line border-l-2 border-white/10 pl-3 text-sm text-white/80">
               {applicant.pitch}
+            </p>
+          )}
+
+          {applicant.resumeFileName &&
+            (resume.data ? (
+              <a
+                href={resume.data.dataUrl}
+                download={resume.data.fileName}
+                className="mt-2 inline-block text-sm font-semibold text-white underline"
+              >
+                Download {resume.data.fileName}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setWantResume(true)}
+                disabled={resume.isFetching}
+                className="mt-2 text-sm font-semibold text-white/80 underline hover:text-white disabled:opacity-50"
+              >
+                {resume.isFetching
+                  ? "Loading resume…"
+                  : `Resume: ${applicant.resumeFileName}`}
+              </button>
+            ))}
+          {resume.error && (
+            <p aria-live="polite" className="mt-2 text-sm text-red-300">
+              {resume.error.message}
             </p>
           )}
         </div>
@@ -180,7 +215,7 @@ export default function LeadInitiativePage({
             href="/lead"
             className="mt-4 inline-block text-sm font-semibold text-white underline"
           >
-            Back to your initiatives
+            Back to your projects
           </Link>
         </LiquidGlass>
       </div>
@@ -210,7 +245,7 @@ export default function LeadInitiativePage({
         href="/lead"
         className="mb-6 inline-flex items-center gap-1 text-sm font-semibold text-white/60 transition hover:text-white"
       >
-        <ChevronLeft className="h-4 w-4" /> Back to your initiatives
+        <ChevronLeft className="h-4 w-4" /> Back to your projects
       </Link>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -234,7 +269,7 @@ export default function LeadInitiativePage({
       {state === "draft" && (
         <p className="mt-3 text-sm text-white/60">
           This is still a draft, so members cannot see it or apply. Open it from
-          your initiatives list.
+          your projects list.
         </p>
       )}
 
@@ -243,13 +278,17 @@ export default function LeadInitiativePage({
           <p className="font-semibold text-white">Nobody has applied yet.</p>
           <p className="mt-2 text-sm text-white/60">
             {state === "open"
-              ? "It is open, so it is showing on the members' initiatives page."
-              : "Open it from your initiatives list and it will start showing to members."}
+              ? "It is open, so it is showing on the members' projects page."
+              : "Open it from your projects list and it will start showing to members."}
           </p>
         </LiquidGlass>
       ) : (
         <>
-          <Group title="Waiting on you" rows={inState("pending")} render={row} />
+          <Group
+            title="Waiting on you"
+            rows={inState("pending")}
+            render={row}
+          />
           <Group title="On the team" rows={inState("accepted")} render={row} />
           <Group
             title="Turned down and withdrawn"

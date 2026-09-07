@@ -20,9 +20,10 @@ jobs:
           node-version: "20"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+        # No version pin: the one in packageManager is the one that reads
+        # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
+        # silently installed an older pnpm that ignores both.
+        uses: pnpm/action-setup@v5
 
       - name: Install dependencies
         run: pnpm install

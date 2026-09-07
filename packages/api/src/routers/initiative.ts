@@ -9,11 +9,15 @@ import {
   users,
 } from "@query/db";
 import type { DrizzleDB, Initiative } from "@query/db";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { isAdmin, isSuperAdmin, isProjectLeader } from "../middleware/procedures";
+import { createTRPCRouter, protectedProcedure, uploadProcedure } from "../trpc";
+import {
+  isAdmin,
+  isSuperAdmin,
+  isProjectLeader,
+} from "../middleware/procedures";
 import { clearProjectLeaderCaches } from "../middleware/cache";
 
-const notFound = (message = "Initiative not found") =>
+const notFound = (message = "Project not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
 
 /** Postgres unique_violation. Drizzle wraps driver errors, so walk `.cause`. */
@@ -35,6 +39,32 @@ type Reader = DrizzleDB | Tx;
 // accepted members only and is one less than this. Applied when a leader
 // names no cap; an explicit null still means uncapped.
 const DEFAULT_TEAM_SIZE = 4;
+
+// A resume is a PDF, small enough to sit in a row. `uploadProcedure` already
+// caps the whole payload at 2 MB.
+const resumeInput = z.object({
+  fileName: z.string().trim().min(1).max(200),
+  dataUrl: z
+    .string()
+    .regex(
+      /^data:application\/pdf;base64,[A-Za-z0-9+/]+={0,2}$/,
+      "Your resume must be a PDF.",
+    )
+    .max(2 * 1024 * 1024),
+});
+
+/** The declared type is not the file's; check the signature before storing. */
+function assertPdf(dataUrl: string) {
+  const base64 = dataUrl.split(",")[1] ?? "";
+  const header = Buffer.from(base64.slice(0, 8), "base64").toString("latin1");
+  if (!header.startsWith("%PDF-")) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That file is not a PDF.",
+    });
+  }
+  return dataUrl;
+}
 
 const initiativeInput = z.object({
   title: z.string().trim().min(1).max(200),
@@ -80,7 +110,7 @@ async function requireActiveMember(db: Reader, userId: string) {
   if (!active) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "An active membership is required to join an initiative.",
+      message: "An active membership is required to join a project.",
     });
   }
 }
@@ -165,7 +195,10 @@ export const initiativeRouter = createTRPCRouter({
         initiativeApplications.status,
       );
 
-    const byInitiative = new Map<string, { pending: number; accepted: number }>();
+    const byInitiative = new Map<
+      string,
+      { pending: number; accepted: number }
+    >();
     for (const tally of tallies) {
       const entry = byInitiative.get(tally.initiativeId) ?? {
         pending: 0,
@@ -202,6 +235,7 @@ export const initiativeRouter = createTRPCRouter({
           image: users.image,
           status: initiativeApplications.status,
           pitch: initiativeApplications.pitch,
+          resumeFileName: initiativeApplications.resumeFileName,
           appliedAt: initiativeApplications.appliedAt,
           decidedAt: initiativeApplications.decidedAt,
         })
@@ -234,7 +268,7 @@ export const initiativeRouter = createTRPCRouter({
         if (!ctx.isPlatformAdmin) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Only an admin can create an initiative for someone else.",
+            message: "Only an admin can create a project for someone else.",
           });
         }
 
@@ -258,7 +292,7 @@ export const initiativeRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            "You are not a project leader. Name the leader this initiative belongs to.",
+            "You are not a project leader. Name the leader this project belongs to.",
         });
       }
 
@@ -279,7 +313,7 @@ export const initiativeRouter = createTRPCRouter({
       if (!created) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Could not create that initiative.",
+          message: "Could not create that project.",
         });
       }
       return created;
@@ -338,7 +372,7 @@ export const initiativeRouter = createTRPCRouter({
       if (initiative.archivedAt !== null) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Restore this initiative before changing its status.",
+          message: "Restore this project before changing its status.",
         });
       }
 
@@ -384,6 +418,42 @@ export const initiativeRouter = createTRPCRouter({
   // Reversible both ways: a rejection can be taken back, an acceptance revoked
   // and the seat returned. The one refused transition is deciding on somebody
   // who withdrew.
+  // Separate from getById so a queue of thirty applicants does not ship thirty
+  // PDFs to render a list.
+  applicantResume: isProjectLeader
+    .input(
+      z.object({
+        initiativeId: z.string().uuid(),
+        userId: z.string().min(1),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const initiative = await db.query.initiatives.findFirst({
+        where: eq(initiatives.id, input.initiativeId),
+      });
+      if (!initiative || !canManage(ctx, initiative)) throw notFound();
+
+      const [row] = await db
+        .select({
+          fileName: initiativeApplications.resumeFileName,
+          dataUrl: initiativeApplications.resumeData,
+        })
+        .from(initiativeApplications)
+        .where(
+          and(
+            eq(initiativeApplications.initiativeId, input.initiativeId),
+            eq(initiativeApplications.userId, input.userId),
+          ),
+        )
+        .limit(1);
+
+      if (!row?.dataUrl) throw notFound("No resume on this application.");
+
+      return { fileName: row.fileName ?? "resume.pdf", dataUrl: row.dataUrl };
+    }),
+
   decide: isProjectLeader
     .input(
       z.object({
@@ -434,7 +504,7 @@ export const initiativeRouter = createTRPCRouter({
           if (taken >= initiative.maxMembers) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "This initiative is full.",
+              message: "This project is full.",
             });
           }
         }
@@ -610,17 +680,31 @@ export const initiativeRouter = createTRPCRouter({
   // Not `apply`: tRPC refuses a procedure named after anything on
   // Function.prototype and throws at router construction, taking the whole API
   // route down rather than just this procedure.
-  requestToJoin: protectedProcedure
+  requestToJoin: uploadProcedure
     .input(
       z.object({
         initiativeId: z.string().uuid(),
-        pitch: z.string().trim().max(1000).optional(),
+        pitch: z
+          .string()
+          .trim()
+          .min(1, "Tell the leader why you want to join.")
+          .max(1000),
+        resume: resumeInput.optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const userId = ctx.userId;
-      const pitch = input.pitch?.length ? input.pitch : null;
+      const pitch = input.pitch;
+      // Absent means "leave whatever is on file", so re-applying does not wipe
+      // a resume the applicant already sent.
+      const resume = input.resume
+        ? {
+            resumeFileName: input.resume.fileName,
+            resumeData: assertPdf(input.resume.dataUrl),
+            resumeUploadedAt: new Date(),
+          }
+        : {};
 
       return db.transaction(async (tx) => {
         // Lock BEFORE reading, so every guard sees the row as it is now — otherwise a
@@ -650,14 +734,14 @@ export const initiativeRouter = createTRPCRouter({
         if (initiative.status !== "open") {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "This initiative is not taking applications.",
+            message: "This project is not taking applications.",
           });
         }
 
         if (initiative.leaderUserId === userId) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "You already lead this initiative.",
+            message: "You already lead this project.",
           });
         }
 
@@ -675,9 +759,9 @@ export const initiativeRouter = createTRPCRouter({
             code: "CONFLICT",
             message:
               existing.status === "pending"
-                ? "You have already applied to this initiative."
+                ? "You have already applied to this project."
                 : existing.status === "accepted"
-                  ? "You are already on this initiative."
+                  ? "You are already on this project."
                   : "The leader has already decided on your application.",
           });
         }
@@ -687,7 +771,7 @@ export const initiativeRouter = createTRPCRouter({
           if (taken >= initiative.maxMembers) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "This initiative is full.",
+              message: "This project is full.",
             });
           }
         }
@@ -700,6 +784,7 @@ export const initiativeRouter = createTRPCRouter({
             .set({
               status: "pending",
               pitch,
+              ...resume,
               appliedAt: new Date(),
               decidedAt: null,
               decidedById: null,
@@ -713,6 +798,7 @@ export const initiativeRouter = createTRPCRouter({
             initiativeId: initiative.id,
             userId,
             pitch,
+            ...resume,
             status: "pending",
           });
         } catch (error) {
@@ -721,7 +807,7 @@ export const initiativeRouter = createTRPCRouter({
           if (isUniqueViolation(error)) {
             throw new TRPCError({
               code: "CONFLICT",
-              message: "You have already applied to this initiative.",
+              message: "You have already applied to this project.",
             });
           }
           throw error;

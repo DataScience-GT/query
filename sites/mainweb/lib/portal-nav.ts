@@ -13,7 +13,6 @@ import {
   FolderGit2,
   CreditCard,
   ShieldCheck,
-  ScrollText,
   BookOpen,
   GraduationCap,
   UserCircle,
@@ -86,17 +85,17 @@ export function portalNavSections(
           { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
           { name: "Club Attendees", href: "/admin/attendees", icon: Users },
           { name: "Club Check-In", href: "/scan/club", icon: Calendar },
-          { name: "Initiatives", href: "/admin/initiatives", icon: Rocket },
+          { name: "Club Projects", href: "/admin/initiatives", icon: Rocket },
           {
-            name: "Initiative Applications",
+            name: "Club Project Applications",
             href: "/lead",
             icon: Rocket,
           },
           { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
           { name: "Memberships", href: "/admin/members", icon: CreditCard },
+          { name: "Resume Book", href: "/admin/resumes", icon: BookOpen },
           { name: "Staff & Roles", href: "/admin/staff", icon: ShieldCheck },
           { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-          { name: "Audit Log", href: "/admin/audit", icon: ScrollText },
           { name: "Docs", href: "/docs", icon: BookOpen },
           { name: "Settings", href: "/settings", icon: UserCircle },
         ],
@@ -135,9 +134,9 @@ export function portalNavSections(
       ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
       : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
-    { name: "Initiatives", href: "/initiatives", icon: Rocket },
+    { name: "Club Projects", href: "/initiatives", icon: Rocket },
     ...(f.isProjectLeader
-      ? [{ name: "My Initiatives", href: "/lead", icon: Rocket }]
+      ? [{ name: "My Club Projects", href: "/lead", icon: Rocket }]
       : []),
     { name: "Settings", href: "/settings", icon: UserCircle },
   ];
