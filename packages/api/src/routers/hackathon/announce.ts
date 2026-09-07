@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  emailConcurrency,
+  forEachWithConcurrency,
+} from "../../services/fanout";
 import { TRPCError } from "@trpc/server";
 import {
   and,
@@ -310,7 +314,10 @@ export const hackathonAnnounceRouter = createTRPCRouter({
                     isNull(hackathonAnnouncementRecipients.failedAt),
                     or(
                       isNull(hackathonAnnouncementRecipients.claimedAt),
-                      lt(hackathonAnnouncementRecipients.claimedAt, claimCutoff),
+                      lt(
+                        hackathonAnnouncementRecipients.claimedAt,
+                        claimCutoff,
+                      ),
                     ),
                   ),
                 )
@@ -329,39 +336,46 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       let sent = 0;
       const failed: string[] = [];
 
-      for (const recipient of pending) {
-        try {
-          await sendAnnouncementEmail({
-            email: recipient.email,
-            subject: announcement.subject,
-            heading: announcement.heading,
-            body: announcement.body,
-            ctaLabel: announcement.ctaLabel ?? undefined,
-            ctaUrl: announcement.ctaUrl ?? undefined,
-          });
+      // Fanned out to the width of the SMTP pool. One at a time, a batch of a
+      // few hundred outran Cloud Run's 300s request limit long before it ran
+      // out of recipients, and the retry then re-sent from wherever it died.
+      await forEachWithConcurrency(
+        pending,
+        emailConcurrency(),
+        async (recipient) => {
+          try {
+            await sendAnnouncementEmail({
+              email: recipient.email,
+              subject: announcement.subject,
+              heading: announcement.heading,
+              body: announcement.body,
+              ctaLabel: announcement.ctaLabel ?? undefined,
+              ctaUrl: announcement.ctaUrl ?? undefined,
+            });
 
-          await db
-            .update(hackathonAnnouncementRecipients)
-            .set({ sentAt: new Date() })
-            .where(eq(hackathonAnnouncementRecipients.id, recipient.id));
+            await db
+              .update(hackathonAnnouncementRecipients)
+              .set({ sentAt: new Date() })
+              .where(eq(hackathonAnnouncementRecipients.id, recipient.id));
 
-          sent++;
-        } catch (error) {
-          failed.push(recipient.email);
-          await db
-            .update(hackathonAnnouncementRecipients)
-            .set({ failedAt: new Date() })
-            .where(eq(hackathonAnnouncementRecipients.id, recipient.id));
+            sent++;
+          } catch (error) {
+            failed.push(recipient.email);
+            await db
+              .update(hackathonAnnouncementRecipients)
+              .set({ failedAt: new Date() })
+              .where(eq(hackathonAnnouncementRecipients.id, recipient.id));
 
-          // Deliberate operational logging: the only record of which address the
-          // provider rejected.
-          // eslint-disable-next-line no-console
-          console.error(
-            `[Email Service] Announcement failed for ${recipient.email}:`,
-            error,
-          );
-        }
-      }
+            // Deliberate operational logging: the only record of which address the
+            // provider rejected.
+            // eslint-disable-next-line no-console
+            console.error(
+              `[Email Service] Announcement failed for ${recipient.email}:`,
+              error,
+            );
+          }
+        },
+      );
 
       const [remaining] = await db
         .select({ count: sql<number>`count(*)::int` })

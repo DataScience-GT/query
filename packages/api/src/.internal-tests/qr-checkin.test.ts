@@ -527,10 +527,11 @@ describe("QR check-in", () => {
     });
 
     // The door reads the badge, then writes it. What keeps two in-flight scans
-    // of the same badge from both passing the guard is the FOR UPDATE on the
-    // event row: the second scan blocks there and only re-reads the check-ins
-    // once the first has committed. unique(event_id, user_id) backs that up for
-    // any path that does not take the lock.
+    // of the same badge from both passing the guard is unique(event_id, user_id):
+    // the read above only rules out badges committed before the transaction
+    // began, so the loser of a genuine race is settled by the constraint on
+    // insert, which checkIn reports as the same CONFLICT a rescan gets. The
+    // insert mock below enforces it, because that is what the table does.
     it("counts a double-tapped badge once", async () => {
       const row = clubEvent();
       const checkIns: any[] = [];
@@ -552,6 +553,18 @@ describe("QR check-in", () => {
       mockInsert.mockImplementation((_op, insertArgs, valArgs) => {
         if (insertArgs[0] === eventCheckIns) {
           const added = valArgs[0];
+          if (
+            checkIns.some(
+              (c) => c.eventId === added.eventId && c.userId === added.userId,
+            )
+          ) {
+            throw Object.assign(
+              new Error(
+                'duplicate key value violates unique constraint "unique_event_check_in"',
+              ),
+              { code: "23505" },
+            );
+          }
           checkIns.push(added);
           __onRollback(() => {
             checkIns.splice(checkIns.indexOf(added), 1);

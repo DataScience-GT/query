@@ -30,18 +30,30 @@ export class CacheService {
     }, 60 * 1000);
   }
 
-  get<T>(key: string): T | null {
+  /**
+   * A live entry, or undefined. Separate from `get` because `get` answers null
+   * for a miss and for a key holding null alike, so anything that needs to tell
+   * those apart — `has`, `getOrSet` — has to read the entry itself.
+   */
+  private entry<T>(key: string): CacheEntry<T> | undefined {
     const entry = this.cache.get(key) as CacheEntry<T> | undefined;
 
-    if (!entry) {
-      this.stats.misses++;
-      return null;
-    }
+    if (!entry) return undefined;
 
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
-      this.stats.misses++;
       this.stats.size = this.cache.size;
+      return undefined;
+    }
+
+    return entry;
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.entry<T>(key);
+
+    if (!entry) {
+      this.stats.misses++;
       return null;
     }
 
@@ -107,8 +119,13 @@ export class CacheService {
     return { ...this.stats };
   }
 
+  /**
+   * Whether a live entry exists — including one holding null, which `get`
+   * cannot distinguish from a miss. Does not count as a hit or a miss: asking
+   * whether a key is cached is not reading it.
+   */
   has(key: string): boolean {
-    return this.get(key) !== null;
+    return this.entry(key) !== undefined;
   }
 
   // Read through the cache, collapsing concurrent misses onto one factory
@@ -123,10 +140,15 @@ export class CacheService {
     factory: () => Promise<T> | T,
     ttl?: number,
   ): Promise<T> {
-    const cached = this.get<T>(key);
-    if (cached !== null) {
-      return cached;
+    // Entry, not `get`: a factory that legitimately returns null — "this user
+    // has no member row" — otherwise looked like a miss on every call, so the
+    // one result most worth collapsing was the one that never cached.
+    const cached = this.entry<T>(key);
+    if (cached) {
+      this.stats.hits++;
+      return cached.value;
     }
+    this.stats.misses++;
 
     const pending = this.inFlight.get(key) as Promise<T> | undefined;
     if (pending) return pending;

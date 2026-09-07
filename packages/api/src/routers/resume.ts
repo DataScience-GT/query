@@ -15,27 +15,25 @@ const filters = {
 /** Metadata only. The bytes move over /api/resume, never through tRPC. */
 export const resumeRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = `resume:me:${ctx.userId}`;
-    const cached = ctx.cache.get<{
-      fileName: string;
-      sizeBytes: number;
-      uploadedAt: Date;
-    } | null>(cacheKey);
-    if (cached !== null) return cached;
+    // Same reason as member.me: "no resume yet" is the common answer and has
+    // to cache, which it cannot through a get() that reports null for a miss.
+    return ctx.cache.getOrSet(
+      `resume:me:${ctx.userId}`,
+      async () => {
+        const row = await (ctx.db as DrizzleDB)
+          .select({
+            fileName: memberResumes.fileName,
+            sizeBytes: memberResumes.sizeBytes,
+            uploadedAt: memberResumes.uploadedAt,
+          })
+          .from(memberResumes)
+          .where(eq(memberResumes.userId, ctx.userId as string))
+          .limit(1);
 
-    const row = await (ctx.db as DrizzleDB)
-      .select({
-        fileName: memberResumes.fileName,
-        sizeBytes: memberResumes.sizeBytes,
-        uploadedAt: memberResumes.uploadedAt,
-      })
-      .from(memberResumes)
-      .where(eq(memberResumes.userId, ctx.userId as string))
-      .limit(1);
-
-    const result = row[0] ?? null;
-    ctx.cache.set(cacheKey, result, 60);
-    return result;
+        return row[0] ?? null;
+      },
+      60,
+    );
   }),
 
   /**

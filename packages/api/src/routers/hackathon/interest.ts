@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  emailConcurrency,
+  forEachWithConcurrency,
+} from "../../services/fanout";
 import { TRPCError } from "@trpc/server";
 import {
   and,
@@ -91,57 +95,57 @@ export const hackathonInterestRouter = createTRPCRouter({
 
     // The landing page is the funnel, so this is the most-read query on the site
     // and its answer changes about twice a year. Keyed under `hackathons:` so the
-    // eviction every edition write already runs clears it too.
-    const cacheKey = "hackathons:upcoming";
-    const cached = ctx.cache.get<UpcomingEdition | null>(cacheKey);
-    if (cached !== null) return cached;
+    // eviction every edition write already runs clears it too. getOrSet, so the
+    // empty case caches as well: it used to be skipped because a stored null was
+    // indistinguishable from a miss, and between editions — most of the year —
+    // empty is the answer the funnel keeps asking for.
+    return ctx.cache.getOrSet<UpcomingEdition | null>(
+      "hackathons:upcoming",
+      async () => {
+        const upcoming = await findAnnounced(db);
+        if (!upcoming) return null;
 
-    // The empty case is deliberately not cached: `get` returns null for a miss
-    // too, so storing null reads as a hit that never happens. It is also the
-    // cheap case — no edition announced means the index scan finds nothing.
-    const upcoming = await findAnnounced(db);
-    if (!upcoming) return null;
-
-    const payload = {
-      id: upcoming.id,
-      name: upcoming.name,
-      description: upcoming.description,
-      location: upcoming.location,
-      startDate: upcoming.startDate,
-      endDate: upcoming.endDate,
-      theme: upcoming.theme,
-      websiteUrl: upcoming.websiteUrl,
-      // The page shows an interest form or a register CTA off this: the two states
-      // are the same edition at different moments, not different pages.
-      status: upcoming.status,
-      // Exactly what `register` accepts. It refuses any status but `open` and
-      // refuses a passed deadline, so reporting `in_progress` as open put a
-      // Register button on the funnel that failed for everyone who pressed it.
-      registrationOpen:
-        upcoming.status === "open" &&
-        (!upcoming.registrationDeadline ||
-          new Date() <= upcoming.registrationDeadline),
-      registrationDeadline: upcoming.registrationDeadline,
-    };
-
-    // Short TTL, because registrationOpen is time-dependent: the deadline can
-    // pass while an entry is live, and five seconds bounds how long the page can
-    // offer a Register button the server would refuse.
-    ctx.cache.set(cacheKey, payload, VOLATILE_TTL);
-
-    return payload;
+        return {
+          id: upcoming.id,
+          name: upcoming.name,
+          description: upcoming.description,
+          location: upcoming.location,
+          startDate: upcoming.startDate,
+          endDate: upcoming.endDate,
+          theme: upcoming.theme,
+          websiteUrl: upcoming.websiteUrl,
+          // The page shows an interest form or a register CTA off this: the two states
+          // are the same edition at different moments, not different pages.
+          status: upcoming.status,
+          // Exactly what `register` accepts. It refuses any status but `open` and
+          // refuses a passed deadline, so reporting `in_progress` as open put a
+          // Register button on the funnel that failed for everyone who pressed it.
+          registrationOpen:
+            upcoming.status === "open" &&
+            (!upcoming.registrationDeadline ||
+              new Date() <= upcoming.registrationDeadline),
+          registrationDeadline: upcoming.registrationDeadline,
+        };
+      },
+      // Short TTL, because registrationOpen is time-dependent: the deadline can
+      // pass while an entry is live, and five seconds bounds how long the page
+      // can offer a Register button the server would refuse.
+      VOLATILE_TTL,
+    );
   }),
 
   /** Whether the caller is already on the list, and what they told us. */
   myInterest: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const row = await (ctx.db as DrizzleDB).query.hackathonInterest.findFirst({
-        where: and(
-          eq(hackathonInterest.hackathonId, input.hackathonId),
-          eq(hackathonInterest.userId, ctx.userId),
-        ),
-      });
+      const row = await (ctx.db as DrizzleDB).query.hackathonInterest.findFirst(
+        {
+          where: and(
+            eq(hackathonInterest.hackathonId, input.hackathonId),
+            eq(hackathonInterest.userId, ctx.userId),
+          ),
+        },
+      );
       return row ?? null;
     }),
 
@@ -344,8 +348,10 @@ export const hackathonInterestRouter = createTRPCRouter({
       let sent = 0;
       const failed: string[] = [];
 
-      for (const row of pending) {
-        if (!row.email) continue;
+      // Same fan-out as the other two send sites: the SMTP pool holds five
+      // connections and a one-at-a-time batch used one of them.
+      await forEachWithConcurrency(pending, emailConcurrency(), async (row) => {
+        if (!row.email) return;
         try {
           await sendRegistrationOpenEmail({
             email: row.email,
@@ -377,7 +383,7 @@ export const hackathonInterestRouter = createTRPCRouter({
             error,
           );
         }
-      }
+      });
 
       // Counted, not inferred from the batch size. `pending.length < MAX` reported
       // "done" while recipients that had just failed were still unsent.

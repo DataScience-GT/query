@@ -79,20 +79,3 @@ export function uniqueZipName(taken: Set<string>, displayName: string) {
   taken.add(candidate.toLowerCase());
   return candidate;
 }
-
-/** Enough for every hand-picked selection the table can build, and a bound on the IN list a crafted URL can ask for. */
-export const MAX_BOOK_IDS = 1000;
-
-/** The `ids` query parameter: deduplicated, capped, or undefined for "no explicit set". */
-export function parseResumeIds(raw: string | null | undefined) {
-  if (!raw) return undefined;
-  const ids = [
-    ...new Set(
-      raw
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean),
-    ),
-  ].slice(0, MAX_BOOK_IDS);
-  return ids.length > 0 ? ids : undefined;
-}

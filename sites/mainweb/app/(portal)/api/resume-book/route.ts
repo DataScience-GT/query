@@ -4,10 +4,10 @@ import { Readable } from "node:stream";
 import { ZipArchive } from "archiver";
 import { db } from "@query/db";
 import { rateLimit } from "@query/api";
-import { listResumes } from "@query/api/resume-list";
+import { listResumes, parseResumeBookIds } from "@query/api/resume-list";
 import type { DrizzleDB } from "@query/db";
 import { resumeCaller } from "@/lib/resume-access";
-import { parseResumeIds, uniqueZipName } from "@/lib/resume-file";
+import { uniqueZipName } from "@/lib/resume-file";
 import { readResume, resumeBucketName } from "@/lib/resume-storage";
 
 /**
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     scope: params.get("scope") === "all" ? "all" : "members",
     search: params.get("search")?.slice(0, 200) || undefined,
     gradYear: Number.isFinite(gradYear) && gradYear > 0 ? gradYear : undefined,
-    userIds: parseResumeIds(params.get("ids")),
+    userIds: parseResumeBookIds(params.get("ids")),
   });
 
   if (rows.length === 0) {
