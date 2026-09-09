@@ -36,7 +36,7 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
         </span>
       </div>
 
-      <p className="public-kicker mb-6">
+      <p className="font-mono text-[11px] text-[var(--trace)] mb-6">
         {project.leadName ? `Lead · ${project.leadName}` : "Lead · Open"}
         {project.capacityNote ? ` · ${project.capacityNote}` : ""}
       </p>

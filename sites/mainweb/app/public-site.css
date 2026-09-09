@@ -61,20 +61,7 @@ body:has(.public-site) {
 }
 
 .public-gutter-note {
-  position: fixed;
-  top: 50%;
-  left: 18px;
-  z-index: 90;
-  width: 0;
-  transform: rotate(-90deg) translateX(-50%);
-  transform-origin: left center;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink);
-  white-space: nowrap;
-  pointer-events: none;
+  display: none;
 }
 
 .public-ui {

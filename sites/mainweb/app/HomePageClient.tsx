@@ -319,7 +319,7 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                       <p className="text-sm text-center mb-4 leading-relaxed">
                         {project.summary}
                       </p>
-                      <p className="public-kicker text-center mb-6 !normal-case tracking-widest">
+                      <p className="font-mono text-[11px] text-[var(--trace)] text-center mb-6">
                         {project.leadName
                           ? `Lead · ${project.leadName}`
                           : "Lead · Open"}

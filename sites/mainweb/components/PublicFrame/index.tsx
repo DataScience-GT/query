@@ -9,7 +9,7 @@ export default function PublicFrame({
 }) {
   return (
     <div className="public-site">
-      <p className="public-gutter-note">{note}</p>
+      <p className="sr-only">{note}</p>
       <div className="public-ticks" aria-hidden="true" />
       {children}
     </div>

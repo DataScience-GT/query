@@ -42,7 +42,7 @@ const Team = () => {
           </div>
 
           <Section id="teams" className="px-6 lg:px-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-24 max-w-7xl mx-auto pt-16">
               <TeamCard
                 name="IDEaS @ Georgia Tech"
                 title="Supervising Lab"
