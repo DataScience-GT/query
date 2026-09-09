@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
-import type { StaticImageData } from "next/image";
 import Link from "next/link";
 
 import {
@@ -20,6 +19,7 @@ import Hero from "@/components/Hero";
 import Section from "@/components/Section";
 import Card from "@/components/Card";
 import Footer from "@/components/Footer";
+import PublicFrame from "@/components/PublicFrame";
 
 import dynamic from "next/dynamic";
 import { ClassData, MajorData } from "@/assets/Data/demographics";
@@ -37,8 +37,8 @@ import trading from "@/assets/images/logos/trading.png";
 const Pie = dynamic(() => import("react-chartjs-2").then((mod) => mod.Pie), {
   ssr: false,
   loading: () => (
-    <div className="h-64 w-64 flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-      Initializing Analytics...
+    <div className="h-64 w-64 flex items-center justify-center text-[var(--muted)] font-mono text-xs uppercase tracking-widest">
+      Loading charts…
     </div>
   ),
 });
@@ -49,7 +49,7 @@ type PieTooltipItem = {
   dataset: { data: number[] };
 };
 
-const PROJECT_LOGOS: Record<string, StaticImageData> = {
+const PROJECT_LOGOS: Record<string, string> = {
   arc,
   roboinvesting: stock,
   "sports-analytics": gtaa,
@@ -93,18 +93,18 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
               return ` ${context.label}: ${value} (${percent}%)`;
             },
           },
-          backgroundColor: "rgba(5, 5, 5, 0.95)",
-          borderColor: "#00A8A8",
+          backgroundColor: "#1c2433",
+          borderColor: "#f5c400",
           borderWidth: 1,
           titleFont: { family: "monospace" },
           bodyFont: { family: "monospace" },
           padding: 12,
-          cornerRadius: 4,
+          cornerRadius: 0,
         },
         legend: {
           position: "bottom" as const,
           labels: {
-            color: "#94a3b8",
+            color: "#3a4454",
             font: { family: "monospace", size: windowWidth < 640 ? 10 : 11 },
             padding: windowWidth < 640 ? 10 : 15,
             boxWidth: windowWidth < 640 ? 8 : 12,
@@ -118,213 +118,184 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
   const { current: currentProjects } = groupClubProjects(projects);
 
   return (
-    <div
-      id="home-page"
-      className="relative bg-[#1A1A1A] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden"
-    >
-      <Navbar
-        screen_width={windowWidth}
-        page="home"
-        className="fixed top-0 z-50 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md"
-      />
-      <Hero screen_width={windowWidth} />
+    <PublicFrame note="n = 550+ · Fall 2026">
+      <div id="home-page" className="relative overflow-x-hidden">
+        <Navbar screen_width={windowWidth} page="home" />
+        <Hero screen_width={windowWidth} />
 
-      {/* ABOUT SECTION */}
-      <Section id="about" className="py-32 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              About Us.
-            </h2>
-            <p className="text-lg text-gray-300 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
-              As the{" "}
-              <strong className="text-white">
-                largest student-run data science organization at Georgia Tech
-              </strong>
-              , we provide technical skill development via club projects,
-              workshops, and guest speakers.
-            </p>
-            <Link
-              href="/team"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
-            >
-              Meet the Team →
-            </Link>
-          </div>
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-[#00A8A8]/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
-            <Image
-              src={squad}
-              alt="DSGT Executive Board"
-              className="relative rounded-xl border border-white/10 shadow-2xl transition-all duration-700"
-              width={800}
-              height={450}
-              priority
-              placeholder="blur"
-            />
-          </div>
-        </div>
-      </Section>
-
-      {/* STATS SECTION */}
-      <Section
-        id="stats"
-        className="py-32 border-y border-white/5 glass-section relative z-10"
-      >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight italic leading-none uppercase">
-              Our Club.
-            </h2>
-            <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.4em]">
-              550+ Verified Members
-            </p>
-          </div>
-          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-stretch">
-            <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-              <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
-                Class Year Distribution
+        <Section id="about" className="py-28 relative z-10">
+          <div className="max-w-7xl mx-auto px-2 lg:px-4 grid lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <p className="public-kicker">Who we are</p>
+              <h2 className="public-display text-4xl md:text-6xl">
+                A lab that meets after class.
+              </h2>
+              <p className="public-lede max-w-xl">
+                As the{" "}
+                <strong className="text-[var(--ink)] font-semibold">
+                  largest student-run data science organization at Georgia Tech
+                </strong>
+                , we teach by shipping: club projects, workshops, and speakers
+                who still have chalk on their sleeves.
               </p>
-              <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
-                <div className="w-full h-full max-w-[320px] aspect-square">
-                  {chartsReady ? (
-                    <Pie data={ClassData} options={chartOptions} />
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Initializing Analytics...
-                    </div>
-                  )}
+              <Link
+                href="/team"
+                className="public-link inline-flex items-center min-h-11"
+              >
+                Meet the team →
+              </Link>
+            </div>
+            <div className="relative">
+              <Image
+                src={squad}
+                alt="DSGT Executive Board"
+                className="relative border border-[var(--rule)]"
+                width={800}
+                height={450}
+                priority
+                placeholder="blur"
+              />
+            </div>
+          </div>
+        </Section>
+
+        <Section id="stats" className="py-28 relative z-10">
+          <div className="max-w-7xl mx-auto px-2 lg:px-4">
+            <div className="mb-16 space-y-4 max-w-2xl">
+              <p className="public-kicker">The room</p>
+              <h2 className="public-display text-4xl md:text-5xl">
+                550+ verified members, plotted.
+              </h2>
+            </div>
+            <div className="grid lg:grid-cols-2 gap-8 max-w-6xl items-stretch">
+              <div className="public-card p-6 sm:p-10 flex flex-col items-center">
+                <p className="public-kicker mb-10 w-full text-center">
+                  Class year
+                </p>
+                <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+                  <div className="w-full h-full max-w-[320px] aspect-square">
+                    {chartsReady ? (
+                      <Pie data={ClassData} options={chartOptions} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-[var(--muted)] font-mono text-xs uppercase tracking-widest">
+                        Loading charts…
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-              <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
-                Academic Major Split
-              </p>
-              <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
-                <div className="w-full h-full max-w-[320px] aspect-square">
-                  {chartsReady ? (
-                    <Pie data={MajorData} options={chartOptions} />
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Initializing Analytics...
-                    </div>
-                  )}
+              <div className="public-card p-6 sm:p-10 flex flex-col items-center">
+                <p className="public-kicker mb-10 w-full text-center">
+                  Academic major
+                </p>
+                <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+                  <div className="w-full h-full max-w-[320px] aspect-square">
+                    {chartsReady ? (
+                      <Pie data={MajorData} options={chartOptions} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-[var(--muted)] font-mono text-xs uppercase tracking-widest">
+                        Loading charts…
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      {/* BOOTCAMP SECTION */}
-      <Section id="bootcamp" className="py-32 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
-          <div className="order-2 lg:order-1 relative">
-            <Image
-              src={slide9}
-              alt="Bootcamp Session"
-              className="rounded-xl border border-white/10 shadow-xl transition-all duration-700"
-              width={600}
-              height={400}
-              placeholder="blur"
-            />
+        <Section id="bootcamp" className="py-28 relative z-10">
+          <div className="max-w-7xl mx-auto px-2 lg:px-4 grid lg:grid-cols-2 gap-20 items-center">
+            <div className="order-2 lg:order-1">
+              <Image
+                src={slide9}
+                alt="Bootcamp Session"
+                className="border border-[var(--rule)]"
+                width={600}
+                height={400}
+                placeholder="blur"
+              />
+            </div>
+            <div className="space-y-8 order-1 lg:order-2">
+              <p className="public-kicker">Twelve weeks</p>
+              <h2 className="public-display text-4xl md:text-6xl">
+                Bootcamp is a notebook you finish.
+              </h2>
+              <p className="public-lede">
+                Core skills from data cleaning to model building. Python and
+                pandas, taught through work you can put in a repo.
+              </p>
+              <Link href="/bootcamp" className="public-btn">
+                Open bootcamp
+              </Link>
+            </div>
           </div>
-          <div className="space-y-8 order-1 lg:order-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              Bootcamp.
-            </h2>
-            <p className="text-gray-300 leading-relaxed italic border-l-2 border-[#00A8A8]/20 pl-6">
-              Teaching core skills from{" "}
-              <span className="text-white">data cleaning</span> to{" "}
-              <span className="text-white">model building</span>. Learn Python
-              and pandas through hands-on project work.
-            </p>
-            <Link
-              href="/bootcamp"
-              className="inline-block bg-white text-black px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-[#00A8A8] hover:text-white transition-all shadow-lg shadow-white/5"
-            >
-              Initialize Bootcamp
-            </Link>
-          </div>
-        </div>
-      </Section>
+        </Section>
 
-      {/* HACKLYTICS SECTION */}
-      <Section
-        id="golden-byte"
-        className="py-32 border-y border-white/5 relative z-10"
-      >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
-          <div className="space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              Hacklytics.
-            </h2>
-            <p className="text-gray-300 leading-relaxed italic border-l-2 border-amber-500/20 pl-6">
-              Georgia Tech&apos;s premier{" "}
-              <span className="text-white">36-hour datathon</span>. Join
-              hundreds of students for a weekend of data science challenges and
-              workshops.
-            </p>
-            <a
-              href="https://hacklytics-2025.devpost.com/"
-              target="_blank"
-              className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
-            >
-              View Devpost
-            </a>
-          </div>
-          <div className="relative">
+        <Section id="golden-byte" className="py-28 relative z-10">
+          <div className="max-w-7xl mx-auto px-2 lg:px-4 grid lg:grid-cols-2 gap-20 items-center">
+            <div className="space-y-8">
+              <p className="public-kicker">36 hours</p>
+              <h2 className="public-display text-4xl md:text-6xl">
+                Hacklytics is the loud weekend.
+              </h2>
+              <p className="public-lede">
+                Georgia Tech&apos;s premier{" "}
+                <span className="text-[var(--ink)] font-semibold">
+                  36-hour datathon
+                </span>
+                . Hundreds of students, one weekend of data science challenges
+                and workshops.
+              </p>
+              <a
+                href="https://hacklytics-2025.devpost.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="public-btn-ghost text-[var(--ink)]"
+              >
+                View Devpost
+              </a>
+            </div>
             <Image
               src={slide6}
               alt="Hacklytics Event"
-              className="rounded-xl border border-white/10 shadow-xl transition-all duration-700"
+              className="border border-[var(--rule)]"
               width={600}
               height={400}
               placeholder="blur"
             />
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      {/* PROJECTS SECTION */}
-      <Section id="projects" className="py-32 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="mb-16 space-y-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              Projects.
-            </h2>
-            <p className="font-mono text-[10px] text-[#00A8A8] uppercase tracking-[0.4em]">
-              Protocol: Member_Projects
-            </p>
-          </div>
+        <Section id="projects" className="py-28 relative z-10">
+          <div className="max-w-7xl mx-auto px-2 lg:px-4">
+            <div className="mb-16 space-y-3">
+              <p className="public-kicker">On the bench</p>
+              <h2 className="public-display text-4xl md:text-6xl">Projects</h2>
+            </div>
 
-          {currentProjects.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">
-              The project roster is being updated —{" "}
-              <Link
-                href="/projects"
-                className="text-[#00A8A8] hover:text-white transition-colors"
-              >
-                see all club projects
-              </Link>
-              .
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {currentProjects.map((project) => {
-                const logo = PROJECT_LOGOS[project.slug];
-                const href = joinHref(project);
-                const label = joinLabel(project);
+            {currentProjects.length === 0 ? (
+              <p className="public-lede">
+                The project roster is being updated —{" "}
+                <Link href="/projects" className="public-link">
+                  see all club projects
+                </Link>
+                .
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentProjects.map((project) => {
+                  const logo = PROJECT_LOGOS[project.slug];
+                  const href = joinHref(project);
+                  const label = joinLabel(project);
 
-                return (
-                  <Card
-                    key={project.id}
-                    className="flex flex-col h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl"
-                  >
-                    {logo && (
-                      <div className="w-full flex justify-center mb-6">
-                        <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
+                  return (
+                    <Card
+                      key={project.id}
+                      className="public-card flex flex-col h-full p-8"
+                    >
+                      {logo && (
+                        <div className="w-full flex justify-center mb-6">
                           <Image
                             src={logo}
                             alt={project.name}
@@ -334,150 +305,139 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                             placeholder="blur"
                           />
                         </div>
+                      )}
+                      <h3 className="public-display text-xl text-center mb-2">
+                        {project.name}
+                      </h3>
+                      <div className="flex justify-center mb-4">
+                        <span
+                          className={`public-chip ${STATUS_CLASSES[project.status]}`}
+                        >
+                          {STATUS_LABELS[project.status]}
+                        </span>
                       </div>
-                    )}
-                    <h3 className="text-white text-xl font-bold text-center mb-2">
-                      {project.name}
+                      <p className="text-sm text-center mb-4 leading-relaxed">
+                        {project.summary}
+                      </p>
+                      <p className="public-kicker text-center mb-6 !normal-case tracking-widest">
+                        {project.leadName
+                          ? `Lead · ${project.leadName}`
+                          : "Lead · Open"}
+                      </p>
+                      {isExternalJoin(project) ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="public-link inline-flex items-center justify-center min-h-11 mt-auto text-center"
+                        >
+                          {label} →
+                        </a>
+                      ) : (
+                        <Link
+                          href={href}
+                          className="public-link inline-flex items-center justify-center min-h-11 mt-auto text-center"
+                        >
+                          {label} →
+                        </Link>
+                      )}
+                    </Card>
+                  );
+                })}
+
+                <Link
+                  href="/projects"
+                  className="bg-[var(--navy)] p-8 flex flex-col justify-between min-h-[280px] group"
+                >
+                  <div className="space-y-4">
+                    <h3 className="public-display public-display-invert text-2xl">
+                      All projects
                     </h3>
-                    <div className="flex justify-center mb-4">
-                      <span
-                        className={`px-2 py-0.5 text-[9px] font-mono rounded border uppercase tracking-widest ${STATUS_CLASSES[project.status]}`}
-                      >
-                        {STATUS_LABELS[project.status]}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-400 text-center mb-4 leading-relaxed italic">
-                      {project.summary}
+                    <p className="public-lede-invert text-sm leading-relaxed">
+                      Every project running this term, what each one needs, and
+                      the archive of what members built before.
                     </p>
-                    <p className="text-[9px] font-mono text-gray-600 uppercase tracking-widest text-center mb-6">
-                      {project.leadName
-                        ? `Lead // ${project.leadName}`
-                        : "Lead // Open"}
-                    </p>
-                    {isExternalJoin(project) ? (
+                  </div>
+                  <span className="public-ui text-[var(--buzz)] pt-4">
+                    Browse projects →
+                  </span>
+                </Link>
+              </div>
+            )}
+          </div>
+        </Section>
+
+        <Section id="getinvolved" className="py-28 relative z-10">
+          <div className="max-w-7xl mx-auto px-2 lg:px-4">
+            <div className="mb-16 space-y-3">
+              <p className="public-kicker">Three doors in</p>
+              <h2 className="public-display text-4xl md:text-5xl">
+                Get involved
+              </h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  t: "Member",
+                  d: "Join the mailing list for weekly updates.",
+                  i: slide1,
+                  l: "/login",
+                  a: "Join here →",
+                },
+                {
+                  t: "Leadership",
+                  d: "Join the executive board and lead teams.",
+                  i: slide7,
+                  l: "/team",
+                  a: "Meet the team →",
+                },
+                {
+                  t: "Hacklytics",
+                  d: "Attend our 36-hour flagship datathon.",
+                  i: slide6,
+                  l: "https://hacklytics-2025.devpost.com/",
+                  a: "View Devpost →",
+                },
+              ].map((event) => (
+                <div key={event.t} className="public-card overflow-hidden">
+                  <div className="h-56 overflow-hidden relative">
+                    <Image
+                      src={event.i}
+                      alt={event.t}
+                      className="w-full h-full object-cover"
+                      placeholder="blur"
+                    />
+                  </div>
+                  <div className="p-8 space-y-4">
+                    <h3 className="public-display text-xl">{event.t}</h3>
+                    <p className="text-sm leading-relaxed">{event.d}</p>
+                    {event.l.startsWith("http") ? (
                       <a
-                        href={href}
+                        href={event.l}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                        className="public-link inline-flex items-center min-h-11"
                       >
-                        {label} →
+                        {event.a}
                       </a>
                     ) : (
                       <Link
-                        href={href}
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                        href={event.l}
+                        className="public-link inline-flex items-center min-h-11"
                       >
-                        {label} →
+                        {event.a}
                       </Link>
                     )}
-                  </Card>
-                );
-              })}
-
-              <Link
-                href="/projects"
-                className="bg-[#00A8A8] p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
-              >
-                <div className="space-y-4">
-                  <h3 className="text-black text-2xl font-bold tracking-tight italic uppercase">
-                    All Projects.
-                  </h3>
-                  <p className="text-black/80 text-sm font-medium leading-relaxed italic">
-                    Every project running this term, what each one needs, and
-                    the archive of what members built before.
-                  </p>
+                  </div>
                 </div>
-                <span className="text-black font-mono text-[10px] uppercase tracking-[0.3em] pt-4 font-bold group-hover:translate-x-2 transition-transform">
-                  Browse Projects →
-                </span>
-              </Link>
+              ))}
             </div>
-          )}
-        </div>
-      </Section>
-
-      {/* GET INVOLVED */}
-      <Section id="getinvolved" className="py-32 bg-[#080808] relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold italic tracking-tight leading-none uppercase">
-              Get Involved.
-            </h2>
-            <p className="font-mono text-[10px] text-gray-500 uppercase tracking-[0.4em] font-bold underline decoration-[#00A8A8] underline-offset-8">
-              Georgia Tech Primary Data Science Organization{" "}
-            </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                t: "Member",
-                d: "Join the mailing list for weekly updates.",
-                i: slide1,
-                l: "/login",
-                a: "Join Here →",
-              },
-              {
-                t: "Leadership",
-                d: "Join the executive board and lead teams.",
-                i: slide7,
-                l: "/team",
-                a: "Meet the Team →",
-              },
-              {
-                t: "Hacklytics",
-                d: "Attend our 36-hour flagship datathon.",
-                i: slide6,
-                l: "https://hacklytics-2025.devpost.com/",
-                a: "View Devpost →",
-              },
-            ].map((event, i) => (
-              <div
-                key={i}
-                className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl"
-              >
-                <div className="h-56 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-[#00A8A8]/10 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Image
-                    src={event.i}
-                    alt={event.t}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    placeholder="blur"
-                  />
-                </div>
-                <div className="p-8 space-y-4">
-                  <h4 className="text-white text-lg font-bold uppercase italic tracking-tight">
-                    {event.t}
-                  </h4>
-                  <p className="text-xs text-gray-500 leading-relaxed italic">
-                    {event.d}
-                  </p>
-                  {event.l.startsWith("http") ? (
-                    <a
-                      href={event.l}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
-                      {event.a}
-                    </a>
-                  ) : (
-                    <Link
-                      href={event.l}
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
-                      {event.a}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
+        </Section>
 
-      <Footer screen_width={windowWidth} />
-    </div>
+        <Footer screen_width={windowWidth} />
+      </div>
+    </PublicFrame>
   );
 };
 

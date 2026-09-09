@@ -34,26 +34,15 @@ export default function Navbar({
   }, []);
 
   useEffect(() => {
-    // Prevent scrolling when menu is open
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
-  /**
-   * `link: false` renders a react-scroll ScrollLink, so `to` has to be the id
-   * of an element on THIS page. Four entries carried a route path under
-   * `link: false`, which sent ScrollLink hunting for an element with id
-   * "/events" — it warns to the console and does nothing, so those four were
-   * dead clicks on the highest-traffic page in the site. Anything starting with
-   * a slash is a destination, not an anchor.
-   */
   const homeMenuItems = [
     { name: "About", to: "about", link: false },
     { name: "Bootcamp", to: "bootcamp", link: false },
-    // The public announcement page, not /hackathons — that one is the
-    // signed-in participant's list and answers a stranger with a login screen.
     { name: "Hacklytics", to: "/hacklytics", link: true },
     { name: "Projects", to: "projects", link: false },
-    { name: "Get Involved", to: "getinvolved", link: false },
+    { name: "Join", to: "getinvolved", link: false },
     { name: "Team", to: "/team", link: true },
     { name: "Events", to: "/events", link: true },
     { name: "History", to: "/history", link: true },
@@ -75,19 +64,9 @@ export default function Navbar({
   type MenuItem = { name: string; to: string; link: boolean };
 
   const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
-    /**
-     * `min-h-11` is the tap target, not a visual change.
-     *
-     * These render 15px tall on a phone — below even WCAG 2.2 AA's 24px
-     * minimum, let alone the ~44px a fingertip needs. Growing the box rather
-     * than the type keeps the design identical and makes the link hittable;
-     * `inline-flex items-center` keeps the label centred in the taller box.
-     */
-    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
-      isMobile
-        ? "text-gray-300 hover:text-white text-xl font-bold"
-        : "text-gray-400 hover:text-[#00A8A8]"
-    }`;
+    const baseClass = isMobile
+      ? "public-ui inline-flex items-center min-h-11 text-2xl font-semibold tracking-tight text-[var(--paper)] hover:text-[var(--buzz)]"
+      : "public-ui inline-flex items-center min-h-11 text-[13px] font-medium tracking-tight text-[var(--ink-soft)] hover:text-[var(--ink)]";
 
     if (item.link) {
       return (
@@ -111,7 +90,7 @@ export default function Navbar({
         offset={-navbarHeight}
         duration={500}
         className={baseClass}
-        activeClass="text-white lg:text-[#00A8A8]"
+        activeClass="text-[var(--ink)]"
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
@@ -122,37 +101,32 @@ export default function Navbar({
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-ui ${className}`}
+        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar ${className}`}
       >
-        <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
-          {/* Logo Section */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex items-center gap-3 group"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Image
-                src={logo}
-                alt="DSGT Logo"
-                className="h-8 w-auto transition-transform duration-500 group-hover:rotate-[360deg]"
-                width={32}
-                height={32}
-              />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">
-                DSGT
-              </span>
-            </Link>
-          </div>
+        <div className="max-w-7xl mx-auto h-full flex justify-between items-center pl-8 pr-6 lg:px-12">
+          <Link
+            href="/"
+            className="flex items-center gap-3 group"
+            onClick={() => setMenuOpen(false)}
+          >
+            <Image
+              src={logo}
+              alt="DSGT Logo"
+              className="h-8 w-auto"
+              width={32}
+              height={32}
+            />
+            <span className="public-ui text-[var(--ink)] text-lg font-bold tracking-tight">
+              DSGT
+            </span>
+          </Link>
 
-          {/* Desktop Links */}
           {windowWidth >= WIDTH_THRESHOLD ? (
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               {menuItems.map((item) => renderMenuItem(item))}
               <Link
                 href="/login"
-                rel="noopener noreferrer"
-                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
+                className="public-btn"
                 onClick={() => setMenuOpen(false)}
               >
                 Portal
@@ -165,13 +139,13 @@ export default function Navbar({
               aria-label="Toggle Menu"
             >
               <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
+                className={`block h-0.5 bg-[var(--ink)] transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2 bg-[var(--paper)]" : "w-8"}`}
               />
               <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
+                className={`block h-0.5 bg-[var(--ink)] transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
               />
               <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
+                className={`block h-0.5 bg-[var(--ink)] transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2 bg-[var(--paper)]" : "w-8"}`}
               />
             </button>
           )}
@@ -185,15 +159,11 @@ export default function Navbar({
             : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        {/* Subtle grid pattern for better aesthetic on the full-screen mobile menu */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
-
-        <div className="flex flex-col items-center gap-8 text-center relative z-10">
+        <div className="flex flex-col items-center gap-6 text-center relative z-10">
           {menuItems.map((item) => renderMenuItem(item, true))}
           <Link
             href="/login"
-            rel="noopener noreferrer"
-            className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="public-btn mt-4"
             onClick={() => setMenuOpen(false)}
           >
             Portal

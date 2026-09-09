@@ -1,10 +1,24 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { GeistSans, GeistMono } from "geist/font";
+import { Bricolage_Grotesque, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import "./public-site.css";
 
 const geistSansVar = GeistSans.variable;
 const geistMonoVar = GeistMono.variable;
+
+const display = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const serif = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   // Without this, every relative OG image resolves against nothing and social
@@ -69,7 +83,7 @@ export default function RootLayout({
     // here before hydration, so the server markup never matches.
     <html
       lang="en"
-      className={`${geistSansVar} ${geistMonoVar}`}
+      className={`${geistSansVar} ${geistMonoVar} ${display.variable} ${serif.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased bg-[#050505] text-gray-400">

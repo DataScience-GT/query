@@ -1,4 +1,3 @@
-// components/Footer/Footer.tsx
 "use client";
 
 import Image from "next/image";
@@ -10,97 +9,91 @@ interface FooterProps {
   className?: string;
 }
 
-const Footer = ({
-  screen_width: _screen_width,
-  className = "",
-}: FooterProps) => {
+const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer
-      className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
+      className={`relative w-full py-20 bg-[var(--navy-deep)] text-[var(--paper)] ${className}`}
     >
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
+      <div className="relative z-10 max-w-7xl mx-auto pl-8 pr-6 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
-          {/* BRANDING COLUMN */}
           <div className="space-y-6">
-            <div className="flex items-center gap-3 group">
+            <div className="flex items-center gap-3">
               <Image
                 src={logo}
                 alt="DSGT Logo"
-                className="h-8 w-8 rounded shadow-lg shadow-[#00A8A8]/10 transition-transform group-hover:rotate-12"
+                className="h-8 w-8 rounded-sm"
               />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">
+              <span className="public-ui text-[var(--paper)] text-xl font-bold tracking-tight">
                 DSGT
               </span>
             </div>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-[240px]">
+            <p className="text-sm leading-relaxed max-w-[240px] text-[color-mix(in_srgb,var(--paper)_78%,transparent)]">
               The largest student-run data science organization at Georgia Tech.
             </p>
           </div>
 
-          {/* NAVIGATION COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              Navigation
+            <h2 className="public-kicker text-[color-mix(in_srgb,var(--paper)_70%,transparent)]">
+              In the club
             </h2>
-            <nav className="flex flex-col space-y-2 text-sm font-medium">
+            <nav className="flex flex-col space-y-2 text-sm">
               <Link
                 href="/team"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
-                Meet the Team
-              </Link>
-              <Link
-                href="mailto:hello@datasciencegt.org"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
-              >
-                Contact
+                Meet the team
               </Link>
               <Link
                 href="/bootcamp"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
                 Bootcamp
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
                 Events
               </Link>
               <Link
                 href="/history"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
                 History
               </Link>
               <Link
                 href="/status"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
                 Status
               </Link>
+              <a
+                href="mailto:hello@datasciencegt.org"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
+              >
+                Contact
+              </a>
             </nav>
           </div>
 
-          {/* SOCIAL COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              Network
+            <h2 className="public-kicker text-[color-mix(in_srgb,var(--paper)_70%,transparent)]">
+              Around campus
             </h2>
-            <nav className="flex flex-col space-y-2 text-sm font-medium">
+            <nav className="flex flex-col space-y-2 text-sm">
               <a
                 href="https://github.com/DataScience-GT"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
-                Github
+                GitHub
               </a>
               <a
                 href="https://www.linkedin.com/company/dsgt/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
                 LinkedIn
               </a>
@@ -108,47 +101,40 @@ const Footer = ({
                 href="https://www.instagram.com/datasciencegt/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
                 Instagram
               </a>
               <a
                 href="mailto:hello@datasciencegt.org"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[var(--buzz)]"
               >
-                Email List
+                Email list
               </a>
             </nav>
           </div>
 
-          {/* TECH TEAM CREDIT */}
           <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              System
+            <h2 className="public-kicker text-[color-mix(in_srgb,var(--paper)_70%,transparent)]">
+              Field notes
             </h2>
-            <div className="p-4 rounded border border-[#00A8A8]/10 bg-[#00A8A8]/[0.02]">
-              <p className="text-[11px] font-mono text-gray-500 leading-relaxed italic">
-                {">"} Built with precision by the{" "}
-                <span className="text-[#00A8A8] font-bold">DSGT Tech Team</span>
-                .
-                <br />
-                {">"} Protocol: ATL_GT_V4
-              </p>
-            </div>
+            <p className="text-sm leading-relaxed text-[color-mix(in_srgb,var(--paper)_78%,transparent)]">
+              Built by the DSGT tech team in Atlanta. Club events after 6:30 PM
+              ET.
+            </p>
           </div>
         </div>
 
-        {/* BOTTOM COPYRIGHT */}
-        <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4">
-          <p className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+        <div className="mt-20 pt-8 border-t border-[color-mix(in_srgb,var(--paper)_16%,transparent)] flex flex-col md:flex-row justify-between gap-4">
+          <p className="text-[11px] font-mono uppercase tracking-widest text-[color-mix(in_srgb,var(--paper)_50%,transparent)]">
             © {new Date().getFullYear()} Data Science at Georgia Tech
           </p>
           <div className="flex gap-6">
-            <span className="text-[10px] font-mono text-gray-700 uppercase tracking-tighter">
-              Lat: 33.7756° N
+            <span className="text-[11px] font-mono uppercase tracking-widest text-[color-mix(in_srgb,var(--paper)_40%,transparent)]">
+              33.7756° N
             </span>
-            <span className="text-[10px] font-mono text-gray-700 uppercase tracking-tighter">
-              Lon: 84.3963° W
+            <span className="text-[11px] font-mono uppercase tracking-widest text-[color-mix(in_srgb,var(--paper)_40%,transparent)]">
+              84.3963° W
             </span>
           </div>
         </div>

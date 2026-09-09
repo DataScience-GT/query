@@ -3,74 +3,72 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
+import PublicFrame from "@/components/PublicFrame";
+
+const YEARS = [
+  {
+    year: "2020–21",
+    note: "Foundation year. First official hackathon.",
+  },
+  {
+    year: "2021–22",
+    note: "First major sponsorship partnerships secured.",
+  },
+  {
+    year: "2022–23",
+    note: "Expanded to include AI/ML workshops.",
+  },
+  {
+    year: "2023–24",
+    note: "Record-breaking member growth.",
+  },
+  {
+    year: "2024–25",
+    note: "Current era of community building at scale.",
+  },
+  {
+    year: "Next",
+    note: "Hacklytics 2027 and the next bench of projects.",
+  },
+];
 
 export default function HistoryPage() {
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar screen_width={1024} page="history" />
-      <main className="pt-20">
-        <Section className="py-32">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              History
-            </h1>
-            <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              Our journey through five years of data science excellence.
-            </p>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-xl p-6">
-                <h2 className="text-lg font-bold uppercase mb-3 text-[#00A8A8]">
-                  2020-2021
-                </h2>
-                <p className="text-sm text-gray-500 italic">
-                  Foundation year. First official hackathon.
-                </p>
-              </div>
-              <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-xl p-6">
-                <h2 className="text-lg font-bold uppercase mb-3 text-[#00A8A8]">
-                  2021-2022
-                </h2>
-                <p className="text-sm text-gray-500 italic">
-                  First major sponsorship partnerships secured.
-                </p>
-              </div>
-              <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-xl p-6">
-                <h2 className="text-lg font-bold uppercase mb-3 text-[#00A8A8]">
-                  2022-2023
-                </h2>
-                <p className="text-sm text-gray-500 italic">
-                  Expanded to include AI/ML workshops.
-                </p>
-              </div>
-              <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-xl p-6">
-                <h2 className="text-lg font-bold uppercase mb-3 text-[#00A8A8]">
-                  2023-2024
-                </h2>
-                <p className="text-sm text-gray-500 italic">
-                  Record-breaking member growth.
-                </p>
-              </div>
-              <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-xl p-6">
-                <h2 className="text-lg font-bold uppercase mb-3 text-[#00A8A8]">
-                  2024-2025
-                </h2>
-                <p className="text-sm text-gray-500 italic">
-                  Current era of innovation and community building.
-                </p>
-              </div>
-              <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-xl p-6">
-                <h2 className="text-lg font-bold uppercase mb-3 text-[#00A8A8]">
-                  Future
-                </h2>
-                <p className="text-sm text-gray-500 italic">
-                  Building toward Hacklytics 2026 and beyond.
-                </p>
-              </div>
+    <PublicFrame note="since 2020">
+      <div className="relative min-h-screen">
+        <Navbar screen_width={1024} page="history" />
+        <main className="pt-20">
+          <Section className="py-32">
+            <div className="max-w-4xl mx-auto px-6">
+              <p className="public-kicker mb-4">Five years in</p>
+              <h1 className="public-display text-5xl md:text-6xl mb-6">
+                A short tape of how we got here.
+              </h1>
+              <p className="public-lede mb-16">
+                Data Science at Georgia Tech, year by year. Order matters here —
+                each term stacked on the last.
+              </p>
+              <ol className="relative border-l border-[var(--rule)] ml-2 space-y-10">
+                {YEARS.map((entry) => (
+                  <li key={entry.year} className="pl-8 relative">
+                    <span
+                      className="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full bg-[var(--buzz)] border border-[var(--ink)]"
+                      aria-hidden="true"
+                    />
+                    <h2 className="public-display text-2xl mb-2">
+                      {entry.year}
+                    </h2>
+                    <p className="text-[var(--ink-soft)] leading-relaxed">
+                      {entry.note}
+                    </p>
+                  </li>
+                ))}
+              </ol>
             </div>
-          </div>
-        </Section>
-      </main>
-      <Footer />
-    </div>
+          </Section>
+        </main>
+        <Footer />
+      </div>
+    </PublicFrame>
   );
 }

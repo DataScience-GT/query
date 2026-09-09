@@ -26,10 +26,10 @@ export const STATUS_LABELS: Record<ClubProjectStatus, string> = {
 };
 
 export const STATUS_CLASSES: Record<ClubProjectStatus, string> = {
-  active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  revived: "bg-[#00A8A8]/10 text-[#00A8A8] border-[#00A8A8]/20",
-  needs_lead: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  past: "bg-white/5 text-gray-500 border-white/10",
+  active: "bg-[var(--navy)] text-[var(--buzz)] border-[var(--navy)]",
+  revived: "bg-[var(--trace)]/10 text-[var(--trace)] border-[var(--trace)]/30",
+  needs_lead: "bg-[var(--buzz)]/25 text-[var(--ink)] border-[var(--buzz)]",
+  past: "bg-transparent text-[var(--muted)] border-[var(--rule)]",
 };
 
 export const isCurrent = (project: { status: ClubProjectStatus }) =>

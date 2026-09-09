@@ -3,56 +3,56 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
+import PublicFrame from "@/components/PublicFrame";
+
+const SYSTEMS = [
+  { name: "Database", state: "Operational" },
+  { name: "API", state: "Operational" },
+  { name: "Auth", state: "Operational" },
+];
 
 export default function StatusPage() {
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar screen_width={1024} page="status" />
-      <main className="pt-20">
-        <Section className="py-32">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              Status
-            </h1>
-            <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              System status and operational updates.
-            </p>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  Database
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  API
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 uppercase tracking-widest text-xs">
-                  Auth Service
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-xs uppercase tracking-widest">
-                  Operational
-                </span>
-              </div>
-            </div>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-              <h2 className="text-xl font-bold uppercase mb-4">Last Updated</h2>
-              <p className="text-gray-500 italic">
-                System check completed successfully.
+    <PublicFrame note="all systems">
+      <div className="relative min-h-screen">
+        <Navbar screen_width={1024} page="status" />
+        <main className="pt-20">
+          <Section className="py-32">
+            <div className="max-w-4xl mx-auto px-6">
+              <p className="public-kicker mb-4">Operations</p>
+              <h1 className="public-display text-5xl md:text-6xl mb-6">
+                Status of the club site.
+              </h1>
+              <p className="public-lede mb-12">
+                What is up, in plain language. If something is down, this page
+                should say so.
               </p>
+              <div className="public-card p-8 mb-8 divide-y divide-[var(--rule)]">
+                {SYSTEMS.map((system) => (
+                  <div
+                    key={system.name}
+                    className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+                  >
+                    <span className="public-ui text-[var(--ink)]">
+                      {system.name}
+                    </span>
+                    <span className="public-chip bg-[var(--navy)] text-[var(--buzz)] border-[var(--navy)]">
+                      {system.state}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="public-card p-8">
+                <h2 className="public-display text-xl mb-3">Last check</h2>
+                <p className="text-[var(--ink-soft)]">
+                  System check completed successfully.
+                </p>
+              </div>
             </div>
-          </div>
-        </Section>
-      </main>
-      <Footer />
-    </div>
+          </Section>
+        </main>
+        <Footer />
+      </div>
+    </PublicFrame>
   );
 }

@@ -1,23 +1,11 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
+import PublicFrame from "@/components/PublicFrame";
 import { db, events } from "@query/db";
 import { gte, lt } from "drizzle-orm";
 import Link from "next/link";
 
-/**
- * The club's upcoming events.
- *
- * This page said "No upcoming events scheduled" no matter what was in the
- * database — `events.list` had no caller anywhere, so club events existed only
- * for whoever was standing in front of the QR code.
- *
- * Read on the server rather than through tRPC: the tRPC provider is mounted
- * only inside the (portal) route group, and this page's whole audience is
- * people who are not signed in.
- */
-// Every five minutes, not every request, matching /projects. force-dynamic
-// bought freshness nobody saw — proxy.ts already serves this max-age=3600.
 export const revalidate = 300;
 
 const formatWhen = (date: Date) =>
@@ -31,8 +19,6 @@ const formatWhen = (date: Date) =>
     timeZoneName: "short",
   });
 
-// qrCode is deliberately absent: publishing it would let anyone check
-// themselves in without being in the room.
 const listedColumns = {
   id: true,
   title: true,
@@ -43,8 +29,6 @@ const listedColumns = {
   currentCheckIns: true,
 } as const;
 
-// From the start of today, so an event running this afternoon counts as
-// upcoming until it is actually over rather than dropping off at lunchtime.
 function startOfToday() {
   const since = new Date();
   since.setHours(0, 0, 0, 0);
@@ -62,11 +46,6 @@ async function loadUpcoming() {
   });
 }
 
-/**
- * Past events, most recent first. Leaving the upcoming list used to mean leaving
- * the site, so nothing recorded that an event ran. Attendance stands in for the
- * capacity badge, which means nothing once the room has emptied.
- */
 async function loadPast() {
   if (!db) return [];
 
@@ -79,108 +58,108 @@ async function loadPast() {
 }
 
 export default async function EventsPage() {
-  // Two independent reads; the slower one is the whole cost.
   const [upcoming, past] = await Promise.all([loadUpcoming(), loadPast()]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar screen_width={1024} page="events" />
-      <main className="pt-20">
-        <Section className="py-32">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              Club Events
-            </h1>
-            <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              Upcoming DSGT meetings, workshops, and community gatherings.
-              Hacklytics has its own page.
-            </p>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-              <h2 className="text-xl font-bold uppercase mb-4">
-                Upcoming Club Events
-              </h2>
-              {upcoming.length === 0 ? (
-                <p className="text-gray-500 italic">
-                  No upcoming club events scheduled. Check back soon!
-                </p>
-              ) : (
-                <ul className="divide-y divide-white/5">
-                  {upcoming.map((event) => {
-                    const full =
-                      !!event.maxCheckIns &&
-                      event.currentCheckIns >= event.maxCheckIns;
+    <PublicFrame note="after 6:30 ET">
+      <div className="relative min-h-screen">
+        <Navbar screen_width={1024} page="events" />
+        <main className="pt-20">
+          <Section className="py-32">
+            <div className="max-w-4xl mx-auto px-6">
+              <p className="public-kicker mb-4">Club calendar</p>
+              <h1 className="public-display text-5xl md:text-6xl mb-6">
+                Show up. The room is already mid-project.
+              </h1>
+              <p className="public-lede mb-12">
+                Upcoming DSGT meetings, workshops, and gatherings. Hacklytics
+                has its own page.
+              </p>
+              <div className="public-card p-8">
+                <h2 className="public-display text-2xl mb-4">Upcoming</h2>
+                {upcoming.length === 0 ? (
+                  <p className="text-[var(--muted)]">
+                    No upcoming club events scheduled. Check back soon.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-[var(--rule)]">
+                    {upcoming.map((event) => {
+                      const full =
+                        !!event.maxCheckIns &&
+                        event.currentCheckIns >= event.maxCheckIns;
 
-                    return (
+                      return (
+                        <li
+                          key={event.id}
+                          className="py-5 first:pt-0 last:pb-0"
+                        >
+                          <div className="flex flex-wrap items-baseline gap-3">
+                            <h3 className="public-display text-lg">
+                              {event.title}
+                            </h3>
+                            {full && (
+                              <span className="public-chip bg-[var(--buzz)] text-[var(--ink)] border-[var(--buzz)]">
+                                Full
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm">
+                            {formatWhen(event.eventDate)}
+                            {event.location ? ` · ${event.location}` : ""}
+                          </p>
+                          {event.description && (
+                            <p className="mt-2 text-sm text-[var(--muted)] leading-relaxed">
+                              {event.description}
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+              {past.length > 0 && (
+                <div className="mt-8 public-card p-8">
+                  <h2 className="public-display text-2xl mb-4">Past</h2>
+                  <ul className="divide-y divide-[var(--rule)]">
+                    {past.map((event) => (
                       <li key={event.id} className="py-5 first:pt-0 last:pb-0">
                         <div className="flex flex-wrap items-baseline gap-3">
-                          <h3 className="text-lg font-bold">{event.title}</h3>
-                          {full && (
-                            <span className="text-[10px] font-mono uppercase tracking-widest text-amber-300 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
-                              Full
+                          <h3 className="public-display text-lg">
+                            {event.title}
+                          </h3>
+                          {event.currentCheckIns > 0 && (
+                            <span className="public-chip">
+                              {event.currentCheckIns} checked in
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 text-sm text-gray-400">
+                        <p className="mt-1 text-sm text-[var(--muted)]">
                           {formatWhen(event.eventDate)}
                           {event.location ? ` · ${event.location}` : ""}
                         </p>
                         {event.description && (
-                          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+                          <p className="mt-2 text-sm text-[var(--muted)] leading-relaxed">
                             {event.description}
                           </p>
                         )}
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                </div>
               )}
+              <p className="mt-8 text-sm">
+                Looking for Hacklytics?{" "}
+                <Link href="/hacklytics" className="public-link">
+                  Go to the hackathon page
+                </Link>
+                .
+              </p>
             </div>
-            {past.length > 0 && (
-              <div className="mt-8 bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-                <h2 className="text-xl font-bold uppercase mb-4">
-                  Past Club Events
-                </h2>
-                <ul className="divide-y divide-white/5">
-                  {past.map((event) => (
-                    <li key={event.id} className="py-5 first:pt-0 last:pb-0">
-                      <div className="flex flex-wrap items-baseline gap-3">
-                        <h3 className="text-lg font-bold text-gray-300">
-                          {event.title}
-                        </h3>
-                        {event.currentCheckIns > 0 && (
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 border border-white/10 bg-white/5 px-2 py-0.5">
-                            {event.currentCheckIns} checked in
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {formatWhen(event.eventDate)}
-                        {event.location ? ` · ${event.location}` : ""}
-                      </p>
-                      {event.description && (
-                        <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-                          {event.description}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <p className="mt-8 text-sm text-gray-500">
-              Looking for Hacklytics?{" "}
-              <Link
-                href="/hacklytics"
-                className="text-[#00A8A8] hover:underline underline-offset-4"
-              >
-                Go to the hackathon page
-              </Link>
-              .
-            </p>
-          </div>
-        </Section>
-      </main>
-      <Footer />
-    </div>
+          </Section>
+        </main>
+        <Footer />
+      </div>
+    </PublicFrame>
   );
 }
