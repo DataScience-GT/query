@@ -43,7 +43,7 @@ Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts`
 
 ## Mainweb
 
-`sites/mainweb/lib/*.test.ts` — phone formatting, hackathon slugs, `safe-callback`.
+`sites/mainweb/lib/*.test.ts` — phone formatting, hackathon slugs, `safe-callback`, and the hand-edited syllabus constant (`bootcamp-schedule.test.ts` — unique, gapless week numbers and https notebook links).
 
 ## Hacklytics
 
