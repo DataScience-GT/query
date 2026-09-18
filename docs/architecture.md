@@ -42,6 +42,7 @@ Year-round DSGT operations. **Not** scoped to a hackathon row.
 - Membership (`member`, `membership_history`) — one paid year per person, defined by start/end dates
 - Club events and QR check-in (`event`, `event_check_in`)
 - Bootcamp sessions are club events with `bootcamp_week` + `bootcamp_term`
+- Bootcamp handouts (`bootcamp_material`) hang off those events; the bytes are in Cloud Storage and downloads are gated on the caller's term — see [Bootcamp materials](./bootcamp-materials.md)
 - Initiatives (`initiative`, `initiative_application`) led by `project_leader`
 - Stripe payments and account linking
 

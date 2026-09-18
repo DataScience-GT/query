@@ -36,11 +36,16 @@ const CSP_DIRECTIVES = [
   // 'self' for the resume previews on /settings and /admin/resumes. Without
   // it every same-origin frame goes blank the day CSP_ENFORCE flips, and
   // report-only means nothing would say so until then.
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+  // blob: is the resume preview: the PDF is fetched, then framed as an object
+  // URL so X-Frame-Options on /api/resume cannot blank the viewer.
+  "frame-src 'self' blob: https://js.stripe.com https://hooks.stripe.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
-  "object-src 'none'",
+  // 'self' rather than 'none': Chrome's PDF viewer is an <object>/<embed>
+  // inside the frame. 'none' is what turns a valid resume into "Failed to
+  // load PDF document" the day CSP_ENFORCE flips.
+  "object-src 'self' blob:",
   "report-uri /api/csp-report",
 ].join("; ");
 

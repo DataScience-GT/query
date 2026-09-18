@@ -43,7 +43,7 @@ Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts`
 
 ## Mainweb
 
-`sites/mainweb/lib/*.test.ts` — phone formatting, hackathon slugs, `safe-callback`.
+`sites/mainweb/lib/*.test.ts` — phone formatting, hackathon slugs, `safe-callback`, bootcamp handout file rules (`bootcamp-materials.test.ts`), the handout access gate (`bootcamp-access.test.ts`, where the null-term trap is held down) and the upload and download handlers (`bootcamp-material-routes.test.ts` — the handlers live under `app/`, which the root script does not glob).
 
 ## Hacklytics
 
