@@ -5,7 +5,6 @@ import { bootcampWorkshops, db } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import { rateLimit } from "@query/api";
-import { currentTerm } from "@query/db/services/membership";
 import { bootcampCaller } from "@/lib/bootcamp-access";
 import { canDownloadBootcampFile } from "@/lib/bootcamp-route-rules";
 import {
@@ -223,16 +222,8 @@ export async function GET(
   const storageKey =
     kind === "materials" ? workshop.materialsKey : workshop.solutionKey;
   // Staff may inspect every term and draft. Members get a deliberately opaque
-  // 404 unless enrolment, current term, publication, and metadata all agree.
-  if (
-    !storageKey ||
-    !canDownloadBootcampFile(
-      caller,
-      workshop,
-      currentTerm(),
-      true,
-    )
-  ) {
+  // 404 unless their cohort, publication, and metadata all agree.
+  if (!storageKey || !canDownloadBootcampFile(caller, workshop, true)) {
     return notFound();
   }
 

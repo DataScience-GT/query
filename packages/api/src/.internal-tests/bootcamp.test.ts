@@ -289,6 +289,19 @@ describe("Bootcamp", () => {
       await expect(callerFor(ALICE).bootcamp.workshops()).resolves.toEqual([]);
     });
 
+    // Whoever bought the fall bootcamp keeps its material in January.
+    it("still serves a past cohort its own published material", async () => {
+      const past = { ...DRAFT, term: LAST_TERM, isPublished: true };
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "members" ? { bootcampTerm: LAST_TERM } : undefined,
+      );
+      onSelect = (table) => (table === bootcampWorkshops ? [past] : []);
+
+      await expect(callerFor(ALICE).bootcamp.workshops()).resolves.toEqual([
+        past,
+      ]);
+    });
+
     it("keeps a draft out of member results but exposes it to staff", async () => {
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "members") return { bootcampTerm: TERM };
@@ -327,7 +340,7 @@ describe("Bootcamp", () => {
       expect(createError.code).toBe("CONFLICT");
 
       const updateError: any = await callerFor(ADMIN)
-        .bootcamp.updateWorkshop({ workshopId: DRAFT.id, week: 1 })
+        .bootcamp.updateWorkshop({ workshopId: DRAFT.id, title: "Python" })
         .catch((error: unknown) => error);
       expect(updateError.code).toBe("CONFLICT");
     });
@@ -373,20 +386,24 @@ describe("Bootcamp", () => {
       expect(workshop?.eventDate).toEqual(sessionDate);
     });
 
-    it("creates or updates a QR-backed session under the server term", async () => {
+    // A past cohort's row, so a clock-derived term would show up as a mismatch.
+    const adminWithWorkshop = (table: string) => {
+      if (table === "admins") return { userId: ADMIN, isActive: true, role: "admin" };
+      if (table === "bootcampWorkshops") {
+        return { term: LAST_TERM, week: 1, title: "Python Basics" };
+      }
+      return undefined;
+    };
+
+    it("creates or updates a QR-backed session under the row's own term", async () => {
       const sessionDate = new Date("2026-09-21T22:00:00.000Z");
       const session = { id: WEEK_1, eventDate: sessionDate };
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "admins"
-          ? { userId: ADMIN, isActive: true, role: "admin" }
-          : undefined,
-      );
+      mockFindFirst.mockImplementation(adminWithWorkshop);
       onMutation = () => [session];
 
       await expect(
         callerFor(ADMIN).bootcamp.upsertSession({
-          week: 1,
-          title: "Python Basics",
+          workshopId: DRAFT.id,
           sessionDate,
           location: "Klaus 1443",
         }),
@@ -401,7 +418,7 @@ describe("Bootcamp", () => {
         eventDate: sessionDate,
         createdById: ADMIN,
         bootcampWeek: 1,
-        bootcampTerm: TERM,
+        bootcampTerm: LAST_TERM,
         bootcampOnly: true,
       });
       expect(call?.values?.qrCode).toEqual(expect.any(String));
@@ -410,29 +427,37 @@ describe("Bootcamp", () => {
         events.bootcampTerm,
       ]);
       expect(call?.conflict?.set).toMatchObject({
-        title: "Python Basics",
         location: "Klaus 1443",
         eventDate: sessionDate,
         bootcampOnly: true,
         updatedAt: expect.any(Date),
       });
+      // The event's own title belongs to the events screen.
+      expect(call?.conflict?.set).not.toHaveProperty("title");
       expect(call?.conflict?.set).not.toHaveProperty("qrCode");
       expect(call?.conflict?.set).not.toHaveProperty("createdById");
     });
 
-    it("clears a session by detaching its event without deleting check-ins", async () => {
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "admins"
-          ? { userId: ADMIN, isActive: true, role: "admin" }
-          : undefined,
-      );
+    it("leaves an existing session's room alone when location is omitted", async () => {
+      mockFindFirst.mockImplementation(adminWithWorkshop);
       onMutation = () => [{ id: WEEK_1 }];
 
       await callerFor(ADMIN).bootcamp.upsertSession({
-        week: 1,
-        title: "Python Basics",
+        workshopId: DRAFT.id,
+        sessionDate: new Date("2026-09-28T22:00:00.000Z"),
+      });
+
+      const call = mutationCalls.find((entry) => entry.table === events);
+      expect(call?.conflict?.set).not.toHaveProperty("location");
+    });
+
+    it("clears a session by detaching its event without deleting check-ins", async () => {
+      mockFindFirst.mockImplementation(adminWithWorkshop);
+      onMutation = () => [{ id: WEEK_1 }];
+
+      await callerFor(ADMIN).bootcamp.upsertSession({
+        workshopId: DRAFT.id,
         sessionDate: null,
-        location: null,
       });
 
       expect(mutationCalls).toHaveLength(1);
@@ -440,14 +465,29 @@ describe("Bootcamp", () => {
         operation: "update",
         table: events,
         set: {
-          title: "Python Basics",
-          location: null,
           bootcampWeek: null,
           bootcampTerm: null,
           bootcampOnly: false,
           updatedAt: expect.any(Date),
         },
       });
+      expect(mutationCalls[0]?.set).not.toHaveProperty("title");
+      expect(mutationCalls[0]?.set).not.toHaveProperty("location");
+    });
+
+    it("refuses a session for a workshop that does not exist", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+
+      const error: any = await callerFor(ADMIN)
+        .bootcamp.upsertSession({ workshopId: DRAFT.id, sessionDate: null })
+        .catch((cause: unknown) => cause);
+
+      expect(error.code).toBe("NOT_FOUND");
+      expect(mutationCalls).toEqual([]);
     });
 
     it("allows only admins to save the session event", async () => {
@@ -455,8 +495,7 @@ describe("Bootcamp", () => {
 
       const error: any = await callerFor(ALICE)
         .bootcamp.upsertSession({
-          week: 1,
-          title: "Python Basics",
+          workshopId: DRAFT.id,
           sessionDate: new Date(),
         })
         .catch((cause: unknown) => cause);

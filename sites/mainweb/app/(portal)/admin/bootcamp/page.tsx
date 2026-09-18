@@ -171,11 +171,17 @@ export default function AdminBootcampPage() {
     setError(null);
     setNotice(null);
     const wasEditing = !!selected;
+    // What the form opened with, so an untouched date or room is not rewritten.
+    const initialDate = selected?.eventDate
+      ? toLocalInput(new Date(selected.eventDate))
+      : "";
+    const initialLocation = selected?.location ?? "";
+    const dateChanged = form.sessionDate !== initialDate;
+    const locationChanged = form.location.trim() !== initialLocation;
 
     let workshopId: string;
     try {
       const fields = {
-        week: Number(form.week),
         title: form.title.trim(),
         recordingUrl: form.recordingUrl.trim() || null,
       };
@@ -184,7 +190,10 @@ export default function AdminBootcampPage() {
             workshopId: selected.id,
             ...fields,
           })
-        : await createWorkshop.mutateAsync(fields);
+        : await createWorkshop.mutateAsync({
+            ...fields,
+            week: Number(form.week),
+          });
       workshopId = saved.id;
       // A create followed by a failed upload must retry as an edit; otherwise
       // the second save collides with the draft row that already succeeded.
@@ -202,12 +211,14 @@ export default function AdminBootcampPage() {
     }
 
     try {
-      await upsertSession.mutateAsync({
-        week: Number(form.week),
-        title: form.title.trim(),
-        sessionDate: form.sessionDate ? new Date(form.sessionDate) : null,
-        location: form.location.trim() || null,
-      });
+      // A blank date on a new row means TBA, not "detach week N's session".
+      if (dateChanged || (locationChanged && form.sessionDate)) {
+        await upsertSession.mutateAsync({
+          workshopId,
+          sessionDate: form.sessionDate ? new Date(form.sessionDate) : null,
+          ...(locationChanged ? { location: form.location.trim() || null } : {}),
+        });
+      }
       // Session writes affect the material join, attendance views, and every
       // event list that can expose the new QR-backed club event.
       await Promise.all([

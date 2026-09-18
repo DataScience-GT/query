@@ -12,8 +12,10 @@ import path from "path";
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-// `../src` is imported inside main(): its client reads DATABASE_URL at module
-// load, and a static import would be hoisted above the dotenv call.
+// `../src` is loaded inside main(): its client reads DATABASE_URL at module
+// load, and a static *value* import would be hoisted above the dotenv call.
+// These two are type-only, so they are erased and load nothing.
+import type * as SchemaModule from "../src";
 import type { ClubProjectStatus } from "../src/schemas/club-projects";
 import type * as SchemaModule from "../src";
 
@@ -173,7 +175,6 @@ const ROSTER: Row[] = [
   },
 ];
 
-// Erased before runtime, so the dotenv ordering this file protects is unaffected.
 type Schema = typeof SchemaModule;
 type Database = NonNullable<Schema["db"]>;
 

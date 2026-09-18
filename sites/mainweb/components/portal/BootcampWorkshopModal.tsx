@@ -86,8 +86,10 @@ export function BootcampWorkshopModal({
               min={1}
               max={52}
               value={form.week}
+              // The session joins on the week, so it is fixed once created.
+              disabled={mode === "edit"}
               onChange={(event) => setForm({ ...form, week: event.target.value })}
-              className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none"
+              className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none disabled:opacity-60"
             />
           </div>
           <div>

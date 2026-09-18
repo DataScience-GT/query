@@ -1,11 +1,7 @@
 import { Storage } from "@google-cloud/storage";
-import { once, setMaxListeners } from "node:events";
+import { once } from "node:events";
 import type { Readable } from "node:stream";
 import { streamBootcampZip } from "./bootcamp-file";
-
-// teeny-request pipelines reads through a PassThrough already carrying ten
-// listeners. This fixed-size chain is expected and is not a listener leak.
-setMaxListeners(15);
 
 let storage: Storage | undefined;
 
