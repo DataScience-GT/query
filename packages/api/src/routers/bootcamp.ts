@@ -1,15 +1,22 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, isNotNull, desc } from "drizzle-orm";
-import { eventCheckIns, events, members, users } from "@query/db";
+import { randomUUID } from "crypto";
+import {
+  bootcampWorkshops,
+  eventCheckIns,
+  events,
+  members,
+  users,
+} from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { currentTerm } from "@query/db/services/membership";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
+import { isUniqueViolation } from "../middleware/db-errors";
 
-// The bootcamp, read side. No bootcamp table: sessions are events carrying
-// `bootcampWeek` and attendance is the ordinary `event_check_in`. Enrolment
-// is `member.bootcampTerm === currentTerm()`, since a bootcamp is sold by the
-// semester and does not carry into the next one.
+// Sessions remain events and attendance remains `event_check_in`. Workshop
+// rows hold only the material officers publish beside those sessions.
 
 const termInput = z
   .object({ term: z.string().trim().max(20).optional() })
@@ -28,6 +35,80 @@ type Session = {
   eventDate: Date;
   checkInEnabled: boolean;
 };
+
+// Named so the not-enrolled `[]` has the same useful type as a database result.
+type WorkshopRow = {
+  id: string;
+  term: string;
+  week: number;
+  title: string;
+  materialsKey: string | null;
+  materialsFileName: string | null;
+  materialsSizeBytes: number | null;
+  solutionKey: string | null;
+  solutionFileName: string | null;
+  solutionSizeBytes: number | null;
+  recordingUrl: string | null;
+  isPublished: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  eventDate: Date | null;
+  location: string | null;
+};
+
+// URL() accepts executable and local schemes, so workshop recordings use a
+// positive web-scheme allowlist instead of treating `.url()` as sufficient.
+const recordingUrl = z
+  .string()
+  .trim()
+  .max(2048)
+  .url()
+  .refine((value) => {
+    const protocol = new URL(value).protocol;
+    return protocol === "http:" || protocol === "https:";
+  }, "Recording URL must use http or https");
+
+const workshopFields = {
+  id: bootcampWorkshops.id,
+  term: bootcampWorkshops.term,
+  week: bootcampWorkshops.week,
+  title: bootcampWorkshops.title,
+  materialsKey: bootcampWorkshops.materialsKey,
+  materialsFileName: bootcampWorkshops.materialsFileName,
+  materialsSizeBytes: bootcampWorkshops.materialsSizeBytes,
+  solutionKey: bootcampWorkshops.solutionKey,
+  solutionFileName: bootcampWorkshops.solutionFileName,
+  solutionSizeBytes: bootcampWorkshops.solutionSizeBytes,
+  recordingUrl: bootcampWorkshops.recordingUrl,
+  isPublished: bootcampWorkshops.isPublished,
+  createdAt: bootcampWorkshops.createdAt,
+  updatedAt: bootcampWorkshops.updatedAt,
+  eventDate: events.eventDate,
+  location: events.location,
+};
+
+/** Workshop metadata joined to an optional meeting date by term and week. */
+async function workshopsForTerm(
+  db: DrizzleDB,
+  term: string,
+  publishedOnly: boolean,
+): Promise<WorkshopRow[]> {
+  const filters = [eq(bootcampWorkshops.term, term)];
+  if (publishedOnly) filters.push(eq(bootcampWorkshops.isPublished, true));
+
+  return db
+    .select(workshopFields)
+    .from(bootcampWorkshops)
+    .leftJoin(
+      events,
+      and(
+        eq(events.bootcampTerm, bootcampWorkshops.term),
+        eq(events.bootcampWeek, bootcampWorkshops.week),
+      ),
+    )
+    .where(and(...filters))
+    .orderBy(asc(bootcampWorkshops.week));
+}
 
 /** The sessions of one bootcamp, in the order they are taught. */
 async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> {
@@ -107,6 +188,196 @@ export const bootcampRouter = createTRPCRouter({
     };
   }),
 
+  // Not being enrolled is ordinary page state, not an authorization error.
+  workshops: protectedProcedure.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+    const term = currentTerm();
+    const member = await db.query.members.findFirst({
+      where: eq(members.userId, ctx.userId as string),
+      columns: { bootcampTerm: true },
+    });
+
+    if (member?.bootcampTerm !== term) return [] as WorkshopRow[];
+    return workshopsForTerm(db, term, true);
+  }),
+
+  // Staff can inspect drafts and past terms while preparing or correcting a
+  // cohort; unlike member reads this intentionally does not force currentTerm.
+  adminWorkshops: isAdmin.input(termInput).query(async ({ ctx, input }) => {
+    return workshopsForTerm(
+      ctx.db as DrizzleDB,
+      input?.term || currentTerm(),
+      false,
+    );
+  }),
+
+  createWorkshop: isAdmin
+    .input(
+      z.object({
+        week: z.number().int().min(1).max(52),
+        title: z.string().trim().min(1).max(200),
+        recordingUrl: recordingUrl.nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [created] = await (ctx.db as DrizzleDB)
+        .insert(bootcampWorkshops)
+        .values({ ...input, term: currentTerm() })
+        .returning()
+        .catch((error: unknown) => {
+          if (isUniqueViolation(error)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Week ${input.week} of this bootcamp already has workshop material. Edit that row instead.`,
+            });
+          }
+          throw error;
+        });
+
+      if (!created) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Workshop could not be created",
+        });
+      }
+      return created;
+    }),
+
+  updateWorkshop: isAdmin
+    .input(
+      z.object({
+        workshopId: z.string().uuid(),
+        week: z.number().int().min(1).max(52).optional(),
+        title: z.string().trim().min(1).max(200).optional(),
+        recordingUrl: recordingUrl.nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { workshopId, ...fields } = input;
+      const [updated] = await (ctx.db as DrizzleDB)
+        .update(bootcampWorkshops)
+        .set({ ...fields, updatedAt: new Date() })
+        .where(eq(bootcampWorkshops.id, workshopId))
+        .returning()
+        .catch((error: unknown) => {
+          if (isUniqueViolation(error)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Week ${input.week ?? "that"} of this bootcamp already has workshop material. Edit that row instead.`,
+            });
+          }
+          throw error;
+        });
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Workshop not found",
+        });
+      }
+      return updated;
+    }),
+
+  upsertSession: isAdmin
+    .input(
+      z.object({
+        week: z.number().int().min(1).max(52),
+        title: z.string().trim().min(1).max(200),
+        sessionDate: z.date().nullable(),
+        location: z.string().trim().max(200).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      // The active cohort is server-owned so a forged client cannot create a
+      // session under a term that no current participant belongs to.
+      const term = currentTerm();
+      const location = input.location || null;
+
+      if (input.sessionDate === null) {
+        // Clearing keeps the event, QR code, and check-ins; only its bootcamp
+        // association is removed so the workshop honestly returns to TBA.
+        const [detached] = await db
+          .update(events)
+          .set({
+            title: input.title,
+            location,
+            bootcampWeek: null,
+            bootcampTerm: null,
+            bootcampOnly: false,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(events.bootcampWeek, input.week),
+              eq(events.bootcampTerm, term),
+            ),
+          )
+          .returning();
+
+        ctx.cache.deletePattern("event*");
+        return detached ?? null;
+      }
+
+      // The QR is insert-only: omitting it from the conflict update preserves
+      // printed signs when staff reschedule or rename an existing session.
+      const [session] = await db
+        .insert(events)
+        .values({
+          title: input.title,
+          location,
+          eventDate: input.sessionDate,
+          qrCode: randomUUID(),
+          createdById: ctx.userId as string,
+          bootcampWeek: input.week,
+          bootcampTerm: term,
+          bootcampOnly: true,
+        })
+        .onConflictDoUpdate({
+          target: [events.bootcampWeek, events.bootcampTerm],
+          set: {
+            title: input.title,
+            location,
+            eventDate: input.sessionDate,
+            bootcampOnly: true,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      if (!session) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Bootcamp session could not be saved",
+        });
+      }
+
+      ctx.cache.deletePattern("event*");
+      return session;
+    }),
+
+  // Publishing stays separate from editing so uploads can finish before a row
+  // becomes visible, and an upload failure cannot accidentally expose it.
+  setPublished: isAdmin
+    .input(
+      z.object({ workshopId: z.string().uuid(), isPublished: z.boolean() }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await (ctx.db as DrizzleDB)
+        .update(bootcampWorkshops)
+        .set({ isPublished: input.isPublished, updatedAt: new Date() })
+        .where(eq(bootcampWorkshops.id, input.workshopId))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Workshop not found",
+        });
+      }
+      return updated;
+    }),
+
   // Everybody enrolled this term against every session. One procedure rather
   // than roster + grid + stats: they read the same three tables. Counts come
   // from the attendance rows, not `currentCheckIns`, so corrections show.
@@ -115,7 +386,7 @@ export const bootcampRouter = createTRPCRouter({
     const term = input?.term || currentTerm();
 
     // Attendance outlives its semester, so past terms stay reachable.
-    const [sessions, roster, terms] = await Promise.all([
+    const [sessions, roster, eventTerms, workshopTerms] = await Promise.all([
       sessionsForTerm(db, term),
       db
         .select({
@@ -134,6 +405,10 @@ export const bootcampRouter = createTRPCRouter({
         .from(events)
         .where(isNotNull(events.bootcampTerm))
         .orderBy(desc(events.bootcampTerm)),
+      db
+        .selectDistinct({ term: bootcampWorkshops.term })
+        .from(bootcampWorkshops)
+        .orderBy(desc(bootcampWorkshops.term)),
     ]);
 
     const checkIns = sessions.length
@@ -169,7 +444,11 @@ export const bootcampRouter = createTRPCRouter({
 
     return {
       term,
-      terms: terms.map((row) => row.term).filter((row): row is string => !!row),
+      // A term with files but no event rows must still be selectable.
+      terms: [...new Set([...eventTerms, ...workshopTerms].map((row) => row.term))]
+        .filter((row): row is string => !!row)
+        .sort()
+        .reverse(),
       sessions: sessions.map((session) => ({
         ...session,
         attendance: perSession.get(session.id) ?? 0,

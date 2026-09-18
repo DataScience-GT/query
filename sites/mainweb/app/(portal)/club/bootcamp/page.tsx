@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
+import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import { trpc } from "@/lib/trpc";
 import {
   BOOTCAMP_CURRICULUM,
@@ -42,28 +43,17 @@ const dateLabel = (date: Date) =>
     minute: "2-digit",
   });
 
-/**
- * What an enrolled member sees for now.
- *
- * Room, meeting time and workspace URL are all still unset, so the real page
- * would be a grid of "to be announced" — this says the same thing once, and
- * honestly. It goes away when the schedule lands.
- */
-function WorkInProgress({ term }: { term: string }) {
+/** The current cohort's welcome and the logistics shared by every workshop. */
+function EnrolledHeader({ term }: { term: string }) {
   return (
     <div className="border border-accent/30 bg-accent/[0.06] p-8">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
-        Work in progress
-      </p>
-      <h2 className="mt-3 text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-        You are in the {term} bootcamp
+      <h2 className="text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
+        Welcome to the {term} Bootcamp
       </h2>
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-        Your spot is confirmed — nothing else to do. We are still putting the
-        schedule, the room and the notebooks together, so this page is not
-        finished yet. Session times, attendance and the workspace link all show
-        up here once they are set, and you will hear from us before the first
-        meeting.
+        Here you&apos;ll find all the materials you need for bootcamp, including
+        the meeting dates, notebooks, datasets, solutions, and recordings.
+        We&apos;ll post solutions and recordings after every in-person workshop.
       </p>
       {BOOTCAMP_START_DATE && (
         <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
@@ -136,8 +126,11 @@ export default function BootcampPortalPage() {
   const progress = trpc.bootcamp.myProgress.useQuery(undefined, {
     enabled: !!session,
   });
+  const workshops = trpc.bootcamp.workshops.useQuery(undefined, {
+    enabled: !!session,
+  });
 
-  if (status === "loading" || progress.isPending) {
+  if (status === "loading" || progress.isPending || workshops.isPending) {
     return <LoadingScreen message="Loading bootcamp…" />;
   }
 
@@ -204,8 +197,25 @@ export default function BootcampPortalPage() {
           </p>
         )}
 
+        {workshops.error && (
+          <p role="alert" className="mb-6 text-sm text-red-300">
+            {workshops.error.message}
+          </p>
+        )}
+
         {enrolled && data ? (
-          <WorkInProgress term={termLabel(data.term)} />
+          <>
+            <EnrolledHeader term={termLabel(data.term)} />
+            <section className="mt-8">
+              <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
+                Weekly materials
+              </h2>
+              <BootcampMaterialsTable
+                rows={workshops.data ?? []}
+                term={termLabel(data.term)}
+              />
+            </section>
+          </>
         ) : (
           <>
             {data && <NotEnrolled term={data.term} />}

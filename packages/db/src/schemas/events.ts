@@ -12,9 +12,10 @@ import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 
-// A bootcamp session is an event, not a table of its own: mark one as week N
-// of a term and the QR flow, the check-in constraint and the capacity lock
-// already carry its attendance. Attendance IS `event_check_in`.
+// A bootcamp meeting is an event: mark one as week N of a term and the QR
+// flow, check-in constraint and capacity lock carry its attendance. Workshop
+// files have their own metadata table because they outlive missing/deleted
+// event rows. Attendance IS `event_check_in`.
 export const events = pgTable(
   "event",
   {

@@ -8,6 +8,7 @@ export * from "./events";
 export * from "./judge";
 export * from "./initiatives";
 export * from "./club-projects";
+export * from "./bootcamp";
 export * from "./stripe";
 export * from "./security";
 export * from "./settings";
