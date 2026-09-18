@@ -16,6 +16,7 @@ Members looking for a club-language overview should start at [Club project](./cl
 | [Security](./operations/security.md) | Auth gates, rate limits, CSP, input scrubbing |
 | [Testing](./operations/testing.md) | Vitest, Playwright, and what each suite protects |
 | [Resume book](./resume-book.md) | Member uploads, the two staff views, limits, and why files skip tRPC |
+| [Bootcamp materials](./bootcamp-materials.md) | Session handouts: who can download one, why the links are proxied, file limits |
 | [Glossary](./glossary.md) | Club vs hackathon vocabulary |
 
 ## Packages

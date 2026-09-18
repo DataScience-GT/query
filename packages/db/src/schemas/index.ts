@@ -5,6 +5,7 @@ export * from "./resumes";
 export * from "./hackathons";
 export * from "./admins";
 export * from "./events";
+export * from "./bootcamp";
 export * from "./judge";
 export * from "./initiatives";
 export * from "./club-projects";
