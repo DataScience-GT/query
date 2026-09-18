@@ -71,7 +71,7 @@ env:
   # Cloud Run region, so reads and writes stay in-region.
   - variable: RESUME_BUCKET
     value: dsgt-resumes
-  # Cloud Storage bucket holding bootcamp handouts — slides, notebooks,
+  # Cloud Storage bucket holding bootcamp workshop ZIPs — notebooks,
   # datasets. Same runtime service account, same objectAdmin grant, already
   # applied. Separate from the resume bucket on purpose: those are documents
   # no member may read, these are files every enrolled member may.

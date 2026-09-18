@@ -1,9 +1,6 @@
 /**
- * The bootcamp as published. A constant, not a table: nothing edits a
- * curriculum, and the marketing page needs the same weeks.
- *
- * The material stays on Deepnote — its notebooks are behind Deepnote's own
- * sign-in, so an iframe renders a login wall. Linking out is the integration.
+ * The public bootcamp syllabus. The portal's downloadable weekly material is
+ * edited separately, while the marketing page still needs stable public copy.
  */
 
 export type BootcampWeek = {
@@ -17,11 +14,11 @@ export type BootcampWeek = {
 };
 
 /**
- * Where and when it meets. Null until filled in; every surface renders "to be
- * announced" rather than a blank line.
+ * Where and when it meets. These remain nullable so an upcoming term can show
+ * "to be announced" rather than a blank line before officers confirm logistics.
  */
-export const BOOTCAMP_ROOM: string | null = null;
-export const BOOTCAMP_MEETING_TIME: string | null = null;
+export const BOOTCAMP_ROOM: string | null = "D.M. Smith 115";
+export const BOOTCAMP_MEETING_TIME: string | null = "6:30–7:30 PM, Tuesdays";
 
 /** First session. Rendered as written, so no timezone can shift the date. */
 export const BOOTCAMP_START_DATE: string | null = "September 22, 2026";
