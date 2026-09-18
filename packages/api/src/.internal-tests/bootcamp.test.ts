@@ -345,6 +345,60 @@ describe("Bootcamp", () => {
       expect(updateError.code).toBe("CONFLICT");
     });
 
+    it("files a new workshop under the term being viewed, not the live one", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      // The past cohort is known, so writing to it is allowed.
+      onSelect = (table) =>
+        table === bootcampWorkshops ? [{ term: "2025-fall" }] : [];
+      onMutation = () => [DRAFT];
+
+      await callerFor(ADMIN).bootcamp.createWorkshop({
+        week: 1,
+        title: "Python",
+        term: "2025-fall",
+      });
+
+      const insert = mutationCalls.find((call) => call.operation === "insert");
+      expect((insert?.values as { term?: string })?.term).toBe("2025-fall");
+    });
+
+    it("refuses a term no bootcamp ever ran in", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      // Neither workshops nor events know this term.
+      onSelect = () => [];
+      onMutation = () => [DRAFT];
+
+      const error: any = await callerFor(ADMIN)
+        .bootcamp.createWorkshop({ week: 1, title: "Python", term: "2019-fall" })
+        .catch((cause: unknown) => cause);
+
+      expect(error.code).toBe("BAD_REQUEST");
+      expect(
+        mutationCalls.some((call) => call.operation === "insert"),
+      ).toBe(false);
+    });
+
+    it("rejects a term that is not a real semester string", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+
+      const error: any = await callerFor(ADMIN)
+        .bootcamp.createWorkshop({ week: 1, title: "Python", term: "fall-2026" })
+        .catch((cause: unknown) => cause);
+      expect(error.code).toBe("BAD_REQUEST");
+    });
+
     it("allows only http(s) recording URLs", async () => {
       mockFindFirst.mockImplementation((table: string) =>
         table === "admins"
