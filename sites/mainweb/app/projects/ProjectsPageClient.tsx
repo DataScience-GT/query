@@ -12,8 +12,8 @@ import {
   isExternalJoin,
   joinHref,
   joinLabel,
-  type ClubProjectCard,
 } from "@/lib/club-projects";
+import type { ClubProjectCard } from "@/lib/club-projects";
 
 function ProjectCard({ project }: { project: ClubProjectCard }) {
   const href = joinHref(project);
