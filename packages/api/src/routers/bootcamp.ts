@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { and, asc, eq, inArray, isNotNull, desc } from "drizzle-orm";
-import { eventCheckIns, events, members, users } from "@query/db";
+import {
+  bootcampMaterials,
+  eventCheckIns,
+  events,
+  members,
+  users,
+} from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { currentTerm } from "@query/db/services/membership";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -27,11 +33,22 @@ type Session = {
   location: string | null;
   eventDate: Date;
   checkInEnabled: boolean;
+  materials: Material[];
 };
 
-/** The sessions of one bootcamp, in the order they are taught. */
-async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> {
-  return db
+/** What a download link needs; the bytes are in Cloud Storage. */
+type Material = {
+  id: string;
+  fileName: string;
+  sizeBytes: number;
+};
+
+/** The sessions of one bootcamp, in the order they are taught, each with its handouts. */
+async function sessionsForTerm(
+  db: DrizzleDB,
+  term: string,
+): Promise<Session[]> {
+  const rows = await db
     .select({
       id: events.id,
       week: events.bootcampWeek,
@@ -44,6 +61,38 @@ async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> 
     .from(events)
     .where(eq(events.bootcampTerm, term))
     .orderBy(asc(events.bootcampWeek));
+
+  if (rows.length === 0) return [];
+
+  // One query for the term, not one per week: this runs on every page load.
+  const files = await db
+    .select({
+      id: bootcampMaterials.id,
+      eventId: bootcampMaterials.eventId,
+      fileName: bootcampMaterials.fileName,
+      sizeBytes: bootcampMaterials.sizeBytes,
+    })
+    .from(bootcampMaterials)
+    .where(
+      inArray(
+        bootcampMaterials.eventId,
+        rows.map((row) => row.id),
+      ),
+    )
+    .orderBy(asc(bootcampMaterials.uploadedAt));
+
+  const byEvent = new Map<string, Material[]>();
+  for (const file of files) {
+    const list = byEvent.get(file.eventId) ?? [];
+    list.push({
+      id: file.id,
+      fileName: file.fileName,
+      sizeBytes: file.sizeBytes,
+    });
+    byEvent.set(file.eventId, list);
+  }
+
+  return rows.map((row) => ({ ...row, materials: byEvent.get(row.id) ?? [] }));
 }
 
 export const bootcampRouter = createTRPCRouter({

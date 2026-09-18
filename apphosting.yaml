@@ -62,13 +62,21 @@ env:
   # Cloud Storage bucket holding resume PDFs. Postgres keeps only the metadata
   # and the object key — 5000 resumes is 1.5 GB and this database is 0.5 GB.
   # The runtime service account needs objectAdmin on it:
-  #   gcloud storage buckets create gs://dsgt-resumes --location=us-central1 \
+  #   gcloud storage buckets create gs://dsgt-resumes --location=us-east4 \
   #     --uniform-bucket-level-access --public-access-prevention
   #   gcloud storage buckets add-iam-policy-binding gs://dsgt-resumes \
-  #     --member=serviceAccount:<app-hosting-runtime-sa> \
+  #     --member=serviceAccount:firebase-app-hosting-compute@dsgt-website.iam.gserviceaccount.com \
   #     --role=roles/storage.objectAdmin
+  # Both are already applied in dsgt-website. us-east4 matches the backend's
+  # Cloud Run region, so reads and writes stay in-region.
   - variable: RESUME_BUCKET
     value: dsgt-resumes
+  # Cloud Storage bucket holding bootcamp handouts — slides, notebooks,
+  # datasets. Same runtime service account, same objectAdmin grant, already
+  # applied. Separate from the resume bucket on purpose: those are documents
+  # no member may read, these are files every enrolled member may.
+  - variable: BOOTCAMP_BUCKET
+    value: dsgt-bootcamp
   # Consumer Gmail, which caps around 500 recipients a day — shared between
   # sign-in codes and every acceptance or announcement send. Acceptance waves
   # are capped at 500 for that reason. Moving to a real provider is these three
