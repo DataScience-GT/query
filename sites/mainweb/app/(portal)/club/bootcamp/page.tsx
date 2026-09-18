@@ -8,9 +8,12 @@ import {
   Clock,
   ExternalLink,
   CalendarDays,
+  Check,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
+import { SessionMaterialsList } from "@/components/portal/BootcampMaterials";
+import type { SessionMaterial } from "@/components/portal/BootcampMaterials";
 import { trpc } from "@/lib/trpc";
 import {
   BOOTCAMP_CURRICULUM,
@@ -42,40 +45,25 @@ const dateLabel = (date: Date) =>
     minute: "2-digit",
   });
 
-/**
- * What an enrolled member sees for now.
- *
- * Room, meeting time and workspace URL are all still unset, so the real page
- * would be a grid of "to be announced" — this says the same thing once, and
- * honestly. It goes away when the schedule lands.
- */
-function WorkInProgress({ term }: { term: string }) {
+/** Where and when it meets — the thing somebody checks walking to class. */
+function MeetingCard() {
   return (
-    <div className="border border-accent/30 bg-accent/[0.06] p-8">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
-        Work in progress
-      </p>
-      <h2 className="mt-3 text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-        You are in the {term} bootcamp
-      </h2>
-      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-        Your spot is confirmed — nothing else to do. We are still putting the
-        schedule, the room and the notebooks together, so this page is not
-        finished yet. Session times, attendance and the workspace link all show
-        up here once they are set, and you will hear from us before the first
-        meeting.
-      </p>
-      {BOOTCAMP_START_DATE && (
-        <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-          <CalendarDays className="h-4 w-4 shrink-0 text-accent" />
-          First session {BOOTCAMP_START_DATE}
-        </p>
-      )}
-      <p className="mt-4 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        <MapPin className="h-4 w-4 shrink-0 text-[var(--text-subtle)]" />
-        {BOOTCAMP_ROOM ?? "Room to be announced"}
-        <Clock className="ml-3 h-4 w-4 shrink-0 text-[var(--text-subtle)]" />
-        {BOOTCAMP_MEETING_TIME ?? "Time to be announced"}
+    <div className="border border-accent/30 bg-accent/[0.06] p-6">
+      <p className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-semibold text-[var(--text-primary)]">
+        <span className="inline-flex items-center gap-2">
+          <MapPin className="h-4 w-4 shrink-0 text-accent" />
+          {BOOTCAMP_ROOM ?? "Room to be announced"}
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <Clock className="h-4 w-4 shrink-0 text-accent" />
+          {BOOTCAMP_MEETING_TIME ?? "Time to be announced"}
+        </span>
+        {BOOTCAMP_START_DATE && (
+          <span className="inline-flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 shrink-0 text-accent" />
+            First session {BOOTCAMP_START_DATE}
+          </span>
+        )}
       </p>
     </div>
   );
@@ -95,6 +83,54 @@ function WorkspaceLink() {
       <ExternalLink className="h-4 w-4" />
       Open bootcamp workspace
     </a>
+  );
+}
+
+/** For an enrolled member when there is genuinely nothing to show yet. */
+function NothingScheduledYet({ term }: { term: string }) {
+  return (
+    <div className="mt-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">
+      <h2 className="text-xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
+        You are in the {term} bootcamp
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
+        Your spot is confirmed — nothing else to do. We are still putting the
+        weeks together; sessions, slides and notebooks all appear here as they
+        are set, and you will hear from us before the first meeting.
+      </p>
+    </div>
+  );
+}
+
+/** Attended, missed, or not taught yet. Only the clock separates the last two. */
+function AttendanceBadge({
+  attended,
+  past,
+}: {
+  attended: boolean;
+  past: boolean;
+}) {
+  if (attended) {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+        <Check aria-hidden="true" className="h-3 w-3" />
+        Attended
+      </span>
+    );
+  }
+
+  if (past) {
+    return (
+      <span className="inline-flex shrink-0 items-center border border-[var(--border-subtle)] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
+        Missed
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex shrink-0 items-center border border-[var(--border-subtle)] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
+      Upcoming
+    </span>
   );
 }
 
@@ -131,6 +167,21 @@ function NotEnrolled({ term }: { term: string }) {
   );
 }
 
+type Week = {
+  week: number;
+  title: string;
+  desc: string;
+  deepnoteUrl?: string;
+  session?: {
+    id: string;
+    eventDate: Date;
+    location: string | null;
+    attended: boolean;
+    past: boolean;
+    materials: SessionMaterial[];
+  };
+};
+
 export default function BootcampPortalPage() {
   const { data: session, status } = useSession();
   const progress = trpc.bootcamp.myProgress.useQuery(undefined, {
@@ -150,7 +201,7 @@ export default function BootcampPortalPage() {
   const extras = sessions.filter(
     (row) => !BOOTCAMP_CURRICULUM.some((entry) => entry.week === row.week),
   );
-  const weeks = [
+  const weeks: Week[] = [
     ...BOOTCAMP_CURRICULUM.map((entry) => ({
       week: entry.week,
       title: entry.title,
@@ -185,7 +236,7 @@ export default function BootcampPortalPage() {
               </p>
             </div>
 
-            {enrolled && (
+            {enrolled && data && (
               <div className="border border-accent/30 bg-accent/[0.06] px-5 py-3 text-right">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
                   Status
@@ -193,6 +244,12 @@ export default function BootcampPortalPage() {
                 <p className="text-lg font-black uppercase text-accent">
                   Enrolled
                 </p>
+                {/* 0 of 0 reads as a failure. */}
+                {data.held > 0 && (
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
+                    {data.attended}/{data.held} attended
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -204,34 +261,35 @@ export default function BootcampPortalPage() {
           </p>
         )}
 
-        {enrolled && data ? (
-          <WorkInProgress term={termLabel(data.term)} />
+        {/* Enrolled members came for the room and time; everyone else needs the offer. */}
+        {enrolled ? <MeetingCard /> : data && <NotEnrolled term={data.term} />}
+
+        <div className="my-8">
+          <WorkspaceLink />
+        </div>
+
+        {enrolled && weeks.length === 0 && data ? (
+          <NothingScheduledYet term={termLabel(data.term)} />
         ) : (
-          <>
-            {data && <NotEnrolled term={data.term} />}
+          <section>
+            <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
+              Syllabus
+            </h2>
 
-            <div className="my-8">
-              <WorkspaceLink />
-            </div>
+            {weeks.length === 0 && (
+              <p className="border border-accent/30 bg-accent/[0.06] p-5 text-sm leading-relaxed text-[var(--text-muted)]">
+                Updating soon — the week-by-week syllabus is being written and
+                will appear here before the first session.
+              </p>
+            )}
 
-            <section>
-              <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-                Syllabus
-              </h2>
-
-              {weeks.length === 0 && (
-                <p className="border border-accent/30 bg-accent/[0.06] p-5 text-sm leading-relaxed text-[var(--text-muted)]">
-                  Updating soon — the week-by-week syllabus is being written and
-                  will appear here before the first session.
-                </p>
-              )}
-
-              <ol className="space-y-3">
-                {weeks.map((entry) => (
-                  <li
-                    key={entry.week}
-                    className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5 transition-ui hover:border-white/20"
-                  >
+            <ol className="space-y-3">
+              {weeks.map((entry) => (
+                <li
+                  key={entry.week}
+                  className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5 transition-ui hover:border-white/20"
+                >
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
                         Week {String(entry.week).padStart(2, "0")}
@@ -271,12 +329,26 @@ export default function BootcampPortalPage() {
                           Notebook
                         </a>
                       )}
+
+                      {/* myProgress hands back no sessions to anyone else; this is the shape of that. */}
+                      {enrolled && entry.session && (
+                        <SessionMaterialsList
+                          materials={entry.session.materials}
+                        />
+                      )}
                     </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          </>
+
+                    {enrolled && entry.session && (
+                      <AttendanceBadge
+                        attended={entry.session.attended}
+                        past={entry.session.past}
+                      />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
         )}
       </main>
     </div>
