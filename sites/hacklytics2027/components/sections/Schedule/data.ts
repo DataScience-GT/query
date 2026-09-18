@@ -1,147 +1,20 @@
-export interface ScheduleEvent {
-  time: string;
-  eventName: string;
-  location: string;
-  category: "general" | "food" | "workshop" | "activity";
+export interface BoardEvent {
+  when: string;
+  event: string;
+  /** Cyan emphasis — same role as DAYS on the hero countdown. */
+  accent?: boolean;
 }
 
-export type DaySchedule = Record<string, ScheduleEvent[]>;
-export const scheduleData: DaySchedule = {
-  Friday: [
-    {
-      time: "5:00 PM",
-      eventName: "Check In Starts!",
-      location: "Klaus Atrium",
-      category: "general",
-    },
-    {
-      time: "5:30 PM - 6:30 PM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    {
-      time: "6:30 PM - 7:30 PM",
-      eventName: "Opening ceremony",
-      location: "TBA",
-      category: "general",
-    },
-    {
-      time: "7:30 PM - 8:30 PM",
-      eventName: "Sponsorship Fair",
-      location: "TBA",
-      category: "activity",
-    },
-    { time: "8:30 PM", eventName: "Dinner", location: "TBA", category: "food" },
-    {
-      time: "9:30 PM - 10:30 PM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    {
-      time: "11:00 PM - 12:00 AM",
-      eventName: "Activity",
-      location: "TBA",
-      category: "activity",
-    },
-    {
-      time: "12:00 AM",
-      eventName: "Midnight Snack",
-      location: "TBA",
-      category: "food",
-    },
-  ],
-  Saturday: [
-    {
-      time: "9:00 AM",
-      eventName: "Breakfast",
-      location: "TBA",
-      category: "food",
-    },
-    {
-      time: "10:00 AM - 11:00 AM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    {
-      time: "11:00 AM - 12:00 PM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    { time: "12:00 PM", eventName: "Lunch", location: "TBA", category: "food" },
-    {
-      time: "1:00 PM - 2:00 PM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    {
-      time: "2:00 PM - 3:00 PM",
-      eventName: "Mini Challenge",
-      location: "TBA",
-      category: "activity",
-    },
-    {
-      time: "4:00 PM - 5:00 PM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    {
-      time: "5:00 PM - 6:00 PM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    { time: "6:00 PM", eventName: "Dinner", location: "TBA", category: "food" },
-    {
-      time: "8:00 PM - 9:00 PM",
-      eventName: "Activity",
-      location: "TBA",
-      category: "activity",
-    },
-    {
-      time: "12:00 AM",
-      eventName: "Midnight Snack",
-      location: "TBA",
-      category: "food",
-    },
-  ],
-  Sunday: [
-    {
-      time: "9:00 AM",
-      eventName: "Breakfast",
-      location: "TBA",
-      category: "food",
-    },
-    {
-      time: "10:00 AM - 11:00 AM",
-      eventName: "Workshop",
-      location: "TBA",
-      category: "workshop",
-    },
-    {
-      time: "11:00 AM - 2:00 PM",
-      eventName: "Judging",
-      location: "TBA",
-      category: "general",
-    },
-    { time: "2:00 PM", eventName: "Lunch", location: "TBA", category: "food" },
-    {
-      time: "4:00 PM",
-      eventName: "Closing Ceremony",
-      location: "TBA",
-      category: "general",
-    },
-  ],
-};
-
-export const categories = [
-  { id: "general", name: "General", color: "text-bloom-cyan" },
-  { id: "food", name: "Food", color: "text-bloom-lime" },
-  { id: "workshop", name: "Workshop", color: "text-bloom-pink" },
-  { id: "activity", name: "Activity", color: "text-bloom-purple" },
+/**
+ * Weekend status board. Times that are not locked (workshops, meals) stay
+ * off this list on purpose — a full 2027 run-of-show is not public yet.
+ * Anchors match the event schema in app/layout.tsx (Fri 5:00p–Sun 4:00p).
+ */
+export const board: BoardEvent[] = [
+  { when: "FRI 5:00P", event: "Check-in at Klaus" },
+  { when: "FRI 6:30P", event: "Opening ceremony" },
+  { when: "FRI 9:00P", event: "Hacking begins", accent: true },
+  { when: "SAT ALL DAY", event: "Build + workshops" },
+  { when: "SUN 9:00A", event: "Devpost due", accent: true },
+  { when: "SUN 4:00P", event: "Closing ceremony" },
 ];
