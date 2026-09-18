@@ -8,8 +8,8 @@ import {
   isExternalJoin,
   joinHref,
   joinLabel,
-  type ClubProjectCard,
 } from "./club-projects";
+import type { ClubProjectCard } from "./club-projects";
 
 const card = (overrides: Partial<ClubProjectCard>): ClubProjectCard => ({
   id: "id",

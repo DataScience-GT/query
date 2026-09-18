@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
+import type { StaticImageData } from "next/image";
 import Link from "next/link";
 
 import {
@@ -11,8 +12,8 @@ import {
   isExternalJoin,
   joinHref,
   joinLabel,
-  type ClubProjectCard,
 } from "@/lib/club-projects";
+import type { ClubProjectCard } from "@/lib/club-projects";
 
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
