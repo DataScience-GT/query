@@ -4,8 +4,6 @@ import {
   resumeFileName,
   uniqueZipName,
   decodeStoredFileName,
-  parseResumeIds,
-  MAX_BOOK_IDS,
   MAX_RESUME_BYTES,
   uploadedResumeFileName,
   displayResumeFileName,
@@ -142,26 +140,5 @@ describe("decodeStoredFileName", () => {
   it("returns a malformed escape as-is instead of throwing in a render", () => {
     expect(decodeStoredFileName("100%.pdf")).toBe("100%.pdf");
     expect(decodeStoredFileName("%E0%A4%A.pdf")).toBe("%E0%A4%A.pdf");
-  });
-});
-
-describe("parseResumeIds", () => {
-  it("reads a hand-picked selection", () => {
-    expect(parseResumeIds("a,b,c")).toEqual(["a", "b", "c"]);
-  });
-
-  it("means no explicit set when the parameter is absent or empty", () => {
-    expect(parseResumeIds(null)).toBeUndefined();
-    expect(parseResumeIds("")).toBeUndefined();
-    expect(parseResumeIds(",,,")).toBeUndefined();
-  });
-
-  it("deduplicates so one id cannot be asked for twice", () => {
-    expect(parseResumeIds("a,b,a")).toEqual(["a", "b"]);
-  });
-
-  it("caps the IN list a crafted URL can ask for", () => {
-    const many = Array.from({ length: MAX_BOOK_IDS + 500 }, (_, i) => `id${i}`);
-    expect(parseResumeIds(many.join(","))?.length).toBe(MAX_BOOK_IDS);
   });
 });

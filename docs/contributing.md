@@ -51,6 +51,33 @@ Hacklytics end-to-end:
 pnpm --filter hacklytics2027 e2e
 ```
 
+## Never commit
+
+Enable the hooks once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`.githooks/pre-commit` refuses staged credentials, `.githooks/commit-msg`
+refuses generated attribution lines, and `.gitignore` keeps both out of
+`git add .` in the first place. What they cover:
+
+- **Credentials** — `.env` and every variant, `*.pem`, `*.key`, `*.p12`,
+  service-account JSON, ADC files, SSH keys. Secrets live in Secret Manager and
+  are referenced from `apphosting.yaml` by name.
+- **Key material pasted into ordinary files** — a private key block or a
+  `sk_live_` / `whsec_` value in a config or fixture leaks exactly as much as
+  the key file would. The Firebase *web* API key in `apphosting.yaml` is public
+  and is not this.
+- **`.claude/` and `.agents/`** — local agent tooling, shared with nobody. This
+  repo's history was rewritten once to remove `.claude/`.
+- **Attribution lines in commit messages** — no `Co-Authored-By: Claude`, no
+  `Claude-Session:`, no `Generated with [Claude Code]`. They put a bot in this
+  repo's GitHub contributor list.
+
+`--no-verify` is there for a false positive, not for getting past a real one.
+
 ## Schema changes
 
 1. Edit files in `packages/db/src/schemas/`.

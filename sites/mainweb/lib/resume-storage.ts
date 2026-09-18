@@ -1,5 +1,10 @@
 import { Storage } from "@google-cloud/storage";
+import { setMaxListeners } from "node:events";
 import type { Readable } from "node:stream";
+
+// teeny-request pipelines its response into a PassThrough already carrying ten
+// listeners, so every read warned. Fixed-size chain, not a leak.
+setMaxListeners(15);
 
 /**
  * Cloud Storage for resume PDFs.

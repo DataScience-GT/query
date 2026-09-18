@@ -23,6 +23,9 @@ import {
  */
 
 const mockFindFirst = vi.fn();
+// Table-aware like findFirst. A blanket `[]` quietly answered "no such row" to
+// any batched read.
+const mockFindMany = vi.fn((..._args: any[]) => [] as unknown[]);
 const mockInsert = vi.fn();
 /** The values handed to `.set()`, so a test can tell an add-on stamp from a
  *  renewal — the two differ only in which columns move. */
@@ -62,7 +65,7 @@ vi.mock("stripe", () => ({
 vi.mock("@query/db", () => {
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
-    findMany: vi.fn().mockResolvedValue([]),
+    findMany: (...args: any[]) => mockFindMany(name, ...args),
   });
 
   return {
@@ -615,18 +618,26 @@ describe("Membership payments", () => {
     const wire = (opts: { history?: unknown }) => {
       process.env.STRIPE_SECRET_KEY = "sk_test_abc";
       mockSearchResults.mockReturnValue([paidIntent]);
+
+      const paymentRow = {
+        id: "pay_1",
+        stripePaymentIntentId: paidIntent.id,
+        linkedUserId: USER,
+        paymentStatus: "paid",
+        createdAt: PAID_AT,
+      };
+
+      // reconcile reads a whole search page in one findMany.
+      mockFindMany.mockImplementation((table: string) =>
+        table === "stripePayments" ? [paymentRow] : [],
+      );
+
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "users")
           return { id: USER, email: "member@gatech.edu", name: "Buzz Member" };
-        if (table === "stripePayments")
-          return {
-            id: "pay_1",
-            stripePaymentIntentId: paidIntent.id,
-            linkedUserId: USER,
-            paymentStatus: "paid",
-            createdAt: PAID_AT,
-          };
+        if (table === "stripePayments") return paymentRow;
         if (table === "members") return { id: "member_1" };
+        // reconcile compares timestamps, and created_at is NOT NULL in the table.
         if (table === "membershipHistory") return opts.history;
         return undefined;
       });
@@ -652,12 +663,31 @@ describe("Membership payments", () => {
      * is what distinguishes "never honoured" from "honoured and expired".
      */
     it("leaves an already-honoured payment alone", async () => {
-      wire({ history: { id: "hist_1" } });
+      wire({
+        history: {
+          id: "hist_1",
+          createdAt: new Date(PAID_AT.getTime() + 60_000),
+        },
+      });
 
       const res = await caller().stripe.reconcileMyPayments();
 
       expect(res.recovered).toBe(0);
       expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    // A grant predating the charge honours nothing — that is last year's.
+    it("recovers when the newest grant predates the payment", async () => {
+      wire({
+        history: {
+          id: "hist_old",
+          createdAt: new Date(PAID_AT.getTime() - 365 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const res = await caller().stripe.reconcileMyPayments();
+
+      expect(res.recovered).toBe(1);
     });
   });
 });

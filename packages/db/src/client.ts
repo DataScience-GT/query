@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import { sql } from "drizzle-orm";
 import { Pool } from "pg";
 import * as schema from "./schemas";
 
@@ -52,6 +53,31 @@ if (DATABASE_URL) {
   // only signal that the variable is missing.
   // eslint-disable-next-line no-console
   console.warn("DATABASE_URL not set - database operations will fail");
+}
+
+/**
+ * Opens the connections the pool retains, before a request needs one.
+ *
+ * `min` stops the reaper closing idle clients but never opens any, so on a
+ * fresh instance the first requests paid the Neon handshake themselves. Issued
+ * in parallel — one query opens one socket — and failures are swallowed.
+ */
+export async function warmPool(): Promise<number> {
+  const pool = db;
+  if (!pool) return 0;
+
+  const target = Number(process.env.DB_POOL_MIN ?? 2);
+  const probes = Array.from({ length: Math.max(1, target) }, async () => {
+    try {
+      await pool.execute(sql`select 1`);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  const results = await Promise.all(probes);
+  return results.filter(Boolean).length;
 }
 
 export { db };

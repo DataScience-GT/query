@@ -30,18 +30,27 @@ export class CacheService {
     }, 60 * 1000);
   }
 
-  get<T>(key: string): T | null {
+  /** A live entry, or undefined. `get` reports null for a miss and for a stored
+   * null alike, so callers that must tell those apart read the entry. */
+  private entry<T>(key: string): CacheEntry<T> | undefined {
     const entry = this.cache.get(key) as CacheEntry<T> | undefined;
 
-    if (!entry) {
-      this.stats.misses++;
-      return null;
-    }
+    if (!entry) return undefined;
 
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
-      this.stats.misses++;
       this.stats.size = this.cache.size;
+      return undefined;
+    }
+
+    return entry;
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.entry<T>(key);
+
+    if (!entry) {
+      this.stats.misses++;
       return null;
     }
 
@@ -107,8 +116,9 @@ export class CacheService {
     return { ...this.stats };
   }
 
+  /** True for a live entry, including one holding null. Not counted as a read. */
   has(key: string): boolean {
-    return this.get(key) !== null;
+    return this.entry(key) !== undefined;
   }
 
   // Read through the cache, collapsing concurrent misses onto one factory
@@ -123,10 +133,13 @@ export class CacheService {
     factory: () => Promise<T> | T,
     ttl?: number,
   ): Promise<T> {
-    const cached = this.get<T>(key);
-    if (cached !== null) {
-      return cached;
+    // Entry, not `get`: a factory returning null looked like a miss every call.
+    const cached = this.entry<T>(key);
+    if (cached) {
+      this.stats.hits++;
+      return cached.value;
     }
+    this.stats.misses++;
 
     const pending = this.inFlight.get(key) as Promise<T> | undefined;
     if (pending) return pending;

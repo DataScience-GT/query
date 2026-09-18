@@ -17,6 +17,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 // These two are type-only, so they are erased and load nothing.
 import type * as SchemaModule from "../src";
 import type { ClubProjectStatus } from "../src/schemas/club-projects";
+import type * as SchemaModule from "../src";
 
 const OWNER_EMAIL =
   process.env.CLUB_PROJECT_OWNER_EMAIL ?? "aamoghsawantt@gmail.com";

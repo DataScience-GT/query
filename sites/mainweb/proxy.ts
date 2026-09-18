@@ -65,6 +65,9 @@ function getCacheControl(pathname: string): string {
   return "no-cache, no-store, must-revalidate";
 }
 
+// SAMEORIGIN, not DENY: this runs after next.config.mjs and overwrote its
+// SAMEORIGIN, so every same-origin frame — QR, print, resume preview — died
+// with "refused to connect". The two lists have to agree.
 const securityHeaders: string[] = [
   "X-Content-Type-Options: nosniff",
   // SAMEORIGIN, not DENY: /settings and /admin/resumes frame the member's
@@ -84,10 +87,7 @@ export const config = {
 export async function proxy(req: NextRequest): Promise<Response> {
   const response = NextResponse.next();
 
-  response.headers.set(
-    "Cache-Control",
-    getCacheControl(req.nextUrl.pathname),
-  );
+  response.headers.set("Cache-Control", getCacheControl(req.nextUrl.pathname));
   response.headers.set("Vary", "Accept-Encoding, Cookie, Authorization");
 
   securityHeaders.forEach((header) => {
