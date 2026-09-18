@@ -31,6 +31,7 @@ Files in `src/schemas/`, re-exported from `schemas/index.ts`. `drizzle.config.ts
 | `judge.ts` | `judge`, `judge_assignment`, `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result` |
 | `initiatives.ts` | `project_leader`, `initiative`, `initiative_application` |
 | `events.ts` | `event`, `event_check_in` |
+| `bootcamp.ts` | `bootcamp_workshop` (metadata; the ZIPs are in Cloud Storage). `bootcamp_material` is legacy and unused |
 | `stripe.ts` | `stripe_payment`, `user_account_link` |
 | `security.ts` | `audit_logs` (+ `security_severity` enum) |
 | `settings.ts` | `system_settings` (single row, `id = 'default'`) |

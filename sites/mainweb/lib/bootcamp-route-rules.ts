@@ -1,6 +1,6 @@
 interface DownloadCaller {
   isStaff: boolean;
-  isEnrolled: boolean;
+  bootcampTerm: string | null;
 }
 
 interface DownloadWorkshop {
@@ -9,20 +9,20 @@ interface DownloadWorkshop {
 }
 
 /**
- * Staff can inspect drafts and archives. Members only receive an object when
- * every current-cohort condition holds; callers see only a 404 when it does not.
+ * Staff can inspect drafts and archives. Members only receive a published file
+ * from the cohort they paid for — the workshop's own term, not the current
+ * one, so fall material stays reachable in January. Callers see only a 404.
  */
 export function canDownloadBootcampFile(
   caller: DownloadCaller,
   workshop: DownloadWorkshop,
-  currentTerm: string,
   hasMetadata: boolean,
 ) {
   if (!hasMetadata) return false;
   if (caller.isStaff) return true;
   return (
-    caller.isEnrolled &&
-    workshop.term === currentTerm &&
+    caller.bootcampTerm !== null &&
+    caller.bootcampTerm === workshop.term &&
     workshop.isPublished
   );
 }

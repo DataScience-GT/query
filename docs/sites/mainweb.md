@@ -50,7 +50,7 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 | `/admin/attendees` | Attendee tools |
 | `/admin/judging` | Judging admin (sync submissions + assign judges live here) |
 | `/admin/initiatives` | Initiative / proposal review |
-| `/admin/bootcamp` | Bootcamp attendance |
+| `/admin/bootcamp` | Bootcamp attendance grid and the weekly workshop table |
 | `/admin/staff` | Admin users |
 | `/admin/analytics` | Overview |
 | `/admin/audit` | Audit log |
@@ -65,6 +65,8 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 | `/api/auth/[...nextauth]` | NextAuth handlers |
 | `/api/auth/verify-email` | Email-code verification |
 | `/api/webhooks/stripe` | Stripe webhooks |
+| `/api/bootcamp/materials/[workshopId]` | Delete a workshop and its ZIPs (`DELETE`, staff) |
+| `/api/bootcamp/materials/[workshopId]/[kind]` | Upload (`POST`, staff), download (`GET`, gated on the workshop's term and publish state) or clear (`DELETE`, staff) the `materials` or `solution` ZIP |
 
 ## Client data
 

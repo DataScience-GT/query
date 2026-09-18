@@ -12,6 +12,7 @@ export {
   hackathonProjects,
 } from "./schemas/hackathons";
 export { events, eventCheckIns } from "./schemas/events";
+export { bootcampMaterials } from "./schemas/bootcamp";
 export { clubProjects, clubProjectStatuses } from "./schemas/club-projects";
 export { bootcampWorkshops } from "./schemas/bootcamp";
 export { auditLogs, securitySeverityEnum } from "./schemas/security";

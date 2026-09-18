@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
 const state = vi.hoisted(() => ({
-  caller: { userId: "staff", isStaff: true, isEnrolled: false } as {
+  caller: { userId: "staff", isStaff: true, bootcampTerm: null } as {
     userId: string | null;
     isStaff: boolean;
-    isEnrolled: boolean;
+    bootcampTerm: string | null;
   },
   bucket: "test-bucket",
   workshop: null as null | {
@@ -36,14 +36,13 @@ vi.mock("@/lib/bootcamp-file", () => ({
 
 vi.mock("@/lib/bootcamp-route-rules", () => ({
   canDownloadBootcampFile: (
-    caller: { isStaff: boolean; isEnrolled: boolean },
+    caller: { isStaff: boolean; bootcampTerm: string | null },
     workshop: { term: string; isPublished: boolean },
-    term: string,
     hasMetadata: boolean,
   ) =>
     hasMetadata &&
     (caller.isStaff ||
-      (caller.isEnrolled && workshop.term === term && workshop.isPublished)),
+      (caller.bootcampTerm === workshop.term && workshop.isPublished)),
 }));
 
 vi.mock("@/lib/bootcamp-storage", () => {
@@ -158,7 +157,7 @@ const request = (method: string, body?: Uint8Array, headers?: HeadersInit) =>
 
 describe("bootcamp material route handlers", () => {
   beforeEach(() => {
-    state.caller = { userId: "staff", isStaff: true, isEnrolled: false };
+    state.caller = { userId: "staff", isStaff: true, bootcampTerm: null };
     state.bucket = "test-bucket";
     state.workshop = {
       id: ID,
@@ -197,7 +196,7 @@ describe("bootcamp material route handlers", () => {
       state.caller = {
         userId: "ordinary-user",
         isStaff: false,
-        isEnrolled: false,
+        bootcampTerm: null,
       };
 
       const [upload, clear, remove] = await Promise.all([
@@ -216,19 +215,19 @@ describe("bootcamp material route handlers", () => {
 
   it("hides a draft from a member but serves it to staff", async () => {
     requireWorkshop().isPublished = false;
-    state.caller = { userId: "member", isStaff: false, isEnrolled: true };
+    state.caller = { userId: "member", isStaff: false, bootcampTerm: "2026-fall" };
     expect(
       (await downloadFile(request("GET"), { params: params() })).status,
     ).toBe(404);
 
-    state.caller = { userId: "staff", isStaff: true, isEnrolled: false };
+    state.caller = { userId: "staff", isStaff: true, bootcampTerm: null };
     expect(
       (await downloadFile(request("GET"), { params: params() })).status,
     ).toBe(200);
   });
 
   it("hides wrong-term and missing-metadata files from a member", async () => {
-    state.caller = { userId: "member", isStaff: false, isEnrolled: true };
+    state.caller = { userId: "member", isStaff: false, bootcampTerm: "2026-fall" };
     const workshop = requireWorkshop();
     workshop.term = "2026-spring";
     expect(

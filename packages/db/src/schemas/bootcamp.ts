@@ -8,6 +8,8 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth";
+import { events } from "./events";
 
 /**
  * One editable row per week of a bootcamp term. The ZIP bytes live in Cloud
@@ -57,3 +59,27 @@ export const bootcampWorkshops = pgTable(
 );
 
 export type BootcampWorkshop = typeof bootcampWorkshops.$inferSelect;
+
+/**
+ * Superseded by `bootcamp_workshop`; nothing reads or writes it. Still declared
+ * because deploys run `drizzle-kit push`, and removing it here would make push
+ * stop at a DROP TABLE prompt. Drop it in a change of its own.
+ */
+export const bootcampMaterials = pgTable(
+  "bootcamp_material",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull(),
+    fileName: text("file_name").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    uploadedById: text("uploaded_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  },
+  (table) => [index("bootcamp_material_event_idx").on(table.eventId)],
+);

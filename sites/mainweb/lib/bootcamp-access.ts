@@ -4,14 +4,13 @@ import type { DrizzleDB } from "@query/db";
 import { and, eq } from "drizzle-orm";
 import { cache } from "@query/api";
 import { isExpiredAdmin, isStaffRole } from "@query/api/portal-context";
-import { currentTerm } from "@query/db/services/membership";
 
-/** Same staff and enrolment answers the tRPC gates use, for route handlers. */
+/** Same staff answer the tRPC gates use, plus the cohort the caller paid for. */
 export async function bootcampCaller() {
   const session = await auth();
   const userId = session?.user?.id ?? null;
   if (!userId || !db) {
-    return { userId: null, isStaff: false, isEnrolled: false };
+    return { userId: null, isStaff: false, bootcampTerm: null };
   }
 
   // The exact isAdmin key and TTL make role invalidation cover byte routes too.
@@ -33,6 +32,7 @@ export async function bootcampCaller() {
   return {
     userId,
     isStaff: !!admin && isStaffRole(admin.role) && !isExpiredAdmin(admin),
-    isEnrolled: member?.bootcampTerm === currentTerm(),
+    // Compared against the file's own term, never the current one.
+    bootcampTerm: member?.bootcampTerm ?? null,
   };
 }

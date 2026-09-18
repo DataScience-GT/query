@@ -70,6 +70,9 @@ function getCacheControl(pathname: string): string {
 // with "refused to connect". The two lists have to agree.
 const securityHeaders: string[] = [
   "X-Content-Type-Options: nosniff",
+  // SAMEORIGIN, not DENY: /settings and /admin/resumes frame the member's
+  // resume PDF from /api/resume. DENY makes Chrome report "Failed to load PDF
+  // document" on a file that downloaded fine.
   "X-Frame-Options: SAMEORIGIN",
   "X-XSS-Protection: 1; mode=block",
 ];

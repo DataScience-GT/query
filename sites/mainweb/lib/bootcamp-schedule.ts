@@ -26,11 +26,69 @@ export const BOOTCAMP_START_DATE: string | null = "September 22, 2026";
 /** The Deepnote workspace every session works out of. */
 export const BOOTCAMP_WORKSPACE_URL: string | null = null;
 
-// Empty until the real syllabus is written. The twelve weeks that used to sit
-// here were placeholder copy, and a made-up curriculum on a public page is
-// worse than saying it is coming. Every surface renders "updating soon" while
-// this is empty.
-export const BOOTCAMP_CURRICULUM: BootcampWeek[] = [];
+// Restored from f515a3d9. Confirm the titles before the term starts.
+export const BOOTCAMP_CURRICULUM: BootcampWeek[] = [
+  {
+    week: 1,
+    title: "Python Basics & Setup",
+    desc: "Variables, data types, and environment configuration.",
+  },
+  {
+    week: 2,
+    title: "Control Flow & Structures",
+    desc: "Loops, conditionals, lists, and dictionaries.",
+  },
+  {
+    week: 3,
+    title: "Functions & Modules",
+    desc: "Writing reusable code and organizing projects.",
+  },
+  {
+    week: 4,
+    title: "Object-Oriented Programming",
+    desc: "Classes, inheritance, and Pythonic design.",
+  },
+  {
+    week: 5,
+    title: "File Handling & APIs",
+    desc: "Reading files, writing data, and making web requests.",
+  },
+  {
+    week: 6,
+    title: "Pandas & NumPy",
+    desc: "Introduction to fast numerical computing and DataFrames.",
+  },
+  {
+    week: 7,
+    title: "Data Cleaning",
+    desc: "Handling missing values, merging, and data transformations.",
+  },
+  {
+    week: 8,
+    title: "Exploratory Data Analysis",
+    desc: "Extracting insights and statistical summaries from data.",
+  },
+  {
+    week: 9,
+    title: "Data Visualization",
+    desc: "Creating stunning charts using Matplotlib and Seaborn.",
+  },
+  {
+    week: 10,
+    title: "Intro to Machine Learning",
+    desc: "Core concepts, train/test splits, and Scikit-Learn.",
+  },
+  {
+    week: 11,
+    title: "Supervised Learning",
+    desc: "Linear regression, logistic regression, and decision trees.",
+  },
+  {
+    week: 12,
+    title: "Capstone Project",
+    desc: "Build an end-to-end data science portfolio piece.",
+  },
+];
 
 /** The curriculum entry a session's week number refers to, if there is one. */
 export const weekEntry = (week: number | null) =>

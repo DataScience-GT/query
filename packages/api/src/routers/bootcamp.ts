@@ -188,17 +188,18 @@ export const bootcampRouter = createTRPCRouter({
     };
   }),
 
-  // Not being enrolled is ordinary page state, not an authorization error.
+  // The caller's own cohort, not the current one: whoever bought the fall
+  // bootcamp keeps its material in January. Not being enrolled is ordinary
+  // page state, not an authorization error.
   workshops: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
-    const term = currentTerm();
     const member = await db.query.members.findFirst({
       where: eq(members.userId, ctx.userId as string),
       columns: { bootcampTerm: true },
     });
 
-    if (member?.bootcampTerm !== term) return [] as WorkshopRow[];
-    return workshopsForTerm(db, term, true);
+    if (!member?.bootcampTerm) return [] as WorkshopRow[];
+    return workshopsForTerm(db, member.bootcampTerm, true);
   }),
 
   // Staff can inspect drafts and past terms while preparing or correcting a
@@ -247,7 +248,8 @@ export const bootcampRouter = createTRPCRouter({
     .input(
       z.object({
         workshopId: z.string().uuid(),
-        week: z.number().int().min(1).max(52).optional(),
+        // No week: the session joins on (term, week), so moving a row would
+        // leave its session behind. Delete and recreate to renumber.
         title: z.string().trim().min(1).max(200).optional(),
         recordingUrl: recordingUrl.nullable().optional(),
       }),
@@ -263,7 +265,7 @@ export const bootcampRouter = createTRPCRouter({
           if (isUniqueViolation(error)) {
             throw new TRPCError({
               code: "CONFLICT",
-              message: `Week ${input.week ?? "that"} of this bootcamp already has workshop material. Edit that row instead.`,
+              message: "Another workshop row already uses that week.",
             });
           }
           throw error;
@@ -278,21 +280,31 @@ export const bootcampRouter = createTRPCRouter({
       return updated;
     }),
 
+  // Called only when the officer changed the date or location, so saving a
+  // TBA workshop never touches an event. Term and week come from the row,
+  // not the clock, so editing a past cohort cannot reach the current one.
   upsertSession: isAdmin
     .input(
       z.object({
-        week: z.number().int().min(1).max(52),
-        title: z.string().trim().min(1).max(200),
+        workshopId: z.string().uuid(),
         sessionDate: z.date().nullable(),
         location: z.string().trim().max(200).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      // The active cohort is server-owned so a forged client cannot create a
-      // session under a term that no current participant belongs to.
-      const term = currentTerm();
-      const location = input.location || null;
+      const workshop = await db.query.bootcampWorkshops.findFirst({
+        where: eq(bootcampWorkshops.id, input.workshopId),
+        columns: { term: true, week: true, title: true },
+      });
+      if (!workshop) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workshop not found" });
+      }
+      const { term, week } = workshop;
+      // Omitted means untouched: a title or room set on the events screen
+      // survives a workshop edit.
+      const location =
+        input.location === undefined ? {} : { location: input.location || null };
 
       if (input.sessionDate === null) {
         // Clearing keeps the event, QR code, and check-ins; only its bootcamp
@@ -300,19 +312,12 @@ export const bootcampRouter = createTRPCRouter({
         const [detached] = await db
           .update(events)
           .set({
-            title: input.title,
-            location,
             bootcampWeek: null,
             bootcampTerm: null,
             bootcampOnly: false,
             updatedAt: new Date(),
           })
-          .where(
-            and(
-              eq(events.bootcampWeek, input.week),
-              eq(events.bootcampTerm, term),
-            ),
-          )
+          .where(and(eq(events.bootcampWeek, week), eq(events.bootcampTerm, term)))
           .returning();
 
         ctx.cache.deletePattern("event*");
@@ -320,24 +325,23 @@ export const bootcampRouter = createTRPCRouter({
       }
 
       // The QR is insert-only: omitting it from the conflict update preserves
-      // printed signs when staff reschedule or rename an existing session.
+      // printed signs when staff reschedule an existing session.
       const [session] = await db
         .insert(events)
         .values({
-          title: input.title,
-          location,
+          title: workshop.title,
+          location: input.location || null,
           eventDate: input.sessionDate,
           qrCode: randomUUID(),
           createdById: ctx.userId as string,
-          bootcampWeek: input.week,
+          bootcampWeek: week,
           bootcampTerm: term,
           bootcampOnly: true,
         })
         .onConflictDoUpdate({
           target: [events.bootcampWeek, events.bootcampTerm],
           set: {
-            title: input.title,
-            location,
+            ...location,
             eventDate: input.sessionDate,
             bootcampOnly: true,
             updatedAt: new Date(),
