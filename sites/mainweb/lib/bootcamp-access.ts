@@ -1,44 +1,38 @@
-import { db, bootcampMaterials, events, members } from "@query/db";
-import { eq } from "drizzle-orm";
+import { auth } from "@query/auth";
+import { admins, db, members } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-// Not resume-specific despite where it lives, and a second copy would be a
-// second cache to go stale.
-import { resumeCaller as portalCaller } from "./resume-access";
+import { and, eq } from "drizzle-orm";
+import { cache } from "@query/api";
+import { isExpiredAdmin, isStaffRole } from "@query/api/portal-context";
 
-export { portalCaller };
+/** Same staff answer the tRPC gates use, plus the cohort the caller paid for. */
+export async function bootcampCaller() {
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  if (!userId || !db) {
+    return { userId: null, isStaff: false, bootcampTerm: null };
+  }
 
-/** One handout, with the term whose cohort paid for it. */
-export async function loadMaterial(materialId: string) {
-  const rows = await (db as DrizzleDB)
-    .select({
-      id: bootcampMaterials.id,
-      eventId: bootcampMaterials.eventId,
-      storageKey: bootcampMaterials.storageKey,
-      fileName: bootcampMaterials.fileName,
-      contentType: bootcampMaterials.contentType,
-      sizeBytes: bootcampMaterials.sizeBytes,
-      term: events.bootcampTerm,
-    })
-    .from(bootcampMaterials)
-    .innerJoin(events, eq(events.id, bootcampMaterials.eventId))
-    .where(eq(bootcampMaterials.id, materialId))
-    .limit(1);
-
-  return rows[0] ?? null;
-}
-
-/**
- * The material's own term, not the current one: whoever bought the fall
- * bootcamp keeps its files in January. A null term matches nobody — without
- * that guard it would match every member who bought no bootcamp at all.
- */
-export async function enrolledInTerm(userId: string, term: string | null) {
-  if (!term) return false;
+  // The exact isAdmin key and TTL make role invalidation cover byte routes too.
+  const cacheKey = `admin:${userId}:role`;
+  let admin = cache.get<typeof admins.$inferSelect>(cacheKey);
+  if (!admin) {
+    admin =
+      (await (db as DrizzleDB).query.admins.findFirst({
+        where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
+      })) ?? null;
+    if (admin) cache.set(cacheKey, admin, 60);
+  }
 
   const member = await (db as DrizzleDB).query.members.findFirst({
     where: eq(members.userId, userId),
     columns: { bootcampTerm: true },
   });
 
-  return member?.bootcampTerm === term;
+  return {
+    userId,
+    isStaff: !!admin && isStaffRole(admin.role) && !isExpiredAdmin(admin),
+    // Compared against the file's own term, never the current one.
+    bootcampTerm: member?.bootcampTerm ?? null,
+  };
 }
