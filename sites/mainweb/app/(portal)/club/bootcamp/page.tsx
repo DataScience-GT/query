@@ -12,8 +12,7 @@ import {
 } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
-import { SessionMaterialsList } from "@/components/portal/BootcampMaterials";
-import type { SessionMaterial } from "@/components/portal/BootcampMaterials";
+import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import { trpc } from "@/lib/trpc";
 import {
   BOOTCAMP_CURRICULUM,
@@ -178,7 +177,6 @@ type Week = {
     location: string | null;
     attended: boolean;
     past: boolean;
-    materials: SessionMaterial[];
   };
 };
 
@@ -187,8 +185,11 @@ export default function BootcampPortalPage() {
   const progress = trpc.bootcamp.myProgress.useQuery(undefined, {
     enabled: !!session,
   });
+  const workshops = trpc.bootcamp.workshops.useQuery(undefined, {
+    enabled: !!session,
+  });
 
-  if (status === "loading" || progress.isPending) {
+  if (status === "loading" || progress.isPending || workshops.isPending) {
     return <LoadingScreen message="Loading bootcamp…" />;
   }
 
@@ -261,8 +262,42 @@ export default function BootcampPortalPage() {
           </p>
         )}
 
+        {workshops.error && (
+          <p role="alert" className="mb-6 text-sm text-red-300">
+            {workshops.error.message}
+          </p>
+        )}
+
+        {enrolled && data && (
+          <div className="mb-6">
+            <h2 className="text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
+              Welcome to the {termLabel(data.term)} Bootcamp
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
+              Here you&apos;ll find all the materials you need for bootcamp,
+              including the meeting dates, notebooks, datasets, solutions, and
+              recordings. We&apos;ll post solutions and recordings after every
+              in-person workshop.
+            </p>
+          </div>
+        )}
+
         {/* Enrolled members came for the room and time; everyone else needs the offer. */}
         {enrolled ? <MeetingCard /> : data && <NotEnrolled term={data.term} />}
+
+        {/* Scoped to the member's own cohort by the server, so a past cohort's
+            files stay here after the term rolls even though the upsell shows. */}
+        {(enrolled || (workshops.data?.length ?? 0) > 0) && (
+          <section className="mt-8">
+            <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
+              Weekly materials
+            </h2>
+            <BootcampMaterialsTable
+              rows={workshops.data ?? []}
+              term={data ? termLabel(workshops.data?.[0]?.term ?? data.term) : ""}
+            />
+          </section>
+        )}
 
         <div className="my-8">
           <WorkspaceLink />
@@ -330,12 +365,6 @@ export default function BootcampPortalPage() {
                         </a>
                       )}
 
-                      {/* myProgress hands back no sessions to anyone else; this is the shape of that. */}
-                      {enrolled && entry.session && (
-                        <SessionMaterialsList
-                          materials={entry.session.materials}
-                        />
-                      )}
                     </div>
 
                     {enrolled && entry.session && (
