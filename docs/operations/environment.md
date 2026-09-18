@@ -56,6 +56,7 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | Variable | Default / notes |
 | --- | --- |
 | `RESUME_BUCKET` | Cloud Storage bucket holding resume PDFs (App Hosting sets `dsgt-resumes`). Unset means uploads return 503 rather than failing obscurely. Credentials are ADC — the runtime service account needs `roles/storage.objectAdmin`. See [Resume book](../resume-book.md) |
+| `BOOTCAMP_BUCKET` | Cloud Storage bucket holding bootcamp handouts (App Hosting sets `dsgt-bootcamp`). Unset means uploads and downloads return 503. Same ADC and same `roles/storage.objectAdmin` as above. Downloads are proxied and gated on the caller's bootcamp term, so the bucket keeps public access prevention on |
 
 ## Security / proxy
 

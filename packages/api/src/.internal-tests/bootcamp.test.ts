@@ -76,6 +76,13 @@ vi.mock("@query/db", async () => {
       bootcampTerm: "bootcamp_term",
     },
     eventCheckIns: { eventId: "event_id", userId: "user_id" },
+    bootcampMaterials: {
+      id: "id",
+      eventId: "event_id",
+      fileName: "file_name",
+      sizeBytes: "size_bytes",
+      uploadedAt: "uploaded_at",
+    },
   };
 });
 
@@ -87,7 +94,13 @@ const onSelectRef = {
   },
 };
 
-import { db, events, members, eventCheckIns } from "@query/db";
+import {
+  db,
+  events,
+  members,
+  eventCheckIns,
+  bootcampMaterials,
+} from "@query/db";
 
 const TERM = currentTerm();
 const LAST_TERM = "1999-fall";
@@ -160,6 +173,13 @@ const ROSTER = [
   },
 ];
 
+/** Week 1 handed out two files, week 2 one, week 3 none yet. */
+const MATERIALS = [
+  { id: "mat-1", eventId: WEEK_1, fileName: "week1.pdf", sizeBytes: 1024 },
+  { id: "mat-2", eventId: WEEK_1, fileName: "week1.ipynb", sizeBytes: 2048 },
+  { id: "mat-3", eventId: WEEK_2, fileName: "week2.pdf", sizeBytes: 512 },
+];
+
 /** Alice made week 1 only; Bob made both that have happened. */
 const CHECK_INS = [
   { eventId: WEEK_1, userId: ALICE },
@@ -209,7 +229,9 @@ describe("Bootcamp", () => {
           ? SESSIONS
           : table === eventCheckIns
             ? CHECK_INS.filter((row) => row.userId === ALICE)
-            : [];
+            : table === bootcampMaterials
+              ? MATERIALS
+              : [];
 
       const result = await callerFor(ALICE).bootcamp.myProgress();
 
@@ -222,6 +244,24 @@ describe("Bootcamp", () => {
       // Missing week 2 is what makes these differ.
       expect(result.attended).toBe(1);
       expect(result.held).toBe(2);
+    });
+
+    it("hands each session its own files and no other session's", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "members" ? { bootcampTerm: TERM } : undefined,
+      );
+      onSelect = (table) =>
+        table === events
+          ? SESSIONS
+          : table === bootcampMaterials
+            ? MATERIALS
+            : [];
+
+      const result = await callerFor(ALICE).bootcamp.myProgress();
+
+      expect(
+        result.sessions.map((s) => s.materials.map((m) => m.fileName)),
+      ).toEqual([["week1.pdf", "week1.ipynb"], ["week2.pdf"], []]);
     });
   });
 
@@ -236,6 +276,7 @@ describe("Bootcamp", () => {
         if (table === events) return distinct ? [{ term: TERM }] : SESSIONS;
         if (table === members) return ROSTER;
         if (table === eventCheckIns) return CHECK_INS;
+        if (table === bootcampMaterials) return MATERIALS;
         return [];
       };
     };

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { GraduationCap, Check, Copy, Mail } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { SessionMaterialsEditor } from "@/components/portal/BootcampMaterials";
 import { trpc } from "@/lib/trpc";
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
@@ -191,6 +192,40 @@ export default function AdminBootcampPage() {
           <CohortEmails emails={members.map((member) => member.email)} />
         )}
 
+        {sessions.length > 0 && (
+          <section className="mb-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
+            <h2 className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
+              Handouts
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
+              Downloadable by everyone enrolled in {termLabel(data.term)} and by
+              nobody else, including after the semester ends. A copied link is
+              worth nothing to someone who did not buy the bootcamp.
+            </p>
+
+            <ul className="mt-5 space-y-5">
+              {sessions.map((row) => (
+                <li
+                  key={row.id}
+                  className="border-t border-[var(--border-subtle)] pt-4 first:border-t-0 first:pt-0"
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+                    Week {String(row.week ?? 0).padStart(2, "0")}
+                  </p>
+                  <p className="mt-1 font-bold text-[var(--text-primary)]">
+                    {row.title}
+                  </p>
+                  <SessionMaterialsEditor
+                    eventId={row.id}
+                    materials={row.materials}
+                    onChange={() => void attendance.refetch()}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {sessions.length === 0 ? (
           <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">
             <p className="font-bold text-[var(--text-primary)]">
@@ -287,7 +322,10 @@ export default function AdminBootcampPage() {
                             </>
                           ) : (
                             <>
-                              <span aria-hidden="true" className="text-[var(--text-subtle)]">
+                              <span
+                                aria-hidden="true"
+                                className="text-[var(--text-subtle)]"
+                              >
                                 ·
                               </span>
                               <span className="sr-only">
