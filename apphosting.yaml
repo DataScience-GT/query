@@ -69,6 +69,11 @@ env:
   #     --role=roles/storage.objectAdmin
   - variable: RESUME_BUCKET
     value: dsgt-resumes
+  # Workshop ZIPs have a separate lifecycle and access policy from resumes.
+  # Local development must use a separate bucket because E2E checks delete
+  # deterministic object keys.
+  - variable: BOOTCAMP_BUCKET
+    value: dsgt-bootcamp
   # Consumer Gmail, which caps around 500 recipients a day — shared between
   # sign-in codes and every acceptance or announcement send. Acceptance waves
   # are capped at 500 for that reason. Moving to a real provider is these three

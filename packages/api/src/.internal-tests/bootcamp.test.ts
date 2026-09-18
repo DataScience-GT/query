@@ -18,6 +18,23 @@ const mockFindFirst = vi.fn();
  */
 let onSelect: (table: unknown, distinct: boolean) => unknown[] = () => [];
 
+// Mutations resolve through this hook so conflict and successful validation
+// paths use the router's real Drizzle call shape without a database.
+let onMutation: (operation: "insert" | "update") => unknown[] = () => [];
+
+type MutationCall = {
+  operation: "insert" | "update";
+  table: unknown;
+  values?: Record<string, unknown>;
+  set?: Record<string, unknown>;
+  conflict?: {
+    target: unknown[];
+    set: Record<string, unknown>;
+  };
+};
+
+let mutationCalls: MutationCall[] = [];
+
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
 
@@ -34,6 +51,7 @@ vi.mock("@query/db", async () => {
     const node: any = {
       from: (t: unknown) => ((from = t), node),
       innerJoin: () => node,
+      leftJoin: () => node,
       where: () => node,
       orderBy: () => node,
       limit: () => rows(),
@@ -51,9 +69,41 @@ vi.mock("@query/db", async () => {
         members: table("members"),
         events: table("events"),
         eventCheckIns: table("eventCheckIns"),
+        bootcampWorkshops: table("bootcampWorkshops"),
       },
       select: () => selectChain(false),
       selectDistinct: () => selectChain(true),
+      insert: (target: unknown) => {
+        const call: MutationCall = { operation: "insert", table: target };
+        mutationCallsRef.current.push(call);
+        const node: any = {
+          values: (values: Record<string, unknown>) => {
+            call.values = values;
+            return node;
+          },
+          onConflictDoUpdate: (conflict: MutationCall["conflict"]) => {
+            call.conflict = conflict;
+            return node;
+          },
+          returning: () =>
+            Promise.resolve().then(() => onMutationRef.current("insert")),
+        };
+        return node;
+      },
+      update: (target: unknown) => {
+        const call: MutationCall = { operation: "update", table: target };
+        mutationCallsRef.current.push(call);
+        const node: any = {
+          set: (values: Record<string, unknown>) => {
+            call.set = values;
+            return node;
+          },
+          where: () => node,
+          returning: () =>
+            Promise.resolve().then(() => onMutationRef.current("update")),
+        };
+        return node;
+      },
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email" },
@@ -76,6 +126,22 @@ vi.mock("@query/db", async () => {
       bootcampTerm: "bootcamp_term",
     },
     eventCheckIns: { eventId: "event_id", userId: "user_id" },
+    bootcampWorkshops: {
+      id: "id",
+      term: "term",
+      week: "week",
+      title: "title",
+      materialsKey: "materials_key",
+      materialsFileName: "materials_file_name",
+      materialsSizeBytes: "materials_size_bytes",
+      solutionKey: "solution_key",
+      solutionFileName: "solution_file_name",
+      solutionSizeBytes: "solution_size_bytes",
+      recordingUrl: "recording_url",
+      isPublished: "is_published",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
   };
 });
 
@@ -87,7 +153,25 @@ const onSelectRef = {
   },
 };
 
-import { db, events, members, eventCheckIns } from "@query/db";
+const onMutationRef = {
+  get current() {
+    return onMutation;
+  },
+};
+
+const mutationCallsRef = {
+  get current() {
+    return mutationCalls;
+  },
+};
+
+import {
+  bootcampWorkshops,
+  db,
+  events,
+  members,
+  eventCheckIns,
+} from "@query/db";
 
 const TERM = currentTerm();
 const LAST_TERM = "1999-fall";
@@ -172,6 +256,214 @@ describe("Bootcamp", () => {
     vi.clearAllMocks();
     cache.clear();
     onSelect = () => [];
+    onMutation = () => [];
+    mutationCalls = [];
+  });
+
+  describe("workshop material", () => {
+    const DRAFT = {
+      id: "44444444-4444-4444-8444-444444444444",
+      term: TERM,
+      week: 1,
+      title: "Python Basics",
+      materialsKey: null,
+      materialsFileName: null,
+      materialsSizeBytes: null,
+      solutionKey: null,
+      solutionFileName: null,
+      solutionSizeBytes: null,
+      recordingUrl: null,
+      isPublished: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      eventDate: null,
+      location: null,
+    };
+
+    it("returns an empty list to a caller who is not enrolled", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "members" ? { bootcampTerm: null } : undefined,
+      );
+      onSelect = () => [{ ...DRAFT, isPublished: true }];
+
+      await expect(callerFor(ALICE).bootcamp.workshops()).resolves.toEqual([]);
+    });
+
+    it("keeps a draft out of member results but exposes it to staff", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "members") return { bootcampTerm: TERM };
+        if (table === "admins") {
+          return { userId: ADMIN, isActive: true, role: "admin" };
+        }
+        return undefined;
+      });
+      // The mock represents the database applying each procedure's WHERE: the
+      // member query gets no published rows; the admin query gets the draft.
+      let reads = 0;
+      onSelect = (table) => {
+        if (table !== bootcampWorkshops) return [];
+        reads += 1;
+        return reads === 1 ? [] : [DRAFT];
+      };
+
+      await expect(callerFor(ALICE).bootcamp.workshops()).resolves.toEqual([]);
+      const rows = await callerFor(ADMIN).bootcamp.adminWorkshops({ term: TERM });
+      expect(rows).toEqual([DRAFT]);
+    });
+
+    it("maps duplicate week conflicts on both create and update", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      onMutation = () => {
+        throw { code: "23505" };
+      };
+
+      const createError: any = await callerFor(ADMIN)
+        .bootcamp.createWorkshop({ week: 1, title: "Python" })
+        .catch((error: unknown) => error);
+      expect(createError.code).toBe("CONFLICT");
+
+      const updateError: any = await callerFor(ADMIN)
+        .bootcamp.updateWorkshop({ workshopId: DRAFT.id, week: 1 })
+        .catch((error: unknown) => error);
+      expect(updateError.code).toBe("CONFLICT");
+    });
+
+    it("allows only http(s) recording URLs", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      onMutation = () => [DRAFT];
+
+      for (const recordingUrl of ["javascript:alert(1)", "data:text/plain,x"]) {
+        const error: any = await callerFor(ADMIN)
+          .bootcamp.createWorkshop({ week: 1, title: "Python", recordingUrl })
+          .catch((cause: unknown) => cause);
+        expect(error.code).toBe("BAD_REQUEST");
+      }
+
+      await expect(
+        callerFor(ADMIN).bootcamp.createWorkshop({
+          week: 1,
+          title: "Python",
+          recordingUrl: "https://example.com/recording",
+        }),
+      ).resolves.toEqual(DRAFT);
+    });
+
+    it("returns the joined session date for the materials Date column", async () => {
+      const sessionDate = new Date("2026-09-21T22:00:00.000Z");
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      onSelect = (table) =>
+        table === bootcampWorkshops
+          ? [{ ...DRAFT, eventDate: sessionDate }]
+          : [];
+
+      const [workshop] = await callerFor(ADMIN).bootcamp.adminWorkshops({});
+
+      expect(workshop?.eventDate).toEqual(sessionDate);
+    });
+
+    it("creates or updates a QR-backed session under the server term", async () => {
+      const sessionDate = new Date("2026-09-21T22:00:00.000Z");
+      const session = { id: WEEK_1, eventDate: sessionDate };
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      onMutation = () => [session];
+
+      await expect(
+        callerFor(ADMIN).bootcamp.upsertSession({
+          week: 1,
+          title: "Python Basics",
+          sessionDate,
+          location: "Klaus 1443",
+        }),
+      ).resolves.toEqual(session);
+
+      const call = mutationCalls.find(
+        (entry) => entry.operation === "insert" && entry.table === events,
+      );
+      expect(call?.values).toMatchObject({
+        title: "Python Basics",
+        location: "Klaus 1443",
+        eventDate: sessionDate,
+        createdById: ADMIN,
+        bootcampWeek: 1,
+        bootcampTerm: TERM,
+        bootcampOnly: true,
+      });
+      expect(call?.values?.qrCode).toEqual(expect.any(String));
+      expect(call?.conflict?.target).toEqual([
+        events.bootcampWeek,
+        events.bootcampTerm,
+      ]);
+      expect(call?.conflict?.set).toMatchObject({
+        title: "Python Basics",
+        location: "Klaus 1443",
+        eventDate: sessionDate,
+        bootcampOnly: true,
+        updatedAt: expect.any(Date),
+      });
+      expect(call?.conflict?.set).not.toHaveProperty("qrCode");
+      expect(call?.conflict?.set).not.toHaveProperty("createdById");
+    });
+
+    it("clears a session by detaching its event without deleting check-ins", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      onMutation = () => [{ id: WEEK_1 }];
+
+      await callerFor(ADMIN).bootcamp.upsertSession({
+        week: 1,
+        title: "Python Basics",
+        sessionDate: null,
+        location: null,
+      });
+
+      expect(mutationCalls).toHaveLength(1);
+      expect(mutationCalls[0]).toMatchObject({
+        operation: "update",
+        table: events,
+        set: {
+          title: "Python Basics",
+          location: null,
+          bootcampWeek: null,
+          bootcampTerm: null,
+          bootcampOnly: false,
+          updatedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it("allows only admins to save the session event", async () => {
+      mockFindFirst.mockReturnValue(undefined);
+
+      const error: any = await callerFor(ALICE)
+        .bootcamp.upsertSession({
+          week: 1,
+          title: "Python Basics",
+          sessionDate: new Date(),
+        })
+        .catch((cause: unknown) => cause);
+
+      expect(error.code).toBe("FORBIDDEN");
+      expect(mutationCalls).toEqual([]);
+    });
   });
 
   describe("myProgress", () => {
