@@ -1,5 +1,5 @@
 export * from "drizzle-orm";
-export { db, type DrizzleDB } from "./client";
+export { db, warmPool, type DrizzleDB } from "./client";
 export * from "./schemas";
 export { users, accounts, sessions, verificationTokens } from "./schemas/auth";
 export { admins } from "./schemas/admins";

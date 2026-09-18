@@ -9,7 +9,7 @@ import {
   users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq, and, gte, isNull } from "drizzle-orm";
+import { eq, and, inArray, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
 import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware/cache";
 import {
@@ -320,7 +320,8 @@ export const stripeRouter = createTRPCRouter({
           // to look up, so otherwise only the bundle is testable. The plan rides along
           // too — a mock semester purchase granting a year would hide the bug.
           mockPaymentIntentId: `pi_mock_${addOnOnly ? "addon_" : input.plan === "semester" ? "sem_" : ""}${crypto.randomUUID().replace(/-/g, "")}`,
-          publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
+          publishableKey:
+            process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
           isMock: true,
           amount,
           addOnOnly,
@@ -336,7 +337,8 @@ export const stripeRouter = createTRPCRouter({
         });
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
-          message: "Payment service is currently unavailable. Please try again later.",
+          message:
+            "Payment service is currently unavailable. Please try again later.",
         });
       }
 
@@ -351,7 +353,8 @@ export const stripeRouter = createTRPCRouter({
         });
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
-          message: "Payment service is currently unavailable. Please try again later.",
+          message:
+            "Payment service is currently unavailable. Please try again later.",
         });
       }
 
@@ -395,7 +398,8 @@ export const stripeRouter = createTRPCRouter({
         });
         throw new TRPCError({
           code: "SERVICE_UNAVAILABLE",
-          message: "Payment service is temporarily unavailable. Please try again later.",
+          message:
+            "Payment service is temporarily unavailable. Please try again later.",
         });
       }
     }),
@@ -473,7 +477,10 @@ export const stripeRouter = createTRPCRouter({
           identifier: ctx.userId ?? "unknown",
           details: `PaymentIntent userId mismatch: ${pi.metadata.userId} vs ${ctx.userId}`,
         });
-        throw new TRPCError({ code: "FORBIDDEN", message: "Payment mismatch." });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Payment mismatch.",
+        });
       }
 
       const user = await ctx.db!.query.users.findFirst({
@@ -502,9 +509,16 @@ export const stripeRouter = createTRPCRouter({
           await ctx.db!.transaction(async (tx) => {
             await tx.insert(stripePayments).values({
               stripeSessionId: `pi_${pi.id}`,
-              stripeCustomerId: typeof pi.customer === "string" ? pi.customer : (pi.customer?.id ?? ""),
+              stripeCustomerId:
+                typeof pi.customer === "string"
+                  ? pi.customer
+                  : (pi.customer?.id ?? ""),
               stripePaymentIntentId: pi.id,
-              customerEmail: (pi.receipt_email ?? user?.email ?? "").toLowerCase(),
+              customerEmail: (
+                pi.receipt_email ??
+                user?.email ??
+                ""
+              ).toLowerCase(),
               customerName: user?.name ?? "Member",
               amountTotal: pi.amount,
               currency: pi.currency,
@@ -527,10 +541,22 @@ export const stripeRouter = createTRPCRouter({
           membershipGrants.inc({ source: "confirm", plan });
         } else if (!existing.linkedUserId) {
           // Payment exists but wasn't linked — link it now
-          await ctx.db!.update(stripePayments)
-            .set({ linkedUserId: ctx.userId!, linkedAt: new Date(), updatedAt: new Date() })
+          await ctx
+            .db!.update(stripePayments)
+            .set({
+              linkedUserId: ctx.userId!,
+              linkedAt: new Date(),
+              updatedAt: new Date(),
+            })
             .where(eq(stripePayments.id, existing.id));
-          await createOrUpdateMembership(ctx.db! as DrizzleDB, { userId: ctx.userId!, firstName, lastName, bootcampMember, addOnOnly, plan });
+          await createOrUpdateMembership(ctx.db! as DrizzleDB, {
+            userId: ctx.userId!,
+            firstName,
+            lastName,
+            bootcampMember,
+            addOnOnly,
+            plan,
+          });
 
           membershipGrants.inc({ source: "confirm", plan });
         }
@@ -543,7 +569,6 @@ export const stripeRouter = createTRPCRouter({
 
       return { success: true };
     }),
-
 
   // Auto-link a Stripe payment matching the user's email.
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
@@ -605,13 +630,13 @@ export const stripeRouter = createTRPCRouter({
         .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-            userId: ctx.userId!,
-            firstName,
-            lastName,
-            bootcampMember,
-            addOnOnly,
-            plan,
-          });
+        userId: ctx.userId!,
+        firstName,
+        lastName,
+        bootcampMember,
+        addOnOnly,
+        plan,
+      });
 
       membershipGrants.inc({ source: "autolink", plan });
       clearMembershipCaches(ctx.cache, ctx.userId!);
@@ -653,16 +678,47 @@ export const stripeRouter = createTRPCRouter({
 
     let recovered = 0;
 
-    for (const pi of found.data) {
-      if (pi.metadata?.type !== "membership") continue;
-      if (pi.metadata?.userId !== ctx.userId) continue;
-      // Same ceiling the webhook applies, so the two paths cannot disagree about
-      // which charges are memberships.
-      if (pi.amount > MAX_MEMBERSHIP_CHARGE_CENTS) continue;
+    // Same ceiling the webhook applies, so the two paths cannot disagree about
+    // which charges are memberships.
+    const candidates = found.data.filter(
+      (pi) =>
+        pi.metadata?.type === "membership" &&
+        pi.metadata?.userId === ctx.userId &&
+        pi.amount <= MAX_MEMBERSHIP_CHARGE_CENTS,
+    );
 
-      const existing = await ctx.db!.query.stripePayments.findFirst({
-        where: eq(stripePayments.stripePaymentIntentId, pi.id),
-      });
+    if (candidates.length === 0) return { recovered: 0 };
+
+    // Once ahead of the loop, not per intent: twenty intents meant sixty round
+    // trips to answer three questions.
+    const [existingRows, member] = await Promise.all([
+      ctx.db!.query.stripePayments.findMany({
+        where: inArray(
+          stripePayments.stripePaymentIntentId,
+          candidates.map((pi) => pi.id),
+        ),
+      }),
+      ctx.db!.query.members.findFirst({
+        where: eq(members.userId, ctx.userId!),
+        columns: { id: true },
+      }),
+    ]);
+
+    const existingByIntent = new Map(
+      existingRows.map((row) => [row.stripePaymentIntentId, row]),
+    );
+
+    // "A grant at or after this payment" is "is the newest grant at or after it".
+    const newestGrant = member
+      ? await ctx.db!.query.membershipHistory.findFirst({
+          where: eq(membershipHistory.memberId, member.id),
+          orderBy: (history, { desc }) => [desc(history.createdAt)],
+          columns: { createdAt: true },
+        })
+      : undefined;
+
+    for (const pi of candidates) {
+      const existing = existingByIntent.get(pi.id);
 
       // A row that exists but was never linked is the half-finished state this is
       // here to repair — treating "row exists" as "done" would strand it.
@@ -681,20 +737,10 @@ export const stripeRouter = createTRPCRouter({
         // own timestamp was never honoured. That also keeps a membership granted a
         // year ago and since lapsed from being silently renewed off an old payment.
         if (existing.linkedUserId) {
-          const member = await ctx.db!.query.members.findFirst({
-            where: eq(members.userId, ctx.userId!),
-            columns: { id: true },
-          });
-
-          const honoured = member
-            ? await ctx.db!.query.membershipHistory.findFirst({
-                where: and(
-                  eq(membershipHistory.memberId, member.id),
-                  gte(membershipHistory.createdAt, existing.createdAt),
-                ),
-                columns: { id: true },
-              })
-            : undefined;
+          const honoured =
+            newestGrant !== undefined &&
+            newestGrant !== null &&
+            newestGrant.createdAt >= existing.createdAt;
 
           if (honoured) continue;
 
@@ -1004,4 +1050,3 @@ export const stripeRouter = createTRPCRouter({
     };
   }),
 });
-
