@@ -3,10 +3,8 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import {
-  toInputDate,
-  type HackathonStatus,
-} from "@/components/admin/hackathons/constants";
+import { toInputDate } from "@/components/admin/hackathons/constants";
+import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 import { Clock } from "lucide-react";
 
 /**
