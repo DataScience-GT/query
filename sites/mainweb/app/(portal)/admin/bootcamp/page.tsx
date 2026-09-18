@@ -193,6 +193,10 @@ export default function AdminBootcampPage() {
         : await createWorkshop.mutateAsync({
             ...fields,
             week: Number(form.week),
+            // The term being viewed, not the live one: adding a week while
+            // filtered to a past cohort must land in that cohort. Undefined
+            // until the officer picks one, which the server reads as current.
+            term,
           });
       workshopId = saved.id;
       // A create followed by a failed upload must retry as an edit; otherwise

@@ -18,6 +18,13 @@ import { isUniqueViolation } from "../middleware/db-errors";
 // Sessions remain events and attendance remains `event_check_in`. Workshop
 // rows hold only the material officers publish beside those sessions.
 
+// `currentTerm()` emits this shape, so anything else is a typo rather than a
+// semester — worth rejecting before it reaches a unique index.
+const term = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-(spring|fall)$/, "Term must look like 2026-fall");
+
 const termInput = z
   .object({ term: z.string().trim().max(20).optional() })
   .optional();
@@ -218,12 +225,46 @@ export const bootcampRouter = createTRPCRouter({
         week: z.number().int().min(1).max(52),
         title: z.string().trim().min(1).max(200),
         recordingUrl: recordingUrl.nullable().optional(),
+        // The screen can be filtered to a past cohort. Stamping the live term
+        // regardless files the row under a bootcamp the officer is not looking
+        // at, where it vanishes on refresh and can collide with that term's
+        // existing week.
+        term: term.optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [created] = await (ctx.db as DrizzleDB)
+      const db = ctx.db as DrizzleDB;
+      const { term: requested, ...fields } = input;
+      const workshopTerm = requested ?? currentTerm();
+
+      // A term is only writable if the bootcamp already ran in it. Without
+      // this an admin-supplied string files material under a semester nobody
+      // is enrolled in, which no screen would ever list again.
+      if (workshopTerm !== currentTerm()) {
+        const [knownWorkshop] = await db
+          .select({ term: bootcampWorkshops.term })
+          .from(bootcampWorkshops)
+          .where(eq(bootcampWorkshops.term, workshopTerm))
+          .limit(1);
+        const [knownEvent] = knownWorkshop
+          ? [knownWorkshop]
+          : await db
+              .select({ term: events.bootcampTerm })
+              .from(events)
+              .where(eq(events.bootcampTerm, workshopTerm))
+              .limit(1);
+
+        if (!knownEvent) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `No bootcamp ran in ${workshopTerm}.`,
+          });
+        }
+      }
+
+      const [created] = await db
         .insert(bootcampWorkshops)
-        .values({ ...input, term: currentTerm() })
+        .values({ ...fields, term: workshopTerm })
         .returning()
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
