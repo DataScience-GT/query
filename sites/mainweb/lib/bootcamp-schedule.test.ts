@@ -7,9 +7,8 @@ import {
   weekEntry,
 } from "./bootcamp-schedule";
 
-// A hand-edited constant published on a public page. Most of this is vacuous
-// while it is empty — these arm themselves the moment the real weeks are typed
-// in, which is the one moment nobody runs a test on purpose.
+// A hand-edited constant published on a public page, so the guards are here to
+// catch a typo in the edit rather than a bug in the code.
 
 describe("BOOTCAMP_CURRICULUM", () => {
   it("numbers each week once", () => {
@@ -32,8 +31,9 @@ describe("BOOTCAMP_CURRICULUM", () => {
 
   it("gives every week something to render", () => {
     for (const entry of BOOTCAMP_CURRICULUM) {
+      // A week may be a title alone, but a blank one renders as an empty card.
       expect(entry.title.trim()).not.toBe("");
-      expect(entry.desc.trim()).not.toBe("");
+      if (entry.desc !== undefined) expect(entry.desc.trim()).not.toBe("");
     }
   });
 
