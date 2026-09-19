@@ -8,8 +8,6 @@ import {
   BOOTCAMP_START_DATE,
 } from "@/lib/bootcamp-schedule";
 
-// Shared with the portal's bootcamp page, so the syllabus a member sees signed
-// in is the one that was advertised.
 const curriculum = BOOTCAMP_CURRICULUM;
 
 export default function BootcampPage() {
@@ -39,7 +37,7 @@ export default function BootcampPage() {
             </span>
           </h1>
           <p className="text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto italic">
-            Master Python for data science in 12 weeks. From the fundamentals to
+            Master Python for data science in 9 weeks. From the fundamentals to
             machine learning, build the skills you need to succeed.
           </p>
           {BOOTCAMP_START_DATE && (
@@ -80,9 +78,11 @@ export default function BootcampPage() {
                     <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00A8A8] transition-colors duration-300">
                       {item.title}
                     </h3>
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      {item.desc}
-                    </p>
+                    {item.desc && (
+                      <p className="text-sm text-gray-500 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
