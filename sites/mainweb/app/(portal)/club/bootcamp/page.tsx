@@ -8,14 +8,12 @@ import {
   Clock,
   ExternalLink,
   CalendarDays,
-  Check,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
 import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import { trpc } from "@/lib/trpc";
 import {
-  BOOTCAMP_CURRICULUM,
   BOOTCAMP_MEETING_TIME,
   BOOTCAMP_ROOM,
   BOOTCAMP_START_DATE,
@@ -34,15 +32,6 @@ function termLabel(term: string) {
   if (!year || !season) return term;
   return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
 }
-
-const dateLabel = (date: Date) =>
-  new Date(date).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 
 /** Where and when it meets — the thing somebody checks walking to class. */
 function MeetingCard() {
@@ -85,54 +74,6 @@ function WorkspaceLink() {
   );
 }
 
-/** For an enrolled member when there is genuinely nothing to show yet. */
-function NothingScheduledYet({ term }: { term: string }) {
-  return (
-    <div className="mt-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">
-      <h2 className="text-xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-        You are in the {term} bootcamp
-      </h2>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-        Your spot is confirmed — nothing else to do. We are still putting the
-        weeks together; sessions, slides and notebooks all appear here as they
-        are set, and you will hear from us before the first meeting.
-      </p>
-    </div>
-  );
-}
-
-/** Attended, missed, or not taught yet. Only the clock separates the last two. */
-function AttendanceBadge({
-  attended,
-  past,
-}: {
-  attended: boolean;
-  past: boolean;
-}) {
-  if (attended) {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-emerald-300">
-        <Check aria-hidden="true" className="h-3 w-3" />
-        Attended
-      </span>
-    );
-  }
-
-  if (past) {
-    return (
-      <span className="inline-flex shrink-0 items-center border border-[var(--border-subtle)] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-        Missed
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex shrink-0 items-center border border-[var(--border-subtle)] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-      Upcoming
-    </span>
-  );
-}
-
 /** Members buy the add-on here; non-members go to the flow that sells both. */
 function NotEnrolled({ term }: { term: string }) {
   const memberStatus = trpc.member.checkStatus.useQuery();
@@ -144,7 +85,7 @@ function NotEnrolled({ term }: { term: string }) {
         You are not in the {termLabel(term)} bootcamp
       </h2>
       <p className="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
-        Twelve weeks of Python and data science, taught in person, with the
+        Nine weeks of Python and data science, taught in person, with the
         notebooks to keep. It runs for one semester, so joining covers this term
         {isMember
           ? ""
@@ -166,20 +107,6 @@ function NotEnrolled({ term }: { term: string }) {
   );
 }
 
-type Week = {
-  week: number;
-  title: string;
-  desc: string;
-  deepnoteUrl?: string;
-  session?: {
-    id: string;
-    eventDate: Date;
-    location: string | null;
-    attended: boolean;
-    past: boolean;
-  };
-};
-
 export default function BootcampPortalPage() {
   const { data: session, status } = useSession();
   const progress = trpc.bootcamp.myProgress.useQuery(undefined, {
@@ -195,29 +122,6 @@ export default function BootcampPortalPage() {
 
   const data = progress.data;
   const enrolled = !!data?.enrolled;
-  const sessions = data?.sessions ?? [];
-  const byWeek = new Map(sessions.map((row) => [row.week, row]));
-
-  // Curriculum is the spine, so an unscheduled week still shows.
-  const extras = sessions.filter(
-    (row) => !BOOTCAMP_CURRICULUM.some((entry) => entry.week === row.week),
-  );
-  const weeks: Week[] = [
-    ...BOOTCAMP_CURRICULUM.map((entry) => ({
-      week: entry.week,
-      title: entry.title,
-      desc: entry.desc,
-      deepnoteUrl: entry.deepnoteUrl,
-      session: byWeek.get(entry.week),
-    })),
-    ...extras.map((row) => ({
-      week: row.week ?? 0,
-      title: row.title,
-      desc: row.description ?? "",
-      deepnoteUrl: undefined,
-      session: row,
-    })),
-  ];
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 text-[var(--text-muted)]">
@@ -302,83 +206,6 @@ export default function BootcampPortalPage() {
         <div className="my-8">
           <WorkspaceLink />
         </div>
-
-        {enrolled && weeks.length === 0 && data ? (
-          <NothingScheduledYet term={termLabel(data.term)} />
-        ) : (
-          <section>
-            <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-              Syllabus
-            </h2>
-
-            {weeks.length === 0 && (
-              <p className="border border-accent/30 bg-accent/[0.06] p-5 text-sm leading-relaxed text-[var(--text-muted)]">
-                Updating soon — the week-by-week syllabus is being written and
-                will appear here before the first session.
-              </p>
-            )}
-
-            <ol className="space-y-3">
-              {weeks.map((entry) => (
-                <li
-                  key={entry.week}
-                  className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5 transition-ui hover:border-white/20"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
-                        Week {String(entry.week).padStart(2, "0")}
-                      </p>
-                      <h3 className="mt-1 text-lg font-bold text-[var(--text-primary)]">
-                        {entry.title}
-                      </h3>
-                      {entry.desc && (
-                        <p className="mt-1 text-sm text-[var(--text-muted)]">
-                          {entry.desc}
-                        </p>
-                      )}
-
-                      {entry.session && (
-                        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-subtle)]">
-                          <span className="inline-flex items-center gap-1.5">
-                            <CalendarDays className="h-3.5 w-3.5" />
-                            {dateLabel(entry.session.eventDate)}
-                          </span>
-                          {entry.session.location && (
-                            <span className="inline-flex items-center gap-1.5">
-                              <MapPin className="h-3.5 w-3.5" />
-                              {entry.session.location}
-                            </span>
-                          )}
-                        </p>
-                      )}
-
-                      {entry.deepnoteUrl && (
-                        <a
-                          href={entry.deepnoteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Notebook
-                        </a>
-                      )}
-
-                    </div>
-
-                    {enrolled && entry.session && (
-                      <AttendanceBadge
-                        attended={entry.session.attended}
-                        past={entry.session.past}
-                      />
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
       </main>
     </div>
   );
