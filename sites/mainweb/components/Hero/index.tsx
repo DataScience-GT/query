@@ -1,7 +1,6 @@
 // src/components/Hero.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Mini from "../Text/Mini";
 
@@ -14,12 +13,8 @@ interface HeroProps {
 }
 
 const Hero = ({ screen_width }: HeroProps) => {
-  const [windowWidth, setWindowWidth] = useState(screen_width);
+  const windowWidth = screen_width;
   const WIDTH_THRESHOLD = 1000;
-
-  useEffect(() => {
-    setWindowWidth(screen_width);
-  }, [screen_width]);
 
   return (
     <section

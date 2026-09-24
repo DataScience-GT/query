@@ -10,15 +10,19 @@ import { looksLikePdf } from "@/lib/resume-file";
  * even when the bytes are fine.
  */
 export function ResumePreview({ src, title }: { src: string; title: string }) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Keyed by src, so a new src starts from the loading state instead of
+  // briefly showing the previous resume or its error.
+  const [loaded, setLoaded] = useState<{
+    src: string;
+    blobUrl: string | null;
+    error: string | null;
+  }>({ src, blobUrl: null, error: null });
+  const blobUrl = loaded.src === src ? loaded.blobUrl : null;
+  const error = loaded.src === src ? loaded.error : null;
 
   useEffect(() => {
     let objectUrl: string | undefined;
     let cancelled = false;
-
-    setBlobUrl(null);
-    setError(null);
 
     fetch(src, { credentials: "same-origin" })
       .then(async (res) => {
@@ -39,13 +43,16 @@ export function ResumePreview({ src, title }: { src: string; title: string }) {
       .then((blob) => {
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
-        setBlobUrl(objectUrl);
+        setLoaded({ src, blobUrl: objectUrl, error: null });
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(
-          err instanceof Error ? err.message : "Could not load that resume.",
-        );
+        setLoaded({
+          src,
+          blobUrl: null,
+          error:
+            err instanceof Error ? err.message : "Could not load that resume.",
+        });
       });
 
     return () => {
