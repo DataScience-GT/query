@@ -21,19 +21,19 @@
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "0.13.11",
-    "drizzle-orm": "0.45.2",
+    "drizzle-orm": "0.45.3",
     "next-auth": "5.0.0-beta.32",
-    "pg": "8.21.0",
-    "postgres": "3.4.3",
-    "zod": "3.25.53"
+    "pg": "8.23.0",
+    "postgres": "3.4.9",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
-    "@types/pg": "^8.10.9",
-    "dotenv": "^16.6.1",
-    "drizzle-kit": "0.31.10",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^18.0.3",
+    "drizzle-kit": "0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

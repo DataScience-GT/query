@@ -5,6 +5,7 @@ import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { useIsClient } from "@/lib/use-is-client";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
@@ -18,7 +19,7 @@ import { judgingPrepIsCurrent } from "@/lib/judging-prep";
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(
     null,
   );
@@ -76,7 +77,6 @@ export default function AdminResultsPage() {
     null,
   );
   const selectedHackathonRef = useRef(selectedHackathon);
-  selectedHackathonRef.current = selectedHackathon;
   const prepGen = useRef(0);
 
   const promoteSubmissions = trpc.judge.promoteSubmissions.useMutation();
@@ -173,27 +173,39 @@ export default function AdminResultsPage() {
   };
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
   }, [status, router]);
 
   // Auto-select first hackathon
-  useEffect(() => {
-    if (hackathons?.[0] && !selectedHackathon) {
-      setSelectedHackathon(hackathons[0].id);
-    }
-  }, [hackathons, selectedHackathon]);
+  if (hackathons?.[0] && !selectedHackathon) {
+    setSelectedHackathon(hackathons[0].id);
+  }
 
-  useEffect(() => {
-    prepGen.current += 1;
+  // A new selection drops the previous edition's prep result and conflict.
+  const [prepShownFor, setPrepShownFor] = useState(selectedHackathon);
+  if (prepShownFor !== selectedHackathon) {
+    setPrepShownFor(selectedHackathon);
     setAssignConflictId(null);
     setPrepState({ busy: false, message: null, error: null });
+  }
+
+  // Covers the auto-select above, which runs before any prep can start.
+  useEffect(() => {
+    selectedHackathonRef.current = selectedHackathon;
   }, [selectedHackathon]);
+
+  // The ref and generation move here, in the click, before B renders: a run
+  // still in flight for A fails stillThisRun from this moment, so its result
+  // cannot land on B's panel. Re-selecting the current edition is a no-op, so
+  // it cannot orphan that edition's own run with busy stuck on.
+  const selectHackathon = (id: string) => {
+    if (id === selectedHackathonRef.current) return;
+    selectedHackathonRef.current = id;
+    prepGen.current += 1;
+    setSelectedHackathon(id);
+  };
 
   const categories = useMemo(() => {
     if (!rankings?.rankings) return ["ALL"];
@@ -451,7 +463,7 @@ export default function AdminResultsPage() {
         <JudgingTools
           hackathons={hackathons || []}
           selectedHackathon={selectedHackathon}
-          setSelectedHackathon={setSelectedHackathon}
+          setSelectedHackathon={selectHackathon}
           viewMode={viewMode}
           setViewMode={setViewMode}
           categories={categories}
