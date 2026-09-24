@@ -25,6 +25,7 @@ import { ResumeSection } from "@/components/portal/ResumeSection";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { useIsClient } from "@/lib/use-is-client";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
@@ -32,7 +33,7 @@ export default function SettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [activeTab, setActiveTab] = useState<
     "profile" | "membership" | "appearance" | "account"
   >("profile");
@@ -123,23 +124,23 @@ export default function SettingsPage() {
     gtEmail: "",
   });
 
-  useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  useEffect(() => {
-    if (userData) {
-      setForm({
-        name: userData.name || "",
-        bio: userData.bio || "",
-        website: userData.website || "",
-        location: userData.location || "",
-        gtEmail: userData.gtEmail || "",
-      });
-    }
-  }, [userData]);
+  // Refill the form whenever new user data arrives. Done during render rather
+  // than in an effect, so the stale form never paints.
+  const [filledFrom, setFilledFrom] = useState<typeof userData>(undefined);
+  if (userData && userData !== filledFrom) {
+    setFilledFrom(userData);
+    setForm({
+      name: userData.name || "",
+      bio: userData.bio || "",
+      website: userData.website || "",
+      location: userData.location || "",
+      gtEmail: userData.gtEmail || "",
+    });
+  }
 
   const handleSave = async () => {
     setIsSaving(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import type { StaticImageData } from "next/image";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import {
   joinLabel,
 } from "@/lib/club-projects";
 import type { ClubProjectCard } from "@/lib/club-projects";
+import { useWindowWidth } from "@/lib/use-window-width";
 
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -57,7 +58,7 @@ const PROJECT_LOGOS: Record<string, StaticImageData> = {
 };
 
 const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
+  const windowWidth = useWindowWidth(1024);
   const [chartsReady, setChartsReady] = useState(false);
 
   useEffect(() => {
@@ -66,16 +67,6 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
       setChartsReady(true);
     });
   }, []);
-
-  const handleResize = useCallback(() => {
-    setWindowWidth(window.innerWidth);
-  }, []);
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [handleResize]);
 
   const chartOptions = useMemo(
     () => ({

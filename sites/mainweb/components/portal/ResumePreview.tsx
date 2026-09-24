@@ -10,15 +10,18 @@ import { looksLikePdf } from "@/lib/resume-file";
  * even when the bytes are fine.
  */
 export function ResumePreview({ src, title }: { src: string; title: string }) {
+  // Remount per src: a new src starts from the loading state, and a blob URL
+  // revoked by the previous src's cleanup can never be shown again.
+  return <ResumeFrame key={src} src={src} title={title} />;
+}
+
+function ResumeFrame({ src, title }: { src: string; title: string }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let objectUrl: string | undefined;
     let cancelled = false;
-
-    setBlobUrl(null);
-    setError(null);
 
     fetch(src, { credentials: "same-origin" })
       .then(async (res) => {

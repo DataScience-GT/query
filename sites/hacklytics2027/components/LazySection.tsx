@@ -32,12 +32,6 @@ export default function LazySection({
     const el = ref.current;
     if (!el) return;
 
-    // If IntersectionObserver isn't available, render immediately
-    if (typeof IntersectionObserver === "undefined") {
-      setIsVisible(true);
-      return;
-    }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
