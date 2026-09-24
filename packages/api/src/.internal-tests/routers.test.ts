@@ -688,7 +688,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should prevent registered participants from applying to be a judge", async () => {
       const ctx = createMockCtx("participant_user_id");
-      const hackathonId = "00000000-0000-0000-0000-000000000001";
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {
           return {
@@ -714,8 +714,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should prevent project submissions before 12 hours after the hacking begins", async () => {
       const ctx = createMockCtx("captain_user_id");
-      const hackathonId = "00000000-0000-0000-0000-000000000001";
-      const teamId = "00000000-0000-0000-0000-000000000002";
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
+      const teamId = "00000000-0000-4000-8000-000000000002";
 
       const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000); // 11 hours ago
 
@@ -759,8 +759,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should prevent project edits (existing project) after 34 hours of starting hacking", async () => {
       const ctx = createMockCtx("captain_user_id");
-      const hackathonId = "00000000-0000-0000-0000-000000000001";
-      const teamId = "00000000-0000-0000-0000-000000000002";
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
+      const teamId = "00000000-0000-4000-8000-000000000002";
 
       const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000); // 35 hours ago
 
@@ -813,8 +813,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should prevent project submissions more than 36 hours after hacking starts", async () => {
       const ctx = createMockCtx("captain_user_id");
-      const hackathonId = "00000000-0000-0000-0000-000000000001";
-      const teamId = "00000000-0000-0000-0000-000000000002";
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
+      const teamId = "00000000-0000-4000-8000-000000000002";
 
       const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000); // 37 hours ago
 
@@ -858,7 +858,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
   });
 
   describe("8. Hackathon Participant Registration (does it add users to the hackathon)", () => {
-    const hackathonId = "00000000-0000-0000-0000-000000000010";
+    const hackathonId = "00000000-0000-4000-8000-000000000010";
 
     it("should successfully register a user for an open hackathon and increment participant count", async () => {
       const ctx = createMockCtx("new_user_id");
@@ -1043,7 +1043,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
   });
 
   describe("9. Hackathon Creation, Updates and Admin Operations (does it create stuff)", () => {
-    const hackathonId = "00000000-0000-0000-0000-000000000020";
+    const hackathonId = "00000000-0000-4000-8000-000000000020";
 
     it("should allow admin to create a new hackathon with draft status", async () => {
       const ctx = createMockCtx("admin_user_id");
@@ -1155,7 +1155,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const caller = appRouter.createCaller(ctx);
       const res = await caller.hackathon.updateParticipantStatus({
         hackathonId,
-        participantId: "00000000-0000-0000-0000-000000000099",
+        participantId: "00000000-0000-4000-8000-000000000099",
         status: "approved",
       });
 
@@ -1165,8 +1165,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should scan participant event pass and prevent duplicate check-ins", async () => {
       const ctx = createMockCtx("admin_user_id");
-      const eventId = "00000000-0000-0000-0000-000000000030";
-      const participantId = "00000000-0000-0000-0000-000000000031";
+      const eventId = "00000000-0000-4000-8000-000000000030";
+      const participantId = "00000000-0000-4000-8000-000000000031";
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "admins") {
@@ -1329,7 +1329,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
   });
 
   describe("11. Member Registration, Renewal, and Status Tracking", () => {
-    const hackathonId = "00000000-0000-0000-0000-000000000040";
+    const hackathonId = "00000000-0000-4000-8000-000000000040";
 
     it("should register a user as a member", async () => {
       const ctx = createMockCtx("user_member_1");
@@ -1559,7 +1559,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
   });
 
   describe("13. Judging System, Queue & Live Rankings", () => {
-    const hackathonId = "00000000-0000-0000-0000-000000000050";
+    const hackathonId = "00000000-0000-4000-8000-000000000050";
 
     it("should allow admin to create a judge profile", async () => {
       const ctx = createMockCtx("admin_user_id");
