@@ -128,17 +128,16 @@ export default function JudgeHackathonPage() {
   // Seeds the first project only. Once a mutation has taken over, `current` or
   // `done` is set and a late-arriving response must not replace what the judge
   // is looking at.
-  useEffect(() => {
-    if (!nextTable.data || current || done) return;
+  if (nextTable.data && !current && !done) {
     if (nextTable.data.done) {
       setDone(true);
-      return;
+    } else {
+      setCurrent({
+        project: (nextTable.data.project as Project) ?? null,
+        queueId: nextTable.data.queueId ?? null,
+      });
     }
-    setCurrent({
-      project: (nextTable.data.project as Project) ?? null,
-      queueId: nextTable.data.queueId ?? null,
-    });
-  }, [nextTable.data, current, done]);
+  }
 
   const advance = (
     project: Project | null,

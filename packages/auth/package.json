@@ -13,23 +13,23 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "1.7.1",
+    "@auth/drizzle-adapter": "1.11.3",
     "@query/db": "workspace:*",
-    "drizzle-orm": "0.45.2",
+    "drizzle-orm": "0.45.3",
     "next-auth": "5.0.0-beta.32",
-    "nodemailer": "^9.1.1"
+    "nodemailer": "^10.0.10"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
-    "@types/node": "^20",
-    "@typescript-eslint/eslint-plugin": "^8.59.2",
-    "@typescript-eslint/parser": "^8.59.2",
-    "@typescript-eslint/utils": "^8.59.2",
-    "eslint": "^10.1.0",
-    "eslint-config-prettier": "^10.1.5",
-    "typescript": "^6.0.2"
+    "@types/node": "^22.20.4",
+    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/parser": "^8.70.1",
+    "@typescript-eslint/utils": "^8.70.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "typescript": "^7.0.2"
   }
 }
