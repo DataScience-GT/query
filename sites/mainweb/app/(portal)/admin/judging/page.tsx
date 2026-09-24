@@ -191,10 +191,21 @@ export default function AdminResultsPage() {
     setPrepState({ busy: false, message: null, error: null });
   }
 
+  // Covers the auto-select above, which runs before any prep can start.
   useEffect(() => {
     selectedHackathonRef.current = selectedHackathon;
-    prepGen.current += 1;
   }, [selectedHackathon]);
+
+  // The ref and generation move here, in the click, before B renders: a run
+  // still in flight for A fails stillThisRun from this moment, so its result
+  // cannot land on B's panel. Re-selecting the current edition is a no-op, so
+  // it cannot orphan that edition's own run with busy stuck on.
+  const selectHackathon = (id: string) => {
+    if (id === selectedHackathonRef.current) return;
+    selectedHackathonRef.current = id;
+    prepGen.current += 1;
+    setSelectedHackathon(id);
+  };
 
   const categories = useMemo(() => {
     if (!rankings?.rankings) return ["ALL"];
@@ -452,7 +463,7 @@ export default function AdminResultsPage() {
         <JudgingTools
           hackathons={hackathons || []}
           selectedHackathon={selectedHackathon}
-          setSelectedHackathon={setSelectedHackathon}
+          setSelectedHackathon={selectHackathon}
           viewMode={viewMode}
           setViewMode={setViewMode}
           categories={categories}
