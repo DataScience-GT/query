@@ -98,8 +98,9 @@ function VerifyContent() {
         // /dashboard by the route, so the `||` below can never fall through to
         // anything else — reading the query param first is what actually
         // returns somebody to the page that sent them here.
-        window.location.href =
-          callbackUrl || data.redirectUrl || "/dashboard";
+        window.location.assign(
+          callbackUrl || data.redirectUrl || "/dashboard",
+        );
       } else {
         setError(data.error || "Invalid code. Please try again.");
         setVerifying(false);
