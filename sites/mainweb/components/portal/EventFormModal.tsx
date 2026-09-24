@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface EventFormData {
@@ -48,22 +48,14 @@ export function EventFormModal({
     title: initial?.title ?? "",
     description: initial?.description ?? "",
     location: initial?.location ?? "",
-    eventDate: initial?.eventDate ?? "",
+    // Auto-fill date/time when creating. An edit already carries the event's
+    // own date, and overwriting it with "now" would silently reschedule it.
+    eventDate: initial?.eventDate || getCurrentDateTimeLocal(),
     maxCheckIns: initial?.maxCheckIns ?? "",
     membersOnly: initial?.membersOnly ?? true,
     bootcampWeek: initial?.bootcampWeek ?? "",
     bootcampOnly: initial?.bootcampOnly ?? false,
   });
-
-  // Auto-fill date/time when creating. An edit already carries the event's own
-  // date, and overwriting it with "now" would silently reschedule it.
-  useEffect(() => {
-    if (initial?.eventDate) return;
-    setForm((prev) => ({
-      ...prev,
-      eventDate: getCurrentDateTimeLocal(),
-    }));
-  }, [initial?.eventDate]);
 
   const handleSubmit = () => {
     onSubmit(form);

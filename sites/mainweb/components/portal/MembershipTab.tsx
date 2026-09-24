@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import SkillsInterestsInput from "@/components/portal/profile/SkillsInterestsInput";
 
@@ -46,8 +46,11 @@ export function MembershipTab() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (!member) return;
+  // Refill the form whenever a new member record arrives. Done during render
+  // rather than in an effect, so the stale form never paints.
+  const [filledFrom, setFilledFrom] = useState<typeof member>(undefined);
+  if (member && member !== filledFrom) {
+    setFilledFrom(member);
     setForm({
       firstName: member.firstName ?? "",
       lastName: member.lastName ?? "",
@@ -60,7 +63,7 @@ export function MembershipTab() {
     });
     setSkills(member.skills ?? []);
     setInterests(member.interests ?? []);
-  }, [member]);
+  }
 
   const done = () => {
     setError(null);

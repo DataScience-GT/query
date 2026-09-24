@@ -1,24 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
   BOOTCAMP_CURRICULUM,
   BOOTCAMP_START_DATE,
 } from "@/lib/bootcamp-schedule";
+import { useWindowWidth } from "@/lib/use-window-width";
 
 const curriculum = BOOTCAMP_CURRICULUM;
 
 export default function BootcampPage() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const windowWidth = useWindowWidth(1024);
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30">

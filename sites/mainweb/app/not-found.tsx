@@ -1,21 +1,14 @@
 // src/app/not-found.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useWindowWidth } from "@/lib/use-window-width";
 
 export default function NotFound() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
-
-  useEffect(() => {
-    // Sync window width for Navbar responsiveness
-    setWindowWidth(window.innerWidth);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  // Window width for Navbar responsiveness
+  const windowWidth = useWindowWidth(1024);
 
   return (
     <div className="relative min-h-screen flex flex-col bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
