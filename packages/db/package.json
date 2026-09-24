@@ -25,12 +25,12 @@
     "next-auth": "5.0.0-beta.32",
     "pg": "8.23.0",
     "postgres": "3.4.9",
-    "zod": "3.25.53"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/pg": "^8.23.1",
-    "dotenv": "^16.6.1",
+    "dotenv": "^18.0.3",
     "drizzle-kit": "0.31.11",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
