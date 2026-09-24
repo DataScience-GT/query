@@ -95,7 +95,7 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
       vite:
-        specifier: ^7.3.6
+        specifier: ^7.3.5
         version: 7.3.6(@types/node@22.20.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)
       vitest:
         specifier: ^5.0.1
