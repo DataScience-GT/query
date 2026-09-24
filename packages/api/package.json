@@ -38,12 +38,13 @@
     "sanitize-html": "2.17.7",
     "stripe": "^22.6.2",
     "superjson": "2.2.6",
-    "zod": "3.25.53"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
     "@types/sanitize-html": "^2.16.0",
     "typescript": "7.0.2",
-    "vitest": "^4.1.11"
+    "vite": "^7.3.5",
+    "vitest": "^5.0.1"
   }
 }

@@ -158,7 +158,9 @@ export const authConfig: NextAuthConfig = {
             html: html({ code, host }),
           });
 
-          const failed = result.rejected.concat(result.pending).filter(Boolean);
+          const failed = result.rejected
+            .concat(result.pending ?? [])
+            .filter(Boolean);
           if (failed.length) {
             throw new Error(`Email(s) could not be sent`);
           }
