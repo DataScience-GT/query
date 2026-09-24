@@ -268,7 +268,7 @@ export const stripeRouter = createTRPCRouter({
     .input(
       z
         .object({ bootcamp: z.boolean().default(false), plan: planInput })
-        .default({}),
+        .prefault({}),
     )
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db!.query.users.findFirst({

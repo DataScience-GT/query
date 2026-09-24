@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import HomeSections from "@/components/HomeSections";
 import PixelGarden, { PixelGround } from "@/components/pixel/PixelGarden";
 import PixelSprite from "@/components/pixel/PixelSprite";
@@ -57,6 +57,8 @@ const FloralBackground = () => (
 );
 
 // ─── Countdown ────────────────────────────────────────────────────────────
+const subscribeNoop = () => () => {};
+
 const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   const getTimeLeft = React.useCallback(() => {
     const distance = targetDate.getTime() - Date.now();
@@ -69,12 +71,12 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
     };
   }, [targetDate]);
 
-  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(getTimeLeft);
+  // False for the static HTML and hydration, true after: the build-time
+  // countdown would be stale by the time anyone loads the page.
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
 
   useEffect(() => {
-    setMounted(true);
-    setTimeLeft(getTimeLeft());
     const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
     return () => clearInterval(id);
   }, [getTimeLeft]);
