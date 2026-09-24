@@ -17,14 +17,14 @@
     "@query/db": "workspace:*",
     "drizzle-orm": "0.45.3",
     "next-auth": "5.0.0-beta.32",
-    "nodemailer": "^9.1.1"
+    "nodemailer": "^10.0.10"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
-    "@types/node": "^20",
+    "@types/node": "^22.20.4",
     "@typescript-eslint/eslint-plugin": "^8.70.1",
     "@typescript-eslint/parser": "^8.70.1",
     "@typescript-eslint/utils": "^8.70.1",
