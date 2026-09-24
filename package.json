@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "turbo": "^2.11.3",
-    "vite": "^7.3.6",
+    "vite": "^7.3.5",
     "vitest": "^5.0.1"
   },
   "pnpm": {
