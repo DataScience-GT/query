@@ -17,6 +17,6 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "16.3.0",
-    "typescript": "^6.0.2"
+    "typescript": "^7.0.2"
   }
 }
