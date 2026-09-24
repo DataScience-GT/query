@@ -118,11 +118,13 @@ export default function ClubPage() {
     }
   }, [status, memberStatus, router]);
 
-  useEffect(() => {
-    if (!showScanner) {
-      setScannedCodes(new Set());
-    }
-  }, [showScanner]);
+  // Closing the scanner forgets what it saw, so reopening can scan the same
+  // code again.
+  const [scannerWasOpen, setScannerWasOpen] = useState(showScanner);
+  if (showScanner !== scannerWasOpen) {
+    setScannerWasOpen(showScanner);
+    if (!showScanner) setScannedCodes(new Set());
+  }
 
   const handleScan = async (detectedCodes: { rawValue: string }[]) => {
     if (isProcessing || !detectedCodes || detectedCodes.length === 0) return;

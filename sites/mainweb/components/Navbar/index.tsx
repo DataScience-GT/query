@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Link as ScrollLink } from "react-scroll";
 import Link from "next/link";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
+import { useWindowWidth } from "@/lib/use-window-width";
 
 interface NavbarProps {
   screen_width: number;
@@ -17,16 +18,14 @@ export default function Navbar({
   page,
   className = "",
 }: NavbarProps) {
-  const [windowWidth, setWindowWidth] = useState(0);
+  const windowWidth = useWindowWidth(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
   const navbarHeight = 80;
   const isHomePage = !page || page === "home";
 
   useEffect(() => {
-    setWindowWidth(window.innerWidth);
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
       if (window.innerWidth >= WIDTH_THRESHOLD) setMenuOpen(false);
     };
     window.addEventListener("resize", handleResize);

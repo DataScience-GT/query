@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
+import { useIsClient } from "@/lib/use-is-client";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
@@ -24,7 +25,7 @@ type HackathonData = {
 export default function JudgePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
 
   const { data: judgeStatus, isLoading: checkingJudge } =
     trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
@@ -40,8 +41,6 @@ export default function JudgePage() {
   const { data: applications } = trpc.judge.myApplications.useQuery(undefined, {
     enabled: !!session,
   });
-
-  useEffect(() => setMounted(true), []);
 
   // The approval email points here. Rendering nothing for a signed-out visitor
   // turned an expired session into a broken link.

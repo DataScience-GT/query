@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -11,7 +11,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { status } = useSession();
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const { data: portalContext, isLoading: portalLoading } = usePortalContext();
@@ -22,11 +21,15 @@ export default function AdminLayout({
     } else if (status === "authenticated" && !portalLoading) {
       if (!portalContext?.isAdmin) {
         router.push("/dashboard");
-      } else {
-        setLoading(false);
       }
     }
   }, [status, portalContext?.isAdmin, portalLoading, router]);
+
+  const loading = !(
+    status === "authenticated" &&
+    !portalLoading &&
+    portalContext?.isAdmin
+  );
 
   if (loading) {
     return (

@@ -51,11 +51,13 @@ export default function AdminResumesPage() {
 
   // A selection or page carried across a filter change would put people in a
   // book the list said it would not.
-  useEffect(() => {
+  const [filterShown, setFilterShown] = useState({ scope, debounced });
+  if (filterShown.scope !== scope || filterShown.debounced !== debounced) {
+    setFilterShown({ scope, debounced });
     setSelected(new Set());
     setPreview(null);
     setOffset(0);
-  }, [scope, debounced]);
+  }
 
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.userId));
 

@@ -5,6 +5,7 @@ import { useSession, signIn, getProviders } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { safeCallback } from "@/lib/safe-callback";
+import { useIsClient } from "@/lib/use-is-client";
 
 // DSGT Query - Premium Landing Page
 // Ultra-modern, standout UI/UX
@@ -14,7 +15,7 @@ export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = safeCallback(searchParams.get("callbackUrl"));
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState("");
   const [emailSending, setEmailSending] = useState(false);
@@ -37,7 +38,6 @@ export default function Home() {
   );
 
   useEffect(() => {
-    setMounted(true);
     getProviders()
       .then((p) => setProviders(p ?? {}))
       // A failed lookup must not hide every sign-in button. Falling back to

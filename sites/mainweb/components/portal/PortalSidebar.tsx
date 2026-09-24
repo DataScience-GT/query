@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { useIsClient } from "@/lib/use-is-client";
 import { isPortalNavActive, portalNavSections } from "@/lib/portal-nav";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
@@ -32,14 +33,10 @@ export default function PortalSidebar({
   const pathname = usePathname();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
 
   const { data: portalContext } = usePortalContext();
   const sections = portalNavSections(portalContext);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {

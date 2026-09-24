@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
@@ -191,24 +191,22 @@ function SubmitPortalContent() {
     onError: (err) => setError(err.message),
   });
 
-  useEffect(() => {
-    if (!selectedHackathonId && myRegs && myRegs.length > 0) {
-      const firstReg = myRegs[0];
-      if (firstReg) {
-        setSelectedHackathonId(firstReg.hackathonId);
-      }
+  if (!selectedHackathonId && myRegs && myRegs.length > 0) {
+    const firstReg = myRegs[0];
+    if (firstReg) {
+      setSelectedHackathonId(firstReg.hackathonId);
     }
-  }, [myRegs, selectedHackathonId]);
+  }
 
   // Fill the form from the existing submission, once per selected event.
   // Clearing when there is none matters as much as filling: the form used to
   // keep the previous event's answers after switching, so a submit could file
   // one hackathon's project against another.
-  useEffect(() => {
-    if (!selectedHackathonId) return;
-    if (mySubmission.isPending) return;
-    if (prefilledFor === selectedHackathonId) return;
-
+  if (
+    selectedHackathonId &&
+    !mySubmission.isPending &&
+    prefilledFor !== selectedHackathonId
+  ) {
     const p = mySubmission.data;
     setProjectName(p?.name ?? "");
     setProjectDesc(p?.description ?? "");
@@ -219,12 +217,7 @@ function SubmitPortalContent() {
     setChallenges(p?.challenges ?? []);
     setIsCreateX(p?.isCreateX ?? false);
     setPrefilledFor(selectedHackathonId);
-  }, [
-    selectedHackathonId,
-    mySubmission.isPending,
-    mySubmission.data,
-    prefilledFor,
-  ]);
+  }
 
   if (status === "loading" || loadingRegs) {
     return <LoadingScreen message="Initializing Workspace…" />;
