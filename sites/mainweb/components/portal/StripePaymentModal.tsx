@@ -9,11 +9,12 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import type { Stripe, StripeElementsOptions } from "@stripe/stripe-js";
+import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { X, Shield, Lock } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { formatCents } from "@query/api/pricing";
+import { useIsClient } from "@/lib/use-is-client";
 
 // ── Inner form (must be inside <Elements>) ─────────────────────────────────
 function CheckoutForm({
@@ -213,18 +214,14 @@ export function StripePaymentModal({
   onUnconfirmed,
   amountCents,
 }: StripePaymentModalProps) {
-  const [stripePromise, setStripePromise] =
-    useState<Promise<Stripe | null> | null>(null);
+  const stripePromise = useMemo(
+    () => (!isMock && publishableKey ? loadStripe(publishableKey) : null),
+    [publishableKey, isMock],
+  );
   // Used only by the mock branch below; the real flow keeps its own state
   // inside the Elements form.
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isMock && publishableKey) {
-      setStripePromise(loadStripe(publishableKey));
-    }
-  }, [publishableKey, isMock]);
 
   // Close on Escape
   const handleKeyDown = useCallback(
@@ -400,8 +397,7 @@ function ModalShell({
    * A portal puts it at the top level where `fixed inset-0` means the whole
    * viewport.
    */
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
   if (!mounted) return null;
 
   return createPortal(

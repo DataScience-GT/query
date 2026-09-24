@@ -65,33 +65,31 @@ export function EditHackathonForm({
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    if (hackathon && !loaded) {
-      setName(hackathon.name);
-      setDescription(hackathon.description || "");
-      setLocation(hackathon.location || "");
-      setStartDate(toInputDate(hackathon.startDate));
-      setEndDate(toInputDate(hackathon.endDate));
-      setHackingStartTime(
-        hackathon.hackingStartTime
-          ? toInputDate(hackathon.hackingStartTime)
-          : "",
-      );
-      setRegDeadline(
-        hackathon.registrationDeadline
-          ? toInputDate(hackathon.registrationDeadline)
-          : "",
-      );
-      setMaxParticipants(hackathon.maxParticipants?.toString() || "");
-      setTheme(hackathon.theme || "");
-      setTracks((hackathon.tracks ?? []).join(", "));
-      setChallenges((hackathon.challenges ?? []).join(", "));
-      setRules(hackathon.rules || "");
-      setWebsiteUrl(hackathon.websiteUrl || "");
-      setStatus(hackathon.status as HackathonStatus);
-      setLoaded(true);
-    }
-  }, [hackathon, loaded]);
+  // Seed the form once, during render rather than in an effect, so the empty
+  // form never paints.
+  if (hackathon && !loaded) {
+    setName(hackathon.name);
+    setDescription(hackathon.description || "");
+    setLocation(hackathon.location || "");
+    setStartDate(toInputDate(hackathon.startDate));
+    setEndDate(toInputDate(hackathon.endDate));
+    setHackingStartTime(
+      hackathon.hackingStartTime ? toInputDate(hackathon.hackingStartTime) : "",
+    );
+    setRegDeadline(
+      hackathon.registrationDeadline
+        ? toInputDate(hackathon.registrationDeadline)
+        : "",
+    );
+    setMaxParticipants(hackathon.maxParticipants?.toString() || "");
+    setTheme(hackathon.theme || "");
+    setTracks((hackathon.tracks ?? []).join(", "));
+    setChallenges((hackathon.challenges ?? []).join(", "));
+    setRules(hackathon.rules || "");
+    setWebsiteUrl(hackathon.websiteUrl || "");
+    setStatus(hackathon.status as HackathonStatus);
+    setLoaded(true);
+  }
 
   const updateMutation = trpc.hackathon.update.useMutation({
     onSuccess: () => onSaved(),

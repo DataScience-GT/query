@@ -5,6 +5,7 @@ import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { useIsClient } from "@/lib/use-is-client";
 import { useRouter } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
@@ -18,7 +19,7 @@ import { judgingPrepIsCurrent } from "@/lib/judging-prep";
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(
     null,
   );
@@ -76,7 +77,6 @@ export default function AdminResultsPage() {
     null,
   );
   const selectedHackathonRef = useRef(selectedHackathon);
-  selectedHackathonRef.current = selectedHackathon;
   const prepGen = useRef(0);
 
   const promoteSubmissions = trpc.judge.promoteSubmissions.useMutation();
@@ -173,26 +173,27 @@ export default function AdminResultsPage() {
   };
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
   }, [status, router]);
 
   // Auto-select first hackathon
-  useEffect(() => {
-    if (hackathons?.[0] && !selectedHackathon) {
-      setSelectedHackathon(hackathons[0].id);
-    }
-  }, [hackathons, selectedHackathon]);
+  if (hackathons?.[0] && !selectedHackathon) {
+    setSelectedHackathon(hackathons[0].id);
+  }
 
-  useEffect(() => {
-    prepGen.current += 1;
+  // A new selection drops the previous edition's prep result and conflict.
+  const [prepShownFor, setPrepShownFor] = useState(selectedHackathon);
+  if (prepShownFor !== selectedHackathon) {
+    setPrepShownFor(selectedHackathon);
     setAssignConflictId(null);
     setPrepState({ busy: false, message: null, error: null });
+  }
+
+  useEffect(() => {
+    selectedHackathonRef.current = selectedHackathon;
+    prepGen.current += 1;
   }, [selectedHackathon]);
 
   const categories = useMemo(() => {

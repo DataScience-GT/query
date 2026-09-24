@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -70,15 +70,18 @@ export function InterestForm({
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!mine.data) return;
+  // Refill the form whenever a new answer arrives. Done during render rather
+  // than in an effect, so the stale form never paints.
+  const [filledFrom, setFilledFrom] = useState<typeof mine.data>(undefined);
+  if (mine.data && mine.data !== filledFrom) {
+    setFilledFrom(mine.data);
     setSchool(mine.data.school ?? "");
     setCountry(mine.data.country ?? "");
     setGraduationYear(
       mine.data.graduationYear ? String(mine.data.graduationYear) : "",
     );
     setExperience((mine.data.experience as Experience) ?? "");
-  }, [mine.data]);
+  }
 
   const refresh = async () => {
     await Promise.all([
