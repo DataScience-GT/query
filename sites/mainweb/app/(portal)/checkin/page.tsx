@@ -56,9 +56,7 @@ export default function CheckInPage() {
             <QrCode className="w-6 h-6 text-accent" />
           </div>
           <div>
-            <p className="text-[var(--text-primary)] font-bold">
-              At an event?
-            </p>
+            <p className="text-[var(--text-primary)] font-bold">At an event?</p>
             <p className="text-sm text-[var(--text-subtle)]">
               Point your camera at the event&apos;s QR code to record your
               attendance.
