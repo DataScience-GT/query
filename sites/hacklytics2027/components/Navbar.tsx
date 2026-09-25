@@ -52,11 +52,14 @@ export default function Navbar() {
   }, [open]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
+    // Cmd/ctrl-click opens a new tab; that is the browser's to handle.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     setOpen(false);
     const id = href.replace("/#", "");
     const el = document.getElementById(id);
+    // Off the home page (the 404), let the link navigate to /#id.
     if (!el) return;
+    e.preventDefault();
     clickScrolling.current = true;
     setVisible(true);
     const offset = (headerRef.current?.offsetHeight ?? 0) + 16;
@@ -120,6 +123,8 @@ export default function Navbar() {
 
           <button
             aria-label="Toggle menu"
+            aria-expanded={open}
+            aria-controls="mobile-menu"
             onClick={() => setOpen((s) => !s)}
             className="md:hidden w-11 h-11 flex flex-col justify-center items-center gap-[6px] border border-white/15 hover:border-white/40 transition-colors bg-transparent"
           >
@@ -137,6 +142,10 @@ export default function Navbar() {
       </header>
 
       <div
+        id="mobile-menu"
+        // Hidden only by opacity, so without inert its links stayed in the tab
+        // order and the accessibility tree while closed.
+        inert={!open}
         className={`
           fixed inset-0 z-40 flex flex-col
           bg-[#04040a]/98
