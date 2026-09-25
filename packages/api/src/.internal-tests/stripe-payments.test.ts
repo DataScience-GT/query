@@ -41,14 +41,20 @@ const mockUpdateSet = vi.fn();
  */
 /** Payment intents `reconcileMyPayments` should find. Set per test. */
 const mockSearchResults = vi.fn<() => unknown[]>(() => []);
+/** The intent `paymentIntents.retrieve` returns. Throws unless a test sets it. */
+const mockRetrieve = vi.fn<(id: string) => unknown>((id) => {
+  throw new Error(`No such payment_intent: ${id}`);
+});
+/** What an insert … onConflictDoNothing().returning() yields; [] is a conflict. */
+const mockConflictReturning = vi.fn<() => unknown[]>(() => [
+  { id: "payment_row" },
+]);
 
 vi.mock("stripe", () => ({
   default: class {
     paymentIntents = {
       search: vi.fn(async () => ({ data: mockSearchResults() })),
-      retrieve: vi.fn(async (id: string) => {
-        throw new Error(`No such payment_intent: ${id}`);
-      }),
+      retrieve: vi.fn(async (id: string) => mockRetrieve(id)),
       create: vi.fn(async () => ({
         id: "pi_stub",
         client_secret: "pi_stub_secret",
@@ -86,7 +92,7 @@ vi.mock("@query/db", () => {
           return Object.assign(Promise.resolve(val), {
             returning: vi.fn().mockResolvedValue([{ id: "payment_row" }]),
             onConflictDoNothing: vi.fn().mockImplementation(() => ({
-              returning: vi.fn().mockResolvedValue([{ id: "payment_row" }]),
+              returning: vi.fn(async () => mockConflictReturning()),
             })),
           });
         },
@@ -152,6 +158,11 @@ describe("Membership payments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     cache.clear();
+    // clearAllMocks keeps implementations; these two are set per test.
+    mockRetrieve.mockImplementation((id) => {
+      throw new Error(`No such payment_intent: ${id}`);
+    });
+    mockConflictReturning.mockImplementation(() => [{ id: "payment_row" }]);
     // Both are set per-test; clearing here keeps one test's mode from leaking
     // into the next.
     delete process.env.STRIPE_SECRET_KEY;
@@ -336,6 +347,81 @@ describe("Membership payments", () => {
           /unavailable/i,
         );
       });
+    });
+  });
+
+  /**
+   * A live intent is only honoured if this server minted it for the caller,
+   * for a membership or the add-on, within the membership ceiling. An intent
+   * with no userId — hosted Checkout, a payment link, a Dashboard charge —
+   * used to pass, and an absent plan granted a full year.
+   */
+  describe("confirming a live payment", () => {
+    const intent = (overrides: Record<string, unknown> = {}) => ({
+      id: "pi_live_1",
+      status: "succeeded",
+      amount: MEMBERSHIP_CENTS,
+      currency: "usd",
+      metadata: { userId: USER, type: "membership", plan: "annual" },
+      ...overrides,
+    });
+
+    const membershipWritten = () =>
+      mockInsert.mock.calls.some((c) => c[0]?.[0]?.firstName);
+
+    beforeEach(() => {
+      process.env.STRIPE_SECRET_KEY = "sk_test_abc";
+    });
+
+    const refused = async (pi: unknown) => {
+      mockRetrieve.mockImplementation(() => pi);
+      const err: any = await caller()
+        .stripe.confirmMembershipAfterPayment({ paymentIntentId: "pi_live_1" })
+        .catch((e: unknown) => e);
+      expect(err.code).toBe("FORBIDDEN");
+      expect(mockInsert).not.toHaveBeenCalled();
+    };
+
+    it("grants the caller's own membership intent", async () => {
+      mockRetrieve.mockImplementation(() => intent());
+
+      await caller().stripe.confirmMembershipAfterPayment({
+        paymentIntentId: "pi_live_1",
+      });
+
+      expect(membershipWritten()).toBe(true);
+    });
+
+    it("refuses an intent that carries no userId", async () => {
+      await refused(intent({ metadata: {} }));
+    });
+
+    it("refuses another user's intent", async () => {
+      await refused(
+        intent({ metadata: { userId: "someone_else", type: "membership" } }),
+      );
+    });
+
+    it("refuses an intent that is not a membership", async () => {
+      await refused(intent({ metadata: { userId: USER, type: "donation" } }));
+    });
+
+    it("refuses an amount over the membership ceiling", async () => {
+      await refused(intent({ amount: 1_000_000 }));
+    });
+
+    // The webhook records the same intent under the same session id. Losing
+    // that race is not an error: the webhook has already granted.
+    it("does not grant twice when the webhook recorded it first", async () => {
+      mockRetrieve.mockImplementation(() => intent());
+      mockConflictReturning.mockImplementation(() => []);
+
+      await expect(
+        caller().stripe.confirmMembershipAfterPayment({
+          paymentIntentId: "pi_live_1",
+        }),
+      ).resolves.toMatchObject({ success: true });
+      expect(membershipWritten()).toBe(false);
     });
   });
 
