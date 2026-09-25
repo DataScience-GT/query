@@ -117,6 +117,7 @@ export function AttendeesTab({
       utils.hackathon.analytics.invalidate({ hackathonId });
       utils.hackathon.getById.invalidate({ id: hackathonId });
       utils.hackathon.listAll.invalidate();
+      utils.hackathon.waveStatus.invalidate({ hackathonId });
     },
     // Same reasoning as the batch mutation below. This is the action an
     // organiser repeats 2000 times; a rate-limit or NOT_FOUND leaves the badge
@@ -134,6 +135,7 @@ export function AttendeesTab({
         utils.hackathon.analytics.invalidate({ hackathonId });
         utils.hackathon.getById.invalidate({ id: hackathonId });
         utils.hackathon.listAll.invalidate();
+        utils.hackathon.waveStatus.invalidate({ hackathonId });
         setSelectedIds(new Set());
         setBulkError(null);
       },
@@ -323,6 +325,7 @@ export function AttendeesTab({
     utils.hackathon.analytics.invalidate({ hackathonId });
     utils.hackathon.getById.invalidate({ id: hackathonId });
     utils.hackathon.listAll.invalidate();
+    utils.hackathon.waveStatus.invalidate({ hackathonId });
   };
 
   const toggleSelect = (id: string) => {
