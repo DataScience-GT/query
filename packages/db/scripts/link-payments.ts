@@ -26,7 +26,7 @@ import {
 } from "../src/services/membership";
 import type { DrizzleDB } from "../src/client";
 
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env"), quiet: true });
 
 const APPLY = process.argv.includes("--apply");
 
