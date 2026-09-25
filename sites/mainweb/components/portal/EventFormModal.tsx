@@ -11,8 +11,6 @@ interface EventFormData {
   /** Empty means no cap. The column is nullable and the door gate only runs
    *  when a number is set. */
   maxCheckIns: string;
-  /** Off lets non-members check themselves in — kickoffs, interest meetings. */
-  membersOnly: boolean;
   /** Empty means this is an ordinary event, not a bootcamp session. */
   bootcampWeek: string;
   /** Refuses anyone not enrolled in this semester's bootcamp. */
@@ -52,7 +50,6 @@ export function EventFormModal({
     // own date, and overwriting it with "now" would silently reschedule it.
     eventDate: initial?.eventDate || getCurrentDateTimeLocal(),
     maxCheckIns: initial?.maxCheckIns ?? "",
-    membersOnly: initial?.membersOnly ?? true,
     bootcampWeek: initial?.bootcampWeek ?? "",
     bootcampOnly: initial?.bootcampOnly ?? false,
   });
@@ -178,26 +175,6 @@ export function EventFormModal({
           />
           <p className="text-[10px] font-mono text-[var(--text-subtle)]">
             Check-in refuses everyone past this number, counted at the door.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.membersOnly}
-              onChange={(e) =>
-                setForm({ ...form, membersOnly: e.target.checked })
-              }
-              className="h-4 w-4 accent-accent"
-            />
-            <span className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
-              Members only
-            </span>
-          </label>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)]">
-            Untick for a kickoff or interest meeting so non-members can scan
-            themselves in. Officers can always check somebody in by hand.
           </p>
         </div>
 

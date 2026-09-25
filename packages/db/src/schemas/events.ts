@@ -26,9 +26,8 @@ export const events = pgTable(
     eventDate: timestamp("event_date").notNull(),
     qrCode: text("qr_code").notNull().unique(),
     checkInEnabled: boolean("check_in_enabled").notNull().default(true),
-    // A kickoff or interest meeting is run to recruit members, so refusing
-    // everyone who is not one yet leaves exactly those events with no recordable
-    // attendance. Defaults true so existing events keep their behaviour.
+    // No longer read: check-in is open to everyone signed in. Kept because
+    // schema changes here are additive only; drop it in a later change.
     membersOnly: boolean("members_only").notNull().default(true),
     /** Week N of the bootcamp. Null on every event that is not a session. */
     bootcampWeek: integer("bootcamp_week"),

@@ -5,9 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
-import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { MemberPassCard } from "@/components/portal/MemberPassCard";
-import { ScanResultModal } from "@/components/portal/ScanResultModal";
+import { useEventCheckIn } from "@/components/portal/EventCheckIn";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
 import {
@@ -26,7 +25,7 @@ type Tab = "general" | "history" | "status";
 export default function ClubPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const checkIn = useEventCheckIn();
 
   const { data: userData } = trpc.user.me.useQuery(undefined, {
     enabled: !!session,
@@ -68,44 +67,6 @@ export default function ClubPage() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  const [showScanner, setShowScanner] = useState(false);
-  const [scanResult, setScanResult] = useState<{
-    success: boolean;
-    message: string;
-    eventTitle?: string;
-  } | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [scannedCodes, setScannedCodes] = useState<Set<string>>(new Set());
-
-  const checkInMutation = trpc.events.checkIn.useMutation({
-    onSuccess: async (data) => {
-      setScanResult({
-        success: true,
-        message: "Check-in successful!",
-        eventTitle: data.eventTitle,
-      });
-      setShowScanner(false);
-      setIsProcessing(false);
-
-      utils.events.myStats.setData(undefined, (old) => {
-        if (!old) return { totalEvents: 1 };
-        return { totalEvents: old.totalEvents + 1 };
-      });
-
-      utils.events.myEvents.invalidate();
-      utils.events.myStats.invalidate();
-    },
-    onError: (error) => {
-      setScanResult({
-        success: false,
-        message: error.message || "Check-in failed",
-      });
-      setShowScanner(false);
-      setIsProcessing(false);
-    },
-  });
-
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -117,37 +78,6 @@ export default function ClubPage() {
       router.push("/dashboard");
     }
   }, [status, memberStatus, router]);
-
-  // Closing the scanner forgets what it saw, so reopening can scan the same
-  // code again.
-  const [scannerWasOpen, setScannerWasOpen] = useState(showScanner);
-  if (showScanner !== scannerWasOpen) {
-    setScannerWasOpen(showScanner);
-    if (!showScanner) setScannedCodes(new Set());
-  }
-
-  const handleScan = async (detectedCodes: { rawValue: string }[]) => {
-    if (isProcessing || !detectedCodes || detectedCodes.length === 0) return;
-    const scannedData = detectedCodes[0]?.rawValue;
-    if (!scannedData) return;
-    if (scannedCodes.has(scannedData)) return;
-    setScannedCodes((prev) => new Set(prev).add(scannedData));
-    setIsPaused(true);
-    setIsProcessing(true);
-    try {
-      await checkInMutation.mutateAsync({ qrCode: scannedData });
-    } catch (error) {
-      console.error("Check-in error:", error);
-    } finally {
-      // Re-arm for the next code; otherwise the scanner takes one per load.
-      setIsProcessing(false);
-      setIsPaused(false);
-    }
-  };
-
-  const handleError = (error: unknown) => {
-    console.error("Scanner error:", error);
-  };
 
   if (status === "loading" || !memberStatus) {
     return <LoadingScreen message="Verifying Access…" />;
@@ -172,27 +102,7 @@ export default function ClubPage() {
         <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
-      {showScanner && (
-        <QRScannerModal
-          onClose={() => {
-            setShowScanner(false);
-            setIsPaused(false);
-          }}
-          onScan={handleScan}
-          onError={handleError}
-          isProcessing={isProcessing}
-          isPaused={isPaused}
-        />
-      )}
-
-      {scanResult && (
-        <ScanResultModal
-          success={scanResult.success}
-          message={scanResult.message}
-          eventTitle={scanResult.eventTitle}
-          onClose={() => setScanResult(null)}
-        />
-      )}
+      {checkIn.modals}
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 md:pt-20 lg:pt-24 animate-in fade-in slide-in-from-bottom-8 duration-700">
         {/* Profile Header */}
@@ -313,8 +223,8 @@ export default function ClubPage() {
                   </p>
 
                   <button
-                    onClick={() => setShowScanner(true)}
-                    disabled={showScanner}
+                    onClick={checkIn.openScanner}
+                    disabled={checkIn.scannerOpen}
                     className="px-8 py-4 bg-gradient-to-r from-accent to-accent rounded-none text-[var(--text-primary)] font-bold tracking-widest text-sm uppercase transition-ui hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                   >
                     <Search className="w-4 h-4" />

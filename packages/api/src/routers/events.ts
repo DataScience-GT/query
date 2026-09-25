@@ -29,7 +29,6 @@ export const eventRouter = createTRPCRouter({
         location: z.string().max(200).optional(),
         eventDate: z.date(),
         maxCheckIns: z.number().int().positive().optional(),
-        membersOnly: z.boolean().optional(),
         /** Marks this event as week N of the bootcamp running this term. */
         bootcampWeek: z.number().int().min(1).max(52).optional(),
         bootcampOnly: z.boolean().optional(),
@@ -80,7 +79,6 @@ export const eventRouter = createTRPCRouter({
         eventDate: z.date().optional(),
         /** Null removes the cap. */
         maxCheckIns: z.number().int().positive().nullable().optional(),
-        membersOnly: z.boolean().optional(),
         /** Null takes the event back out of the bootcamp. */
         bootcampWeek: z.number().int().min(1).max(52).nullable().optional(),
         bootcampOnly: z.boolean().optional(),
@@ -363,31 +361,10 @@ export const eventRouter = createTRPCRouter({
             }),
           ]);
 
-          // An event marked open to everyone takes attendance from non-members too —
-          // that is the point of a kickoff. Only an explicit false opens the door:
-          // anything else, including a row read before the column existed, keeps the
-          // membership gate.
-          if (event.membersOnly !== false) {
-            if (!member) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Must be a member to check in",
-              });
-            }
-
-            // isActive alone still admits a lapsed membership the portal already reports
-            // as expired.
-            if (
-              !member.isActive ||
-              !member.membershipEndDate ||
-              member.membershipEndDate <= new Date()
-            ) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Your membership is not active",
-              });
-            }
-          }
+          // Check-in is open to everyone signed in, member or not: attendance is
+          // recorded for whoever is in the room. The member row is still looked up
+          // so a member's check-in carries their memberId. events.membersOnly is no
+          // longer read.
 
           // Bought per semester, so last term's seat is not this term's. Officers can
           // still check somebody in by hand.
