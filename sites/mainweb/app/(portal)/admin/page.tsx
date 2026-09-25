@@ -21,7 +21,6 @@ type Event = {
   checkInEnabled: boolean;
   currentCheckIns: number;
   maxCheckIns: number | null;
-  membersOnly: boolean;
   bootcampWeek: number | null;
   bootcampOnly: boolean;
 };
@@ -117,7 +116,6 @@ export default function AdminPage() {
     location: string;
     eventDate: string;
     maxCheckIns: string;
-    membersOnly: boolean;
     bootcampWeek: string;
     bootcampOnly: boolean;
   };
@@ -147,7 +145,6 @@ export default function AdminPage() {
       location: formData.location || undefined,
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns),
-      membersOnly: formData.membersOnly,
       bootcampWeek: parseWeek(formData.bootcampWeek),
       bootcampOnly: formData.bootcampOnly,
     });
@@ -163,7 +160,6 @@ export default function AdminPage() {
       location: formData.location || null,
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns) ?? null,
-      membersOnly: formData.membersOnly,
       bootcampWeek: parseWeek(formData.bootcampWeek) ?? null,
       bootcampOnly: formData.bootcampOnly,
     });
@@ -205,7 +201,6 @@ export default function AdminPage() {
             maxCheckIns: editingEvent.maxCheckIns
               ? String(editingEvent.maxCheckIns)
               : "",
-            membersOnly: editingEvent.membersOnly,
             bootcampWeek: editingEvent.bootcampWeek
               ? String(editingEvent.bootcampWeek)
               : "",

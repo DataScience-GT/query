@@ -329,7 +329,7 @@ export default function Dashboard() {
                   <p className="text-sm text-[var(--text-muted)] mt-1">
                     {formatCents(MEMBERSHIP_CENTS)}/year or{" "}
                     {formatCents(SEMESTER_MEMBERSHIP_CENTS)}/semester — unlocks
-                    the Club Portal, event check-ins, and member resources.
+                    the Club Portal and member resources.
                   </p>
                 </div>
               </LiquidGlass>
