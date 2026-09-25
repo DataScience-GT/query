@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -228,7 +229,7 @@ function SubmitPortalContent() {
   }
 
   if (!session) {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 
