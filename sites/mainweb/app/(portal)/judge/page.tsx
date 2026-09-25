@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
@@ -52,7 +53,7 @@ export default function JudgePage() {
   // The approval email points here. Rendering nothing for a signed-out visitor
   // turned an expired session into a broken link.
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push(loginHref());
   }, [status, router]);
 
   if (!mounted || status === "loading" || checkingJudge || hackathonsLoading) {

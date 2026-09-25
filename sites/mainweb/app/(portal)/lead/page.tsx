@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Rocket } from "lucide-react";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -17,6 +18,7 @@ import {
   toInput,
 } from "@/components/portal/initiatives/form-fields";
 import { trpc } from "@/lib/trpc";
+import { loginHref } from "@/lib/safe-callback";
 import type { RouterOutputs } from "@query/api";
 
 type LeadInitiative = RouterOutputs["initiative"]["listMine"][number];
@@ -250,6 +252,12 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
 
 export default function LeadPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  // Queries wait on the session, so a signed-out visitor otherwise sits on
+  // the loading screen forever.
+  useEffect(() => {
+    if (status === "unauthenticated") router.push(loginHref());
+  }, [status, router]);
   const [creating, setCreating] = useState(false);
 
   const listing = trpc.initiative.listMine.useQuery(undefined, {
