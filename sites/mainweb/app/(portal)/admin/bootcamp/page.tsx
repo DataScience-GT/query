@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { GraduationCap, Check, Copy, Mail } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -9,6 +8,8 @@ import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTab
 import type { BootcampMaterialRow } from "@/components/portal/BootcampMaterialsTable";
 import { BootcampWorkshopModal } from "@/components/portal/BootcampWorkshopModal";
 import type { BootcampWorkshopFormData } from "@/components/portal/BootcampWorkshopModal";
+import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
+import { useEventQR } from "@/components/portal/EventQR";
 import { trpc } from "@/lib/trpc";
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
@@ -136,6 +137,18 @@ export default function AdminBootcampPage() {
   const createWorkshop = trpc.bootcamp.createWorkshop.useMutation();
   const updateWorkshop = trpc.bootcamp.updateWorkshop.useMutation();
   const upsertSession = trpc.bootcamp.upsertSession.useMutation();
+
+  // Session check-in lives here rather than on the Club Hub: a session is
+  // still an event underneath, with the same QR and door, but staff run it
+  // from the bootcamp page.
+  const qr = useEventQR();
+  const [attendanceFor, setAttendanceFor] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const toggleCheckIn = trpc.events.toggleCheckIn.useMutation({
+    onSuccess: () => utils.bootcamp.attendance.invalidate(),
+  });
   const setPublished = trpc.bootcamp.setPublished.useMutation({
     onSuccess: async () => {
       await Promise.all([
@@ -476,22 +489,103 @@ export default function AdminBootcampPage() {
           <CohortEmails emails={members.map((member) => member.email)} />
         )}
 
+        {qr.modal}
+        {attendanceFor && (
+          <EventAttendanceModal
+            eventId={attendanceFor.id}
+            eventTitle={attendanceFor.title}
+            onClose={() => setAttendanceFor(null)}
+          />
+        )}
+
+        {sessions.length > 0 && (
+          <section className="mb-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
+              At the door
+            </p>
+            <h2 className="mt-1 mb-5 text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
+              Session check-in
+            </h2>
+
+            <ul className="divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)]">
+              {sessions.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between"
+                >
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="font-mono text-xs font-bold text-accent">
+                        W{row.week}
+                      </span>
+                      <span className="font-bold text-[var(--text-primary)]">
+                        {row.title}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+                          row.checkInEnabled
+                            ? "border border-accent/20 bg-accent/10 text-accent"
+                            : "border border-[var(--border-subtle)] text-[var(--text-subtle)]"
+                        }`}
+                      >
+                        {row.checkInEnabled ? "Open" : "Closed"}
+                      </span>
+                    </div>
+                    <p className="mt-1 font-mono text-xs text-[var(--text-subtle)]">
+                      {row.location || "No location"} ·{" "}
+                      {new Date(row.eventDate).toLocaleDateString()} ·{" "}
+                      {row.attendance} checked in
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void qr.show(row)}
+                      disabled={qr.generatingFor === row.qrCode}
+                      className="min-h-11 border border-accent/20 bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+                    >
+                      {qr.generatingFor === row.qrCode
+                        ? "Generating…"
+                        : "QR Code"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleCheckIn.mutate({
+                          eventId: row.id,
+                          enabled: !row.checkInEnabled,
+                        })
+                      }
+                      disabled={toggleCheckIn.isPending}
+                      className="min-h-11 border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5 disabled:opacity-50"
+                    >
+                      {row.checkInEnabled ? "Close" : "Open"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAttendanceFor({ id: row.id, title: row.title })
+                      }
+                      className="min-h-11 border border-accent/20 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/10"
+                    >
+                      Attendance
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {sessions.length === 0 ? (
           <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">
             <p className="font-bold text-[var(--text-primary)]">
               No sessions scheduled for {termLabel(data.term)}.
             </p>
             <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
-              A bootcamp session is an ordinary event with a bootcamp week set
-              on it, so it takes attendance through the same QR and the same
-              check-in desk. Create one from the{" "}
-              <Link
-                href="/admin"
-                className="font-bold text-accent hover:underline"
-              >
-                Club Hub
-              </Link>
-              .
+              Give a workshop a session date above to schedule it. Its QR code
+              and check-in controls then appear here.
             </p>
           </div>
         ) : members.length === 0 ? (
@@ -618,8 +712,7 @@ export default function AdminBootcampPage() {
           <p className="mt-4 text-xs text-[var(--text-subtle)]">
             A session counts anyone who scanned in, member of this bootcamp or
             not, so a per-session total can run ahead of the rows above. Fix a
-            wrong check-in from the event&rsquo;s attendance list on the Club
-            Hub.
+            wrong check-in from the session&rsquo;s Attendance list above.
           </p>
         )}
 

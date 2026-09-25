@@ -96,7 +96,7 @@ Batch status updates allow up to **2500** ids. The global array cap in `scrubMar
 
 **Members:** `me`, `register`, `update`, `history`, `myPass`, `rotatePass`, `checkStatus`; admin `list`, `getById`, `adminSearch`, `adminHistory`, `adminGrant`, `adminRevoke`.
 
-**Events:** admin CRUD + QR regenerate; public `list`; member `checkIn`, `myEvents`, `myStats`; scanner `manualCheckIn`, `scanMemberPass`, `attendees`, `removeAttendance`.
+**Events:** admin CRUD + QR regenerate; public `list`; signed-in `checkIn` (members and non-members; `/checkin` page), `myEvents`, `myStats`; scanner `manualCheckIn`, `scanMemberPass`, `attendees`, `removeAttendance`.
 
 **Initiatives:** leaders `listMine`, `getById`, `create`, `update`, `setStatus`, `setArchived`, `decide`; members `list`, apply/withdraw, propose; admin proposal review; super admin `setLeader`.
 

@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useState } from "react";
 import Link from "next/link";
-import { QRCodeModal } from "@/components/portal/QRCodeModal";
+import { useEventQR } from "@/components/portal/EventQR";
 import { EventFormModal } from "@/components/portal/EventFormModal";
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -21,9 +21,6 @@ type Event = {
   checkInEnabled: boolean;
   currentCheckIns: number;
   maxCheckIns: number | null;
-  membersOnly: boolean;
-  bootcampWeek: number | null;
-  bootcampOnly: boolean;
 };
 
 export default function AdminPage() {
@@ -31,20 +28,18 @@ export default function AdminPage() {
   const utils = trpc.useUtils();
 
   const [showCreateEvent, setShowCreateEvent] = useState(false);
-  const [showQRCode, setShowQRCode] = useState<string | null>(null);
-  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>("");
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const qr = useEventQR();
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
-  // The QR encoder is fetched on demand, so the press has to say it is working.
-  const [generatingQR, setGeneratingQR] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
   const { data: portalContext } = usePortalContext();
-  const { data: events, isLoading: eventsLoading } =
+  const { data: allEvents, isLoading: eventsLoading } =
     trpc.events.listAll.useQuery(undefined, {
       enabled: !!session && !!portalContext?.isAdmin,
     });
+  // Bootcamp sessions have their own check-in controls on /admin/bootcamp.
+  const events = allEvents?.filter((e) => e.bootcampWeek == null);
 
   type StatusFilter = "all" | "open" | "closed";
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -54,8 +49,7 @@ export default function AdminPage() {
       if (newEvent) {
         utils.events.listAll.invalidate();
         setShowCreateEvent(false);
-        generateQRCode(newEvent.qrCode);
-        setSelectedEvent(newEvent as unknown as Event);
+        void qr.show(newEvent);
       }
     },
   });
@@ -67,8 +61,7 @@ export default function AdminPage() {
   const deleteEventMutation = trpc.events.delete.useMutation({
     onSuccess: () => {
       utils.events.listAll.invalidate();
-      setShowQRCode(null);
-      setSelectedEvent(null);
+      qr.hide();
     },
   });
 
@@ -83,57 +76,18 @@ export default function AdminPage() {
     onError: (error) => setEditError(error.message),
   });
 
-  const regenerateQRMutation = trpc.events.regenerateQR.useMutation({
-    onSuccess: (updatedEvent) => {
-      utils.events.listAll.invalidate();
-      generateQRCode(updatedEvent.qrCode);
-      setSelectedEvent(updatedEvent);
-    },
-  });
-
-  const generateQRCode = async (qrCode: string) => {
-    setGeneratingQR(qrCode);
-    try {
-      // ~240KB, and only needed once somebody asks to see a QR. Loading it up
-      // front put it in the bundle of the page admins open most.
-      const { default: QRCode } = await import("qrcode");
-      const url = await QRCode.toDataURL(qrCode, {
-        width: 400,
-        margin: 3,
-        color: { dark: "#000000", light: "#ffffff" },
-      });
-      setQrCodeDataURL(url);
-      setShowQRCode(qrCode);
-    } catch (err) {
-      console.error("Error generating QR code:", err);
-    } finally {
-      setGeneratingQR(null);
-    }
-  };
-
   type EventForm = {
     title: string;
     description: string;
     location: string;
     eventDate: string;
     maxCheckIns: string;
-    membersOnly: boolean;
-    bootcampWeek: string;
-    bootcampOnly: boolean;
   };
 
   // Empty means no cap — the column is nullable and the door gate only runs
   // when a number is set. The form used to hardcode undefined, so capacity was
   // unreachable from anywhere in the product.
   const parseCapacity = (value: string) => {
-    const parsed = Number(value);
-    return value.trim() && Number.isFinite(parsed) && parsed > 0
-      ? Math.floor(parsed)
-      : undefined;
-  };
-
-  /** Empty means this is not a bootcamp session; the column is nullable. */
-  const parseWeek = (value: string) => {
     const parsed = Number(value);
     return value.trim() && Number.isFinite(parsed) && parsed > 0
       ? Math.floor(parsed)
@@ -147,9 +101,6 @@ export default function AdminPage() {
       location: formData.location || undefined,
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns),
-      membersOnly: formData.membersOnly,
-      bootcampWeek: parseWeek(formData.bootcampWeek),
-      bootcampOnly: formData.bootcampOnly,
     });
   };
 
@@ -163,9 +114,6 @@ export default function AdminPage() {
       location: formData.location || null,
       eventDate: new Date(formData.eventDate),
       maxCheckIns: parseCapacity(formData.maxCheckIns) ?? null,
-      membersOnly: formData.membersOnly,
-      bootcampWeek: parseWeek(formData.bootcampWeek) ?? null,
-      bootcampOnly: formData.bootcampOnly,
     });
   };
 
@@ -175,13 +123,6 @@ export default function AdminPage() {
       date.getTime() - new Date(date).getTimezoneOffset() * 60 * 1000,
     );
     return local.toISOString().slice(0, 16);
-  };
-
-  const downloadQRCode = () => {
-    const link = document.createElement("a");
-    link.download = `${selectedEvent?.title || "event"}-qr.png`;
-    link.href = qrCodeDataURL;
-    link.click();
   };
 
   return (
@@ -205,11 +146,6 @@ export default function AdminPage() {
             maxCheckIns: editingEvent.maxCheckIns
               ? String(editingEvent.maxCheckIns)
               : "",
-            membersOnly: editingEvent.membersOnly,
-            bootcampWeek: editingEvent.bootcampWeek
-              ? String(editingEvent.bootcampWeek)
-              : "",
-            bootcampOnly: editingEvent.bootcampOnly,
           }}
           onClose={() => {
             setEditingEvent(null);
@@ -229,18 +165,7 @@ export default function AdminPage() {
         />
       )}
 
-      {showQRCode && selectedEvent && (
-        <QRCodeModal
-          event={selectedEvent}
-          qrCodeDataURL={qrCodeDataURL}
-          onClose={() => setShowQRCode(null)}
-          onDownload={downloadQRCode}
-          onRegenerate={() =>
-            regenerateQRMutation.mutate({ eventId: selectedEvent.id })
-          }
-          isRegenerating={regenerateQRMutation.isPending}
-        />
-      )}
+      {qr.modal}
 
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="mb-6 p-5 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-emerald-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-ui duration-500">
@@ -253,9 +178,14 @@ export default function AdminPage() {
             <span className="text-accent italic font-bold">Manager</span>
           </h1>
           <p className="text-text-muted text-sm relative z-10">
-            Club meetings, workshops, and bootcamp sessions. These are not
-            part of a Hacklytics weekend — that itinerary lives on the
-            hackathon dashboard.
+            Club meetings and workshops. Bootcamp sessions are managed on the{" "}
+            <Link
+              href="/admin/bootcamp"
+              className="text-accent hover:underline"
+            >
+              Bootcamp
+            </Link>{" "}
+            page. Hacklytics weekend events live on the hackathon dashboard.
           </p>
         </div>
 
@@ -383,14 +313,11 @@ export default function AdminPage() {
 
                       <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => {
-                            generateQRCode(event.qrCode);
-                            setSelectedEvent(event);
-                          }}
-                          disabled={generatingQR === event.qrCode}
+                          onClick={() => void qr.show(event)}
+                          disabled={qr.generatingFor === event.qrCode}
                           className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors disabled:opacity-50"
                         >
-                          {generatingQR === event.qrCode
+                          {qr.generatingFor === event.qrCode
                             ? "Generating…"
                             : "QR Code"}
                         </button>
