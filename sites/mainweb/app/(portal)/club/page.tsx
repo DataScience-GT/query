@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -108,7 +109,7 @@ export default function ClubPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push(loginHref());
     } else if (
       status === "authenticated" &&
       memberStatus &&

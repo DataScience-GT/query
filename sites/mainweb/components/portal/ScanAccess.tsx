@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -22,7 +23,7 @@ export function ScanAccess({ children }: { children: React.ReactNode }) {
   }
 
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -17,7 +18,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      window.location.href = "/login";
+      window.location.href = loginHref();
     } else if (status === "authenticated" && !portalLoading) {
       if (!portalContext?.isAdmin) {
         router.push("/dashboard");

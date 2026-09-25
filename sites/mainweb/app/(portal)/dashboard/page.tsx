@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { hackathonSlug } from "@/lib/hackathon-slug";
@@ -117,7 +118,7 @@ export default function Dashboard() {
     if (session) attemptAutoLink();
   }, [session, attemptAutoLink]);
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push(loginHref());
   }, [status, router]);
   useEffect(() => {
     if (isAdmin) router.replace("/admin");
