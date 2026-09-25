@@ -30,8 +30,9 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           # Only "a PR already exists" is expected; anything else should fail
-          # the job rather than be swallowed by || true.
-          open=$(gh pr list --head "$BRANCH" --base dev --state open --json number --jq length)
+          # the job rather than be swallowed by || true. Same-repo PRs only: a
+          # fork's branch of the same name must not suppress this one.
+          open=$(gh pr list --head "$BRANCH" --base dev --state open --json isCrossRepository --jq '[.[] | select(.isCrossRepository | not)] | length')
           if [ "$open" = "0" ]; then
             gh pr create \
               --base dev \
