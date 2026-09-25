@@ -31,6 +31,8 @@ export function EventAttendanceModal({
     await Promise.all([
       utils.events.attendees.invalidate({ eventId }),
       utils.events.listAll.invalidate(),
+      // Opened from the bootcamp page too, whose grid counts these rows.
+      utils.bootcamp.attendance.invalidate(),
     ]);
   };
 

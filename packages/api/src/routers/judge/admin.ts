@@ -382,6 +382,11 @@ export const judgeAdminRouter = createTRPCRouter({
         })
         .returning();
 
+      // Same as approval: the role gate and the sidebar both cache, so the new
+      // judge would otherwise wait out a 5-minute TTL for the Judge tab.
+      ctx.cache.deletePattern(`${CacheKeys.judge(input.userId)}*`);
+      invalidatePortalContext(input.userId);
+
       return result[0];
     }),
 
@@ -896,9 +901,16 @@ export const judgeAdminRouter = createTRPCRouter({
         });
       }
 
-      await (ctx.db as DrizzleDB)
+      const [removed] = await (ctx.db as DrizzleDB)
         .delete(judges)
-        .where(eq(judges.id, input.judgeId));
+        .where(eq(judges.id, input.judgeId))
+        .returning({ userId: judges.userId });
+
+      // Or the removed judge keeps a Judge tab every procedure behind it refuses.
+      if (removed) {
+        ctx.cache.deletePattern(`${CacheKeys.judge(removed.userId)}*`);
+        invalidatePortalContext(removed.userId);
+      }
       return { success: true };
     }),
 

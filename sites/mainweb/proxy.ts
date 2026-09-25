@@ -27,6 +27,7 @@ import type { NextRequest } from "next/server";
  */
 const PRIVATE_PREFIXES = [
   "/admin",
+  "/checkin",
   "/dashboard",
   "/club",
   "/hackathons",

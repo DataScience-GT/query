@@ -19,11 +19,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create \
-            --base main \
-            --head dev \
-            --title "Sync: dev to main" \
-            --body "Automated PR tracking changes from \`dev\` into \`main\`." \
-            --reviewer aamoghS \
-            --assignee aamoghS \
-            --label ":arrow_heading_down: pull" || true
+          # Only "a PR already exists" is expected; anything else should fail
+          # the job rather than be swallowed by || true. Same-repo PRs only: a
+          # fork's branch of the same name must not suppress this one.
+          open=$(gh pr list --head dev --base main --state open --json isCrossRepository --jq '[.[] | select(.isCrossRepository | not)] | length')
+          if [ "$open" = "0" ]; then
+            gh pr create \
+              --base main \
+              --head dev \
+              --title "Sync: dev to main" \
+              --body "Automated PR tracking changes from \`dev\` into \`main\`." \
+              --reviewer aamoghS \
+              --assignee aamoghS \
+              --label ":arrow_heading_down: pull"
+          fi

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
@@ -161,7 +162,7 @@ export default function HackathonsPage() {
   }, []);
 
   useEffect(() => {
-    if (authStatus === "unauthenticated") router.push("/login");
+    if (authStatus === "unauthenticated") router.push(loginHref());
   }, [authStatus, router]);
 
   if (authStatus === "loading" || isLoading)
