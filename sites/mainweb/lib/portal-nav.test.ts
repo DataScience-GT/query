@@ -48,6 +48,7 @@ describe("portalNavSections", () => {
       "Submit Project",
     ]);
     expect(names(sections, "portal")).toEqual([
+      "Event Check-In",
       "Bootcamp",
       "Club Projects",
       "Settings",
@@ -67,6 +68,7 @@ describe("portalNavSections", () => {
     expect(names(sections, "portal")).toEqual([
       "Dashboard",
       "Club Portal",
+      "Event Check-In",
       "Bootcamp",
       "Club Projects",
       "Settings",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ export default function AdminHackathonsPage() {
 
   if (status === "loading") return <LoadingScreen message="Loading hackathons…" />;
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 
@@ -80,6 +81,9 @@ export default function AdminHackathonsPage() {
             hackathonId={editingId}
             onClose={() => setEditingId(null)}
             onSaved={() => {
+              // The form seeds itself from getById; left cached, reopening it
+              // shows the old values and a second save writes them back.
+              utils.hackathon.getById.invalidate({ id: editingId });
               setEditingId(null);
               utils.hackathon.listAll.invalidate();
             }}

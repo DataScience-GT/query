@@ -24,12 +24,22 @@ jobs:
       - name: Create or Update PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Through env, never interpolated into the script: git allows $, (, )
+          # and | in branch names, so ${{ github.ref_name }} inside run: let a
+          # pushed branch name execute shell with this job's write token.
+          BRANCH: ${{ github.ref_name }}
         run: |
-          gh pr create \
-            --base dev \
-            --head ${{ github.ref_name }} \
-            --title "Feature: ${{ github.ref_name }} to dev" \
-            --body "Automated PR tracking changes from \`${{ github.ref_name }}\` into \`dev\`." \
-            --reviewer aamoghS \
-            --assignee aamoghS \
-            --label ":arrow_heading_down: pull" || true
+          # Only "a PR already exists" is expected; anything else should fail
+          # the job rather than be swallowed by || true. Same-repo PRs only: a
+          # fork's branch of the same name must not suppress this one.
+          open=$(gh pr list --head "$BRANCH" --base dev --state open --json isCrossRepository --jq '[.[] | select(.isCrossRepository | not)] | length')
+          if [ "$open" = "0" ]; then
+            gh pr create \
+              --base dev \
+              --head "$BRANCH" \
+              --title "Feature: $BRANCH to dev" \
+              --body "Automated PR tracking changes from \`$BRANCH\` into \`dev\`." \
+              --reviewer aamoghS \
+              --assignee aamoghS \
+              --label ":arrow_heading_down: pull"
+          fi

@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   GraduationCap,
@@ -13,6 +15,7 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
 import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import { trpc } from "@/lib/trpc";
+import { loginHref } from "@/lib/safe-callback";
 import {
   BOOTCAMP_MEETING_TIME,
   BOOTCAMP_ROOM,
@@ -109,6 +112,12 @@ function NotEnrolled({ term }: { term: string }) {
 
 export default function BootcampPortalPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  // Queries wait on the session, so a signed-out visitor otherwise sits on
+  // the loading screen forever.
+  useEffect(() => {
+    if (status === "unauthenticated") router.push(loginHref());
+  }, [status, router]);
   const progress = trpc.bootcamp.myProgress.useQuery(undefined, {
     enabled: !!session,
   });
