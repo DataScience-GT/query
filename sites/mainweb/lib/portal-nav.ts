@@ -130,6 +130,8 @@ export function portalNavSections(
           { name: "Club Portal", href: "/club", icon: QrCode },
         ]
       : []),
+    // Attendance is open to everyone; the Club Portal's scanner is not.
+    { name: "Event Check-In", href: "/checkin", icon: QrCode },
     ...(f.isScanner
       ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
       : []),
