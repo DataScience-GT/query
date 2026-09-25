@@ -390,8 +390,11 @@ export const eventRouter = createTRPCRouter({
           }
 
           // Bought per semester, so last term's seat is not this term's. Officers can
-          // still check somebody in by hand.
-          if (event.bootcampOnly && member?.bootcampTerm !== currentTerm()) {
+          // still check somebody in by hand. Measured against the session's own
+          // term (upsertSession stamps it), not the wall clock, so the answer
+          // cannot change with the day a session happens to fall on.
+          const sessionTerm = event.bootcampTerm ?? currentTerm();
+          if (event.bootcampOnly && member?.bootcampTerm !== sessionTerm) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message: "This session is for bootcamp members this semester",
