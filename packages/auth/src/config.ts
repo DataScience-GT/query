@@ -129,6 +129,22 @@ export const authConfig: NextAuthConfig = {
         // lets anyone spam sign-in requests to stack up valid codes, and every extra
         // one multiplies the odds of a blind guess against a 6-digit secret.
         if (db) {
+          // One code email per address per minute, whatever instance takes the
+          // request: the live code's expiry says when it was issued. A repeat
+          // inside that minute sends nothing and keeps the code already in the
+          // inbox, so hammering sign-in cannot flood somebody's mail or burn
+          // the shared sending quota one address at a time.
+          const issuedWithinMinute = new Date(
+            Date.now() + 9 * 60 * 1000,
+          ).toISOString();
+          const recent = await db.execute(sql`
+            SELECT 1 FROM "verificationToken"
+            WHERE "identifier" = ${identifier} AND "token" LIKE 'custom:%'
+              AND "expires" > ${issuedWithinMinute}::timestamp
+            LIMIT 1
+          `);
+          if (recent.rows.length > 0) return;
+
           const expiresISO = expires.toISOString();
           await db.execute(sql`
             DELETE FROM "verificationToken"

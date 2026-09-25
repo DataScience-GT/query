@@ -66,6 +66,10 @@ export const verificationTokens = pgTable(
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
     expires: timestamp("expires", { mode: "date" }).notNull(),
+    // Wrong guesses against this identifier's sign-in code. Counted here, not
+    // in the per-instance rate limiter, so every instance sees the same total
+    // and a code dies after MAX_CODE_ATTEMPTS misses however requests spread.
+    attempts: integer("attempts").notNull().default(0),
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
