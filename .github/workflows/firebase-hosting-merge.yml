@@ -6,6 +6,11 @@ on:
   push:
     branches:
       - main
+# Least privilege instead of the repository default token scope.
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
