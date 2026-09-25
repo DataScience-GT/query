@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -174,7 +175,7 @@ export default function AdminResultsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push(loginHref());
     }
   }, [status, router]);
 

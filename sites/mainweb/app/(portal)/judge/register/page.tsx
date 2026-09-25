@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -59,7 +60,7 @@ export default function JudgeRegisterPage() {
   // judge.register is protected, so an outside professional following a shared
   // link filled in all four steps and only then got "Not authenticated".
   useEffect(() => {
-    if (authStatus === "unauthenticated") router.push("/login");
+    if (authStatus === "unauthenticated") router.push(loginHref());
   }, [authStatus, router]);
 
   if (authStatus === "loading" || authStatus === "unauthenticated") {

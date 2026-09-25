@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ export default function AdminHackathonsPage() {
 
   if (status === "loading") return <LoadingScreen message="Loading hackathons…" />;
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 
