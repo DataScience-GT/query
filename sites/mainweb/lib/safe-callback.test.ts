@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { safeCallback } from "./safe-callback";
+import { loginHref, safeCallback } from "./safe-callback";
 
 describe("safeCallback", () => {
   it("keeps a same-origin path", () => {
@@ -27,5 +27,23 @@ describe("safeCallback", () => {
     expect(safeCallback("//evil.example")).toBeNull();
     expect(safeCallback("//evil.example/path")).toBeNull();
     expect(safeCallback("/\\evil.example")).toBeNull();
+  });
+});
+
+describe("loginHref", () => {
+  it("returns to the full current location, hash included", () => {
+    const previous = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {
+      location: { pathname: "/club", search: "?x=1", hash: "#history" },
+    };
+    try {
+      expect(loginHref()).toBe(
+        `/login?callbackUrl=${encodeURIComponent("/club?x=1#history")}`,
+      );
+      // And what comes back through the login page is still accepted.
+      expect(safeCallback("/club?x=1#history")).toBe("/club?x=1#history");
+    } finally {
+      (globalThis as { window?: unknown }).window = previous;
+    }
   });
 });

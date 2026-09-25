@@ -43,6 +43,9 @@ export function safeCallback(raw: string | null | undefined): string | null {
  * Browser-only: call it from an effect or a handler.
  */
 export function loginHref(): string {
-  const here = window.location.pathname + window.location.search;
+  // The hash too: /club and /hackathons pick their tab from it, so a shared
+  // #history link otherwise came back to the default tab.
+  const here =
+    window.location.pathname + window.location.search + window.location.hash;
   return `/login?callbackUrl=${encodeURIComponent(here)}`;
 }
