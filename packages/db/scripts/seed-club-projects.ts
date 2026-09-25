@@ -10,7 +10,7 @@
 import * as dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env"), quiet: true });
 
 // `../src` is loaded inside main(): its client reads DATABASE_URL at module
 // load, and a static *value* import would be hoisted above the dotenv call.
