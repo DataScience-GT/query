@@ -929,6 +929,9 @@ describe("QR check-in", () => {
             ]
           : [],
       );
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
+      );
       const anon = appRouter.createCaller(createMockCtx());
 
       const rows: any[] = await anon.hackathon.participants({
