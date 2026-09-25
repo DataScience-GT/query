@@ -31,16 +31,23 @@ export default function JudgePage() {
     trpc.judge.isJudge.useQuery(undefined, { enabled: !!session });
   const { data: hackathons, isLoading: hackathonsLoading } =
     trpc.hackathon.list.useQuery({});
-  const { data: assignments } = trpc.judge.getMyAssignments.useQuery(
-    undefined,
-    { enabled: !!session && !!judgeStatus?.isJudge },
-  );
   // Applications, approved or not. getMyAssignments only returns approved ones,
   // so without this an applicant saw "Apply to Judge" again — and pressing it
   // threw "You have already applied".
   const { data: applications } = trpc.judge.myApplications.useQuery(undefined, {
     enabled: !!session,
   });
+  // Gated on any approved application, not isJudge: isJudge answers for the
+  // current edition only, while assignments span every edition, so a judge
+  // approved for another one saw "Application pending review" forever.
+  const { data: assignments } = trpc.judge.getMyAssignments.useQuery(
+    undefined,
+    {
+      enabled:
+        !!session &&
+        !!(judgeStatus?.isJudge || applications?.some((a) => a.approved)),
+    },
+  );
 
   // The approval email points here. Rendering nothing for a signed-out visitor
   // turned an expired session into a broken link.
