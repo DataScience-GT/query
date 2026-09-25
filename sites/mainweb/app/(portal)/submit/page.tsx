@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -119,8 +120,12 @@ function SubmitPortalContent() {
 
   // We get the specific registration / team context based on selected hackathon
   const currentReg = myRegs?.find((r) => r.hackathonId === selectedHackathonId);
+  // A withdrawn project stays as a draft row, so the row alone is not a
+  // submission.
   const hasSubmitted =
-    !!mySubmission.data || currentReg?.hasSubmittedProject || projectSubmitted;
+    (!!mySubmission.data && mySubmission.data.status !== "draft") ||
+    currentReg?.hasSubmittedProject ||
+    projectSubmitted;
 
   // Mutations
   // Joining, creating or leaving a team changes which project this participant
@@ -224,7 +229,7 @@ function SubmitPortalContent() {
   }
 
   if (!session) {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 
@@ -424,6 +429,7 @@ function SubmitPortalContent() {
                       <div className="pt-2 space-y-3">
                         <input
                           type="text"
+                          aria-label="Team name"
                           placeholder="Awesome Team Name"
                           value={teamName}
                           onChange={(e) => setTeamName(e.target.value)}
@@ -460,6 +466,7 @@ function SubmitPortalContent() {
                       <div className="space-y-3">
                         <input
                           type="text"
+                          aria-label="Invite ID"
                           placeholder="Paste Invite ID…"
                           value={joinTeamId}
                           onChange={(e) => setJoinTeamId(e.target.value)}

@@ -249,6 +249,9 @@ export const clearMembershipCaches = (userId: string) => {
   // `member:me:<userId>`. Evict what is written.
   cache.deletePattern(`member:me:${userId}*`);
   cache.deletePattern(`member:status:${userId}*`);
+  cache.deletePattern(`member:history:${userId}*`);
+  // The staff directory lists every member; `member:*` does not match it.
+  cache.deletePattern("members:list:*");
   invalidatePortalContext(userId);
 };
 

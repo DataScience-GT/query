@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { TRPCDefaultErrorShape } from "@trpc/server";
 import superjson from "superjson";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import type { Context } from "./context";
 import {
   rateLimit,
@@ -28,7 +28,8 @@ export const errorFormatter = ({
         : shape.message,
     data: {
       ...shape.data,
-      zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+      zodError:
+        error.cause instanceof ZodError ? z.flattenError(error.cause) : null,
       stack: isDev ? shape.data.stack : undefined, // Mask stack in production
     },
   };

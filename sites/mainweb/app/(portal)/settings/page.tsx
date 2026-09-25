@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -125,7 +126,7 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push(loginHref());
   }, [status, router]);
 
   // Refill the form whenever new user data arrives. Done during render rather

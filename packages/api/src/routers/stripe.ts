@@ -445,7 +445,7 @@ export const stripeRouter = createTRPCRouter({
             userId: ctx.userId!,
             bootcamp: mockAddOn ? "true" : "false",
             plan: mockPlan,
-            ...(mockAddOn ? { type: BOOTCAMP_ADDON_PAYMENT_TYPE } : {}),
+            type: mockAddOn ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
           },
         };
       } else {
@@ -470,12 +470,22 @@ export const stripeRouter = createTRPCRouter({
         });
       }
 
-      // Ensure the intent was for this user (guard against replay attacks)
-      if (pi.metadata?.userId && pi.metadata.userId !== ctx.userId) {
+      // Only an intent this server minted for this caller, for a membership or
+      // the add-on, within the membership ceiling — the same gate the webhook
+      // and reconcileMyPayments apply. An intent with no userId (hosted
+      // Checkout, a payment link, a Dashboard charge) used to pass, and
+      // readPlan(undefined) granted a full year for whatever it cost.
+      const paymentType = pi.metadata?.type;
+      if (
+        pi.metadata?.userId !== ctx.userId ||
+        (paymentType !== "membership" &&
+          paymentType !== BOOTCAMP_ADDON_PAYMENT_TYPE) ||
+        pi.amount > MAX_MEMBERSHIP_CHARGE_CENTS
+      ) {
         logSecurityEvent({
           type: "validation_error",
           identifier: ctx.userId ?? "unknown",
-          details: `PaymentIntent userId mismatch: ${pi.metadata.userId} vs ${ctx.userId}`,
+          details: `PaymentIntent refused: userId=${pi.metadata?.userId ?? "none"} type=${paymentType ?? "none"} amount=${pi.amount}`,
         });
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -506,27 +516,35 @@ export const stripeRouter = createTRPCRouter({
       // rather than only logging it.
       try {
         if (!existing) {
-          await ctx.db!.transaction(async (tx) => {
-            await tx.insert(stripePayments).values({
-              stripeSessionId: `pi_${pi.id}`,
-              stripeCustomerId:
-                typeof pi.customer === "string"
-                  ? pi.customer
-                  : (pi.customer?.id ?? ""),
-              stripePaymentIntentId: pi.id,
-              customerEmail: (
-                pi.receipt_email ??
-                user?.email ??
-                ""
-              ).toLowerCase(),
-              customerName: user?.name ?? "Member",
-              amountTotal: pi.amount,
-              currency: pi.currency,
-              paymentStatus: "paid",
-              linkedUserId: ctx.userId!,
-              linkedAt: new Date(),
-              metadata: JSON.stringify(pi.metadata ?? {}),
-            });
+          const granted = await ctx.db!.transaction(async (tx) => {
+            // The webhook records the same intent under the same session id. If
+            // it lands between the read above and this insert, it has already
+            // granted: skip rather than surface the unique violation as a 500.
+            const [inserted] = await tx
+              .insert(stripePayments)
+              .values({
+                stripeSessionId: `pi_${pi.id}`,
+                stripeCustomerId:
+                  typeof pi.customer === "string"
+                    ? pi.customer
+                    : (pi.customer?.id ?? ""),
+                stripePaymentIntentId: pi.id,
+                customerEmail: (
+                  pi.receipt_email ??
+                  user?.email ??
+                  ""
+                ).toLowerCase(),
+                customerName: user?.name ?? "Member",
+                amountTotal: pi.amount,
+                currency: pi.currency,
+                paymentStatus: "paid",
+                linkedUserId: ctx.userId!,
+                linkedAt: new Date(),
+                metadata: JSON.stringify(pi.metadata ?? {}),
+              })
+              .onConflictDoNothing()
+              .returning({ id: stripePayments.id });
+            if (!inserted) return false;
 
             await createOrUpdateMembership(tx as unknown as DrizzleDB, {
               userId: ctx.userId!,
@@ -536,9 +554,10 @@ export const stripeRouter = createTRPCRouter({
               addOnOnly,
               plan,
             });
+            return true;
           });
 
-          membershipGrants.inc({ source: "confirm", plan });
+          if (granted) membershipGrants.inc({ source: "confirm", plan });
         } else if (!existing.linkedUserId) {
           // Payment exists but wasn't linked — link it now
           await ctx

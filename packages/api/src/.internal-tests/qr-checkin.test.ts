@@ -297,7 +297,7 @@ describe("QR check-in", () => {
 
   // -------------------------------------------------------------------
   describe("Club event door QR", () => {
-    it("turns a lapsed member away and records nothing", async () => {
+    it("admits a lapsed member and keeps their member row on the check-in", async () => {
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "events") return clubEvent();
         if (table === "hackathons") return { id: HACK_A };
@@ -306,15 +306,13 @@ describe("QR check-in", () => {
       });
       const caller = appRouter.createCaller(createMockCtx("lapsed_user"));
 
-      const err: any = await caller.events
-        .checkIn({ qrCode: QR_OLD })
-        .catch((e: unknown) => e);
-
-      expect(err.code).toBe("FORBIDDEN");
-      expect(err.message).toMatch(/membership is not active/);
-      // No attendance row, no capacity counter movement.
-      expect(mockInsert).not.toHaveBeenCalled();
-      expect(mockUpdate).not.toHaveBeenCalled();
+      await expect(
+        caller.events.checkIn({ qrCode: QR_OLD }),
+      ).resolves.toMatchObject({ success: true });
+      expect(mockInsert.mock.calls.at(-1)?.[2]?.[0]).toMatchObject({
+        userId: "lapsed_user",
+        memberId: activeMember.id,
+      });
     });
 
     // Sold by the semester while a membership runs a year, so the door asks
@@ -375,6 +373,51 @@ describe("QR check-in", () => {
           caller.events.checkIn({ qrCode: QR_OLD }),
         ).resolves.toMatchObject({ success: true });
         expect(mockInsert).toHaveBeenCalled();
+      });
+
+      // The session's own term decides, not the day it falls on.
+      it("admits a member enrolled for the session's own term", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events")
+            return clubEvent({
+              bootcampOnly: true,
+              bootcampWeek: 3,
+              bootcampTerm: "2031-spring",
+            });
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: "2031-spring" };
+          return undefined;
+        });
+        mockUpdate.mockReturnValue([{ id: CLUB_EVENT }]);
+        mockInsert.mockReturnValue([{ id: "checkin_1" }]);
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+
+        await expect(
+          caller.events.checkIn({ qrCode: QR_OLD }),
+        ).resolves.toMatchObject({ success: true });
+      });
+
+      it("turns away a current-term member from another term's session", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events")
+            return clubEvent({
+              bootcampOnly: true,
+              bootcampWeek: 3,
+              bootcampTerm: "2031-spring",
+            });
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: currentTerm() };
+          return undefined;
+        });
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+        const err: any = await caller.events
+          .checkIn({ qrCode: QR_OLD })
+          .catch((e: unknown) => e);
+
+        expect(err.code).toBe("FORBIDDEN");
+        expect(mockInsert).not.toHaveBeenCalled();
       });
 
       it("still refuses a second scan of the same badge", async () => {
@@ -884,6 +927,9 @@ describe("QR check-in", () => {
             ]
           : [],
       );
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
+      );
       const anon = appRouter.createCaller(createMockCtx());
 
       const rows: any[] = await anon.hackathon.participants({
@@ -1151,10 +1197,11 @@ describe("QR check-in", () => {
 
   // -------------------------------------------------------------------
   /**
-   * A kickoff or interest meeting is run to recruit members, so refusing
-   * everyone who is not one yet left exactly those events with no attendance.
+   * Check-in is open to everyone signed in. A kickoff or interest meeting is
+   * run to recruit members, so refusing everyone who is not one yet left
+   * exactly those events with no attendance.
    */
-  describe("Events open to non-members", () => {
+  describe("Check-in for non-members", () => {
     // clearAllMocks keeps implementations, so the write simulations the
     // concurrency tests above install would otherwise decide these outcomes.
     beforeEach(() => {
@@ -1172,14 +1219,22 @@ describe("QR check-in", () => {
       return appRouter.createCaller(createMockCtx("guest_user"));
     };
 
-    it("admits a non-member to an event that is not members only", async () => {
+    it("admits a non-member", async () => {
       await expect(
-        nonMemberAt({ membersOnly: false }).events.checkIn({ qrCode: QR_OLD }),
+        nonMemberAt({}).events.checkIn({ qrCode: QR_OLD }),
+      ).resolves.toMatchObject({ success: true });
+    });
+
+    // Events created before the change still carry members_only = true, and
+    // the door no longer reads it.
+    it("admits a non-member to an event still flagged members only", async () => {
+      await expect(
+        nonMemberAt({ membersOnly: true }).events.checkIn({ qrCode: QR_OLD }),
       ).resolves.toMatchObject({ success: true });
     });
 
     it("records the check-in with no member row attached", async () => {
-      await nonMemberAt({ membersOnly: false }).events.checkIn({
+      await nonMemberAt({}).events.checkIn({
         qrCode: QR_OLD,
       });
 
@@ -1191,21 +1246,12 @@ describe("QR check-in", () => {
       });
     });
 
-    it("still turns a non-member away from a members-only event", async () => {
+    it("still turns a non-member away from a bootcamp-only session", async () => {
       await expect(
-        nonMemberAt({ membersOnly: true }).events.checkIn({ qrCode: QR_OLD }),
-      ).rejects.toThrow(/Must be a member/i);
-    });
-
-    /**
-     * Fail closed. A row read before the column existed reports `undefined`,
-     * and an access gate that reads that as "open to everyone" is the wrong
-     * way round.
-     */
-    it("treats an unknown membersOnly value as members only", async () => {
-      await expect(
-        nonMemberAt({}).events.checkIn({ qrCode: QR_OLD }),
-      ).rejects.toThrow(/Must be a member/i);
+        nonMemberAt({ bootcampOnly: true, bootcampWeek: 3 }).events.checkIn({
+          qrCode: QR_OLD,
+        }),
+      ).rejects.toThrow(/bootcamp members/i);
     });
   });
 

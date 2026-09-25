@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +26,7 @@ export default function AttendeesPage() {
   const attendees = eventData?.checkIns;
 
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 

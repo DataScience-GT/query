@@ -1024,6 +1024,9 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should return public participant list for a hackathon", async () => {
       const ctx = createMockCtx();
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: hackathonId, status: "open" } : undefined,
+      );
       mockFindMany.mockReturnValue([
         {
           hackathonId,
@@ -1039,6 +1042,22 @@ describe("Router Integration and Access Control Verification Suite", () => {
       // The joined user is the public identity; the participant id is the
       // event-pass QR payload and is deliberately not returned.
       expect(res[0].user.id).toBe("u1");
+    });
+
+    // A draft edition is one nobody outside the team is meant to know exists;
+    // its roster answers like the schedule and gallery do.
+    it("should hide a draft hackathon's participant list", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: hackathonId, status: "draft" } : undefined,
+      );
+      mockFindMany.mockReturnValue([
+        { hackathonId, teamId: null, user: { id: "u1", name: "Ada", image: null }, team: null },
+      ]);
+
+      const caller = appRouter.createCaller(createMockCtx());
+      await expect(caller.hackathon.participants({ hackathonId })).rejects.toThrow(
+        /not found/i,
+      );
     });
   });
 
@@ -1308,7 +1327,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(res.eventTitle).toBe("General Meeting");
     });
 
-    it("should block non-members from checking into events", async () => {
+    it("should let non-members check into events", async () => {
       const ctx = createMockCtx("non_member_user_id");
 
       mockFindFirst.mockImplementation((table) => {
@@ -1324,7 +1343,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const caller = appRouter.createCaller(ctx);
       await expect(
         caller.events.checkIn({ qrCode: "00000000-0000-4000-8000-000000000099" }),
-      ).rejects.toThrowError("Must be a member to check in");
+      ).resolves.toMatchObject({ success: true });
     });
   });
 

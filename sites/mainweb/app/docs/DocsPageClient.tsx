@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -259,7 +260,7 @@ export default function DocsPageClient() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push(loginHref());
     }
   }, [status, router]);
 
@@ -419,7 +420,10 @@ export default function DocsPageClient() {
               </div>
               <div className="flex items-center gap-4">
                 <Link
-                  href="#"
+                  href="https://github.com/DataScience-GT"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="DSGT on GitHub"
                   className="text-gray-500 transition-colors hover:text-white"
                 >
                   <svg

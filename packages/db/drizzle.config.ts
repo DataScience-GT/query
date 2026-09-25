@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import path from "path";
 
 // Load .env from root (two levels up)
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env"), quiet: true });
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not defined in .env file");

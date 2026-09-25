@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -193,7 +194,7 @@ export default function AnalyticsPage() {
   );
 
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push(loginHref());
     return null;
   }
 

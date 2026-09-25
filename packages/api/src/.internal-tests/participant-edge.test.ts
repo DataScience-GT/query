@@ -969,6 +969,9 @@ describe("Participant edge cases", () => {
     // includes registrationStatus, and the query has no limit.
     it("hides who was rejected from the public roster", async () => {
       mockFindMany.mockReturnValue([]);
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
+      );
 
       await callerFor().hackathon.participants({ hackathonId: HACK_A });
 

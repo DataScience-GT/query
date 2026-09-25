@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { loginHref } from "@/lib/safe-callback";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -35,13 +36,24 @@ export default function JudgeRegisterPage() {
   const [success, setSuccess] = useState(false);
 
   const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery({});
+  const utils = trpc.useUtils();
   const registerMutation = trpc.judge.register.useMutation({
-    onSuccess: () => setSuccess(true),
+    onSuccess: () => {
+      setSuccess(true);
+      // Or /judge still offers "Apply to Judge", which now throws "already
+      // applied".
+      void utils.judge.myApplications.invalidate();
+    },
     onError: (e) => setError(e.message),
   });
 
   // Form State
-  const [hackathonId, setHackathonId] = useState("");
+  // /judge links here with the edition already chosen; starting step 0 empty
+  // made the judge pick it again.
+  const searchParams = useSearchParams();
+  const [hackathonId, setHackathonId] = useState(
+    () => searchParams.get("hackathonId") ?? "",
+  );
   const [preferredTrack, setPreferredTrack] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -59,7 +71,7 @@ export default function JudgeRegisterPage() {
   // judge.register is protected, so an outside professional following a shared
   // link filled in all four steps and only then got "Not authenticated".
   useEffect(() => {
-    if (authStatus === "unauthenticated") router.push("/login");
+    if (authStatus === "unauthenticated") router.push(loginHref());
   }, [authStatus, router]);
 
   if (authStatus === "loading" || authStatus === "unauthenticated") {
