@@ -424,6 +424,7 @@ function SubmitPortalContent() {
                       <div className="pt-2 space-y-3">
                         <input
                           type="text"
+                          aria-label="Team name"
                           placeholder="Awesome Team Name"
                           value={teamName}
                           onChange={(e) => setTeamName(e.target.value)}
@@ -460,6 +461,7 @@ function SubmitPortalContent() {
                       <div className="space-y-3">
                         <input
                           type="text"
+                          aria-label="Invite ID"
                           placeholder="Paste Invite ID…"
                           value={joinTeamId}
                           onChange={(e) => setJoinTeamId(e.target.value)}
