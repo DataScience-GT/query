@@ -9,6 +9,7 @@ import {
 } from "@query/db";
 import { eq, and, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
+import { assertHackathonVisible } from "./visibility";
 
 // Postgres unique_violation on unique_participant_per_hackathon — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -293,6 +294,10 @@ export const hackathonRegistrationRouter = createTRPCRouter({
   participants: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      // Public, so it answers to the same visibility rule as the schedule and
+      // gallery: a draft edition's roster is staff-only.
+      await assertHackathonVisible(ctx, input.hackathonId);
+
       const cacheKey = `hackathon:${input.hackathonId}:participants`;
       const cached = ctx.cache.get<typeof participants>(cacheKey);
       if (cached) return cached;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -219,7 +220,7 @@ export default function JudgeHackathonPage() {
   });
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push(loginHref());
   }, [status, router]);
 
   if (status === "loading") {

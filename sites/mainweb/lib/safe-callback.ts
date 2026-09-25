@@ -35,3 +35,17 @@ export function safeCallback(raw: string | null | undefined): string | null {
   if (raw.startsWith("//") || raw.startsWith("/\\")) return null;
   return raw;
 }
+
+/**
+ * The login page, set to return to the page the visitor is on. A bare
+ * `/login` falls back to /dashboard, so a shared registration, judging or
+ * check-in link lost its destination the moment it asked somebody to sign in.
+ * Browser-only: call it from an effect or a handler.
+ */
+export function loginHref(): string {
+  // The hash too: /club and /hackathons pick their tab from it, so a shared
+  // #history link otherwise came back to the default tab.
+  const here =
+    window.location.pathname + window.location.search + window.location.hash;
+  return `/login?callbackUrl=${encodeURIComponent(here)}`;
+}

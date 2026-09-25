@@ -118,16 +118,33 @@ async function workshopsForTerm(
 }
 
 /** The sessions of one bootcamp, in the order they are taught. */
+const sessionColumns = {
+  id: events.id,
+  week: events.bootcampWeek,
+  title: events.title,
+  description: events.description,
+  location: events.location,
+  eventDate: events.eventDate,
+  checkInEnabled: events.checkInEnabled,
+};
+
 async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> {
   return db
+    .select(sessionColumns)
+    .from(events)
+    .where(eq(events.bootcampTerm, term))
+    .orderBy(asc(events.bootcampWeek));
+}
+
+// Staff only. Carries the door QR, which must never reach a member-facing
+// read: holding the code is enough to check in from anywhere.
+async function adminSessionsForTerm(db: DrizzleDB, term: string) {
+  return db
     .select({
-      id: events.id,
-      week: events.bootcampWeek,
-      title: events.title,
-      description: events.description,
-      location: events.location,
-      eventDate: events.eventDate,
-      checkInEnabled: events.checkInEnabled,
+      ...sessionColumns,
+      qrCode: events.qrCode,
+      currentCheckIns: events.currentCheckIns,
+      maxCheckIns: events.maxCheckIns,
     })
     .from(events)
     .where(eq(events.bootcampTerm, term))
@@ -432,7 +449,7 @@ export const bootcampRouter = createTRPCRouter({
 
     // Attendance outlives its semester, so past terms stay reachable.
     const [sessions, roster, eventTerms, workshopTerms] = await Promise.all([
-      sessionsForTerm(db, term),
+      adminSessionsForTerm(db, term),
       db
         .select({
           userId: members.userId,

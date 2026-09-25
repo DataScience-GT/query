@@ -32,14 +32,7 @@ Open items as of 2026-09-06. Delete a line when it is done.
 
 ## Housekeeping
 
-- [ ] **5 pre-existing lint errors**, all `import/consistent-type-specifier-style`:
-      `app/HomePageClient.tsx`, `app/projects/ProjectsPageClient.tsx`,
-      `components/admin/hackathons/RegistrationControls.tsx`,
-      `lib/club-projects.test.ts`. `eslint --fix` clears them; kept out of the
-      p99 commits to keep those diffs readable.
 - [ ] **Confirm the `/events` staleness call.** The page was `force-dynamic` and
       is now `revalidate = 300`, matching `/projects`. `proxy.ts` already serves
       that path `max-age=3600`, so nobody could observe the old freshness — but
       it was an explicit choice, so it is worth a second opinion.
-- [ ] **`nul`** — a 0-byte file at the repo root from a stray `> nul` redirect.
-      Gitignored, inert, deletable.
