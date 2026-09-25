@@ -7,6 +7,10 @@ on:
       - dev
   pull_request:
 
+# Read-only: tests need nothing more than the checkout.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
