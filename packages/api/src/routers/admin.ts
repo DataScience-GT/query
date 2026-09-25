@@ -80,8 +80,20 @@ export const adminRouter = createTRPCRouter({
     }>(
       cacheKey,
       async () => {
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
+        // Midnight in Atlanta, not on the server: App Hosting runs in UTC, so
+        // "today" used to roll over at 8pm Eastern, mid-way through evening
+        // events.
+        const now = new Date();
+        const eastern = new Date(
+          now.toLocaleString("en-US", { timeZone: "America/New_York" }),
+        );
+        const startOfToday = new Date(
+          now.getTime() -
+            (eastern.getHours() * 3_600_000 +
+              eastern.getMinutes() * 60_000 +
+              eastern.getSeconds() * 1000 +
+              now.getMilliseconds()),
+        );
 
         const [
           participantsResult,
