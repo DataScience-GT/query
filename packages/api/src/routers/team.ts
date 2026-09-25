@@ -10,6 +10,7 @@ import {
 import { eq, and, or, isNull, inArray, lt, sql } from "drizzle-orm";
 import { VOLATILE_TTL } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
+import { assertHackathonVisible } from "./hackathon/visibility";
 
 type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 
@@ -980,6 +981,8 @@ export const teamRouter = createTRPCRouter({
   list: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
+      await assertHackathonVisible(ctx, input.hackathonId);
+
       const cacheKey = `hackathon:${input.hackathonId}:teams`;
 
       const fetchTeams = () =>

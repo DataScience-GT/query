@@ -26,7 +26,11 @@ export const dynamic = "force-dynamic";
 const PREFETCH = 8;
 
 const csvCell = (value: unknown) => {
-  const text = value == null ? "" : String(value);
+  let text = value == null ? "" : String(value);
+  // Names, schools and majors are member-typed. A leading = + - @ (or tab/CR)
+  // makes Excel and Sheets evaluate the cell as a formula when staff open the
+  // index; a leading apostrophe keeps it text.
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
