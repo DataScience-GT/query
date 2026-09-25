@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { loginHref } from "@/lib/safe-callback";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -42,7 +42,12 @@ export default function JudgeRegisterPage() {
   });
 
   // Form State
-  const [hackathonId, setHackathonId] = useState("");
+  // /judge links here with the edition already chosen; starting step 0 empty
+  // made the judge pick it again.
+  const searchParams = useSearchParams();
+  const [hackathonId, setHackathonId] = useState(
+    () => searchParams.get("hackathonId") ?? "",
+  );
   const [preferredTrack, setPreferredTrack] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

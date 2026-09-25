@@ -420,7 +420,10 @@ export default function DocsPageClient() {
               </div>
               <div className="flex items-center gap-4">
                 <Link
-                  href="#"
+                  href="https://github.com/DataScience-GT"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="DSGT on GitHub"
                   className="text-gray-500 transition-colors hover:text-white"
                 >
                   <svg

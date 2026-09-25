@@ -6,6 +6,8 @@ import { db } from "@query/db";
 import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
+import { verifiedGitHubEmail } from "./github";
+import type { GitHubEmail } from "./github";
 
 function html(params: { code: string; host: string }) {
   const { code, host } = params;
@@ -103,6 +105,29 @@ export const authConfig: NextAuthConfig = {
             // GitHub omits the email from the profile unless this scope is requested, and
             // the adapter requires an email.
             authorization: { params: { scope: "read:user user:email" } },
+            // The linking flag above trusts the email to be the user's own, and
+            // Auth.js's default reads it from /user/emails without checking
+            // `verified`. Only a verified address is ever used; with none, the
+            // sign-in has no email and fails.
+            userinfo: {
+              url: "https://api.github.com/user",
+              async request({ tokens }: { tokens: { access_token?: string } }) {
+                const headers = {
+                  Authorization: `Bearer ${tokens.access_token}`,
+                  "User-Agent": "authjs",
+                };
+                const profile = await fetch("https://api.github.com/user", {
+                  headers,
+                }).then((res) => res.json());
+                const res = await fetch("https://api.github.com/user/emails", {
+                  headers,
+                });
+                const emails = res.ok
+                  ? ((await res.json()) as GitHubEmail[])
+                  : [];
+                return { ...profile, email: verifiedGitHubEmail(emails) };
+              },
+            },
           }),
         ]
       : []),
