@@ -101,7 +101,13 @@ export default function AdminResultsPage() {
     gen: number,
     message: string,
   ) => {
-    await utils.judge.getRankings.invalidate({ hackathonId });
+    // The live board and table cards read what prepare just built; neither
+    // polls until judging is open.
+    await Promise.all([
+      utils.judge.getRankings.invalidate({ hackathonId }),
+      utils.judge.liveProgress.invalidate(),
+      utils.judge.tableCards.invalidate(),
+    ]);
     if (!stillThisRun(hackathonId, gen)) return;
     await refetchJudgingStatus();
     if (!stillThisRun(hackathonId, gen)) return;

@@ -35,8 +35,14 @@ export default function JudgeRegisterPage() {
   const [success, setSuccess] = useState(false);
 
   const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery({});
+  const utils = trpc.useUtils();
   const registerMutation = trpc.judge.register.useMutation({
-    onSuccess: () => setSuccess(true),
+    onSuccess: () => {
+      setSuccess(true);
+      // Or /judge still offers "Apply to Judge", which now throws "already
+      // applied".
+      void utils.judge.myApplications.invalidate();
+    },
     onError: (e) => setError(e.message),
   });
 

@@ -80,6 +80,9 @@ export default function AdminHackathonsPage() {
             hackathonId={editingId}
             onClose={() => setEditingId(null)}
             onSaved={() => {
+              // The form seeds itself from getById; left cached, reopening it
+              // shows the old values and a second save writes them back.
+              utils.hackathon.getById.invalidate({ id: editingId });
               setEditingId(null);
               utils.hackathon.listAll.invalidate();
             }}
