@@ -119,8 +119,12 @@ function SubmitPortalContent() {
 
   // We get the specific registration / team context based on selected hackathon
   const currentReg = myRegs?.find((r) => r.hackathonId === selectedHackathonId);
+  // A withdrawn project stays as a draft row, so the row alone is not a
+  // submission.
   const hasSubmitted =
-    !!mySubmission.data || currentReg?.hasSubmittedProject || projectSubmitted;
+    (!!mySubmission.data && mySubmission.data.status !== "draft") ||
+    currentReg?.hasSubmittedProject ||
+    projectSubmitted;
 
   // Mutations
   // Joining, creating or leaving a team changes which project this participant
