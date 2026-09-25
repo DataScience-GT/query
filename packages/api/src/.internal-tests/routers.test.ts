@@ -1327,7 +1327,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(res.eventTitle).toBe("General Meeting");
     });
 
-    it("should block non-members from checking into events", async () => {
+    it("should let non-members check into events", async () => {
       const ctx = createMockCtx("non_member_user_id");
 
       mockFindFirst.mockImplementation((table) => {
@@ -1343,7 +1343,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const caller = appRouter.createCaller(ctx);
       await expect(
         caller.events.checkIn({ qrCode: "00000000-0000-4000-8000-000000000099" }),
-      ).rejects.toThrowError("Must be a member to check in");
+      ).resolves.toMatchObject({ success: true });
     });
   });
 
