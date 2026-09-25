@@ -15,7 +15,7 @@ import {
   isBootcampAddOnOnly,
   planFromMetadata,
 } from "@query/db/services/membership";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, like, gte, sql } from "drizzle-orm";
 import { rateLimit, cache, resolveClientIp } from "@query/api";
 import type { DrizzleDB } from "@query/db";
 
@@ -26,6 +26,13 @@ import type { DrizzleDB } from "@query/db";
  * verificationToken table, consumes it, creates a session, and
  * returns the session cookie + redirect URL.
  */
+
+/**
+ * Wrong guesses a code survives. Six digits against five guesses is 1 in
+ * 200,000 per code; the in-memory limiter alone is per instance, so with ten
+ * instances it allowed ten times the guesses it was sized for.
+ */
+const MAX_CODE_ATTEMPTS = 5;
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,6 +98,21 @@ export async function POST(request: NextRequest) {
 
       if (!invite) {
         console.warn(`[verify-email] No matching code for ${safeEmail}`);
+        // Charge the miss to the live code, and burn it once it has absorbed
+        // MAX_CODE_ATTEMPTS. Returning (not throwing) commits both.
+        const liveCode = and(
+          eq(verificationTokens.identifier, identifier),
+          like(verificationTokens.token, "custom:%"),
+        );
+        await tx
+          .update(verificationTokens)
+          .set({ attempts: sql`${verificationTokens.attempts} + 1` })
+          .where(liveCode);
+        await tx
+          .delete(verificationTokens)
+          .where(
+            and(liveCode, gte(verificationTokens.attempts, MAX_CODE_ATTEMPTS)),
+          );
         return null;
       }
 
