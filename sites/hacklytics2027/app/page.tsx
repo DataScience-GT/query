@@ -124,6 +124,7 @@ export default function HomePage() {
         <a
           href="https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=white"
           target="_blank"
+          rel="noopener noreferrer"
           className="absolute top-0 right-5 md:right-12 z-50 w-[9%] max-w-[90px] min-w-[56px] hover:scale-105 hover:brightness-110 transition-all duration-300"
         >
           <img src="/mlh-trust-badge.svg" alt="Major League Hacking 2027" className="w-full drop-shadow-2xl" />
@@ -202,7 +203,9 @@ export default function HomePage() {
             </a>
           </div>
 
-          <Countdown targetDate={new Date("2027-02-26T23:59:59")} />
+          {/* Check-in opens 5pm ET (the JSON-LD startDate). Without an offset
+              the string meant midnight in each visitor's own timezone. */}
+          <Countdown targetDate={new Date("2027-02-26T17:00:00-05:00")} />
 
         </div>
         
