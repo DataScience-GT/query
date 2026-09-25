@@ -377,6 +377,51 @@ describe("QR check-in", () => {
         expect(mockInsert).toHaveBeenCalled();
       });
 
+      // The session's own term decides, not the day it falls on.
+      it("admits a member enrolled for the session's own term", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events")
+            return clubEvent({
+              bootcampOnly: true,
+              bootcampWeek: 3,
+              bootcampTerm: "2031-spring",
+            });
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: "2031-spring" };
+          return undefined;
+        });
+        mockUpdate.mockReturnValue([{ id: CLUB_EVENT }]);
+        mockInsert.mockReturnValue([{ id: "checkin_1" }]);
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+
+        await expect(
+          caller.events.checkIn({ qrCode: QR_OLD }),
+        ).resolves.toMatchObject({ success: true });
+      });
+
+      it("turns away a current-term member from another term's session", async () => {
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "events")
+            return clubEvent({
+              bootcampOnly: true,
+              bootcampWeek: 3,
+              bootcampTerm: "2031-spring",
+            });
+          if (table === "members")
+            return { ...activeMember, bootcampTerm: currentTerm() };
+          return undefined;
+        });
+
+        const caller = appRouter.createCaller(createMockCtx("member_user"));
+        const err: any = await caller.events
+          .checkIn({ qrCode: QR_OLD })
+          .catch((e: unknown) => e);
+
+        expect(err.code).toBe("FORBIDDEN");
+        expect(mockInsert).not.toHaveBeenCalled();
+      });
+
       it("still refuses a second scan of the same badge", async () => {
         mockFindFirst.mockImplementation((table: string) => {
           if (table === "events") return bootcampSession();
