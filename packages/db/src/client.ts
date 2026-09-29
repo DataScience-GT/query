@@ -27,11 +27,14 @@ if (DATABASE_URL) {
       connectionTimeoutMillis: Number(
         process.env.DB_CONNECTION_TIMEOUT_MS ?? 3000,
       ),
-      idleTimeoutMillis: 10000, // 10s idle timeout
-      // Kept warm. pg-pool's reaper drains to `min` (0 by default), so raising
-      // idleTimeoutMillis alone does nothing — every burst after a quiet spell paid
-      // a fresh connection handshake first.
-      min: 2,
+      // Long enough to reuse connections across a burst, well under Neon's
+      // five-minute scale-to-zero window.
+      idleTimeoutMillis: 60000,
+      // Not kept warm by default. Held idle connections stop Neon scaling to zero,
+      // and on the free plan that burned the monthly compute-hour allowance. The
+      // cost is a fresh handshake on the first query after a quiet spell. Set
+      // DB_POOL_MIN on a paid plan to keep connections open again.
+      min: Number(process.env.DB_POOL_MIN ?? 0),
       // The connection string points at Neon's pooled endpoint (the host ends in
       // `-pooler`), so the ceiling is PgBouncer's — thousands of client
       // connections, not a compute's max_connections. At concurrency 80 a cap of 10
@@ -66,7 +69,7 @@ export async function warmPool(): Promise<number> {
   const pool = db;
   if (!pool) return 0;
 
-  const target = Number(process.env.DB_POOL_MIN ?? 2);
+  const target = Number(process.env.DB_POOL_MIN ?? 0);
   const probes = Array.from({ length: Math.max(1, target) }, async () => {
     try {
       await pool.execute(sql`select 1`);
