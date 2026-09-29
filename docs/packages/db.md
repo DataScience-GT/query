@@ -9,14 +9,14 @@ Drizzle ORM schemas, Postgres client, and membership rules. Package: `packages/d
 | Setting | Default | Why |
 | --- | --- | --- |
 | `max` | `DB_POOL_MAX` or `20` | Cloud Run concurrency 80; 10 was too small against the Neon pooler |
-| `min` | `2` | Avoid handshake storms after idle |
+| `min` | `DB_POOL_MIN` or `0` | Idle connections keep Neon from scaling to zero; raise only on a paid plan |
 | `connectionTimeoutMillis` | `DB_CONNECTION_TIMEOUT_MS` or `3000` | Fail fast rather than occupy a request slot |
-| `idleTimeoutMillis` | `10000` | |
+| `idleTimeoutMillis` | `60000` | Reuse across a burst; under Neon's 5-min scale-to-zero |
 | SSL | `rejectUnauthorized: true` in production | |
 
 If `DATABASE_URL` is missing, `db` is `null` and a warning is logged. Builds that never query still succeed.
 
-Production: Neon serverless Postgres (`us-west-2`), pooled endpoint (`-pooler` host). Local: `docker compose` Postgres 15 on port 5433, database `neondb`.
+Production: Neon serverless Postgres (`us-east-1`, next to App Hosting in us-east4), pooled endpoint (`-pooler` host). Local: `docker compose` Postgres 15 on port 5433, database `neondb`.
 
 ## Schema layout
 
