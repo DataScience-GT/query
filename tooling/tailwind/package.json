@@ -9,14 +9,14 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "4.3.3",
-    "next": "16.3.6",
+    "next": "16.3.7",
     "postcss": "^8.5.28",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwindcss": "4.3.3"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "16.3.6",
+    "@next/eslint-plugin-next": "16.3.7",
     "typescript": "^7.0.2"
   }
 }
