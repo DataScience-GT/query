@@ -652,10 +652,13 @@ export const judgeAdminRouter = createTRPCRouter({
         });
       }
 
+      // Completed slots survive. Re-initialising a judge mid-event otherwise wipes
+      // every table they scored or skipped, and a skip has no vote to rebuild from.
       const projectCount = await rebuildQueueForJudge(ctx.db as DrizzleDB, {
         judgeId: input.judgeId,
         hackathonId: input.hackathonId,
         shuffle: input.shuffle,
+        keepCompleted: true,
       });
 
       return { success: true, projectCount };

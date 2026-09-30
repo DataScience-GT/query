@@ -16,11 +16,26 @@ function createAdapter(): Adapter | undefined {
       verificationTokensTable: verificationTokens,
     });
 
-    // Both token methods overridden with raw SQL: drizzle raises "boolin" type
-    // errors on every verificationToken query in our deployment when the pgTable
-    // uses a compound primary key.
     return {
       ...baseAdapter,
+      // Case-insensitive, unlike the stock exact match. Account linking finds the
+      // existing user through this, and providers keep whatever case the address
+      // was typed in — so "John.Doe@" from GitHub missed "john.doe@" from an
+      // email-code sign-in and created a second user without the membership.
+      // The oldest verified row wins if duplicates already exist.
+      getUserByEmail: async (email: string) => {
+        if (!db) return null;
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(sql`lower(${users.email}) = lower(${email})`)
+          .orderBy(sql`${users.emailVerified} asc nulls last`)
+          .limit(1);
+        return user ?? null;
+      },
+      // Both token methods overridden with raw SQL: drizzle raises "boolin" type
+      // errors on every verificationToken query in our deployment when the pgTable
+      // uses a compound primary key.
       createVerificationToken: async (
         token: VerificationToken,
       ): Promise<VerificationToken> => {

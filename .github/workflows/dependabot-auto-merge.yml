@@ -8,17 +8,22 @@ permissions:
 jobs:
   dependabot:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    # The PR author, not github.actor: the actor is whoever triggered this run,
+    # which a human re-running it or pushing to the branch can make misleading.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Dependabot metadata
         id: metadata
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Command Dependabot to merge
-        # Automatically merge if it's a minor/patch update. You can adjust this to your liking.
+      # GitHub removed the "@dependabot merge" comment command on 2026-01-27, so
+      # commenting it does nothing. Native auto-merge instead: it merges once the
+      # ruleset is satisfied, which still means a code-owner approval. Needs
+      # "Allow auto-merge" on in the repo settings.
+      - name: Enable auto-merge for minor and patch updates
         if: steps.metadata.outputs.update-type != 'version-update:semver-major'
-        run: gh pr comment "$PR_URL" -b "@dependabot merge"
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}

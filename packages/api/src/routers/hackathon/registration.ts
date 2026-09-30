@@ -250,12 +250,11 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             message: "You are already registered for this hackathon",
           });
         }
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
         // Unexpected error during registration
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Registration failed: ${message}`,
+          message: "Registration failed.",
+          cause: error,
         });
       }
     }),
