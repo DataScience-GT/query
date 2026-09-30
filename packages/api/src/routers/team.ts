@@ -476,9 +476,14 @@ export const teamRouter = createTRPCRouter({
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
-            const team = await tx.query.hackathonTeams.findFirst({
-              where: eq(hackathonTeams.id, participant.teamId!),
-            });
+            // Locked, so the member count below is current: a join commits its
+            // seat under this row's lock, and deleting the team around a join
+            // still in flight dropped that member silently.
+            const [team] = await tx
+              .select()
+              .from(hackathonTeams)
+              .where(eq(hackathonTeams.id, participant.teamId!))
+              .for("update");
 
             if (!team)
               throw new TRPCError({
@@ -612,6 +617,14 @@ export const teamRouter = createTRPCRouter({
       try {
         return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
           async (tx) => {
+            // Same lock joinTeam's seat update takes: a join still in flight
+            // finishes first or finds no team, instead of landing on a deleted one.
+            await tx
+              .select({ id: hackathonTeams.id })
+              .from(hackathonTeams)
+              .where(eq(hackathonTeams.id, team.id))
+              .for("update");
+
             const project = await tx.query.hackathonProjects.findFirst({
               where: eq(hackathonProjects.teamId, team.id),
             });

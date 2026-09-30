@@ -32,11 +32,20 @@ export function ModalWrapper({
 }: ModalWrapperProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Read through a ref so the effect below runs once per open. Keyed on
+  // onClose, a caller whose handler changes identity (one that depends on a
+  // pending flag) ran the cleanup mid-dialog: focus went back to the page and
+  // then jumped to the panel, out of whatever control the user was in.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     const returnFocusTo = document.activeElement as HTMLElement | null;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKeyDown);
 
@@ -53,7 +62,7 @@ export function ModalWrapper({
       document.body.style.overflow = previousOverflow;
       returnFocusTo?.focus?.();
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
