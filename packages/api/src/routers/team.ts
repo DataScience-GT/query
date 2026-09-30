@@ -673,13 +673,18 @@ export const teamRouter = createTRPCRouter({
       z.object({
         hackathonId: z.string().uuid(),
         teamId: z.string().uuid().optional(), // Can be solo
-        name: z.string().min(1, "Project name is required"),
+        name: z
+          .string()
+          .trim()
+          .min(1, "Project name is required")
+          .max(120, "Project name must be 120 characters or fewer"),
         description: z
           .string()
-          .min(10, "Description must be at least 10 characters"),
-        technologies: z.array(z.string()).optional(),
-        tracks: z.array(z.string()).optional(),
-        challenges: z.array(z.string()).optional(),
+          .min(10, "Description must be at least 10 characters")
+          .max(5000, "Description must be 5,000 characters or fewer"),
+        technologies: z.array(z.string().max(60)).max(30).optional(),
+        tracks: z.array(z.string().max(100)).max(20).optional(),
+        challenges: z.array(z.string().max(100)).max(20).optional(),
         // Judge routing filters on exactly this, and nothing else ever set it — every
         // CreateX judge got an empty pool.
         isCreateX: z.boolean().optional(),
@@ -742,6 +747,17 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
+      // Judge routing matches on these strings, so only what this hackathon
+      // offers is kept. Dropped rather than refused: the form pre-fills a saved
+      // project's tracks but only shows current ones, so a track removed since
+      // could not be unticked and every edit would fail.
+      const offered = (allowed: string[] | null, picked?: string[]) =>
+        picked && allowed?.length
+          ? picked.filter((value) => allowed.includes(value))
+          : picked;
+      input.tracks = offered(hackathon.tracks, input.tracks);
+      input.challenges = offered(hackathon.challenges, input.challenges);
+
       const now = new Date();
       const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
       const window = computeSubmissionWindow(baseTime, now);
@@ -790,9 +806,18 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
-            // A team can only withdraw before judging has the project, so a withdrawn
-            // judging entry means an organiser pulled it. Re-saving would put it back
-            // in the gallery as submitted while judging keeps ignoring it.
+            // An organiser pulled it: re-saving would put it back in the gallery.
+            // The column covers a pull before judging; the judging row covers
+            // pulls made before the column existed (a team can only withdraw
+            // before judging has the project, so a withdrawn judging entry means
+            // an organiser did it).
+            if (existingProject?.withdrawnByAdminAt) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message:
+                  "An organiser withdrew this project, so it can no longer be resubmitted.",
+              });
+            }
             if (existingProject) {
               const pulled = await tx.query.judgingProjects.findFirst({
                 where: and(
