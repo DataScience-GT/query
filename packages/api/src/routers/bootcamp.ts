@@ -10,7 +10,7 @@ import {
   users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { currentTerm } from "@query/db/services/membership";
+import { compareTerms, currentTerm } from "@query/db/services/membership";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
 import { isUniqueViolation } from "../middleware/db-errors";
@@ -509,8 +509,9 @@ export const bootcampRouter = createTRPCRouter({
       // A term with files but no event rows must still be selectable.
       terms: [...new Set([...eventTerms, ...workshopTerms].map((row) => row.term))]
         .filter((row): row is string => !!row)
-        .sort()
-        .reverse(),
+        // Newest first by season, not alphabet: "2026-spring" sorts after
+        // "2026-fall" as a string.
+        .sort((a, b) => compareTerms(b, a)),
       sessions: sessions.map((session) => ({
         ...session,
         attendance: perSession.get(session.id) ?? 0,

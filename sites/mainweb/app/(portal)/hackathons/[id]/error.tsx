@@ -50,7 +50,7 @@ export default function Error({
             <br />
             <br />
             <span className="text-red-400/80 text-xs bg-red-500/10 px-3 py-1 rounded border border-red-500/10">
-              {error.message || "Unknown rendering exception"}
+              Something went wrong. Try again later.
             </span>
           </p>
 

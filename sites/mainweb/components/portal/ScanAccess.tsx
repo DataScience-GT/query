@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -18,12 +19,16 @@ export function ScanAccess({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data: portalContext, isLoading } = usePortalContext();
 
+  useEffect(() => {
+    if (status === "unauthenticated") router.push(loginHref());
+  }, [status, router]);
+
   if (status === "loading" || isLoading) {
     return <LoadingScreen message="Checking access…" />;
   }
 
   if (status === "unauthenticated") {
-    router.push(loginHref());
+    // The effect above navigates; pushing during render fired it repeatedly.
     return null;
   }
 
