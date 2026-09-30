@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (!db) {
       console.error("[verify-email] Database connection not available");
       return NextResponse.json(
-        { success: false, error: "Server configuration error." },
+        { success: false, error: "Something went wrong. Please try again later." },
         { status: 500 },
       );
     }
@@ -122,11 +122,15 @@ export async function POST(request: NextRequest) {
         return { error: "Code has expired. Please request a new one." };
       }
 
-      // Find or create user
+      // Find or create user. Case-insensitive: OAuth sign-ups keep the case
+      // the provider sent ("John.Doe@gatech.edu"), and an exact match against
+      // this lowercased address missed them and created a second account.
       let user = await tx
         .select()
         .from(users)
-        .where(eq(users.email, identifier))
+        .where(sql`lower(${users.email}) = ${identifier}`)
+        .orderBy(sql`${users.emailVerified} asc nulls last`)
+        .limit(1)
         .then((r) => r[0] ?? null);
 
       if (!user) {
@@ -179,57 +183,68 @@ export async function POST(request: NextRequest) {
       }
 
       // --- Auto-link: Link Stripe payment if matching email exists ---
+      // In a savepoint: a failed query aborts the whole Postgres transaction, so
+      // catching it without one turned the COMMIT below into a silent ROLLBACK —
+      // the session was never stored and the user bounced back to /login.
       try {
-        const payment = await tx.query.stripePayments.findFirst({
-          where: and(
-            eq(stripePayments.customerEmail, identifier),
-            isNull(stripePayments.linkedUserId),
-            eq(stripePayments.paymentStatus, "paid"),
-          ),
-        });
+        await tx.transaction(async (link) => {
+          const payment = await link.query.stripePayments.findFirst({
+            where: and(
+              eq(stripePayments.customerEmail, identifier),
+              isNull(stripePayments.linkedUserId),
+              eq(stripePayments.paymentStatus, "paid"),
+            ),
+          });
+          if (!payment) return;
 
-        if (payment) {
           // Check no existing link for this user
-          const existingLink = await tx.query.userAccountLinks.findFirst({
+          const existingLink = await link.query.userAccountLinks.findFirst({
             where: eq(userAccountLinks.userId, user.id),
           });
+          if (existingLink) return;
 
-          if (!existingLink) {
-            const names = (user.name || "Member").split(" ");
-            const firstName = names[0] || "Member";
-            const lastName = names.slice(1).join(" ") || "Member";
+          // The link is the claim: a payment somebody else linked in the
+          // meantime must not grant a second membership.
+          const claimed = await link
+            .update(stripePayments)
+            .set({
+              linkedUserId: user.id,
+              linkedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(stripePayments.id, payment.id),
+                isNull(stripePayments.linkedUserId),
+              ),
+            );
+          if (claimed.rowCount === 0) return;
 
-            await tx.insert(userAccountLinks).values({
-              userId: user.id,
-              stripePaymentId: payment.id,
-              providedFirstName: firstName,
-              providedLastName: lastName,
-              providedEmail: identifier,
-            });
+          const names = (user.name || "Member").split(" ");
+          const firstName = names[0] || "Member";
+          const lastName = names.slice(1).join(" ") || "Member";
 
-            await tx
-              .update(stripePayments)
-              .set({
-                linkedUserId: user.id,
-                linkedAt: new Date(),
-                updatedAt: new Date(),
-              })
-              .where(eq(stripePayments.id, payment.id));
+          await link.insert(userAccountLinks).values({
+            userId: user.id,
+            stripePaymentId: payment.id,
+            providedFirstName: firstName,
+            providedLastName: lastName,
+            providedEmail: identifier,
+          });
 
-            // One shared implementation rather than a fourth copy: this one
-            // used to restart the term from today on renewal (discarding
-            // remaining months), write no membership_history row, and refuse
-            // outright when no hackathon edition was open.
-            await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-              userId: user.id,
-              firstName,
-              lastName,
-              bootcampMember: paidForBootcamp(payment.metadata),
-              addOnOnly: isBootcampAddOnOnly(payment.metadata),
-              plan: planFromMetadata(payment.metadata),
-            });
-          }
-        }
+          // One shared implementation rather than a fourth copy: this one
+          // used to restart the term from today on renewal (discarding
+          // remaining months), write no membership_history row, and refuse
+          // outright when no hackathon edition was open.
+          await createOrUpdateMembership(link as unknown as DrizzleDB, {
+            userId: user.id,
+            firstName,
+            lastName,
+            bootcampMember: paidForBootcamp(payment.metadata),
+            addOnOnly: isBootcampAddOnOnly(payment.metadata),
+            plan: planFromMetadata(payment.metadata),
+          });
+        });
       } catch (linkError) {
         console.error("[verify-email] Auto-link error:", linkError);
         // Don't fail the login if auto-link fails, just log it

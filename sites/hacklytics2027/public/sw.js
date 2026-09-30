@@ -1,7 +1,9 @@
 // Service Worker for Hacklytics 2027 — Digital Bloom
 // Implements cache-first for static assets, stale-while-revalidate for pages
 
-const CACHE_VERSION = "hacklytics-v2";
+// Bumped when cached assets must be dropped: v3 flushes images that v2 served
+// cache-first forever under unchanged filenames.
+const CACHE_VERSION = "hacklytics-v3";
 
 // Shell routes worth having offline. 404 is included so a bad link still
 // renders the themed page instead of the browser's offline error.
@@ -60,15 +62,21 @@ self.addEventListener("activate", (event) => {
 // ---------- Fetch strategies ----------
 
 /**
- * Determine whether a request targets a static asset that changes rarely.
- * Matches _next/static bundles, images, fonts, and stylesheets.
+ * Fingerprinted build output: a changed file gets a new name, so a cached copy
+ * is never stale.
  */
 function isStaticAsset(url) {
-  if (url.pathname.includes("/_next/static/")) return true;
+  return url.pathname.includes("/_next/static/");
+}
 
-  const staticExtensions =
-    /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|avif|ico)$/i;
-  return staticExtensions.test(url.pathname);
+/**
+ * Files from public/ keep their names when replaced. Served cache-first they
+ * never updated for a returning visitor, so they revalidate in the background.
+ */
+function isPublicAsset(url) {
+  return /\.(woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|avif|ico)$/i.test(
+    url.pathname,
+  );
 }
 
 /**
@@ -174,6 +182,8 @@ self.addEventListener("fetch", (event) => {
 
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(event.request));
+  } else if (isPublicAsset(url)) {
+    event.respondWith(staleWhileRevalidate(event.request));
   } else if (isNavigationRequest(event.request, url)) {
     event.respondWith(
       event.preloadResponse

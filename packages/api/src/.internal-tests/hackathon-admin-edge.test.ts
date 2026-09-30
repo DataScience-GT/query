@@ -604,6 +604,39 @@ describe("Hackathon admin management edge cases", () => {
       expect(res.emailed).toBe(1);
       expect(res.failedEmails).toEqual(["ada@example.com"]);
     });
+
+    // A resend mid-event with "select all" includes people already in the
+    // room. Accepting them again would undo check-in, which submitting needs.
+    it("leaves checked-in participants alone, even on resend", async () => {
+      const caller = adminCaller({ hackathons: { name: "Hacklytics 2027" } });
+      mockFindMany.mockReturnValue([
+        {
+          id: PART_A1,
+          hackathonId: HACK_A,
+          registrationStatus: "checked_in",
+          user: { email: "ada@example.com" },
+        },
+        {
+          id: PART_A2,
+          hackathonId: HACK_A,
+          registrationStatus: "pending",
+          user: { email: "alan@example.com" },
+        },
+      ]);
+
+      const res = await caller.hackathon.sendMassAcceptanceEmails({
+        hackathonId: HACK_A,
+        participantIds: [PART_A1, PART_A2],
+        resend: true,
+      });
+
+      expect(res.approved).toBe(1);
+      expect(res.emailed).toBe(1);
+      expect(mockSendAcceptanceEmail).toHaveBeenCalledTimes(1);
+      expect(mockSendAcceptanceEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ email: "alan@example.com" }),
+      );
+    });
   });
 
   // =====================================================================

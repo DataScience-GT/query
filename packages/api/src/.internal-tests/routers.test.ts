@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { cache } from "../middleware/cache";
 import { db } from "@query/db";
 import { errorFormatter } from "../trpc";
@@ -505,6 +506,31 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
       expect(formatted.message).toBe("An unexpected error occurred");
       expect(formatted.message).not.toContain("secret_password_value");
+    });
+
+    // The default message is a JSON dump of the raw issues, which most of the
+    // UI renders as is.
+    it("replaces the Zod issue dump with the issue messages", () => {
+      const zodError = z
+        .object({ id: z.string().uuid("Invalid hackathon ID") })
+        .safeParse({ id: "nope" }).error!;
+      const trpcError = new TRPCError({
+        code: "BAD_REQUEST",
+        message: JSON.stringify(zodError.issues),
+        cause: zodError,
+      });
+
+      const formatted = errorFormatter({
+        shape: {
+          message: trpcError.message,
+          code: -32600,
+          data: { code: "BAD_REQUEST", httpStatus: 400 },
+        },
+        error: trpcError,
+      });
+
+      expect(formatted.message).toBe("Invalid hackathon ID");
+      expect(formatted.data.zodError).not.toBeNull();
     });
 
     it("should retain detailed error messages in development mode", () => {

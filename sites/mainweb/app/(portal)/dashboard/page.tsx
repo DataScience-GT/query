@@ -3,10 +3,13 @@
 import { useSession, signOut } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
-import { usePortalContext } from "@/lib/use-portal-context";
+import {
+  useInvalidatePortalContext,
+  usePortalContext,
+} from "@/lib/use-portal-context";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
@@ -113,10 +116,25 @@ export default function Dashboard() {
       r.hackathon.endDate ? new Date(r.hackathon.endDate) < now : false,
     ) ?? [];
 
-  const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation();
+  // A link made here changes membership, so the page has to re-read it — or it
+  // keeps showing the pay button to somebody who has already paid.
+  const utils = trpc.useUtils();
+  const invalidatePortalContext = useInvalidatePortalContext();
+  const { mutate: attemptAutoLink } = trpc.stripe.attemptAutoLink.useMutation({
+    onSuccess: (data) => {
+      if (!data.success) return;
+      void utils.member.checkStatus.invalidate();
+      invalidatePortalContext();
+    },
+  });
+  // Once per visit. `session` changes identity on every refetch (window focus),
+  // and each re-fire past the first only hits the server's 10s throttle.
+  const autoLinkFired = useRef(false);
   useEffect(() => {
-    if (session) attemptAutoLink();
-  }, [session, attemptAutoLink]);
+    if (status !== "authenticated" || autoLinkFired.current) return;
+    autoLinkFired.current = true;
+    attemptAutoLink();
+  }, [status, attemptAutoLink]);
   useEffect(() => {
     if (status === "unauthenticated") router.push(loginHref());
   }, [status, router]);
