@@ -5,6 +5,7 @@ import {
   hackathonParticipants,
   hackathonProjects,
   hackathonResults,
+  judgeQueue,
   judgingProjects,
 } from "@query/db";
 import { eq, and, inArray, isNotNull } from "drizzle-orm";
@@ -108,10 +109,26 @@ export const hackathonContentRouter = createTRPCRouter({
       // The judging entry has to go with it, or the CONFLICT message above is a
       // lie: judges keep being routed to the table, the votes keep counting, and
       // the project can still be published as a placing.
-      await db
+      const pulled = await db
         .update(judgingProjects)
         .set({ withdrawnAt: new Date() })
-        .where(eq(judgingProjects.sourceProjectId, input.projectId));
+        .where(eq(judgingProjects.sourceProjectId, input.projectId))
+        .returning({ id: judgingProjects.id });
+
+      // Unscored slots go too. Every queue read (next table, vote, complete and
+      // next) otherwise kept sending judges to a table scan-to-start refuses.
+      // Completed slots stay: their votes are the record.
+      if (pulled.length > 0) {
+        await db.delete(judgeQueue).where(
+          and(
+            inArray(
+              judgeQueue.projectId,
+              pulled.map((row) => row.id),
+            ),
+            eq(judgeQueue.isCompleted, false),
+          ),
+        );
+      }
 
       await recordAdminAction(db, {
         userId: ctx.userId,
