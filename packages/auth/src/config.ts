@@ -242,6 +242,15 @@ export const authConfig: NextAuthConfig = {
     error: "/auth/error",
   },
   callbacks: {
+    // allowDangerousEmailAccountLinking trusts the address to be the user's own.
+    // Auth.js's Google provider never checks email_verified, so an unverified
+    // Google address could be linked into the member who owns it.
+    async signIn({ account, profile }) {
+      if (account?.provider === "google" && profile?.email_verified === false) {
+        return false;
+      }
+      return true;
+    },
     // No database work beyond what the adapter already did. With the database
     // session strategy this runs on every request, so anything queried here is
     // queried once per request per user — a judge lookup used to live here and

@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
 import { gte, lt } from "drizzle-orm";
+import { startOfEasternDay } from "@query/api/eastern-time";
 import Link from "next/link";
 
 /**
@@ -45,21 +46,26 @@ const listedColumns = {
 
 // From the start of today, so an event running this afternoon counts as
 // upcoming until it is actually over rather than dropping off at lunchtime.
-function startOfToday() {
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  return since;
-}
+// In Atlanta, not the server's UTC: midnight UTC is 8pm here, which dropped
+// an evening event while it was still running.
+const startOfToday = () => startOfEasternDay(new Date());
 
 async function loadUpcoming() {
   if (!db) return [];
 
-  return await db.query.events.findMany({
-    where: gte(events.eventDate, startOfToday()),
-    orderBy: (event, { asc }) => [asc(event.eventDate)],
-    limit: 20,
-    columns: listedColumns,
-  });
+  // Same as /projects: a database that is asleep or unreachable renders an
+  // empty list instead of failing the build or the revalidation.
+  try {
+    return await db.query.events.findMany({
+      where: gte(events.eventDate, startOfToday()),
+      orderBy: (event, { asc }) => [asc(event.eventDate)],
+      limit: 20,
+      columns: listedColumns,
+    });
+  } catch (error) {
+    console.error("Failed to load upcoming events", error);
+    return [];
+  }
 }
 
 /**
@@ -70,12 +76,17 @@ async function loadUpcoming() {
 async function loadPast() {
   if (!db) return [];
 
-  return await db.query.events.findMany({
-    where: lt(events.eventDate, startOfToday()),
-    orderBy: (event, { desc }) => [desc(event.eventDate)],
-    limit: 20,
-    columns: listedColumns,
-  });
+  try {
+    return await db.query.events.findMany({
+      where: lt(events.eventDate, startOfToday()),
+      orderBy: (event, { desc }) => [desc(event.eventDate)],
+      limit: 20,
+      columns: listedColumns,
+    });
+  } catch (error) {
+    console.error("Failed to load past events", error);
+    return [];
+  }
 }
 
 export default async function EventsPage() {

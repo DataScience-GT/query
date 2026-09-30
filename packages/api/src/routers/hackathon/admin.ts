@@ -16,7 +16,7 @@ import {
   hackathonEventAttendees,
   users,
 } from "@query/db";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, ne, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
 // Re-derives currentParticipants from the rows that actually hold a seat.
@@ -475,6 +475,13 @@ export const hackathonAdminRouter = createTRPCRouter({
         };
       }
 
+      // Already in the building: accepting again would undo check-in, and the
+      // email congratulates somebody on an event they are standing in.
+      const toAccept = participants.filter(
+        (participant) => participant.registrationStatus !== "checked_in",
+      );
+      const checkedIn = participants.length - toAccept.length;
+
       // One statement rather than one per recipient: this runs against the full
       // accepted list, and a 500-round-trip transaction holds a pool connection for
       // its whole duration.
@@ -488,6 +495,9 @@ export const hackathonAdminRouter = createTRPCRouter({
               participants.map((participant) => participant.id),
             ),
             eq(hackathonParticipants.hackathonId, hackathonId),
+            // Repeated in SQL for a check-in that lands after the read above:
+            // submitting a project requires checked_in.
+            ne(hackathonParticipants.registrationStatus, "checked_in"),
           ),
         );
 
@@ -503,7 +513,7 @@ export const hackathonAdminRouter = createTRPCRouter({
       // Width of the SMTP pool; the per-row marker below makes a partial batch
       // safe to resume.
       await forEachWithConcurrency(
-        participants,
+        toAccept,
         emailConcurrency(),
         async (participant) => {
           if (!participant.user?.email) return;
@@ -550,7 +560,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         resourceId: hackathonId,
         severity: "warn",
         metadata: {
-          approved: participants.length,
+          approved: toAccept.length,
+          checkedIn,
           emailed,
           alreadyEmailed,
           failed: failedEmails.length,
@@ -571,12 +582,12 @@ export const hackathonAdminRouter = createTRPCRouter({
       // 500" when 80 landed has no reason to look again.
       return {
         success: true,
-        approved: participants.length,
+        approved: toAccept.length,
         emailed,
         alreadyEmailed,
         failedEmails,
         skipped,
-        message: `Approved ${participants.length} participant(s); ${emailed} acceptance email(s) sent.${alreadyEmailed > 0 ? ` ${alreadyEmailed} had already been emailed and were left alone.` : ""}${failedEmails.length > 0 ? ` ${failedEmails.length} could not be delivered.` : ""}${skipped > 0 ? ` ${skipped} id(s) are not registered for this hackathon and were skipped.` : ""}`,
+        message: `Approved ${toAccept.length} participant(s); ${emailed} acceptance email(s) sent.${checkedIn > 0 ? ` ${checkedIn} already checked in and were left alone.` : ""}${alreadyEmailed > 0 ? ` ${alreadyEmailed} had already been emailed and were left alone.` : ""}${failedEmails.length > 0 ? ` ${failedEmails.length} could not be delivered.` : ""}${skipped > 0 ? ` ${skipped} id(s) are not registered for this hackathon and were skipped.` : ""}`,
       };
     }),
 

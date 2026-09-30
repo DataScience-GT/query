@@ -6,9 +6,11 @@ import {
   hackathonParticipants,
   hackathonProjects,
   hackathons,
+  judgingProjects,
 } from "@query/db";
-import { eq, and, or, isNull, inArray, lt, sql } from "drizzle-orm";
+import { eq, and, or, isNull, isNotNull, inArray, lt, sql } from "drizzle-orm";
 import { VOLATILE_TTL } from "../middleware/cache";
+import { isUniqueViolation } from "../middleware/db-errors";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./hackathon/visibility";
 
@@ -300,11 +302,10 @@ export const teamRouter = createTRPCRouter({
         );
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to create team: ${message}`,
+          message: "Failed to create team.",
+          cause: error,
         });
       }
     }),
@@ -428,11 +429,10 @@ export const teamRouter = createTRPCRouter({
         );
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to join team: ${message}`,
+          message: "Failed to join team.",
+          cause: error,
         });
       }
     }),
@@ -560,11 +560,10 @@ export const teamRouter = createTRPCRouter({
         );
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to leave team: ${message}`,
+          message: "Failed to leave team.",
+          cause: error,
         });
       }
     }),
@@ -648,11 +647,10 @@ export const teamRouter = createTRPCRouter({
         );
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to disband team: ${message}`,
+          message: "Failed to disband team.",
+          cause: error,
         });
       }
     }),
@@ -779,6 +777,26 @@ export const teamRouter = createTRPCRouter({
               });
             }
 
+            // A team can only withdraw before judging has the project, so a withdrawn
+            // judging entry means an organiser pulled it. Re-saving would put it back
+            // in the gallery as submitted while judging keeps ignoring it.
+            if (existingProject) {
+              const pulled = await tx.query.judgingProjects.findFirst({
+                where: and(
+                  eq(judgingProjects.sourceProjectId, existingProject.id),
+                  isNotNull(judgingProjects.withdrawnAt),
+                ),
+                columns: { id: true },
+              });
+              if (pulled) {
+                throw new TRPCError({
+                  code: "FORBIDDEN",
+                  message:
+                    "An organiser withdrew this project, so it can no longer be resubmitted.",
+                });
+              }
+            }
+
             // Team ownership from the participant record, not the nested team object —
             // otherwise this is an IDOR.
             if (teamId) {
@@ -878,11 +896,17 @@ export const teamRouter = createTRPCRouter({
         );
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
+        // Two first submissions racing (a double click) hit the unique index.
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Your project was already submitted. Refresh to edit it.",
+          });
+        }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to submit project: ${message}`,
+          message: "Failed to submit project.",
+          cause: error,
         });
       }
     }),
