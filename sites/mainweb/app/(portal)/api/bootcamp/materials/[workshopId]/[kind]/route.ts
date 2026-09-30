@@ -30,11 +30,21 @@ type Kind = "materials" | "solution";
 const isKind = (value: string): value is Kind =>
   value === "materials" || value === "solution";
 
-const storageUnavailable = () =>
+/** Staff get the cause; members only learn that files are unavailable. */
+const storageUnavailable = (isStaff: boolean) =>
   NextResponse.json(
-    { error: "Bootcamp storage is not configured. Tell an officer." },
+    {
+      error: isStaff
+        ? "Bootcamp storage is not configured. Tell an officer."
+        : "Files are unavailable right now. Try again later.",
+    },
     { status: 503 },
   );
+
+// The id goes into a uuid column; anything else makes Postgres throw, and an
+// unknown workshop is a 404, not a 500.
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 const notFound = () =>
   NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -62,8 +72,8 @@ export async function POST(
   if (!caller.isStaff) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
-  if (!isKind(kind)) return notFound();
-  if (!bootcampBucketName()) return storageUnavailable();
+  if (!isKind(kind) || !isUuid(workshopId)) return notFound();
+  if (!bootcampBucketName()) return storageUnavailable(caller.isStaff);
 
   const limit = fileRateLimit(caller.userId);
   if (!limit.allowed) {
@@ -153,8 +163,8 @@ export async function DELETE(
   if (!caller.isStaff) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
-  if (!isKind(kind)) return notFound();
-  if (!bootcampBucketName()) return storageUnavailable();
+  if (!isKind(kind) || !isUuid(workshopId)) return notFound();
+  if (!bootcampBucketName()) return storageUnavailable(caller.isStaff);
 
   const limit = fileRateLimit(caller.userId);
   if (!limit.allowed) {
@@ -206,8 +216,8 @@ export async function GET(
   if (!caller.userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
-  if (!isKind(kind)) return notFound();
-  if (!bootcampBucketName()) return storageUnavailable();
+  if (!isKind(kind) || !isUuid(workshopId)) return notFound();
+  if (!bootcampBucketName()) return storageUnavailable(caller.isStaff);
 
   const limit = fileRateLimit(caller.userId);
   if (!limit.allowed) {

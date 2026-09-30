@@ -32,15 +32,29 @@ async function currentEdition() {
   });
 }
 
+// Read in Atlanta, not the server's UTC, or an evening start lands on the next
+// day in the title and link preview.
+const eastern = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return { year: part("year"), month: part("month"), day: part("day") };
+};
+
 const formatRange = (start: Date, end: Date) => {
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const from = start.toLocaleDateString("en-US", opts);
+  const from = eastern(start);
+  const to = eastern(end);
   // "Feb 26–28, 2027" rather than "Feb 26–Feb 28, 2027" within one month.
-  const to =
-    start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-      ? end.getDate()
-      : end.toLocaleDateString("en-US", opts);
-  return `${from}–${to}, ${end.getFullYear()}`;
+  const toLabel =
+    from.month === to.month && from.year === to.year
+      ? to.day
+      : `${to.month} ${to.day}`;
+  return `${from.month} ${from.day}–${toLabel}, ${to.year}`;
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -171,8 +185,12 @@ async function EventJsonLd() {
   return (
     <script
       type="application/ld+json"
-      // Serialised by us from typed columns, not user input.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      // The name, description and location are admin-edited free text, so a
+      // "</script>" in one would end this tag early. Escaping "<" keeps the
+      // JSON identical to a parser and inert to the HTML one.
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+      }}
     />
   );
 }

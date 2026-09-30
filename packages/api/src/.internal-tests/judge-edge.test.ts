@@ -1884,6 +1884,17 @@ describe("Judge edge cases", () => {
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
+    // An upsert alone keeps the placing of a project withdrawn since the last
+    // compute, and publishResults would announce it with the rest.
+    it("clears the previous snapshot before writing the new one", async () => {
+      wireResults({ judgingActive: false });
+
+      await adminCaller().judge.computeResults({ hackathonId: HACK_A });
+
+      expect(mockDelete).toHaveBeenCalledTimes(1);
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
     it("refuses to publish when nothing has been computed", async () => {
       wireResults({ judgingActive: false });
       mockUpdate.mockReturnValue([]);

@@ -30,6 +30,8 @@ const mockInsert = vi.fn();
 /** The values handed to `.set()`, so a test can tell an add-on stamp from a
  *  renewal — the two differ only in which columns move. */
 const mockUpdateSet = vi.fn();
+/** What an UPDATE resolves to; rowCount 0 is a claim somebody else won. */
+const mockUpdateResult = vi.fn<() => unknown>(() => ({ rowCount: 1 }));
 
 /**
  * The Stripe SDK is stubbed so no test reaches the network.
@@ -100,12 +102,17 @@ vi.mock("@query/db", () => {
       update: () => ({
         set: (values: unknown) => {
           mockUpdateSet(values);
-          return { where: vi.fn().mockResolvedValue(undefined) };
+          return { where: vi.fn(async () => mockUpdateResult()) };
         },
       }),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
-          where: vi.fn().mockResolvedValue([]),
+          // Awaitable directly, or through .for("update") for a row lock.
+          where: vi.fn().mockImplementation(() =>
+            Object.assign(Promise.resolve([]), {
+              for: vi.fn().mockResolvedValue([]),
+            }),
+          ),
         })),
       })),
     },
@@ -163,6 +170,7 @@ describe("Membership payments", () => {
       throw new Error(`No such payment_intent: ${id}`);
     });
     mockConflictReturning.mockImplementation(() => [{ id: "payment_row" }]);
+    mockUpdateResult.mockImplementation(() => ({ rowCount: 1 }));
     // Both are set per-test; clearing here keeps one test's mode from leaking
     // into the next.
     delete process.env.STRIPE_SECRET_KEY;
@@ -422,6 +430,38 @@ describe("Membership payments", () => {
         }),
       ).resolves.toMatchObject({ success: true });
       expect(membershipWritten()).toBe(false);
+    });
+
+    // A recorded-but-unlinked payment is linked and granted here. The link is
+    // the claim: a double submit that loses it must not grant a second year.
+    describe("a recorded payment nobody has linked", () => {
+      beforeEach(() => {
+        mockRetrieve.mockImplementation(() => intent());
+        const users = mockFindFirst.getMockImplementation()!;
+        mockFindFirst.mockImplementation((table, ...rest) =>
+          table === "stripePayments"
+            ? { id: "payment_row", linkedUserId: null }
+            : users(table, ...rest),
+        );
+      });
+
+      it("links and grants it", async () => {
+        await caller().stripe.confirmMembershipAfterPayment({
+          paymentIntentId: "pi_live_1",
+        });
+
+        expect(membershipWritten()).toBe(true);
+      });
+
+      it("grants nothing when a concurrent call linked it first", async () => {
+        mockUpdateResult.mockImplementation(() => ({ rowCount: 0 }));
+
+        await caller().stripe.confirmMembershipAfterPayment({
+          paymentIntentId: "pi_live_1",
+        });
+
+        expect(membershipWritten()).toBe(false);
+      });
     });
   });
 

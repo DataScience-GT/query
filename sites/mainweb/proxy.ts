@@ -48,14 +48,20 @@ function getCacheControl(pathname: string): string {
   if (pathname === "/") {
     return "public, max-age=300, must-revalidate";
   }
+  // Must match next.config.mjs: this runs after it and would overwrite its day
+  // of caching with no-store, re-downloading the school list on every step.
+  if (pathname === "/schools.json") {
+    return "public, max-age=86400, stale-while-revalidate=604800";
+  }
   // Assets under public/. Hashed build output never reaches here — the matcher
   // below excludes _next/static.
-  if (
-    pathname.match(
-      /\.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/,
-    )
-  ) {
+  if (pathname.match(/\.(js|css|woff|woff2|ttf|eot)$/)) {
     return "public, max-age=31536000, immutable";
+  }
+  // Images keep their filename when replaced, so a year of "immutable" kept
+  // the old one on screen for every returning visitor.
+  if (pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp)$/)) {
+    return "public, max-age=86400, stale-while-revalidate=604800";
   }
   if (pathname.startsWith("/events") || pathname.startsWith("/projects")) {
     return "public, max-age=3600, stale-while-revalidate=86400";
