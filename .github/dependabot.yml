@@ -7,6 +7,8 @@ version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    # Bumps go through dev like any other change; main deploys to production.
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     labels:
@@ -14,6 +16,7 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     labels:
