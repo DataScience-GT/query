@@ -286,12 +286,13 @@ export default function AdminBootcampPage() {
     if (!selected) return;
     setIsSaving(true);
     setError(null);
+    // A network failure otherwise leaves isSaving set and the modal stuck.
     const response = await fetch(
       `/api/bootcamp/materials/${selected.id}/${kind}`,
       { method: "DELETE" },
-    );
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as {
+    ).catch(() => null);
+    if (!response?.ok) {
+      const body = (await response?.json().catch(() => null)) as {
         error?: string;
       } | null;
       setError(body?.error ?? `Could not remove ${kind}.`);
@@ -329,9 +330,9 @@ export default function AdminBootcampPage() {
     setNotice(null);
     const response = await fetch(`/api/bootcamp/materials/${row.id}`, {
       method: "DELETE",
-    });
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as {
+    }).catch(() => null);
+    if (!response?.ok) {
+      const body = (await response?.json().catch(() => null)) as {
         error?: string;
       } | null;
       setError(body?.error ?? "Could not delete workshop.");

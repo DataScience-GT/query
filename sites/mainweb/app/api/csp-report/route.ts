@@ -31,7 +31,10 @@ export async function POST(request: NextRequest) {
      * Content-Length is refused too: this endpoint is unauthenticated, and a
      * browser sending a violation report always declares one.
      */
-    const declared = Number(request.headers.get("content-length"));
+    // Number(null) is 0, so an absent header has to be caught before the
+    // conversion or a chunked body of any size gets through.
+    const header = request.headers.get("content-length");
+    const declared = header === null ? NaN : Number(header);
 
     if (!Number.isFinite(declared) || declared > MAX_REPORT_BYTES) {
       return new NextResponse(null, { status: 413 });

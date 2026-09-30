@@ -405,40 +405,57 @@ export const judgeRankingsRouter = createTRPCRouter({
       // a worse thing to tell a team than nothing at all.
       const placed = rankings.filter((row) => row.voteCount > 0);
 
+      // Replace, not merge: an upsert alone leaves the placing of a project
+      // withdrawn since the last compute, and it gets published with the rest.
+      // Nothing here is published — checked above.
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(hackathonResults)
+          .where(
+            and(
+              eq(hackathonResults.hackathonId, input.hackathonId),
+              eq(hackathonResults.track, "overall"),
+              isNull(hackathonResults.publishedAt),
+            ),
+          );
+
+        if (placed.length === 0) return;
+
+        await tx
+          .insert(hackathonResults)
+          .values(
+            placed.map((row, index) => ({
+              hackathonId: input.hackathonId,
+              projectId: row.project.id,
+              sourceProjectId: row.project.sourceProjectId ?? null,
+              // Never null — see the column comment. A NULL silently defeats
+              // result_unique_placing and duplicates the ordering.
+              track: "overall",
+              placement: index + 1,
+              weightedScore: row.weightedScore.toFixed(2),
+              voteCount: row.voteCount,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: [
+              hackathonResults.hackathonId,
+              hackathonResults.projectId,
+              hackathonResults.track,
+            ],
+            set: {
+              placement: sql`excluded.placement`,
+              weightedScore: sql`excluded.weighted_score`,
+              voteCount: sql`excluded.vote_count`,
+              computedAt: sql`now()`,
+            },
+          });
+      });
+
+      ctx.cache.delete(`hackathon:${input.hackathonId}:results`);
+
       if (placed.length === 0) {
         return { computed: 0, unjudged: rankings.length };
       }
-
-      await db
-        .insert(hackathonResults)
-        .values(
-          placed.map((row, index) => ({
-            hackathonId: input.hackathonId,
-            projectId: row.project.id,
-            sourceProjectId: row.project.sourceProjectId ?? null,
-            // Never null — see the column comment. A NULL silently defeats
-            // result_unique_placing and duplicates the ordering.
-            track: "overall",
-            placement: index + 1,
-            weightedScore: row.weightedScore.toFixed(2),
-            voteCount: row.voteCount,
-          })),
-        )
-        .onConflictDoUpdate({
-          target: [
-            hackathonResults.hackathonId,
-            hackathonResults.projectId,
-            hackathonResults.track,
-          ],
-          set: {
-            placement: sql`excluded.placement`,
-            weightedScore: sql`excluded.weighted_score`,
-            voteCount: sql`excluded.vote_count`,
-            computedAt: sql`now()`,
-          },
-        });
-
-      ctx.cache.delete(`hackathon:${input.hackathonId}:results`);
 
       // Reported separately so an organiser can see that, say, 40 of 300 projects
       // were never reached before they publish.
@@ -454,7 +471,9 @@ export const judgeRankingsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).query.hackathonResults.findMany({
         where: eq(hackathonResults.hackathonId, input.hackathonId),
-        with: { project: { columns: { id: true, name: true, tableNumber: true } } },
+        with: {
+          project: { columns: { id: true, name: true, tableNumber: true } },
+        },
         orderBy: (results, { asc }) => [asc(results.placement)],
       });
     }),

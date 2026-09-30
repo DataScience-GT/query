@@ -20,12 +20,19 @@ export const errorFormatter = ({
   error: TRPCError;
 }) => {
   const isDev = process.env.NODE_ENV === "development";
+  // tRPC's message for a validation failure is a JSON dump of the raw issues,
+  // and most of the UI renders `message` as is. The issue text alone reads as
+  // a sentence; the flattened form stays in `zodError` for field-level use.
+  const zodMessage =
+    error.cause instanceof ZodError
+      ? error.cause.issues.map((issue) => issue.message).join(" ")
+      : null;
   return {
     ...shape,
     message:
       error.code === "INTERNAL_SERVER_ERROR" && !isDev
         ? "An unexpected error occurred"
-        : shape.message,
+        : zodMessage || shape.message,
     data: {
       ...shape.data,
       zodError:
@@ -57,7 +64,7 @@ const requiresDb = t.middleware(async ({ ctx, next }) => {
   if (!ctx.db) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
-      message: "Database unavailable",
+      message: "Service unavailable. Try again later.",
     });
   }
 

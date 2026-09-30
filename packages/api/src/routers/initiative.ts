@@ -376,6 +376,18 @@ export const initiativeRouter = createTRPCRouter({
         });
       }
 
+      // A proposal goes live only through reviewProposal. Without this a leader
+      // whose proposal was declined could open it anyway.
+      if (
+        initiative.status === "proposed" ||
+        initiative.status === "declined"
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This proposal has not been approved yet.",
+        });
+      }
+
       const [updated] = await db
         .update(initiatives)
         .set({ status: input.status, updatedAt: new Date() })
@@ -992,7 +1004,9 @@ export const initiativeRouter = createTRPCRouter({
           });
         }
 
-        await tx
+        // Status in the WHERE too: two admins deciding at once both pass the
+        // read above, and only one of them may apply.
+        const [reviewed] = await tx
           .update(initiatives)
           .set({
             status: input.decision === "approve" ? "draft" : "declined",
@@ -1001,7 +1015,20 @@ export const initiativeRouter = createTRPCRouter({
             reviewNote: input.note ?? null,
             updatedAt: new Date(),
           })
-          .where(eq(initiatives.id, proposal.id));
+          .where(
+            and(
+              eq(initiatives.id, proposal.id),
+              eq(initiatives.status, "proposed"),
+            ),
+          )
+          .returning({ id: initiatives.id });
+
+        if (!reviewed) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That proposal has already been reviewed.",
+          });
+        }
 
         if (input.decision === "approve") {
           const existing = await tx.query.projectLeaders.findFirst({
