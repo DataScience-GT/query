@@ -10,8 +10,8 @@ function AuthErrorContent() {
 
   const errorMessages: Record<string, { title: string; desc: string }> = {
     Configuration: {
-      title: "Configuration_Error",
-      desc: "There is a problem with the server configuration. Check NEXTAUTH_URL and NEXTAUTH_SECRET.",
+      title: "Service_Unavailable",
+      desc: "Sign-in is unavailable right now. Please try again later.",
     },
     AccessDenied: {
       title: "Access_Denied",
@@ -53,7 +53,7 @@ function AuthErrorContent() {
           Auth_<span className="text-red-500">Error</span>
         </h1>
         <p className="text-xs font-mono text-text-muted uppercase tracking-[0.4em] mb-4">
-          Status_Code: 401 // Type: {error || "Unknown"}
+          Status_Code: 401
         </p>
         <div className="h-[1px] w-12 bg-red-500/30 mx-auto transition-ui group-hover:w-24" />
         <h2 className="text-xl font-bold text-gray-200 uppercase">{title}</h2>

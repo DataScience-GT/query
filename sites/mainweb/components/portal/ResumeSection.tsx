@@ -177,7 +177,14 @@ export function ResumeSection() {
             </div>
           </div>
 
-          {preview && <ResumePreview src="/api/resume/me" title="Your resume" />}
+          {/* Versioned by upload time: a fixed src kept the old PDF on screen
+              after Replace. */}
+          {preview && (
+            <ResumePreview
+              src={`/api/resume/me?v=${new Date(resume.uploadedAt).getTime()}`}
+              title="Your resume"
+            />
+          )}
         </>
       ) : (
         <button

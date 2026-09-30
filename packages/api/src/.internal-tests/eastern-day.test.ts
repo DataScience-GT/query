@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { startOfEasternDay } from "../routers/admin";
+import { startOfEasternDay } from "../services/eastern-time";
 
 describe("startOfEasternDay", () => {
   it.each([

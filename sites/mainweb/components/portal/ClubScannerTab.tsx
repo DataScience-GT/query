@@ -85,11 +85,12 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && email.trim()) {
+              if (e.key === "Enter" && email.trim() && !manual.isPending) {
                 manual.mutate({ eventId, email: email.trim() });
               }
             }}
             placeholder="or check in by email"
+            aria-label="Check in by email"
             className="flex-1 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
           />
           <button

@@ -15,6 +15,7 @@
     "./trpc": "./src/trpc.ts",
     "./pricing": "./src/services/pricing.ts",
     "./email-limits": "./src/services/email-limits.ts",
+    "./eastern-time": "./src/services/eastern-time.ts",
     "./metrics": "./src/services/metrics.ts",
     "./portal-context": "./src/types/portal-context.ts",
     "./resume-list": "./src/services/resume-list.ts"

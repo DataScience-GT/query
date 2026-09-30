@@ -210,7 +210,10 @@ function OpenRow({
   // trip and says which file was too big.
   const readResume = (file: File | undefined) => {
     setResumeError(null);
-    if (!file) return setResume(null);
+    // Cleared first: a rejected pick must not leave the previous file attached
+    // and submitted under the error.
+    setResume(null);
+    if (!file) return;
     if (file.type !== "application/pdf") {
       return setResumeError("Your resume must be a PDF.");
     }
