@@ -131,7 +131,9 @@ export default function HomePage() {
         </a>
 
         {/* Hero content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-32 pb-20 md:pt-48 md:pb-32 flex flex-col items-center text-center animate-fade-in-up">
+        {/* Bottom padding clears the pixel garden with its soil (136px, 168px
+            from md), which covered the countdown labels on short screens. */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-32 pb-40 md:pt-48 md:pb-48 flex flex-col items-center text-center animate-fade-in-up">
 
           {/* Pill Badge */}
           <div className="pixel-frame pixel-cyan hud inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 mb-10 hover:bg-white/10 transition-colors duration-300 cursor-pointer group">
