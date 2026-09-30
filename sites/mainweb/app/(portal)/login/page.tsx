@@ -253,6 +253,7 @@ export default function Home() {
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
                     placeholder="your@email.com"
+                    aria-label="Email address"
                     disabled={emailSending || emailSent}
                     className="flex-1 sm:w-56 px-5 py-6 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[11px] rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-gray-600 disabled:opacity-30 transition-ui"
                   />

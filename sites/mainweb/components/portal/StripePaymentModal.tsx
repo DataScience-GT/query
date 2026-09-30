@@ -22,18 +22,24 @@ function CheckoutForm({
   onCancel,
   onConfirmPayment,
   onUnconfirmed,
+  onProcessingChange,
   amountCents,
 }: {
   onSuccess: () => void;
   onCancel: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
   onUnconfirmed: () => void;
+  onProcessingChange: (processing: boolean) => void;
   amountCents: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  useEffect(
+    () => onProcessingChange(processing),
+    [processing, onProcessingChange],
+  );
   const [succeeded, setSucceeded] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,64 +49,73 @@ function CheckoutForm({
     setProcessing(true);
     setError(null);
 
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      setError(submitError.message ?? "Payment failed");
-      setProcessing(false);
-      return;
-    }
-
-    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: window.location.href,
-      },
-      redirect: "if_required",
-    });
-
-    if (confirmError) {
-      setError(confirmError.message ?? "Payment failed. Please try again.");
-      setProcessing(false);
-    } else if (paymentIntent?.status === "succeeded") {
-      /**
-       * The card has cleared by this point, so the money is already gone. The
-       * server call that records it is therefore retried rather than failed on
-       * the first error — it is idempotent (keyed on the PaymentIntent id) and
-       * a transient blip here is the difference between a membership and a
-       * charge with nothing to show for it.
-       */
-      const confirmWithRetry = async () => {
-        let lastError: unknown;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            await onConfirmPayment(paymentIntent.id);
-            return true;
-          } catch (err) {
-            lastError = err;
-            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
-          }
-        }
-        throw lastError;
-      };
-
-      try {
-        await confirmWithRetry();
-        setSucceeded(true);
+    // Stripe.js rejects rather than returning { error } on an integration
+    // failure. processing would stay set, and the modal refuses to close while
+    // it is.
+    try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setError(submitError.message ?? "Payment failed");
         setProcessing(false);
-        setTimeout(() => onSuccess(), 1200);
-      } catch {
-        onUnconfirmed();
-        // Deliberately reassuring: the payment succeeded, and both the webhook
-        // and the reconcile-on-load path will pick it up. Telling someone
-        // "contact support" about money they have already paid, when it will
-        // resolve itself, generates a ticket for nothing.
-        setError(
-          "Your payment went through, but activating the membership is taking a moment. It will appear automatically — reload the portal shortly.",
-        );
+        return;
+      }
+
+      const { error: confirmError, paymentIntent } =
+        await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: window.location.href,
+          },
+          redirect: "if_required",
+        });
+
+      if (confirmError) {
+        setError(confirmError.message ?? "Payment failed. Please try again.");
+        setProcessing(false);
+      } else if (paymentIntent?.status === "succeeded") {
+        /**
+         * The card has cleared by this point, so the money is already gone. The
+         * server call that records it is therefore retried rather than failed on
+         * the first error — it is idempotent (keyed on the PaymentIntent id) and
+         * a transient blip here is the difference between a membership and a
+         * charge with nothing to show for it.
+         */
+        const confirmWithRetry = async () => {
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              await onConfirmPayment(paymentIntent.id);
+              return true;
+            } catch (err) {
+              lastError = err;
+              await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+            }
+          }
+          throw lastError;
+        };
+
+        try {
+          await confirmWithRetry();
+          setSucceeded(true);
+          setProcessing(false);
+          setTimeout(() => onSuccess(), 1200);
+        } catch {
+          onUnconfirmed();
+          // Deliberately reassuring: the payment succeeded, and both the webhook
+          // and the reconcile-on-load path will pick it up. Telling someone
+          // "contact support" about money they have already paid, when it will
+          // resolve itself, generates a ticket for nothing.
+          setError(
+            "Your payment went through, but activating the membership is taking a moment. It will appear automatically — reload the portal shortly.",
+          );
+          setProcessing(false);
+        }
+      } else {
+        setError("Unexpected payment status. Please contact support.");
         setProcessing(false);
       }
-    } else {
-      setError("Unexpected payment status. Please contact support.");
+    } catch {
+      setError("Payment failed. Please try again.");
       setProcessing(false);
     }
   };
@@ -219,16 +234,24 @@ export function StripePaymentModal({
     [publishableKey, isMock],
   );
   // Used only by the mock branch below; the real flow keeps its own state
-  // inside the Elements form.
+  // inside the Elements form and reports it through `charging`.
   const [processing, setProcessing] = useState(false);
+  const [charging, setCharging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Escape, the backdrop and the X all close — but not mid-charge. Closing
+  // then hid the outcome, and reopening mints a fresh intent the member could
+  // pay a second time.
+  const close = useCallback(() => {
+    if (!processing && !charging) onClose();
+  }, [processing, charging, onClose]);
 
   // Close on Escape
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     },
-    [onClose],
+    [close],
   );
 
   useEffect(() => {
@@ -315,7 +338,7 @@ export function StripePaymentModal({
   // Mock mode — skip real Stripe Elements
   if (isMock) {
     return (
-      <ModalShell onClose={onClose} amountCents={amountCents}>
+      <ModalShell onClose={close} amountCents={amountCents}>
         <div className="space-y-4">
           <p className="text-sm text-[var(--text-muted)] font-mono bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3">
             🧪 Dev mock mode — no real charge will occur
@@ -363,13 +386,14 @@ export function StripePaymentModal({
   if (!stripePromise) return null;
 
   return (
-    <ModalShell onClose={onClose} amountCents={amountCents}>
+    <ModalShell onClose={close} amountCents={amountCents}>
       <Elements stripe={stripePromise} options={options}>
         <CheckoutForm
           onSuccess={onSuccess}
           onCancel={onClose}
           onConfirmPayment={onConfirmPayment}
           onUnconfirmed={onUnconfirmed ?? (() => {})}
+          onProcessingChange={setCharging}
           amountCents={amountCents}
         />
       </Elements>

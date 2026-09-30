@@ -47,6 +47,16 @@ if (DATABASE_URL) {
           : undefined,
     });
 
+  // Neon suspending the compute kills idle clients, and the pool re-emits that
+  // as an "error" event. Unlistened, an EventEmitter "error" is thrown as an
+  // uncaught exception; the pool already drops the dead client on its own.
+  if (!globalForDb.conn) {
+    conn.on("error", (error) => {
+      // eslint-disable-next-line no-console
+      console.warn("[db] idle client error:", error.message);
+    });
+  }
+
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
   db = drizzle(conn, { schema });
