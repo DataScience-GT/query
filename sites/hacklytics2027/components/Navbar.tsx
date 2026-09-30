@@ -37,9 +37,21 @@ export default function Navbar() {
     const onMouseMove = (e: MouseEvent) => {
       if (e.clientY < 60) setVisible(true);
     };
+    // Opening /#faqs: html is scroll-behavior smooth, so the browser animated
+    // down from the top through the whole page, and stalled if anything moved
+    // in the meantime. Jump there instead. Then sync the header, since a page
+    // opened mid-way fires no scroll event and stayed see-through.
+    const initial = requestAnimationFrame(() => {
+      const target = window.location.hash
+        ? document.getElementById(window.location.hash.slice(1))
+        : null;
+      target?.scrollIntoView({ behavior: "instant", block: "start" });
+      onScroll();
+    });
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     return () => {
+      cancelAnimationFrame(initial);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("mousemove", onMouseMove);
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -85,8 +97,11 @@ export default function Navbar() {
         `}
         style={{ height: "var(--navbar-height)" }}
       >
-        {/* pr reserves the hanging MLH badge in the hero (owned elsewhere). */}
-        <div className="max-w-7xl mx-auto h-full flex items-center justify-between section-wrap px-6 md:pr-28">
+        {/* The right padding keeps clear of the MLH badge hanging from the top
+            right of the hero (owned elsewhere): 20px + 56px wide on phones,
+            48px + up to 90px from md. Not section-wrap: its unlayered padding
+            beat these utilities, and the badge sat on the menu toggle. */}
+        <div className="max-w-7xl mx-auto h-full flex items-center justify-between pl-6 md:pl-12 xl:pl-20 pr-[5.75rem] md:pr-40">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -98,7 +113,8 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Six links, the logo and the button do not fit below 1024px. */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {navItems.map(({ name, href }) => (
               <a
                 key={name}
@@ -116,7 +132,7 @@ export default function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Notify me. ${INTEREST_HINT}`}
-            className="pixel-btn hidden md:inline-flex items-center justify-center px-6 py-2.5 font-sans font-bold text-[11px] uppercase tracking-[0.14em] shrink-0"
+            className="pixel-btn hidden lg:inline-flex items-center justify-center px-6 py-2.5 font-sans font-bold text-[11px] uppercase tracking-[0.14em] shrink-0"
           >
             Notify me
           </a>
@@ -126,7 +142,7 @@ export default function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => setOpen((s) => !s)}
-            className="md:hidden w-11 h-11 flex flex-col justify-center items-center gap-[6px] border border-white/15 hover:border-white/40 transition-colors bg-transparent"
+            className="lg:hidden w-11 h-11 flex flex-col justify-center items-center gap-[6px] border border-white/15 hover:border-white/40 transition-colors bg-transparent"
           >
             <span
               className={`block w-4 h-[1px] bg-white transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
