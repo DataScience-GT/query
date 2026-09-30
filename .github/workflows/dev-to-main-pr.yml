@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - dev
+  # Backstop for merges the push trigger never sees. Dependabot PRs are merged
+  # by native auto-merge under GITHUB_TOKEN, and pushes made with that token
+  # start no workflows, so a bump could sit on dev with no promotion PR.
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
 
 jobs:
   create-pull-request:
@@ -19,6 +25,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A scheduled run finds dev level with main most days, and gh pr create
+          # fails with "no commits between" rather than doing nothing.
+          ahead=$(gh api "repos/${{ github.repository }}/compare/main...dev" --jq .ahead_by)
+          if [ "$ahead" = "0" ]; then
+            echo "dev has nothing ahead of main."
+            exit 0
+          fi
           # Only "a PR already exists" is expected; anything else should fail
           # the job rather than be swallowed by || true. Same-repo PRs only: a
           # fork's branch of the same name must not suppress this one.

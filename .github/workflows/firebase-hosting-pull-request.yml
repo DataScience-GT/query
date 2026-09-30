@@ -27,7 +27,10 @@ jobs:
       - name: Build Hacklytics 2027
         run: pnpm turbo run build --filter=hacklytics2027
 
+      # Dependabot PRs get no repo secrets, so the deploy would fail on a
+      # missing service account. The build above still checks the bump.
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
