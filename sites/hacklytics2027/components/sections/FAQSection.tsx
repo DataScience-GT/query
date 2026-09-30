@@ -21,7 +21,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     q: "Where do I apply?",
     a: (
       <>
-        Applications open on the DS@GT portal.{" "}
+        Applications are not open yet.{" "}
         <Link
           href={INTEREST_URL}
           target="_blank"
