@@ -103,7 +103,12 @@ export const hackathonContentRouter = createTRPCRouter({
 
       await db
         .update(hackathonProjects)
-        .set({ status: "draft", submittedAt: null, updatedAt: new Date() })
+        .set({
+          status: "draft",
+          submittedAt: null,
+          withdrawnByAdminAt: new Date(),
+          updatedAt: new Date(),
+        })
         .where(eq(hackathonProjects.id, input.projectId));
 
       // The judging entry has to go with it, or the CONFLICT message above is a
