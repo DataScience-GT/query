@@ -286,13 +286,12 @@ export const judgePortalRouter = createTRPCRouter({
           remaining: queue.length,
         };
       } catch (error) {
-        // getNextTable error
+        // A NOT_FOUND or FORBIDDEN from inside is the judge's answer, not a 500.
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch next project",
+          message: "Failed to fetch next project.",
+          cause: error,
         });
       }
     }),
@@ -695,6 +694,15 @@ export const judgePortalRouter = createTRPCRouter({
             message: "Queue item not found",
           });
 
+        // A finished slot has nothing to skip. Repeating the call on one would
+        // hand the project to one more judge each time.
+        if (queueItem.isCompleted) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This project is already done.",
+          });
+        }
+
         // Mark completed (no vote submitted)
         await tx
           .update(judgeQueue)
@@ -861,11 +869,12 @@ export const judgePortalRouter = createTRPCRouter({
           percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
         };
       } catch (error) {
-        // getProgress error
+        // A NOT_FOUND or FORBIDDEN from inside is the judge's answer, not a 500.
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error ? error.message : "Failed to fetch progress",
+          message: "Failed to fetch progress.",
+          cause: error,
         });
       }
     }),

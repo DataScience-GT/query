@@ -11,6 +11,7 @@ import {
 import type { DrizzleDB } from "@query/db";
 import { eq, and, inArray, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../middleware/security";
+import { isUniqueViolation } from "../middleware/db-errors";
 import { clearMembershipCaches as clearMembershipCachesFor } from "../middleware/cache";
 import {
   createOrUpdateMembership,
@@ -90,10 +91,17 @@ const assertKeyModesMatch = (secretKey: string) => {
   const publishableIsLive = publishable.startsWith("pk_live");
 
   if (secretIsLive !== publishableIsLive) {
+    // Members see the outage; the cause goes to the log, like describeKeyProblem.
+    logSecurityEvent({
+      type: "validation_error",
+      identifier: "stripe-config",
+      details:
+        "Stripe unavailable: secret and publishable keys are for different modes (live vs test)",
+    });
     throw new TRPCError({
       code: "SERVICE_UNAVAILABLE",
       message:
-        "Payment service is misconfigured: the Stripe secret and publishable keys are for different modes (live vs test).",
+        "Payment service is currently unavailable. Please try again later.",
     });
   }
 };
@@ -559,25 +567,37 @@ export const stripeRouter = createTRPCRouter({
 
           if (granted) membershipGrants.inc({ source: "confirm", plan });
         } else if (!existing.linkedUserId) {
-          // Payment exists but wasn't linked — link it now
-          await ctx
-            .db!.update(stripePayments)
-            .set({
-              linkedUserId: ctx.userId!,
-              linkedAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(stripePayments.id, existing.id));
-          await createOrUpdateMembership(ctx.db! as DrizzleDB, {
-            userId: ctx.userId!,
-            firstName,
-            lastName,
-            bootcampMember,
-            addOnOnly,
-            plan,
+          // Payment exists but wasn't linked — link it now. The link is the claim:
+          // a double submit must not grant twice, and every grant extends from the
+          // current end date, so a second one is a free year.
+          const granted = await ctx.db!.transaction(async (tx) => {
+            const claimed = await tx
+              .update(stripePayments)
+              .set({
+                linkedUserId: ctx.userId!,
+                linkedAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(stripePayments.id, existing.id),
+                  isNull(stripePayments.linkedUserId),
+                ),
+              );
+            if (claimed.rowCount === 0) return false;
+
+            await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+              userId: ctx.userId!,
+              firstName,
+              lastName,
+              bootcampMember,
+              addOnOnly,
+              plan,
+            });
+            return true;
           });
 
-          membershipGrants.inc({ source: "confirm", plan });
+          if (granted) membershipGrants.inc({ source: "confirm", plan });
         }
       } catch (error) {
         membershipGrantFailures.inc({ source: "confirm" });
@@ -763,16 +783,41 @@ export const stripeRouter = createTRPCRouter({
 
           if (honoured) continue;
 
-          const parts = (user?.name || "Member").trim().split(/\s+/);
-          await createOrUpdateMembership(ctx.db! as DrizzleDB, {
-            userId: ctx.userId!,
-            firstName: parts[0] || "Member",
-            lastName: parts.slice(1).join(" ") || "Member",
-            bootcampMember: pi.metadata?.bootcamp === "true",
-            addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
-            plan: readPlan(pi.metadata?.plan),
+          // This runs on every portal load, so two tabs race here. Lock the member
+          // and re-read the newest grant under the lock: the loser sees the
+          // winner's history row and stops instead of adding a second year.
+          const regranted = await ctx.db!.transaction(async (tx) => {
+            if (member) {
+              await tx
+                .select({ id: members.id })
+                .from(members)
+                .where(eq(members.id, member.id))
+                .for("update");
+              const latest = await tx.query.membershipHistory.findFirst({
+                where: eq(membershipHistory.memberId, member.id),
+                orderBy: (history, { desc }) => [desc(history.createdAt)],
+                columns: { createdAt: true },
+              });
+              if (latest && latest.createdAt >= existing.createdAt) return false;
+            }
+
+            const parts = (user?.name || "Member").trim().split(/\s+/);
+            await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+              userId: ctx.userId!,
+              firstName: parts[0] || "Member",
+              lastName: parts.slice(1).join(" ") || "Member",
+              bootcampMember: pi.metadata?.bootcamp === "true",
+              addOnOnly: pi.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE,
+              plan: readPlan(pi.metadata?.plan),
+            });
+            return true;
+          }).catch((error: unknown) => {
+            // With no member row there is nothing to lock, and the other tab's
+            // insert wins unique_member_per_user. It granted; this one has not.
+            if (isUniqueViolation(error)) return false;
+            throw error;
           });
-          recovered += 1;
+          if (regranted) recovered += 1;
           continue;
         }
 

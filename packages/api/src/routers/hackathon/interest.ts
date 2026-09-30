@@ -319,7 +319,20 @@ export const hackathonInterestRouter = createTRPCRouter({
       const claimed = await db
         .update(hackathonInterest)
         .set({ registrationOpenEmailClaimedAt: new Date() })
-        .where(inArray(hackathonInterest.id, claimable))
+        // The conditions are repeated here because Postgres re-checks only the
+        // outer WHERE after waiting on a row lock, not the subquery: without them
+        // two overlapping sends both claim the same rows. Same as announce.ts.
+        .where(
+          and(
+            inArray(hackathonInterest.id, claimable),
+            isNull(hackathonInterest.registrationOpenEmailSentAt),
+            isNull(hackathonInterest.registrationOpenEmailFailedAt),
+            or(
+              isNull(hackathonInterest.registrationOpenEmailClaimedAt),
+              lt(hackathonInterest.registrationOpenEmailClaimedAt, claimCutoff),
+            ),
+          ),
+        )
         .returning({
           id: hackathonInterest.id,
           userId: hackathonInterest.userId,

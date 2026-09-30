@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       "Stripe not initialized. Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET.",
     );
     return NextResponse.json(
-      { error: "Server configuration error" },
+      { error: "Service unavailable. Try again later." },
       { status: 500 },
     );
   }
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   if (!db) {
     console.error("Database not initialized.");
     return NextResponse.json(
-      { error: "Server configuration error" },
+      { error: "Service unavailable. Try again later." },
       { status: 500 },
     );
   }

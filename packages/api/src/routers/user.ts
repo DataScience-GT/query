@@ -112,7 +112,7 @@ export const userRouter = createTRPCRouter({
     if (!ctx.db) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Database unavailable",
+        message: "Service unavailable. Try again later.",
       });
     }
 

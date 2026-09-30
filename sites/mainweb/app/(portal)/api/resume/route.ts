@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
   if (!resumeBucketName()) {
     return NextResponse.json(
-      { error: "Resume storage is not configured. Tell an officer." },
+      { error: "Resume uploads are unavailable right now. Try again later." },
       { status: 503 },
     );
   }
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     // A missing bucket or revoked access is an outage, not a bad file.
     console.error("resume upload failed", error);
     return NextResponse.json(
-      { error: "Resume storage is unavailable right now. Tell an officer." },
+      { error: "Resume uploads are unavailable right now. Try again later." },
       { status: 502 },
     );
   }
