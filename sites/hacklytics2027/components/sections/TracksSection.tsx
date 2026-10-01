@@ -52,7 +52,7 @@ const tracks: {
 export default function TracksSection() {
   return (
     <section id="tracks" className="section-anchor relative text-white border-t border-white/[0.06]">
-      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
+      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-24 px-6">
         <Eyebrow>Tracks</Eyebrow>
         <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-12 md:mb-16 max-w-3xl">
           Five tracks. One weekend.
@@ -65,12 +65,11 @@ export default function TracksSection() {
               className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 border-b border-white/10 py-6 md:py-8"
             >
               <div className="flex items-center gap-4 sm:gap-6 min-w-0">
-                <PixelSprite
-                  map={sprite}
-                  palette={palette}
-                  scale={3}
-                  className="shrink-0"
-                />
+                {/* Fixed cell: sprites are 27-33px wide, which staggered the
+                    numbers and titles beside them. */}
+                <span className="flex w-9 shrink-0 justify-center">
+                  <PixelSprite map={sprite} palette={palette} scale={3} />
+                </span>
                 <span className="font-sans text-xs text-white/35 w-6 shrink-0 tabular-nums">
                   {num}
                 </span>
@@ -78,7 +77,7 @@ export default function TracksSection() {
                   {title}
                 </h3>
               </div>
-              <p className="font-sans text-sm md:text-base text-white/45 sm:ml-auto sm:text-right max-w-md pl-14 sm:pl-0">
+              <p className="font-sans text-sm md:text-base text-white/45 sm:ml-auto sm:text-right max-w-md pl-[5.75rem] sm:pl-0">
                 {description}
               </p>
             </li>
