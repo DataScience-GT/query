@@ -5,7 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
-  unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
@@ -47,9 +47,9 @@ export const bootcampWorkshops = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // Declaration order matches the column order because drizzle push
-    // otherwise sees a persistent constraint diff.
-    unique("unique_bootcamp_workshop").on(table.term, table.week),
+    // A unique index, not a constraint: drizzle-kit reads constraint columns
+    // unordered and re-adds them on push. See event_bootcamp_session_idx.
+    uniqueIndex("bootcamp_workshop_term_week_idx").on(table.term, table.week),
     // Member reads filter one term and published state together.
     index("bootcamp_workshop_term_published_idx").on(
       table.term,
