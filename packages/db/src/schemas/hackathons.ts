@@ -186,7 +186,7 @@ export const hackathonParticipants = pgTable(
   },
   (table) => [
     // No standalone hackathon_id index: it leads both the composite below and
-    // unique_participant_per_hackathon, so a lookup by hackathon already has two
+    // hackathon_participant_hackathon_user_idx, so a lookup by hackathon already has two
     // to choose from. A third only made every insert write another entry.
     index("participant_user_id_idx").on(table.userId),
     index("participant_team_id_idx").on(table.teamId),
@@ -201,7 +201,7 @@ export const hackathonParticipants = pgTable(
     ),
     // One registration per user per hackathon at the DB level, so duplicates
     // cannot race past the findFirst inside the transaction.
-    unique("unique_participant_per_hackathon").on(
+    uniqueIndex("hackathon_participant_hackathon_user_idx").on(
       table.hackathonId,
       table.userId,
     ),
@@ -315,13 +315,13 @@ export const hackathonInterest = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // hackathon_id alone leads unique_interest_per_hackathon below, which already
+    // hackathon_id alone leads hackathon_interest_hackathon_user_idx below, which already
     // serves every by-edition read.
     index("hackathon_interest_user_id_idx").on(table.userId),
     // Registering interest twice is one person changing their answers. The unique
     // index is what makes the upsert in registerInterest safe against a double
     // submit.
-    unique("unique_interest_per_hackathon").on(table.hackathonId, table.userId),
+    uniqueIndex("hackathon_interest_hackathon_user_idx").on(table.hackathonId, table.userId),
   ],
 );
 
@@ -427,7 +427,7 @@ export const hackathonEventAttendees = pgTable(
     index("event_attendee_event_id_idx").on(table.eventId),
     index("event_attendee_participant_id_idx").on(table.participantId),
     // Prevent duplicate check-ins
-    unique("unique_event_participant").on(table.eventId, table.participantId),
+    uniqueIndex("event_attendee_event_participant_idx").on(table.eventId, table.participantId),
     // Named explicitly: the generated name is 67 chars, Postgres truncates to 63,
     // and drizzle then sees a diff on every push and re-creates it forever.
     foreignKey({
@@ -548,7 +548,7 @@ export const hackathonAnnouncementRecipients = pgTable(
     ),
     // One delivery per person per announcement, enforced by the database rather
     // than by the batching arithmetic that used to get it wrong.
-    unique("unique_announcement_recipient").on(
+    uniqueIndex("announcement_recipient_announcement_user_idx").on(
       table.announcementId,
       table.userId,
     ),
