@@ -5,11 +5,13 @@ import { CacheKeys } from "../../middleware/cache";
 import {
   hackathons,
   hackathonParticipants,
+  hackathonProjects,
   members,
 } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
+import { syncCurrentParticipants } from "./admin";
 
 // Postgres unique_violation on unique_participant_per_hackathon — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -51,7 +53,13 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         // Academic info
         school: z.string().min(1).max(300),
         major: z.string().min(1).max(300),
-        graduationYear: z.number().int().min(2020).max(2035),
+        // Relative to now: a fixed 2020-2035 accepted years already past and
+        // would start refusing real students in 2036.
+        graduationYear: z
+          .number()
+          .int()
+          .min(new Date().getFullYear() - 1)
+          .max(new Date().getFullYear() + 8),
         levelOfStudy: z.enum([
           "Freshman",
           "Sophomore",
@@ -221,6 +229,70 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       }
     }),
 
+
+  // Takes back your own registration. There was no way out at all, so an
+  // accepted no-show kept a seat for good. Refused once you are part of the
+  // event — on a team, checked in, or with a project — since undoing any of
+  // those affects other people and is an organiser's call.
+  withdrawRegistration: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const participant = await db.query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
+          eq(hackathonParticipants.userId, ctx.userId as string),
+        ),
+        columns: { id: true, teamId: true, registrationStatus: true },
+      });
+
+      if (!participant) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "You are not registered for this hackathon.",
+        });
+      }
+      if (participant.registrationStatus === "checked_in") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "You have already checked in. Ask an organiser if you need to leave the event.",
+        });
+      }
+      if (participant.teamId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Leave your team first, then withdraw.",
+        });
+      }
+
+      const project = await db.query.hackathonProjects.findFirst({
+        where: and(
+          eq(hackathonProjects.hackathonId, input.hackathonId),
+          eq(hackathonProjects.submittedById, participant.id),
+        ),
+        columns: { id: true },
+      });
+      if (project) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Withdraw your project first, then your registration.",
+        });
+      }
+
+      await db
+        .delete(hackathonParticipants)
+        .where(eq(hackathonParticipants.id, participant.id));
+
+      // An accepted withdrawal frees a seat for the next wave.
+      await syncCurrentParticipants(db, input.hackathonId);
+
+      ctx.cache.delete(`hackathon:registrations:${ctx.userId}`);
+      ctx.cache.delete(`hackathon:${input.hackathonId}:participants`);
+
+      return { success: true };
+    }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
     const cacheKey = `hackathon:registrations:${ctx.userId}`;

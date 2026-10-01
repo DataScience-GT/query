@@ -28,7 +28,10 @@ const SEATED_STATUSES = ["approved", "checked_in"] as const;
 // hackathon row is locked first: `SET x = (subquery)` plans the subquery once
 // per statement, so a register() committing mid-wait would be overwritten and
 // the seat total would drift low enough to admit people past maxParticipants.
-const syncCurrentParticipants = (db: DrizzleDB, hackathonId: string) =>
+export const syncCurrentParticipants = (
+  db: DrizzleDB,
+  hackathonId: string,
+) =>
   db.transaction(async (tx) => {
     await tx
       .select({ id: hackathons.id })
