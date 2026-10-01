@@ -871,6 +871,7 @@ describe("Participant edge cases", () => {
 
     it("removes a pending applicant who has nothing attached", async () => {
       wire({ id: PARTICIPANT_A, teamId: null, registrationStatus: "pending" });
+      mockDelete.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
 
       await expect(
         callerFor("user_a").hackathon.withdrawRegistration({
@@ -878,6 +879,19 @@ describe("Participant edge cases", () => {
         }),
       ).resolves.toEqual({ success: true });
       expect(deletedTables()).toContain(hackathonParticipants);
+    });
+
+    // A badge scan or team join between the read and the delete: the
+    // conditions carried into the DELETE match nothing, and nothing is lost.
+    it("refuses when the registration changed after it was read", async () => {
+      wire({ id: PARTICIPANT_A, teamId: null, registrationStatus: "approved" });
+      mockDelete.mockReturnValueOnce([]);
+
+      await expect(
+        callerFor("user_a").hackathon.withdrawRegistration({
+          hackathonId: HACK_A,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
     it.each([

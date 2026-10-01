@@ -348,12 +348,9 @@ export const judgePortalRouter = createTRPCRouter({
         const [queued] = await (ctx.db as DrizzleDB)
           .select({ n: sql<number>`count(*)::int` })
           .from(judgeQueue)
-          .where(
-            and(
-              eq(judgeQueue.hackathonId, input.hackathonId),
-              eq(judgeQueue.isCompleted, false),
-            ),
-          );
+          // Any row, scored or not: reopening judging so a judge can fix a
+          // score, after every slot is done, must still be allowed.
+          .where(eq(judgeQueue.hackathonId, input.hackathonId));
         if ((queued?.n ?? 0) === 0) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
