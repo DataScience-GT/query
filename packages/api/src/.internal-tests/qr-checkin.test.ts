@@ -616,7 +616,7 @@ describe("QR check-in", () => {
           ) {
             throw Object.assign(
               new Error(
-                'duplicate key value violates unique constraint "unique_event_check_in"',
+                'duplicate key value violates unique constraint "event_check_in_event_user_idx"',
               ),
               { code: "23505" },
             );
