@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { Calendar, Clock, MapPin, Plus } from "lucide-react";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { toInputDate } from "@/components/admin/hackathons/constants";
 
@@ -19,42 +20,36 @@ const EVENT_TYPES: {
   label: string;
   color: string;
   bg: string;
-  dot: string;
 }[] = [
   {
     value: "workshop",
     label: "Workshop",
     color: "text-purple-400",
-    bg: "bg-purple-500/10",
-    dot: "bg-purple-400",
+    bg: "bg-purple-500/10 border-purple-500/25",
   },
   {
     value: "meal",
     label: "Meal",
     color: "text-orange-400",
-    bg: "bg-orange-500/10",
-    dot: "bg-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/25",
   },
   {
     value: "ceremony",
     label: "Ceremony",
     color: "text-yellow-400",
-    bg: "bg-yellow-500/10",
-    dot: "bg-yellow-400",
+    bg: "bg-yellow-500/10 border-yellow-500/25",
   },
   {
     value: "activity",
     label: "Activity",
     color: "text-green-400",
-    bg: "bg-green-500/10",
-    dot: "bg-green-400",
+    bg: "bg-green-500/10 border-green-500/25",
   },
   {
     value: "sponsor_session",
     label: "Sponsor",
     color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    dot: "bg-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/25",
   },
 ];
 
@@ -184,10 +179,10 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight">
-            Weekend Itinerary
+          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+            Schedule
           </h2>
-          <p className="text-xs text-[var(--text-subtle)] font-mono mt-1">
+          <p className="text-sm text-[var(--text-muted)] mt-1">
             {events?.length || 0} session
             {events?.length !== 1 ? "s" : ""} this edition — workshops, meals,
             ceremonies.{" "}
@@ -200,17 +195,18 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         <button
           type="button"
           onClick={openCreate}
-          className="px-5 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-bold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
         >
-          + New Event
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          New event
         </button>
       </div>
 
       {/* Create / Edit Form */}
       {(showCreate || editingId) && (
-        <LiquidGlass className="p-6 mb-6 border-t-4 border-t-accent/50">
-          <h3 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-            {editingId ? "Edit Event" : "Create Event"}
+        <LiquidGlass printed className="p-6 mb-6">
+          <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
+            {editingId ? "Edit event" : "New event"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name + Type Row */}
@@ -218,9 +214,9 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               <div>
                 <label
                   htmlFor="event-name"
-                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
-                  Event Name
+                  Event name
                 </label>
                 <input
                   id="event-name"
@@ -229,13 +225,13 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Opening Ceremony"
-                  className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                 />
               </div>
               <div>
                 <label
                   htmlFor="type"
-                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
                   Type
                 </label>
@@ -245,7 +241,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   onChange={(e) =>
                     setForm({ ...form, type: e.target.value as EventType })
                   }
-                  className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors min-w-[160px]"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui min-w-[160px]"
                 >
                   {EVENT_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -260,7 +256,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             <div>
               <label
                 htmlFor="description"
-                className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
               >
                 Description
               </label>
@@ -272,7 +268,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 }
                 placeholder="Optional description…"
                 rows={2}
-                className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors resize-none"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui resize-none"
               />
             </div>
 
@@ -281,7 +277,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               <div>
                 <label
                   htmlFor="location"
-                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
                   Location
                 </label>
@@ -294,7 +290,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                     setForm({ ...form, location: e.target.value })
                   }
                   placeholder="e.g. Room 101, Main Hall"
-                  className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] placeholder:text-gray-600 focus:outline-none focus:border-accent/50 transition-colors"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                 />
               </div>
             </div>
@@ -304,9 +300,9 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               <div>
                 <label
                   htmlFor="start-time"
-                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
-                  Start Time
+                  Start
                 </label>
                 <input
                   id="start-time"
@@ -316,15 +312,15 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   onChange={(e) =>
                     setForm({ ...form, startTime: e.target.value })
                   }
-                  className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                 />
               </div>
               <div>
                 <label
                   htmlFor="end-time"
-                  className="text-[10px] font-mono text-accent uppercase tracking-widest font-bold block mb-1.5"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
-                  End Time
+                  End
                 </label>
                 <input
                   id="end-time"
@@ -334,14 +330,14 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   onChange={(e) =>
                     setForm({ ...form, endTime: e.target.value })
                   }
-                  className="w-full bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                 />
               </div>
             </div>
 
             {/* Error */}
             {error && (
-              <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-none text-red-400 text-sm">
+              <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-sm text-red-400 text-sm">
                 {trpcErrorMessage(error, "Could not save this event.")}
               </div>
             )}
@@ -351,13 +347,13 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-bold text-sm rounded-none active:scale-[0.98] transition-transform disabled:opacity-50 shadow-[4px_4px_0_0_var(--accent)]"
+                className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
               >
                 {isPending
                   ? "Saving…"
                   : editingId
-                    ? "Save Changes"
-                    : "Create Event"}
+                    ? "Save changes"
+                    : "Create event"}
               </button>
               <button
                 type="button"
@@ -366,7 +362,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                   setEditingId(null);
                   setForm(emptyForm);
                 }}
-                className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-muted)] font-medium text-sm rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
               >
                 Cancel
               </button>
@@ -377,34 +373,20 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
       {/* Event List */}
       {isLoading ? (
-        <div className="py-12 text-center">
-          <p className="text-gray-600 font-mono text-sm uppercase tracking-wider animate-pulse">
-            Loading events...
-          </p>
-        </div>
+        <p className="py-12 text-center text-sm text-[var(--text-muted)]">
+          Loading events…
+        </p>
       ) : !events || events.length === 0 ? (
-        <LiquidGlass className="p-16 text-center">
-          <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
-            <svg
-              className="w-8 h-8 text-[var(--text-muted)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
+        <LiquidGlass
+          printed
+          className="p-8 text-center flex flex-col items-center gap-3"
+        >
+          <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-[var(--text-subtle)]" />
           </div>
-          <h3 className="text-[var(--text-primary)] font-semibold mb-1">
-            No itinerary yet
-          </h3>
-          <p className="text-[var(--text-muted)] text-sm font-mono">
-            Add workshops, meals, and ceremonies for this weekend. Club
-            meetings belong on Club Hub, not here.
+          <p className="text-sm text-[var(--text-muted)]">
+            No schedule yet. Add workshops, meals, and ceremonies for this
+            weekend. Club meetings belong on Club Hub, not here.
           </p>
         </LiquidGlass>
       ) : (
@@ -418,67 +400,35 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             return (
               <LiquidGlass
                 key={event.id}
-                className={`p-5 transition-ui ${isActive ? "border-accent/40 bg-accent/5" : "hover:border-white/20"}`}
+                printed
+                className={`p-5 transition-ui ${isActive ? "border-accent/40 bg-accent/5" : "hover:border-[var(--border-hover)]"}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* Left: Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-xs font-bold ${typeMeta.color} ${typeMeta.bg}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border ${typeMeta.color} ${typeMeta.bg}`}
                       >
-                        <span
-                          className={`w-2 h-2 rounded-sm ${typeMeta.dot}`}
-                        />
                         {typeMeta.label}
                       </span>
                     </div>
-                    <h4 className="text-[var(--text-primary)] font-bold text-base truncate">
+                    <h4 className="text-base font-bold text-[var(--text-primary)] truncate">
                       {event.name}
                     </h4>
                     {event.description && (
-                      <p className="text-[var(--text-subtle)] text-sm mt-1 line-clamp-1">
+                      <p className="text-sm text-[var(--text-muted)] mt-1 line-clamp-1">
                         {event.description}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[var(--text-subtle)] font-mono">
+                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[var(--text-muted)]">
                       <span className="flex items-center gap-1">
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
+                        <MapPin className="w-3.5 h-3.5 text-[var(--text-subtle)]" />
                         {event.location}
                       </span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
+                        <Clock className="w-3.5 h-3.5 text-[var(--text-subtle)]" />
                         {start.toLocaleDateString()}{" "}
                         {start.toLocaleTimeString([], {
                           hour: "2-digit",
@@ -498,7 +448,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                     <button
                       type="button"
                       onClick={() => openEdit(event)}
-                      className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                      className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
                     >
                       Edit
                     </button>
@@ -507,7 +457,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                         {deleteBlocked && (
                           <p
                             role="alert"
-                            className="text-[11px] font-mono text-amber-300 max-w-xs text-right"
+                            className="text-[11px] text-amber-300 max-w-xs text-right"
                           >
                             {deleteBlocked}
                           </p>
@@ -523,7 +473,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                               })
                             }
                             disabled={deleteMutation.isPending}
-                            className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold rounded-none hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                            className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
                           >
                             {deleteMutation.isPending
                               ? "…"
@@ -537,7 +487,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                               setDeleteConfirm(null);
                               setDeleteBlocked(null);
                             }}
-                            className="px-4 py-2.5 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-sm rounded-none hover:bg-white/5 transition-colors"
+                            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
                           >
                             No
                           </button>
@@ -550,7 +500,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                           setDeleteBlocked(null);
                           setDeleteConfirm(event.id);
                         }}
-                        className="px-4 py-2.5 border border-red-500/10 text-red-400/60 text-sm font-medium rounded-none hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                        className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
                       >
                         Delete
                       </button>

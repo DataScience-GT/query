@@ -24,12 +24,12 @@ const STATUS: Record<string, { label: string; className: string }> = {
   done: {
     label: "Done",
     className:
-      "border-[var(--border-subtle)] bg-white/5 text-[var(--text-muted)]",
+      "border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]",
   },
   suspended: {
     label: "Suspended",
     className:
-      "border-[var(--border-subtle)] bg-white/5 text-[var(--text-subtle)]",
+      "border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-subtle)]",
   },
 };
 
@@ -51,20 +51,20 @@ export function JudgeLiveBoard({
   const judges = data?.judges ?? [];
 
   return (
-    <LiquidGlass className="p-6">
+    <LiquidGlass printed className="p-6">
       <div className="flex items-baseline justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tight">
-            Judge Floor
+          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+            Judge floor
           </h2>
-          <p className="text-xs font-mono text-[var(--text-muted)] mt-1">
+          <p className="text-sm text-[var(--text-muted)] mt-1">
             {active
-              ? "Live, refreshing every 15 seconds"
-              : "Judging is not running — this is the last known state"}
+              ? "Live. Refreshes every 15 seconds."
+              : "Judging isn't running. This is the last known state."}
           </p>
         </div>
         {data && (
-          <p className="text-sm font-mono text-[var(--text-primary)] shrink-0">
+          <p className="text-sm text-[var(--text-primary)] tabular-nums shrink-0">
             {data.totals.completed}/{data.totals.assigned} visits ·{" "}
             <span className="text-accent">{data.totals.percent}%</span>
           </p>
@@ -72,16 +72,16 @@ export function JudgeLiveBoard({
       </div>
 
       {isLoading ? (
-        <p className="text-xs font-mono text-[var(--text-muted)]">Reading the floor…</p>
+        <p className="text-sm text-[var(--text-muted)]">Loading judges…</p>
       ) : judges.length === 0 ? (
-        <p className="text-xs font-mono text-[var(--text-muted)]">
-          No queues yet. Press Prepare Judging above.
+        <p className="text-sm text-[var(--text-muted)]">
+          No queues yet. Press Prepare judging above.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-subtle)] text-left">
+              <tr className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] text-left">
                 <th className="pb-2 pr-4">Judge</th>
                 <th className="pb-2 pr-4">Status</th>
                 <th className="pb-2 pr-4">At</th>
@@ -102,12 +102,12 @@ export function JudgeLiveBoard({
                     </td>
                     <td className="py-3 pr-4">
                       <span
-                        className={`inline-block px-2 py-1 border text-[10px] font-mono uppercase tracking-widest ${s.className}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border ${s.className}`}
                       >
                         {s.label}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 font-mono text-xs text-[var(--text-muted)]">
+                    <td className="py-3 pr-4 text-xs text-[var(--text-muted)]">
                       {j.current ? (
                         <>
                           Table {j.current.tableNumber ?? "?"}
@@ -119,11 +119,11 @@ export function JudgeLiveBoard({
                         "-"
                       )}
                     </td>
-                    <td className="py-3 pr-4 font-mono text-xs text-[var(--text-primary)]">
+                    <td className="py-3 pr-4 text-xs tabular-nums text-[var(--text-primary)]">
                       {j.completed}/{j.assigned}
                     </td>
                     <td
-                      className={`py-3 pr-4 font-mono text-xs ${
+                      className={`py-3 pr-4 text-xs tabular-nums ${
                         (j.idleMinutes ?? 0) >= 20 && j.status !== "done"
                           ? "text-red-400"
                           : "text-[var(--text-muted)]"
@@ -131,7 +131,7 @@ export function JudgeLiveBoard({
                     >
                       {mins(j.idleMinutes)}
                     </td>
-                    <td className="py-3 font-mono text-xs text-[var(--text-muted)]">
+                    <td className="py-3 text-xs tabular-nums text-[var(--text-muted)]">
                       {j.medianSeconds === null
                         ? "-"
                         : `${Math.round(j.medianSeconds / 60)}m`}
