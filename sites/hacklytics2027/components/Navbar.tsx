@@ -46,7 +46,12 @@ export default function Navbar() {
         ? document.getElementById(window.location.hash.slice(1))
         : null;
       target?.scrollIntoView({ behavior: "instant", block: "start" });
-      onScroll();
+      // Not onScroll(): from lastY 0, landing on the section reads as a
+      // scroll down and hid the header, which touch users had no way back to
+      // short of scrolling up. Record where the page starts; only the
+      // background depends on it.
+      lastY.current = window.scrollY;
+      setScrolled(window.scrollY > 20);
     });
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("mousemove", onMouseMove, { passive: true });
