@@ -85,7 +85,9 @@ export default function JudgeRegisterPage() {
   // explanation exactly when organisers were sending the link out.
   const activeHackathons =
     hackathons?.filter(
+      // Announced too: judges are recruited before registration opens.
       (h) =>
+        h.status === "announced" ||
         h.status === "open" ||
         h.status === "closed" ||
         h.status === "in_progress",

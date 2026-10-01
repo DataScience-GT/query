@@ -69,6 +69,10 @@ export default function JudgePage() {
   if (!session) return null;
 
   const confMap: Record<string, { label: string; cls: string }> = {
+    announced: {
+      label: "Accepting judges",
+      cls: "bg-accent/10 border-accent/25 text-accent",
+    },
     open: {
       label: "Accepting judges",
       cls: "bg-accent/10 border-accent/25 text-accent",
@@ -224,7 +228,8 @@ export default function JudgePage() {
                       <div className="flex-1 px-4 py-2 rounded-sm bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest text-center">
                         Awaiting approval
                       </div>
-                    ) : h.status === "open" ||
+                    ) : h.status === "announced" ||
+                      h.status === "open" ||
                       h.status === "closed" ||
                       h.status === "in_progress" ? (
                       <Link
