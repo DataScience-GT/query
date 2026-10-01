@@ -8,10 +8,10 @@ import {
   hackathonProjects,
   members,
 } from "@query/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
-import { syncCurrentParticipants } from "./admin";
+import { evictParticipantCaches, syncCurrentParticipants } from "./admin";
 
 // Postgres unique_violation on unique_participant_per_hackathon — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -253,6 +253,22 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           message: "You are not registered for this hackathon.",
         });
       }
+
+      // A finished event's registrations are its record of who took part.
+      const hackathon = await db.query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: { status: true },
+      });
+      if (
+        hackathon?.status === "completed" ||
+        hackathon?.status === "cancelled"
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This hackathon is over, so registrations can't be withdrawn.",
+        });
+      }
+
       if (participant.registrationStatus === "checked_in") {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -281,15 +297,32 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         });
       }
 
-      await db
+      // The checks above are a read; a badge scan or a team join can land
+      // before this. Repeating them here deletes nothing in that case.
+      const removed = await db
         .delete(hackathonParticipants)
-        .where(eq(hackathonParticipants.id, participant.id));
+        .where(
+          and(
+            eq(hackathonParticipants.id, participant.id),
+            ne(hackathonParticipants.registrationStatus, "checked_in"),
+            isNull(hackathonParticipants.teamId),
+          ),
+        )
+        .returning({ id: hackathonParticipants.id });
+      if (removed.length === 0) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "Your registration changed just now. Refresh the page and try again.",
+        });
+      }
 
       // An accepted withdrawal frees a seat for the next wave.
       await syncCurrentParticipants(db, input.hackathonId);
 
-      ctx.cache.delete(`hackathon:registrations:${ctx.userId}`);
-      ctx.cache.delete(`hackathon:${input.hackathonId}:participants`);
+      evictParticipantCaches(ctx.cache, input.hackathonId, [
+        ctx.userId as string,
+      ]);
 
       return { success: true };
     }),

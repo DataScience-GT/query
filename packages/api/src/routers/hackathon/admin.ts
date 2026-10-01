@@ -101,7 +101,7 @@ async function assertSeats(
 // wiped every attendee's cached registrations and the venue-wide events list.
 // Each affected user's own registration list goes too, or an acceptance lands
 // in their inbox while their dashboard still says pending.
-const evictParticipantCaches = (
+export const evictParticipantCaches = (
   cache: { delete: (key: string) => boolean },
   hackathonId: string,
   userIds: string[],
@@ -304,7 +304,10 @@ export const hackathonAdminRouter = createTRPCRouter({
       }
 
       await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        if (input.status === "approved") {
+        // checked_in seats somebody too: the approved-only check above was
+        // read before this transaction, and a concurrent "waitlisted" would
+        // otherwise be checked in with no seat.
+        if (input.status === "approved" || input.status === "checked_in") {
           await assertSeats(tx as unknown as DrizzleDB, input.hackathonId, [
             input.participantId,
           ]);
@@ -319,7 +322,16 @@ export const hackathonAdminRouter = createTRPCRouter({
               ? { checkedInAt: new Date() }
               : {}),
           })
-          .where(eq(hackathonParticipants.id, input.participantId));
+          .where(
+            and(
+              eq(hackathonParticipants.id, input.participantId),
+              input.status === "checked_in"
+                ? inArray(hackathonParticipants.registrationStatus, [
+                    ...SEATED_STATUSES,
+                  ])
+                : undefined,
+            ),
+          );
       });
 
       await syncCurrentParticipants(ctx.db as DrizzleDB, input.hackathonId);
