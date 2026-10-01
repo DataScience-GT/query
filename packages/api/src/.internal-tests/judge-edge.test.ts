@@ -1264,22 +1264,23 @@ describe("Judge edge cases", () => {
     });
 
     /**
-     * Activating and deactivating a person is the super-admin tier. A plain
-     * admin runs the event; deciding who holds a role does not come with that.
+     * Approving a judge is part of running the event, so any admin may; it
+     * was super-admin only while every admin saw the button. Deleting the
+     * judge, votes and all, stays super-admin.
      */
-    it("refuses a plain admin, and writes nothing", async () => {
+    it("lets a plain admin approve a judge but not remove one", async () => {
       mockFindFirst.mockImplementation((table: string) =>
         table === "admins" ? PLAIN_ADMIN_ROW : undefined,
       );
 
-      await expect(
-        adminCaller().judge.setActive({ judgeId: JUDGE_ID, isActive: true }),
-      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      const approval = await adminCaller()
+        .judge.setActive({ judgeId: JUDGE_ID, isActive: true })
+        .catch((error: unknown) => error);
+      expect((approval as { code?: string })?.code).not.toBe("FORBIDDEN");
+
       await expect(
         adminCaller().judge.remove({ judgeId: JUDGE_ID }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
-
-      expect(mockUpdate).not.toHaveBeenCalled();
       expect(mockDelete).not.toHaveBeenCalled();
     });
 

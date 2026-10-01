@@ -338,29 +338,42 @@ export const judgeAdminRouter = createTRPCRouter({
       return allJudges;
     }),
 
+  // Adds a judge directly — a sponsor or a walk-in — rather than waiting for
+  // them to apply. By email, because that is what an organiser has; the
+  // person needs an account, which signing in once creates.
   create: isAdmin
     .input(
-      z.object({
-        userId: z.string().min(1).max(255),
-        hackathonId: z.string().uuid(),
-        name: z.string().max(255).optional(),
-      }),
+      z
+        .object({
+          userId: z.string().min(1).max(255).optional(),
+          email: z.string().trim().email().max(255).optional(),
+          hackathonId: z.string().uuid(),
+          name: z.string().max(255).optional(),
+        })
+        .refine((input) => !!input.userId || !!input.email, {
+          message: "Give the judge's email address.",
+          path: ["email"],
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
-        where: eq(users.id, input.userId),
+        where: input.userId
+          ? eq(users.id, input.userId)
+          : sql`lower(${users.email}) = lower(${input.email!})`,
       });
 
       if (!user) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "User not found",
+          message: input.userId
+            ? "User not found"
+            : "No account uses that email. Ask them to sign in to the portal once, then add them.",
         });
       }
 
       const existing = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: and(
-          eq(judges.userId, input.userId),
+          eq(judges.userId, user.id),
           eq(judges.hackathonId, input.hackathonId),
         ),
       });
@@ -375,17 +388,18 @@ export const judgeAdminRouter = createTRPCRouter({
       const result = await (ctx.db as DrizzleDB)
         .insert(judges)
         .values({
-          userId: input.userId,
+          userId: user.id,
           hackathonId: input.hackathonId,
           name: input.name || user.name,
+          email: user.email,
           isActive: true, // Manually created judges are active by default
         })
         .returning();
 
       // Same as approval: the role gate and the sidebar both cache, so the new
       // judge would otherwise wait out a 5-minute TTL for the Judge tab.
-      ctx.cache.deletePattern(`${CacheKeys.judge(input.userId)}*`);
-      invalidatePortalContext(input.userId);
+      ctx.cache.deletePattern(`${CacheKeys.judge(user.id)}*`);
+      invalidatePortalContext(user.id);
 
       return result[0];
     }),
@@ -680,8 +694,9 @@ export const judgeAdminRouter = createTRPCRouter({
 
   // Approve or suspend a judge. judge.register creates the row inactive and
   // judge.create refuses once it exists, so without this a self-registered
-  // judge can never be activated by any route.
-  setActive: isSuperAdmin
+  // judge can never be activated by any route. Any admin: it was super-admin
+  // only while every admin saw the button, so most organisers got an error.
+  setActive: isAdmin
     .input(
       z.object({
         judgeId: z.string().uuid(),
@@ -1566,6 +1581,26 @@ export const judgeAdminRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        // Only an edition people can see and that is not over takes judges. Any
+        // uuid used to pass, and one that did not exist hit the foreign key as
+        // a 500. Announced counts: judges are recruited before registration.
+        const hackathon = await tx.query.hackathons.findFirst({
+          where: eq(hackathons.id, input.hackathonId),
+          columns: { isPublic: true, status: true },
+        });
+        if (
+          !hackathon ||
+          !hackathon.isPublic ||
+          !["announced", "open", "closed", "in_progress"].includes(
+            hackathon.status,
+          )
+        ) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "That hackathon is not taking judge applications.",
+          });
+        }
+
         // Check if user is registered as a participant for this hackathon
         const participant = await tx.query.hackathonParticipants.findFirst({
           where: and(

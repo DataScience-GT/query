@@ -712,10 +712,33 @@ describe("Router Integration and Access Control Verification Suite", () => {
       ).rejects.toThrow();
     });
 
+    // Any uuid used to pass; a missing one hit the foreign key as a 500.
+    it.each([
+      ["a missing hackathon", null],
+      ["a draft", { id: "h", isPublic: true, status: "draft" }],
+      ["a hidden edition", { id: "h", isPublic: false, status: "open" }],
+    ])("refuses a judge application to %s", async (_label, hackathon) => {
+      const ctx = createMockCtx("applicant_user_id");
+      mockFindFirst.mockImplementation((table) =>
+        table === "hackathons" ? hackathon : null,
+      );
+
+      await expect(
+        appRouter.createCaller(ctx).judge.register({
+          hackathonId: "00000000-0000-4000-8000-000000000001",
+          name: "Ada Lovelace",
+          email: "ada@example.com",
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
     it("should prevent registered participants from applying to be a judge", async () => {
       const ctx = createMockCtx("participant_user_id");
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") {
+          return { id: hackathonId, isPublic: true, status: "open" };
+        }
         if (table === "hackathonParticipants") {
           return {
             id: "participant_1",
