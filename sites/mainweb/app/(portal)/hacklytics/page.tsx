@@ -109,7 +109,7 @@ export default function HacklyticsPage() {
             ? "Registration is open"
             : event.status === "in_progress"
               ? "The hackathon is under way"
-              : event.status === "open"
+              : event.status === "open" || event.status === "closed"
                 ? "Registration has closed"
                 : "Registration opens soon"}
         </p>
@@ -171,11 +171,32 @@ export default function HacklyticsPage() {
                 Register now
               </Link>
             </div>
-          ) : (
+          ) : event.status === "announced" ? (
             <InterestForm
               hackathonId={event.id}
               callbackPath="/hacklytics"
             />
+          ) : (
+            // The interest list only takes sign-ups before registration opens;
+            // offering it afterwards ended in an error on submit.
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold uppercase tracking-wider font-oswald text-[var(--text-primary)]">
+                {event.status === "in_progress"
+                  ? "Happening now"
+                  : "Registration has closed"}
+              </h2>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                {event.status === "in_progress"
+                  ? "Registered hackers can find their schedule, team and check-in pass on the event page."
+                  : "If you applied, your status is on the event page."}
+              </p>
+              <Link
+                href={`/hackathons/${hackathonSlug(event.name)}`}
+                className="inline-flex px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+              >
+                Go to the event page
+              </Link>
+            </div>
           )}
         </div>
 

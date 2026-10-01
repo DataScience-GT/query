@@ -341,6 +341,28 @@ export const judgePortalRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Opening judging with nothing queued sent every judge straight to "All
+      // done, 0 of 0". Preparing (promote submissions, assign judges) is a
+      // separate step on the Judging page, so say so rather than open empty.
+      if (input.active) {
+        const [queued] = await (ctx.db as DrizzleDB)
+          .select({ n: sql<number>`count(*)::int` })
+          .from(judgeQueue)
+          .where(
+            and(
+              eq(judgeQueue.hackathonId, input.hackathonId),
+              eq(judgeQueue.isCompleted, false),
+            ),
+          );
+        if ((queued?.n ?? 0) === 0) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "No judge has a table to score yet. Prepare judging first: promote submissions and assign judges on the Judging page.",
+          });
+        }
+      }
+
       const [updated] = await (ctx.db as DrizzleDB)
         .update(hackathons)
         .set({ judgingActive: input.active, updatedAt: new Date() })

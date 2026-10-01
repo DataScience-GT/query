@@ -6,6 +6,8 @@ import { db } from "@query/db";
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
 // file-scoped, so this mirrors the shape used by routers.test.ts.
 const mockFindFirst = vi.fn();
+/** Rows a bare `await select().from().where()` resolves to. */
+const mockWhereRows = vi.fn<() => unknown[]>(() => [{ n: 1 }]);
 const mockFindMany = vi.fn();
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
@@ -74,6 +76,9 @@ vi.mock("@query/db", () => {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
           where: vi.fn().mockImplementation(() => ({
+            // Awaited directly: a count such as the judging queue check.
+            then: (ok: any, err: any) =>
+              Promise.resolve(mockWhereRows()).then(ok, err),
             orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
             groupBy: vi.fn().mockResolvedValue([]),
             limit: vi.fn().mockResolvedValue([]),
@@ -544,6 +549,7 @@ describe("Hackathon end-to-end flow", () => {
 
     it("only lets an admin toggle judging on", async () => {
       const caller = adminCaller();
+      mockWhereRows.mockReturnValueOnce([{ n: 12 }]);
       mockUpdate.mockReturnValue([{ judgingActive: true }]);
 
       const res = await caller.judge.toggleJudging({
@@ -551,6 +557,17 @@ describe("Hackathon end-to-end flow", () => {
         active: true,
       });
       expect(res).toMatchObject({ success: true, judgingActive: true });
+    });
+
+    // With nothing queued every judge opened straight onto "All done, 0 of 0".
+    it("refuses to open judging before any judge has a table", async () => {
+      const caller = adminCaller();
+      mockWhereRows.mockReturnValueOnce([{ n: 0 }]);
+
+      await expect(
+        caller.judge.toggleJudging({ hackathonId: HACK_A, active: true }),
+      ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     it("refuses to let a non-admin toggle judging", async () => {
