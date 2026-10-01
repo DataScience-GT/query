@@ -837,6 +837,62 @@ describe("Router Integration and Access Control Verification Suite", () => {
       );
     });
 
+    // An organiser pulled it before judging: no judging row exists, so only
+    // the column on the project stops it going straight back into the gallery.
+    it("refuses to resubmit a project an organiser withdrew", async () => {
+      const ctx = createMockCtx("captain_user_id");
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
+      const teamId = "00000000-0000-4000-8000-000000000002";
+
+      const startDate20hAgo = new Date(Date.now() - 20 * 60 * 60 * 1000); // inside the edit window
+
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathonParticipants") {
+          return {
+            id: "participant_1",
+            userId: "captain_user_id",
+            hackathonId,
+            teamId,
+            // Submitting requires the badge scan; these tests are about the
+            // window, so admission is deliberately out of the way.
+            registrationStatus: "checked_in",
+          };
+        }
+        if (table === "hackathons") {
+          return {
+            id: hackathonId,
+            startDate: startDate20hAgo,
+            hackingStartTime: null,
+          };
+        }
+        if (table === "hackathonTeams") {
+          return { id: teamId, captainId: "captain_user_id", hackathonId };
+        }
+        if (table === "hackathonProjects") {
+          return {
+            id: "project_1",
+            hackathonId,
+            teamId,
+            name: "Old Name",
+            description: "Old Description",
+            status: "draft",
+            withdrawnByAdminAt: new Date(),
+          };
+        }
+        return null;
+      });
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.team.submitProject({
+          hackathonId,
+          teamId,
+          name: "Awesome Project",
+          description: "This is a long description of the awesome project.",
+        }),
+      ).rejects.toThrowError(/organiser withdrew this project/);
+    });
+
     it("should prevent project submissions more than 36 hours after hacking starts", async () => {
       const ctx = createMockCtx("captain_user_id");
       const hackathonId = "00000000-0000-4000-8000-000000000001";

@@ -340,6 +340,15 @@ export const hackathonAdminRouter = createTRPCRouter({
       }
 
       const { wave, picked } = await db.transaction(async (tx) => {
+        // Serialises waves for this hackathon. SKIP LOCKED below keeps two
+        // concurrent waves from picking the same people, but both still read
+        // the same max and were recorded as one wave number.
+        await tx
+          .select({ id: hackathons.id })
+          .from(hackathons)
+          .where(eq(hackathons.id, input.hackathonId))
+          .for("update");
+
         const [highest] = await tx
           .select({
             max: sql<

@@ -1186,6 +1186,28 @@ describe("Hackathon admin management edge cases", () => {
         caller.admin.update({ adminId: ADMIN_ROW, role: "moderator" }),
       ).rejects.toThrow(/super admin/i);
     });
+
+    // Ending the term now removes a super admin as surely as demoting them,
+    // and one whose term already ended cannot step in.
+    it("refuses to end the last live super admin's term", async () => {
+      const caller = adminCaller({}, "super_admin");
+      mockFindMany.mockReturnValue([
+        adminRow("super_admin"),
+        {
+          id: "other_admin_row",
+          role: "super_admin",
+          isActive: true,
+          expiresAt: new Date("2020-01-01"),
+        },
+      ]);
+
+      await expect(
+        caller.admin.update({
+          adminId: ADMIN_ROW,
+          expiresAt: new Date("2020-06-01"),
+        }),
+      ).rejects.toThrow(/last super admin/i);
+    });
   });
 
   // =====================================================================
