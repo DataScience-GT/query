@@ -5,13 +5,13 @@ import Eyebrow from "./Eyebrow";
 const stats = [
   { num: "01", label: "1,000+ hackers", detail: "Capacity at Klaus" },
   { num: "02", label: "36 hours", detail: "Fri night through Sunday" },
-  { num: "03", label: "DS@GT portal", detail: "Notify me hands off — no form here" },
+  { num: "03", label: "Free to attend", detail: "Meals, swag, and cloud credits included" },
 ];
 
 const AboutSection: React.FC = () => {
   return (
     <section id="about" className="section-anchor text-white relative">
-      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
+      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-24 px-6">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-20">
           <div className="lg:col-span-3">
             <Eyebrow>About</Eyebrow>
@@ -20,8 +20,8 @@ const AboutSection: React.FC = () => {
             </h2>
             <p className="font-sans text-lg md:text-xl text-white/55 leading-[1.65] max-w-xl font-normal">
               Hacklytics is the Southeast’s 36-hour data science and AI hackathon,
-              hosted by Data Science @ GT. Klaus Advanced Computing Building,
-              Atlanta. Feb 26–28, 2027. Notify me opens the DS@GT portal.
+              hosted by Data Science @ GT at the Klaus Advanced Computing Building
+              in Atlanta, February 26–28, 2027.
             </p>
           </div>
 
