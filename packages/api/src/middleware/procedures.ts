@@ -162,6 +162,9 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
 
 // Verifies the caller is an active judge for a specific hackathon. Cached 60s
 // per user per hackathon.
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput }) => {
   const db = ctx.db as NonNullable<typeof ctx.db>;
 
@@ -170,6 +173,14 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput })
   let hackathonId: string | undefined;
   if (rawInput && typeof rawInput === "object") {
     const inputObj = rawInput as Record<string, unknown>;
+    // This runs before the procedure's own schema, and every id below goes into
+    // a uuid column: a malformed one made Postgres throw, surfacing as a 500.
+    for (const key of ["hackathonId", "projectId", "queueId"]) {
+      const value = inputObj[key];
+      if (typeof value === "string" && !UUID_PATTERN.test(value)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid ${key}` });
+      }
+    }
     if (typeof inputObj.hackathonId === "string") {
       hackathonId = inputObj.hackathonId;
     } else if (typeof inputObj.projectId === "string") {

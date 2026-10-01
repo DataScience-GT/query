@@ -78,6 +78,12 @@ vi.mock("@query/db", () => {
             groupBy: vi.fn().mockResolvedValue([]),
             limit: vi.fn().mockResolvedValue([]),
             offset: vi.fn().mockResolvedValue([]),
+            // Row locks. The only locked read in these flows is the team row
+            // leave/disband take, answered from the same wiring as findFirst.
+            for: vi.fn().mockImplementation(async () => {
+              const team = mockFindFirst("hackathonTeams");
+              return team ? [team] : [];
+            }),
           })),
           orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
           groupBy: vi.fn().mockResolvedValue([]),

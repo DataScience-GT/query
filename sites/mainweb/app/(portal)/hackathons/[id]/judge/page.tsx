@@ -161,6 +161,44 @@ export default function JudgeHackathonPage() {
     setCurrent({ project, queueId });
   };
 
+  /**
+   * The slot on screen is gone: an organiser withdrew the project, which
+   * deletes its unscored slots. Every action on the card would fail the same
+   * way, so fetch the next table instead of leaving the judge on a dead card.
+   * Only these answers mean that; anything else (judging closed) keeps the
+   * card and the scores typed into it.
+   */
+  const recoverOrReport = (e: {
+    message: string;
+    data?: { code?: string } | null;
+  }) => {
+    const slotGone =
+      e.data?.code === "NOT_FOUND" ||
+      (e.data?.code === "FORBIDDEN" &&
+        e.message.includes("not in your judging queue"));
+    if (!slotGone) {
+      setError(e.message);
+      return;
+    }
+    const goneQueueId = current?.queueId;
+    void nextTable.refetch().then(({ data, isError }) => {
+      // A failed refetch still resolves, carrying the cached answer — the
+      // withdrawn table itself. Moving to it would put the judge back on the
+      // dead card under a message saying they had a new one.
+      if (isError || !data || (!data.done && data.queueId === goneQueueId)) {
+        setError(
+          "That table was withdrawn by an organiser, and your next one could not be loaded. Check your connection and try again.",
+        );
+        return;
+      }
+      advance(
+        data.done ? null : ((data.project as Project) ?? null),
+        data.queueId ?? null,
+      );
+      setError("That table was withdrawn by an organiser. Here is your next one.");
+    });
+  };
+
   // Neither mutation invalidates getNextTable: refetching it would claim a
   // table a second time, and both already return the next project to show.
   const complete = trpc.judge.completeAndNext.useMutation({
@@ -171,7 +209,7 @@ export default function JudgeHackathonPage() {
       }
       advance((res.nextProject as Project) ?? null, res.nextQueueId ?? null);
     },
-    onError: (e) => setError(e.message),
+    onError: recoverOrReport,
   });
 
   /**
@@ -201,7 +239,7 @@ export default function JudgeHackathonPage() {
       setStranded(res.skippedToEnd === true);
       advance((res.project as Project) ?? null, res.queueId ?? null);
     },
-    onError: (e) => setError(e.message),
+    onError: recoverOrReport,
   });
 
   // The escape from a table nobody is standing at: marks it done without a
@@ -216,7 +254,7 @@ export default function JudgeHackathonPage() {
       }
       advance((res.project as Project) ?? null, res.queueId ?? null);
     },
-    onError: (e) => setError(e.message),
+    onError: recoverOrReport,
   });
 
   useEffect(() => {

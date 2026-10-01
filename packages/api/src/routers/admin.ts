@@ -394,22 +394,29 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      // Only a super admin can hand the role back out, so demoting the last one
-      // locks the org out of admin management with no in-app recovery.
-      if (
+      // Only a super admin can hand the role back out, so losing the last one
+      // locks the org out of admin management with no in-app recovery. Demoting
+      // is one way; deactivating or ending the term now are the others, and an
+      // expired super admin is not a remaining one.
+      const removesSuperAdmin =
         targetAdmin.role === "super_admin" &&
-        input.role &&
-        input.role !== "super_admin"
-      ) {
+        ((input.role !== undefined && input.role !== "super_admin") ||
+          input.isActive === false ||
+          (input.expiresAt != null && input.expiresAt.getTime() <= Date.now()));
+
+      if (removesSuperAdmin) {
         const superAdmins = await (ctx.db as DrizzleDB).query.admins.findMany({
           where: and(eq(admins.role, "super_admin"), eq(admins.isActive, true)),
-          columns: { id: true },
+          columns: { id: true, expiresAt: true },
         });
 
-        if (!superAdmins.some((other) => other.id !== targetAdmin.id)) {
+        const remaining = superAdmins.filter(
+          (other) => other.id !== targetAdmin.id && !isExpiredAdmin(other),
+        );
+        if (remaining.length === 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Cannot demote the last super admin",
+            message: "Cannot remove the last super admin",
           });
         }
       }

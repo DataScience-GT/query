@@ -244,6 +244,9 @@ export const hackathonProjects = pgTable(
     score: integer("score"),
     ranking: integer("ranking"),
     submittedAt: timestamp("submitted_at"),
+    // Set when an organiser pulls the project. A team's own withdrawal leaves
+    // it null, which is how submitProject tells the two drafts apart.
+    withdrawnByAdminAt: timestamp("withdrawn_by_admin_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
