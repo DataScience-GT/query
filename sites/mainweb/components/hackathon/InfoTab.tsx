@@ -2,11 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import {
-  formatPhoneAsTyped,
-  normalizePhone,
-  phoneDigits,
-} from "@/lib/phone";
+import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import {
   FormInput,
@@ -369,7 +365,9 @@ export function InfoTab({
           {hackathon.registrationDeadline && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
               <Clock className="w-3 h-3" />
-              {deadlinePassed ? "Registration closed" : "Registration closes"}{" "}
+              {deadlinePassed
+                ? "Registration closed"
+                : "Registration closes"}{" "}
               {formatDate(hackathon.registrationDeadline)}
             </span>
           )}
@@ -411,7 +409,15 @@ export function InfoTab({
                 Submit your project
               </Link>
             )}
+            {/* On a team the server refuses until you leave it, so say that
+                up front rather than after two clicks. */}
+            {WITHDRAWABLE.has(regStatus) && myReg?.teamId ? (
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                To withdraw, leave your team first.
+              </p>
+            ) : null}
             {WITHDRAWABLE.has(regStatus) &&
+              !myReg?.teamId &&
               (confirmWithdraw ? (
                 <div className="mt-2 flex flex-col gap-3">
                   <p className="text-sm text-[var(--text-muted)]">
@@ -455,28 +461,32 @@ export function InfoTab({
               <p className="text-sm text-rose-400">{withdrawError}</p>
             )}
           </div>
-        ) : canRegister && !deadlinePassed && !showForm ? (
-          <div className="text-center sm:text-left">
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-2">
-              Register
-            </h2>
-            <p className="text-sm text-[var(--text-muted)] mb-6">
-              Four steps: personal info, school, experience, and logistics.
-            </p>
-            {isFull && (
+        ) : canRegister && !deadlinePassed ? (
+          // Once the form is open it renders below; this branch must not fall
+          // through to "Registration is closed" above an open form.
+          showForm ? null : (
+            <div className="text-center sm:text-left">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-2">
+                Register
+              </h2>
               <p className="text-sm text-[var(--text-muted)] mb-6">
-                All seats are taken. You can still apply; new applicants are
-                waitlisted until a seat opens.
+                Four steps: personal info, school, experience, and logistics.
               </p>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 w-full sm:w-auto"
-            >
-              Start registration
-            </button>
-          </div>
+              {isFull && (
+                <p className="text-sm text-[var(--text-muted)] mb-6">
+                  All seats are taken. You can still apply; new applicants are
+                  waitlisted until a seat opens.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 w-full sm:w-auto"
+              >
+                Start registration
+              </button>
+            </div>
+          )
         ) : hackathon.status === "announced" ? (
           /* Announced is not closed — the closed message below reads as "you
              missed it". Join against THIS edition's id, not a bounce to
@@ -521,7 +531,9 @@ export function InfoTab({
                     type="tel"
                     autoComplete="tel"
                     value={phone}
-                    onChange={(e) => setPhone(formatPhoneAsTyped(e.target.value))}
+                    onChange={(e) =>
+                      setPhone(formatPhoneAsTyped(e.target.value))
+                    }
                     placeholder="(555) 123-4567"
                   />
                   <FormInput
