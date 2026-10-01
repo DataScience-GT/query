@@ -179,7 +179,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     const name = hackathon?.name ?? "the hackathon";
     if (
       !window.confirm(
-        `Email everyone registered for ${name} that the results are live?\n\nThis cannot be unsent.`,
+        `Email everyone who checked in to ${name} that the results are live?\n\nThis cannot be unsent.`,
       )
     )
       return;
@@ -189,7 +189,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     try {
       const created = await createAnnouncement.mutateAsync({
         hackathonId,
-        audience: "registered",
+        // The people who were there. "registered" also reached applicants
+        // who were never accepted.
+        audience: "checked_in",
         subject: `${name} results are live`,
         heading: "Results are live",
         body: `Judging for ${name} is finished and the results are published.\n\nThank you for building with us.`,
@@ -198,7 +200,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
         // in mail, so it has to resolve even if the name never loaded.
         ctaUrl: `${window.location.origin}/hackathons/${
           hackathon?.name ? hackathonSlug(hackathon.name) : hackathonId
-        }`,
+        }?tab=RESULTS`,
       });
 
       let sent = 0;

@@ -861,6 +861,48 @@ describe("Participant edge cases", () => {
   });
 
   // =====================================================================
+  // There was no way to take a registration back, so an accepted no-show
+  // kept a seat for good. Allowed only before you are part of the event.
+  describe("Withdrawing a registration", () => {
+    const wire = (participant: Record<string, unknown> | undefined) =>
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathonParticipants" ? participant : undefined,
+      );
+
+    it("removes a pending applicant who has nothing attached", async () => {
+      wire({ id: PARTICIPANT_A, teamId: null, registrationStatus: "pending" });
+
+      await expect(
+        callerFor("user_a").hackathon.withdrawRegistration({
+          hackathonId: HACK_A,
+        }),
+      ).resolves.toEqual({ success: true });
+      expect(deletedTables()).toContain(hackathonParticipants);
+    });
+
+    it.each([
+      [
+        "a team member",
+        { id: PARTICIPANT_A, teamId: TEAM_A, registrationStatus: "approved" },
+        /Leave your team first/,
+      ],
+      [
+        "somebody already checked in",
+        { id: PARTICIPANT_A, teamId: null, registrationStatus: "checked_in" },
+        /already checked in/,
+      ],
+    ])("refuses %s", async (_label, participant, message) => {
+      wire(participant);
+
+      await expect(
+        callerFor("user_a").hackathon.withdrawRegistration({
+          hackathonId: HACK_A,
+        }),
+      ).rejects.toThrow(message);
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
   describe("6. Registration under contention", () => {
     // BUG: the duplicate guard at registration.ts:95-108 is an unlocked
     // findFirst; the unique_participant_per_hackathon violation that follows is
