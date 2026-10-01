@@ -7,6 +7,7 @@ import {
   integer,
   index,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
@@ -146,7 +147,7 @@ export const initiativeApplications = pgTable(
   (table) => [
     index("initiative_application_initiative_idx").on(table.initiativeId),
     index("initiative_application_user_idx").on(table.userId),
-    unique("unique_application_per_initiative").on(
+    uniqueIndex("initiative_application_initiative_user_idx").on(
       table.initiativeId,
       table.userId,
     ),
