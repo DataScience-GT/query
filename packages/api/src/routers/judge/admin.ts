@@ -478,13 +478,27 @@ export const judgeAdminRouter = createTRPCRouter({
         ? eligibleProjects
         : shuffleArray(eligibleProjects);
 
-      if (assignedProjects.length > 0) {
+      // initializeQueue may already have built this judge a queue, and
+      // judge_queue has no unique on (judge, project): appending the full pool
+      // would put every project in it twice.
+      const queued = await (ctx.db as DrizzleDB).query.judgeQueue.findMany({
+        where: and(
+          eq(judgeQueue.judgeId, input.judgeId),
+          eq(judgeQueue.hackathonId, input.hackathonId),
+        ),
+        columns: { projectId: true, order: true },
+      });
+      const alreadyQueued = new Set(queued.map((row) => row.projectId));
+      const lastOrder = queued.reduce((max, row) => Math.max(max, row.order), 0);
+      const toQueue = assignedProjects.filter((p) => !alreadyQueued.has(p.id));
+
+      if (toQueue.length > 0) {
         await (ctx.db as DrizzleDB).insert(judgeQueue).values(
-          assignedProjects.map((p, idx) => ({
+          toQueue.map((p, idx) => ({
             judgeId: input.judgeId,
             hackathonId: input.hackathonId,
             projectId: p.id,
-            order: idx + 1,
+            order: lastOrder + idx + 1,
           })),
         );
       }
@@ -924,8 +938,8 @@ export const judgeAdminRouter = createTRPCRouter({
     .input(
       z.object({
         hackathonId: z.string().uuid(),
-        minProjects: z.number().min(1).default(3),
-        maxProjects: z.number().min(1).default(9),
+        minProjects: z.number().int().min(1).default(3),
+        maxProjects: z.number().int().min(1).default(9),
         shuffle: z.boolean().default(true),
         // False (default) randomizes special-label/sponsor pools; true keeps them in
         // table order.
@@ -934,6 +948,10 @@ export const judgeAdminRouter = createTRPCRouter({
         // Rebuild even though judging is live or work is done. Completed slots still
         // carry over; this only waives the refusal, so the admin saw the count.
         force: z.boolean().default(false),
+      }).refine((input) => input.maxProjects >= input.minProjects, {
+        // min 9 / max 3 silently capped every judge at 3.
+        message: "Maximum projects per judge must be at least the minimum.",
+        path: ["maxProjects"],
       }),
     )
     .mutation(async ({ ctx, input }) => {

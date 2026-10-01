@@ -11,7 +11,7 @@ const otherPrizes = [
 export default function PrizeAndSpeakerSection() {
   return (
     <section id="prizes" className="section-anchor text-white relative border-t border-white/[0.06]">
-      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
+      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-24 px-6">
         <Eyebrow>Prizes</Eyebrow>
         <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-12 md:mb-16">
           Bloom, then win.
