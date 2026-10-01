@@ -23,7 +23,13 @@ export default function AdminHackathonsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const { data: hackathons, isLoading } = trpc.hackathon.listAll.useQuery(
+  const {
+    data: hackathons,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = trpc.hackathon.listAll.useQuery(
     undefined,
     { enabled: !!session },
   );
@@ -83,7 +89,22 @@ export default function AdminHackathonsPage() {
         )}
 
         <div className="space-y-8">
-          {isLoading || hackathons === undefined ? (
+          {/* Checked before the skeleton: a failed query leaves data
+              undefined, which used to hold the skeleton up forever. */}
+          {isError ? (
+            <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
+              <p className="text-sm text-rose-400">
+                Couldn&apos;t load hackathons. {error.message}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+              >
+                Try again
+              </button>
+            </LiquidGlass>
+          ) : isLoading || hackathons === undefined ? (
             <div className="space-y-4">
               {[1, 2, 3].map((n) => (
                 <div

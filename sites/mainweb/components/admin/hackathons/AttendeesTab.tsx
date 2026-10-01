@@ -72,7 +72,7 @@ export function AttendeesTab({
     status: statusFilter === "all" ? undefined : statusFilter,
   };
 
-  const { data, isLoading, isFetching } =
+  const { data, isLoading, isFetching, isError, error, refetch } =
     trpc.hackathon.adminGetAttendees.useQuery(query, {
       // Keeps the current page on screen while the next one loads, instead of
       // dropping back to the skeleton on every page turn or filter change.
@@ -172,6 +172,23 @@ export function AttendeesTab({
       </div>
     );
 
+  // Without this a failed fetch renders as "No matching registrations".
+  if (isError && !data)
+    return (
+      <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
+        <p className="text-sm text-rose-400">
+          Couldn&apos;t load registrations. {error.message}
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+        >
+          Try again
+        </button>
+      </LiquidGlass>
+    );
+
   // Already filtered and paged by the database.
   const filteredAttendees = attendees ?? [];
   const matching = data?.matching ?? 0;
@@ -257,6 +274,9 @@ export function AttendeesTab({
     participantId: string,
     newStatus: RegistrationStatus,
   ) => {
+    // Clear the last failure so a stale "seats left" message does not sit
+    // above a row that has since gone through.
+    setBulkError(null);
     updateStatus.mutate({ hackathonId, participantId, status: newStatus });
   };
 
@@ -499,9 +519,10 @@ export function AttendeesTab({
                 type="button"
                 onClick={() => handleBulkAction("approved")}
                 disabled={batchUpdateStatus.isPending}
+                title="Sets the status only. No email is sent; use Accept + Email to notify."
                 className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Check className="w-3 h-3" /> Approve All
+                <Check className="w-3 h-3" /> Approve all (no email)
               </button>
               <button
                 type="button"
@@ -596,7 +617,7 @@ export function AttendeesTab({
           role="alert"
           className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-mono text-red-300"
         >
-          Bulk action failed: {bulkError}
+          Action failed: {bulkError}
         </div>
       )}
 
@@ -773,7 +794,8 @@ export function AttendeesTab({
                               handleStatusUpdate(attendee.id, "approved")
                             }
                             disabled={updateStatus.isPending}
-                            title="Approve"
+                            title="Approve (no email). Use Accept + Email to notify."
+                            aria-label="Approve (no email)"
                             className="p-2 rounded-none bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-ui disabled:opacity-50 hover:scale-110"
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -980,9 +1002,11 @@ export function AttendeesTab({
                                     updateStatus.isPending ||
                                     attendee.registrationStatus === "approved"
                                   }
+                                  title="Sets the status only. No email is sent; use Accept + Email to notify."
                                   className="px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
                                 >
-                                  <Check className="w-3 h-3" /> Approve
+                                  <Check className="w-3 h-3" /> Approve (no
+                                  email)
                                 </button>
                                 <button
                                   type="button"

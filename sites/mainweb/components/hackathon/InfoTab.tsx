@@ -33,6 +33,7 @@ import { InterestForm } from "@/components/hackathon/InterestForm";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { Clock, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
 
@@ -44,6 +45,16 @@ const STATUS_LINE: Record<string, string> = {
   checked_in: "You're checked in.",
   rejected: "Your registration wasn't accepted this time.",
 };
+
+// Statuses that can still back out. checked_in is on site and rejected has
+// nothing to withdraw; the server refuses both anyway.
+const WITHDRAWABLE = new Set(["pending", "approved", "waitlisted"]);
+
+// Relative to now so the range never goes stale: last year's grads up to an
+// incoming first-year's eight-year horizon.
+const CURRENT_YEAR = new Date().getFullYear();
+const MIN_GRAD_YEAR = CURRENT_YEAR - 1;
+const MAX_GRAD_YEAR = CURRENT_YEAR + 8;
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
@@ -78,6 +89,8 @@ export function InfoTab({
   const [step, setStep] = useState<RegistrationStep>(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
 
   // Step 1: Personal Info
   const [firstName, setFirstName] = useState("");
@@ -147,6 +160,23 @@ export function InfoTab({
     onError: (e) => setError(e.message),
   });
 
+  const withdrawMutation = trpc.hackathon.withdrawRegistration.useMutation({
+    onSuccess: () => {
+      setConfirmWithdraw(false);
+      setWithdrawError("");
+      // success would otherwise keep the registered view up after this
+      // session's own registration is withdrawn.
+      setSuccess(false);
+      utils.hackathon.myRegistrations.invalidate();
+      utils.hackathon.myParticipantRecord.invalidate({
+        hackathonId: hackathon.id,
+      });
+      utils.hackathon.list.invalidate();
+      utils.hackathon.getById.invalidate({ id: hackathon.id });
+    },
+    onError: (e) => setWithdrawError(e.message),
+  });
+
   const isFull = !!(
     hackathon.maxParticipants &&
     hackathon.currentParticipants >= hackathon.maxParticipants
@@ -155,8 +185,10 @@ export function InfoTab({
     hackathon.registrationDeadline &&
     new Date(hackathon.registrationDeadline) < new Date()
   );
+  // Full no longer blocks applying: capacity counts accepted people only, and
+  // organisers waitlist anyone past it.
   const canRegister =
-    hackathon.status === "open" && !isRegistered && !isFull && !deadlinePassed;
+    hackathon.status === "open" && !isRegistered && !deadlinePassed;
   // A fresh registration starts pending; myReg lags a refetch behind success.
   const regStatus = myReg?.registrationStatus ?? "pending";
 
@@ -190,8 +222,8 @@ export function InfoTab({
       }
       if (
         !graduationYear ||
-        parseInt(graduationYear) < 2020 ||
-        parseInt(graduationYear) > 2035
+        parseInt(graduationYear) < MIN_GRAD_YEAR ||
+        parseInt(graduationYear) > MAX_GRAD_YEAR
       ) {
         setError("Please enter a valid graduation year.");
         return false;
@@ -371,6 +403,57 @@ export function InfoTab({
             <p className="text-sm text-[var(--text-muted)]">
               {STATUS_LINE[regStatus] ?? ""}
             </p>
+            {regStatus === "checked_in" && (
+              <Link
+                href={`/submit?id=${hackathon.id}`}
+                className="mt-2 w-fit inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+              >
+                Submit your project
+              </Link>
+            )}
+            {WITHDRAWABLE.has(regStatus) &&
+              (confirmWithdraw ? (
+                <div className="mt-2 flex flex-col gap-3">
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Withdraw your registration? You can apply again while
+                    registration is open.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        withdrawMutation.mutate({ hackathonId: hackathon.id })
+                      }
+                      disabled={withdrawMutation.isPending}
+                      className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                    >
+                      {withdrawMutation.isPending ? "Withdrawing…" : "Confirm"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmWithdraw(false);
+                        setWithdrawError("");
+                      }}
+                      disabled={withdrawMutation.isPending}
+                      className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmWithdraw(true)}
+                  className="mt-2 w-fit px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                >
+                  Withdraw registration
+                </button>
+              ))}
+            {withdrawError && (
+              <p className="text-sm text-rose-400">{withdrawError}</p>
+            )}
           </div>
         ) : canRegister && !deadlinePassed && !showForm ? (
           <div className="text-center sm:text-left">
@@ -380,6 +463,12 @@ export function InfoTab({
             <p className="text-sm text-[var(--text-muted)] mb-6">
               Four steps: personal info, school, experience, and logistics.
             </p>
+            {isFull && (
+              <p className="text-sm text-[var(--text-muted)] mb-6">
+                All seats are taken. You can still apply; new applicants are
+                waitlisted until a seat opens.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setShowForm(true)}
@@ -396,8 +485,6 @@ export function InfoTab({
             hackathonId={hackathon.id}
             callbackPath={`/hackathons/${hackathonSlug(hackathon.name)}`}
           />
-        ) : isFull ? (
-          <p className="text-sm text-rose-400">This event is full.</p>
         ) : (
           <p className="text-sm text-[var(--text-muted)]">
             Registration is closed.
@@ -514,9 +601,9 @@ export function InfoTab({
                     type="number"
                     value={graduationYear}
                     onChange={(e) => setGraduationYear(e.target.value)}
-                    placeholder="2026"
-                    min={2020}
-                    max={2035}
+                    placeholder={String(CURRENT_YEAR)}
+                    min={MIN_GRAD_YEAR}
+                    max={MAX_GRAD_YEAR}
                   />
                 </div>
                 <FormChipSelect

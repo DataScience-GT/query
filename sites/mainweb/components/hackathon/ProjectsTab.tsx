@@ -6,7 +6,7 @@ import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { Code, ExternalLink, FolderGit2 } from "lucide-react";
 
 export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
-  const { data: projects, isLoading } =
+  const { data: projects, isLoading, isError, error, refetch } =
     trpc.hackathon.getPublicProjects.useQuery({ hackathonId });
 
   if (isLoading)
@@ -14,6 +14,23 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
       <div className="py-16 text-center text-sm text-[var(--text-muted)]">
         Loading projects…
       </div>
+    );
+
+  // Without this a failed fetch falls through to "No projects" below.
+  if (isError)
+    return (
+      <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
+        <p className="text-sm text-rose-400">
+          Couldn&apos;t load projects. {error.message}
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+        >
+          Try again
+        </button>
+      </LiquidGlass>
     );
 
   if (!projects || projects.length === 0) {
