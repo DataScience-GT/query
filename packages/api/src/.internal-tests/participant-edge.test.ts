@@ -887,9 +887,10 @@ describe("Participant edge cases", () => {
       });
     });
 
-    // BUG: registration.ts:110-118 reads currentParticipants with a plain
-    // findFirst and increments at :173 — two racers both see 499/500.
-    it("admits only one of two racing registrations into the last seat", async () => {
+    // Applying no longer claims a seat — acceptance does (admin.ts
+    // assertSeats) — so two applicants racing for the last seat both get in,
+    // and the seat count is untouched.
+    it("lets racing applications through without taking a seat", async () => {
       const hackathonRow = runningHackathon(-24, {
         maxParticipants: 500,
         currentParticipants: 499,
@@ -898,30 +899,16 @@ describe("Participant edge cases", () => {
         table === "hackathons" ? { ...hackathonRow } : undefined,
       );
       mockInsert.mockReturnValue([{ id: PARTICIPANT_A }]);
-      mockUpdate.mockImplementation((_op, updateArgs) => {
-        // Stands in for sql`currentParticipants + 1`, including the rollback:
-        // the loser of the race claims a seat and then hands it straight back
-        // when the re-read shows it went over.
-        if (updateArgs[0] === hackathons) {
-          hackathonRow.currentParticipants += 1;
-          __onRollback(() => {
-            hackathonRow.currentParticipants -= 1;
-          });
-        }
-        return [];
-      });
 
       const results = await Promise.allSettled([
         callerFor("user_a").hackathon.register(registrationInput()),
         callerFor("user_b").hackathon.register(registrationInput()),
       ]);
 
-      const rejected = results.filter((r) => r.status === "rejected");
-      expect(rejected).toHaveLength(1);
-      expect(String((rejected[0] as PromiseRejectedResult)?.reason)).toMatch(
-        /full/,
-      );
-      expect(hackathonRow.currentParticipants).toBe(500);
+      expect(results.every((r) => r.status === "fulfilled")).toBe(true);
+      expect(
+        mockUpdate.mock.calls.some((call) => call[1]?.[0] === hackathons),
+      ).toBe(false);
     });
 
     // BUG: registration.ts:178 calls deletePattern("hackathon*") inside the

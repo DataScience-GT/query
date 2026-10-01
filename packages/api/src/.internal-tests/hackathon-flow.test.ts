@@ -305,7 +305,9 @@ describe("Hackathon end-to-end flow", () => {
       );
     });
 
-    it("rejects registration when the hackathon is at capacity", async () => {
+    // Capacity caps acceptances, not applications: a full house still takes
+    // applications, and the seat is enforced when an organiser accepts.
+    it("takes an application when every seat is already taken", async () => {
       mockFindFirst.mockImplementation((table) =>
         table === "hackathons"
           ? openHackathon({ maxParticipants: 500, currentParticipants: 500 })
@@ -313,9 +315,10 @@ describe("Hackathon end-to-end flow", () => {
       );
       const caller = appRouter.createCaller(createMockCtx("user_a"));
 
-      await expect(caller.hackathon.register(registrationInput())).rejects.toThrow(
-        /full/,
-      );
+      const outcome = await caller.hackathon
+        .register(registrationInput())
+        .catch((error: unknown) => error);
+      expect(String((outcome as Error)?.message ?? "")).not.toMatch(/full/);
     });
   });
 
