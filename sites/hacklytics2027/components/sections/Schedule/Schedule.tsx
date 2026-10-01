@@ -6,13 +6,14 @@ import Eyebrow from "../Eyebrow";
 export default function Schedule() {
   return (
     <section id="schedule" className="section-anchor text-white border-t border-white/[0.06]">
-      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
+      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-24 px-6">
         <Eyebrow>Schedule</Eyebrow>
         <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-4 max-w-3xl">
           36 hours. One Klaus weekend.
         </h2>
-        <p className="font-sans text-sm text-white/40 mb-12 md:mb-16 max-w-md">
-          Preview board. Meals and workshops post closer to Feb 26–28, 2027.
+        <p className="font-sans text-sm md:text-base text-white/45 mb-12 md:mb-16 max-w-xl">
+          The key times so far. Meals and workshops are added closer to the
+          weekend.
         </p>
 
         <ol className="border-t border-white/10">
