@@ -238,6 +238,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   // unassigned judges to pick, and there was no way to add a walk-in.
   const createJudge = trpc.judge.create.useMutation({
     onSuccess: (judge) => {
+      // The judge exists now even if the assign below fails, so the picker
+      // has to know about them, or re-adding by email says "already a judge".
+      void utils.judge.list.invalidate();
       if (!judge) return;
       assignJudge.mutate({
         judgeId: judge.id,
