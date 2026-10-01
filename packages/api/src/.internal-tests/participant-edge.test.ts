@@ -504,15 +504,11 @@ describe("Participant edge cases", () => {
       },
     );
 
-    it("lets a team form at exactly +12h but not one millisecond earlier", async () => {
-      const early = atOffset(12 * HOUR - 1);
+    // No opening time: the window is open from acceptance up to +34h.
+    it("lets a team form a day before hacking starts", async () => {
+      const early = atOffset(-24 * HOUR);
       await expect(
         early.team.createTeam({ hackathonId: HACK_A, name: "meow", maxMembers: 4 }),
-      ).rejects.toThrow(/not open yet/);
-
-      const onTime = atOffset(12 * HOUR);
-      await expect(
-        onTime.team.createTeam({ hackathonId: HACK_A, name: "meow", maxMembers: 4 }),
       ).resolves.toMatchObject({ id: TEAM_A });
     });
 

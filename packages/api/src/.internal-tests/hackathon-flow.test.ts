@@ -607,12 +607,14 @@ describe("Hackathon end-to-end flow", () => {
       maxMembers: 4 as const,
     };
 
-    it("refuses team creation before the window opens at +12h", async () => {
-      const caller = teamCaller(2);
+    // Accepted hackers can find teammates before kickoff.
+    it("allows team creation before hacking starts", async () => {
+      const caller = teamCaller(-48);
+      mockInsert.mockReturnValue([{ id: "team_1", name: "meow" }]);
 
-      await expect(caller.team.createTeam(newTeam)).rejects.toThrow(
-        /not open yet/,
-      );
+      await expect(caller.team.createTeam(newTeam)).resolves.toMatchObject({
+        name: "meow",
+      });
     });
 
     it("allows team creation inside the window", async () => {
@@ -652,18 +654,21 @@ describe("Hackathon end-to-end flow", () => {
       expect(res.canLeave).toBe(false);
     });
 
+    // Teams form from acceptance, not from +12h: two hours in, an accepted
+    // hacker can already create, join and leave.
     it("reports the window so the UI can disable instead of failing", async () => {
       const caller = teamCaller(2);
 
       const res = await caller.team.window({ hackathonId: HACK_A });
       expect(res).toMatchObject({
-        isOpen: false,
-        canCreate: false,
-        canJoin: false,
-        canLeave: false,
+        isOpen: true,
+        canCreate: true,
+        canJoin: true,
+        canLeave: true,
+        opensAt: null,
       });
-      expect(res.leaveLocksAt.getTime() - res.opensAt.getTime()).toBe(
-        12 * HOUR,
+      expect(res.closesAt.getTime() - res.leaveLocksAt.getTime()).toBe(
+        10 * HOUR,
       );
     });
   });

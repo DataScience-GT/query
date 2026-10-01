@@ -81,9 +81,7 @@ export function TeamsTab({
 
   const windowNotice = !teamWindow
     ? null
-    : !teamWindow.isOpen && new Date() < new Date(teamWindow.opensAt)
-      ? `Team creation opens ${fmt(teamWindow.opensAt)}.`
-      : !teamWindow.isOpen
+    : !teamWindow.isOpen
         ? `Team creation closed ${fmt(teamWindow.closesAt)}.`
         : !teamWindow.canLeave
           ? `Teams are locked. Leaving closed ${fmt(teamWindow.leaveLocksAt)}, 12 hours before the project deadline.`
