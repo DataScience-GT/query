@@ -1,104 +1,87 @@
 "use client";
-import React from "react";
+import React, { useMemo } from "react";
 import PixelSprite from "../pixel/PixelSprite";
-import { BLOOM, DAISY, MUSHROOM, SPROUT, TULIP } from "../pixel/sprites";
+import { BLOOM, DAISY, GROUND, MUSHROOM, SPROUT, TULIP } from "../pixel/sprites";
 import type { PaletteName, SpriteMap } from "../pixel/sprites";
-import Eyebrow from "./Eyebrow";
+import { spriteToDataUri } from "../pixel/spriteUri";
 
 const tracks: {
-  num: string;
   title: string;
   description: string;
   sprite: SpriteMap;
   palette: PaletteName;
 }[] = [
-  {
-    num: "01",
-    title: "Finance",
-    description: "Markets, models, and fintech.",
-    sprite: DAISY,
-    palette: "lime",
-  },
-  {
-    num: "02",
-    title: "Sports Analytics",
-    description: "Performance, strategy, and the game.",
-    sprite: TULIP,
-    palette: "cyan",
-  },
-  {
-    num: "03",
-    title: "Healthcare",
-    description: "Care, bioinformatics, and health tech.",
-    sprite: BLOOM,
-    palette: "pink",
-  },
-  {
-    num: "04",
-    title: "Entertainment",
-    description: "Media, games, and interactive AI.",
-    sprite: MUSHROOM,
-    palette: "purple",
-  },
-  {
-    num: "05",
-    title: "Pure Imagination",
-    description: "Wildcard. Build the unexpected.",
-    sprite: SPROUT,
-    palette: "lime",
-  },
+  { title: "Finance", description: "Markets, models, and fintech.", sprite: DAISY, palette: "lime" },
+  { title: "Sports Analytics", description: "Performance, strategy, and the game.", sprite: TULIP, palette: "cyan" },
+  { title: "Healthcare", description: "Care, bioinformatics, and health tech.", sprite: BLOOM, palette: "pink" },
+  { title: "Entertainment", description: "Media, games, and interactive AI.", sprite: MUSHROOM, palette: "purple" },
+  { title: "Pure Imagination", description: "Wildcard. Build the unexpected.", sprite: SPROUT, palette: "lime" },
 ];
 
-const FRAME: Record<PaletteName, string> = {
-  pink: "pixel-pink",
-  cyan: "pixel-cyan",
-  lime: "pixel-lime",
-  purple: "pixel-purple",
-};
-
-const NUM: Record<PaletteName, string> = {
-  pink: "text-bloom-pink",
-  cyan: "text-bloom-cyan",
-  lime: "text-bloom-lime",
-  purple: "text-[#c77dff]",
-};
+const GROUND_SCALE = 4;
 
 export default function TracksSection() {
+  const ground = useMemo(() => spriteToDataUri(GROUND, "lime"), []);
+
   return (
     <section id="tracks" className="section-anchor relative text-white">
-      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-28 px-6">
-        <Eyebrow index="02" tone="lime">Tracks</Eyebrow>
-        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-12 md:mb-16 max-w-3xl">
-          Five tracks. <span className="neon-lime">One weekend.</span>
+      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
+        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl text-white leading-[1] tracking-[-0.03em] mb-14 md:mb-20">
+          Tracks
         </h2>
 
-        {/* Six columns so three cards fill the first row and two wider ones
-            the second, instead of a lone card stranded on the last row. */}
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
-          {tracks.map(({ num, title, description, sprite, palette }, i) => (
-            <li
-              key={num}
-              className={`group pixel-frame ${FRAME[palette]} relative overflow-hidden bg-white/[0.03] p-6 md:p-8 min-h-[15rem] flex flex-col transition-colors duration-300 hover:bg-white/[0.06] ${
-                i < 3 ? "lg:col-span-2" : "lg:col-span-3"
-              } ${i === 4 ? "sm:col-span-2 lg:col-span-3" : ""}`}
-            >
-              <div className="flex items-start justify-between">
-                <PixelSprite
-                  map={sprite}
-                  palette={palette}
-                  scale={5}
-                  glow
-                  className="transition-transform duration-300 group-hover:-translate-y-1"
-                />
-                <span className={`font-pixel text-xs ${NUM[palette]}`}>{num}</span>
+        {/* The tracks are the garden: one plant each, rooted in the same bed
+            of soil as the hero. Phones get a plain list; five plants do not
+            share a 390px bed. */}
+        <ul className="lg:hidden flex flex-col gap-8">
+          {tracks.map((t) => (
+            <li key={t.title} className="flex items-end gap-5">
+              <span className="flex w-14 shrink-0 justify-center">
+                <PixelSprite map={t.sprite} palette={t.palette} scale={4} glow />
+              </span>
+              <div className="pb-1">
+                <h3 className="font-sans font-bold text-xl text-white tracking-tight">{t.title}</h3>
+                <p className="font-sans text-base text-white/65 mt-1">{t.description}</p>
               </div>
-              <h3 className="font-sans font-bold text-2xl md:text-3xl text-white tracking-tight mt-auto pt-8">
-                {title}
-              </h3>
-              <p className="font-sans text-base text-white/65 mt-2">{description}</p>
             </li>
           ))}
         </ul>
+
+        <div className="hidden lg:block">
+          <ul className="grid grid-cols-5 items-end">
+            {tracks.map((t, i) => (
+              <li key={t.title} className="flex justify-center">
+                <PixelSprite
+                  map={t.sprite}
+                  palette={t.palette}
+                  scale={7}
+                  glow
+                  className="animate-sway origin-bottom"
+                  style={{ animationDuration: `${6 + i * 0.7}s`, animationDelay: `${-i * 1.3}s` }}
+                />
+              </li>
+            ))}
+          </ul>
+          <div
+            aria-hidden
+            className="w-full"
+            style={{
+              backgroundImage: ground.uri,
+              backgroundRepeat: "repeat-x",
+              backgroundSize: `${ground.w * GROUND_SCALE}px ${ground.h * GROUND_SCALE}px`,
+              height: ground.h * GROUND_SCALE,
+              imageRendering: "pixelated",
+            }}
+          />
+          <ul className="grid grid-cols-5 gap-6 mt-8">
+            {tracks.map((t) => (
+              <li key={t.title} className="text-center">
+                <h3 className="font-sans font-bold text-xl xl:text-2xl text-white tracking-tight">{t.title}</h3>
+                <p className="font-sans text-base text-white/65 mt-2">{t.description}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );
