@@ -38,7 +38,7 @@ const tracks: {
     title: "Entertainment",
     description: "Media, games, and interactive AI.",
     sprite: MUSHROOM,
-    palette: "pink",
+    palette: "purple",
   },
   {
     num: "05",
@@ -49,37 +49,53 @@ const tracks: {
   },
 ];
 
+const FRAME: Record<PaletteName, string> = {
+  pink: "pixel-pink",
+  cyan: "pixel-cyan",
+  lime: "pixel-lime",
+  purple: "pixel-purple",
+};
+
+const NUM: Record<PaletteName, string> = {
+  pink: "text-bloom-pink",
+  cyan: "text-bloom-cyan",
+  lime: "text-bloom-lime",
+  purple: "text-[#c77dff]",
+};
+
 export default function TracksSection() {
   return (
-    <section id="tracks" className="section-anchor relative text-white border-t border-white/[0.06]">
-      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-24 px-6">
-        <Eyebrow>Tracks</Eyebrow>
+    <section id="tracks" className="section-anchor relative text-white">
+      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-28 px-6">
+        <Eyebrow index="02" tone="lime">Tracks</Eyebrow>
         <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-12 md:mb-16 max-w-3xl">
-          Five tracks. One weekend.
+          Five tracks. <span className="neon-lime">One weekend.</span>
         </h2>
 
-        <ul className="flex flex-col border-t border-white/10">
-          {tracks.map(({ num, title, description, sprite, palette }) => (
+        {/* Six columns so three cards fill the first row and two wider ones
+            the second, instead of a lone card stranded on the last row. */}
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
+          {tracks.map(({ num, title, description, sprite, palette }, i) => (
             <li
               key={num}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 border-b border-white/10 py-6 md:py-8"
+              className={`group pixel-frame ${FRAME[palette]} relative overflow-hidden bg-white/[0.03] p-6 md:p-8 min-h-[15rem] flex flex-col transition-colors duration-300 hover:bg-white/[0.06] ${
+                i < 3 ? "lg:col-span-2" : "lg:col-span-3"
+              } ${i === 4 ? "sm:col-span-2 lg:col-span-3" : ""}`}
             >
-              <div className="flex items-center gap-4 sm:gap-6 min-w-0">
-                {/* Fixed cell: sprites are 27-33px wide, which staggered the
-                    numbers and titles beside them. */}
-                <span className="flex w-9 shrink-0 justify-center">
-                  <PixelSprite map={sprite} palette={palette} scale={3} />
-                </span>
-                <span className="font-sans text-xs text-white/35 w-6 shrink-0 tabular-nums">
-                  {num}
-                </span>
-                <h3 className="font-sans font-bold text-xl md:text-2xl text-white tracking-tight">
-                  {title}
-                </h3>
+              <div className="flex items-start justify-between">
+                <PixelSprite
+                  map={sprite}
+                  palette={palette}
+                  scale={5}
+                  glow
+                  className="transition-transform duration-300 group-hover:-translate-y-1"
+                />
+                <span className={`font-pixel text-xs ${NUM[palette]}`}>{num}</span>
               </div>
-              <p className="font-sans text-sm md:text-base text-white/45 sm:ml-auto sm:text-right max-w-md pl-[5.75rem] sm:pl-0">
-                {description}
-              </p>
+              <h3 className="font-sans font-bold text-2xl md:text-3xl text-white tracking-tight mt-auto pt-8">
+                {title}
+              </h3>
+              <p className="font-sans text-base text-white/65 mt-2">{description}</p>
             </li>
           ))}
         </ul>

@@ -12,7 +12,7 @@ export default function Footer() {
     <footer className="relative z-10 w-full bg-gradient-to-b from-[#020204]/70 to-[#020204] to-40% overflow-hidden">
       <div className="section-wrap max-w-7xl mx-auto pt-20 md:pt-28 pb-10 px-6 relative z-10">
         <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-8">
-          Applications open soon.
+          Applications <span className="neon-cyan">open soon.</span>
         </h2>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 mb-16">
@@ -20,11 +20,11 @@ export default function Footer() {
             href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="pixel-btn inline-flex items-center justify-center px-8 py-4 font-sans font-bold text-sm uppercase tracking-[0.14em] w-full sm:w-auto"
+            className="pixel-btn inline-flex items-center justify-center px-10 py-4 font-pixel text-xs w-full sm:w-auto"
           >
             Notify me →
           </a>
-          <p className="font-sans text-sm text-white/45 max-w-sm leading-relaxed">
+          <p className="font-sans text-base text-white/65 max-w-sm leading-relaxed">
             We’ll let you know the moment they do.
           </p>
         </div>
