@@ -39,8 +39,8 @@ export function JudgingTools({
       {/* Hackathon Selector */}
       {hackathons && hackathons.length > 0 && (
         <div className="flex flex-col">
-          <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">
-            Select Target Event
+          <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+            Hackathon
           </label>
           <div className="flex flex-wrap gap-3">
             {hackathons.map((h) => (
@@ -48,10 +48,10 @@ export function JudgingTools({
                 type="button"
                 key={h.id}
                 onClick={() => setSelectedHackathon(h.id)}
-                className={`px-8 py-4 rounded-none font-bold text-sm uppercase tracking-widest transition-ui duration-300 border ${
+                className={`px-5 py-2.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
                   selectedHackathon === h.id
-                    ? "bg-accent/10 border-accent/50 text-[var(--text-primary)] shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-                    : "bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
+                    ? "bg-accent/15 border-accent/40 text-accent"
+                    : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
                 }`}
               >
                 {h.name}
@@ -64,8 +64,8 @@ export function JudgingTools({
       {/* View Mode Toggle */}
       {selectedHackathon && (
         <div className="flex flex-col">
-          <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">
-            View Mode
+          <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+            View
           </label>
           <div className="flex flex-wrap gap-3">
             {(["results", "rooms", "judges"] as const).map((mode) => (
@@ -73,17 +73,17 @@ export function JudgingTools({
                 type="button"
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-6 py-3 rounded-none font-bold text-xs uppercase tracking-widest transition-ui duration-300 border font-mono ${
+                className={`px-5 py-2.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
                   viewMode === mode
-                    ? "bg-accent/10 border-accent/50 text-[var(--text-primary)] shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-                    : "bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
+                    ? "bg-accent/15 border-accent/40 text-accent"
+                    : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
                 }`}
               >
                 {mode === "results"
                   ? "Results"
                   : mode === "rooms"
-                    ? "Room Assignments"
-                    : "Judge Performance"}
+                    ? "Room assignments"
+                    : "Judge performance"}
               </button>
             ))}
           </div>
@@ -94,8 +94,8 @@ export function JudgingTools({
         {/* Category Filter */}
         {categories.length > 1 && (
           <div className="flex flex-col">
-            <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">
-              Filter By Category
+            <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+              Category
             </label>
             <div className="flex flex-wrap gap-3">
               {categories.map((cat) => (
@@ -103,10 +103,10 @@ export function JudgingTools({
                   type="button"
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-ui duration-300 border ${
+                  className={`px-3 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
                     selectedCategory === cat
-                      ? "bg-white/10 border-white/20 text-[var(--text-primary)] shadow-lg"
-                      : "bg-white/[0.02] border-[var(--border-subtle)] text-gray-600 hover:text-[var(--text-muted)] hover:bg-white/5"
+                      ? "bg-accent/15 border-accent/40 text-accent"
+                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
                   }`}
                 >
                   {cat}
@@ -119,8 +119,8 @@ export function JudgingTools({
         {/* Track Filter */}
         {tracks.length > 1 && (
           <div className="flex flex-col">
-            <label className="text-xs text-gray-600 uppercase tracking-[0.4em] mb-4 font-mono">
-              Filter By Track
+            <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+              Track
             </label>
             <div className="flex flex-wrap gap-3">
               {tracks.map((track) => (
@@ -128,10 +128,10 @@ export function JudgingTools({
                   type="button"
                   key={track}
                   onClick={() => setSelectedTrack(track)}
-                  className={`px-5 py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest transition-ui duration-300 border ${
+                  className={`px-3 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
                     selectedTrack === track
-                      ? "bg-accent/20 border-accent/50 text-[var(--text-primary)] shadow-lg"
-                      : "bg-white/[0.02] border-[var(--border-subtle)] text-gray-600 hover:text-[var(--text-muted)] hover:bg-white/5"
+                      ? "bg-accent/15 border-accent/40 text-accent"
+                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
                   }`}
                 >
                   {track}
