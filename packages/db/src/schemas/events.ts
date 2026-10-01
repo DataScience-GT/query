@@ -7,6 +7,7 @@ import {
   integer,
   index,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
@@ -46,10 +47,14 @@ export const events = pgTable(
   },
   (table) => [
     // One event per week per bootcamp. Nulls count as distinct in Postgres, so
-    // ordinary events all carry (null, null) and never collide. Table order, not
-    // readability order: push introspects it this way and a reversed spelling
-    // diffs against itself forever.
-    unique("unique_bootcamp_session").on(table.bootcampWeek, table.bootcampTerm),
+    // ordinary events all carry (null, null) and never collide. A unique index,
+    // not a unique constraint: drizzle-kit reads a constraint's columns with no
+    // ORDER BY, so on Neon it saw them reversed, tried to re-add it, and push
+    // stopped at a TTY prompt mid-deploy. Index columns are read in order.
+    uniqueIndex("event_bootcamp_session_idx").on(
+      table.bootcampWeek,
+      table.bootcampTerm,
+    ),
     // Both bootcamp pages read every session of one term.
     index("event_bootcamp_term_idx").on(table.bootcampTerm),
   ],
