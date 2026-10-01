@@ -195,8 +195,18 @@ function SubmitPortalContent() {
     onError: (err) => setError(err.message),
   });
 
+  // Still submittable: until 12 hours after the event ends. The default pick
+  // and the dropdown use the same rule; defaulting to myRegs[0] could select
+  // a past edition the dropdown did not even list.
+  const isActiveReg = (reg: NonNullable<typeof myRegs>[number]) =>
+    reg.hackathon.endDate
+      ? new Date(
+          new Date(reg.hackathon.endDate).getTime() + 12 * 60 * 60 * 1000,
+        ) >= new Date()
+      : true;
+
   if (!selectedHackathonId && myRegs && myRegs.length > 0) {
-    const firstReg = myRegs[0];
+    const firstReg = myRegs.find(isActiveReg);
     if (firstReg) {
       setSelectedHackathonId(firstReg.hackathonId);
     }
@@ -232,14 +242,7 @@ function SubmitPortalContent() {
     return null;
   }
 
-  const activeRegs =
-    myRegs?.filter((reg) =>
-      reg.hackathon.endDate
-        ? new Date(
-            new Date(reg.hackathon.endDate).getTime() + 12 * 60 * 60 * 1000,
-          ) >= new Date()
-        : true,
-    ) || [];
+  const activeRegs = myRegs?.filter(isActiveReg) || [];
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-tertiary)]">
@@ -494,6 +497,20 @@ function SubmitPortalContent() {
                     captain can submit.
                   </p>
 
+                  {/* Where judges will come. The table is assigned when an
+                      organiser opens judging, and nothing else told the team. */}
+                  {mySubmission.data?.tableNumber != null && (
+                    <div className="p-4 mb-6 rounded-sm border bg-accent/5 border-accent/20">
+                      <p className="text-sm text-accent">
+                        Your project is at table{" "}
+                        <span className="font-bold">
+                          {mySubmission.data.tableNumber}
+                        </span>
+                        . Be there when judging starts; judges come to you.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Admission, said before the form is filled in. Acceptance
                       lets you form a team; submitting needs the badge scan,
                       because judging happens in person at a table number. */}
@@ -505,7 +522,9 @@ function SubmitPortalContent() {
                             ? "You're accepted — check in at the event before submitting. Find a volunteer and have your badge scanned."
                             : currentReg.registrationStatus === "pending"
                               ? "Your registration is still being reviewed. You can form a team once you have been accepted."
-                              : `Your registration for this hackathon is ${currentReg.registrationStatus}.`}
+                              : currentReg.registrationStatus === "waitlisted"
+                                ? "You're on the waitlist. If a seat opens, you'll be accepted and can submit."
+                                : "Your registration wasn't accepted, so you can't submit to this hackathon."}
                         </p>
                       </div>
                     )}
