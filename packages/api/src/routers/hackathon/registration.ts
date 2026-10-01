@@ -7,7 +7,7 @@ import {
   hackathonParticipants,
   members,
 } from "@query/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
 
@@ -138,53 +138,15 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             });
           }
 
-          // Nothing is locked yet, so this only turns away a form submitted against an
-          // event that was already visibly full; the seat is claimed and checked below.
-          if (
-            hackathon.maxParticipants &&
-            hackathon.currentParticipants >= hackathon.maxParticipants
-          ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "This hackathon is full",
-            });
-          }
-
+          // No seat is claimed here: capacity counts accepted people, not
+          // applications, so applying is never refused for being full. The
+          // seat is taken when an organiser accepts (admin.ts assertSeats).
           // A membership is annual and edition-independent, so it is keyed on the
           // person alone; the edition clause used to be here and made a paying member
           // read as a non-member the moment a new edition opened.
           const member = await tx.query.members.findFirst({
             where: eq(members.userId, ctx.userId as string),
           });
-
-          // Claiming the seat before inserting anything is what makes capacity hold
-          // across processes: this statement takes the hackathon row's exclusive lock,
-          // so a registration racing for the same last seat blocks here and re-runs
-          // `+ 1` against the count we wrote rather than its own snapshot. Reading the
-          // row back in the same transaction gives the seat this registration actually
-          // holds, and going over the limit rolls the claim back. It also keeps
-          // admin.ts's recount honest — that path locks the same row first.
-          await tx
-            .update(hackathons)
-            .set({
-              currentParticipants: sql`${hackathons.currentParticipants} + 1`,
-            })
-            .where(eq(hackathons.id, input.hackathonId));
-
-          const claimed = await tx.query.hackathons.findFirst({
-            where: eq(hackathons.id, input.hackathonId),
-            columns: { currentParticipants: true, maxParticipants: true },
-          });
-
-          if (
-            claimed?.maxParticipants &&
-            claimed.currentParticipants > claimed.maxParticipants
-          ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "This hackathon is full",
-            });
-          }
 
           const [participant] = await tx
             .insert(hackathonParticipants)
