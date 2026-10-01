@@ -167,12 +167,20 @@ class GaugeCache {
 const gaugeCache = new GaugeCache();
 
 // `2026-fall` — duplicated from @query/db rather than imported, because this
-// module is pulled into the metrics route and the rule is three lines. If the
-// two disagree the gauge is mislabelled, nothing more.
-const currentTermLabel = (now = new Date()) =>
-  now.getMonth() <= 4
-    ? `${now.getFullYear()}-spring`
-    : `${now.getFullYear()}-fall`;
+// module is pulled into the metrics route and the rule is a few lines. Read in
+// Eastern time like currentTerm, or the label flips four hours early at the
+// May and December boundaries. If the two disagree the gauge is mislabelled,
+// nothing more.
+const currentTermLabel = (now = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(now);
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  return month <= 5 ? `${year}-spring` : `${year}-fall`;
+};
 
 // Recomputes the database-derived gauges, at most once a minute. Every query
 // is a count behind an index-friendly predicate, and a failure leaves the

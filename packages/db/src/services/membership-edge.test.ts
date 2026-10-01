@@ -303,46 +303,65 @@ describe("isBootcampAddOnOnly — edges", () => {
 
 describe("currentTerm — boundaries", () => {
   it("calls January spring", () => {
-    expect(currentTerm(new Date(2026, 0, 1))).toBe("2026-spring");
+    expect(currentTerm(new Date("2026-01-01T00:00:00-05:00"))).toBe("2026-spring");
   });
 
   /** The split is the end of May: month index 4 is still spring. */
   it("calls the last day of May spring", () => {
-    expect(currentTerm(new Date(2026, 4, 31))).toBe("2026-spring");
+    expect(currentTerm(new Date("2026-05-31T00:00:00-04:00"))).toBe("2026-spring");
   });
 
   it("calls the first day of June fall", () => {
-    expect(currentTerm(new Date(2026, 5, 1))).toBe("2026-fall");
+    expect(currentTerm(new Date("2026-06-01T00:00:00-04:00"))).toBe("2026-fall");
   });
 
   it("sells the autumn bootcamp over the summer", () => {
-    expect(currentTerm(new Date(2026, 6, 15))).toBe("2026-fall");
+    expect(currentTerm(new Date("2026-07-15T00:00:00-04:00"))).toBe("2026-fall");
   });
 
   it("calls the last day of December fall, not next spring", () => {
-    expect(currentTerm(new Date(2026, 11, 31))).toBe("2026-fall");
+    expect(currentTerm(new Date("2026-12-31T00:00:00-05:00"))).toBe("2026-fall");
   });
 
   it("rolls into the new year's spring on 1 January", () => {
-    expect(currentTerm(new Date(2027, 0, 1))).toBe("2027-spring");
+    expect(currentTerm(new Date("2027-01-01T00:00:00-05:00"))).toBe("2027-spring");
   });
 
   it("handles a leap day", () => {
-    expect(currentTerm(new Date(2028, 1, 29))).toBe("2028-spring");
+    expect(currentTerm(new Date("2028-02-29T00:00:00-05:00"))).toBe("2028-spring");
+  });
+
+  // 9pm Eastern on May 31 is already June in UTC, where the server runs.
+  it("keeps a May 31 evening purchase in spring", () => {
+    expect(currentTerm(new Date("2026-05-31T21:00:00-04:00"))).toBe("2026-spring");
+  });
+
+  it("keeps a New Year's Eve evening purchase in fall", () => {
+    expect(currentTerm(new Date("2026-12-31T21:00:00-05:00"))).toBe("2026-fall");
   });
 });
 
 describe("semesterEndDate — boundaries", () => {
-  const springEnd = (year: number) => new Date(year, 4, 31, 23, 59, 59, 999);
-  const fallEnd = (year: number) => new Date(year, 11, 31, 23, 59, 59, 999);
+  // Atlanta time, whatever the machine's zone: CI runs in UTC.
+  const springEnd = (year: number) =>
+    new Date(`${year}-05-31T23:59:59.999-04:00`);
+  const fallEnd = (year: number) =>
+    new Date(`${year}-12-31T23:59:59.999-05:00`);
 
   it("runs a January date out at the end of May", () => {
-    expect(semesterEndDate(new Date(2026, 0, 15))).toEqual(springEnd(2026));
+    expect(semesterEndDate(new Date("2026-01-15T00:00:00-05:00"))).toEqual(springEnd(2026));
   });
 
-  it("runs a date one millisecond before the spring boundary out at that boundary", () => {
-    const justBefore = new Date(2026, 4, 31, 23, 59, 59, 998);
-    expect(semesterEndDate(justBefore)).toEqual(springEnd(2026));
+  // The last six hours belong to the next semester: buying then would
+  // otherwise buy a few hours.
+  it("runs a date just outside the last six hours of spring out at that boundary", () => {
+    const outside = new Date("2026-05-31T17:00:00-04:00");
+    expect(semesterEndDate(outside)).toEqual(springEnd(2026));
+  });
+
+  it("moves a date in the last six hours of spring on to fall", () => {
+    const justBefore = new Date("2026-05-31T23:59:59.998-04:00");
+    expect(semesterEndDate(justBefore)).toEqual(fallEnd(2026));
   });
 
   /**
@@ -354,25 +373,25 @@ describe("semesterEndDate — boundaries", () => {
   });
 
   it("runs a summer date out at the end of December", () => {
-    expect(semesterEndDate(new Date(2026, 6, 4))).toEqual(fallEnd(2026));
+    expect(semesterEndDate(new Date("2026-07-04T00:00:00-04:00"))).toEqual(fallEnd(2026));
   });
 
   it("moves to next spring when given the fall boundary exactly", () => {
     expect(semesterEndDate(fallEnd(2026))).toEqual(springEnd(2027));
   });
 
-  it("runs a date one millisecond before the fall boundary out at that boundary", () => {
-    const justBefore = new Date(2026, 11, 31, 23, 59, 59, 998);
-    expect(semesterEndDate(justBefore)).toEqual(fallEnd(2026));
+  it("moves a date in the last six hours of fall on to next spring", () => {
+    const justBefore = new Date("2026-12-31T23:59:59.998-05:00");
+    expect(semesterEndDate(justBefore)).toEqual(springEnd(2027));
   });
 
   it("never returns a date at or before the one it was given", () => {
     const samples = [
-      new Date(2026, 0, 1),
-      new Date(2026, 4, 31, 12, 0, 0),
-      new Date(2026, 5, 1),
-      new Date(2026, 11, 31, 23, 59, 59, 999),
-      new Date(2028, 1, 29),
+      new Date("2026-01-01T00:00:00-05:00"),
+      new Date("2026-05-31T12:00:00-04:00"),
+      new Date("2026-06-01T00:00:00-04:00"),
+      new Date("2026-12-31T23:59:59.999-05:00"),
+      new Date("2028-02-29T00:00:00-05:00"),
     ];
 
     for (const from of samples) {
@@ -380,7 +399,25 @@ describe("semesterEndDate — boundaries", () => {
     }
   });
 
+  // The server's UTC midnight is 8pm here: a semester used to end then.
+  it("ends spring at midnight in Atlanta, not in UTC", () => {
+    expect(
+      semesterEndDate(new Date("2026-03-01T12:00:00-05:00")).toISOString(),
+    ).toBe("2026-06-01T03:59:59.999Z");
+  });
+
+  // Memberships written before the boundary was Eastern end on the UTC one.
+  // Renewing from there must buy the next semester, not the missing hours.
+  it("renews a membership that ended on the old UTC boundary into the next semester", () => {
+    expect(semesterEndDate(new Date("2026-05-31T23:59:59.999Z"))).toEqual(
+      fallEnd(2026),
+    );
+    expect(semesterEndDate(new Date("2026-12-31T23:59:59.999Z"))).toEqual(
+      springEnd(2027),
+    );
+  });
+
   it("lands on a leap year's spring boundary correctly", () => {
-    expect(semesterEndDate(new Date(2028, 1, 29))).toEqual(springEnd(2028));
+    expect(semesterEndDate(new Date("2028-02-29T00:00:00-05:00"))).toEqual(springEnd(2028));
   });
 });

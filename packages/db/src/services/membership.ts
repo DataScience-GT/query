@@ -74,12 +74,25 @@ export async function resolveCurrentHackathonId(
   return resolved?.id;
 }
 
+// Year and month in Atlanta. The server runs in UTC, where 8pm Eastern on
+// May 31 is already June and would file an evening purchase under fall.
+const easternYearMonth = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(date);
+  const part = (type: "year" | "month") =>
+    Number(parts.find((p) => p.type === type)?.value);
+  return { year: part("year"), month: part("month") - 1 };
+};
+
 // Which bootcamp a purchase made today buys into. A membership is a year and
 // a bootcamp is a semester, so they cannot share an expiry. Summer sells fall.
-export const currentTerm = (now = new Date()) =>
-  now.getMonth() <= 4
-    ? `${now.getFullYear()}-spring`
-    : `${now.getFullYear()}-fall`;
+export const currentTerm = (now = new Date()) => {
+  const { year, month } = easternYearMonth(now);
+  return month <= 4 ? `${year}-spring` : `${year}-fall`;
+};
 
 /** Chronological order for `YYYY-spring` / `YYYY-fall` labels. Locale compare puts fall first. */
 export const compareTerms = (a: string, b: string) => {
@@ -116,17 +129,28 @@ export const planFromMetadata = (
 // The end of the semester a date falls in — spring at the end of May, fall at
 // the end of December, the same boundary currentTerm draws. Always strictly
 // after the date given, so renewing early lands on the next semester's end.
+// Ends at 23:59:59.999 in Atlanta, not on the server's UTC clock, which cut a
+// semester off about four hours early. May 31 always falls in daylight time
+// and Dec 31 in standard time, so each boundary has one fixed offset.
 export const semesterEndDate = (from = new Date()) => {
-  const endOf = (year: number, month: number, day: number) =>
-    new Date(year, month, day, 23, 59, 59, 999);
+  const springEndOf = (year: number) =>
+    new Date(`${year}-05-31T23:59:59.999-04:00`);
+  const fallEndOf = (year: number) =>
+    new Date(`${year}-12-31T23:59:59.999-05:00`);
 
-  const year = from.getFullYear();
-  const springEnd = endOf(year, 4, 31); // May 31
-  const fallEnd = endOf(year, 11, 31); // Dec 31
+  const { year } = easternYearMonth(from);
+  const springEnd = springEndOf(year);
+  const fallEnd = fallEndOf(year);
 
-  if (from < springEnd) return springEnd;
-  if (from < fallEnd) return fallEnd;
-  return endOf(year + 1, 4, 31);
+  // The last six hours of a semester count as the next one. Renewals start
+  // from the stored end date, and memberships written before this was Eastern
+  // end on the UTC boundary, four or five hours short of these: without the
+  // margin, renewing one bought those few hours instead of a semester. It also
+  // keeps a purchase on the last evening from buying a few hours.
+  const margin = 6 * 60 * 60 * 1000;
+  if (from.getTime() < springEnd.getTime() - margin) return springEnd;
+  if (from.getTime() < fallEnd.getTime() - margin) return fallEnd;
+  return springEndOf(year + 1);
 };
 
 // Whether a stored payment's metadata says the bootcamp add-on was bought.

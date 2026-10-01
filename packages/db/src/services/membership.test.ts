@@ -247,29 +247,29 @@ describe("compareTerms", () => {
 
 describe("semesterEndDate", () => {
   it("runs spring out at the end of May", () => {
-    expect(semesterEndDate(new Date("2026-02-10T12:00:00"))).toEqual(
-      new Date(2026, 4, 31, 23, 59, 59, 999),
+    expect(semesterEndDate(new Date("2026-02-10T12:00:00-05:00"))).toEqual(
+      new Date("2026-05-31T23:59:59.999-04:00"),
     );
   });
 
   it("runs fall out at the end of December", () => {
-    expect(semesterEndDate(new Date("2026-09-03T12:00:00"))).toEqual(
-      new Date(2026, 11, 31, 23, 59, 59, 999),
+    expect(semesterEndDate(new Date("2026-09-03T12:00:00-04:00"))).toEqual(
+      new Date("2026-12-31T23:59:59.999-05:00"),
     );
   });
 
   // Summer sells fall, the same boundary currentTerm draws.
   it("sells fall over the summer", () => {
-    expect(semesterEndDate(new Date("2026-06-20T12:00:00"))).toEqual(
-      new Date(2026, 11, 31, 23, 59, 59, 999),
+    expect(semesterEndDate(new Date("2026-06-20T12:00:00-04:00"))).toEqual(
+      new Date("2026-12-31T23:59:59.999-05:00"),
     );
   });
 
   // Otherwise renewing on the last day of a term buys nothing.
   it("never returns a date that has already passed", () => {
-    const fallEnd = new Date(2026, 11, 31, 23, 59, 59, 999);
+    const fallEnd = new Date("2026-12-31T23:59:59.999-05:00");
     expect(semesterEndDate(fallEnd)).toEqual(
-      new Date(2027, 4, 31, 23, 59, 59, 999),
+      new Date("2027-05-31T23:59:59.999-04:00"),
     );
   });
 });
