@@ -11,8 +11,8 @@ export default function Footer() {
     // visible band where the translucent sections above it ended.
     <footer className="relative z-10 w-full bg-gradient-to-b from-[#020204]/70 to-[#020204] to-40% overflow-hidden">
       <div className="section-wrap max-w-7xl mx-auto pt-20 md:pt-28 pb-10 px-6 relative z-10">
-        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-8">
-          Applications <span className="neon-cyan">open soon.</span>
+        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl text-white leading-[1] tracking-[-0.03em] mb-8">
+          Applications open soon.
         </h2>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 mb-16">

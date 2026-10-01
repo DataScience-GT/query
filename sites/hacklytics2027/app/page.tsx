@@ -3,15 +3,12 @@ import React, { useState, useEffect, useSyncExternalStore } from "react";
 import HomeSections from "@/components/HomeSections";
 import PixelGarden, { PixelGround } from "@/components/pixel/PixelGarden";
 import PixelSprite from "@/components/pixel/PixelSprite";
-import { BLOOM, DAISY, SPROUT, TULIP } from "@/components/pixel/sprites";
+import { DAISY, SPROUT, TULIP } from "@/components/pixel/sprites";
 import { INTEREST_HINT, INTEREST_URL } from "@/lib/links";
 
-// ─── Elegant Floral Background ─────────────────────────────────────────────
+// ─── Background: two soft color fields ────────────────────────────────────
 const FloralBackground = () => (
   <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020204]">
-    {/* Subtle grid base */}
-    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wMykiLz48L3N2Zz4=')] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
-
     {/* Ambient light fields — static radial gradients instead of pulsing
         blur() layers, which re-rasterized a 50vw surface every frame. */}
     <div
@@ -56,7 +53,7 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
     { label: "Days",    value: timeLeft?.days,    color: "text-white" },
     { label: "Hours",   value: timeLeft?.hours,   color: "text-white" },
     { label: "Minutes", value: timeLeft?.minutes, color: "text-white" },
-    { label: "Seconds", value: timeLeft?.seconds, color: "neon-cyan" },
+    { label: "Seconds", value: timeLeft?.seconds, color: "text-bloom-cyan" },
   ];
 
   return (
@@ -78,16 +75,13 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
 // ─── Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   return (
-    <main className="scanlines neo-vignette relative w-full text-white bg-[#020204] overflow-x-hidden selection:bg-bloom-pink/30 selection:text-white min-h-screen">
+    <main className="relative w-full text-white bg-[#020204] overflow-x-hidden selection:bg-bloom-pink/30 selection:text-white min-h-screen">
       
       <FloralBackground />
       <PixelGarden />
 
       {/* ── HERO ── */}
       <section className="relative w-full min-h-screen flex flex-col justify-center items-center overflow-hidden">
-
-        {/* Synthwave horizon grid */}
-        <div className="neo-grid z-[1]" aria-hidden="true" />
 
         {/* MLH badge */}
         <a
@@ -105,14 +99,6 @@ export default function HomePage() {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-32 pb-40 md:pt-48 md:pb-48 flex flex-col items-center text-center animate-fade-in-up">
 
           {/* Pill Badge */}
-          {/* A label, not a link: no pointer or hover state. */}
-          <div className="pixel-frame pixel-cyan hud inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 mb-10">
-            <PixelSprite map={BLOOM} palette="pink" scale={2} glow className="animate-bob" />
-            <span className="font-pixel text-[10px] md:text-xs text-white/85">
-              Data Science @ Georgia Tech
-            </span>
-          </div>
-
           {/* Main title - Elegantly oversized, tight tracking */}
           <div className="flex items-end justify-center gap-4 md:gap-10 mb-10 md:mb-12">
             <PixelSprite
@@ -124,8 +110,7 @@ export default function HomePage() {
               style={{ animationDuration: "6s" }}
             />
             <h1
-              data-text="Hacklytics"
-              className="neo-split neo-glitch font-sans font-medium text-[16vw] sm:text-[14vw] md:text-[11vw] lg:text-[10rem] xl:text-[12rem] leading-[0.8] tracking-[-0.04em] text-white"
+              className="font-sans font-medium text-[16vw] sm:text-[14vw] md:text-[11vw] lg:text-[10rem] xl:text-[12rem] leading-[0.8] tracking-[-0.04em] text-white"
             >
               Hacklytics
             </h1>
@@ -139,14 +124,14 @@ export default function HomePage() {
             />
           </div>
 
-          {/* When and where, up front: the hero never said either. */}
-          <p className="font-pixel text-xs md:text-sm uppercase neon-cyan mb-6">
-            Feb 26–28, 2027 · Klaus, Atlanta
+          {/* When, where and who, up front: the hero said none of them. */}
+          <p className="font-pixel text-xs md:text-sm uppercase text-bloom-cyan mb-6">
+            Feb 26–28, 2027 · Georgia Tech, Atlanta
           </p>
 
           <p className="font-sans text-lg md:text-xl lg:text-2xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12 font-light tracking-wide">
-            36 hours of intelligence, innovation, and digital bloom. <br className="hidden md:block"/>
-            Join 1,000+ hackers in Atlanta, GA.
+            A 36-hour data science and AI hackathon <br className="hidden md:block"/>
+            run by Data Science @ GT. Free to attend.
           </p>
 
           {/* The caption sits under the pair, not under Notify me alone:
