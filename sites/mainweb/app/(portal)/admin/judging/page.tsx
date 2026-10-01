@@ -345,8 +345,9 @@ export default function AdminResultsPage() {
               </button>
             </div>
             {/* Starting is refused until queues exist; without this the
-                press looks like a no-op. */}
-            {toggleJudging.error && (
+                press looks like a no-op. Scoped to the event it was for. */}
+            {toggleJudging.error &&
+              toggleJudging.variables?.hackathonId === selectedHackathon && (
               <p
                 role="alert"
                 className="mt-4 px-4 py-3 rounded-sm text-sm border border-red-500/30 bg-red-500/10 text-red-300"
