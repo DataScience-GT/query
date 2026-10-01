@@ -180,9 +180,15 @@ export default function JudgeHackathonPage() {
       setError(e.message);
       return;
     }
-    void nextTable.refetch().then(({ data }) => {
-      if (!data) {
-        setError(e.message);
+    const goneQueueId = current?.queueId;
+    void nextTable.refetch().then(({ data, isError }) => {
+      // A failed refetch still resolves, carrying the cached answer — the
+      // withdrawn table itself. Moving to it would put the judge back on the
+      // dead card under a message saying they had a new one.
+      if (isError || !data || (!data.done && data.queueId === goneQueueId)) {
+        setError(
+          "That table was withdrawn by an organiser, and your next one could not be loaded. Check your connection and try again.",
+        );
         return;
       }
       advance(
