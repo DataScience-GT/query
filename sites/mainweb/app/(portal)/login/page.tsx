@@ -132,7 +132,7 @@ export default function Home() {
         <div className="absolute bottom-[-10%] right-[5%] w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
       </div>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6 py-10 min-h-screen flex items-center">
+      <main className="relative z-10 max-w-4xl mx-auto px-6 py-10 min-h-screen flex items-center">
         <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div className="space-y-4">
             <img
@@ -144,10 +144,10 @@ export default function Home() {
               <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
                 DS@GT
               </p>
-              <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+              <h1 className="text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
                 Query
               </h1>
-              <p className="text-sm text-[var(--text-muted)] mt-1 max-w-md">
+              <p className="text-base text-[var(--text-muted)] mt-3 max-w-sm leading-relaxed">
                 The member portal for Data Science at Georgia Tech: events,
                 hackathons, and your membership in one place.
               </p>
