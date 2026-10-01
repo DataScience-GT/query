@@ -57,7 +57,7 @@ export function JudgeLiveBoard({
           <h2 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tight">
             Judge Floor
           </h2>
-          <p className="text-xs font-mono text-text-muted mt-1">
+          <p className="text-xs font-mono text-[var(--text-muted)] mt-1">
             {active
               ? "Live, refreshing every 15 seconds"
               : "Judging is not running — this is the last known state"}
@@ -72,9 +72,9 @@ export function JudgeLiveBoard({
       </div>
 
       {isLoading ? (
-        <p className="text-xs font-mono text-text-muted">Reading the floor…</p>
+        <p className="text-xs font-mono text-[var(--text-muted)]">Reading the floor…</p>
       ) : judges.length === 0 ? (
-        <p className="text-xs font-mono text-text-muted">
+        <p className="text-xs font-mono text-[var(--text-muted)]">
           No queues yet. Press Prepare Judging above.
         </p>
       ) : (

@@ -177,7 +177,7 @@ export default function AdminPage() {
             Check-in{" "}
             <span className="text-accent italic font-bold">Manager</span>
           </h1>
-          <p className="text-text-muted text-sm relative z-10">
+          <p className="text-[var(--text-muted)] text-sm relative z-10">
             Club meetings and workshops. Bootcamp sessions are managed on the{" "}
             <Link
               href="/admin/bootcamp"
@@ -294,7 +294,7 @@ export default function AdminPage() {
                           </span>
                         </div>
                         {event.description && (
-                          <p className="text-text-muted text-sm mb-3">
+                          <p className="text-[var(--text-muted)] text-sm mb-3">
                             {event.description}
                           </p>
                         )}

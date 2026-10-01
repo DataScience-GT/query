@@ -89,7 +89,7 @@ export default function AttendeesPage() {
             Attendees{" "}
             <span className="text-accent italic font-bold">Registry</span>
           </h1>
-          <p className="relative text-text-muted text-sm font-mono">
+          <p className="relative text-[var(--text-muted)] text-sm font-mono">
             View and manage attendee check-ins for club meetings. Hackathon
             applications live on each edition&apos;s dashboard.
           </p>
@@ -131,7 +131,7 @@ export default function AttendeesPage() {
             {isLoading ? (
               <div className="py-12 text-center relative overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-accent-fade to-transparent animate-pulse" />
-                <p className="relative text-text-muted font-mono text-sm animate-pulse">
+                <p className="relative text-[var(--text-muted)] font-mono text-sm animate-pulse">
                   Loading event check-ins...
                 </p>
               </div>
@@ -139,7 +139,7 @@ export default function AttendeesPage() {
               <LiquidGlass className="p-16 text-center">
                 <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
                   <svg
-                    className="w-8 h-8 text-text-muted"
+                    className="w-8 h-8 text-[var(--text-muted)]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -155,7 +155,7 @@ export default function AttendeesPage() {
                 <h3 className="text-[var(--text-primary)] font-semibold mb-1">
                   No attendees yet
                 </h3>
-                <p className="text-text-muted text-sm">
+                <p className="text-[var(--text-muted)] text-sm">
                   Select an event to view check-ins.
                 </p>
               </LiquidGlass>
@@ -166,16 +166,16 @@ export default function AttendeesPage() {
                 <table className="w-full text-left">
                   <thead className="bg-[var(--bg-primary)]/30 border-b border-[var(--border-subtle)]">
                     <tr>
-                      <th className="px-6 py-4 text-sm font-medium text-text-muted">
+                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
                         Name
                       </th>
-                      <th className="px-6 py-4 text-sm font-medium text-text-muted">
+                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
                         Email
                       </th>
-                      <th className="px-6 py-4 text-sm font-medium text-text-muted">
+                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-sm font-medium text-text-muted">
+                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
                         Check-In Time
                       </th>
                     </tr>

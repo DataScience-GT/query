@@ -386,7 +386,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         <LiquidGlass className="p-16 text-center">
           <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
             <svg
-              className="w-8 h-8 text-text-muted"
+              className="w-8 h-8 text-[var(--text-muted)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -402,7 +402,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
           <h3 className="text-[var(--text-primary)] font-semibold mb-1">
             No itinerary yet
           </h3>
-          <p className="text-text-muted text-sm font-mono">
+          <p className="text-[var(--text-muted)] text-sm font-mono">
             Add workshops, meals, and ceremonies for this weekend. Club
             meetings belong on Club Hub, not here.
           </p>
