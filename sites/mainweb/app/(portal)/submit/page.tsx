@@ -104,9 +104,7 @@ function SubmitPortalContent() {
     ? null
     : teamsOpen
       ? null
-      : new Date() < new Date(teamWindow.data.opensAt)
-        ? "Team formation opens 12 hours after hacking begins."
-        : "Team formation has closed for this event.";
+      : "Team formation has closed for this event.";
 
   const toggle = (
     value: string,
