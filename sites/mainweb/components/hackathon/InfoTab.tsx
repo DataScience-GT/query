@@ -31,8 +31,19 @@ import {
 import type { ShirtSize, LevelOfStudy } from "@/components/hackathon/constants";
 import { InterestForm } from "@/components/hackathon/InterestForm";
 import { hackathonSlug } from "@/lib/hackathon-slug";
+import { StatusBadge } from "@/components/hackathon/StatusBadge";
+import { Clock, ExternalLink } from "lucide-react";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
+
+const STATUS_LINE: Record<string, string> = {
+  pending: "Waiting on review.",
+  approved:
+    "You're accepted. Your check-in pass is on the Schedule & pass tab.",
+  waitlisted: "Waitlisted. You'll get a pass if a spot opens.",
+  checked_in: "You're checked in.",
+  rejected: "Your registration wasn't accepted this time.",
+};
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
@@ -146,6 +157,8 @@ export function InfoTab({
   );
   const canRegister =
     hackathon.status === "open" && !isRegistered && !isFull && !deadlinePassed;
+  // A fresh registration starts pending; myReg lags a refetch behind success.
+  const regStatus = myReg?.registrationStatus ?? "pending";
 
   function validateStep(s: RegistrationStep): boolean {
     setError("");
@@ -265,45 +278,19 @@ export function InfoTab({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {hackathon.description && (
-        <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
-          <h3 className="text-[11px] uppercase tracking-widest font-bold text-accent mb-4 inline-flex items-center gap-2">
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+        <LiquidGlass printed className="p-6">
+          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
             About
           </h3>
-          <p className="text-[var(--text-primary)]/60 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap">
             {hackathon.description}
           </p>
         </LiquidGlass>
       )}
 
       {hackathon.prizes && hackathon.prizes.length > 0 && (
-        <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
-          <h3 className="text-[11px] uppercase tracking-widest font-bold text-accent mb-6 inline-flex items-center gap-2">
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-              />
-            </svg>
+        <LiquidGlass printed className="p-6">
+          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
             Prizes
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -314,17 +301,16 @@ export function InfoTab({
               ) => (
                 <div
                   key={i}
-                  className="p-6 bg-[var(--bg-input)]/50 border border-[var(--border-subtle)] rounded-none hover:border-accent/30 transition-colors group relative overflow-hidden"
+                  className="p-5 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)]"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                  <p className="text-[var(--text-primary)] font-bold text-lg mb-1 relative z-10">
+                  <p className="text-base font-bold text-[var(--text-primary)] mb-1">
                     {p.place}
                   </p>
-                  <p className="text-[var(--text-primary)]/80 font-semibold text-2xl mb-2 relative z-10">
+                  <p className="text-2xl font-black font-oswald text-accent mb-2">
                     ${p.amount.toLocaleString()}
                   </p>
                   {p.description && (
-                    <p className="text-[var(--text-primary)]/40 text-xs relative z-10">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {p.description}
                     </p>
                   )}
@@ -336,184 +322,90 @@ export function InfoTab({
       )}
 
       {hackathon.rules && (
-        <LiquidGlass className="p-8 bg-white/[0.01] border-[var(--border-subtle)]">
-          <h3 className="text-[11px] uppercase tracking-widest font-bold text-accent mb-4 inline-flex items-center gap-2">
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+        <LiquidGlass printed className="p-6">
+          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
             Rules
           </h3>
-          <p className="text-[var(--text-primary)]/50 text-sm leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap">
             {hackathon.rules}
           </p>
         </LiquidGlass>
       )}
 
       {(hackathon.registrationDeadline || hackathon.websiteUrl) && (
-        <div className="flex flex-wrap gap-4 px-2">
+        <div className="flex flex-wrap gap-3">
           {hackathon.registrationDeadline && (
-            <div className="flex items-center gap-2.5 text-sm font-semibold bg-white/5 border border-[var(--border-subtle)] px-4 py-2 rounded-none">
-              <svg
-                className="w-4 h-4 text-amber-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span
-                className={deadlinePassed ? "text-rose-400" : "text-amber-400"}
-              >
-                Deadline: {formatDate(hackathon.registrationDeadline)}
-                {deadlinePassed ? " (Passed)" : ""}
-              </span>
-            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
+              <Clock className="w-3 h-3" />
+              {deadlinePassed ? "Registration closed" : "Registration closes"}{" "}
+              {formatDate(hackathon.registrationDeadline)}
+            </span>
           )}
           {hackathon.websiteUrl && (
             <a
               href={hackathon.websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 text-sm font-semibold text-accent bg-accent/10 border border-emerald-500/20 hover:bg-emerald-500/20 px-4 py-2 rounded-none transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-subtle)] hover:text-accent hover:border-accent/40 transition-colors"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              Official Website
+              <ExternalLink className="w-3 h-3" />
+              Event website
             </a>
           )}
         </div>
       )}
 
-      <LiquidGlass className="p-8 md:p-10 bg-white/[0.01] border-[var(--border-subtle)] mt-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-sm blur-[80px] pointer-events-none" />
-
+      <LiquidGlass printed className="p-6">
         {success && (
-          <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-none flex items-center gap-3">
-            <div className="w-2 h-2 rounded-sm bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
+          <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-sm">
             <p className="text-accent text-sm font-semibold">
-              Registration confirmed! You're in.
+              Registration received. An organiser will review it; your status
+              updates here.
             </p>
           </div>
         )}
 
         {isRegistered || success ? (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex items-center gap-3 px-6 py-3 bg-accent/10 border border-accent/20 rounded-none w-fit">
-              <svg
-                className="w-5 h-5 text-accent"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span className="text-accent font-bold text-sm uppercase tracking-widest">
-                Registered
-              </span>
-            </div>
-            {myReg && (
-              <span className="text-[var(--text-primary)]/40 text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)]">
-                Status: {myReg.registrationStatus}
-              </span>
-            )}
+          <div className="flex flex-col gap-2">
+            <StatusBadge status={regStatus} />
+            <p className="text-sm text-[var(--text-muted)]">
+              {STATUS_LINE[regStatus] ?? ""}
+            </p>
           </div>
         ) : canRegister && !deadlinePassed && !showForm ? (
           <div className="text-center sm:text-left">
-            <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-              Ready to Build?
-            </h4>
-            <p className="text-sm text-[var(--text-primary)]/50 mb-6">
-              Secure your spot in this hackathon. Capacity is limited.
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-2">
+              Register
+            </h2>
+            <p className="text-sm text-[var(--text-muted)] mb-6">
+              Four steps: personal info, school, experience, and logistics.
             </p>
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="group px-8 py-4 rounded-none bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 w-full sm:w-auto"
+              className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 w-full sm:w-auto"
             >
-              Apply Now
+              Start registration
             </button>
           </div>
         ) : hackathon.status === "announced" ? (
-          /* Announced is not closed — the lock below reads as "you missed it".
-             Join against THIS edition's id, not a bounce to /hacklytics which
-             follows whichever event getUpcoming picks. */
+          /* Announced is not closed — the closed message below reads as "you
+             missed it". Join against THIS edition's id, not a bounce to
+             /hacklytics which follows whichever event getUpcoming picks. */
           <InterestForm
             hackathonId={hackathon.id}
             callbackPath={`/hackathons/${hackathonSlug(hackathon.name)}`}
           />
         ) : isFull ? (
-          <div className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 rounded-none inline-flex items-center gap-3">
-            <svg
-              className="w-5 h-5 text-rose-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-            <span className="text-rose-400 font-bold text-sm uppercase tracking-widest">
-              Capacity Reached
-            </span>
-          </div>
+          <p className="text-sm text-rose-400">This event is full.</p>
         ) : (
-          <div className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] rounded-none inline-flex items-center gap-3">
-            <svg
-              className="w-5 h-5 text-[var(--text-primary)]/40"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-            <span className="text-[var(--text-primary)]/40 font-bold text-sm uppercase tracking-widest">
-              Registration Closed
-            </span>
-          </div>
+          <p className="text-sm text-[var(--text-muted)]">
+            Registration is closed.
+          </p>
         )}
 
         {showForm && (
-          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 border-t border-[var(--border-subtle)] relative z-10">
+          <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
             <StepProgress steps={REGISTRATION_STEPS} current={step} />
 
             {/* Step 1: Personal Info */}
@@ -583,9 +475,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={underrepresented}
                       onChange={(e) => setUnderrepresented(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I consider myself part of an underrepresented group in
                       technology.
                     </span>
@@ -647,9 +539,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={firstGeneration}
                       onChange={(e) => setFirstGeneration(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I am a first-generation college student.
                     </span>
                   </label>
@@ -744,9 +636,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={needsHardware}
                       onChange={(e) => setNeedsHardware(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I require hardware provided by the hackathon to
                       participate (e.g., laptop).
                     </span>
@@ -758,9 +650,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={agreeToCoC}
                       onChange={(e) => setAgreeToCoC(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I agree to the{" "}
                       <span className="text-accent font-semibold">
                         Code of Conduct
@@ -776,9 +668,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={mlhCodeOfConduct}
                       onChange={(e) => setMlhCodeOfConduct(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I have read and agree to the{" "}
                       <span className="text-accent font-semibold">
                         MLH Code of Conduct
@@ -793,9 +685,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={mlhDataSharing}
                       onChange={(e) => setMlhDataSharing(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I authorize you to share my application/registration
                       information with Major League Hacking for event
                       administration, ranking, and MLH administration. *
@@ -810,9 +702,9 @@ export function InfoTab({
                       onChange={(e) =>
                         setMlhInformationalEmails(e.target.checked)
                       }
-                      className="mt-1 w-5 h-5 rounded border-white/20 bg-[var(--bg-input)] text-accent focus:ring-emerald-500/50 focus:ring-offset-0 cursor-pointer"
+                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
                     />
-                    <span className="text-sm text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)]/80 transition-colors leading-relaxed">
+                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
                       I authorize MLH to send me occasional emails about
                       relevant events, career opportunities, and community
                       announcements.

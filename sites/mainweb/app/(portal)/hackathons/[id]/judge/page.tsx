@@ -10,6 +10,7 @@ import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
+import { ChevronLeft } from "lucide-react";
 
 type Project = {
   id: string;
@@ -262,7 +263,7 @@ export default function JudgeHackathonPage() {
   }, [status, router]);
 
   if (status === "loading") {
-    return <LoadingScreen message="Verifying Judge Access…" />;
+    return <LoadingScreen message="Checking access…" />;
   }
   if (!session) return null;
 
@@ -275,15 +276,15 @@ export default function JudgeHackathonPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <LiquidGlass className="p-12 max-w-md text-center">
-          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
             Hackathon Not Found
           </h1>
-          <p className="text-sm text-text-muted font-mono mb-8">
+          <p className="text-sm text-[var(--text-muted)] mb-8">
             {resolved.error?.message ?? "That hackathon does not exist."}
           </p>
           <Link
             href="/judge"
-            className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors"
+            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
           >
             Back to Judge Portal
           </Link>
@@ -293,22 +294,22 @@ export default function JudgeHackathonPage() {
   }
 
   if (judgeCheck.isPending) {
-    return <LoadingScreen message="Verifying Judge Access…" />;
+    return <LoadingScreen message="Checking access…" />;
   }
 
   if (judgeCheck.data && !judgeCheck.data.isJudge) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <LiquidGlass className="p-12 max-w-md text-center">
-          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
             Not a Judge
           </h1>
-          <p className="text-sm text-text-muted font-mono mb-8">
+          <p className="text-sm text-[var(--text-muted)] mb-8">
             Your judge account for this hackathon has not been approved yet.
           </p>
           <Link
             href="/judge"
-            className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors"
+            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
           >
             Back to Judge Portal
           </Link>
@@ -326,10 +327,10 @@ export default function JudgeHackathonPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <LiquidGlass className="p-12 max-w-md text-center">
-          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
             Judging Not Open
           </h1>
-          <p className="text-sm text-text-muted font-mono mb-8 leading-relaxed">
+          <p className="text-sm text-[var(--text-muted)] mb-8 leading-relaxed">
             Scoring has not been opened for this hackathon yet. Your queue is
             waiting — an organiser will start judging when the expo begins.
           </p>
@@ -337,13 +338,13 @@ export default function JudgeHackathonPage() {
             <button
               type="button"
               onClick={() => judgingStatus.refetch()}
-              className="px-6 py-3 border border-accent/40 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/10 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
             >
               Check again
             </button>
             <Link
               href="/judge"
-              className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors"
+              className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
             >
               Back to Judge Portal
             </Link>
@@ -363,16 +364,16 @@ export default function JudgeHackathonPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <LiquidGlass className="p-12 max-w-md text-center">
-          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
             Could Not Load Your Queue
           </h1>
-          <p className="text-sm text-text-muted font-mono mb-8">
+          <p className="text-sm text-[var(--text-muted)] mb-8">
             {nextTable.error.message}
           </p>
           <button
             type="button"
             onClick={() => nextTable.refetch()}
-            className="px-6 py-3 bg-accent text-black text-xs font-black uppercase tracking-widest hover:bg-white transition-colors"
+            className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
           >
             Try Again
           </button>
@@ -392,24 +393,25 @@ export default function JudgeHackathonPage() {
     complete.isPending || skip.isPending || forceSkip.isPending;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans pb-24">
+    <div className="relative min-h-screen bg-[var(--bg-tertiary)] pb-24">
       <main className="relative z-10 max-w-4xl mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-10">
           <Link
             href="/judge"
-            className="text-text-muted hover:text-accent transition-colors font-mono text-xs tracking-widest uppercase"
+            className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent"
           >
-            ← Judge Portal
+            <ChevronLeft className="w-3.5 h-3.5" />
+            Judging
           </Link>
           {progress.data && (
-            <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted">
+            <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
               {progress.data.completed} / {progress.data.total} judged
             </p>
           )}
         </div>
 
         {progress.data && progress.data.total > 0 && (
-          <div className="h-1 w-full bg-white/5 mb-12">
+          <div className="h-1 w-full rounded-sm bg-[var(--bg-secondary)] mb-12">
             <div
               className="h-full bg-accent transition-ui duration-500"
               style={{ width: `${progress.data.percentage}%` }}
@@ -418,17 +420,17 @@ export default function JudgeHackathonPage() {
         )}
 
         {error && (
-          <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20">
-            <p className="text-red-400 font-mono text-sm">{error}</p>
+          <div className="p-4 mb-8 rounded-sm bg-red-500/10 border border-red-500/20">
+            <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
         {done || !project ? (
           <LiquidGlass className="p-12 text-center">
-            <h1 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-4">
+            <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
               All Done
             </h1>
-            <p className="text-sm text-text-muted font-mono">
+            <p className="text-sm text-[var(--text-muted)]">
               You have judged every project assigned to you. Thank you.
             </p>
           </LiquidGlass>
@@ -436,15 +438,15 @@ export default function JudgeHackathonPage() {
           <>
             <div className="mb-10">
               {project.tableNumber != null && (
-                <p className="text-accent font-mono text-xs uppercase tracking-[0.4em] mb-3">
+                <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
                   Table {project.tableNumber}
                 </p>
               )}
-              <h1 className="text-4xl md:text-5xl font-black text-[var(--text-primary)] uppercase tracking-tighter leading-none mb-4">
+              <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
                 {project.name}
               </h1>
               {project.description && (
-                <p className="text-sm text-text-muted leading-relaxed max-w-2xl">
+                <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-2xl">
                   {project.description}
                 </p>
               )}
@@ -461,7 +463,7 @@ export default function JudgeHackathonPage() {
                       href={l.href as string}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-widest hover:bg-white/5 transition-colors"
+                      className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
                     >
                       {l.label}
                     </a>
@@ -474,10 +476,10 @@ export default function JudgeHackathonPage() {
                 and let a judge score a table they never actually reached. */}
             {!arrived ? (
               <LiquidGlass className="p-10 text-center border-accent/20">
-                <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-3">
+                <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-3">
                   Scan the team&apos;s code to begin
                 </h2>
-                <p className="text-sm text-text-muted font-mono mb-8 leading-relaxed max-w-md mx-auto">
+                <p className="text-sm text-[var(--text-muted)] mb-8 leading-relaxed max-w-md mx-auto">
                   Walk to table {project.tableNumber ?? "?"} and scan the card
                   on their desk. Your judging time starts from the scan, not
                   from when this table was assigned to you.
@@ -489,7 +491,7 @@ export default function JudgeHackathonPage() {
                     setShowScanner(true);
                   }}
                   disabled={startByQr.isPending}
-                  className="px-10 py-5 bg-accent text-black font-black text-sm uppercase tracking-widest rounded-none hover:bg-white transition-ui active:scale-95 disabled:opacity-40"
+                  className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
                 >
                   {startByQr.isPending ? "Starting…" : "Scan Table Code"}
                 </button>
@@ -501,7 +503,7 @@ export default function JudgeHackathonPage() {
                   <div className="flex items-center justify-between mb-3">
                     <label
                       htmlFor={c.key}
-                      className="text-xs font-mono uppercase tracking-widest text-text-muted font-bold"
+                      className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest"
                     >
                       {c.label}
                     </label>
@@ -530,7 +532,7 @@ export default function JudgeHackathonPage() {
               <div>
                 <label
                   htmlFor="comment"
-                  className="block text-xs font-mono uppercase tracking-widest text-text-muted font-bold mb-3"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
                   Notes (optional)
                 </label>
@@ -541,16 +543,16 @@ export default function JudgeHackathonPage() {
                   rows={4}
                   maxLength={1000}
                   placeholder="What stood out?"
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-sm placeholder:text-gray-600 focus:border-accent/50 focus:outline-none resize-none"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui resize-none"
                 />
               </div>
 
               {stranded && (
                 <div
                   role="status"
-                  className="p-4 border border-amber-500/30 bg-amber-500/10"
+                  className="p-4 rounded-sm border border-amber-500/30 bg-amber-500/10"
                 >
-                  <p className="font-mono text-xs text-amber-300 leading-relaxed">
+                  <p className="text-xs text-amber-300 leading-relaxed">
                     This is the last table left in your queue, so there is
                     nothing to skip to. If nobody is here, hand it to another
                     judge instead — it will still get scored.
@@ -563,7 +565,7 @@ export default function JudgeHackathonPage() {
                       if (current?.queueId)
                         forceSkip.mutate({ queueId: current.queueId });
                     }}
-                    className="mt-3 px-4 py-2 border border-amber-500/40 bg-amber-500/10 text-amber-200 font-mono text-xs uppercase tracking-widest hover:bg-amber-500/20 transition-colors disabled:opacity-30"
+                    className="mt-3 px-4 py-2 rounded-sm border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/20 transition-colors disabled:opacity-30"
                   >
                     {forceSkip.isPending
                       ? "Reassigning…"
@@ -573,7 +575,7 @@ export default function JudgeHackathonPage() {
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--border-subtle)]">
-                <p className="font-mono text-xs text-text-muted">
+                <p className="text-xs text-[var(--text-muted)]">
                   Total <span className="text-accent font-black">{total}</span>{" "}
                   / 50
                 </p>
@@ -586,7 +588,7 @@ export default function JudgeHackathonPage() {
                       if (current?.queueId)
                         skip.mutate({ queueId: current.queueId });
                     }}
-                    className="px-6 py-3 border border-[var(--border-subtle)] text-text-muted font-mono text-xs uppercase tracking-widest hover:bg-white/5 transition-colors disabled:opacity-30"
+                    className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-30"
                   >
                     {skip.isPending ? "Skipping…" : "Skip for now"}
                   </button>
@@ -607,7 +609,7 @@ export default function JudgeHackathonPage() {
                         comment: comment || undefined,
                       });
                     }}
-                    className="px-8 py-3 bg-accent text-black font-black text-xs uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-30"
+                    className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
                   >
                     {complete.isPending ? "Saving…" : "Submit & Next"}
                   </button>

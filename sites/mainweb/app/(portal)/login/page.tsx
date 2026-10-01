@@ -333,19 +333,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-6 py-4">
-        <div className="flex justify-between items-center text-[9px] font-mono text-gray-700 uppercase tracking-[0.4em]">
-          <div>Internal Terminal // Auth Gateway v2.1</div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-1.5 h-1.5 rounded-sm ${isRedirecting ? "bg-green-500" : "bg-accent"}`}
-            />
-            <span>ACCESS NODE: 0812-ATL</span>
-          </div>
-        </div>
-      </footer>
-
       {/* Global styles for custom animations */}
       <style
         dangerouslySetInnerHTML={{

@@ -68,7 +68,7 @@ export default function HacklyticsPage() {
           <button
             type="button"
             onClick={() => upcoming.refetch()}
-            className="mt-4 px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-ui"
+            className="mt-4 px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
           >
             Try again
           </button>
@@ -83,7 +83,7 @@ export default function HacklyticsPage() {
     return (
       <main className="min-h-screen flex items-center justify-center px-6">
         <div className="max-w-md text-center space-y-4">
-          <h1 className="text-3xl font-black uppercase tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-3xl font-black uppercase tracking-wider font-oswald text-[var(--text-primary)]">
             Nothing announced yet
           </h1>
           <p className="text-sm text-[var(--text-muted)] leading-relaxed">
@@ -104,26 +104,23 @@ export default function HacklyticsPage() {
   return (
     <main className="min-h-screen px-6 py-20 md:py-28">
       <div className="max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-sm bg-accent/5 border border-accent/20 mb-8">
-          <span className="w-1.5 h-1.5 rounded-sm bg-accent animate-pulse" />
-          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-accent/80">
-            {registrationOpen
-              ? "Registration is open"
-              : event.status === "in_progress"
-                ? "The hackathon is under way"
-                : event.status === "open"
-                  ? "Registration has closed"
-                  : "Registration opens soon"}
-          </span>
-        </div>
+        <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
+          {registrationOpen
+            ? "Registration is open"
+            : event.status === "in_progress"
+              ? "The hackathon is under way"
+              : event.status === "open"
+                ? "Registration has closed"
+                : "Registration opens soon"}
+        </p>
 
-        <h1 className="text-5xl md:text-6xl font-black uppercase tracking-tight text-[var(--text-primary)] leading-[0.95]">
+        <h1 className="text-5xl md:text-6xl font-black uppercase tracking-wider font-oswald text-[var(--text-primary)] leading-[0.95]">
           {event.name}
         </h1>
 
         <dl className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
           <div>
-            <dt className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            <dt className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
               When
             </dt>
             <dd className="mt-1 text-[var(--text-primary)]">
@@ -132,7 +129,7 @@ export default function HacklyticsPage() {
           </div>
           {event.location ? (
             <div>
-              <dt className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
+              <dt className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
                 Where
               </dt>
               <dd className="mt-1 text-[var(--text-primary)]">
@@ -142,7 +139,7 @@ export default function HacklyticsPage() {
           ) : null}
           {event.theme ? (
             <div>
-              <dt className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
+              <dt className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
                 Theme
               </dt>
               <dd className="mt-1 text-[var(--text-primary)]">{event.theme}</dd>
@@ -159,17 +156,17 @@ export default function HacklyticsPage() {
         <div className="mt-12 p-8 rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40">
           {registrationOpen ? (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold uppercase tracking-tight text-[var(--text-primary)]">
+              <h2 className="text-xl font-bold uppercase tracking-wider font-oswald text-[var(--text-primary)]">
                 Registration is open
               </h2>
               <p className="text-sm text-[var(--text-muted)] leading-relaxed">
                 {event.registrationDeadline
-                  ? `Applications close ${formatDeadline(event.registrationDeadline)}. Spots are limited.`
-                  : "Spots are limited and applications are reviewed as they arrive."}
+                  ? `Applications close ${formatDeadline(event.registrationDeadline)}.`
+                  : "Applications are reviewed as they arrive."}
               </p>
               <Link
                 href={`/hackathons/${hackathonSlug(event.name)}`}
-                className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui"
+                className="inline-flex px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
               >
                 Register now
               </Link>

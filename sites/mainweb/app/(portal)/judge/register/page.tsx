@@ -18,7 +18,7 @@ import {
 } from "@/components/hackathon/FormComponents";
 import { SHIRT_SIZES, DIETARY_OPTIONS } from "@/components/hackathon/constants";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 const JUDGE_REGISTRATION_STEPS = [
@@ -78,7 +78,7 @@ export default function JudgeRegisterPage() {
     return <LoadingScreen message="Checking your session…" />;
   }
 
-  if (isLoading) return <LoadingScreen message="Loading Hackathons…" />;
+  if (isLoading) return <LoadingScreen message="Loading hackathons…" />;
 
   // `closed` belongs here: closing participant registration is the natural step
   // *before* recruiting judges, and leaving it out emptied this page with no
@@ -158,37 +158,22 @@ export default function JudgeRegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[var(--bg-tertiary)] flex items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-sm blur-[120px] pointer-events-none" />
-        <LiquidGlass className="relative z-10 max-w-xl w-full p-12 text-center border border-accent/30 bg-white/[0.02]">
-          <div className="w-20 h-20 bg-accent/10 border border-emerald-500/20 rounded-sm flex items-center justify-center mx-auto mb-8">
-            <svg
-              className="w-10 h-10 text-accent"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-black text-[var(--text-primary)] mb-4">
-            Application Submitted
+      <div className="min-h-screen bg-[var(--bg-tertiary)] flex items-center justify-center p-6">
+        <LiquidGlass printed className="max-w-xl w-full p-6 md:p-10 text-center">
+          <Check className="w-8 h-8 text-accent mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-3">
+            Application received
           </h2>
-          <p className="text-[var(--text-primary)]/60 leading-relaxed mb-10">
-            Thank you for applying to be a judge! Our organizing team will
-            review your application and assign you to a track shortly. You will
-            be notified via email once approved.
+          {/* judge.setActive sends the approval email on the transition. */}
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed mb-8">
+            An organiser will review it and assign you a track. You&apos;ll get
+            an email once you&apos;re approved.
           </p>
           <Link
             href="/hackathons"
-            className="px-8 py-4 bg-emerald-500 text-[#020202] font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-ui duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
           >
-            Return to Hub
+            Back to hackathons
           </Link>
         </LiquidGlass>
       </div>
@@ -196,37 +181,36 @@ export default function JudgeRegisterPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-tertiary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden">
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[120px] pointer-events-none" />
+    <div className="relative min-h-screen bg-[var(--bg-tertiary)]">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[5%] w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
+      </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto py-24 px-6 md:px-12">
-        <Link
-          href="/hackathons"
-          className="inline-flex items-center gap-2 text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] transition-colors text-sm font-medium mb-10 group"
-        >
-          <div className="p-1.5 rounded-sm bg-white/5 border border-[var(--border-subtle)] group-hover:bg-white/10 transition-colors">
-            <ChevronLeft className="w-3.5 h-3.5 transform group-hover:-translate-x-0.5 transition-transform" />
-          </div>
-          Back to Hub
-        </Link>
-
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-tight mb-4">
-            Judge Application
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-10 space-y-8">
+        <div>
+          <Link
+            href="/hackathons"
+            className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent mb-4"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            Back to hackathons
+          </Link>
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+            Apply to judge
           </h1>
-          <p className="text-base text-[var(--text-primary)]/50 max-w-2xl leading-relaxed">
-            Join the mentor network. Help evaluate cutting-edge projects and
-            guide the next generation of builders.
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Pick an event, tell us about yourself, and choose a track. Takes
+            about five minutes.
           </p>
         </div>
 
-        <LiquidGlass className="p-8 md:p-12 border border-[var(--border-subtle)] bg-white/[0.01]">
+        <LiquidGlass printed className="p-6 md:p-8">
           <StepProgress steps={JUDGE_REGISTRATION_STEPS} current={step} />
 
           {step === 0 && (
             <StepContainer title="Select a Hackathon">
-              <p className="text-sm text-[var(--text-primary)]/60 mb-6">
+              <p className="text-sm text-[var(--text-muted)] mb-6">
                 Which event would you like to judge for?
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,18 +223,18 @@ export default function JudgeRegisterPage() {
                     <button
                       key={h.id}
                       onClick={() => setHackathonId(h.id)}
-                      className={`text-left p-6 border rounded-none transition-ui ${
+                      className={`text-left p-5 border rounded-sm transition-ui ${
                         hackathonId === h.id
-                          ? "bg-accent/10 border-accent/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                          : "bg-[var(--bg-input)] border-[var(--border-subtle)] hover:border-white/20"
+                          ? "bg-accent/10 border-accent/40"
+                          : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] hover:border-[var(--border-hover)]"
                       }`}
                     >
                       <h3
-                        className={`text-xl font-bold mb-2 ${hackathonId === h.id ? "text-accent" : "text-[var(--text-primary)]"}`}
+                        className={`text-base font-bold mb-2 ${hackathonId === h.id ? "text-accent" : "text-[var(--text-primary)]"}`}
                       >
                         {h.name}
                       </h3>
-                      <p className="text-sm text-[var(--text-primary)]/50 line-clamp-2">
+                      <p className="text-sm text-[var(--text-muted)] line-clamp-2">
                         {h.description}
                       </p>
                     </button>
@@ -305,7 +289,7 @@ export default function JudgeRegisterPage() {
                   placeholder="(555) 123-4567"
                 />
                 <FormInput
-                  label="Core Specialty"
+                  label="Specialty"
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
                   placeholder="e.g. AI, Web3, Design, Product"
@@ -364,7 +348,7 @@ export default function JudgeRegisterPage() {
                   allowDeselect
                 />
               ) : (
-                <p className="text-xs font-mono text-[var(--text-subtle)]">
+                <p className="text-xs text-[var(--text-subtle)]">
                   This hackathon has no tracks published yet — organisers will
                   assign yours.
                 </p>

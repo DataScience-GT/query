@@ -310,7 +310,7 @@ export default function AdminResultsPage() {
                 <h1 className="text-6xl font-black text-[var(--text-primary)] uppercase tracking-tighter mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
                   Voting <span className="text-accent italic">Results</span>
                 </h1>
-                <p className="text-sm font-mono text-text-muted uppercase tracking-widest flex items-center gap-2">
+                <p className="text-sm font-mono text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-sm bg-accent animate-pulse shadow-[0_0_8px_var(--accent)]" />
                   Data Evaluation Layer //{" "}
                   {selectedHackathon ? "SYNC ACTIVE" : "IDLE"}
@@ -365,10 +365,10 @@ export default function AdminResultsPage() {
                     {judgingStatus?.active ? (
                       <span className="text-accent italic">Active</span>
                     ) : (
-                      <span className="text-text-muted italic">Inactive</span>
+                      <span className="text-[var(--text-muted)] italic">Inactive</span>
                     )}
                   </h2>
-                  <p className="text-xs font-mono text-text-muted uppercase tracking-widest mt-1">
+                  <p className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-widest mt-1">
                     {judgingStatus?.active
                       ? "Judges are currently scoring projects in real-time"
                       : "Judges are on standby — waiting for you to begin"}
@@ -406,7 +406,7 @@ export default function AdminResultsPage() {
                   <p className="text-sm font-bold text-[var(--text-primary)]">
                     Prepare judging
                   </p>
-                  <p className="text-xs font-mono text-text-muted mt-1">
+                  <p className="text-xs font-mono text-[var(--text-muted)] mt-1">
                     Syncs submissions into judging and builds every judge&apos;s
                     queue. Run it before starting, and again after late
                     submissions.

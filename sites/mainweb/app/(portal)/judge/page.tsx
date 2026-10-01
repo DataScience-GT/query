@@ -9,6 +9,7 @@ import { useIsClient } from "@/lib/use-is-client";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
+import { Calendar, ChevronLeft, Gavel, MapPin, Users } from "lucide-react";
 
 type HackathonData = {
   id: string;
@@ -23,6 +24,11 @@ type HackathonData = {
   theme?: string | null;
 };
 
+const BADGE =
+  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border";
+const NEUTRAL_BADGE =
+  "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)]";
+
 export default function JudgePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -33,14 +39,14 @@ export default function JudgePage() {
   const { data: hackathons, isLoading: hackathonsLoading } =
     trpc.hackathon.list.useQuery({});
   // Applications, approved or not. getMyAssignments only returns approved ones,
-  // so without this an applicant saw "Apply to Judge" again — and pressing it
+  // so without this an applicant saw "Apply to judge" again — and pressing it
   // threw "You have already applied".
   const { data: applications } = trpc.judge.myApplications.useQuery(undefined, {
     enabled: !!session,
   });
   // Gated on any approved application, not isJudge: isJudge answers for the
   // current edition only, while assignments span every edition, so a judge
-  // approved for another one saw "Application pending review" forever.
+  // approved for another one saw "Awaiting approval" forever.
   const { data: assignments } = trpc.judge.getMyAssignments.useQuery(
     undefined,
     {
@@ -57,39 +63,33 @@ export default function JudgePage() {
   }, [status, router]);
 
   if (!mounted || status === "loading" || checkingJudge || hackathonsLoading) {
-    return <LoadingScreen message="Syncing…" />;
+    return <LoadingScreen message="Loading…" />;
   }
 
   if (!session) return null;
 
-  const confMap: Record<string, { label: string; bg: string; border: string }> =
-    {
-      open: {
-        label: "Accepting Judges",
-        bg: "bg-accent/10",
-        border: "border-accent/30",
-      },
-      in_progress: {
-        label: "Active",
-        bg: "bg-accent/10",
-        border: "border-accent/30",
-      },
-      completed: {
-        label: "Completed",
-        bg: "bg-white/5",
-        border: "border-[var(--border-subtle)]",
-      },
-      closed: {
-        label: "Closed",
-        bg: "bg-amber-400/10",
-        border: "border-amber-400/30",
-      },
-      cancelled: {
-        label: "Cancelled",
-        bg: "bg-rose-500/10",
-        border: "border-rose-500/30",
-      },
-    };
+  const confMap: Record<string, { label: string; cls: string }> = {
+    open: {
+      label: "Accepting judges",
+      cls: "bg-accent/10 border-accent/25 text-accent",
+    },
+    in_progress: {
+      label: "Live",
+      cls: "bg-accent/10 border-accent/25 text-accent",
+    },
+    completed: {
+      label: "Completed",
+      cls: NEUTRAL_BADGE,
+    },
+    closed: {
+      label: "Closed",
+      cls: "bg-amber-400/10 border-amber-400/30 text-amber-300",
+    },
+    cancelled: {
+      label: "Cancelled",
+      cls: "bg-rose-500/10 border-rose-500/30 text-rose-400",
+    },
+  };
 
   const formatDateRange = (start: Date | string, end: Date | string) => {
     const s = new Date(start);
@@ -104,191 +104,149 @@ export default function JudgePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-text-muted font-sans">
-      <div className="relative z-10 max-w-7xl mx-auto py-16 px-6 md:px-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <div className="max-w-xl">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 text-text-muted hover:text-[var(--text-primary)] transition-colors text-sm font-medium mb-6 group"
-            >
-              <div className="p-1.5 rounded-sm bg-white/5 border border-[var(--border-subtle)] group-hover:bg-white/10 transition-colors">
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </div>
-              Nexus
-            </Link>
-            <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)] tracking-tight mb-2">
-              Judge <span className="text-accent italic">Portal</span>
-            </h1>
-            <p className="text-sm text-text-muted">
-              Browse upcoming hackathons and apply to become a judge. You must
-              be approved by the hackathon admin before you can start judging.
+    <div className="relative min-h-screen bg-[var(--bg-tertiary)]">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[5%] w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-8">
+        <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent mb-4"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            Dashboard
+          </Link>
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+            Judging
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Apply to judge an event. An organiser approves you before you can
+            score.
+          </p>
+        </div>
+
+        {!hackathons?.length ? (
+          <LiquidGlass
+            printed
+            className="p-8 text-center flex flex-col items-center gap-3"
+          >
+            <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
+              <Gavel className="w-5 h-5 text-[var(--text-subtle)]" />
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">
+              No hackathons are taking judge applications right now.
             </p>
-          </div>
-        </div>
+          </LiquidGlass>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {hackathons.map((h: HackathonData) => {
+              // draft has no entry, and admins see drafts in this list.
+              const conf = confMap[h.status] ?? {
+                label: h.status,
+                cls: NEUTRAL_BADGE,
+              };
+              const assignment = assignments?.find(
+                (a) => a.hackathonId === h.id,
+              );
+              const isRegistered = !!assignment;
+              const application = applications?.find(
+                (a) => a.hackathonId === h.id,
+              );
+              const awaitingApproval = !isRegistered && !!application;
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hackathons?.map((h: HackathonData) => {
-            // draft has no entry, and admins see drafts in this list.
-            const conf = confMap[h.status] ?? {
-              label: h.status,
-              bg: "bg-white/5",
-              border: "border-[var(--border-subtle)]",
-            };
-            const assignment = assignments?.find((a) => a.hackathonId === h.id);
-            const isRegistered = !!assignment;
-            const application = applications?.find(
-              (a) => a.hackathonId === h.id,
-            );
-            const awaitingApproval = !isRegistered && !!application;
-
-            return (
-              <LiquidGlass
-                key={h.id}
-                className="h-full flex flex-col p-1 transition-ui duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-white/[0.01] border-[var(--border-subtle)] hover:bg-white/[0.02] hover:border-[var(--border-subtle)]"
-              >
-                {/* The card is a plain container, not a Link.
-                    It used to wrap the whole thing in an anchor and then put
-                    the "Apply to Judge" / "Ready to Judge" links inside it —
-                    nested anchors, which React warns about and browsers
-                    resolve unpredictably: the inner link often lost its click
-                    to the outer one, so Apply took you to the judging screen
-                    instead of the application form. */}
-                <div className="group block">
-                  <div className="relative flex flex-col h-full bg-[var(--bg-secondary)] rounded-none p-6 overflow-hidden">
-                    <div
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wide mb-4 ${conf.bg} border ${conf.border}`}
-                    >
-                      <div
-                        className={`h-1.5 w-1.5 rounded-sm ${h.status === "open" || h.status === "in_progress" ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`}
-                      />
-                      {conf.label}
-                    </div>
-                    <div className="flex-1 min-h-0 mb-4">
-                      {h.theme && (
-                        <p className="text-accent/70 text-xs font-mono mb-2 uppercase tracking-wide">
-                          {h.theme}
-                        </p>
-                      )}
-                      <h2
-                        className="text-xl font-bold text-[var(--text-primary)] mb-2 leading-tight truncate"
-                        title={h.name}
-                      >
-                        {h.name}
-                      </h2>
-                      {h.description && (
-                        <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
-                          {h.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="mt-auto pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <svg
-                          className="w-3.5 h-3.5 flex-shrink-0 text-gray-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <span>{formatDateRange(h.startDate, h.endDate)}</span>
-                      </div>
-                      {h.location && (
-                        <div className="flex items-center gap-2 text-xs text-text-muted">
-                          <svg
-                            className="w-3.5 h-3.5 flex-shrink-0 text-gray-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                            />
-                          </svg>
-                          <span>{h.location}</span>
-                        </div>
-                      )}
-                      {h.maxParticipants && (
-                        <div className="flex items-center gap-2 text-xs text-text-muted">
-                          <svg
-                            className="w-3.5 h-3.5 flex-shrink-0 text-gray-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                            />
-                          </svg>
-                          <span>
-                            {h.currentParticipants ?? 0} / {h.maxParticipants}{" "}
-                            Spots
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      {isRegistered ? (
-                        <>
-                          <Link
-                            href={`/hackathons/${h.id}/judge`}
-                            className="flex-1 px-4 py-2 rounded-none bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors cursor-pointer"
-                          >
-                            Ready to Judge
-                          </Link>
-                        </>
-                      ) : awaitingApproval ? (
-                        <div className="flex-1 px-4 py-2 rounded-none bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest text-center">
-                          Application pending review
-                        </div>
-                      ) : h.status === "open" ||
-                        h.status === "closed" ||
-                        h.status === "in_progress" ? (
-                        <Link
-                          href={`/judge/register?hackathonId=${h.id}`}
-                          className="flex-1 px-4 py-2 rounded-none bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
-                        >
-                          Apply to Judge
-                        </Link>
-                      ) : (
-                        <button
-                          disabled
-                          className="flex-1 px-4 py-2 rounded-none bg-white/5 border border-[var(--border-subtle)] text-gray-600 text-xs font-bold uppercase tracking-widest cursor-not-allowed"
-                        >
-                          Closed
-                        </button>
-                      )}
-                    </div>
+              return (
+                <LiquidGlass
+                  key={h.id}
+                  printed
+                  className="p-6 h-full flex flex-col"
+                >
+                  {/* The card is a plain container, not a Link.
+                      It used to wrap the whole thing in an anchor and then put
+                      the "Apply to judge" / "Start judging" links inside it —
+                      nested anchors, which React warns about and browsers
+                      resolve unpredictably: the inner link often lost its click
+                      to the outer one, so Apply took you to the judging screen
+                      instead of the application form. */}
+                  <div className={`${BADGE} ${conf.cls} self-start mb-4`}>
+                    {conf.label}
                   </div>
-                </div>
-              </LiquidGlass>
-            );
-          })}
-        </div>
+                  <div className="flex-1 min-h-0 mb-4">
+                    {h.theme && (
+                      <p className="text-[11px] text-accent/80 uppercase tracking-wider mb-2">
+                        {h.theme}
+                      </p>
+                    )}
+                    <h2
+                      className="text-base font-bold text-[var(--text-primary)] mb-2 leading-tight truncate"
+                      title={h.name}
+                    >
+                      {h.name}
+                    </h2>
+                    {h.description && (
+                      <p className="text-xs text-[var(--text-muted)] line-clamp-2 leading-relaxed">
+                        {h.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-auto pt-4 border-t border-[var(--border-subtle)] flex flex-col gap-2 text-xs text-[var(--text-muted)]">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-subtle)]" />
+                      <span>{formatDateRange(h.startDate, h.endDate)}</span>
+                    </div>
+                    {h.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-subtle)]" />
+                        <span>{h.location}</span>
+                      </div>
+                    )}
+                    {h.maxParticipants && (
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-subtle)]" />
+                        <span>
+                          {h.currentParticipants ?? 0} of {h.maxParticipants}{" "}
+                          spots taken
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    {isRegistered ? (
+                      <Link
+                        href={`/hackathons/${h.id}/judge`}
+                        className="flex-1 px-4 py-2 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest text-center hover:bg-accent/20 transition-colors"
+                      >
+                        Start judging
+                      </Link>
+                    ) : awaitingApproval ? (
+                      <div className="flex-1 px-4 py-2 rounded-sm bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest text-center">
+                        Awaiting approval
+                      </div>
+                    ) : h.status === "open" ||
+                      h.status === "closed" ||
+                      h.status === "in_progress" ? (
+                      <Link
+                        href={`/judge/register?hackathonId=${h.id}`}
+                        className="flex-1 px-4 py-2 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest text-center hover:bg-accent/20 transition-colors"
+                      >
+                        Apply to judge
+                      </Link>
+                    ) : (
+                      <button
+                        disabled
+                        className="flex-1 px-4 py-2 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-subtle)] text-xs font-bold uppercase tracking-widest cursor-not-allowed"
+                      >
+                        Closed
+                      </button>
+                    )}
+                  </div>
+                </LiquidGlass>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
