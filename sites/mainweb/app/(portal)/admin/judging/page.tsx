@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
 import { RoomAssignmentsView } from "@/components/admin/judging/RoomAssignmentsView";
@@ -21,8 +21,11 @@ export default function AdminResultsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const mounted = useIsClient();
+  // ?hackathonId= preselects the event, so the hackathon dashboard's
+  // "Prepare judging" link lands on the right one.
+  const searchParams = useSearchParams();
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(
-    null,
+    searchParams.get("hackathonId"),
   );
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedTrack, setSelectedTrack] = useState<string>("ALL");
@@ -365,7 +368,9 @@ export default function AdminResultsPage() {
                     {judgingStatus?.active ? (
                       <span className="text-accent italic">Active</span>
                     ) : (
-                      <span className="text-[var(--text-muted)] italic">Inactive</span>
+                      <span className="text-[var(--text-muted)] italic">
+                        Inactive
+                      </span>
                     )}
                   </h2>
                   <p className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-widest mt-1">

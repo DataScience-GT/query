@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
@@ -316,23 +317,35 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              toggleJudging.mutate({
-                hackathonId,
-                active: !judgingStatus?.active,
-              })
-            }
-            disabled={toggleJudging.isPending}
-            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-ui disabled:opacity-50 ${
-              judgingStatus?.active
-                ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
-                : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
-            }`}
-          >
-            {judgingStatus?.active ? "Stop Judging" : "Start Judging"}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Judging opens onto whatever is queued; promoting submissions
+              and assigning judges happen on the Judging page. */}
+            {!judgingStatus?.active && (
+              <Link
+                href={`/admin/judging?hackathonId=${hackathonId}`}
+                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+              >
+                Prepare judging
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                toggleJudging.mutate({
+                  hackathonId,
+                  active: !judgingStatus?.active,
+                })
+              }
+              disabled={toggleJudging.isPending}
+              className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-ui disabled:opacity-50 ${
+                judgingStatus?.active
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
+                  : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
+              }`}
+            >
+              {judgingStatus?.active ? "Stop Judging" : "Start Judging"}
+            </button>
+          </div>
         </div>
       </LiquidGlass>
 
@@ -546,7 +559,10 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             >
               {unassignedJudges.length > 0 ? (
                 <div className="sm:col-span-3">
-                  <label htmlFor="select-judge" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                  <label
+                    htmlFor="select-judge"
+                    className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
+                  >
                     Judge
                   </label>
                   <select
@@ -558,7 +574,10 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     <option value="">Someone new, by email</option>
                     {unassignedJudges.map((j) => (
                       <option key={j.id} value={j.id}>
-                        {j.user?.name || j.name || j.user?.email || "Unnamed judge"}
+                        {j.user?.name ||
+                          j.name ||
+                          j.user?.email ||
+                          "Unnamed judge"}
                       </option>
                     ))}
                   </select>
@@ -568,7 +587,10 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 <div />
               ) : (
                 <div>
-                  <label htmlFor="new-judge-email" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                  <label
+                    htmlFor="new-judge-email"
+                    className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
+                  >
                     Email
                   </label>
                   <input
@@ -584,7 +606,10 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 </div>
               )}
               <div>
-                <label htmlFor="track" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                <label
+                  htmlFor="track"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
+                >
                   Track
                 </label>
                 <select
@@ -621,8 +646,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-[var(--border-subtle)]">
               <p className="text-xs text-[var(--text-muted)] flex-1">
-                Or send judges the application link. You approve each one
-                below.
+                Or send judges the application link. You approve each one below.
               </p>
               <button
                 type="button"
