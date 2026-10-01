@@ -1137,8 +1137,19 @@ export const teamRouter = createTRPCRouter({
         // belongs to the captain rather than the caller.
         columns: { submittedById: false },
       });
+      if (!project) return null;
 
-      return project ?? null;
+      // Judges are sent to a table number; the team is the one party that was
+      // never told it. Null until the project is promoted to judging.
+      const judging = await db.query.judgingProjects.findFirst({
+        where: and(
+          eq(judgingProjects.sourceProjectId, project.id),
+          isNull(judgingProjects.withdrawnAt),
+        ),
+        columns: { tableNumber: true },
+      });
+
+      return { ...project, tableNumber: judging?.tableNumber ?? null };
     }),
 
   // Every project the caller owns, across hackathons. Reading off the team
