@@ -994,6 +994,7 @@ describe("Participant edge cases", () => {
           };
         return undefined;
       });
+      mockUpdate.mockReturnValue([{ id: PARTICIPANT_A }]);
 
       await callerFor("admin_user_id").hackathon.updateParticipantStatus({
         hackathonId: HACK_A,
@@ -1002,6 +1003,34 @@ describe("Participant edge cases", () => {
       });
 
       expect(updatedTables()).toContain(hackathons);
+    });
+
+    it("refuses a check-in when a concurrent change unseated the participant", async () => {
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins")
+          return { userId: "admin_user_id", isActive: true, role: "admin" };
+        if (table === "hackathonParticipants")
+          return {
+            id: PARTICIPANT_A,
+            hackathonId: HACK_A,
+            registrationStatus: "approved",
+          };
+        return undefined;
+      });
+      // The seated-only WHERE matched nothing: someone waitlisted them between
+      // the read and the write.
+      mockUpdate.mockReturnValue([]);
+
+      await expect(
+        callerFor("admin_user_id").hackathon.updateParticipantStatus({
+          hackathonId: HACK_A,
+          participantId: PARTICIPANT_A,
+          status: "checked_in",
+        }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: expect.stringContaining("changed just now"),
+      });
     });
 
     // BUG: registration.ts:222-239 is a publicProcedure whose column allow-list
