@@ -70,9 +70,15 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
       ) {
         throw new Error("Invalid format. Expected a Hackathon Event Pass.");
       }
+      // A pass from another edition would be looked up against this tab's
+      // event and come back as "Event not found", which reads like a setup
+      // problem at the door.
+      if (payload.hackathonId !== hackathonId) {
+        throw new Error("This pass is for a different hackathon.");
+      }
 
       const res = await scanPassMutation.mutateAsync({
-        hackathonId: payload.hackathonId,
+        hackathonId,
         eventId: selectedEventId,
         participantId: payload.participantId,
       });
@@ -162,6 +168,12 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                 </option>
               ))}
             </select>
+          )}
+          {!isLoading && (events?.length ?? 0) === 0 && (
+            <p className="text-sm text-[var(--text-muted)]">
+              Create a check-in event under Events first; scans are recorded
+              against an event.
+            </p>
           )}
         </div>
 

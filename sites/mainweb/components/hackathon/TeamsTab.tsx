@@ -4,18 +4,26 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { AlertCircle, AlertTriangle, Plus, Users } from "lucide-react";
+import { AlertCircle, Plus, Users } from "lucide-react";
 
 export function TeamsTab({
   hackathonId,
   isRegistered,
+  registrationStatus,
   myTeamId,
 }: {
   hackathonId: string;
   isRegistered: boolean;
+  registrationStatus: string | null;
   myTeamId: string | null;
 }) {
-  const { data: teams, isLoading } = trpc.team.list.useQuery({ hackathonId });
+  const {
+    data: teams,
+    isLoading,
+    isError,
+    error: listError,
+    refetch,
+  } = trpc.team.list.useQuery({ hackathonId });
   const { data: teamWindow } = trpc.team.window.useQuery(
     { hackathonId },
     { enabled: isRegistered },
@@ -63,6 +71,27 @@ export function TeamsTab({
       </div>
     );
 
+  if (isError)
+    return (
+      <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
+        <p className="text-sm text-rose-400">
+          Couldn&apos;t load teams. {listError.message}
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+        >
+          Try again
+        </button>
+      </LiquidGlass>
+    );
+
+  // The server only lets accepted people create or join (pending and
+  // waitlisted are refused), so the controls follow the same rule.
+  const isAdmitted =
+    registrationStatus === "approved" || registrationStatus === "checked_in";
+
   const myTeam = teams?.find((t) => t.id === myTeamId);
   const otherTeams = teams?.filter((t) => t.id !== myTeamId) ?? [];
 
@@ -89,13 +118,12 @@ export function TeamsTab({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {!isRegistered && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-sm flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <p className="text-amber-400 text-sm font-medium">
-            Register for this hackathon first to create or join teams.
-          </p>
-        </div>
+      {!isAdmitted && (
+        <p className="text-sm text-[var(--text-muted)]">
+          {isRegistered
+            ? "You can form or join a team once you're accepted."
+            : "Register for this hackathon to form a team."}
+        </p>
       )}
 
       {isRegistered && windowNotice && (
@@ -186,7 +214,7 @@ export function TeamsTab({
         </LiquidGlass>
       )}
 
-      {isRegistered && !myTeamId && (
+      {isAdmitted && !myTeamId && (
         <LiquidGlass printed className="p-6">
           {!canCreate ? (
             <div className="flex flex-col gap-1">
@@ -332,7 +360,7 @@ export function TeamsTab({
           {otherTeams.map((team) => {
             const isFull = team.currentMembers >= team.maxMembers;
             const canJoin =
-              isRegistered &&
+              isAdmitted &&
               !myTeamId &&
               team.isOpen &&
               !isFull &&

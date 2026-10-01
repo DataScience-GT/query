@@ -257,6 +257,7 @@ export default function HackathonDetailPage() {
             <TeamsTab
               hackathonId={hackathon.id}
               isRegistered={isRegistered}
+              registrationStatus={myReg?.registrationStatus ?? null}
               myTeamId={myReg?.teamId ?? null}
             />
           )}

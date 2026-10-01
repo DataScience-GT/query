@@ -7,6 +7,36 @@ import { QRCodeSVG } from "qrcode.react";
 import { Calendar, Lock, MapPin } from "lucide-react";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 
+// The event runs in Atlanta; pinning the zone keeps every viewer, and the
+// server render, on the venue's clock rather than the browser's.
+const EVENT_TZ = "America/New_York";
+
+const dayFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: EVENT_TZ,
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+const timeFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: EVENT_TZ,
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** "Sat, Feb 27 · 2:00 PM – 4:00 PM"; the end repeats the day only when it
+ *  falls on a different one (overnight hacking blocks). */
+function formatEventTime(start: Date | string, end: Date | string) {
+  const s = new Date(start);
+  const e = new Date(end);
+  const startDay = dayFmt.format(s);
+  const endDay = dayFmt.format(e);
+  const endText =
+    endDay === startDay
+      ? timeFmt.format(e)
+      : `${endDay} · ${timeFmt.format(e)}`;
+  return `${startDay} · ${timeFmt.format(s)} – ${endText}`;
+}
+
 export function ScheduleTab({
   hackathonId,
   isRegistered,
@@ -14,8 +44,13 @@ export function ScheduleTab({
   hackathonId: string;
   isRegistered: boolean;
 }) {
-  const { data: events, isLoading: eventsLoading } =
-    trpc.hackathon.getEvents.useQuery({ hackathonId });
+  const {
+    data: events,
+    isLoading: eventsLoading,
+    isError: eventsError,
+    error,
+    refetch,
+  } = trpc.hackathon.getEvents.useQuery({ hackathonId });
   const { data: myRecord } = trpc.hackathon.myParticipantRecord.useQuery(
     { hackathonId },
     { enabled: isRegistered },
@@ -119,7 +154,20 @@ export function ScheduleTab({
             </span>
           </div>
 
-          {!events || events.length === 0 ? (
+          {eventsError ? (
+            <div className="flex flex-col items-start gap-4">
+              <p className="text-sm text-rose-400">
+                Couldn&apos;t load the schedule. {error.message}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+              >
+                Try again
+              </button>
+            </div>
+          ) : !events || events.length === 0 ? (
             <div className="p-8 text-center flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-[var(--text-subtle)]" />
@@ -139,19 +187,7 @@ export function ScheduleTab({
                       {event.name}
                     </h4>
                     <div className="flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-sm text-sm font-medium text-accent shrink-0">
-                      <span>
-                        {new Date(event.startTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="text-[var(--text-subtle)]">—</span>
-                      <span>
-                        {new Date(event.endTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                      {formatEventTime(event.startTime, event.endTime)}
                     </div>
                   </div>
 
