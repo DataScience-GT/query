@@ -119,6 +119,11 @@ function SubmitPortalContent() {
 
   // We get the specific registration / team context based on selected hackathon
   const currentReg = myRegs?.find((r) => r.hackathonId === selectedHackathonId);
+  // Same gate as TeamsTab: forming a team needs acceptance, and the server
+  // refuses anyone else, so the controls are not offered until then.
+  const admitted =
+    currentReg?.registrationStatus === "approved" ||
+    currentReg?.registrationStatus === "checked_in";
   // A withdrawn project stays as a draft row, so the row alone is not a
   // submission.
   const hasSubmitted =
@@ -408,8 +413,9 @@ function SubmitPortalContent() {
                         Team
                       </h3>
                       <p className="text-sm text-[var(--text-muted)]">
-                        You&apos;re submitting solo. Create a team or join one
-                        with an invite code.
+                        {admitted
+                          ? "You're submitting solo. Create a team or join one with an invite code."
+                          : "You can create or join a team once you have been accepted."}
                       </p>
 
                       {teamWindowNotice && (
@@ -418,69 +424,73 @@ function SubmitPortalContent() {
                         </p>
                       )}
 
-                      <div className="pt-2 space-y-3">
-                        <input
-                          type="text"
-                          aria-label="Team name"
-                          placeholder="Team name"
-                          value={teamName}
-                          onChange={(e) => setTeamName(e.target.value)}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                        />
-                        <button
-                          onClick={() => {
-                            if (teamName.trim().length === 0) {
-                              setError("Team name is required.");
-                              return;
-                            }
-                            createTeam.mutate({
-                              hackathonId: selectedHackathonId,
-                              name: teamName,
-                            });
-                          }}
-                          disabled={createTeam.isPending || !teamsOpen}
-                          className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
-                        >
-                          {createTeam.isPending
-                            ? "Creating…"
-                            : "Create team"}
-                        </button>
-                      </div>
+                      {admitted && (
+                        <>
+                          <div className="pt-2 space-y-3">
+                            <input
+                              type="text"
+                              aria-label="Team name"
+                              placeholder="Team name"
+                              value={teamName}
+                              onChange={(e) => setTeamName(e.target.value)}
+                              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                            />
+                            <button
+                              onClick={() => {
+                                if (teamName.trim().length === 0) {
+                                  setError("Team name is required.");
+                                  return;
+                                }
+                                createTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                  name: teamName,
+                                });
+                              }}
+                              disabled={createTeam.isPending || !teamsOpen}
+                              className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+                            >
+                              {createTeam.isPending
+                                ? "Creating…"
+                                : "Create team"}
+                            </button>
+                          </div>
 
-                      <div className="flex items-center gap-4 py-2">
-                        <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
-                        <span className="text-xs text-[var(--text-subtle)]">
-                          or
-                        </span>
-                        <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
-                      </div>
+                          <div className="flex items-center gap-4 py-2">
+                            <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
+                            <span className="text-xs text-[var(--text-subtle)]">
+                              or
+                            </span>
+                            <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
+                          </div>
 
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          aria-label="Invite code"
-                          placeholder="Paste invite code"
-                          value={joinTeamId}
-                          onChange={(e) => setJoinTeamId(e.target.value)}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                        />
-                        <button
-                          onClick={() =>
-                            joinTeam.mutate({
-                              hackathonId: selectedHackathonId,
-                              teamId: joinTeamId,
-                            })
-                          }
-                          disabled={
-                            joinTeam.isPending ||
-                            joinTeamId.trim().length === 0 ||
-                            !teamsOpen
-                          }
-                          className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
-                        >
-                          {joinTeam.isPending ? "Joining…" : "Join team"}
-                        </button>
-                      </div>
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              aria-label="Invite code"
+                              placeholder="Paste invite code"
+                              value={joinTeamId}
+                              onChange={(e) => setJoinTeamId(e.target.value)}
+                              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                            />
+                            <button
+                              onClick={() =>
+                                joinTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                  teamId: joinTeamId,
+                                })
+                              }
+                              disabled={
+                                joinTeam.isPending ||
+                                joinTeamId.trim().length === 0 ||
+                                !teamsOpen
+                              }
+                              className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+                            >
+                              {joinTeam.isPending ? "Joining…" : "Join team"}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </LiquidGlass>

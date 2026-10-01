@@ -344,6 +344,16 @@ export default function AdminResultsPage() {
                     : "Start judging"}
               </button>
             </div>
+            {/* Starting is refused until queues exist; without this the
+                press looks like a no-op. */}
+            {toggleJudging.error && (
+              <p
+                role="alert"
+                className="mt-4 px-4 py-3 rounded-sm text-sm border border-red-500/30 bg-red-500/10 text-red-300"
+              >
+                {toggleJudging.error.message}
+              </p>
+            )}
 
             {/* Sync then assign, in that order, from the screen that starts
                 judging — rather than two presses on a separate page. */}

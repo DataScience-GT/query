@@ -427,15 +427,24 @@ export default function JudgeHackathonPage() {
 
         {done || !project ? (
           // An empty queue is not a finished one: "All done, 0 of 0" told a
-          // judge with nothing assigned that they had judged everything.
+          // judge with nothing assigned that they had judged everything. Nor is
+          // an unknown one: "All done" waits until progress says there was work.
           <LiquidGlass className="p-12 text-center">
             <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-4">
-              {progress.data?.total === 0 ? "No tables yet" : "All done"}
+              {progress.data?.total === 0
+                ? "No tables yet"
+                : (progress.data?.total ?? 0) > 0
+                  ? "All done"
+                  : "Your queue"}
             </h1>
             <p className="text-sm text-[var(--text-muted)]">
               {progress.data?.total === 0
                 ? "No projects are assigned to you yet. Tell an organiser; they assign tables from the Judging page."
-                : "You have judged every project assigned to you. Thank you."}
+                : (progress.data?.total ?? 0) > 0
+                  ? "You have judged every project assigned to you. Thank you."
+                  : progress.isError
+                    ? "Couldn't load your progress. Refresh the page."
+                    : "Loading your queue…"}
             </p>
           </LiquidGlass>
         ) : (

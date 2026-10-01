@@ -8,6 +8,7 @@ import { createTRPCRouter } from "../../trpc";
 import { isAdmin, isScanner } from "../../middleware/procedures";
 import { isUniqueViolation } from "../../middleware/db-errors";
 import { recordAdminAction } from "../../middleware/audit";
+import { CacheKeys } from "../../middleware/cache";
 import { MASS_EMAIL_BATCH } from "../../services/email-limits";
 import {
   hackathons,
@@ -100,12 +101,15 @@ async function assertSeats(
 // `deletePattern("hackathon*")` matched both namespaces, so one badge scan
 // wiped every attendee's cached registrations and the venue-wide events list.
 // Each affected user's own registration list goes too, or an acceptance lands
-// in their inbox while their dashboard still says pending.
+// in their inbox while their dashboard still says pending. The hackathon row
+// goes as well: every caller has just synced currentParticipants, and getById
+// serves the public "spots taken" line from that cached row.
 export const evictParticipantCaches = (
   cache: { delete: (key: string) => boolean },
   hackathonId: string,
   userIds: string[],
 ) => {
+  cache.delete(CacheKeys.hackathon(hackathonId));
   cache.delete(`hackathon:${hackathonId}:participants`);
   cache.delete(`hackathon:${hackathonId}:analytics`);
   for (const userId of new Set(userIds)) {
@@ -312,7 +316,7 @@ export const hackathonAdminRouter = createTRPCRouter({
             input.participantId,
           ]);
         }
-        await tx
+        const updated = await tx
           .update(hackathonParticipants)
           .set({
             registrationStatus: input.status,
@@ -331,7 +335,17 @@ export const hackathonAdminRouter = createTRPCRouter({
                   ])
                 : undefined,
             ),
-          );
+          )
+          .returning({ id: hackathonParticipants.id });
+        // A concurrent waitlist or reject leaves the seated-only WHERE matching
+        // nothing; reporting success would wave them through the desk.
+        if (updated.length === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "This applicant's status changed just now. Refresh and check again before letting them in.",
+          });
+        }
       });
 
       await syncCurrentParticipants(ctx.db as DrizzleDB, input.hackathonId);
