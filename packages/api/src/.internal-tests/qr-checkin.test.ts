@@ -623,7 +623,7 @@ describe("QR check-in", () => {
           ) {
             throw Object.assign(
               new Error(
-                'duplicate key value violates unique constraint "unique_event_check_in"',
+                'duplicate key value violates unique constraint "event_check_in_event_user_idx"',
               ),
               { code: "23505" },
             );
@@ -868,7 +868,7 @@ describe("QR check-in", () => {
     });
 
     // BUG: admin.ts:318-321 inserts with no try/catch, so when the
-    // unique('unique_event_participant') index (schemas/hackathons.ts:310)
+    // unique('event_attendee_event_participant_idx') index (schemas/hackathons.ts:310)
     // rejects the loser of a double-tap, errorFormatter (trpc.ts:24-28) masks
     // it as "An unexpected error occurred" on the volunteer's screen.
     it("shows a duplicate scan as a readable conflict, not a system failure", async () => {
@@ -876,7 +876,7 @@ describe("QR check-in", () => {
       mockInsert.mockImplementation(() => {
         throw Object.assign(
           new Error(
-            'duplicate key value violates unique constraint "unique_event_participant"',
+            'duplicate key value violates unique constraint "event_attendee_event_participant_idx"',
           ),
           { code: "23505" },
         );

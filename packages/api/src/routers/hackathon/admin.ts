@@ -1056,7 +1056,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      // 4. Record attendance. unique('unique_event_participant') is the real guard:
+      // 4. Record attendance. The unique index event_attendee_event_participant_idx
+      // is the real guard:
       // two scanners can both pass the read above, so the loser's 23505 has to read
       // as the same conflict, not a raw INTERNAL_SERVER_ERROR.
       // Attendance and the roster promotion are one transaction. Split, a promotion
