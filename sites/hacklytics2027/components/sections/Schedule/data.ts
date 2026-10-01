@@ -11,10 +11,10 @@ export interface BoardEvent {
  * Anchors match the event schema in app/layout.tsx (Fri 5:00p–Sun 4:00p).
  */
 export const board: BoardEvent[] = [
-  { when: "FRI 5:00P", event: "Check-in at Klaus" },
-  { when: "FRI 6:30P", event: "Opening ceremony" },
-  { when: "FRI 9:00P", event: "Hacking begins", accent: true },
-  { when: "SAT ALL DAY", event: "Build + workshops" },
-  { when: "SUN 9:00A", event: "Devpost due", accent: true },
-  { when: "SUN 4:00P", event: "Closing ceremony" },
+  { when: "Fri 5:00 PM", event: "Check-in at Klaus" },
+  { when: "Fri 6:30 PM", event: "Opening ceremony" },
+  { when: "Fri 9:00 PM", event: "Hacking begins", accent: true },
+  { when: "Sat, all day", event: "Build + workshops" },
+  { when: "Sun 9:00 AM", event: "Devpost due", accent: true },
+  { when: "Sun 4:00 PM", event: "Closing ceremony" },
 ];

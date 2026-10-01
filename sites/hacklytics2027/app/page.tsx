@@ -131,7 +131,9 @@ export default function HomePage() {
         </a>
 
         {/* Hero content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-32 pb-20 md:pt-48 md:pb-32 flex flex-col items-center text-center animate-fade-in-up">
+        {/* Bottom padding clears the pixel garden with its soil (136px, 168px
+            from md), which covered the countdown labels on short screens. */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-32 pb-40 md:pt-48 md:pb-48 flex flex-col items-center text-center animate-fade-in-up">
 
           {/* Pill Badge */}
           <div className="pixel-frame pixel-cyan hud inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 mb-10 hover:bg-white/10 transition-colors duration-300 cursor-pointer group">
@@ -174,9 +176,11 @@ export default function HomePage() {
             Join 1,000+ hackers in Atlanta, GA.
           </p>
 
-          {/* Notify me hands off to the portal. No on-site form. */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
-            <span className="flex flex-col items-center sm:items-stretch gap-2.5 w-full sm:w-auto">
+          {/* The caption sits under the pair, not under Notify me alone:
+              stacked with it, the button column was taller than Explore and
+              centring the row pushed Explore halfway down beside it. */}
+          <div className="flex flex-col items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:items-stretch justify-center gap-5 w-full sm:w-auto">
               <a
                 href={INTEREST_URL}
                 target="_blank"
@@ -186,21 +190,21 @@ export default function HomePage() {
               >
                 NOTIFY ME →
               </a>
-              <span
-                id="notify-handoff-hint"
-                className="font-sans text-[11px] leading-snug text-white/40 max-w-[18rem] text-center sm:text-left"
+
+              <a
+                href="#about"
+                className="pixel-frame pixel-lime inline-flex items-center justify-center gap-3 px-10 py-4 font-pixel text-xs text-white/80 hover:text-white bg-white/[0.03] w-full sm:w-auto"
               >
-                {INTEREST_HINT}
-              </span>
-            </span>
-            
-            <a
-              href="#about"
-              className="pixel-frame pixel-lime inline-flex items-center justify-center gap-3 px-10 py-4 font-pixel text-xs text-white/80 hover:text-white bg-white/[0.03] w-full sm:w-auto"
+                <PixelSprite map={SPROUT} palette="lime" scale={2} glow />
+                EXPLORE
+              </a>
+            </div>
+            <span
+              id="notify-handoff-hint"
+              className="font-sans text-[11px] leading-snug text-white/40 text-center"
             >
-              <PixelSprite map={SPROUT} palette="lime" scale={2} glow />
-              EXPLORE
-            </a>
+              {INTEREST_HINT}
+            </span>
           </div>
 
           {/* Check-in opens 5pm ET (the JSON-LD startDate). Without an offset
