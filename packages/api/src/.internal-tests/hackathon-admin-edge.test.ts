@@ -940,13 +940,13 @@ describe("Hackathon admin management edge cases", () => {
     });
 
     // BUG: the duplicate guard is a findFirst followed by an unguarded insert.
-    // unique('unique_event_participant') turns the losing racer's scan into a
+    // uniqueIndex('event_attendee_event_participant_idx') turns the losing racer's scan into a
     // raw 23505 -> INTERNAL_SERVER_ERROR instead of the friendly CONFLICT.
     it("tells the volunteer 'already checked in' when two scanners race", async () => {
       const caller = scanCtx();
       mockInsert.mockImplementation(() => {
         const err: any = new Error(
-          'duplicate key value violates unique constraint "unique_event_participant"',
+          'duplicate key value violates unique constraint "event_attendee_event_participant_idx"',
         );
         err.code = "23505";
         throw err;

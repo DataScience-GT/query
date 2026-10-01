@@ -919,7 +919,7 @@ describe("Participant edge cases", () => {
 
   describe("6. Registration under contention", () => {
     // BUG: the duplicate guard at registration.ts:95-108 is an unlocked
-    // findFirst; the unique_participant_per_hackathon violation that follows is
+    // findFirst; the hackathon_participant_hackathon_user_idx violation that follows is
     // not a TRPCError, so registration.ts:182 rethrows it as a 500.
     it("reports a double-submitted registration form as already registered", async () => {
       mockFindFirst.mockImplementation((table) =>
@@ -927,7 +927,7 @@ describe("Participant edge cases", () => {
       );
       mockInsert.mockImplementation(() => {
         throw new Error(
-          'duplicate key value violates unique constraint "unique_participant_per_hackathon"',
+          'duplicate key value violates unique constraint "hackathon_participant_hackathon_user_idx"',
         );
       });
 
