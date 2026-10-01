@@ -7,7 +7,6 @@ import {
   integer,
   index,
   uniqueIndex,
-  unique,
   numeric,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -41,10 +40,13 @@ export const judges = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    // user_id alone leads the unique constraint below, which is what the portal's
+    // user_id alone leads the unique index below, which is what the portal's
     // per-user judge lookup uses.
     index("judge_hackathon_id_idx").on(table.hackathonId),
-    unique("unique_judge_per_hackathon").on(table.userId, table.hackathonId),
+    // Unique indexes, not constraints, here and on judge_assignment: drizzle-kit
+    // reads a constraint's columns unordered, so push re-adds it every deploy and
+    // stops at a TTY prompt once the table has rows. See events.ts.
+    uniqueIndex("judge_user_hackathon_idx").on(table.userId, table.hackathonId),
   ],
 );
 
@@ -71,7 +73,7 @@ export const judgeAssignments = pgTable(
     index("assignment_hackathon_id_idx").on(table.hackathonId),
     // assignToHackathon and judge.register both enforce one assignment per judge
     // per hackathon with a read before the insert.
-    unique("unique_assignment_per_hackathon").on(
+    uniqueIndex("assignment_judge_hackathon_idx").on(
       table.judgeId,
       table.hackathonId,
     ),

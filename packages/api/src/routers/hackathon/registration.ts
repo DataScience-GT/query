@@ -11,7 +11,7 @@ import { eq, and, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
 
-// Postgres unique_violation on unique_participant_per_hackathon — a second
+// Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
 // submission of the same form. Drizzle wraps every driver error in a
 // DrizzleQueryError whose own `code` is undefined; the pg error carrying the
 // SQLSTATE sits on `.cause`, so the chain has to be walked.
@@ -25,9 +25,9 @@ const isDuplicateRegistration = (error: unknown) => {
       cause?: unknown;
     };
     if (candidate.code === "23505") return true;
-    if (candidate.constraint === "unique_participant_per_hackathon")
+    if (candidate.constraint === "hackathon_participant_hackathon_user_idx")
       return true;
-    if (candidate.message?.includes("unique_participant_per_hackathon"))
+    if (candidate.message?.includes("hackathon_participant_hackathon_user_idx"))
       return true;
     cursor = candidate.cause;
   }
