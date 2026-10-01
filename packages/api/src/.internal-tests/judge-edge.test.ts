@@ -2106,4 +2106,50 @@ describe("Judge edge cases", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
+
+  // =====================================================================
+  /**
+   * An organiser pulling a project. Marking the judging entry withdrawn was
+   * not enough: every queue read kept routing judges to the pulled table.
+   */
+  describe("14. Organiser withdrawal", () => {
+    const wireWithdraw = () =>
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return ADMIN_ROW;
+        if (table === "hackathonProjects")
+          return { id: PROJECT_A, hackathonId: HACK_A, status: "submitted" };
+        return undefined;
+      });
+
+    it("drops the project's unscored queue slots", async () => {
+      wireWithdraw();
+      mockUpdate.mockReturnValue([{ id: "judging_row" }]);
+
+      await adminCaller().hackathon.adminWithdrawProject({
+        projectId: PROJECT_A,
+      });
+
+      expect(mockDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it("touches no queue when the project was never promoted", async () => {
+      wireWithdraw();
+      mockUpdate.mockReturnValue([]);
+
+      await adminCaller().hackathon.adminWithdrawProject({
+        projectId: PROJECT_A,
+      });
+
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  // isJudge reads ids before the procedure's schema runs, and each one goes
+  // into a uuid column: a malformed id was a Postgres error and a 500.
+  it("refuses a malformed id before it reaches the database", async () => {
+    await expect(
+      judgeCaller().judge.getNextTable({ hackathonId: "not-a-uuid" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(mockFindFirst).not.toHaveBeenCalled();
+  });
 });

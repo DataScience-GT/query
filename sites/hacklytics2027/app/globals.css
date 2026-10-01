@@ -122,11 +122,12 @@ body {
   border-radius: 1px;
 }
 
-/* ─── Section anchor offset for fixed navbar ─── */
+/* ─── Section anchor offset for fixed navbar ───
+   No content-visibility here: skipped sections sat at a 600px placeholder, so
+   a nav tap or a /#faqs link computed its target from heights that changed
+   mid-scroll and landed off the section. */
 .section-anchor {
   scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
 }
 
 /* ─── Pixel flora — Terraria-style sprite layer ─── */

@@ -7,7 +7,9 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 w-full bg-[#020204] overflow-hidden">
+    // Starts at the sections' 70% and fades to solid: a solid edge here drew a
+    // visible band where the translucent sections above it ended.
+    <footer className="relative z-10 w-full bg-gradient-to-b from-[#020204]/70 to-[#020204] to-40% overflow-hidden">
       <div className="section-wrap max-w-7xl mx-auto pt-20 md:pt-28 pb-10 px-6 relative z-10">
         <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-8">
           Applications open soon.
@@ -23,11 +25,13 @@ export default function Footer() {
             Notify me →
           </a>
           <p className="font-sans text-sm text-white/45 max-w-sm leading-relaxed">
-            Notify me opens the DS@GT portal. This site has no form.
+            We’ll let you know the moment they do.
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 pt-8 border-t border-white/10">
+        {/* Side by side only once both rows fit: at tablet width the contact
+            links wrapped "MLH Code of Conduct" onto three lines. */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-10 pt-8 border-t border-white/10">
           <nav className="flex flex-wrap gap-x-6 gap-y-3">
             {navIds.map((id) => (
               <Link
@@ -40,7 +44,7 @@ export default function Footer() {
             ))}
           </nav>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 sm:gap-x-8 whitespace-nowrap">
             <Link
               href="mailto:hello@hacklytics.io"
               className="font-sans text-sm text-white/45 hover:text-white transition-colors"
@@ -59,7 +63,7 @@ export default function Footer() {
               href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans text-[11px] uppercase tracking-[0.18em] text-white/40 hover:text-white transition-colors"
+              className="font-sans text-sm text-white/45 hover:text-white transition-colors"
             >
               MLH Code of Conduct
             </Link>

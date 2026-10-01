@@ -24,8 +24,16 @@ export function isChunkLoadError(error: unknown): boolean {
 const RELOAD_FLAG = "chunk-reload-attempted";
 
 /**
+ * A second failure this soon after reloading means the chunk really is gone,
+ * not stale. Stored as a time rather than a flag: a flag was cleared only when
+ * an error boundary rendered something else, so after one reload the tab never
+ * recovered from a later deploy.
+ */
+const RELOAD_LOOP_WINDOW_MS = 30_000;
+
+/**
  * Reloads once when the boundary caught a stale-chunk error. The sessionStorage
- * flag stops a genuinely-missing chunk from causing an endless reload loop.
+ * timestamp stops a genuinely-missing chunk from causing an endless reload loop.
  */
 export function useChunkErrorRecovery(error: unknown): boolean {
   const isChunkError = isChunkLoadError(error);
@@ -43,8 +51,10 @@ export function useChunkErrorRecovery(error: unknown): boolean {
 
     let alreadyTried = false;
     try {
-      alreadyTried = sessionStorage.getItem(RELOAD_FLAG) === "1";
-      sessionStorage.setItem(RELOAD_FLAG, "1");
+      const lastReload = Number(sessionStorage.getItem(RELOAD_FLAG));
+      alreadyTried =
+        lastReload > 0 && Date.now() - lastReload < RELOAD_LOOP_WINDOW_MS;
+      sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
     } catch {
       // If storage is unavailable, fall through and reload once.
     }
