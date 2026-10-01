@@ -6,7 +6,6 @@ import {
   boolean,
   integer,
   index,
-  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -81,8 +80,13 @@ export const eventCheckIns = pgTable(
   (table) => [
     // A person is at a given event once. events.checkIn already treats a 23505
     // here as "Already checked in" and its row lock keeps the QR door honest, but
-    // the constraint is what holds for any future manual or imported check-in.
-    unique("unique_event_check_in").on(table.eventId, table.userId),
+    // the index is what holds for any future manual or imported check-in. A
+    // unique index rather than a constraint for the same reason as
+    // event_bootcamp_session_idx above.
+    uniqueIndex("event_check_in_event_user_idx").on(
+      table.eventId,
+      table.userId,
+    ),
     // The unique above leads with eventId, so a lookup by user alone cannot use
     // it. events.myEvents and myStats filter on exactly userId and run on every
     // portal dashboard load — without this they scan the whole check-in table.
