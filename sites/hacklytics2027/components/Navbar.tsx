@@ -112,8 +112,8 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-3 group shrink-0"
           >
-            <PixelSprite map={SPROUT} palette="lime" scale={2} />
-            <span className="font-sans font-bold text-sm tracking-tight text-white group-hover:text-white/80 transition-colors">
+            <PixelSprite map={SPROUT} palette="lime" scale={2} glow />
+            <span className="font-pixel text-xs text-white group-hover:text-bloom-lime transition-colors">
               DS @ GT
             </span>
           </Link>
@@ -125,7 +125,7 @@ export default function Navbar() {
                 key={name}
                 href={href}
                 onClick={(e) => handleNavClick(e, href)}
-                className="font-sans text-[11px] uppercase tracking-[0.22em] text-white/55 hover:text-white transition-colors py-2"
+                className="font-sans text-xs uppercase tracking-[0.2em] text-white/70 hover:text-bloom-cyan transition-colors py-2"
               >
                 {name}
               </a>
@@ -137,7 +137,7 @@ export default function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Notify me. ${INTEREST_HINT}`}
-            className="pixel-btn hidden lg:inline-flex items-center justify-center px-6 py-2.5 font-sans font-bold text-[11px] uppercase tracking-[0.14em] shrink-0"
+            className="pixel-btn hidden lg:inline-flex items-center justify-center px-6 py-2.5 font-pixel text-[11px] shrink-0"
           >
             Notify me
           </a>
@@ -181,7 +181,7 @@ export default function Navbar() {
               key={name}
               href={href}
               onClick={(e) => handleNavClick(e, href)}
-              className="font-sans font-medium text-3xl text-white/55 hover:text-white py-4 border-b border-white/10 transition-colors tracking-tight"
+              className="font-sans font-medium text-3xl text-white/75 hover:text-bloom-cyan py-4 border-b border-white/10 transition-colors tracking-tight"
             >
               {name}
             </a>
@@ -194,7 +194,7 @@ export default function Navbar() {
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
             aria-label={`Notify me. ${INTEREST_HINT}`}
-            className="pixel-btn flex items-center justify-center w-full font-sans font-bold text-sm uppercase tracking-[0.14em] px-8 py-4"
+            className="pixel-btn flex items-center justify-center w-full font-pixel text-xs px-8 py-4"
           >
             Notify me
           </a>
