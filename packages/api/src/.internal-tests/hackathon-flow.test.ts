@@ -6,6 +6,8 @@ import { db } from "@query/db";
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
 // file-scoped, so this mirrors the shape used by routers.test.ts.
 const mockFindFirst = vi.fn();
+/** Rows a bare `await select().from().where()` resolves to. */
+const mockWhereRows = vi.fn<() => unknown[]>(() => [{ n: 1 }]);
 const mockFindMany = vi.fn();
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
@@ -74,6 +76,9 @@ vi.mock("@query/db", () => {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
           where: vi.fn().mockImplementation(() => ({
+            // Awaited directly: a count such as the judging queue check.
+            then: (ok: any, err: any) =>
+              Promise.resolve(mockWhereRows()).then(ok, err),
             orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
             groupBy: vi.fn().mockResolvedValue([]),
             limit: vi.fn().mockResolvedValue([]),
@@ -305,7 +310,9 @@ describe("Hackathon end-to-end flow", () => {
       );
     });
 
-    it("rejects registration when the hackathon is at capacity", async () => {
+    // Capacity caps acceptances, not applications: a full house still takes
+    // applications, and the seat is enforced when an organiser accepts.
+    it("takes an application when every seat is already taken", async () => {
       mockFindFirst.mockImplementation((table) =>
         table === "hackathons"
           ? openHackathon({ maxParticipants: 500, currentParticipants: 500 })
@@ -313,9 +320,10 @@ describe("Hackathon end-to-end flow", () => {
       );
       const caller = appRouter.createCaller(createMockCtx("user_a"));
 
-      await expect(caller.hackathon.register(registrationInput())).rejects.toThrow(
-        /full/,
-      );
+      const outcome = await caller.hackathon
+        .register(registrationInput())
+        .catch((error: unknown) => error);
+      expect(String((outcome as Error)?.message ?? "")).not.toMatch(/full/);
     });
   });
 
@@ -541,6 +549,7 @@ describe("Hackathon end-to-end flow", () => {
 
     it("only lets an admin toggle judging on", async () => {
       const caller = adminCaller();
+      mockWhereRows.mockReturnValueOnce([{ n: 12 }]);
       mockUpdate.mockReturnValue([{ judgingActive: true }]);
 
       const res = await caller.judge.toggleJudging({
@@ -548,6 +557,17 @@ describe("Hackathon end-to-end flow", () => {
         active: true,
       });
       expect(res).toMatchObject({ success: true, judgingActive: true });
+    });
+
+    // With nothing queued every judge opened straight onto "All done, 0 of 0".
+    it("refuses to open judging before any judge has a table", async () => {
+      const caller = adminCaller();
+      mockWhereRows.mockReturnValueOnce([{ n: 0 }]);
+
+      await expect(
+        caller.judge.toggleJudging({ hackathonId: HACK_A, active: true }),
+      ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     it("refuses to let a non-admin toggle judging", async () => {
@@ -604,12 +624,14 @@ describe("Hackathon end-to-end flow", () => {
       maxMembers: 4 as const,
     };
 
-    it("refuses team creation before the window opens at +12h", async () => {
-      const caller = teamCaller(2);
+    // Accepted hackers can find teammates before kickoff.
+    it("allows team creation before hacking starts", async () => {
+      const caller = teamCaller(-48);
+      mockInsert.mockReturnValue([{ id: "team_1", name: "meow" }]);
 
-      await expect(caller.team.createTeam(newTeam)).rejects.toThrow(
-        /not open yet/,
-      );
+      await expect(caller.team.createTeam(newTeam)).resolves.toMatchObject({
+        name: "meow",
+      });
     });
 
     it("allows team creation inside the window", async () => {
@@ -649,18 +671,21 @@ describe("Hackathon end-to-end flow", () => {
       expect(res.canLeave).toBe(false);
     });
 
+    // Teams form from acceptance, not from +12h: two hours in, an accepted
+    // hacker can already create, join and leave.
     it("reports the window so the UI can disable instead of failing", async () => {
       const caller = teamCaller(2);
 
       const res = await caller.team.window({ hackathonId: HACK_A });
       expect(res).toMatchObject({
-        isOpen: false,
-        canCreate: false,
-        canJoin: false,
-        canLeave: false,
+        isOpen: true,
+        canCreate: true,
+        canJoin: true,
+        canLeave: true,
+        opensAt: null,
       });
-      expect(res.leaveLocksAt.getTime() - res.opensAt.getTime()).toBe(
-        12 * HOUR,
+      expect(res.closesAt.getTime() - res.leaveLocksAt.getTime()).toBe(
+        10 * HOUR,
       );
     });
   });

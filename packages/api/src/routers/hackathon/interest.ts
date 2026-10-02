@@ -59,7 +59,12 @@ const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 // meant that the moment registration opened, the one page telling the world
 // about the hackathon said "Nothing announced yet". Soonest first, so
 // announcing the year after next does not displace the one being promoted.
-const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "in_progress"] as const;
+const PUBLIC_FUNNEL_STATUSES = [
+  "announced",
+  "open",
+  "closed",
+  "in_progress",
+] as const;
 
 /** What the landing page reads; also the shape held in the cache. */
 type UpcomingEdition = {
