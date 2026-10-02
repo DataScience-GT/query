@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
@@ -258,6 +258,26 @@ export default function JudgeHackathonPage() {
     onError: recoverOrReport,
   });
 
+  /**
+   * Tap-to-start. The NFC tag on a table holds this page's URL with
+   * ?table=<code>, so tapping it opens the page and starts that table exactly
+   * as scanning the printed card would. Waits for judge access and an open
+   * round; the param is dropped once used so a reload cannot replay it
+   * (startByQrCode is idempotent anyway).
+   */
+  const tappedTable = useRef(false);
+  useEffect(() => {
+    if (tappedTable.current) return;
+    if (!hackathonId || judgeCheck.data?.isJudge !== true || !judgingOpen) return;
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("table");
+    if (!code) return;
+    tappedTable.current = true;
+    url.searchParams.delete("table");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    startByQr.mutate({ qrCode: code.trim() });
+  }, [hackathonId, judgeCheck.data?.isJudge, judgingOpen, startByQr]);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push(loginHref());
   }, [status, router]);
@@ -493,9 +513,10 @@ export default function JudgeHackathonPage() {
                   Scan the team&apos;s code to begin
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mb-8 leading-relaxed max-w-md mx-auto">
-                  Walk to table {project.tableNumber ?? "?"} and scan the card
-                  on their desk. Your judging time starts from the scan, not
-                  from when this table was assigned to you.
+                  Walk to table {project.tableNumber ?? "?"} and tap your phone
+                  on the NFC tag, or scan the card on their desk. Your judging
+                  time starts from then, not from when this table was assigned
+                  to you.
                 </p>
                 <button
                   type="button"
@@ -640,9 +661,16 @@ export default function JudgeHackathonPage() {
           onScan={(codes: { rawValue: string }[]) => {
             const raw = codes[0]?.rawValue;
             if (!raw || startByQr.isPending) return;
-            // The card encodes the code on its own. Accepting a bare value
-            // keeps the printed card as small and as scannable as possible.
-            startByQr.mutate({ qrCode: raw.trim() });
+            // The card encodes the code on its own, which keeps the printed
+            // QR as small and scannable as possible. The NFC link form
+            // (...?table=<code>) is accepted too, in case one is printed.
+            let code = raw.trim();
+            try {
+              code = new URL(code).searchParams.get("table") ?? code;
+            } catch {
+              // Not a URL: the bare code.
+            }
+            startByQr.mutate({ qrCode: code });
           }}
           onError={(e: unknown) => console.error(e)}
           isProcessing={startByQr.isPending}
