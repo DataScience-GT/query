@@ -21,11 +21,6 @@ const STATUS: Record<string, { label: string; className: string }> = {
     label: "Between tables",
     className: "border-amber-500/30 bg-amber-500/10 text-amber-400",
   },
-  done: {
-    label: "Done",
-    className:
-      "border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]",
-  },
   suspended: {
     label: "Suspended",
     className:
@@ -34,6 +29,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 
 const mins = (n: number | null) => (n === null ? "-" : `${n}m`);
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /** Where every judge is, refreshed while judging runs. */
 export function JudgeLiveBoard({
@@ -65,17 +61,69 @@ export function JudgeLiveBoard({
         </div>
         {data && (
           <p className="text-sm text-[var(--text-primary)] tabular-nums shrink-0">
-            {data.totals.completed}/{data.totals.assigned} visits ·{" "}
-            <span className="text-accent">{data.totals.percent}%</span>
+            {data.totals.scored} scored
+            {data.totals.voided > 0 && (
+              <span className="text-[var(--text-muted)]">
+                {" "}
+                · {data.totals.voided} timed out or passed
+              </span>
+            )}
           </p>
         )}
       </div>
+
+      {/* Whether the judges who turned up can finish: coverage so far and the
+          measured pace, never a planned head count. */}
+      {data && data.coverage.projects > 0 && (
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[
+            {
+              label: `At ${data.coverage.targetLooks}+ looks`,
+              value: `${data.coverage.atTarget}/${data.coverage.projects}`,
+            },
+            {
+              label: "Not yet seen",
+              value: String(data.coverage.unseen),
+              alert: data.coverage.unseen > 0 && active,
+            },
+            {
+              label: "Judges active",
+              value: String(data.pace.activeJudges),
+            },
+            {
+              label: `To ${data.coverage.targetLooks} looks each`,
+              value:
+                data.pace.minutesToTarget === null
+                  ? "-"
+                  : data.pace.minutesToTarget === 0
+                    ? "Done"
+                    : `~${data.pace.minutesToTarget}m`,
+            },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3"
+            >
+              <dt className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                {stat.label}
+              </dt>
+              <dd
+                className={`mt-1 text-lg font-bold tabular-nums ${
+                  stat.alert ? "text-amber-300" : "text-[var(--text-primary)]"
+                }`}
+              >
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-[var(--text-muted)]">Loading judges…</p>
       ) : judges.length === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">
-          No queues yet. Press Prepare judging above.
+          No judges yet. Approve judges on the hackathon&apos;s Judges tab.
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -85,7 +133,7 @@ export function JudgeLiveBoard({
                 <th className="pb-2 pr-4">Judge</th>
                 <th className="pb-2 pr-4">Status</th>
                 <th className="pb-2 pr-4">At</th>
-                <th className="pb-2 pr-4">Done</th>
+                <th className="pb-2 pr-4">Scored</th>
                 <th className="pb-2 pr-4">Idle</th>
                 <th className="pb-2">Median</th>
               </tr>
@@ -112,7 +160,8 @@ export function JudgeLiveBoard({
                         <>
                           Table {j.current.tableNumber ?? "?"}
                           <span className="block text-[10px] text-[var(--text-subtle)]">
-                            {mins(j.current.onItMinutes)} on it
+                            {j.current.phase === "walking" ? "walking" : "at table"}{" "}
+                            {mmss(j.current.seconds)}
                           </span>
                         </>
                       ) : (
@@ -120,11 +169,14 @@ export function JudgeLiveBoard({
                       )}
                     </td>
                     <td className="py-3 pr-4 text-xs tabular-nums text-[var(--text-primary)]">
-                      {j.completed}/{j.assigned}
+                      {j.scored}
+                      {j.voided > 0 && (
+                        <span className="text-[var(--text-subtle)]"> · {j.voided} void</span>
+                      )}
                     </td>
                     <td
                       className={`py-3 pr-4 text-xs tabular-nums ${
-                        (j.idleMinutes ?? 0) >= 20 && j.status !== "done"
+                        (j.idleMinutes ?? 0) >= 10 && j.status !== "suspended"
                           ? "text-red-400"
                           : "text-[var(--text-muted)]"
                       }`}

@@ -42,6 +42,32 @@ const BLANK: Scores = {
   scoreSoundness: 5,
 };
 
+// Mirrors packages/api/src/routers/judge/dispatch.ts: amber at the target,
+// form locked at the hard cutoff. The server enforces the cutoff; this only
+// shows it.
+const TARGET_SECONDS = 180;
+const HARD_LIMIT_SECONDS = 240;
+
+const TIME_UP_MESSAGE =
+  "Time ran out on that table before a score went in, so it goes back to be judged by someone else. Here is your next table.";
+
+/**
+ * A server timestamp on this phone's clock. The judging clock has to agree
+ * with the server's cutoff, and a phone set a minute off would otherwise
+ * show 3:00 when the server already counts 4:00.
+ */
+function toLocalClock(
+  serverTime: Date | string | null,
+  serverNow: Date | string,
+): number | null {
+  if (!serverTime) return null;
+  const offset = Date.now() - new Date(serverNow).getTime();
+  return new Date(serverTime).getTime() + offset;
+}
+
+const mmss = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+
 export default function JudgeHackathonPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -74,12 +100,20 @@ export default function JudgeHackathonPage() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [showScanner, setShowScanner] = useState(false);
-  /** Server-stamped arrival. Until the judge scans the table, the scoring form
-   *  stays closed so the clock cannot start from across the room. */
-  const [arrived, setArrived] = useState(false);
-  /** Set when a skip had nowhere to rotate to — this is the judge's last
-   *  uncompleted table, so "skip" cannot move them off it. */
-  const [stranded, setStranded] = useState(false);
+  /** When the judging clock started, on this device's clock: the server's
+   *  arrival stamp shifted by the server/phone offset. Null until the judge
+   *  taps or scans the table, and the scoring form stays shut until then. */
+  const [clockStart, setClockStart] = useState<number | null>(null);
+  const arrived = clockStart !== null;
+  const [tick, setTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (clockStart === null) return;
+    const id = setInterval(() => setTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [clockStart]);
+  const elapsed =
+    clockStart === null ? 0 : Math.max(0, Math.floor((tick - clockStart) / 1000));
+  const timeUp = clockStart !== null && elapsed >= HARD_LIMIT_SECONDS;
   const [done, setDone] = useState(false);
   const [startedAt, setStartedAt] = useState(() => Date.now());
 
@@ -138,21 +172,25 @@ export default function JudgeHackathonPage() {
         project: (nextTable.data.project as Project) ?? null,
         queueId: nextTable.data.queueId ?? null,
       });
+      // A reload mid-table keeps the clock it already had.
+      setClockStart(
+        toLocalClock(nextTable.data.arrivedAt ?? null, nextTable.data.serverNow),
+      );
     }
   }
 
   const advance = (
     project: Project | null,
     queueId: string | null,
-    // startByQrCode is the one caller that has already arrived; every other
-    // path hands over a table the judge still has to walk to.
-    hasArrived = false,
+    // Set when the table has already been started (the tap or scan); every
+    // other hand-over is a table the judge still has to walk to.
+    clock: number | null = null,
   ) => {
     setScores(BLANK);
     setComment("");
     setError("");
     setStartedAt(Date.now());
-    setArrived(hasArrived);
+    setClockStart(clock);
     progress.refetch();
     if (!project) {
       setDone(true);
@@ -195,6 +233,7 @@ export default function JudgeHackathonPage() {
       advance(
         data.done ? null : ((data.project as Project) ?? null),
         data.queueId ?? null,
+        data.done ? null : toLocalClock(data.arrivedAt ?? null, data.serverNow),
       );
       setError("That table was withdrawn by an organiser. Here is your next one.");
     });
@@ -204,11 +243,14 @@ export default function JudgeHackathonPage() {
   // table a second time, and both already return the next project to show.
   const complete = trpc.judge.completeAndNext.useMutation({
     onSuccess: (res) => {
-      if (res.done) {
-        advance(null, null);
-        return;
-      }
-      advance((res.nextProject as Project) ?? null, res.nextQueueId ?? null);
+      if (res.done) advance(null, null);
+      else
+        advance(
+          (res.nextProject as Project) ?? null,
+          res.nextQueueId ?? null,
+          toLocalClock(res.nextArrivedAt ?? null, res.serverNow),
+        );
+      if (res.timedOut) setError(TIME_UP_MESSAGE);
     },
     onError: recoverOrReport,
   });
@@ -224,7 +266,11 @@ export default function JudgeHackathonPage() {
     onSuccess: (res) => {
       setShowScanner(false);
       setError("");
-      advance((res.project as Project) ?? null, res.queueId ?? null, true);
+      advance(
+        (res.project as Project) ?? null,
+        res.queueId ?? null,
+        toLocalClock(res.arrivedAt, res.serverNow),
+      );
     },
     onError: (e) => {
       setShowScanner(false);
@@ -232,29 +278,15 @@ export default function JudgeHackathonPage() {
     },
   });
 
+  // Passing on a table returns it to the pool for another judge; this judge
+  // is not sent back to it. Also what "time's up" uses to move on.
   const skip = trpc.judge.skipProject.useMutation({
-    onSuccess: (res) => {
-      // Skipping the last uncompleted item hands back the same project: there
-      // is nothing to rotate to. Saying so is the difference between a button
-      // that looks broken and one that explains the only way out.
-      setStranded(res.skippedToEnd === true);
-      advance((res.project as Project) ?? null, res.queueId ?? null);
-    },
-    onError: recoverOrReport,
-  });
-
-  // The escape from a table nobody is standing at: marks it done without a
-  // score and hands the project to another judge, so it still gets seen.
-  const forceSkip = trpc.judge.forceSkipOvertime.useMutation({
-    onSuccess: (res) => {
-      setStranded(false);
-      if (!res.reassigned) {
-        setError(
-          "Marked done, but no other judge was free to take it — flag this table to an organiser.",
-        );
-      }
-      advance((res.project as Project) ?? null, res.queueId ?? null);
-    },
+    onSuccess: (res) =>
+      advance(
+        res.done ? null : ((res.project as Project) ?? null),
+        res.queueId ?? null,
+        res.done ? null : toLocalClock(res.arrivedAt ?? null, res.serverNow),
+      ),
     onError: recoverOrReport,
   });
 
@@ -410,7 +442,7 @@ export default function JudgeHackathonPage() {
 
   const project = current?.project;
   const busy =
-    complete.isPending || skip.isPending || forceSkip.isPending;
+    complete.isPending || skip.isPending;
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-tertiary)] pb-24">
@@ -425,19 +457,14 @@ export default function JudgeHackathonPage() {
           </Link>
           {progress.data && (
             <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
-              {progress.data.completed} / {progress.data.total} judged
+              {progress.data.completed} judged
             </p>
           )}
         </div>
 
-        {progress.data && progress.data.total > 0 && (
-          <div className="h-1 w-full rounded-sm bg-[var(--bg-secondary)] mb-12">
-            <div
-              className="h-full bg-accent transition-ui duration-500"
-              style={{ width: `${progress.data.percentage}%` }}
-            />
-          </div>
-        )}
+        {/* No progress bar: judges draw from a shared pool, so a share of
+            every eligible project says nothing about how a judge is doing. */}
+        <div className="mb-12" />
 
         {error && (
           <div className="p-4 mb-8 rounded-sm bg-red-500/10 border border-red-500/20">
@@ -459,9 +486,9 @@ export default function JudgeHackathonPage() {
             </h1>
             <p className="text-sm text-[var(--text-muted)]">
               {progress.data?.total === 0
-                ? "No projects are assigned to you yet. Tell an organiser; they assign tables from the Judging page."
+                ? "There are no projects for you to judge yet. Tell an organiser."
                 : (progress.data?.total ?? 0) > 0
-                  ? "You have judged every project assigned to you. Thank you."
+                  ? "You have been to every project you can judge. Thank you."
                   : progress.isError
                     ? "Couldn't load your progress. Refresh the page."
                     : "Loading your queue…"}
@@ -529,9 +556,53 @@ export default function JudgeHackathonPage() {
                 >
                   {startByQr.isPending ? "Starting…" : "Scan Table Code"}
                 </button>
+                <button
+                  type="button"
+                  disabled={busy || !current?.queueId}
+                  onClick={() => {
+                    setError("");
+                    if (current?.queueId) skip.mutate({ queueId: current.queueId });
+                  }}
+                  className="block mx-auto mt-5 text-xs text-[var(--text-muted)] underline underline-offset-4 hover:text-[var(--text-primary)] disabled:opacity-50"
+                >
+                  Can't find the team? Get another table
+                </button>
               </LiquidGlass>
             ) : (
             <LiquidGlass className="p-8 space-y-8">
+              {/* The clock runs from the tap or scan. Amber at 3:00; at 4:00
+                  the form locks and the table goes back into the pool. */}
+              <div
+                role="timer"
+                aria-live="off"
+                className={`flex items-center justify-between gap-4 rounded-sm border px-4 py-3 ${
+                  timeUp
+                    ? "border-red-500/40 bg-red-500/10"
+                    : elapsed >= TARGET_SECONDS
+                      ? "border-amber-500/40 bg-amber-500/10"
+                      : "border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
+                }`}
+              >
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  {timeUp
+                    ? "Time's up"
+                    : elapsed >= TARGET_SECONDS
+                      ? `Wrap up: score locks at ${mmss(HARD_LIMIT_SECONDS)}`
+                      : `Aim for ${mmss(TARGET_SECONDS)}`}
+                </span>
+                <span
+                  className={`font-mono text-2xl font-black tabular-nums ${
+                    timeUp
+                      ? "text-red-400"
+                      : elapsed >= TARGET_SECONDS
+                        ? "text-amber-300"
+                        : "text-[var(--text-primary)]"
+                  }`}
+                >
+                  {mmss(Math.min(elapsed, HARD_LIMIT_SECONDS))}
+                </span>
+              </div>
+
               {CRITERIA.map((c) => (
                 <div key={c.key}>
                   <div className="flex items-center justify-between mb-3">
@@ -581,33 +652,25 @@ export default function JudgeHackathonPage() {
                 />
               </div>
 
-              {stranded && (
-                <div
-                  role="status"
-                  className="p-4 rounded-sm border border-amber-500/30 bg-amber-500/10"
-                >
-                  <p className="text-xs text-amber-300 leading-relaxed">
-                    This is the last table left in your queue, so there is
-                    nothing to skip to. If nobody is here, hand it to another
-                    judge instead — it will still get scored.
+              {timeUp ? (
+                <div className="pt-4 border-t border-[var(--border-subtle)]">
+                  <p className="text-sm text-red-300 mb-4">
+                    No score went in within {mmss(HARD_LIMIT_SECONDS)}, so this
+                    table goes back to be judged by someone else.
                   </p>
                   <button
                     type="button"
                     disabled={busy || !current?.queueId}
                     onClick={() => {
                       setError("");
-                      if (current?.queueId)
-                        forceSkip.mutate({ queueId: current.queueId });
+                      if (current?.queueId) skip.mutate({ queueId: current.queueId });
                     }}
-                    className="mt-3 px-4 py-2 rounded-sm border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/20 transition-colors disabled:opacity-30"
+                    className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
                   >
-                    {forceSkip.isPending
-                      ? "Reassigning…"
-                      : "Hand to another judge"}
+                    {skip.isPending ? "Loading…" : "Next table"}
                   </button>
                 </div>
-              )}
-
+              ) : (
               <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--border-subtle)]">
                 <p className="text-xs text-[var(--text-muted)]">
                   Total <span className="text-accent font-black">{total}</span>{" "}
@@ -624,7 +687,7 @@ export default function JudgeHackathonPage() {
                     }}
                     className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-30"
                   >
-                    {skip.isPending ? "Skipping…" : "Skip for now"}
+                    {skip.isPending ? "Passing…" : "Pass on this table"}
                   </button>
                   <button
                     type="button"
@@ -649,6 +712,7 @@ export default function JudgeHackathonPage() {
                   </button>
                 </div>
               </div>
+              )}
             </LiquidGlass>
             )}
           </>
