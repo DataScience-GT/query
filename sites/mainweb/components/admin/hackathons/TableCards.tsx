@@ -1,9 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { trpc } from "@/lib/trpc";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Printer } from "lucide-react";
+import { Check, Copy, Nfc, Printer } from "lucide-react";
+
+/** Web NFC is Chrome on Android only and not in the TS DOM lib. */
+type NdefWriter = {
+  write: (msg: { records: { recordType: "url"; data: string }[] }) => Promise<void>;
+};
+declare global {
+  interface Window {
+    NDEFReader?: new () => NdefWriter;
+  }
+}
+
+/** What a table's NFC tag holds: the judge page, opened on that table. */
+const tableLink = (hackathonId: string, code: string) =>
+  `${window.location.origin}/hackathons/${hackathonId}/judge?table=${encodeURIComponent(code)}`;
+
+const noopSubscribe = () => () => {};
+
+type WriteState = "writing" | "written" | "copied" | { error: string };
 
 /**
  * The printable half of scan-to-start.
@@ -21,6 +39,42 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
     hackathonId,
   });
   const [images, setImages] = useState<Record<string, string>>({});
+  const [writes, setWrites] = useState<Record<string, WriteState>>({});
+  // False on the server and during hydration, then the real answer.
+  const canWriteNfc = useSyncExternalStore(
+    noopSubscribe,
+    () => typeof window.NDEFReader === "function",
+    () => false,
+  );
+
+  const setWrite = (id: string, state: WriteState) =>
+    setWrites((prev) => ({ ...prev, [id]: state }));
+
+  // Android Chrome: hold a blank tag to the back of the phone after pressing.
+  const writeTag = async (id: string, code: string) => {
+    if (!window.NDEFReader) return;
+    setWrite(id, "writing");
+    try {
+      await new window.NDEFReader().write({
+        records: [{ recordType: "url", data: tableLink(hackathonId, code) }],
+      });
+      setWrite(id, "written");
+    } catch (e) {
+      setWrite(id, {
+        error: e instanceof Error ? e.message : "Could not write the tag.",
+      });
+    }
+  };
+
+  // iPhone or desktop: copy the link into an NFC writer app instead.
+  const copyLink = async (id: string, code: string) => {
+    try {
+      await navigator.clipboard.writeText(tableLink(hackathonId, code));
+      setWrite(id, "copied");
+    } catch {
+      setWrite(id, { error: "Could not copy. Select the link and copy it." });
+    }
+  };
 
   useEffect(() => {
     if (!cards) return;
@@ -82,7 +136,8 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
           </h2>
           <p className="text-sm font-mono text-[var(--text-subtle)]">
             {cards.length} card(s). Print and put one on each table — judges
-            scan it to start scoring.
+            scan it to start scoring. For tap-to-start, stick an NFC tag on
+            each card and write its table link to it.
           </p>
         </div>
         <button
@@ -125,8 +180,41 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
               </p>
             ) : null}
             <p className="mt-4 text-[10px] font-mono uppercase tracking-widest text-neutral-400">
-              Judges: scan to begin
+              Judges: tap or scan to begin
             </p>
+
+            {/* Organiser-only: programming the tag. Not printed. */}
+            <div className="mt-5 pt-4 border-t border-neutral-200 flex flex-wrap items-center justify-center gap-2 print:hidden">
+              {canWriteNfc && (
+                <button
+                  type="button"
+                  onClick={() => writeTag(card.id, card.qrCode)}
+                  disabled={writes[card.id] === "writing"}
+                  className="px-3 py-2 bg-black text-white text-[11px] font-mono uppercase tracking-wider font-bold flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Nfc className="w-4 h-4" />
+                  {writes[card.id] === "writing" ? "Hold tag to phone…" : "Write NFC tag"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => copyLink(card.id, card.qrCode)}
+                className="px-3 py-2 border border-neutral-300 text-neutral-700 text-[11px] font-mono uppercase tracking-wider font-bold flex items-center gap-2 hover:bg-neutral-100"
+              >
+                <Copy className="w-4 h-4" /> Copy link
+              </button>
+              {(writes[card.id] === "written" || writes[card.id] === "copied") && (
+                <span className="flex items-center gap-1 text-[11px] font-mono text-green-700">
+                  <Check className="w-4 h-4" />
+                  {writes[card.id] === "written" ? "Tag written" : "Copied"}
+                </span>
+              )}
+              {typeof writes[card.id] === "object" && (
+                <p role="alert" className="basis-full text-[11px] font-mono text-red-700">
+                  {(writes[card.id] as { error: string }).error}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>
