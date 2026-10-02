@@ -100,6 +100,7 @@ vi.mock("@query/db", async () => {
         hackathonParticipants: table("hackathonParticipants"),
         hackathonTeams: table("hackathonTeams"),
         hackathonProjects: table("hackathonProjects"),
+        judgingProjects: table("judgingProjects"),
         hackathonEvents: table("hackathonEvents"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
         members: table("members"),
@@ -170,6 +171,12 @@ vi.mock("@query/db", async () => {
       submittedById: "submitted_by_id",
       status: "status",
       submittedAt: "submitted_at",
+    },
+    judgingProjects: {
+      id: "id",
+      sourceProjectId: "source_project_id",
+      withdrawnAt: "withdrawn_at",
+      tableNumber: "table_number",
     },
     hackathonEvents: {
       id: "id",

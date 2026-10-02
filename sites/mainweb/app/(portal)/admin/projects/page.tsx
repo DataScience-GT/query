@@ -105,7 +105,7 @@ export default function ProjectsPage() {
             Projects{" "}
             <span className="text-accent italic font-bold">Manager</span>
           </h1>
-          <p className="relative text-text-muted text-sm font-mono">
+          <p className="relative text-[var(--text-muted)] text-sm font-mono">
             Browse and manage hackathon projects submitted by participants.
           </p>
         </div>

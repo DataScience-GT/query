@@ -15,7 +15,16 @@ import { EventsTab } from "@/components/admin/hackathons/EventsTab";
 import { JudgesTab } from "@/components/admin/hackathons/JudgesTab";
 import { AnnouncementsTab } from "@/components/admin/hackathons/AnnouncementsTab";
 import { TableCards } from "@/components/admin/hackathons/TableCards";
-import { Gavel, Megaphone, QrCode } from "lucide-react";
+import {
+  BarChart3,
+  Calendar,
+  ChevronLeft,
+  Gavel,
+  Megaphone,
+  QrCode,
+  ScanLine,
+  Users,
+} from "lucide-react";
 
 type Tab =
   | "events"
@@ -80,18 +89,18 @@ export default function AdminHackathonDashboard() {
     {
       id: "attendees",
       label: "Applications",
-      icon: <IconUsers className="w-5 h-5" />,
+      icon: <Users className="w-5 h-5" />,
     },
     {
       id: "events",
-      label: "Hackathon Events",
-      icon: <IconCalendar className="w-5 h-5" />,
+      label: "Events",
+      icon: <Calendar className="w-5 h-5" />,
     },
-    { id: "scanner", label: "Scan", icon: <IconScanner className="w-5 h-5" /> },
+    { id: "scanner", label: "Scan", icon: <ScanLine className="w-5 h-5" /> },
     {
       id: "analytics",
       label: "Stats",
-      icon: <IconChart className="w-5 h-5" />,
+      icon: <BarChart3 className="w-5 h-5" />,
     },
     { id: "judges", label: "Judges", icon: <Gavel className="w-5 h-5" /> },
     {
@@ -107,47 +116,21 @@ export default function AdminHackathonDashboard() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-primary)] text-text-muted font-sans flex flex-col pb-32 md:pb-12">
-      {/* Ambient Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-15%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-r from-accent/6 via-emerald-900/12 to-purple-900/10 blur-[400px] rounded-sm" />
-        <div className="absolute bottom-[-12%] right-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-emerald-900/12 via-emerald-900/10 to-indigo-900/10 blur-[350px] rounded-sm" />
-        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
-      </div>
-
-      {/* HEADER - Enhanced */}
+    <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-muted)] flex flex-col pb-32 md:pb-12">
       <header className="relative sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <Link
                 href="/admin/hackathons"
-                className="flex items-center gap-2 text-text-muted hover:text-[var(--text-primary)] transition-colors text-xs font-mono uppercase tracking-wider group w-fit"
+                className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent mb-1"
                 aria-label="Back to hackathons hub"
               >
-                <div className="p-1 rounded-none bg-white/5 border border-[var(--border-subtle)] group-hover:bg-accent/20 group-hover:border-accent/40 transition-colors">
-                  <svg
-                    className="w-4 h-4 text-[var(--text-primary)] group-hover:text-accent transition-colors"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                    />
-                  </svg>
-                </div>
-                <span className="hidden md:inline text-[var(--text-primary)]/60 group-hover:text-[var(--text-primary)] transition-colors">
-                  Hackathons
-                </span>
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Hackathons</span>
               </Link>
-              <h1 className="relative text-lg md:text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight italic truncate group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-300">
+              <h1 className="text-lg md:text-2xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase truncate">
                 {hackathon.name}
-                {/* Animated underline */}
-                <div className="absolute -bottom-2 left-0 right-0 h-[2px] bg-gradient-to-r from-accent/50 via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -157,25 +140,10 @@ export default function AdminHackathonDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("scanner")}
-                  className="group relative px-4 py-2 rounded-none bg-gradient-to-r from-accent/15 to-emerald-500/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/25 active:scale-95 transition-ui overflow-hidden"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
                 >
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                  <span className="relative flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 011-1V5a1 1 0 01-1-1H5a1 1 0 01-1 1v2a1 1 0 011 1zm14 0h2a1 1 0 011-1V5a1 1 0 01-1-1h-2a1 1 0 01-1 1v2a1 1 0 011 1zM5 20h2a1 1 0 011-1v-2a1 1 0 01-1-1H5a1 1 0 01-1 1v2a1 1 0 011 1z"
-                      />
-                    </svg>
-                    Quick Scan
-                  </span>
+                  <ScanLine className="w-4 h-4 shrink-0" />
+                  Scan
                 </button>
               )}
             </div>
@@ -183,32 +151,21 @@ export default function AdminHackathonDashboard() {
         </div>
       </header>
 
-      {/* DESKTOP TABS - Enhanced, Hidden on mobile */}
-      <div className="hidden md:block border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/30 relative overflow-hidden">
-        {/* Tab background gradients */}
-        <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.01] via-transparent to-accent/[0.01] pointer-events-none" />
-
+      {/* DESKTOP TABS - Hidden on mobile */}
+      <div className="hidden md:block border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/30">
         <div className="max-w-7xl mx-auto px-4 flex gap-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`group relative flex-1 min-h-[56px] flex items-center justify-center gap-3 px-4 py-4 text-sm font-bold uppercase tracking-widest transition-ui border-b-2 ${
+              className={`flex-1 min-h-[56px] flex items-center justify-center gap-3 px-4 py-4 text-sm font-bold uppercase tracking-widest transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? "border-accent text-[var(--text-primary)] bg-white/[0.02]"
-                  : "border-transparent text-text-muted hover:text-gray-300 hover:bg-white/[0.02]"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               {tab.icon}
               <span>{tab.label}</span>
-              {/* Active indicator */}
-              {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-emerald-500" />
-              )}
-              {/* Hover glow */}
-              {!activeTab && (
-                <div className="absolute inset-x-0 -bottom-px h-[1px] bg-gradient-to-r from-accent/0 via-accent/50 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              )}
             </button>
           ))}
         </div>
@@ -237,44 +194,28 @@ export default function AdminHackathonDashboard() {
         </div>
       </main>
 
-      {/* MOBILE BOTTOM NAVIGATION - Enhanced */}
+      {/* MOBILE BOTTOM NAVIGATION */}
       {/* Scrolls horizontally rather than a fixed 5-column grid: there are
           seven tabs, so Table Cards and Email were laid out off the right edge
           of the phone an organiser actually carries — unreachable, with nothing
           to suggest they existed. */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Top gradient overlay */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`group relative shrink-0 basis-1/5 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
-              activeTab === tab.id ? "text-accent" : "text-text-muted"
+            className={`shrink-0 basis-1/5 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
+              activeTab === tab.id ? "text-accent" : "text-[var(--text-muted)]"
             }`}
           >
-            {/* Active indicator bar */}
-            {activeTab === tab.id && (
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-1 h-1 rounded-sm bg-accent shadow-[0_0_10px_var(--accent)]" />
-            )}
-
-            {/* Icon container with hover effects */}
             <div
-              className={`p-2 rounded-none transition-ui duration-300 ${activeTab === tab.id ? "bg-accent/10 scale-110" : "group-hover:bg-white/5"}`}
+              className={`p-2 rounded-sm transition-colors ${activeTab === tab.id ? "bg-accent/10" : ""}`}
             >
               {tab.icon}
             </div>
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === tab.id ? "text-accent" : "text-text-muted group-hover:text-[var(--text-muted)]"}`}
-            >
+            <span className="text-[10px] font-bold uppercase tracking-wider">
               {tab.label}
             </span>
-
-            {/* Ripple effect when active */}
-            {activeTab === tab.id && (
-              <div className="absolute inset-0 rounded-none bg-accent/5 animate-pulse" />
-            )}
           </button>
         ))}
       </div>
@@ -291,11 +232,11 @@ function DashboardUnavailable({
 }) {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md text-center border border-[var(--border-subtle)] bg-white/[0.02] p-8">
-        <h1 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-3">
+      <div className="w-full max-w-md text-center rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-8">
+        <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-3">
           Hackathon unavailable
         </h1>
-        <p className="text-sm font-mono text-text-muted mb-6 break-words">
+        <p className="text-sm text-[var(--text-muted)] mb-6 break-words">
           {message}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -303,92 +244,19 @@ function DashboardUnavailable({
             <button
               type="button"
               onClick={onRetry}
-              className="px-5 py-2.5 bg-accent text-black font-black uppercase tracking-widest text-xs hover:bg-white transition-colors"
+              className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
             >
               Retry
             </button>
           )}
           <Link
             href="/admin/hackathons"
-            className="px-5 py-2.5 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
           >
             Back to hackathons
           </Link>
         </div>
       </div>
     </div>
-  );
-}
-
-// Icons
-function IconScanner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 011-1V5a1 1 0 01-1-1H5a1 1 0 01-1 1v2a1 1 0 011 1zm14 0h2a1 1 0 011-1V5a1 1 0 01-1-1h-2a1 1 0 01-1 1v2a1 1 0 011 1zM5 20h2a1 1 0 011-1v-2a1 1 0 01-1-1H5a1 1 0 01-1 1v2a1 1 0 011 1z"
-      />
-    </svg>
-  );
-}
-
-function IconUsers({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-      />
-    </svg>
-  );
-}
-
-function IconChart({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-      />
-    </svg>
-  );
-}
-
-function IconCalendar({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-      />
-    </svg>
   );
 }

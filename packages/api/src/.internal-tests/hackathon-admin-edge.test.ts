@@ -12,6 +12,8 @@ const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 // Row count returned by `select({ count })...from(<table>)`, keyed by table.
 const mockCount = vi.fn();
+/** maxParticipants as the capacity check reads it; undefined = uncapped. */
+const mockMaxParticipants = vi.fn<() => number | undefined>(() => undefined);
 // Acceptance emails are sent through a dynamic import; intercept it so we can
 // see exactly who a mass-approval actually mailed.
 const mockSendAcceptanceEmail = vi.fn();
@@ -101,7 +103,17 @@ vi.mock("@query/db", () => {
         },
       }),
       select: vi.fn().mockImplementation(() => ({
-        from: (tbl: any) => thenable([{ count: mockCount(tbl?._t) ?? 0 }]),
+        from: (tbl: any) => {
+          const count = mockCount(tbl?._t) ?? 0;
+          return thenable([
+            {
+              count,
+              n: count,
+              max:
+                tbl?._t === "hackathons" ? mockMaxParticipants() : undefined,
+            },
+          ]);
+        },
       })),
     },
     admins: {
@@ -266,6 +278,7 @@ describe("Hackathon admin management edge cases", () => {
     vi.clearAllMocks();
     cache.clear();
     mockCount.mockReturnValue(0);
+    mockMaxParticipants.mockImplementation(() => undefined);
     mockFindMany.mockReturnValue([]);
     mockInsert.mockReturnValue([{}]);
     mockUpdate.mockReturnValue([{}]);
@@ -343,6 +356,43 @@ describe("Hackathon admin management edge cases", () => {
           status: "approved",
         }),
       ).rejects.toThrow(/Admin access required/);
+    });
+
+    // maxParticipants caps acceptances. Two seats, both taken: accepting one
+    // more is refused whole rather than going over.
+    it("refuses to accept past capacity", async () => {
+      const caller = adminCaller({}, "admin");
+      mockMaxParticipants.mockImplementation(() => 2);
+      const counts = [2, 1]; // seated, then newly accepted by this call
+      mockCount.mockImplementation((table: string) =>
+        table === "hackathonParticipants" ? counts.shift() : 0,
+      );
+
+      await expect(
+        caller.hackathon.batchUpdateParticipantStatus({
+          hackathonId: HACK_A,
+          participantIds: [PART_A1],
+          status: "approved",
+        }),
+      ).rejects.toThrow(/Only 0 seats left of 2/);
+    });
+
+    it("accepts while seats remain", async () => {
+      const caller = adminCaller({}, "admin");
+      mockMaxParticipants.mockImplementation(() => 2);
+      const counts = [1, 1];
+      mockCount.mockImplementation((table: string) =>
+        table === "hackathonParticipants" ? counts.shift() : 0,
+      );
+      mockUpdate.mockReturnValue([{ id: PART_A1, userId: "u1" }]);
+
+      await expect(
+        caller.hackathon.batchUpdateParticipantStatus({
+          hackathonId: HACK_A,
+          participantIds: [PART_A1],
+          status: "approved",
+        }),
+      ).resolves.toBeDefined();
     });
 
     it("lets a volunteer work a check-in desk", async () => {
