@@ -19,23 +19,25 @@ type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 const HOUR = 60 * 60 * 1000;
 
 /** All hackathon milestones, as hour offsets from the hacking start time. */
-const TEAM_WINDOW_OPEN_HOURS = 12;
+const SUBMISSION_OPEN_HOURS = 12;
 const TEAM_WINDOW_CLOSE_HOURS = 34;
 const SUBMISSION_HARD_DEADLINE_HOURS = 36;
 /** Rosters freeze 12h before the hard submission deadline, i.e. at +24h. */
 const LEAVE_LOCK_HOURS = SUBMISSION_HARD_DEADLINE_HOURS - 12;
 
+// Teams form any time before +34h, so accepted people can find teammates
+// before kickoff. Who may form one is checkAdmitted's job, not the clock's:
+// this window used to open only at +12h, a third of the way into the event.
 export function computeTeamWindow(baseTime: Date, now: Date) {
   const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
 
-  const opensAt = at(TEAM_WINDOW_OPEN_HOURS);
   const closesAt = at(TEAM_WINDOW_CLOSE_HOURS);
   const leaveLocksAt = at(LEAVE_LOCK_HOURS);
 
-  const isOpen = now >= opensAt && now <= closesAt;
+  const isOpen = now <= closesAt;
 
   return {
-    opensAt,
+    opensAt: null,
     closesAt,
     leaveLocksAt,
     isOpen,
@@ -54,7 +56,7 @@ export function computeTeamWindow(baseTime: Date, now: Date) {
 export function computeSubmissionWindow(baseTime: Date, now: Date) {
   const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
 
-  const opensAt = at(TEAM_WINDOW_OPEN_HOURS);
+  const opensAt = at(SUBMISSION_OPEN_HOURS);
   /** After this, an existing submission is frozen — new ones still land. */
   const editsCloseAt = at(TEAM_WINDOW_CLOSE_HOURS);
   const closesAt = at(SUBMISSION_HARD_DEADLINE_HOURS);
@@ -115,13 +117,6 @@ async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
   const window = await loadTeamWindow(db, hackathonId);
   const now = new Date();
 
-  if (now < window.opensAt) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Team creation and editing is not open yet. It starts 12 hours after the hacking begins.",
-    });
-  }
   if (now > window.closesAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -1142,8 +1137,19 @@ export const teamRouter = createTRPCRouter({
         // belongs to the captain rather than the caller.
         columns: { submittedById: false },
       });
+      if (!project) return null;
 
-      return project ?? null;
+      // Judges are sent to a table number; the team is the one party that was
+      // never told it. Null until the project is promoted to judging.
+      const judging = await db.query.judgingProjects.findFirst({
+        where: and(
+          eq(judgingProjects.sourceProjectId, project.id),
+          isNull(judgingProjects.withdrawnAt),
+        ),
+        columns: { tableNumber: true },
+      });
+
+      return { ...project, tableNumber: judging?.tableNumber ?? null };
     }),
 
   // Every project the caller owns, across hackathons. Reading off the team

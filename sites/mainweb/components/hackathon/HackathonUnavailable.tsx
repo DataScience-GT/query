@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 interface HackathonUnavailableProps {
   message?: string;
@@ -15,20 +16,23 @@ interface HackathonUnavailableProps {
  */
 export function HackathonUnavailable({ message }: HackathonUnavailableProps) {
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center relative overflow-hidden px-6">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-accent/10 rounded-sm blur-[40px] pointer-events-none" />
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-        <p className="font-mono text-accent font-bold uppercase tracking-[0.3em] text-xs">
-          Hackathon Unavailable
-        </p>
-        <p className="font-mono text-text-muted text-sm max-w-md">
-          {message ?? "This hackathon could not be found."}
-        </p>
+    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center px-6">
+      <div className="flex flex-col items-center gap-6 text-center">
+        <div>
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+            Hackathon not found
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1 max-w-md">
+            {message ??
+              "The link may be wrong, or the event is no longer listed."}
+          </p>
+        </div>
         <Link
           href="/hackathons"
-          className="font-mono uppercase tracking-[0.2em] text-xs px-6 py-3 border border-[var(--border-subtle)] text-accent hover:bg-accent/10 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
         >
-          Back to Hackathons
+          <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
+          Back to hackathons
         </Link>
       </div>
     </div>

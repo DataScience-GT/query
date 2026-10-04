@@ -1,51 +1,38 @@
 "use client";
 import React from "react";
-import Eyebrow from "./Eyebrow";
 
-const otherPrizes = [
-  { label: "Track", detail: "First and second in each track." },
-  { label: "MLH", detail: "Sponsor challenges stack on top." },
-  { label: "Beginner", detail: "Beginner-friendly award." },
+const prizes = [
+  { label: "Best overall", detail: "Top project across all tracks. Purse to be announced." },
+  { label: "Track prizes", detail: "First and second place in each track." },
+  { label: "MLH challenges", detail: "Sponsor challenges stack on top of a track." },
+  { label: "Beginner", detail: "A beginner-friendly award." },
 ];
 
 export default function PrizeAndSpeakerSection() {
   return (
-    <section id="prizes" className="section-anchor text-white relative border-t border-white/[0.06]">
-      <div className="section-wrap max-w-7xl mx-auto py-20 md:py-24 px-6">
-        <Eyebrow>Prizes</Eyebrow>
-        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[0.95] tracking-[-0.03em] mb-12 md:mb-16">
-          Bloom, then win.
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
-          <div>
-            <p className="font-sans text-[11px] uppercase tracking-[0.28em] text-white/40 mb-4">
-              Best Overall
-            </p>
-            <p className="font-sans font-bold text-3xl md:text-4xl text-white tracking-tight">
-              Purse TBA.
-            </p>
-            <p className="font-sans text-base text-white/45 mt-4 max-w-sm leading-relaxed">
-              Top projects across all tracks. Prize details land closer to the
-              event.
+    <section id="prizes" className="section-anchor text-white relative">
+      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+          <div className="lg:col-span-5">
+            <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl text-white leading-[1] tracking-[-0.03em]">
+              Prizes
+            </h2>
+            <p className="font-sans text-base md:text-lg text-white/65 leading-[1.6] mt-6 max-w-[40ch]">
+              Prize details land closer to the event.
             </p>
           </div>
 
-          <ul className="flex flex-col border-t border-white/10">
-            {otherPrizes.map((p) => (
-              <li
+          <dl className="lg:col-span-6 lg:col-start-7 border-t border-white/15">
+            {prizes.map((p) => (
+              <div
                 key={p.label}
-                className="flex items-baseline justify-between gap-6 border-b border-white/10 py-5"
+                className="grid grid-cols-1 sm:grid-cols-[11rem_1fr] gap-1 sm:gap-8 border-b border-white/15 py-5"
               >
-                <span className="font-sans text-[11px] uppercase tracking-[0.22em] text-white/40 shrink-0">
-                  {p.label}
-                </span>
-                <span className="font-sans text-base text-white text-right">
-                  {p.detail}
-                </span>
-              </li>
+                <dt className="font-sans font-bold text-lg text-white">{p.label}</dt>
+                <dd className="font-sans text-base md:text-lg text-white/70">{p.detail}</dd>
+              </div>
             ))}
-          </ul>
+          </dl>
         </div>
       </div>
     </section>

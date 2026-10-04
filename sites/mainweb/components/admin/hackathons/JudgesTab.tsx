@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { UserPlus, Gavel } from "lucide-react";
+import { UserPlus, Gavel, Copy } from "lucide-react";
 
 export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
@@ -178,7 +179,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     const name = hackathon?.name ?? "the hackathon";
     if (
       !window.confirm(
-        `Email everyone registered for ${name} that the results are live?\n\nThis cannot be unsent.`,
+        `Email everyone who checked in to ${name} that the results are live?\n\nThis cannot be unsent.`,
       )
     )
       return;
@@ -188,7 +189,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     try {
       const created = await createAnnouncement.mutateAsync({
         hackathonId,
-        audience: "registered",
+        // The people who were there. "registered" also reached applicants
+        // who were never accepted.
+        audience: "checked_in",
         subject: `${name} results are live`,
         heading: "Results are live",
         body: `Judging for ${name} is finished and the results are published.\n\nThank you for building with us.`,
@@ -197,7 +200,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
         // in mail, so it has to resolve even if the name never loaded.
         ctaUrl: `${window.location.origin}/hackathons/${
           hackathon?.name ? hackathonSlug(hackathon.name) : hackathonId
-        }`,
+        }?tab=RESULTS`,
       });
 
       let sent = 0;
@@ -227,6 +230,34 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedJudgeId, setSelectedJudgeId] = useState("");
   const [assignTrack, setAssignTrack] = useState("");
+  const [newJudgeEmail, setNewJudgeEmail] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Adds a judge by email and assigns them in one go. The picker alone never
+  // showed: judge.register assigns on apply, so this edition had no
+  // unassigned judges to pick, and there was no way to add a walk-in.
+  const createJudge = trpc.judge.create.useMutation({
+    onSuccess: (judge) => {
+      // The judge exists now even if the assign below fails, so the picker
+      // has to know about them, or re-adding by email says "already a judge".
+      void utils.judge.list.invalidate();
+      if (!judge) return;
+      assignJudge.mutate({
+        judgeId: judge.id,
+        hackathonId,
+        track: assignTrack || undefined,
+      });
+      setNewJudgeEmail("");
+      setAssignTrack("");
+      setShowAddForm(false);
+    },
+    onError: (error) => setJudgeError(error.message),
+  });
+
+  const applyLink =
+    typeof window === "undefined"
+      ? ""
+      : `${window.location.origin}/judge/register?hackathonId=${hackathonId}`;
 
   // Find judges assigned to THIS hackathon
   const assignedJudges =
@@ -291,23 +322,35 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              toggleJudging.mutate({
-                hackathonId,
-                active: !judgingStatus?.active,
-              })
-            }
-            disabled={toggleJudging.isPending}
-            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-ui disabled:opacity-50 ${
-              judgingStatus?.active
-                ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
-                : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
-            }`}
-          >
-            {judgingStatus?.active ? "Stop Judging" : "Start Judging"}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Judging opens onto whatever is queued; promoting submissions
+              and assigning judges happen on the Judging page. */}
+            {!judgingStatus?.active && (
+              <Link
+                href={`/admin/judging?hackathonId=${hackathonId}`}
+                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+              >
+                Prepare judging
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                toggleJudging.mutate({
+                  hackathonId,
+                  active: !judgingStatus?.active,
+                })
+              }
+              disabled={toggleJudging.isPending}
+              className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-ui disabled:opacity-50 ${
+                judgingStatus?.active
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
+                  : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
+              }`}
+            >
+              {judgingStatus?.active ? "Stop Judging" : "Start Judging"}
+            </button>
+          </div>
         </div>
       </LiquidGlass>
 
@@ -487,41 +530,90 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
           <button
             type="button"
             onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-none text-xs font-bold uppercase tracking-wider hover:bg-purple-500/20 transition-colors flex items-center gap-1.5"
+            aria-expanded={showAddForm}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
           >
-            <UserPlus className="w-3.5 h-3.5" /> Assign Judge
+            <UserPlus className="w-3.5 h-3.5" /> Add judge
           </button>
         </div>
 
-        {/* Quick Assign Form */}
-        {showAddForm && unassignedJudges.length > 0 && (
-          <LiquidGlass className="p-6 mb-4 border-[var(--border-subtle)]">
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1">
-                <label
-                  htmlFor="select-judge"
-                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-                >
-                  Select Judge
-                </label>
-                <select
-                  id="select-judge"
-                  value={selectedJudgeId}
-                  onChange={(e) => setSelectedJudgeId(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
-                >
-                  <option value="">Choose a judge…</option>
-                  {unassignedJudges.map((j) => (
-                    <option key={j.id} value={j.id}>
-                      {j.user?.name || j.name || j.user?.email || "Unknown"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-40">
+        {showAddForm && (
+          <LiquidGlass printed className="p-6 mb-4 space-y-5">
+            <form
+              className="grid gap-4 sm:grid-cols-[1fr_12rem_auto] items-end"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (selectedJudgeId) {
+                  assignJudge.mutate({
+                    judgeId: selectedJudgeId,
+                    hackathonId,
+                    track: assignTrack || undefined,
+                  });
+                  setSelectedJudgeId("");
+                  setAssignTrack("");
+                  setShowAddForm(false);
+                  return;
+                }
+                if (!newJudgeEmail.trim()) return;
+                setJudgeError(null);
+                createJudge.mutate({
+                  email: newJudgeEmail.trim(),
+                  hackathonId,
+                });
+              }}
+            >
+              {unassignedJudges.length > 0 ? (
+                <div className="sm:col-span-3">
+                  <label
+                    htmlFor="select-judge"
+                    className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
+                  >
+                    Judge
+                  </label>
+                  <select
+                    id="select-judge"
+                    value={selectedJudgeId}
+                    onChange={(e) => setSelectedJudgeId(e.target.value)}
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                  >
+                    <option value="">Someone new, by email</option>
+                    {unassignedJudges.map((j) => (
+                      <option key={j.id} value={j.id}>
+                        {j.user?.name ||
+                          j.name ||
+                          j.user?.email ||
+                          "Unnamed judge"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              {selectedJudgeId ? (
+                <div />
+              ) : (
+                <div>
+                  <label
+                    htmlFor="new-judge-email"
+                    className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="new-judge-email"
+                    type="email"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={newJudgeEmail}
+                    onChange={(e) => setNewJudgeEmail(e.target.value)}
+                    placeholder="judge@company.com"
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                  />
+                </div>
+              )}
+              <div>
                 <label
                   htmlFor="track"
-                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
                 >
                   Track
                 </label>
@@ -529,7 +621,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   id="track"
                   value={assignTrack}
                   onChange={(e) => setAssignTrack(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-purple-500/50 focus:outline-none transition-colors"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                 >
                   <option value="">All projects</option>
                   {trackOptions.map((t) => (
@@ -540,22 +632,39 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 </select>
               </div>
               <button
+                type="submit"
+                disabled={
+                  (!selectedJudgeId && !newJudgeEmail.trim()) ||
+                  createJudge.isPending ||
+                  assignJudge.isPending
+                }
+                className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 whitespace-nowrap"
+              >
+                {createJudge.isPending || assignJudge.isPending
+                  ? "Adding…"
+                  : "Add"}
+              </button>
+            </form>
+            <p className="text-xs text-[var(--text-muted)]">
+              The person needs a portal account; signing in once creates one.
+              Judges added here are active straight away.
+            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-[var(--border-subtle)]">
+              <p className="text-xs text-[var(--text-muted)] flex-1">
+                Or send judges the application link. You approve each one below.
+              </p>
+              <button
                 type="button"
                 onClick={() => {
-                  if (!selectedJudgeId) return;
-                  assignJudge.mutate({
-                    judgeId: selectedJudgeId,
-                    hackathonId,
-                    track: assignTrack || undefined,
+                  void navigator.clipboard?.writeText(applyLink).then(() => {
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
                   });
-                  setSelectedJudgeId("");
-                  setAssignTrack("");
-                  setShowAddForm(false);
                 }}
-                disabled={!selectedJudgeId || assignJudge.isPending}
-                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-purple-500/20 disabled:opacity-50 whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
               >
-                Assign
+                <Copy className="w-3.5 h-3.5" />
+                {linkCopied ? "Copied" : "Copy apply link"}
               </button>
             </div>
           </LiquidGlass>
@@ -566,7 +675,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
           {assignedJudges.length === 0 ? (
             <div className="md:col-span-2 lg:col-span-3 p-8 bg-white/[0.01] border border-dashed border-[var(--border-subtle)] rounded-none text-center">
               <p className="text-[var(--text-subtle)] font-mono text-xs uppercase tracking-widest">
-                No judges assigned yet. Click "Assign Judge" to add one.
+                No judges yet. Use "Add judge" above, or send the application
+                link.
               </p>
             </div>
           ) : (
