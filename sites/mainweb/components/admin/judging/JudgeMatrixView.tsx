@@ -98,23 +98,23 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <LiquidGlass className="rounded-none p-6 text-center">
+        <LiquidGlass printed className="rounded-sm p-6 text-center">
           <p className="text-3xl font-black text-[var(--text-primary)] tabular-nums">
             {judgeStats.length}
           </p>
-          <p className="text-[9px] text-[var(--text-subtle)] uppercase tracking-widest font-mono mt-2">
-            Active Judges
+          <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2">
+            Active judges
           </p>
         </LiquidGlass>
-        <LiquidGlass className="rounded-none p-6 text-center">
+        <LiquidGlass printed className="rounded-sm p-6 text-center">
           <p className="text-3xl font-black text-accent tabular-nums">
             {judgeStats.reduce((s, j) => s + j.count, 0)}
           </p>
-          <p className="text-[9px] text-[var(--text-subtle)] uppercase tracking-widest font-mono mt-2">
-            Total Votes
+          <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2">
+            Total votes
           </p>
         </LiquidGlass>
-        <LiquidGlass className="rounded-none p-6 text-center">
+        <LiquidGlass printed className="rounded-sm p-6 text-center">
           <p className="text-3xl font-black text-accent tabular-nums">
             {judgeStats.length > 0
               ? formatDuration(
@@ -123,45 +123,45 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                 )
               : "0:00"}
           </p>
-          <p className="text-[9px] text-[var(--text-subtle)] uppercase tracking-widest font-mono mt-2">
-            Avg Time/Project
+          <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2">
+            Avg time per project
           </p>
         </LiquidGlass>
-        <LiquidGlass className="rounded-none p-6 text-center">
+        <LiquidGlass printed className="rounded-sm p-6 text-center">
           <p
-            className={`text-3xl font-black tabular-nums ${judgeStats.reduce((s, j) => s + j.overtimeCount, 0) > 0 ? "text-red-400" : "text-gray-600"}`}
+            className={`text-3xl font-black tabular-nums ${judgeStats.reduce((s, j) => s + j.overtimeCount, 0) > 0 ? "text-red-400" : "text-[var(--text-subtle)]"}`}
           >
             {judgeStats.reduce((s, j) => s + j.overtimeCount, 0)}
           </p>
-          <p className="text-[9px] text-[var(--text-subtle)] uppercase tracking-widest font-mono mt-2">
-            Overtime Votes
+          <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-2">
+            Overtime votes
           </p>
         </LiquidGlass>
       </div>
 
       {/* Per-Judge Table */}
-      <LiquidGlass className="rounded-none overflow-hidden">
+      <LiquidGlass printed className="rounded-sm overflow-hidden">
         <div className="p-6 border-b border-[var(--border-subtle)]">
-          <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
-            Judge <span className="text-accent italic">Performance</span>
+          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+            Judge performance
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-[10px] text-gray-600 uppercase tracking-widest border-b border-[var(--border-subtle)]">
-                <th className="text-left py-3 px-6 font-mono">Judge</th>
-                <th className="text-left py-3 px-6 font-mono">Projects</th>
-                <th className="text-left py-3 px-6 font-mono">Avg Score</th>
-                <th className="text-left py-3 px-6 font-mono">Avg Time</th>
-                <th className="text-left py-3 px-6 font-mono">Overtime</th>
+              <tr className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)]">
+                <th className="text-left py-3 px-6">Judge</th>
+                <th className="text-left py-3 px-6">Projects</th>
+                <th className="text-left py-3 px-6">Avg score</th>
+                <th className="text-left py-3 px-6">Avg time</th>
+                <th className="text-left py-3 px-6">Overtime</th>
               </tr>
             </thead>
             <tbody>
               {judgeStats.map((j) => (
                 <tr
                   key={j.name}
-                  className="border-b border-[var(--border-subtle)] hover:bg-white/[0.02] transition-colors"
+                  className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
                 >
                   <td className="py-4 px-6">
                     <p className="text-sm font-bold text-[var(--text-primary)]">
@@ -177,11 +177,11 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                     <span className="text-lg font-black text-[var(--text-primary)] tabular-nums">
                       {(j.totalScore / j.count).toFixed(1)}
                     </span>
-                    <span className="text-xs text-gray-600 ml-1">/50</span>
+                    <span className="text-xs text-[var(--text-subtle)] ml-1">/50</span>
                   </td>
                   <td className="py-4 px-6">
                     <span
-                      className={`text-sm font-bold font-mono tabular-nums ${
+                      className={`text-sm font-bold tabular-nums ${
                         j.totalTime / j.count > 300
                           ? "text-red-400"
                           : j.totalTime / j.count > 240
@@ -197,10 +197,10 @@ export function JudgeMatrixView({ rankings }: JudgeMatrixViewProps) {
                   <td className="py-4 px-6">
                     {j.overtimeCount > 0 ? (
                       <span className="px-3 py-1 rounded-sm text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-widest">
-                        {j.overtimeCount} OVERTIME
+                        {j.overtimeCount} overtime
                       </span>
                     ) : (
-                      <span className="text-gray-600 text-xs font-mono">
+                      <span className="text-[var(--text-subtle)] text-xs">
                         None
                       </span>
                     )}

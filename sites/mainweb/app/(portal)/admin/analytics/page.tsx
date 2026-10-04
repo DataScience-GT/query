@@ -83,12 +83,12 @@ function StatCard({ icon: Icon, title, value, subtitle }: StatCardProps) {
           <Icon className="h-7 w-7 relative z-10 group-hover/icon:text-[var(--text-primary)] transition-colors" />
         </div>
         <div className="flex-1">
-          <p className="text-sm text-text-muted font-medium">{title}</p>
+          <p className="text-sm text-[var(--text-muted)] font-medium">{title}</p>
           <p className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
             {value}
           </p>
           {subtitle && (
-            <span className="text-xs text-text-muted font-mono">{subtitle}</span>
+            <span className="text-xs text-[var(--text-muted)] font-mono">{subtitle}</span>
           )}
           {/* Decorative accent line */}
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -277,7 +277,7 @@ export default function AnalyticsPage() {
           <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
             Analytics <span className="text-accent italic">Dashboard</span>
           </h1>
-          <p className="relative text-text-muted text-sm font-mono">
+          <p className="relative text-[var(--text-muted)] text-sm font-mono">
             Membership growth, bootcamp enrolment, and turnout across every
             event and hackathon.
           </p>
