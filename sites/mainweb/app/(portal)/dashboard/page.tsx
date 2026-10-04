@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
+import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import {
   MEMBERSHIP_CENTS,
   SEMESTER_MEMBERSHIP_CENTS,
@@ -26,59 +27,10 @@ import {
   Shield,
   Users,
   ArrowRight,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
   Gavel,
   Rocket,
 } from "lucide-react";
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<
-    string,
-    { label: string; color: string; icon: React.ReactNode }
-  > = {
-    approved: {
-      label: "Approved",
-      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-      icon: <CheckCircle className="w-3 h-3" />,
-    },
-    checked_in: {
-      label: "Checked In",
-      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-      icon: <CheckCircle className="w-3 h-3" />,
-    },
-    waitlisted: {
-      label: "Waitlisted",
-      color: "text-amber-500  bg-amber-500/10  border-amber-500/20",
-      icon: <Clock className="w-3 h-3" />,
-    },
-    pending: {
-      label: "Pending",
-      color: "text-amber-500  bg-amber-500/10  border-amber-500/20",
-      icon: <Clock className="w-3 h-3" />,
-    },
-    rejected: {
-      label: "Rejected",
-      color: "text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-medium)]",
-      icon: <XCircle className="w-3 h-3" />,
-    },
-  };
-  const cfg = map[status] ?? {
-    label: status,
-    color:
-      "text-[var(--text-subtle)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]",
-    icon: <AlertCircle className="w-3 h-3" />,
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border ${cfg.color}`}
-    >
-      {cfg.icon} {cfg.label}
-    </span>
-  );
-}
 
 export default function Dashboard() {
   const { data: session, status } = useSession();

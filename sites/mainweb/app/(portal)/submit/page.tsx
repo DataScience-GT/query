@@ -8,6 +8,7 @@ import { Suspense, useState } from "react";
 import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
+import { Calendar, ChevronLeft, Send } from "lucide-react";
 
 /**
  * Deadlines are rendered in the event's own time zone, not the viewer's. Half
@@ -103,9 +104,7 @@ function SubmitPortalContent() {
     ? null
     : teamsOpen
       ? null
-      : new Date() < new Date(teamWindow.data.opensAt)
-        ? "Team formation opens 12 hours after hacking begins."
-        : "Team formation has closed for this event.";
+      : "Team formation has closed for this event.";
 
   const toggle = (
     value: string,
@@ -120,6 +119,11 @@ function SubmitPortalContent() {
 
   // We get the specific registration / team context based on selected hackathon
   const currentReg = myRegs?.find((r) => r.hackathonId === selectedHackathonId);
+  // Same gate as TeamsTab: forming a team needs acceptance, and the server
+  // refuses anyone else, so the controls are not offered until then.
+  const admitted =
+    currentReg?.registrationStatus === "approved" ||
+    currentReg?.registrationStatus === "checked_in";
   // A withdrawn project stays as a draft row, so the row alone is not a
   // submission.
   const hasSubmitted =
@@ -174,7 +178,7 @@ function SubmitPortalContent() {
       utils.team.mySubmission.invalidate();
       setError("");
       setSuccessMessage(
-        "Project successfully submitted to the judging pipeline!",
+        "Project submitted.",
       );
       setProjectSubmitted(true);
     },
@@ -196,8 +200,18 @@ function SubmitPortalContent() {
     onError: (err) => setError(err.message),
   });
 
+  // Still submittable: until 12 hours after the event ends. The default pick
+  // and the dropdown use the same rule; defaulting to myRegs[0] could select
+  // a past edition the dropdown did not even list.
+  const isActiveReg = (reg: NonNullable<typeof myRegs>[number]) =>
+    reg.hackathon.endDate
+      ? new Date(
+          new Date(reg.hackathon.endDate).getTime() + 12 * 60 * 60 * 1000,
+        ) >= new Date()
+      : true;
+
   if (!selectedHackathonId && myRegs && myRegs.length > 0) {
-    const firstReg = myRegs[0];
+    const firstReg = myRegs.find(isActiveReg);
     if (firstReg) {
       setSelectedHackathonId(firstReg.hackathonId);
     }
@@ -225,7 +239,7 @@ function SubmitPortalContent() {
   }
 
   if (status === "loading" || loadingRegs) {
-    return <LoadingScreen message="Initializing Workspace…" />;
+    return <LoadingScreen message="Loading…" />;
   }
 
   if (!session) {
@@ -233,85 +247,67 @@ function SubmitPortalContent() {
     return null;
   }
 
-  const activeRegs =
-    myRegs?.filter((reg) =>
-      reg.hackathon.endDate
-        ? new Date(
-            new Date(reg.hackathon.endDate).getTime() + 12 * 60 * 60 * 1000,
-          ) >= new Date()
-        : true,
-    ) || [];
+  const activeRegs = myRegs?.filter(isActiveReg) || [];
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[var(--bg-secondary)] via-[var(--bg-tertiary)] to-[var(--bg-primary)] text-text-muted font-sans selection:bg-accent/30 overflow-x-hidden">
-      {/* Ambient Background Effects */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-sm bg-emerald-600/5 blur-[150px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-sm bg-purple-600/5 blur-[150px] animate-pulse delay-1000" />
-        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-sm bg-indigo-600/5 blur-[120px] animate-pulse delay-2000" />
+    <div className="relative min-h-screen bg-[var(--bg-tertiary)]">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[5%] w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
       </div>
 
-      <main className="relative z-10 max-w-5xl mx-auto px-6 py-24 min-h-screen">
-        {/* Header Link */}
-        <div className="w-full flex justify-between items-center mb-12 group">
-          <Link
-            href="/dashboard"
-            className="text-text-muted hover:text-accent transition-ui duration-300 font-mono text-xs tracking-widest uppercase flex items-center gap-2 group-hover:pl-2"
-          >
-            <span className="text-lg transition-transform duration-300 group-hover:-translate-x-1">
-              ←
-            </span>
-            <span className="bg-gradient-to-r from-gray-400 to-white bg-clip-text text-transparent group-hover:from-white group-hover:to-emerald-300 transition-ui">
-              Central Gateway
-            </span>
-          </Link>
-        </div>
+      <main className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-8">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          Dashboard
+        </Link>
 
-        <div className="w-full space-y-12">
-          {/* Welcome Header */}
-          <div className="space-y-6">
-            <div className="inline-block px-5 py-2 border border-accent/20 rounded-sm bg-accent/5 mb-2">
-              <p className="text-[10px] font-mono text-accent uppercase tracking-[0.5em] font-black flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-accent rounded-sm animate-pulse" />
-                Project Initialization
-              </p>
-            </div>
-
-            <h1 className="text-5xl lg:text-7xl font-black text-[var(--text-primary)] uppercase tracking-tighter leading-[0.85]">
-              Submission
-              <br />
-              <span className="text-accent italic">Terminal</span>
+        <div className="w-full space-y-8">
+          <div>
+            <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
+              Hackathon
+            </p>
+            <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+              Submit a project
             </h1>
+            <p className="text-sm text-[var(--text-muted)] mt-1">
+              Pick the event, set up your team, then fill in your project.
+            </p>
           </div>
 
           {!myRegs || myRegs.length === 0 ? (
-            <LiquidGlass className="p-12 text-center border-orange-500/20 transition-ui duration-500 hover:border-orange-400/30 hover:bg-orange-500/5">
-              <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-4 animate-in fade-in slide-in-from-bottom-4">
-                No Active Registrations
-              </h3>
-              <p className="text-text-muted font-mono mb-8 max-w-md mx-auto">
-                You must register for a hackathon before you can form a team or
-                submit a project.
+            <LiquidGlass
+              printed
+              className="p-8 text-center flex flex-col items-center gap-3"
+            >
+              <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-[var(--text-subtle)]" />
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                You haven&apos;t registered for any hackathons yet.
               </p>
               <Link
                 href="/hackathons"
-                className="px-8 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold rounded-none hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-ui duration-300"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
               >
-                Browse Hackathons
+                Browse hackathons
               </Link>
             </LiquidGlass>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* LEFT ALCOVE - CONTEXT / TEAM */}
               <div className="lg:col-span-4 space-y-8">
-                <LiquidGlass className="p-6">
-                  <div className="space-y-2 mb-6">
-                    <label htmlFor="event-context" className="text-[10px] font-mono text-text-muted uppercase tracking-widest font-bold ml-1">
-                      Context: Event
+                <LiquidGlass printed className="p-6">
+                  <div className="mb-6">
+                    <label htmlFor="event-context" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                      Hackathon
                     </label>
                     <select
                       id="event-context"
-                      className="w-full bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                       value={selectedHackathonId}
                       onChange={(e) => {
                         setSelectedHackathonId(e.target.value);
@@ -321,7 +317,7 @@ function SubmitPortalContent() {
                       }}
                     >
                       <option value="" disabled>
-                        Select Hackathon...
+                        Select a hackathon…
                       </option>
                       {activeRegs.map((r) => (
                         <option key={r.hackathonId} value={r.hackathonId}>
@@ -333,34 +329,35 @@ function SubmitPortalContent() {
 
                   {currentReg?.team ? (
                     <div className="space-y-4">
-                      <h3 className="text-sm font-bold text-accent uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2">
-                        Active Squad
+                      <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2">
+                        Your team
                       </h3>
-                      <div className="p-4 bg-accent/5 border border-accent/20 rounded-none">
-                        <p className="text-[var(--text-primary)] font-black text-xl tracking-tight mb-4">
+                      <div className="p-4 bg-accent/5 border border-accent/20 rounded-sm">
+                        <p className="text-base font-bold text-[var(--text-primary)] mb-4">
                           {currentReg.team.name}
                         </p>
 
-                        <div className="space-y-2">
-                          <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest">
-                            Team ID (For invites)
-                          </p>
-                          <div className="p-2 bg-[var(--bg-primary)]/50 border border-[var(--border-subtle)] rounded font-mono text-xs text-accent text-center select-all">
+                        <div>
+                          <p className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Invite code</p>
+                          <div className="p-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm font-mono text-xs text-accent text-center select-all">
                             {currentReg.team.id}
                           </div>
+                          <p className="mt-2 text-xs text-[var(--text-muted)]">
+                            Share this so teammates can join.
+                          </p>
                         </div>
 
                         <div className="mt-6 pt-4 border-t border-[var(--border-subtle)]">
-                          <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-2">
-                            Members ({currentReg.team.currentMembers}/
-                            {currentReg.team.maxMembers})
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {currentReg.team.currentMembers} of{" "}
+                            {currentReg.team.maxMembers} members
                           </p>
                         </div>
 
                         {currentReg.team.captainId === session?.user?.id ? (
                           <div className="mt-4 space-y-3">
-                            <p className="text-xs text-accent font-mono">
-                              You are the Captain
+                            <p className="text-xs text-[var(--text-muted)]">
+                              You&apos;re the team captain.
                             </p>
                             {/* leaveTeam refuses for a captain and points here;
                                 without this the captain has no way out. */}
@@ -374,14 +371,14 @@ function SubmitPortalContent() {
                                 });
                               }}
                               disabled={disbandTeam.isPending || !canLeaveTeam}
-                              className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                              className="w-full px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
                             >
                               {disbandTeam.isPending
                                 ? "Disbanding…"
-                                : "Disband Team"}
+                                : "Disband team"}
                             </button>
                             {!canLeaveTeam && (
-                              <p className="text-[10px] font-mono text-text-muted">
+                              <p className="text-xs text-[var(--text-muted)]">
                                 Rosters are locked for the final 12 hours before
                                 the deadline.
                               </p>
@@ -396,12 +393,12 @@ function SubmitPortalContent() {
                                 })
                               }
                               disabled={leaveTeam.isPending || !canLeaveTeam}
-                              className="w-full py-2 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                              className="w-full px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
                             >
-                              {leaveTeam.isPending ? "Leaving…" : "Leave Team"}
+                              {leaveTeam.isPending ? "Leaving…" : "Leave team"}
                             </button>
                             {!canLeaveTeam && (
-                              <p className="text-[10px] font-mono text-text-muted">
+                              <p className="text-xs text-[var(--text-muted)]">
                                 Rosters are locked for the final 12 hours before
                                 the deadline.
                               </p>
@@ -412,83 +409,88 @@ function SubmitPortalContent() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <h3 className="text-sm font-bold text-gray-300 uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2">
-                        Squad Formation
+                      <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2">
+                        Team
                       </h3>
-                      <p className="text-xs font-mono text-text-muted">
-                        You are currently operating SOLO. Create or join a team
-                        to link your profiles for the final submission.
+                      <p className="text-sm text-[var(--text-muted)]">
+                        {admitted
+                          ? "You're submitting solo. Create a team or join one with an invite code."
+                          : "You can create or join a team once you have been accepted."}
                       </p>
 
                       {teamWindowNotice && (
-                        <p className="p-3 border border-amber-500/20 bg-amber-500/5 text-[11px] font-mono text-amber-400">
+                        <p className="p-3 rounded-sm border border-amber-500/20 bg-amber-500/5 text-xs text-amber-400">
                           {teamWindowNotice}
                         </p>
                       )}
 
-                      <div className="pt-2 space-y-3">
-                        <input
-                          type="text"
-                          aria-label="Team name"
-                          placeholder="Awesome Team Name"
-                          value={teamName}
-                          onChange={(e) => setTeamName(e.target.value)}
-                          className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
-                        />
-                        <button
-                          onClick={() => {
-                            if (teamName.trim().length === 0) {
-                              setError("Team name is required");
-                              return;
-                            }
-                            createTeam.mutate({
-                              hackathonId: selectedHackathonId,
-                              name: teamName,
-                            });
-                          }}
-                          disabled={createTeam.isPending || !teamsOpen}
-                          className="w-full py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs uppercase tracking-widest rounded-none hover:bg-white/10 transition-ui font-mono disabled:opacity-40"
-                        >
-                          {createTeam.isPending
-                            ? "Deploying…"
-                            : "Create Team"}
-                        </button>
-                      </div>
+                      {admitted && (
+                        <>
+                          <div className="pt-2 space-y-3">
+                            <input
+                              type="text"
+                              aria-label="Team name"
+                              placeholder="Team name"
+                              value={teamName}
+                              onChange={(e) => setTeamName(e.target.value)}
+                              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                            />
+                            <button
+                              onClick={() => {
+                                if (teamName.trim().length === 0) {
+                                  setError("Team name is required.");
+                                  return;
+                                }
+                                createTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                  name: teamName,
+                                });
+                              }}
+                              disabled={createTeam.isPending || !teamsOpen}
+                              className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+                            >
+                              {createTeam.isPending
+                                ? "Creating…"
+                                : "Create team"}
+                            </button>
+                          </div>
 
-                      <div className="flex items-center gap-4 py-2">
-                        <div className="flex-1 h-px bg-white/10"></div>
-                        <span className="text-[10px] font-mono text-gray-600 uppercase">
-                          OR
-                        </span>
-                        <div className="flex-1 h-px bg-white/10"></div>
-                      </div>
+                          <div className="flex items-center gap-4 py-2">
+                            <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
+                            <span className="text-xs text-[var(--text-subtle)]">
+                              or
+                            </span>
+                            <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
+                          </div>
 
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          aria-label="Invite ID"
-                          placeholder="Paste Invite ID…"
-                          value={joinTeamId}
-                          onChange={(e) => setJoinTeamId(e.target.value)}
-                          className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
-                        />
-                        <button
-                          onClick={() =>
-                            joinTeam.mutate({
-                              hackathonId: selectedHackathonId,
-                              teamId: joinTeamId,
-                            })
-                          }
-                          disabled={
-                            joinTeam.isPending ||
-                            joinTeamId.trim().length === 0 ||
-                            !teamsOpen
-                          }
-                          className="w-full py-3 bg-white/5 text-[var(--text-muted)] text-xs uppercase tracking-widest rounded-none hover:bg-white/10 hover:text-[var(--text-primary)] transition-ui font-mono disabled:opacity-40"
-                        >
-                          {joinTeam.isPending ? "Syncing…" : "Join Team"}
-                        </button>
-                      </div>
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              aria-label="Invite code"
+                              placeholder="Paste invite code"
+                              value={joinTeamId}
+                              onChange={(e) => setJoinTeamId(e.target.value)}
+                              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                            />
+                            <button
+                              onClick={() =>
+                                joinTeam.mutate({
+                                  hackathonId: selectedHackathonId,
+                                  teamId: joinTeamId,
+                                })
+                              }
+                              disabled={
+                                joinTeam.isPending ||
+                                joinTeamId.trim().length === 0 ||
+                                !teamsOpen
+                              }
+                              className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+                            >
+                              {joinTeam.isPending ? "Joining…" : "Join team"}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </LiquidGlass>
@@ -496,39 +498,43 @@ function SubmitPortalContent() {
 
               {/* RIGHT ALCOVE - PROJECT SUBMISSION */}
               <div className="lg:col-span-8 flex flex-col">
-                <LiquidGlass className="p-8 md:p-12 relative overflow-hidden flex-1 border-t-2 border-accent/30 transition-ui duration-500 hover:border-accent/50 hover:shadow-[inset_0_0_50px_rgba(16,185,129,0.05)]">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <svg
-                      className="w-48 h-48 text-accent"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
-                    </svg>
-                  </div>
-
-                  <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-2 relative z-10">
-                    Project Repository
+                <LiquidGlass printed className="p-6 md:p-8 flex-1">
+                  <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-2">
+                    Your project
                   </h2>
-                  <p className="text-sm font-mono text-text-muted mb-6 relative z-10">
-                    Finalize your hackathon submission. Only the core properties
-                    are required. If you are in a team, only the{" "}
-                    <span className="text-accent font-bold">Captain</span> can
-                    deploy the final record.
+                  <p className="text-sm text-[var(--text-muted)] mb-6">
+                    Name and description are required. On a team, only the
+                    captain can submit.
                   </p>
+
+                  {/* Where judges will come. The table is assigned when an
+                      organiser opens judging, and nothing else told the team. */}
+                  {mySubmission.data?.tableNumber != null && (
+                    <div className="p-4 mb-6 rounded-sm border bg-accent/5 border-accent/20">
+                      <p className="text-sm text-accent">
+                        Your project is at table{" "}
+                        <span className="font-bold">
+                          {mySubmission.data.tableNumber}
+                        </span>
+                        . Be there when judging starts; judges come to you.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Admission, said before the form is filled in. Acceptance
                       lets you form a team; submitting needs the badge scan,
                       because judging happens in person at a table number. */}
                   {currentReg &&
                     currentReg.registrationStatus !== "checked_in" && (
-                      <div className="p-4 mb-6 rounded-none relative z-10 border bg-amber-500/10 border-amber-500/30">
-                        <p className="font-mono text-xs text-amber-300">
+                      <div className="p-4 mb-6 rounded-sm border bg-amber-500/10 border-amber-500/30">
+                        <p className="text-sm text-amber-300">
                           {currentReg.registrationStatus === "approved"
                             ? "You're accepted — check in at the event before submitting. Find a volunteer and have your badge scanned."
                             : currentReg.registrationStatus === "pending"
                               ? "Your registration is still being reviewed. You can form a team once you have been accepted."
-                              : `Your registration for this hackathon is ${currentReg.registrationStatus}.`}
+                              : currentReg.registrationStatus === "waitlisted"
+                                ? "You're on the waitlist. If a seat opens, you'll be accepted and can submit."
+                                : "Your registration wasn't accepted, so you can't submit to this hackathon."}
                         </p>
                       </div>
                     )}
@@ -538,14 +544,14 @@ function SubmitPortalContent() {
                       learned it was refused only on submit. */}
                   {submissionWindow.data && (
                     <div
-                      className={`p-4 mb-10 rounded-none relative z-10 border ${
+                      className={`p-4 mb-8 rounded-sm border ${
                         submissionWindow.data.isOpen
                           ? "bg-accent/5 border-accent/20"
                           : "bg-amber-500/10 border-amber-500/30"
                       }`}
                     >
                       <p
-                        className={`font-mono text-xs ${submissionWindow.data.isOpen ? "text-accent" : "text-amber-300"}`}
+                        className={`text-sm ${submissionWindow.data.isOpen ? "text-accent" : "text-amber-300"}`}
                       >
                         {submissionWindow.data.cancelled
                           ? "This hackathon has been cancelled — nothing can be submitted."
@@ -561,22 +567,21 @@ function SubmitPortalContent() {
                   )}
 
                   {error && (
-                    <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-none relative z-10">
-                      <p className="text-red-400 font-mono text-sm">{error}</p>
+                    <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-sm">
+                      <p className="text-red-400 text-sm">{error}</p>
                     </div>
                   )}
 
                   {successMessage && (
-                    <div className="p-6 mb-8 bg-accent/10 border border-accent/20 rounded-none relative z-10 flex items-center justify-between">
-                      <p className="text-accent font-mono text-sm font-bold flex items-center gap-3">
-                        <span className="w-2 h-2 rounded-sm bg-accent animate-pulse" />
+                    <div className="p-4 mb-8 bg-accent/10 border border-accent/20 rounded-sm flex flex-wrap items-center justify-between gap-4">
+                      <p className="text-accent text-sm font-bold">
                         {successMessage}
                       </p>
                       <Link
                         href="/dashboard"
-                        className="px-4 py-2 bg-accent/20 text-accent text-xs rounded hover:bg-accent/30 transition-colors uppercase tracking-widest font-mono"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
                       >
-                        Return
+                        Back to dashboard
                       </Link>
                     </div>
                   )}
@@ -597,13 +602,13 @@ function SubmitPortalContent() {
                         isCreateX,
                       });
                     }}
-                    className="space-y-8 relative z-10"
+                    className="space-y-8"
                   >
                     {/* Name & Desc */}
                     <div className="space-y-4">
                       <div>
-                        <label htmlFor="project-name" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
-                          Code Name <span className="text-accent">*</span>
+                        <label htmlFor="project-name" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                          Project name <span className="text-accent">*</span>
                         </label>
                         <input
                           id="project-name"
@@ -611,13 +616,13 @@ function SubmitPortalContent() {
                           required
                           value={projectName}
                           onChange={(e) => setProjectName(e.target.value)}
-                          placeholder="Project Apollo"
-                          className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-ui duration-300 focus:shadow-[4px_4px_0_0_var(--accent)] hover:border-white/20 group"
+                          placeholder="e.g. Transit delay predictor"
+                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                         />
                       </div>
                       <div>
-                        <label htmlFor="project-description" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
-                          Mission Briefing{" "}
+                        <label htmlFor="project-description" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                          Description{" "}
                           <span className="text-accent">*</span>
                         </label>
                         <textarea
@@ -627,7 +632,7 @@ function SubmitPortalContent() {
                           onChange={(e) => setProjectDesc(e.target.value)}
                           placeholder="Explain the problem you solved and how you built it…"
                           rows={5}
-                          className="w-full px-5 py-4 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors resize-none"
+                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui resize-none"
                         />
                       </div>
                     </div>
@@ -638,19 +643,18 @@ function SubmitPortalContent() {
                         than an empty box. */}
                     {(availableTracks.length > 0 ||
                       availableChallenges.length > 0) && (
-                      <div className="p-6 border border-[var(--border-subtle)] rounded-none bg-white/[0.02]">
-                        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 flex items-center gap-3">
-                          <span className="w-1.5 h-1.5 bg-text-muted rounded-sm"></span>
-                          Tracks & Challenges
+                      <div className="rounded-sm border border-[var(--border-subtle)] p-5">
+                        <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                          Tracks & challenges
                         </h3>
-                        <p className="text-xs font-mono text-text-muted mb-6">
+                        <p className="text-sm text-[var(--text-muted)] mb-6">
                           This decides which judges see your project. Pick
                           everything you are competing for.
                         </p>
 
                         {availableTracks.length > 0 && (
                           <div className="mb-6">
-                            <p className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-3 font-mono">
+                            <p className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
                               Tracks
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -662,10 +666,10 @@ function SubmitPortalContent() {
                                     toggle(track, tracks, setTracks)
                                   }
                                   aria-pressed={tracks.includes(track)}
-                                  className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-none border transition-colors ${
+                                  className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-sm border transition-colors ${
                                     tracks.includes(track)
-                                      ? "bg-accent/15 border-accent/40 text-accent font-bold"
-                                      : "bg-[var(--bg-primary)]/60 border-[var(--border-subtle)] text-gray-400 hover:border-accent/30"
+                                      ? "bg-accent/15 border-accent/40 text-accent"
+                                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
                                   }`}
                                 >
                                   {track}
@@ -677,8 +681,8 @@ function SubmitPortalContent() {
 
                         {availableChallenges.length > 0 && (
                           <div className="mb-6">
-                            <p className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-3 font-mono">
-                              Sponsor Challenges
+                            <p className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                              Sponsor challenges
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {availableChallenges.map((challenge) => (
@@ -689,10 +693,10 @@ function SubmitPortalContent() {
                                     toggle(challenge, challenges, setChallenges)
                                   }
                                   aria-pressed={challenges.includes(challenge)}
-                                  className={`px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-none border transition-colors ${
+                                  className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-sm border transition-colors ${
                                     challenges.includes(challenge)
-                                      ? "bg-purple-500/15 border-purple-500/40 text-purple-300 font-bold"
-                                      : "bg-[var(--bg-primary)]/60 border-[var(--border-subtle)] text-gray-400 hover:border-purple-500/30"
+                                      ? "bg-accent/15 border-accent/40 text-accent"
+                                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
                                   }`}
                                 >
                                   {challenge}
@@ -702,13 +706,13 @@ function SubmitPortalContent() {
                           </div>
                         )}
 
-                        <label htmlFor="is-createx" className="flex items-center gap-3 text-xs font-mono text-gray-300 cursor-pointer">
+                        <label htmlFor="is-createx" className="flex items-center gap-3 text-sm text-[var(--text-muted)] cursor-pointer">
                           <input
-                          id="is-createx"
+                            id="is-createx"
                             type="checkbox"
                             checked={isCreateX}
                             onChange={(e) => setIsCreateX(e.target.checked)}
-                            className="w-4 h-4 accent-[var(--accent)]"
+                            className="w-4 h-4 rounded-sm accent-[var(--accent)]"
                           />
                           We are competing for the CreateX entrepreneurship prize
                         </label>
@@ -716,16 +720,15 @@ function SubmitPortalContent() {
                     )}
 
                     {/* Links */}
-                    <div className="p-6 border border-[var(--border-subtle)] rounded-none bg-white/[0.02]">
-                      <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest mb-6 flex items-center gap-3">
-                        <span className="w-1.5 h-1.5 bg-text-muted rounded-sm"></span>
-                        External Vectors
+                    <div className="rounded-sm border border-[var(--border-subtle)] p-5">
+                      <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">
+                        Links
                       </h3>
 
                       <div className="space-y-4">
                         <div>
-                          <label htmlFor="github-url" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
-                            Repository (GitHub)
+                          <label htmlFor="github-url" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                            GitHub repository
                           </label>
                           <input
                             id="github-url"
@@ -733,12 +736,12 @@ function SubmitPortalContent() {
                             value={githubUrl}
                             onChange={(e) => setGithubUrl(e.target.value)}
                             placeholder="https://github.com/…"
-                            className="w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                           />
                         </div>
                         <div>
-                          <label htmlFor="video-url" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
-                            Video Demo (YouTube)
+                          <label htmlFor="video-url" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                            Demo video
                           </label>
                           <input
                             id="video-url"
@@ -746,12 +749,12 @@ function SubmitPortalContent() {
                             value={videoUrl}
                             onChange={(e) => setVideoUrl(e.target.value)}
                             placeholder="https://youtube.com/…"
-                            className="w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                           />
                         </div>
                         <div>
-                          <label htmlFor="demo-url" className="block text-xs uppercase tracking-[0.15em] font-bold text-text-muted mb-2 font-mono">
-                            Live Demo (Vercel, etc)
+                          <label htmlFor="demo-url" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                            Live demo URL
                           </label>
                           <input
                             id="demo-url"
@@ -759,17 +762,17 @@ function SubmitPortalContent() {
                             value={demoUrl}
                             onChange={(e) => setDemoUrl(e.target.value)}
                             placeholder="https://…"
-                            className="w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] rounded-none text-gray-300 text-sm font-mono placeholder:text-gray-700 focus:border-accent/30 focus:outline-none transition-colors"
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
                           />
                         </div>
                       </div>
                     </div>
 
                     <div className="pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-4">
-                      <p className="text-xs font-mono text-text-muted">
+                      <p className="text-xs text-[var(--text-muted)]">
                         {hasSubmitted
-                          ? "Project record exists. Resubmitting will overwrite it."
-                          : "Ready for deployment."}
+                          ? "You've already submitted. Saving replaces your current entry."
+                          : ""}
                       </p>
                       {hasSubmitted && (
                         <button
@@ -782,42 +785,24 @@ function SubmitPortalContent() {
                               hackathonId: selectedHackathonId,
                             });
                           }}
-                          className="px-6 py-4 border border-red-500/30 text-red-400 font-mono text-xs uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                          className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
                         >
                           {withdrawProject.isPending
                             ? "Withdrawing…"
-                            : "Withdraw Submission"}
+                            : "Withdraw submission"}
                         </button>
                       )}
                       <button
                         type="submit"
                         disabled={submitProject.isPending}
-                        className={`px-10 py-5 font-black text-lg uppercase tracking-[0.2em] transition-ui flex items-center gap-3 rounded-none shadow-[0_0_30px_rgba(16,185,129,0.2)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98] ${
-                          hasSubmitted
-                            ? "bg-transparent border-2 border-accent text-accent hover:bg-accent hover:text-black"
-                            : "bg-accent text-black hover:bg-white border-2 border-transparent"
-                        }`}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
                       >
                         {submitProject.isPending
-                          ? "UPLOADING…"
+                          ? "Submitting…"
                           : hasSubmitted
-                            ? "UPDATE RECORD"
-                            : "DEPLOY RECORD"}
-                        {!submitProject.isPending && (
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                            />
-                          </svg>
-                        )}
+                            ? "Save changes"
+                            : "Submit project"}
+                        {!submitProject.isPending && <Send className="w-4 h-4" />}
                       </button>
                     </div>
                   </form>
@@ -833,7 +818,7 @@ function SubmitPortalContent() {
 
 export default function SubmitPortalPage() {
   return (
-    <Suspense fallback={<LoadingScreen message="Initializing Workspace…" />}>
+    <Suspense fallback={<LoadingScreen message="Loading…" />}>
       <SubmitPortalContent />
     </Suspense>
   );

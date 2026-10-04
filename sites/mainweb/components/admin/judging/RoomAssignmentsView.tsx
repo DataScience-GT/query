@@ -34,27 +34,27 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
   if (!rankings) return null;
 
   return (
-    <LiquidGlass className="rounded-none overflow-hidden mb-12">
+    <LiquidGlass printed className="rounded-sm overflow-hidden mb-12">
       <div className="p-6 border-b border-[var(--border-subtle)]">
-        <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
-          Room <span className="text-accent italic">Assignments</span>
+        <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+          Room assignments
         </h2>
-        <p className="text-xs text-[var(--text-subtle)] font-mono mt-1">
+        <p className="text-sm text-[var(--text-muted)] mt-1">
           {rankings.rankings.length} projects assigned
         </p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="text-[10px] text-gray-600 uppercase tracking-widest border-b border-[var(--border-subtle)]">
-              <th className="text-left py-3 px-6 font-mono">Table</th>
-              <th className="text-left py-3 px-6 font-mono">Project</th>
-              <th className="text-left py-3 px-6 font-mono">Team</th>
-              <th className="text-left py-3 px-6 font-mono">Main Track</th>
-              <th className="text-left py-3 px-6 font-mono">Extra Tracks</th>
-              <th className="text-left py-3 px-6 font-mono">Votes</th>
-              <th className="text-left py-3 px-6 font-mono">Avg Score</th>
-              <th className="text-left py-3 px-6 font-mono">Bayesian Fair</th>
+            <tr className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)]">
+              <th className="text-left py-3 px-6">Table</th>
+              <th className="text-left py-3 px-6">Project</th>
+              <th className="text-left py-3 px-6">Team</th>
+              <th className="text-left py-3 px-6">Main track</th>
+              <th className="text-left py-3 px-6">Extra tracks</th>
+              <th className="text-left py-3 px-6">Votes</th>
+              <th className="text-left py-3 px-6">Avg score</th>
+              <th className="text-left py-3 px-6">Weighted</th>
             </tr>
           </thead>
           <tbody>
@@ -66,7 +66,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
               .map((r) => (
                 <tr
                   key={r.project.id}
-                  className="border-b border-[var(--border-subtle)] hover:bg-white/[0.02] transition-colors"
+                  className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
                 >
                   <td className="py-4 px-6">
                     <span className="text-lg font-black text-[var(--text-primary)] tabular-nums">
@@ -80,7 +80,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                     </p>
                   </td>
                   <td className="py-4 px-6">
-                    <p className="text-xs text-[var(--text-subtle)] font-mono">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {r.project.teamMembers || "-"}
                     </p>
                   </td>
@@ -90,7 +90,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                         {r.project.tracks[0]}
                       </span>
                     ) : (
-                      <span className="text-gray-600">-</span>
+                      <span className="text-[var(--text-subtle)]">-</span>
                     )}
                   </td>
                   <td className="py-4 px-6">
@@ -100,7 +100,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                         .map((t: string, i: number) => (
                           <span
                             key={i}
-                            className="px-2 py-0.5 rounded-sm text-[8px] font-bold bg-white/5 text-[var(--text-muted)] border border-[var(--border-subtle)] uppercase tracking-widest"
+                            className="px-2 py-0.5 rounded-sm text-[8px] font-bold bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] uppercase tracking-widest"
                           >
                             {t}
                           </span>
@@ -114,7 +114,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                         r.project.tracks?.slice(1)?.length ||
                         r.project.challenges?.length ||
                         r.project.isCreateX
-                      ) && <span className="text-gray-600 text-xs">-</span>}
+                      ) && <span className="text-[var(--text-subtle)] text-xs">-</span>}
                     </div>
                   </td>
                   <td className="py-4 px-6">
@@ -126,7 +126,7 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                     <span className="text-lg font-black text-[var(--text-primary)] tabular-nums">
                       {r.avgScore}
                     </span>
-                    <span className="text-xs text-gray-600 ml-1">/50</span>
+                    <span className="text-xs text-[var(--text-subtle)] ml-1">/50</span>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
