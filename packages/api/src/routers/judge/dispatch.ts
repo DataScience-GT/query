@@ -156,15 +156,11 @@ export type DispatchResult =
     };
 
 /**
- * Projects this judge is eligible for (only the columns routing needs), and
- * the group they judge in. Queries run one after another: inside a
- * transaction they share one connection, which cannot run two at once.
+ * Each judge's track label and the coverage group it puts them in. Queries
+ * run one after another: inside a transaction they share one connection,
+ * which cannot run two at once.
  */
-export async function loadPool(
-  db: DrizzleDB,
-  judgeId: string,
-  hackathonId: string,
-) {
+export async function loadGroups(db: DrizzleDB, hackathonId: string) {
   const hackathon = await db.query.hackathons.findFirst({
     where: eq(hackathons.id, hackathonId),
     columns: { tracks: true },
@@ -173,6 +169,29 @@ export async function loadPool(
     .select({ judgeId: judgeAssignments.judgeId, track: judgeAssignments.track })
     .from(judgeAssignments)
     .where(eq(judgeAssignments.hackathonId, hackathonId));
+
+  const mainTracks = new Set(
+    hackathon?.tracks?.length
+      ? hackathon.tracks
+      : assignments.map((a) => a.track).filter((t): t is string => !!t),
+  );
+  const trackByJudge = new Map(assignments.map((a) => [a.judgeId, a.track]));
+  const groupByJudge = (id: string) =>
+    groupOf(trackByJudge.get(id) ?? null, mainTracks);
+
+  return { trackByJudge, groupByJudge };
+}
+
+/**
+ * Projects this judge is eligible for (only the columns routing needs), and
+ * the group they judge in.
+ */
+export async function loadPool(
+  db: DrizzleDB,
+  judgeId: string,
+  hackathonId: string,
+) {
+  const { trackByJudge, groupByJudge } = await loadGroups(db, hackathonId);
   const projects = await db
     .select({
       id: judgingProjects.id,
@@ -189,19 +208,11 @@ export async function loadPool(
       ),
     );
 
-  const mainTracks = new Set(
-    hackathon?.tracks?.length
-      ? hackathon.tracks
-      : assignments.map((a) => a.track).filter((t): t is string => !!t),
-  );
-  const trackByJudge = new Map(assignments.map((a) => [a.judgeId, a.track]));
   const myTrack = trackByJudge.get(judgeId) ?? null;
-  const groupByJudge = (id: string) =>
-    groupOf(trackByJudge.get(id) ?? null, mainTracks);
 
   return {
     pool: projects.filter((p) => projectMatchesTrack(p, myTrack)),
-    myGroup: groupOf(myTrack, mainTracks),
+    myGroup: groupByJudge(judgeId),
     groupByJudge,
   };
 }
@@ -250,11 +261,18 @@ export async function dispatchNext(
   // the pool for someone else, and not to this judge again. A row that was
   // never handed out at all is a list an earlier version built in advance:
   // it is not a visit, so it goes rather than blocking that project.
+  // A live visit to a project withdrawn since closes the same way. Left
+  // open, it would keep matching as this judge's live visit and send every
+  // later dispatch past it to claim yet another table.
+  const poolById = new Map(pool.map((p) => [p.id, p]));
   const unopened = mine.filter(
     (r) => !r.isCompleted && !r.startedAt && !r.arrivedAt,
   );
   const lapsed = mine.filter(
-    (r) => !r.isCompleted && (r.startedAt || r.arrivedAt) && !isLive(r, now),
+    (r) =>
+      !r.isCompleted &&
+      (r.startedAt || r.arrivedAt) &&
+      (!isLive(r, now) || !poolById.has(r.projectId)),
   );
   if (unopened.length > 0) {
     await tx.delete(judgeQueue).where(
@@ -277,10 +295,8 @@ export async function dispatchNext(
   }
   const visits = mine.filter((r) => !unopened.includes(r));
 
-  const poolById = new Map(pool.map((p) => [p.id, p]));
-  const live = visits.find((r) => isLive(r, now));
-  // A live visit to a project withdrawn since is dropped like any other.
-  if (live && poolById.has(live.projectId)) {
+  const live = visits.find((r) => !lapsed.includes(r) && isLive(r, now));
+  if (live) {
     return {
       done: false,
       queueId: live.id,
