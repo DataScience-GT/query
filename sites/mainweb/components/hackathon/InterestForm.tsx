@@ -24,12 +24,12 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">
+      <span className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
         {label}
       </span>
       {children}
       {hint ? (
-        <span className="block mt-1.5 text-[10px] text-[var(--text-muted)]/70">
+        <span className="block mt-1.5 text-xs text-[var(--text-subtle)]">
           {hint}
         </span>
       ) : null}
@@ -38,7 +38,7 @@ function Field({
 }
 
 const inputClass =
-  "w-full px-4 py-3 bg-[var(--bg-primary)]/60 border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm rounded-sm focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 placeholder:text-[var(--text-muted)]/50 transition-ui";
+  "w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui";
 
 /**
  * Join / leave the interest list for one edition.
@@ -120,7 +120,7 @@ export function InterestForm({
   if (!session) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold uppercase tracking-tight text-[var(--text-primary)]">
+        <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
           Get told the moment it opens
         </h2>
         <p className="text-sm text-[var(--text-muted)] leading-relaxed">
@@ -130,7 +130,7 @@ export function InterestForm({
         </p>
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(callbackPath)}`}
-          className="inline-flex px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui"
+          className="inline-flex px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
         >
           Sign in to join the list
         </Link>
@@ -141,7 +141,7 @@ export function InterestForm({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold uppercase tracking-tight text-[var(--text-primary)]">
+        <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
           {onList ? "You're on the list" : "Join the interest list"}
         </h2>
         <p className="mt-2 text-sm text-[var(--text-muted)] leading-relaxed">
@@ -228,14 +228,14 @@ export function InterestForm({
           </Field>
 
           {error ? (
-            <p className="text-rose-400 font-mono text-[11px]">{error}</p>
+            <p className="text-sm text-rose-400">{error}</p>
           ) : null}
 
           <div className="flex flex-wrap gap-3 pt-1">
             <button
               type="submit"
               disabled={busy}
-              className="px-8 py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-accent hover:text-[var(--text-primary)] transition-ui disabled:opacity-40"
+              className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
             >
               {busy
                 ? "Saving…"
@@ -251,7 +251,7 @@ export function InterestForm({
                   setError("");
                 }}
                 disabled={busy}
-                className="px-6 py-4 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-ui disabled:opacity-40"
+                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
               >
                 Cancel
               </button>
@@ -263,7 +263,7 @@ export function InterestForm({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="px-6 py-4 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-white/5 transition-ui"
+            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
           >
             Edit my answers
           </button>
@@ -271,7 +271,7 @@ export function InterestForm({
             type="button"
             onClick={() => leave.mutate({ hackathonId })}
             disabled={busy}
-            className="px-6 py-4 text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.2em] rounded-sm hover:text-rose-400 transition-ui disabled:opacity-40"
+            className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-rose-400 transition-colors disabled:opacity-40"
           >
             {leave.isPending ? "Leaving…" : "Take me off the list"}
           </button>
@@ -279,7 +279,7 @@ export function InterestForm({
       )}
 
       {error && !showForm ? (
-        <p className="text-rose-400 font-mono text-[11px]">{error}</p>
+        <p className="text-sm text-rose-400">{error}</p>
       ) : null}
     </div>
   );

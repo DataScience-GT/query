@@ -171,11 +171,11 @@ function VerifyContent() {
             {/* Animated underline */}
             <div className="absolute -bottom-3 left-0 right-0 h-[3px] bg-gradient-to-r from-accent/0 via-accent/100 to-accent/0 blur-[2px]" />
           </h1>
-          <p className="text-xs font-mono text-text-muted uppercase tracking-[0.4em] mb-2">
+          <p className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.4em] mb-2">
             Code Verification
           </p>
           <div className="h-[1px] w-16 bg-gradient-to-r from-accent/40 via-accent/70 to-accent/40 mx-auto" />
-          <p className="text-text-muted font-mono text-sm leading-relaxed mt-4">
+          <p className="text-[var(--text-muted)] font-mono text-sm leading-relaxed mt-4">
             We sent a 6-digit access code to your terminal.
           </p>
           {email && (

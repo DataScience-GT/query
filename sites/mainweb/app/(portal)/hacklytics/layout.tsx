@@ -5,7 +5,7 @@ const SITE = "https://datasciencegt.org";
 const URL = `${SITE}/hacklytics`;
 
 /** Same funnel statuses the page itself renders from. */
-const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "in_progress"] as const;
+const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "closed", "in_progress"] as const;
 
 /**
  * The edition this page is about, read on the server so the title, the link
