@@ -12,7 +12,7 @@ That is:
 vitest run packages/api packages/db sites/mainweb/lib
 ```
 
-CI: `.github/workflows/test.yml` on pushes to `main`/`dev` and on pull requests.
+CI: the `verify` job in `.github/workflows/ci.yml` on pushes to `main`/`dev` and on pull requests.
 
 ## `@query/api`
 
@@ -55,7 +55,7 @@ Playwright (`@playwright/test`). `scripts/capture-vision.ts` is a visual capture
 
 ## What “green” means
 
-`pnpm test` does **not** run `pnpm lint`, `pnpm typecheck`, or `pnpm build`. CI build is a separate workflow (`pnpm-ci.yml`). Run all four before a release-quality PR:
+`pnpm test` does **not** run `pnpm lint`, `pnpm typecheck`, or `pnpm build`. CI runs all four in the `verify` job of `ci.yml`. Run all four before a release-quality PR:
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm build

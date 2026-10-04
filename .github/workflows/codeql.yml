@@ -83,16 +83,3 @@ jobs:
           comment-summary-in-pr: always
           vulnerability-check: true
 
-  security-summary:
-    name: Security Analysis Summary
-    needs: [analyze]
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-      - name: Generate Summary
-        run: |
-          echo "# Security Analysis Complete 🛡️" >> $GITHUB_STEP_SUMMARY
-          echo "The advanced CodeQL analysis and Dependency Review have finished." >> $GITHUB_STEP_SUMMARY
-          echo "All findings have been uploaded directly to the GitHub Security tab." >> $GITHUB_STEP_SUMMARY
-          echo "View detailed results at: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY

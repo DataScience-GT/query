@@ -2,25 +2,25 @@
 
 All workflows live in `.github/workflows/`.
 
-## Quality
+## Pipeline
+
+`ci.yml` is the one CI/CD pipeline, on every PR and every push to `main`/`dev`:
+
+1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out`.
+2. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
+3. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
+
+Both deploy jobs `need` `verify`, so nothing ships that failed lint, typecheck, tests, or build.
+
+## Security
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| `pnpm-ci.yml` | Push `main`/`dev`, PRs | `pnpm install` + `pnpm turbo run build` (Node 22) |
-| `test.yml` | Push `main`/`dev`, PRs | `pnpm test` (Node 22; pnpm comes from `packageManager`, unpinned in the workflow so it cannot drift) |
 | `codeql.yml` | Push/PR `main`/`dev`, daily 02:00 UTC | CodeQL `security-extended,security-and-quality`; PRs also run dependency review (`fail-on-severity: high`) |
 
-## Deploy
+## Mainweb deploy
 
-| Workflow | Trigger | Target |
-| --- | --- | --- |
-| `deploy-hacklytics.yml` | Push `main` and PRs | Firebase Hosting `hacklytics` (live vs `pr-N`) |
-| `firebase-hosting-merge.yml` | Push `main` | Same live Hacklytics deploy |
-| `firebase-hosting-pull-request.yml` | PRs (same-repo only) | Hacklytics preview channel |
-
-Mainweb production is **Firebase App Hosting**, not these Hosting workflows. App Hosting builds from `apphosting.yaml` when the connected branch updates.
-
-`deploy-hacklytics.yml.disabled` is a leftover disabled copy.
+Mainweb production is **Firebase App Hosting**, not `ci.yml`. App Hosting builds from `apphosting.yaml` when the connected branch updates, independent of whether `verify` passed — the gate is the `main` ruleset, so require the `Lint, typecheck, test, build` check there.
 
 ## Branch automation
 
