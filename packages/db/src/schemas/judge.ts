@@ -219,7 +219,8 @@ export const hackathonResults = pgTable(
   ],
 );
 
-// Track which tables a judge still needs to visit
+// One row per visit: written when the judging pool hands a judge a table
+// (api routers/judge/dispatch.ts), not as a list built in advance.
 export const judgeQueue = pgTable(
   "judge_queue",
   {
@@ -233,17 +234,16 @@ export const judgeQueue = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => judgingProjects.id, { onDelete: "cascade" }),
-    order: integer("order").notNull(), // order to visit
+    order: integer("order").notNull(), // nth table this judge was handed
     isCompleted: boolean("is_completed").notNull().default(false),
     completedAt: timestamp("completed_at"),
-    // Stamped when this project is handed to the judge, so a second judge whose
-    // queue reaches the same table passes over it and comes back later. A claim
-    // only while recent (JUDGE_CLAIM_MINUTES) — a judge who closes the tab
-    // releases the table rather than blocking it until an admin steps in.
+    // Stamped when the pool hands this table to the judge. Holds the table
+    // while they walk over (JUDGE_WALK_LIMIT_SECONDS); a judge who never
+    // arrives releases it rather than blocking it until an admin steps in.
     startedAt: timestamp("started_at"),
-    // When the judge scanned the table's QR and actually began. Distinct from
-    // startedAt, the claim stamped when the queue hands the table over: the gap
-    // is walking, queueing and finding the table, none of which is judging.
+    // When the judge tapped the table's NFC tag or scanned its card and
+    // actually began. The judging clock and the hard cutoff run from here;
+    // the gap from startedAt is walking, none of which is judging.
     arrivedAt: timestamp("arrived_at"),
   },
   (table) => [
