@@ -46,11 +46,7 @@ Interest requires a portal account (verified email). The CTA is:
 
 Firebase Hosting target `hacklytics`, public dir `sites/hacklytics2027/out` (`firebase.json`).
 
-Workflows:
-
-- `.github/workflows/deploy-hacklytics.yml` — build filter `hacklytics2027`, deploy target `hacklytics` (live on `main`, preview channel `pr-N` on PRs)
-- `.github/workflows/firebase-hosting-merge.yml` — same live deploy on `main`
-- `.github/workflows/firebase-hosting-pull-request.yml` — PR preview channels
+Workflow: `.github/workflows/ci.yml`. The `verify` job builds every site; `deploy-hacklytics` ships that build live on `main` and `preview-hacklytics` to channel `pr-N` on PRs. Neither runs unless `verify` passes.
 
 Asset caching: hashed JS/CSS/fonts/images `max-age=31536000, immutable`; HTML `max-age=3600`. See `firebase.json`.
 
