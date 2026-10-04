@@ -504,15 +504,11 @@ describe("Participant edge cases", () => {
       },
     );
 
-    it("lets a team form at exactly +12h but not one millisecond earlier", async () => {
-      const early = atOffset(12 * HOUR - 1);
+    // No opening time: the window is open from acceptance up to +34h.
+    it("lets a team form a day before hacking starts", async () => {
+      const early = atOffset(-24 * HOUR);
       await expect(
         early.team.createTeam({ hackathonId: HACK_A, name: "meow", maxMembers: 4 }),
-      ).rejects.toThrow(/not open yet/);
-
-      const onTime = atOffset(12 * HOUR);
-      await expect(
-        onTime.team.createTeam({ hackathonId: HACK_A, name: "meow", maxMembers: 4 }),
       ).resolves.toMatchObject({ id: TEAM_A });
     });
 
@@ -865,6 +861,62 @@ describe("Participant edge cases", () => {
   });
 
   // =====================================================================
+  // There was no way to take a registration back, so an accepted no-show
+  // kept a seat for good. Allowed only before you are part of the event.
+  describe("Withdrawing a registration", () => {
+    const wire = (participant: Record<string, unknown> | undefined) =>
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathonParticipants" ? participant : undefined,
+      );
+
+    it("removes a pending applicant who has nothing attached", async () => {
+      wire({ id: PARTICIPANT_A, teamId: null, registrationStatus: "pending" });
+      mockDelete.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+
+      await expect(
+        callerFor("user_a").hackathon.withdrawRegistration({
+          hackathonId: HACK_A,
+        }),
+      ).resolves.toEqual({ success: true });
+      expect(deletedTables()).toContain(hackathonParticipants);
+    });
+
+    // A badge scan or team join between the read and the delete: the
+    // conditions carried into the DELETE match nothing, and nothing is lost.
+    it("refuses when the registration changed after it was read", async () => {
+      wire({ id: PARTICIPANT_A, teamId: null, registrationStatus: "approved" });
+      mockDelete.mockReturnValueOnce([]);
+
+      await expect(
+        callerFor("user_a").hackathon.withdrawRegistration({
+          hackathonId: HACK_A,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+    });
+
+    it.each([
+      [
+        "a team member",
+        { id: PARTICIPANT_A, teamId: TEAM_A, registrationStatus: "approved" },
+        /Leave your team first/,
+      ],
+      [
+        "somebody already checked in",
+        { id: PARTICIPANT_A, teamId: null, registrationStatus: "checked_in" },
+        /already checked in/,
+      ],
+    ])("refuses %s", async (_label, participant, message) => {
+      wire(participant);
+
+      await expect(
+        callerFor("user_a").hackathon.withdrawRegistration({
+          hackathonId: HACK_A,
+        }),
+      ).rejects.toThrow(message);
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
   describe("6. Registration under contention", () => {
     // BUG: the duplicate guard at registration.ts:95-108 is an unlocked
     // findFirst; the hackathon_participant_hackathon_user_idx violation that follows is
@@ -887,9 +939,10 @@ describe("Participant edge cases", () => {
       });
     });
 
-    // BUG: registration.ts:110-118 reads currentParticipants with a plain
-    // findFirst and increments at :173 — two racers both see 499/500.
-    it("admits only one of two racing registrations into the last seat", async () => {
+    // Applying no longer claims a seat — acceptance does (admin.ts
+    // assertSeats) — so two applicants racing for the last seat both get in,
+    // and the seat count is untouched.
+    it("lets racing applications through without taking a seat", async () => {
       const hackathonRow = runningHackathon(-24, {
         maxParticipants: 500,
         currentParticipants: 499,
@@ -898,30 +951,16 @@ describe("Participant edge cases", () => {
         table === "hackathons" ? { ...hackathonRow } : undefined,
       );
       mockInsert.mockReturnValue([{ id: PARTICIPANT_A }]);
-      mockUpdate.mockImplementation((_op, updateArgs) => {
-        // Stands in for sql`currentParticipants + 1`, including the rollback:
-        // the loser of the race claims a seat and then hands it straight back
-        // when the re-read shows it went over.
-        if (updateArgs[0] === hackathons) {
-          hackathonRow.currentParticipants += 1;
-          __onRollback(() => {
-            hackathonRow.currentParticipants -= 1;
-          });
-        }
-        return [];
-      });
 
       const results = await Promise.allSettled([
         callerFor("user_a").hackathon.register(registrationInput()),
         callerFor("user_b").hackathon.register(registrationInput()),
       ]);
 
-      const rejected = results.filter((r) => r.status === "rejected");
-      expect(rejected).toHaveLength(1);
-      expect(String((rejected[0] as PromiseRejectedResult)?.reason)).toMatch(
-        /full/,
-      );
-      expect(hackathonRow.currentParticipants).toBe(500);
+      expect(results.every((r) => r.status === "fulfilled")).toBe(true);
+      expect(
+        mockUpdate.mock.calls.some((call) => call[1]?.[0] === hackathons),
+      ).toBe(false);
     });
 
     // BUG: registration.ts:178 calls deletePattern("hackathon*") inside the
@@ -955,6 +994,7 @@ describe("Participant edge cases", () => {
           };
         return undefined;
       });
+      mockUpdate.mockReturnValue([{ id: PARTICIPANT_A }]);
 
       await callerFor("admin_user_id").hackathon.updateParticipantStatus({
         hackathonId: HACK_A,
@@ -963,6 +1003,34 @@ describe("Participant edge cases", () => {
       });
 
       expect(updatedTables()).toContain(hackathons);
+    });
+
+    it("refuses a check-in when a concurrent change unseated the participant", async () => {
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "admins")
+          return { userId: "admin_user_id", isActive: true, role: "admin" };
+        if (table === "hackathonParticipants")
+          return {
+            id: PARTICIPANT_A,
+            hackathonId: HACK_A,
+            registrationStatus: "approved",
+          };
+        return undefined;
+      });
+      // The seated-only WHERE matched nothing: someone waitlisted them between
+      // the read and the write.
+      mockUpdate.mockReturnValue([]);
+
+      await expect(
+        callerFor("admin_user_id").hackathon.updateParticipantStatus({
+          hackathonId: HACK_A,
+          participantId: PARTICIPANT_A,
+          status: "checked_in",
+        }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: expect.stringContaining("changed just now"),
+      });
     });
 
     // BUG: registration.ts:222-239 is a publicProcedure whose column allow-list

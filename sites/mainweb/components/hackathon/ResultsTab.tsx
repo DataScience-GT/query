@@ -21,8 +21,8 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
 
   if (isLoading) {
     return (
-      <div className="text-[var(--text-subtle)] font-mono text-center py-20 animate-pulse">
-        Loading results...
+      <div className="py-16 text-center text-sm text-[var(--text-muted)]">
+        Loading results…
       </div>
     );
   }
@@ -39,7 +39,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         <button
           type="button"
           onClick={() => refetch()}
-          className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] font-mono text-[10px] uppercase tracking-[0.2em] hover:bg-white/5 transition-colors"
+          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
         >
           Try again
         </button>
@@ -54,7 +54,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         <h3 className="text-[var(--text-primary)] font-bold mb-1">
           Results not published yet
         </h3>
-        <p className="text-sm text-[var(--text-subtle)] font-mono">
+        <p className="text-sm text-[var(--text-muted)]">
           They will appear here once judging is finished and the organisers
           release them.
         </p>
@@ -88,7 +88,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                   {name}
                 </p>
                 {team ? (
-                  <p className="text-xs font-mono text-[var(--text-subtle)] truncate">
+                  <p className="text-xs text-[var(--text-muted)] truncate">
                     {team}
                   </p>
                 ) : null}
@@ -99,7 +99,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                     href={row.sourceProject.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-accent transition-colors"
+                    className="text-xs font-semibold text-[var(--text-muted)] hover:text-accent transition-colors"
                   >
                     Code
                   </a>
@@ -109,7 +109,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                     href={row.sourceProject.demoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] hover:text-accent transition-colors"
+                    className="text-xs font-semibold text-[var(--text-muted)] hover:text-accent transition-colors"
                   >
                     Demo
                   </a>

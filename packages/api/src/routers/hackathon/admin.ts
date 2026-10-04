@@ -8,6 +8,7 @@ import { createTRPCRouter } from "../../trpc";
 import { isAdmin, isScanner } from "../../middleware/procedures";
 import { isUniqueViolation } from "../../middleware/db-errors";
 import { recordAdminAction } from "../../middleware/audit";
+import { CacheKeys } from "../../middleware/cache";
 import { MASS_EMAIL_BATCH } from "../../services/email-limits";
 import {
   hackathons,
@@ -16,16 +17,22 @@ import {
   hackathonEventAttendees,
   users,
 } from "@query/db";
-import { eq, and, inArray, ne, sql } from "drizzle-orm";
+import { eq, and, inArray, ne, notInArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
-// Re-derives currentParticipants from the rows that actually hold a seat.
-// Rejected and waitlisted applicants do not, and registration.ts only ever
-// increments, so a rejected applicant would consume capacity forever. The
+// A seat belongs to somebody accepted. maxParticipants caps acceptances, not
+// applications: applying is free, so an organiser can take more applications
+// than seats and fill them in waves.
+const SEATED_STATUSES = ["approved", "checked_in"] as const;
+
+// Re-derives currentParticipants from the rows that actually hold a seat. The
 // hackathon row is locked first: `SET x = (subquery)` plans the subquery once
 // per statement, so a register() committing mid-wait would be overwritten and
 // the seat total would drift low enough to admit people past maxParticipants.
-const syncCurrentParticipants = (db: DrizzleDB, hackathonId: string) =>
+export const syncCurrentParticipants = (
+  db: DrizzleDB,
+  hackathonId: string,
+) =>
   db.transaction(async (tx) => {
     await tx
       .select({ id: hackathons.id })
@@ -36,21 +43,73 @@ const syncCurrentParticipants = (db: DrizzleDB, hackathonId: string) =>
     await tx
       .update(hackathons)
       .set({
-        currentParticipants: sql`(select count(*)::int from ${hackathonParticipants} where ${hackathonParticipants.hackathonId} = ${hackathonId} and ${hackathonParticipants.registrationStatus} in ('pending', 'approved', 'checked_in'))`,
+        currentParticipants: sql`(select count(*)::int from ${hackathonParticipants} where ${hackathonParticipants.hackathonId} = ${hackathonId} and ${hackathonParticipants.registrationStatus} in ('approved', 'checked_in'))`,
       })
       .where(eq(hackathons.id, hackathonId));
   });
+
+/**
+ * Refuses an acceptance that would pass maxParticipants. Call inside the
+ * transaction that writes the new statuses: it locks the hackathon row, so two
+ * organisers accepting at once are counted one after the other. People already
+ * seated are not counted twice.
+ */
+async function assertSeats(
+  tx: DrizzleDB,
+  hackathonId: string,
+  participantIds: string[],
+) {
+  const [hackathon] = await tx
+    .select({ max: hackathons.maxParticipants })
+    .from(hackathons)
+    .where(eq(hackathons.id, hackathonId))
+    .for("update");
+  if (!hackathon?.max || participantIds.length === 0) return;
+
+  const [seated] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(hackathonParticipants)
+    .where(
+      and(
+        eq(hackathonParticipants.hackathonId, hackathonId),
+        inArray(hackathonParticipants.registrationStatus, [...SEATED_STATUSES]),
+      ),
+    );
+  const [adding] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(hackathonParticipants)
+    .where(
+      and(
+        eq(hackathonParticipants.hackathonId, hackathonId),
+        inArray(hackathonParticipants.id, participantIds),
+        notInArray(hackathonParticipants.registrationStatus, [
+          ...SEATED_STATUSES,
+        ]),
+      ),
+    );
+
+  const left = Math.max(hackathon.max - (seated?.n ?? 0), 0);
+  if ((adding?.n ?? 0) > left) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: `Only ${left} seat${left === 1 ? "" : "s"} left of ${hackathon.max}; this would accept ${adding?.n ?? 0}. Raise the capacity or accept fewer.`,
+    });
+  }
+}
 
 // Evicts exactly the keys a participant status change moves. The old
 // `deletePattern("hackathon*")` matched both namespaces, so one badge scan
 // wiped every attendee's cached registrations and the venue-wide events list.
 // Each affected user's own registration list goes too, or an acceptance lands
-// in their inbox while their dashboard still says pending.
-const evictParticipantCaches = (
+// in their inbox while their dashboard still says pending. The hackathon row
+// goes as well: every caller has just synced currentParticipants, and getById
+// serves the public "spots taken" line from that cached row.
+export const evictParticipantCaches = (
   cache: { delete: (key: string) => boolean },
   hackathonId: string,
   userIds: string[],
 ) => {
+  cache.delete(CacheKeys.hackathon(hackathonId));
   cache.delete(`hackathon:${hackathonId}:participants`);
   cache.delete(`hackathon:${hackathonId}:analytics`);
   for (const userId of new Set(userIds)) {
@@ -248,17 +307,46 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      await (ctx.db as DrizzleDB)
-        .update(hackathonParticipants)
-        .set({
-          registrationStatus: input.status,
-          // Stamp the arrival the first time only: re-checking someone in must not move
-          // the timestamp the attendees table shows.
-          ...(input.status === "checked_in" && !participant.checkedInAt
-            ? { checkedInAt: new Date() }
-            : {}),
-        })
-        .where(eq(hackathonParticipants.id, input.participantId));
+      await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        // checked_in seats somebody too: the approved-only check above was
+        // read before this transaction, and a concurrent "waitlisted" would
+        // otherwise be checked in with no seat.
+        if (input.status === "approved" || input.status === "checked_in") {
+          await assertSeats(tx as unknown as DrizzleDB, input.hackathonId, [
+            input.participantId,
+          ]);
+        }
+        const updated = await tx
+          .update(hackathonParticipants)
+          .set({
+            registrationStatus: input.status,
+            // Stamp the arrival the first time only: re-checking someone in must not
+            // move the timestamp the attendees table shows.
+            ...(input.status === "checked_in" && !participant.checkedInAt
+              ? { checkedInAt: new Date() }
+              : {}),
+          })
+          .where(
+            and(
+              eq(hackathonParticipants.id, input.participantId),
+              input.status === "checked_in"
+                ? inArray(hackathonParticipants.registrationStatus, [
+                    ...SEATED_STATUSES,
+                  ])
+                : undefined,
+            ),
+          )
+          .returning({ id: hackathonParticipants.id });
+        // A concurrent waitlist or reject leaves the seated-only WHERE matching
+        // nothing; reporting success would wave them through the desk.
+        if (updated.length === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "This applicant's status changed just now. Refresh and check again before letting them in.",
+          });
+        }
+      });
 
       await syncCurrentParticipants(ctx.db as DrizzleDB, input.hackathonId);
 
@@ -339,7 +427,7 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      const { wave, picked } = await db.transaction(async (tx) => {
+      const { wave, picked, full } = await db.transaction(async (tx) => {
         // Serialises waves for this hackathon. SKIP LOCKED below keeps two
         // concurrent waves from picking the same people, but both still read
         // the same max and were recorded as one wave number.
@@ -360,6 +448,19 @@ export const hackathonAdminRouter = createTRPCRouter({
 
         const wave = (highest?.max ?? 0) + 1;
 
+        // Never past capacity: a wave fills what is left and no more.
+        const [seats] = await tx
+          .select({
+            max: hackathons.maxParticipants,
+            seated: sql<number>`(select count(*)::int from ${hackathonParticipants} where ${hackathonParticipants.hackathonId} = ${input.hackathonId} and ${hackathonParticipants.registrationStatus} in ('approved', 'checked_in'))`,
+          })
+          .from(hackathons)
+          .where(eq(hackathons.id, input.hackathonId));
+        const size = seats?.max
+          ? Math.min(input.size, Math.max(seats.max - seats.seated, 0))
+          : input.size;
+        if (size === 0) return { wave, picked: [], full: true };
+
         const picked = await tx
           .select({
             id: hackathonParticipants.id,
@@ -373,10 +474,10 @@ export const hackathonAdminRouter = createTRPCRouter({
             ),
           )
           .orderBy(hackathonParticipants.registeredAt)
-          .limit(input.size)
+          .limit(size)
           .for("update", { skipLocked: true });
 
-        if (picked.length === 0) return { wave, picked };
+        if (picked.length === 0) return { wave, picked, full: false };
 
         await tx
           .update(hackathonParticipants)
@@ -392,7 +493,7 @@ export const hackathonAdminRouter = createTRPCRouter({
             ),
           );
 
-        return { wave, picked };
+        return { wave, picked, full: false };
       });
 
       if (picked.length === 0) {
@@ -400,7 +501,9 @@ export const hackathonAdminRouter = createTRPCRouter({
           wave,
           accepted: 0,
           participantIds: [] as string[],
-          message: "No pending applications left to accept.",
+          message: full
+            ? "Every seat is taken. Raise the capacity to accept more."
+            : "No pending applications left to accept.",
         };
       }
 
@@ -493,22 +596,30 @@ export const hackathonAdminRouter = createTRPCRouter({
 
       // One statement rather than one per recipient: this runs against the full
       // accepted list, and a 500-round-trip transaction holds a pool connection for
-      // its whole duration.
-      await db
-        .update(hackathonParticipants)
-        .set({ registrationStatus: "approved", updatedAt: new Date() })
-        .where(
-          and(
-            inArray(
-              hackathonParticipants.id,
-              participants.map((participant) => participant.id),
-            ),
-            eq(hackathonParticipants.hackathonId, hackathonId),
-            // Repeated in SQL for a check-in that lands after the read above:
-            // submitting a project requires checked_in.
-            ne(hackathonParticipants.registrationStatus, "checked_in"),
-          ),
+      // its whole duration. Checked against capacity first, in the same
+      // transaction, so the batch is accepted whole or not at all.
+      await db.transaction(async (tx) => {
+        await assertSeats(
+          tx as unknown as DrizzleDB,
+          hackathonId,
+          toAccept.map((participant) => participant.id),
         );
+        await tx
+          .update(hackathonParticipants)
+          .set({ registrationStatus: "approved", updatedAt: new Date() })
+          .where(
+            and(
+              inArray(
+                hackathonParticipants.id,
+                participants.map((participant) => participant.id),
+              ),
+              eq(hackathonParticipants.hackathonId, hackathonId),
+              // Repeated in SQL for a check-in that lands after the read above:
+              // submitting a project requires checked_in.
+              ne(hackathonParticipants.registrationStatus, "checked_in"),
+            ),
+          );
+      });
 
       // Approving a rejected or waitlisted applicant hands a seat back out.
       await syncCurrentParticipants(db, hackathonId);
@@ -623,41 +734,50 @@ export const hackathonAdminRouter = createTRPCRouter({
       // One statement, not one per id: 2000 sequential round trips would hold a
       // pool connection for the whole batch. The (id, hackathonId) scoping survives
       // in the AND, and the caller is told how many rows really changed.
-      const rows = await (ctx.db as DrizzleDB)
-        .update(hackathonParticipants)
-        .set({
-          registrationStatus: status,
-          updatedAt: new Date(),
-          // coalesce so re-checking in someone who already arrived keeps their original
-          // time. `at time zone 'utc'` because the column is timestamp-without-tz: a
-          // bare now() goes through the session TimeZone and would disagree with the
-          // `new Date()` updateParticipantStatus writes for the same event.
-          ...(status === "checked_in"
-            ? {
-                checkedInAt: sql`coalesce(${hackathonParticipants.checkedInAt}, now() at time zone 'utc')`,
-              }
-            : {}),
-        })
-        .where(
-          and(
-            inArray(hackathonParticipants.id, participantIds),
-            eq(hackathonParticipants.hackathonId, hackathonId),
-            // Same rule as the single-participant path, in the WHERE so a 2000-row
-            // selection with a few unreviewed applicants still admits everybody else.
-            // It matters more here: "Select all N matching" means one wrong click could
-            // promote every pending applicant to a state that lets them submit.
-            status === "checked_in"
-              ? inArray(hackathonParticipants.registrationStatus, [
-                  "approved",
-                  "checked_in",
-                ])
-              : undefined,
-          ),
-        )
-        .returning({
-          id: hackathonParticipants.id,
-          userId: hackathonParticipants.userId,
-        });
+      const rows = await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        if (status === "approved") {
+          await assertSeats(
+            tx as unknown as DrizzleDB,
+            hackathonId,
+            participantIds,
+          );
+        }
+        return tx
+          .update(hackathonParticipants)
+          .set({
+            registrationStatus: status,
+            updatedAt: new Date(),
+            // coalesce so re-checking in someone who already arrived keeps their original
+            // time. `at time zone 'utc'` because the column is timestamp-without-tz: a
+            // bare now() goes through the session TimeZone and would disagree with the
+            // `new Date()` updateParticipantStatus writes for the same event.
+            ...(status === "checked_in"
+              ? {
+                  checkedInAt: sql`coalesce(${hackathonParticipants.checkedInAt}, now() at time zone 'utc')`,
+                }
+              : {}),
+          })
+          .where(
+            and(
+              inArray(hackathonParticipants.id, participantIds),
+              eq(hackathonParticipants.hackathonId, hackathonId),
+              // Same rule as the single-participant path, in the WHERE so a 2000-row
+              // selection with a few unreviewed applicants still admits everybody else.
+              // It matters more here: "Select all N matching" means one wrong click could
+              // promote every pending applicant to a state that lets them submit.
+              status === "checked_in"
+                ? inArray(hackathonParticipants.registrationStatus, [
+                    "approved",
+                    "checked_in",
+                  ])
+                : undefined,
+            ),
+          )
+          .returning({
+            id: hackathonParticipants.id,
+            userId: hackathonParticipants.userId,
+          });
+      });
 
       await syncCurrentParticipants(ctx.db as DrizzleDB, hackathonId);
 
