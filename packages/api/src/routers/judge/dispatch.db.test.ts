@@ -245,6 +245,29 @@ describe.skipIf(!URL)("judging pool on Postgres", () => {
     expect(rows).toHaveLength(1);
   });
 
+  it("closes a live visit to a withdrawn project instead of holding it open beside new ones", async () => {
+    const { hackathonId, judgeIds } = await seed({ projects: 5, judges: 1 });
+    const t0 = new Date("2027-02-28T13:00:00Z");
+    const first = await dispatch(judgeIds[0]!, hackathonId, t0);
+    if (first.done) throw new Error("expected a table");
+    await db
+      .update(judgingProjects)
+      .set({ withdrawnAt: at(t0, 10) })
+      .where(eq(judgingProjects.id, first.project.id));
+
+    const second = await dispatch(judgeIds[0]!, hackathonId, at(t0, 20));
+    const third = await dispatch(judgeIds[0]!, hackathonId, at(t0, 30));
+    if (second.done || third.done) throw new Error("expected tables");
+    expect(second.project.id).not.toBe(first.project.id);
+    expect(third.queueId).toBe(second.queueId);
+
+    const open = await db
+      .select()
+      .from(judgeQueue)
+      .where(and(eq(judgeQueue.judgeId, judgeIds[0]!), eq(judgeQueue.isCompleted, false)));
+    expect(open.map((r) => r.id)).toEqual([second.queueId]);
+  });
+
   it("clears a list built in advance by the old assignment instead of treating it as visits", async () => {
     const { hackathonId, projectIds, judgeIds } = await seed({ projects: 3, judges: 1 });
     await db.insert(judgeQueue).values(

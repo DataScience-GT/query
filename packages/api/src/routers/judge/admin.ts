@@ -16,7 +16,7 @@ import { eq, and, asc, sql, inArray, isNull } from "drizzle-orm";
 import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
-import { isLive, loadPool } from "./dispatch";
+import { isLive, loadGroups, loadPool } from "./dispatch";
 
 // Judges draw tables from a shared pool (dispatch.ts) instead of holding a
 // list built in advance. Clears rows an earlier version built that the judge
@@ -736,11 +736,15 @@ export const judgeAdminRouter = createTRPCRouter({
           (b.idleMinutes ?? 0) - (a.idleMinutes ?? 0),
       );
 
-      // How evenly the projects have been seen. Two looks each is the floor
-      // the pool works towards before anyone gets a third.
+      // How evenly the main panel has seen the projects. Two looks each is the
+      // floor the pool works towards before anyone gets a third. Sponsor and
+      // special-label scores cover their own prize, as in dispatch, so they
+      // count towards neither the floor nor the pace that estimates it.
+      const { groupByJudge } = await loadGroups(db, input.hackathonId);
+      const mainVotes = voteRows.filter((v) => groupByJudge(v.judgeId) === "main");
       const TARGET_LOOKS = 2;
       const looks = new Map<string, number>(projectRows.map((p) => [p.id, 0]));
-      for (const v of voteRows) {
+      for (const v of mainVotes) {
         if (looks.has(v.projectId)) looks.set(v.projectId, looks.get(v.projectId)! + 1);
       }
       const counts = [...looks.values()];
@@ -750,7 +754,7 @@ export const judgeAdminRouter = createTRPCRouter({
       // judges who are actually on the floor, not the number who signed up.
       const WINDOW_MIN = 30;
       const windowStart = now.getTime() - WINDOW_MIN * 60_000;
-      const recentScores = voteRows.filter(
+      const recentScores = mainVotes.filter(
         (v) => v.votedAt && v.votedAt.getTime() >= windowStart,
       ).length;
       const activeJudges = judgesOut.filter(
