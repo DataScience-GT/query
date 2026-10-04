@@ -1,7 +1,8 @@
 /**
  * Judge-side edge cases: queue ownership, vote/queue consistency, the judging
- * window, reassignment on force-skip, bulk assignment coverage and admin
- * cleanup paths.
+ * window and the scoring cutoff, and admin cleanup paths. Which table the
+ * shared pool hands out is covered against real Postgres in
+ * routers/judge/dispatch.db.test.ts, not here.
  *
  * Tests marked `it.skip` are written against the behaviour the product SHOULD
  * have. Each one currently fails against the shipped handler; the comment
@@ -11,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
-import { db } from "@query/db";
+import { db, judgeQueue, judgeVotes } from "@query/db";
 
 // Fully mock the DB at the file level, mirroring hackathon-flow.test.ts.
 const mockFindFirst = vi.fn();
@@ -58,6 +59,8 @@ vi.mock("@query/db", () => {
   return {
     db: {
       transaction: vi.fn().mockImplementation((callback) => callback(db)),
+      // The judging dispatch lock (pg_advisory_xact_lock).
+      execute: vi.fn().mockResolvedValue({ rows: [] }),
       query: {
         admins: table("admins"),
         users: table("users"),
@@ -308,6 +311,8 @@ describe("Judge edge cases", () => {
     hackathon?: Record<string, unknown>;
     myAssignment?: Record<string, unknown>;
     judge?: Record<string, unknown> | undefined;
+    /** The judge's existing vote on the project, if any. */
+    vote?: Record<string, unknown>;
   }) => {
     const nextQueue = seq(opts.queue ?? []);
     mockFindFirst.mockImplementation((table: string) => {
@@ -318,16 +323,54 @@ describe("Judge edge cases", () => {
       if (table === "hackathons") return opts.hackathon ?? { id: HACK_A };
       if (table === "judgeQueue") return nextQueue();
       if (table === "judgeAssignments") return opts.myAssignment;
+      if (table === "judgeVotes") return opts.vote;
       return undefined;
     });
   };
 
-  /** Every judgeQueue row written by a mutation, flattened. */
-  const insertedRows = () =>
-    mockInsert.mock.calls.flatMap((c) => {
-      const values = c[2]?.[0];
-      return Array.isArray(values) ? values : values ? [values] : [];
-    });
+  /** Every row a mutation inserted into `table`, flattened. */
+  const insertsInto = (table: unknown) =>
+    mockInsert.mock.calls
+      .filter((c) => c[1]?.[0] === table)
+      .flatMap((c) => {
+        const values = c[2]?.[0];
+        return Array.isArray(values) ? values : values ? [values] : [];
+      });
+
+  /** A judgeable project as loadPool reads it. */
+  const poolRow = (id: string, tableNumber: number) => ({
+    id,
+    tableNumber,
+    tracks: null,
+    challenges: null,
+    isCreateX: false,
+  });
+
+  /**
+   * Feeds the select reads dispatchNext makes, in its order: the assignments
+   * and projects behind the pool, this judge's own visits, then (only when it
+   * has to pick a new table) every vote and every open visit. Which table it
+   * picks is covered against real Postgres in dispatch.db.test.ts; these only
+   * need it to hand something back.
+   */
+  const wireDispatch = (opts: {
+    pool: unknown[];
+    mine?: unknown[];
+    votes?: unknown[];
+    open?: unknown[];
+  }) => {
+    mockSelect
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce(opts.pool)
+      .mockReturnValueOnce(opts.mine ?? [])
+      .mockReturnValueOnce(opts.votes ?? [])
+      .mockReturnValueOnce(opts.open ?? []);
+  };
+
+  /** Inside the scoring window: tapped in a minute ago. */
+  const recent = () => new Date(Date.now() - 60_000);
+  /** Past the 4:00 cutoff and its grace. */
+  const lapsed = () => new Date(Date.now() - 5 * 60_000);
 
   // =====================================================================
   describe("1. A judge may only act on their own queue", () => {
@@ -405,63 +448,104 @@ describe("Judge edge cases", () => {
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
-    // BUG: portal.ts:312-314 returns done for a stale queueId without ever
-    // asking whether the judge has uncompleted rows left.
+    // A stale queueId is tolerated (the judge may be retrying), and resolving
+    // the judge's own slot instead must still lead on to the next table rather
+    // than reporting judging finished.
     it("does not declare judging finished when the queue row simply no longer exists", async () => {
       wireJudge({
-        project: { id: PROJECT_A, hackathonId: HACK_A },
+        project: { id: PROJECT_B, hackathonId: HACK_A, name: "Still Waiting" },
         queue: [
           undefined,
           // The slot this judge owns for the project being scored. The stale
-          // queueId resolves to nothing, but they are still assigned it.
-          { id: QUEUE_A },
-          {
-            id: "queue_b",
-            hackathonId: HACK_A,
-            project: { id: PROJECT_B, name: "Still Waiting" },
-          },
-        ],
-      });
-
-      const res = await judgeCaller().judge.completeAndNext(vote);
-      expect(res.done).toBe(false);
-    });
-
-    it("returns the same next project when the same completion is submitted twice", async () => {
-      const nextRow = {
-        id: "queue_b",
-        hackathonId: HACK_A,
-        project: { id: PROJECT_B, name: "Next Project" },
-      };
-
-      wireJudge({
-        project: { id: PROJECT_A, hackathonId: HACK_A },
-        queue: [
-          { id: QUEUE_A, judgeId: JUDGE_ID, hackathonId: HACK_A, projectId: PROJECT_A },
-          nextRow,
-        ],
-      });
-      const first = await judgeCaller().judge.completeAndNext(vote);
-
-      // Retry from a second tab: the row is already completed, so the next
-      // uncompleted row is still the same one.
-      wireJudge({
-        project: { id: PROJECT_A, hackathonId: HACK_A },
-        queue: [
+          // queueId resolves to nothing, but they are still at this table.
           {
             id: QUEUE_A,
             judgeId: JUDGE_ID,
             hackathonId: HACK_A,
             projectId: PROJECT_A,
-            isCompleted: true,
+            isCompleted: false,
+            startedAt: recent(),
+            arrivedAt: recent(),
           },
-          nextRow,
+        ],
+      });
+      wireDispatch({
+        pool: [poolRow(PROJECT_A, 1), poolRow(PROJECT_B, 2)],
+        mine: [
+          {
+            id: QUEUE_A,
+            projectId: PROJECT_A,
+            isCompleted: true,
+            startedAt: recent(),
+            arrivedAt: recent(),
+            completedAt: new Date(),
+          },
+        ],
+      });
+      mockInsert.mockReturnValue([{ id: "queue_b" }]);
+
+      const res = await judgeCaller().judge.completeAndNext(vote);
+
+      expect(res).toMatchObject({ done: false, nextQueueId: "queue_b" });
+      expect(insertsInto(judgeVotes)).toHaveLength(1);
+    });
+
+    it("returns the same next project when the same completion is submitted twice", async () => {
+      const slot = {
+        id: QUEUE_A,
+        judgeId: JUDGE_ID,
+        hackathonId: HACK_A,
+        projectId: PROJECT_A,
+        isCompleted: false,
+        startedAt: recent(),
+        arrivedAt: recent(),
+      };
+      const pool = [poolRow(PROJECT_A, 1), poolRow(PROJECT_B, 2)];
+
+      wireJudge({
+        project: { id: PROJECT_A, hackathonId: HACK_A },
+        queue: [slot],
+      });
+      wireDispatch({
+        pool,
+        mine: [{ ...slot, isCompleted: true, completedAt: new Date() }],
+      });
+      mockInsert.mockReturnValue([{ id: "queue_b" }]);
+      const first = await judgeCaller().judge.completeAndNext(vote);
+      mockInsert.mockClear();
+
+      // Retry from a second tab: the slot is already completed and the vote is
+      // on record, and the visit the first call opened is still live, so
+      // dispatch hands that one back rather than opening another.
+      wireJudge({
+        project: { id: PROJECT_A, hackathonId: HACK_A },
+        queue: [{ ...slot, isCompleted: true }],
+        vote: { id: "vote_1" },
+      });
+      wireDispatch({
+        pool,
+        mine: [
+          { ...slot, isCompleted: true, completedAt: new Date() },
+          {
+            id: "queue_b",
+            projectId: PROJECT_B,
+            isCompleted: false,
+            startedAt: new Date(),
+            arrivedAt: null,
+            completedAt: null,
+          },
         ],
       });
       const second = await judgeCaller().judge.completeAndNext(vote);
 
       expect(first).toMatchObject({ done: false, nextQueueId: "queue_b" });
-      expect(second).toMatchObject({ done: false, nextQueueId: "queue_b" });
+      expect(second).toMatchObject({
+        done: false,
+        nextQueueId: "queue_b",
+        timedOut: false,
+      });
+      // Nothing scored twice, no second visit opened.
+      expect(mockInsert).not.toHaveBeenCalled();
     });
   });
 
@@ -497,487 +581,67 @@ describe("Judge edge cases", () => {
 
   // =====================================================================
   describe("4. skipProject response shape", () => {
+    const ownSlot = {
+      id: QUEUE_A,
+      judgeId: JUDGE_ID,
+      hackathonId: HACK_A,
+      projectId: PROJECT_A,
+      isCompleted: false,
+      startedAt: recent(),
+      arrivedAt: null,
+    };
+
     it("returns the next project with its name and table number", async () => {
       wireJudge({
-        queue: [
-          { id: QUEUE_A, hackathonId: HACK_A },
-          { id: QUEUE_A, judgeId: JUDGE_ID, hackathonId: HACK_A, order: 1 },
-          {
-            id: "queue_b",
-            hackathonId: HACK_A,
-            project: { id: PROJECT_B, name: "Next Project", tableNumber: 12 },
-          },
-        ],
+        project: { id: PROJECT_B, name: "Next Project", tableNumber: 12 },
+        queue: [{ id: QUEUE_A, hackathonId: HACK_A }, ownSlot],
       });
+      wireDispatch({
+        pool: [poolRow(PROJECT_A, 1), poolRow(PROJECT_B, 12)],
+        mine: [{ ...ownSlot, isCompleted: true, completedAt: new Date() }],
+      });
+      mockInsert.mockReturnValue([{ id: "queue_b" }]);
 
       const res = await judgeCaller().judge.skipProject({ queueId: QUEUE_A });
-      expect(res.skippedToEnd).toBe(false);
+
+      expect(res).toMatchObject({ done: false, queueId: "queue_b" });
       expect(res.project).toMatchObject({ name: "Next Project", tableNumber: 12 });
     });
 
-    // The caller renders a project card either way, so the last-project branch
-    // has to hand back the joined project, not the judgeQueue row — returning
-    // the queue row leaves the UI with an empty card on a judge's final table.
-    it("still returns a named project when only the last project remains", async () => {
+    // The pool never sends a judge back to a table they passed on, so skipping
+    // the last one they can be sent to ends their judging rather than serving
+    // the same table again.
+    it("reports done when the skipped table was the last one left", async () => {
       wireJudge({
-        queue: [
-          { id: QUEUE_A, hackathonId: HACK_A },
-          // project_id is NOT NULL and the handler loads this row with
-          // `with: { project: true }`, so a slot always arrives carrying one.
-          {
-            id: QUEUE_A,
-            judgeId: JUDGE_ID,
-            hackathonId: HACK_A,
-            order: 1,
-            projectId: PROJECT_A,
-            project: { id: PROJECT_A, name: "Last Project", tableNumber: 7 },
-          },
-          undefined,
-        ],
+        queue: [{ id: QUEUE_A, hackathonId: HACK_A }, ownSlot],
+      });
+      wireDispatch({
+        pool: [poolRow(PROJECT_A, 1)],
+        mine: [{ ...ownSlot, isCompleted: true, completedAt: new Date() }],
       });
 
       const res = await judgeCaller().judge.skipProject({ queueId: QUEUE_A });
-      expect(res.skippedToEnd).toBe(true);
-      expect(res.project).toMatchObject({
-        name: "Last Project",
-        tableNumber: 7,
-      });
+
+      expect(res).toMatchObject({ done: true, project: null, queueId: null });
+      // The slot is closed without a vote.
+      const closed = mockUpdate.mock.calls.some(
+        (call) => call[1]?.[0] === judgeQueue && call[2]?.[0]?.isCompleted === true,
+      );
+      expect(closed).toBe(true);
+      expect(insertsInto(judgeVotes)).toHaveLength(0);
     });
   });
 
   // =====================================================================
-  describe("5. forceSkipOvertime reassignment", () => {
+  describe("7b. Approving a judge writes no queue", () => {
     /**
-     * Candidate selection now runs two set-based queries rather than two per
-     * candidate: who already holds this project, and each judge's uncompleted
-     * count. The mocks mirror that shape — feeding the old per-candidate
-     * counts here would make these tests pass without exercising the sort.
-     */
-    const wireForceSkip = (opts: {
-      myAssignment?: Record<string, unknown>;
-      others: Record<string, unknown>[];
-      /** judgeIds already holding the skipped project */
-      holders?: string[];
-      /** judgeId -> uncompleted queue length */
-      remaining?: Record<string, number>;
-      /** the judge's own next uncompleted slot, if any */
-      next?: Record<string, unknown>;
-    }) => {
-      const nextQueue = seq([
-        { id: QUEUE_A, hackathonId: HACK_A }, // isJudge middleware lookup
-        {
-          id: QUEUE_A,
-          judgeId: JUDGE_ID,
-          hackathonId: HACK_A,
-          projectId: PROJECT_A,
-          project: { id: PROJECT_A, tracks: [] },
-        },
-        // the "what do I do next" lookup at the end
-        opts.next,
-      ]);
-      mockFindFirst.mockImplementation((table: string) => {
-        if (table === "judges") return JUDGE_ROW;
-        if (table === "hackathons") return { id: HACK_A };
-        if (table === "judgeQueue") return nextQueue();
-        if (table === "judgeAssignments")
-          return "myAssignment" in opts
-            ? opts.myAssignment
-            : { judgeId: JUDGE_ID, hackathonId: HACK_A };
-        return undefined;
-      });
-      mockFindMany.mockImplementation((table: string) =>
-        table === "judgeAssignments" ? opts.others : [],
-      );
-      mockSelect.mockReturnValueOnce(
-        (opts.holders ?? []).map((judgeId) => ({ judgeId })),
-      );
-      mockSelect.mockReturnValueOnce(
-        Object.entries(opts.remaining ?? {}).map(([judgeId, remaining]) => ({
-          judgeId,
-          remaining,
-        })),
-      );
-    };
-
-    // BUG: portal.ts:428-486 draws candidates from every judgeAssignments row
-    // with no isActive/status filter and sorts by fewest remaining, so a judge
-    // who was never activated (empty queue) sorts first and is handed the
-    // project it can never open.
-    it("never hands the project to a judge who is not active", async () => {
-      wireForceSkip({
-        others: [
-          {
-            judgeId: "inactive_judge",
-            track: null,
-            status: "pending",
-            judge: { id: "inactive_judge", isActive: false },
-          },
-          {
-            judgeId: "active_judge",
-            track: null,
-            status: "approved",
-            judge: { id: "active_judge", isActive: true },
-          },
-        ],
-        remaining: { inactive_judge: 0, active_judge: 4 },
-      });
-
-      await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
-
-      const reassigned = insertedRows().find((r: any) => r.projectId === PROJECT_A);
-      expect(reassigned?.judgeId).toBe("active_judge");
-    });
-
-    // A judge already holding this project must not be handed it twice — they
-    // would see the same table appear again later in their own queue.
-    it("never hands the project to a judge who already has it", async () => {
-      wireForceSkip({
-        others: [
-          {
-            judgeId: "has_it",
-            track: null,
-            judge: { id: "has_it", isActive: true },
-          },
-          {
-            judgeId: "free_judge",
-            track: null,
-            judge: { id: "free_judge", isActive: true },
-          },
-        ],
-        holders: [JUDGE_ID, "has_it"],
-        remaining: { has_it: 0, free_judge: 9 },
-      });
-
-      await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
-
-      const reassigned = insertedRows().find(
-        (r: any) => r.projectId === PROJECT_A,
-      );
-      expect(reassigned?.judgeId).toBe("free_judge");
-    });
-
-    // Between two eligible judges the lighter queue wins, so the reassigned
-    // project is actually reached before judging closes.
-    it("prefers the judge with the fewest projects left", async () => {
-      wireForceSkip({
-        others: [
-          {
-            judgeId: "busy",
-            track: null,
-            judge: { id: "busy", isActive: true },
-          },
-          {
-            judgeId: "light",
-            track: null,
-            judge: { id: "light", isActive: true },
-          },
-        ],
-        remaining: { busy: 11, light: 2 },
-      });
-
-      await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
-
-      const reassigned = insertedRows().find(
-        (r: any) => r.projectId === PROJECT_A,
-      );
-      expect(reassigned?.judgeId).toBe("light");
-    });
-
-    // BUG: portal.ts:422-424 loads myAssignment with no hackathonId filter and
-    // then uses myAssignment.hackathonId (not queueItem.hackathonId) for the
-    // reassignment row, orphaning it in the wrong hackathon.
-    it("files the reassignment under the hackathon the skipped project belongs to", async () => {
-      wireForceSkip({
-        myAssignment: { judgeId: JUDGE_ID, hackathonId: HACK_B },
-        others: [
-          {
-            judgeId: "active_judge",
-            track: null,
-            status: "approved",
-            judge: { id: "active_judge", isActive: true },
-          },
-        ],
-        remaining: { active_judge: 1 },
-      });
-
-      await judgeCaller().judge.forceSkipOvertime({ queueId: QUEUE_A });
-
-      const reassigned = insertedRows().find((r: any) => r.projectId === PROJECT_A);
-      expect(reassigned?.hackathonId).toBe(HACK_A);
-    });
-
-    // Both siblings (completeAndNext, skipProject) stamp startedAt on the slot
-    // they hand over. Without it here the next table stays unclaimed and the
-    // following judge to ask for work is sent to the table this judge just
-    // walked up to.
-    it("claims the table it hands the judge next", async () => {
-      wireForceSkip({
-        others: [],
-        next: {
-          id: "queue_next",
-          judgeId: JUDGE_ID,
-          hackathonId: HACK_A,
-          projectId: "project_next",
-          project: { id: "project_next", tracks: [] },
-        },
-      });
-
-      const res = await judgeCaller().judge.forceSkipOvertime({
-        queueId: QUEUE_A,
-      });
-
-      expect(res.queueId).toBe("queue_next");
-      const claimed = mockUpdate.mock.calls.some(
-        (call: any) =>
-          call[2]?.[0]?.startedAt instanceof Date &&
-          !("isCompleted" in (call[2]?.[0] ?? {})),
-      );
-      expect(claimed).toBe(true);
-    });
-
-    // BUG: with no judgeAssignments row the whole reassignment block is
-    // skipped (portal.ts:426) yet the response still looks like a success, so
-    // the project is dropped with nobody left to judge it.
-    it("reports that nothing was reassigned when the judge has no assignment row", async () => {
-      wireForceSkip({ myAssignment: undefined, others: [] });
-
-      const res = await judgeCaller().judge.forceSkipOvertime({
-        queueId: QUEUE_A,
-      });
-      expect(res).toHaveProperty("reassigned", false);
-    });
-  });
-
-  // =====================================================================
-  describe("6. Bulk assignment coverage", () => {
-    const projectsFor = (track: string, count: number, from = 1) =>
-      Array.from({ length: count }, (_, i) => ({
-        id: `${track}_${i + from}`,
-        hackathonId: HACK_A,
-        tracks: [track],
-        challenges: null,
-        tableNumber: i + from,
-        isCreateX: false,
-      }));
-
-    const wireAssign = (opts: {
-      hackathonTracks: string[] | null;
-      assignments: Record<string, unknown>[];
-      projects: Record<string, unknown>[];
-    }) => {
-      mockFindFirst.mockImplementation((table: string) => {
-        if (table === "admins") return ADMIN_ROW;
-        if (table === "hackathons")
-          return { id: HACK_A, name: "Hacklytics", tracks: opts.hackathonTracks };
-        return undefined;
-      });
-      mockFindMany.mockImplementation((table: string) => {
-        if (table === "judgeAssignments") return opts.assignments;
-        if (table === "judgingProjects") return opts.projects;
-        return [];
-      });
-    };
-
-    const runAssign = () =>
-      adminCaller().judge.assignJudgesToProjects({
-        hackathonId: HACK_A,
-        minProjects: 3,
-        maxProjects: 5,
-        shuffle: false,
-        autoCalculate: false,
-      });
-
-    const trackedJudges = [
-      { judgeId: "j_sports", track: "Sports", judge: { name: "Sports Judge" } },
-      { judgeId: "j_finance", track: "Finance", judge: { name: "Finance Judge" } },
-    ];
-
-    it("caps each track judge at maxProjects when the hackathon tracks are configured", async () => {
-      wireAssign({
-        hackathonTracks: ["Sports", "Finance"],
-        assignments: trackedJudges,
-        projects: [...projectsFor("Sports", 8), ...projectsFor("Finance", 8, 9)],
-      });
-
-      const res = await runAssign();
-
-      expect(res.success).toBe(true);
-      for (const a of res.assignments) {
-        expect(a.assignedCount).toBeLessThanOrEqual(5);
-        expect(a.assignedCount).toBeGreaterThanOrEqual(3);
-      }
-      expect(res.coverage.max).toBe(1);
-    });
-
-    // BUG: admin.ts:497 builds MAIN_TRACKS from hackathon.tracks. When that
-    // column is null every tracked judge is classified "special"
-    // (helpers.ts:67) and bypasses minProjects/maxProjects entirely.
-    it("still caps each judge at maxProjects when the hackathon has no tracks configured", async () => {
-      wireAssign({
-        hackathonTracks: null,
-        assignments: trackedJudges,
-        projects: [...projectsFor("Sports", 8), ...projectsFor("Finance", 8, 9)],
-      });
-
-      const res = await runAssign();
-
-      for (const a of res.assignments) {
-        expect(a.assignedCount).toBeLessThanOrEqual(5);
-      }
-    });
-
-    // BUG: admin.ts:499-502 filters allAssignments by hackathonId only, so
-    // pending applicants whose judges row is isActive:false get real queue
-    // rows and inflate coverage.min even though isJudge will never let them in.
-    it("gives no queue to an applicant who has not been approved", async () => {
-      wireAssign({
-        hackathonTracks: ["Sports"],
-        assignments: [
-          {
-            judgeId: "j_approved",
-            track: "Sports",
-            status: "approved",
-            judge: { name: "Approved", isActive: true },
-          },
-          {
-            judgeId: "j_pending",
-            track: "Sports",
-            status: "pending",
-            judge: { name: "Pending", isActive: false },
-          },
-        ],
-        projects: projectsFor("Sports", 8),
-      });
-
-      const res = await runAssign();
-
-      const pending = res.assignments.find((a) => a.judgeId === "j_pending");
-      expect(pending?.assignedCount).toBe(0);
-    });
-
-    // BUG: admin.ts:509-514 rejects zero projects but not zero judges, so an
-    // event with no judges reports success with coverage {min:0,max:0}.
-    it("refuses to run an assignment when the hackathon has no judges", async () => {
-      wireAssign({
-        hackathonTracks: ["Sports"],
-        assignments: [],
-        projects: projectsFor("Sports", 8),
-      });
-
-      await expect(runAssign()).rejects.toThrow(/judge/i);
-    });
-
-    it("refuses an assignment run for a hackathon with no projects", async () => {
-      wireAssign({
-        hackathonTracks: ["Sports"],
-        assignments: trackedJudges,
-        projects: [],
-      });
-
-      await expect(runAssign()).rejects.toThrow(/No projects found/);
-    });
-  });
-
-  // =====================================================================
-  describe("7. initializeQueue track filtering", () => {
-    const wireInit = (
-      track: string,
-      projects: Record<string, unknown>[],
-      judgeHackathonId: string = HACK_A,
-    ) => {
-      mockFindFirst.mockImplementation((table: string) => {
-        if (table === "admins") return ADMIN_ROW;
-        // The judge's own edition. initializeQueue reads this to refuse
-        // building a queue nobody could ever open.
-        if (table === "judges") return { hackathonId: judgeHackathonId };
-        if (table === "judgeAssignments")
-          return { judgeId: JUDGE_ID, hackathonId: HACK_A, track };
-        return undefined;
-      });
-      mockFindMany.mockImplementation((table: string) =>
-        table === "judgingProjects" ? projects : [],
-      );
-    };
-
-    const pool = [
-      {
-        id: PROJECT_A,
-        tracks: ["Sports"],
-        challenges: null,
-        isCreateX: false,
-        tableNumber: 1,
-      },
-      {
-        id: PROJECT_B,
-        tracks: null,
-        challenges: null,
-        isCreateX: true,
-        tableNumber: 2,
-      },
-    ];
-
-    it("queues only the projects carrying the judge's track", async () => {
-      wireInit("Sports", pool);
-
-      const res = await adminCaller().judge.initializeQueue({
-        judgeId: JUDGE_ID,
-        hackathonId: HACK_A,
-        shuffle: false,
-      });
-
-      expect(res).toMatchObject({ success: true, projectCount: 1 });
-      expect(insertedRows()[0]).toMatchObject({ projectId: PROJECT_A });
-    });
-
-    // BUG: admin.ts:433-440 omits the `track === 'createx' && p.isCreateX`
-    // branch that assignToHackathon (admin.ts:152) and buildCoverageQueues
-    // (helpers.ts:72) both apply, so re-initializing a createX judge silently
-    // wipes their entire workload and still reports success.
-    it("queues the createX pool for a judge assigned to the createX track", async () => {
-      wireInit("createX", pool);
-
-      const res = await adminCaller().judge.initializeQueue({
-        judgeId: JUDGE_ID,
-        hackathonId: HACK_A,
-        shuffle: false,
-      });
-
-      expect(res.projectCount).toBe(1);
-    });
-
-    /**
-     * A judges row belongs to one hackathon and isJudge authorizes against it,
-     * so a queue built across editions can never be opened — the projects in
-     * it are simply never scored, with nothing anywhere reporting a problem.
-     * assignToHackathon already refuses this; this path did not.
-     */
-    it("refuses to build a queue for a judge from another hackathon", async () => {
-      wireInit("Sports", pool, HACK_B);
-
-      await expect(
-        adminCaller().judge.initializeQueue({
-          judgeId: JUDGE_ID,
-          hackathonId: HACK_A,
-          shuffle: false,
-        }),
-      ).rejects.toThrow(/different hackathon/i);
-
-      expect(mockDelete).not.toHaveBeenCalled();
-    });
-  });
-
-  // =====================================================================
-  describe("7b. Approving a judge builds their queue", () => {
-    /**
-     * judge.register always writes an assignment row, and assignToHackathon
-     * refuses anyone who already has one — so the documented recruitment path
-     * produced an active judge whose portal said "All Done" having judged
-     * nothing. The only remedy was assignJudgesToProjects, which deletes and
-     * rebuilds every queue in the event.
+     * Approval used to build the judge's queue, because nothing else would.
+     * With the shared pool an active judge draws tables as they ask for them,
+     * so approval writes no judge_queue rows at all and only reports how many
+     * projects the judge can be sent to.
      */
     const wireApproval = (opts: {
       assignment?: Record<string, unknown> | undefined;
-      queueCount: number;
       projects?: Record<string, unknown>[];
     }) => {
       mockFindFirst.mockImplementation((table: string) => {
@@ -988,27 +652,20 @@ describe("Judge edge cases", () => {
             : { id: "asn_1", judgeId: JUDGE_ID, hackathonId: HACK_A, track: null };
         return undefined;
       });
-      mockFindMany.mockImplementation((table: string) =>
-        table === "judgingProjects" ? (opts.projects ?? []) : [],
-      );
       mockUpdate.mockReturnValue([
         { userId: "judge_user", hackathonId: HACK_A },
       ]);
-      mockSelect.mockReturnValue([{ count: opts.queueCount }]);
+      // The judge-row lock, then the two reads behind loadPool: every
+      // assignment in the hackathon, and its judgeable projects.
+      mockSelect
+        .mockReturnValueOnce([{ id: JUDGE_ID }])
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce(opts.projects ?? []);
     };
 
-    const project = (id: string, tableNumber: number) => ({
-      id,
-      tracks: null,
-      challenges: null,
-      isCreateX: false,
-      tableNumber,
-    });
-
-    it("builds a queue when an approved judge has none", async () => {
+    it("approves a judge without writing any judge_queue rows", async () => {
       wireApproval({
-        queueCount: 0,
-        projects: [project(PROJECT_A, 1), project(PROJECT_B, 2)],
+        projects: [poolRow(PROJECT_A, 1), poolRow(PROJECT_B, 2)],
       });
 
       const res = await adminCaller().judge.setActive({
@@ -1016,32 +673,16 @@ describe("Judge edge cases", () => {
         isActive: true,
       });
 
+      expect(res).toMatchObject({ success: true, isActive: true });
+      // The pool the judge will draw from, not a queue written for them.
       expect(res.queuedProjects).toBe(2);
-      expect(insertedRows().map((r) => r.projectId)).toEqual([
-        PROJECT_A,
-        PROJECT_B,
-      ]);
-    });
-
-    /**
-     * A judge suspended mid-event and reinstated has to come back to the queue
-     * they were part-way through. Rebuilding would forget what they already
-     * scored and reorder everything.
-     */
-    it("leaves an existing queue alone", async () => {
-      wireApproval({
-        queueCount: 5,
-        projects: [project(PROJECT_A, 1)],
-      });
-
-      const res = await adminCaller().judge.setActive({
-        judgeId: JUDGE_ID,
-        isActive: true,
-      });
-
-      expect(res.queuedProjects).toBeNull();
-      expect(mockInsert).not.toHaveBeenCalled();
-      expect(mockDelete).not.toHaveBeenCalled();
+      expect(insertsInto(judgeQueue)).toHaveLength(0);
+      // Nor is any existing visit marked done or rewritten: a judge suspended
+      // mid-event and reinstated keeps what they have scored.
+      const touchedQueue = mockUpdate.mock.calls.some(
+        (call) => call[1]?.[0] === judgeQueue,
+      );
+      expect(touchedQueue).toBe(false);
     });
 
     /**
@@ -1051,10 +692,7 @@ describe("Judge edge cases", () => {
      * built one, giving the judge every project twice.
      */
     it("locks the judge row before deciding whether to build", async () => {
-      wireApproval({
-        queueCount: 0,
-        projects: [project(PROJECT_A, 1)],
-      });
+      wireApproval({ projects: [poolRow(PROJECT_A, 1)] });
 
       await adminCaller().judge.setActive({
         judgeId: JUDGE_ID,
@@ -1070,7 +708,7 @@ describe("Judge edge cases", () => {
     });
 
     it("builds nothing for a judge with no assignment, and nothing on suspend", async () => {
-      wireApproval({ assignment: undefined, queueCount: 0 });
+      wireApproval({ assignment: undefined });
 
       const approved = await adminCaller().judge.setActive({
         judgeId: JUDGE_ID,
@@ -1296,7 +934,16 @@ describe("Judge edge cases", () => {
         project: { id: PROJECT_A, hackathonId: HACK_A },
         // The judge legitimately holds this project, so the vote turns only on
         // whether they are still a judge.
-        queue: [{ id: QUEUE_A, judgeId: JUDGE_ID, projectId: PROJECT_A }],
+        queue: [
+          {
+            id: QUEUE_A,
+            judgeId: JUDGE_ID,
+            projectId: PROJECT_A,
+            isCompleted: false,
+            startedAt: recent(),
+            arrivedAt: recent(),
+          },
+        ],
       });
       await judgeCaller().judge.submitVote({ projectId: PROJECT_A, ...scores });
 
@@ -1396,112 +1043,22 @@ describe("Judge edge cases", () => {
     });
 
     /**
-     * Queues are a snapshot of the project list. A project promoted afterwards
-     * used to sit in nobody's queue, receive zero votes, and then be dropped
-     * from the standings entirely by the zero-vote rule — an amber banner was
-     * the only sign. Appending is the only safe fix mid-judging; rebuilding
-     * reorders every queue that is already in progress.
+     * Judges draw tables from the shared pool, so a project promoted late is
+     * judgeable the moment its row exists. Promotion has no queues to append
+     * to and must not write any.
      */
-    it("appends late projects to the queues that already exist", async () => {
-      mockFindFirst.mockImplementation((table: string) => {
-        if (table === "admins") return ADMIN_ROW;
-        if (table === "hackathons") return { tracks: ["AI"], challenges: null };
-        return undefined;
-      });
-      mockFindMany.mockImplementation((table: string) => {
-        if (table === "hackathonProjects") return [submission("s1")];
-        // Two judges already hold queues; one is further along than the other.
-        if (table === "judgeQueue")
-          return [
-            { judgeId: "j1", projectId: "old_1", order: 1 },
-            { judgeId: "j1", projectId: "old_2", order: 2 },
-            { judgeId: "j2", projectId: "old_1", order: 1 },
-          ];
-        if (table === "judgeAssignments")
-          return [
-            { judgeId: "j1", track: "AI", judge: { isActive: true } },
-            { judgeId: "j2", track: "AI", judge: { isActive: true } },
-          ];
-        return [];
-      });
-      mockInsert.mockReturnValue([
-        {
-          id: "jp_new",
-          tracks: ["AI"],
-          challenges: null,
-          isCreateX: false,
-          tableNumber: 8,
-        },
-      ]);
-      mockSelect.mockReturnValue([{ count: 3 }]);
-
-      const res = await adminCaller().judge.promoteSubmissions({
-        hackathonId: HACK_A,
-      });
-
-      // Existing coverage is 3 rows over 2 projects → 1 judge per project.
-      expect(res.queueRowsAdded).toBe(1);
-      // The banner is gone: the organiser has nothing left to do.
-      expect(res.queuesNeedRebuild).toBe(false);
-
-      const queued = insertedRows().filter((r) => r.projectId === "jp_new");
-      expect(queued).toHaveLength(1);
-      // The judge with the shorter queue takes it, appended after their last
-      // slot — nothing already in either queue moves.
-      expect(queued[0]).toMatchObject({ judgeId: "j2", order: 2 });
-    });
-
-    // Assignment has not run yet, so there is nothing to append to — building
-    // queues here would do it from an incomplete project list.
-    it("appends nothing when no queue exists yet", async () => {
+    it("writes no judge_queue rows and reports only the promotion counts", async () => {
       asAdmin();
       mockFindMany.mockImplementation((table: string) =>
         table === "hackathonProjects" ? [submission("s1")] : [],
       );
-      mockSelect.mockReturnValue([{ count: 0 }]);
 
       const res = await adminCaller().judge.promoteSubmissions({
         hackathonId: HACK_A,
       });
 
-      expect(res.queueRowsAdded).toBe(0);
-      expect(res.queuesNeedRebuild).toBe(false);
-    });
-
-    // The one case an organiser still has to resolve: the new projects carry a
-    // track no active judge covers, so appending reaches nobody.
-    it("still warns when the append reaches no judge", async () => {
-      mockFindFirst.mockImplementation((table: string) => {
-        if (table === "admins") return ADMIN_ROW;
-        if (table === "hackathons")
-          return { tracks: ["AI", "Health"], challenges: null };
-        return undefined;
-      });
-      mockFindMany.mockImplementation((table: string) => {
-        if (table === "hackathonProjects") return [submission("s1")];
-        if (table === "judgeQueue")
-          return [{ judgeId: "j1", projectId: "old_1", order: 1 }];
-        if (table === "judgeAssignments")
-          return [{ judgeId: "j1", track: "Health", judge: { isActive: true } }];
-        return [];
-      });
-      mockInsert.mockReturnValue([
-        {
-          id: "jp_new",
-          tracks: ["AI"],
-          challenges: null,
-          isCreateX: false,
-          tableNumber: 8,
-        },
-      ]);
-      mockSelect.mockReturnValue([{ count: 1 }]);
-
-      const res = await adminCaller().judge.promoteSubmissions({
-        hackathonId: HACK_A,
-      });
-
-      expect(res.queueRowsAdded).toBe(0);
-      expect(res.queuesNeedRebuild).toBe(true);
+      expect(res).toEqual({ created: 1, alreadyPresent: 0, total: 1 });
+      expect(insertsInto(judgeQueue)).toHaveLength(0);
     });
   });
 
@@ -1574,7 +1131,16 @@ describe("Judge edge cases", () => {
 
       wireJudge({
         project: { id: "p_real", hackathonId: HACK_A },
-        queue: [{ id: QUEUE_A, judgeId: JUDGE_ID, projectId: PROJECT_A }],
+        queue: [
+          {
+            id: QUEUE_A,
+            judgeId: JUDGE_ID,
+            projectId: PROJECT_A,
+            isCompleted: false,
+            startedAt: recent(),
+            arrivedAt: recent(),
+          },
+        ],
       });
       await judgeCaller().judge.submitVote({ projectId: PROJECT_A, ...scores });
 
@@ -1654,97 +1220,6 @@ describe("Judge edge cases", () => {
       await expect(judgeCaller().judge.getMyAssignments()).rejects.toThrow(
         /No hackathon context found for judging/,
       );
-    });
-  });
-
-  // =====================================================================
-  describe("13. Two judges, one table", () => {
-    const BUSY = {
-      id: QUEUE_A,
-      projectId: PROJECT_A,
-      order: 1,
-      project: { id: PROJECT_A, name: "Busy Table", tableNumber: 1 },
-    };
-    const FREE = {
-      id: "queue_b",
-      projectId: PROJECT_B,
-      order: 2,
-      project: { id: PROJECT_B, name: "Free Table", tableNumber: 2 },
-    };
-
-    /** First judgeQueue.findMany is this judge's queue, second is the claims. */
-    const wireQueue = (queue: unknown[], claims: unknown[]) => {
-      wireJudge({});
-      let calls = 0;
-      mockFindMany.mockImplementation((table: string) => {
-        if (table !== "judgeQueue") return [];
-        calls += 1;
-        return calls === 1 ? queue : claims;
-      });
-    };
-
-    it("routes around a table another judge is already standing at", async () => {
-      wireQueue(
-        [BUSY, FREE],
-        [{ projectId: PROJECT_A, startedAt: new Date() }],
-      );
-
-      const res = await judgeCaller().judge.getNextTable({
-        hackathonId: HACK_A,
-      });
-
-      // Sent to the free table, and nothing in the response hints that a table
-      // was passed over — the judge has nothing to decide or dismiss.
-      expect(res.project).toMatchObject({ tableNumber: 2 });
-      expect(res.queueId).toBe("queue_b");
-      expect(res.done).toBe(false);
-      // The skipped table is still owed, so it stays in the count.
-      expect(res.remaining).toBe(2);
-    });
-
-    it("hands over a table whose claim has gone stale", async () => {
-      // Nothing comes back from the claim query once the window has passed,
-      // so an abandoned table needs no admin to release it.
-      wireQueue([BUSY, FREE], []);
-
-      const res = await judgeCaller().judge.getNextTable({
-        hackathonId: HACK_A,
-      });
-
-      expect(res.project).toMatchObject({ tableNumber: 1 });
-      expect(res.queueId).toBe(QUEUE_A);
-    });
-
-    it("serves a claimed table rather than stranding a judge with nothing to do", async () => {
-      const now = Date.now();
-      wireQueue(
-        [BUSY, FREE],
-        [
-          { projectId: PROJECT_A, startedAt: new Date(now - 9 * 60 * 1000) },
-          { projectId: PROJECT_B, startedAt: new Date(now - 1 * 60 * 1000) },
-        ],
-      );
-
-      const res = await judgeCaller().judge.getNextTable({
-        hackathonId: HACK_A,
-      });
-
-      // Every table is busy, so the judge still gets one — the table claimed
-      // longest ago, being the one most likely to be free by the time they
-      // walk over.
-      expect(res.done).toBe(false);
-      expect(res.project).toMatchObject({ tableNumber: 1 });
-    });
-
-    it("claims the table it hands out, so the next judge routes around it", async () => {
-      wireQueue([BUSY, FREE], []);
-
-      await judgeCaller().judge.getNextTable({ hackathonId: HACK_A });
-
-      const claimWrite = mockUpdate.mock.calls.find(
-        (call) => call[2]?.[0]?.startedAt instanceof Date,
-      );
-      expect(claimWrite).toBeDefined();
     });
   });
 
@@ -1935,7 +1410,7 @@ describe("Judge edge cases", () => {
 
       await expect(
         judgeCaller().judge.startByQrCode({ qrCode: QR }),
-      ).rejects.toThrow(/not in your queue/i);
+      ).rejects.toThrow(/not the table you were sent to/i);
 
       expect(mockUpdate).not.toHaveBeenCalled();
     });
@@ -1967,7 +1442,8 @@ describe("Judge edge cases", () => {
     // Re-scanning out of uncertainty must not restart the clock, which would
     // otherwise let a long visit be quietly reset to zero.
     it("does not restart the clock on a second scan", async () => {
-      const arrivedAt = new Date("2026-08-06T10:00:00Z");
+      // Inside the window: past the cutoff a second scan is refused instead.
+      const arrivedAt = recent();
       wireScan({
         project,
         slot: { id: QUEUE_A, judgeId: JUDGE_ID, arrivedAt, startedAt: arrivedAt },
@@ -1989,112 +1465,175 @@ describe("Judge edge cases", () => {
   describe("10. Live judge progress", () => {
     const MIN = 60 * 1000;
 
-    /** queueRows first, then voteRows — the order liveProgress selects them. */
-    const wireFloor = (queueRows: unknown[], voteRows: unknown[]) => {
+    const judgeRow = (id: string, name: string) => ({
+      id,
+      name,
+      email: `${name.toLowerCase()}@example.com`,
+      isActive: true,
+    });
+
+    /**
+     * liveProgress reads the judges and the projects through the query API,
+     * and the visits (joined to their projects) then the votes through
+     * select, in that order.
+     */
+    const wireFloor = (opts: {
+      judges: unknown[];
+      visits?: unknown[];
+      votes?: unknown[];
+      projects?: unknown[];
+    }) => {
       mockFindFirst.mockImplementation((table: string) =>
         table === "admins" ? ADMIN_ROW : undefined,
       );
+      mockFindMany.mockImplementation((table: string) => {
+        if (table === "judges") return opts.judges;
+        if (table === "judgingProjects") return opts.projects ?? [];
+        return [];
+      });
       mockSelect.mockReset();
       mockSelect
-        .mockReturnValueOnce(queueRows)
-        .mockReturnValueOnce(voteRows)
+        .mockReturnValueOnce(opts.visits ?? [])
+        .mockReturnValueOnce(opts.votes ?? [])
         .mockReturnValue([]);
     };
 
-    const slot = (over: Record<string, unknown> = {}) => ({
+    const visit = (over: Record<string, unknown> = {}) => ({
       judgeId: JUDGE_ID,
-      judgeName: "Ada",
-      judgeEmail: "ada@example.com",
-      isActive: true,
+      projectId: PROJECT_A,
       isCompleted: false,
       startedAt: null,
-      completedAt: null,
-      order: 1,
+      arrivedAt: null,
       tableNumber: 7,
       projectName: "Flood Mapper",
       ...over,
     });
 
-    it("reports a judge who has a queue and has scored nothing", async () => {
-      wireFloor([slot()], []);
+    it("reports a judge who has not been sent to a table yet", async () => {
+      wireFloor({
+        judges: [judgeRow(JUDGE_ID, "Ada")],
+        projects: [{ id: PROJECT_A }],
+      });
 
       const res = await adminCaller().judge.liveProgress({
         hackathonId: HACK_A,
       });
 
       expect(res.judges[0]).toMatchObject({
+        judgeId: JUDGE_ID,
         status: "not_started",
-        assigned: 1,
-        completed: 0,
         scored: 0,
+        voided: 0,
+        idleMinutes: null,
+        current: null,
       });
-      expect(res.totals).toMatchObject({ assigned: 1, completed: 0, percent: 0 });
+      expect(res.totals).toMatchObject({ judges: 1, scored: 0, voided: 0 });
     });
 
     it("shows which table a judge is standing at, and for how long", async () => {
-      wireFloor(
-        [slot({ startedAt: new Date(Date.now() - 8 * MIN) })],
-        [{ judgeId: JUDGE_ID, votedAt: new Date(), durationSeconds: 300 }],
-      );
+      wireFloor({
+        judges: [judgeRow(JUDGE_ID, "Ada")],
+        visits: [
+          visit({
+            startedAt: new Date(Date.now() - 3 * MIN),
+            arrivedAt: new Date(Date.now() - 2 * MIN),
+          }),
+        ],
+        projects: [{ id: PROJECT_A }],
+      });
 
       const res = await adminCaller().judge.liveProgress({
         hackathonId: HACK_A,
       });
 
-      expect(res.judges[0]).toMatchObject({ status: "judging" });
+      expect(res.judges[0]).toMatchObject({ status: "judging", idleMinutes: 0 });
+      // Timed from the tap, not from hand-out: the walk is not judging.
       expect(res.judges[0]!.current).toMatchObject({
         tableNumber: 7,
-        onItMinutes: 8,
+        projectName: "Flood Mapper",
+        phase: "judging",
       });
+      expect(res.judges[0]!.current!.seconds).toBeGreaterThanOrEqual(120);
+      expect(res.judges[0]!.current!.seconds).toBeLessThan(130);
     });
 
-    it("counts idle minutes from the last vote, not from the queue", async () => {
-      wireFloor(
-        [slot({ isCompleted: true, completedAt: new Date() }), slot({ order: 2 })],
-        [
+    it("counts idle minutes from the last vote", async () => {
+      wireFloor({
+        judges: [judgeRow(JUDGE_ID, "Ada")],
+        visits: [
+          visit({
+            isCompleted: true,
+            startedAt: new Date(Date.now() - 30 * MIN),
+            arrivedAt: new Date(Date.now() - 28 * MIN),
+          }),
+        ],
+        votes: [
           {
             judgeId: JUDGE_ID,
+            projectId: PROJECT_A,
             votedAt: new Date(Date.now() - 25 * MIN),
-            durationSeconds: 240,
+            durationSeconds: 180,
           },
         ],
-      );
+        projects: [{ id: PROJECT_A }],
+      });
 
       const res = await adminCaller().judge.liveProgress({
         hackathonId: HACK_A,
       });
 
-      expect(res.judges[0]).toMatchObject({ status: "between", idleMinutes: 25 });
-    });
-
-    it("reports a finished judge as done, at 100 percent", async () => {
-      wireFloor(
-        [slot({ isCompleted: true, completedAt: new Date() })],
-        [{ judgeId: JUDGE_ID, votedAt: new Date(), durationSeconds: 200 }],
-      );
-
-      const res = await adminCaller().judge.liveProgress({
-        hackathonId: HACK_A,
+      expect(res.judges[0]).toMatchObject({
+        status: "between",
+        scored: 1,
+        voided: 0,
+        idleMinutes: 25,
       });
-
-      expect(res.judges[0]).toMatchObject({ status: "done" });
-      expect(res.totals.percent).toBe(100);
     });
 
-    it("puts the judge who has not started above the one who has finished", async () => {
-      wireFloor(
-        [
-          slot({ isCompleted: true, completedAt: new Date() }),
-          slot({ judgeId: "judge_b", judgeName: "Grace", order: 1 }),
+    it("counts how many projects nobody has seen, and the fewest looks any has had", async () => {
+      wireFloor({
+        judges: [judgeRow(JUDGE_ID, "Ada"), judgeRow(OTHER_JUDGE_ID, "Grace")],
+        votes: [
+          { judgeId: JUDGE_ID, projectId: PROJECT_A, votedAt: new Date(), durationSeconds: 200 },
+          { judgeId: OTHER_JUDGE_ID, projectId: PROJECT_A, votedAt: new Date(), durationSeconds: 200 },
+          { judgeId: JUDGE_ID, projectId: PROJECT_B, votedAt: new Date(), durationSeconds: 200 },
         ],
-        [{ judgeId: JUDGE_ID, votedAt: new Date(), durationSeconds: 200 }],
-      );
+        projects: [{ id: PROJECT_A }, { id: PROJECT_B }, { id: "project_c" }],
+      });
 
       const res = await adminCaller().judge.liveProgress({
         hackathonId: HACK_A,
       });
 
-      expect(res.judges.map((j) => j.status)).toEqual(["not_started", "done"]);
+      expect(res.coverage).toMatchObject({
+        projects: 3,
+        unseen: 1,
+        minLooks: 0,
+        atTarget: 1,
+      });
+      expect(res.totals.scored).toBe(3);
+    });
+
+    it("puts the judge who has not started above the one who is judging", async () => {
+      wireFloor({
+        judges: [judgeRow(JUDGE_ID, "Ada"), judgeRow(OTHER_JUDGE_ID, "Grace")],
+        visits: [
+          visit({
+            startedAt: new Date(Date.now() - 2 * MIN),
+            arrivedAt: new Date(Date.now() - 1 * MIN),
+          }),
+        ],
+        projects: [{ id: PROJECT_A }],
+      });
+
+      const res = await adminCaller().judge.liveProgress({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.judges.map((j) => [j.judgeId, j.status])).toEqual([
+        [OTHER_JUDGE_ID, "not_started"],
+        [JUDGE_ID, "judging"],
+      ]);
     });
 
     it("is refused to somebody who is not staff", async () => {
@@ -2130,7 +1669,12 @@ describe("Judge edge cases", () => {
         projectId: PROJECT_A,
       });
 
-      expect(mockDelete).toHaveBeenCalledTimes(1);
+      // Exactly one delete, on judge_queue. The audit write behind the
+      // withdrawal may also prune audit_logs, which is not this.
+      const queueDeletes = mockDelete.mock.calls.filter(
+        (call) => call[1]?.[0] === judgeQueue,
+      );
+      expect(queueDeletes).toHaveLength(1);
     });
 
     it("touches no queue when the project was never promoted", async () => {
@@ -2141,7 +1685,78 @@ describe("Judge edge cases", () => {
         projectId: PROJECT_A,
       });
 
-      expect(mockDelete).not.toHaveBeenCalled();
+      expect(
+        mockDelete.mock.calls.filter((call) => call[1]?.[0] === judgeQueue),
+      ).toHaveLength(0);
+    });
+  });
+
+  // =====================================================================
+  /**
+   * The 4:00 cutoff, counted from the tap or scan. A score that arrives after
+   * it (plus a few seconds' grace) would be a look nobody can vouch for, so
+   * the table goes back into the pool instead.
+   */
+  describe("15. The scoring cutoff", () => {
+    const slotArrived = (arrivedAt: Date) => ({
+      id: QUEUE_A,
+      judgeId: JUDGE_ID,
+      hackathonId: HACK_A,
+      projectId: PROJECT_A,
+      isCompleted: false,
+      startedAt: arrivedAt,
+      arrivedAt,
+    });
+
+    it("refuses a first score past the cutoff, but lets an existing one be revised", async () => {
+      wireJudge({
+        project: { id: PROJECT_A, hackathonId: HACK_A },
+        queue: [slotArrived(lapsed())],
+      });
+
+      await expect(
+        judgeCaller().judge.submitVote({ projectId: PROJECT_A, ...scores }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: expect.stringMatching(/time ran out/i),
+      });
+      expect(mockInsert).not.toHaveBeenCalled();
+
+      // The same late slot, but the judge already scored inside the window:
+      // correcting that score is allowed while judging is open.
+      wireJudge({
+        project: { id: PROJECT_A, hackathonId: HACK_A },
+        queue: [slotArrived(lapsed())],
+        vote: { id: "vote_1" },
+      });
+
+      await expect(
+        judgeCaller().judge.submitVote({ projectId: PROJECT_A, ...scores }),
+      ).resolves.toBeDefined();
+      expect(insertsInto(judgeVotes)).toHaveLength(1);
+    });
+
+    it("voids a completion past the cutoff and moves the judge on", async () => {
+      wireJudge({
+        project: { id: PROJECT_A, hackathonId: HACK_A },
+        queue: [slotArrived(lapsed())],
+      });
+      // Nothing left to hand out, so the judge is done once the slot closes.
+      wireDispatch({ pool: [] });
+
+      const res = await judgeCaller().judge.completeAndNext({
+        queueId: QUEUE_A,
+        projectId: PROJECT_A,
+        ...scores,
+      });
+
+      expect(res).toMatchObject({ timedOut: true, done: true });
+      expect(insertsInto(judgeVotes)).toHaveLength(0);
+      // The slot is closed, so the table goes back to the pool.
+      const closed = mockUpdate.mock.calls.some(
+        (call) => call[1]?.[0] === judgeQueue && call[2]?.[0]?.isCompleted === true,
+      );
+      expect(closed).toBe(true);
     });
   });
 
