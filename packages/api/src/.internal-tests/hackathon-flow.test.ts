@@ -22,6 +22,8 @@ vi.mock("@query/db", () => {
   return {
     db: {
       transaction: vi.fn().mockImplementation((callback) => callback(db)),
+      // The judging dispatch lock (pg_advisory_xact_lock).
+      execute: vi.fn().mockResolvedValue({ rows: [] }),
       query: {
         admins: table("admins"),
         users: table("users"),
@@ -93,6 +95,9 @@ vi.mock("@query/db", () => {
           orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
           groupBy: vi.fn().mockResolvedValue([]),
           innerJoin: vi.fn().mockImplementation(() => ({
+            // Awaited directly: judging dispatch reads every vote this way.
+            then: (ok: any, err: any) =>
+              Promise.resolve(mockWhereRows()).then(ok, err),
             innerJoin: vi.fn().mockImplementation(() => ({
               where: vi.fn().mockResolvedValue([]),
             })),
@@ -499,7 +504,15 @@ describe("Hackathon end-to-end flow", () => {
         // these tests are about; scoring something never assigned to you is
         // covered separately in judge-edge.
         if (table === "judgeQueue")
-          return { id: "queue_1", judgeId: "judge_1", projectId: PROJECT };
+          return {
+            id: "queue_1",
+            judgeId: "judge_1",
+            projectId: PROJECT,
+            isCompleted: false,
+            // Tapped in a minute ago: inside the scoring window.
+            startedAt: new Date(Date.now() - 60_000),
+            arrivedAt: new Date(Date.now() - 60_000),
+          };
         return undefined;
       });
       return appRouter.createCaller(createMockCtx("judge_user"));
@@ -917,57 +930,61 @@ describe("Hackathon end-to-end flow", () => {
       scoreSoundness: 5,
     };
 
+    /** At the table, tapped in a minute ago. */
+    const arrived = () => ({
+      isCompleted: false,
+      startedAt: new Date(Date.now() - 60_000),
+      arrivedAt: new Date(Date.now() - 60_000),
+    });
+
+    /**
+     * The reads dispatch makes through select, in order: assignments and
+     * projects for the pool, this judge's visits, then every vote and every
+     * open visit when it has a table to pick. Which table it picks is covered
+     * against real Postgres in routers/judge/dispatch.db.test.ts. An empty
+     * pool stops after the third read; queueing more would leak into the
+     * next test, since clearAllMocks does not drain once-values.
+     */
+    const poolOf = (projects: unknown[]) => {
+      mockWhereRows
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce(projects)
+        .mockReturnValueOnce([]);
+      if (projects.length > 0)
+        mockWhereRows.mockReturnValueOnce([]).mockReturnValueOnce([]);
+    };
+
     it("completes the current project and hands back the next one", async () => {
       const caller = queueCaller({
-        queueItem: { id: QUEUE_A, hackathonId: HACK_A },
-        next: {
-          id: "queue_b",
-          hackathonId: HACK_A,
-          project: { id: "project_b", name: "Next Project" },
-        },
+        queueItem: { id: QUEUE_A, judgeId: "judge_1", hackathonId: HACK_A, ...arrived() },
       });
+      poolOf([
+        {
+          id: "project_b",
+          tableNumber: 2,
+          tracks: null,
+          challenges: null,
+          isCreateX: false,
+        },
+      ]);
+      mockInsert.mockReturnValue([{ id: "queue_b" }]);
 
       const res = await caller.judge.completeAndNext(vote);
       expect(res).toMatchObject({
         done: false,
         nextQueueId: "queue_b",
+        timedOut: false,
       });
     });
 
     it("reports done when nothing is left in the queue", async () => {
       const caller = queueCaller({
-        queueItem: { id: QUEUE_A, hackathonId: HACK_A },
-        next: undefined,
+        queueItem: { id: QUEUE_A, judgeId: "judge_1", hackathonId: HACK_A, ...arrived() },
       });
+      poolOf([]);
 
       const res = await caller.judge.completeAndNext(vote);
       expect(res).toMatchObject({ done: true, nextProject: null });
-    });
-
-    it("moves a skipped project to the end and returns the next", async () => {
-      const caller = queueCaller({
-        middlewareHitsQueue: true,
-        queueItem: { id: QUEUE_A, hackathonId: HACK_A },
-        next: {
-          id: "queue_b",
-          hackathonId: HACK_A,
-          project: { id: "project_b" },
-        },
-      });
-
-      const res = await caller.judge.skipProject({ queueId: QUEUE_A });
-      expect(res).toMatchObject({ skippedToEnd: false, queueId: "queue_b" });
-    });
-
-    it("cannot skip past the last remaining project", async () => {
-      const caller = queueCaller({
-        middlewareHitsQueue: true,
-        queueItem: { id: QUEUE_A, hackathonId: HACK_A },
-        next: undefined,
-      });
-
-      const res = await caller.judge.skipProject({ queueId: QUEUE_A });
-      expect(res).toMatchObject({ skippedToEnd: true, queueId: QUEUE_A });
     });
 
     it("errors when skipping a queue item that does not exist", async () => {
@@ -987,11 +1004,12 @@ describe("Hackathon end-to-end flow", () => {
         middlewareHitsQueue: true,
         queueItem: {
           id: QUEUE_A,
+          judgeId: "judge_1",
           hackathonId: HACK_A,
-          projectId: PROJECT,
-          project: { id: PROJECT, tracks: [] },
+          ...arrived(),
         },
       });
+      poolOf([]);
       mockInsert.mockClear();
 
       await caller.judge.forceSkipOvertime({ queueId: QUEUE_A });
