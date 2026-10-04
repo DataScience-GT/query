@@ -9,17 +9,19 @@ import {
   judgeQueue,
   hackathons,
 } from "@query/db";
-import { eq, ne, gt, and, asc, inArray, sql , isNull } from "drizzle-orm";
+import { eq, and, asc, inArray, sql, isNull } from "drizzle-orm";
 import { CacheKeys } from "../../middleware/cache";
 import { isAdmin, isJudge } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
+import {
+  dispatchNext,
+  isLive,
+  isPastCutoff,
+  loadPool,
+  lockDispatch,
+} from "./dispatch";
 import type { DrizzleDB } from "@query/db";
 
-// How long a judge holds a table without refreshing the claim. getNextTable
-// re-stamps on every poll, so a judge with the portal open keeps their table;
-// one who closes the tab stops refreshing and it frees itself. A timeout
-// rather than a lock somebody has to release.
-const JUDGE_CLAIM_MINUTES = 10;
 
 export const judgePortalRouter = createTRPCRouter({
   isJudge: protectedProcedure
@@ -148,14 +150,16 @@ export const judgePortalRouter = createTRPCRouter({
     }));
   }),
 
-  // Starts the clock by scanning the table's QR. Scoring time is measured from
-  // here, not from when the queue handed the table over: walking across a
-  // ballroom is not judging. It also confirms the judge is at the right table.
-  // Idempotent, so scanning twice cannot restart the clock.
+  // Starts the clock at the table: the tap on its NFC tag or the scan of its
+  // card. Scoring time runs from here, not from hand-out, since walking across
+  // a ballroom is not judging, and the hard cutoff counts from here too. It
+  // also confirms the judge is at the table they were sent to. Idempotent:
+  // tapping twice cannot restart the clock.
   startByQrCode: isJudge
     .input(z.object({ qrCode: z.string().uuid("Invalid table code") }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
+      const now = new Date();
 
       const project = await db.query.judgingProjects.findFirst({
         where: eq(judgingProjects.qrCode, input.qrCode),
@@ -168,122 +172,115 @@ export const judgePortalRouter = createTRPCRouter({
         });
       }
 
-      // Must be in THIS judge's queue. Scanning somebody else's table would start a
-      // clock on work that is not theirs and let them score an unrouted project.
-      const slot = await db.query.judgeQueue.findFirst({
-        where: and(
-          eq(judgeQueue.judgeId, ctx.judge.id),
-          eq(judgeQueue.projectId, project.id),
-          eq(judgeQueue.isCompleted, false),
-        ),
-      });
+      return await db.transaction(async (rawTx) => {
+        const tx = rawTx as unknown as DrizzleDB;
+        await lockDispatch(tx, project.hackathonId);
 
-      if (!slot) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `Table ${project.tableNumber} is not in your queue. Check the table number against your next assignment.`,
+        const slot = await tx.query.judgeQueue.findFirst({
+          where: and(
+            eq(judgeQueue.judgeId, ctx.judge.id),
+            eq(judgeQueue.projectId, project.id),
+          ),
         });
-      }
 
-      if (!slot.arrivedAt) {
-        await db
+        // Only the table the pool sent this judge to. Starting any other would
+        // let judges pick their favourites and skew coverage.
+        if (!slot) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `Table ${project.tableNumber} is not the table you were sent to. Check the number on your screen.`,
+          });
+        }
+
+        if (slot.isCompleted) {
+          const voted = await tx.query.judgeVotes.findFirst({
+            where: and(
+              eq(judgeVotes.judgeId, ctx.judge.id),
+              eq(judgeVotes.projectId, project.id),
+            ),
+            columns: { id: true },
+          });
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: voted
+              ? `You already scored table ${project.tableNumber}.`
+              : `Time ran out on table ${project.tableNumber}, so it has gone back to be judged by someone else. Get your next table.`,
+          });
+        }
+
+        if (slot.arrivedAt) {
+          // Already started. Past the cutoff the look is void; the next
+          // dispatch closes the row (a write here would roll back with the throw).
+          if (isPastCutoff(slot.arrivedAt, now)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Time ran out on table ${project.tableNumber}, so it has gone back to be judged by someone else. Get your next table.`,
+            });
+          }
+          return {
+            project,
+            queueId: slot.id,
+            alreadyStarted: true,
+            arrivedAt: slot.arrivedAt,
+            serverNow: now,
+          };
+        }
+
+        // The walk ran long and the hold lapsed. Still theirs unless another
+        // judge has since been sent there.
+        if (!isLive(slot, now)) {
+          const others = await tx.query.judgeQueue.findMany({
+            where: and(
+              eq(judgeQueue.projectId, project.id),
+              eq(judgeQueue.isCompleted, false),
+            ),
+            columns: {
+              judgeId: true,
+              startedAt: true,
+              arrivedAt: true,
+              isCompleted: true,
+            },
+          });
+          if (others.some((o) => o.judgeId !== ctx.judge.id && isLive(o, now))) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Another judge has table ${project.tableNumber} now. Get your next table.`,
+            });
+          }
+        }
+
+        await tx
           .update(judgeQueue)
-          .set({
-            arrivedAt: new Date(),
-            // Claim it too: a judge who walked up out of order has still taken the table,
-            // and another judge should route around them.
-            startedAt: slot.startedAt ?? new Date(),
-          })
+          .set({ arrivedAt: now, startedAt: slot.startedAt ?? now })
           .where(eq(judgeQueue.id, slot.id));
-      }
 
-      return {
-        project,
-        queueId: slot.id,
-        alreadyStarted: !!slot.arrivedAt,
-      };
+        return {
+          project,
+          queueId: slot.id,
+          alreadyStarted: false,
+          arrivedAt: now,
+          serverNow: now,
+        };
+      });
     }),
 
+  // The judge's current table: the live one they hold, or a fresh pick from
+  // the pool. See dispatch.ts.
   getNextTable: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       try {
-        const db = ctx.db as DrizzleDB;
-
-        const queue = await db.query.judgeQueue.findMany({
-          where: and(
-            eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, input.hackathonId),
-            eq(judgeQueue.isCompleted, false),
-          ),
-          with: {
-            project: true,
-          },
-          orderBy: [asc(judgeQueue.order)],
-        });
-
-        if (queue.length === 0) {
-          return { done: true, project: null, remaining: 0 };
-        }
-
-        // Tables another judge is standing at right now. Sending a second judge to a
-        // team already presenting helps nobody, so a claimed table is passed over and
-        // comes back on a later pass, with nothing for the judge to act on.
-        const claimedSince = new Date(
-          Date.now() - JUDGE_CLAIM_MINUTES * 60 * 1000,
+        const now = new Date();
+        const next = await (ctx.db as DrizzleDB).transaction((tx) =>
+          dispatchNext(tx as unknown as DrizzleDB, ctx.judge.id, input.hackathonId, now),
         );
-        const claims = await db.query.judgeQueue.findMany({
-          where: and(
-            inArray(
-              judgeQueue.projectId,
-              queue.map((row) => row.projectId),
-            ),
-            eq(judgeQueue.hackathonId, input.hackathonId),
-            eq(judgeQueue.isCompleted, false),
-            ne(judgeQueue.judgeId, ctx.judge.id),
-            gt(judgeQueue.startedAt, claimedSince),
-          ),
-          columns: { projectId: true, startedAt: true },
-        });
-
-        // Latest claim per table, i.e. the best guess at when it frees up.
-        const claimedAt = new Map<string, number>();
-        for (const claim of claims) {
-          const at = claim.startedAt?.getTime() ?? 0;
-          claimedAt.set(
-            claim.projectId,
-            Math.max(claimedAt.get(claim.projectId) ?? 0, at),
-          );
-        }
-
-        // First free table in the judge's own order. When every remaining table is
-        // busy, take the one claimed longest ago rather than stalling: two judges at
-        // a table is awkward, an idle judge is worse, and both scores count.
-        const free = queue.find((row) => !claimedAt.has(row.projectId));
-        const next =
-          free ??
-          [...queue].sort(
-            (a, b) =>
-              (claimedAt.get(a.projectId) ?? 0) -
-              (claimedAt.get(b.projectId) ?? 0),
-          )[0];
-
-        if (!next) {
-          return { done: true, project: null, remaining: 0 };
-        }
-
-        // Claiming doubles as a heartbeat: the portal re-runs this while the judge
-        // has the project open, so the claim lapses only once they leave.
-        await db
-          .update(judgeQueue)
-          .set({ startedAt: new Date() })
-          .where(eq(judgeQueue.id, next.id));
-
+        if (next.done) return { done: true as const, project: null, serverNow: now };
         return {
-          done: false,
+          done: false as const,
           project: next.project,
-          queueId: next.id,
-          remaining: queue.length,
+          queueId: next.queueId,
+          arrivedAt: next.arrivedAt,
+          serverNow: now,
         };
       } catch (error) {
         // A NOT_FOUND or FORBIDDEN from inside is the judge's answer, not a 500.
@@ -341,21 +338,24 @@ export const judgePortalRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Opening judging with nothing queued sent every judge straight to "All
-      // done, 0 of 0". Preparing (promote submissions, assign judges) is a
-      // separate step on the Judging page, so say so rather than open empty.
+      // Opening judging with nothing to judge sent every judge straight to
+      // "All done". Judges draw tables from the pool of judgeable projects, so
+      // that pool is what has to exist: promote submissions first.
       if (input.active) {
-        const [queued] = await (ctx.db as DrizzleDB)
+        const [judgeable] = await (ctx.db as DrizzleDB)
           .select({ n: sql<number>`count(*)::int` })
-          .from(judgeQueue)
-          // Any row, scored or not: reopening judging so a judge can fix a
-          // score, after every slot is done, must still be allowed.
-          .where(eq(judgeQueue.hackathonId, input.hackathonId));
-        if ((queued?.n ?? 0) === 0) {
+          .from(judgingProjects)
+          .where(
+            and(
+              eq(judgingProjects.hackathonId, input.hackathonId),
+              isNull(judgingProjects.withdrawnAt),
+            ),
+          );
+        if ((judgeable?.n ?? 0) === 0) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
-              "No judge has a table to score yet. Prepare judging first: promote submissions and assign judges on the Judging page.",
+              "There are no projects to judge yet. Prepare judging first: it promotes submissions into judging on this page.",
           });
         }
       }
@@ -368,6 +368,10 @@ export const judgePortalRouter = createTRPCRouter({
       return { success: true, judgingActive: updated?.judgingActive };
     }),
 
+  // Writes or revises a score without moving on. A first score is held to the
+  // same clock as completeAndNext: the judge must have started the table and
+  // be inside the hard cutoff. Revising a score already on record is allowed
+  // while judging is open.
   submitVote: isJudge
     .input(
       z.object({
@@ -382,6 +386,8 @@ export const judgePortalRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const now = new Date();
       const totalScore =
         input.scoreCreativity +
         input.scoreImpact +
@@ -391,7 +397,7 @@ export const judgePortalRouter = createTRPCRouter({
 
       // Closing judging has to stop scores being written, or the upsert keeps
       // overwriting results after the organizers have called the winners.
-      const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
+      const hackathon = await db.query.hackathons.findFirst({
         where: eq(hackathons.id, ctx.judge.hackathonId),
         columns: { judgingActive: true },
       });
@@ -402,16 +408,12 @@ export const judgePortalRouter = createTRPCRouter({
         });
       }
 
-      // A judge may only score what was routed to them. Without this any judge
-      // could score any project — including one assigned elsewhere or never
-      // visited — and it would count towards the rankings. Completed slots still
-      // match, so revising an earlier score keeps working.
-      const ownSlot = await (ctx.db as DrizzleDB).query.judgeQueue.findFirst({
+      // A judge may only score a table the pool sent them to.
+      const ownSlot = await db.query.judgeQueue.findFirst({
         where: and(
           eq(judgeQueue.judgeId, ctx.judge.id),
           eq(judgeQueue.projectId, input.projectId),
         ),
-        columns: { id: true },
       });
       if (!ownSlot) {
         throw new TRPCError({
@@ -420,8 +422,36 @@ export const judgePortalRouter = createTRPCRouter({
         });
       }
 
-      // Atomic upsert: INSERT or UPDATE if judge already voted on this project
-      const result = await (ctx.db as DrizzleDB)
+      const existing = await db.query.judgeVotes.findFirst({
+        where: and(
+          eq(judgeVotes.judgeId, ctx.judge.id),
+          eq(judgeVotes.projectId, input.projectId),
+        ),
+        columns: { id: true },
+      });
+      if (!existing) {
+        if (ownSlot.isCompleted || !ownSlot.arrivedAt) {
+          throw new TRPCError({
+            code: ownSlot.isCompleted ? "CONFLICT" : "BAD_REQUEST",
+            message: ownSlot.isCompleted
+              ? "Time ran out on this table, so it is being judged again by someone else."
+              : "Tap the table's NFC tag or scan its card before scoring.",
+          });
+        }
+        if (isPastCutoff(ownSlot.arrivedAt, now)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Time ran out on this table, so it is being judged again by someone else.",
+          });
+        }
+      }
+
+      const durationSeconds = ownSlot.arrivedAt
+        ? Math.max(0, Math.round((now.getTime() - ownSlot.arrivedAt.getTime()) / 1000))
+        : input.durationSeconds;
+
+      const result = await db
         .insert(judgeVotes)
         .values({
           judgeId: ctx.judge.id,
@@ -432,7 +462,7 @@ export const judgePortalRouter = createTRPCRouter({
           scoreScope: input.scoreScope,
           scoreClarity: input.scoreClarity,
           scoreSoundness: input.scoreSoundness,
-          durationSeconds: input.durationSeconds,
+          durationSeconds: existing ? undefined : durationSeconds,
           comment: input.comment,
         })
         .onConflictDoUpdate({
@@ -444,9 +474,8 @@ export const judgePortalRouter = createTRPCRouter({
             scoreScope: sql`excluded.score_scope`,
             scoreClarity: sql`excluded.score_clarity`,
             scoreSoundness: sql`excluded.score_soundness`,
-            durationSeconds: sql`excluded.duration_seconds`,
             comment: sql`excluded.comment`,
-            updatedAt: new Date(),
+            updatedAt: now,
           },
         })
         .returning();
@@ -454,6 +483,10 @@ export const judgePortalRouter = createTRPCRouter({
       return result[0];
     }),
 
+  // Scores the current table and hands over the next one, in one transaction.
+  // Past the hard cutoff the score is refused and the look is void: the table
+  // goes back into the pool to be judged again, and the judge gets their next
+  // table with timedOut set so the page can say why.
   completeAndNext: isJudge
     .input(
       z.object({
@@ -469,6 +502,7 @@ export const judgePortalRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const now = new Date();
       const totalScore =
         input.scoreCreativity +
         input.scoreImpact +
@@ -487,15 +521,16 @@ export const judgePortalRouter = createTRPCRouter({
         });
       }
 
-      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // 1. The queue slot is addressed by id alone, so it has to be read back and
+      return await (ctx.db as DrizzleDB).transaction(async (rawTx) => {
+        const tx = rawTx as unknown as DrizzleDB;
+        await lockDispatch(tx, ctx.judge.hackathonId);
+
+        // 1. The slot is addressed by id alone, so it has to be read back and
         // vetted before any score is written against it.
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
         });
 
-        // A queue id that no longer resolves is tolerated — the judge may be retrying
-        // — but a row that does resolve has to be this judge's own slot.
         if (queueItem) {
           if (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id) {
             throw new TRPCError({
@@ -509,45 +544,81 @@ export const judgePortalRouter = createTRPCRouter({
               message: "Queue item does not belong to this hackathon",
             });
           }
-          // The slot being closed and the project being scored must be the same one.
-          // Comparing hackathons proves nothing, since every slot a judge owns is
-          // already in theirs — so without this a judge could score Y while slot X is
-          // stamped complete, leaving X unscored but counted as visited.
+          // The slot being closed and the project being scored must be the same
+          // one, or a judge could score Y while X is stamped complete.
           if (queueItem.projectId !== input.projectId) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "Queue item does not match the project being scored",
             });
           }
-        } else {
-          // Tolerating a missing slot must not drop the ownership test — otherwise any
-          // queueId matching no row scores any project.
-          const ownSlot = await tx.query.judgeQueue.findFirst({
+        }
+
+        // A queue id that no longer resolves is tolerated (the judge may be
+        // retrying) but never drops the ownership test.
+        const slot =
+          queueItem ??
+          (await tx.query.judgeQueue.findFirst({
             where: and(
               eq(judgeQueue.judgeId, ctx.judge.id),
               eq(judgeQueue.projectId, input.projectId),
             ),
-            columns: { id: true },
+          }));
+        if (!slot) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This project is not in your judging queue",
           });
-          if (!ownSlot) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "This project is not in your judging queue",
-            });
-          }
         }
 
-        // Measured from the scan when there is one. The client's figure starts when
-        // the card rendered, which includes the walk to the table; arrivedAt is
-        // server-stamped and cannot be shaped by a stale tab or a skewed clock.
-        const measuredSeconds = queueItem?.arrivedAt
-          ? Math.max(
-              0,
-              Math.round((Date.now() - queueItem.arrivedAt.getTime()) / 1000),
-            )
-          : input.durationSeconds;
+        const existing = await tx.query.judgeVotes.findFirst({
+          where: and(
+            eq(judgeVotes.judgeId, ctx.judge.id),
+            eq(judgeVotes.projectId, input.projectId),
+          ),
+          columns: { id: true },
+        });
 
-        // 2. Atomic upsert vote
+        const handOver = async (timedOut: boolean) => {
+          const next = await dispatchNext(tx, ctx.judge.id, ctx.judge.hackathonId, now);
+          return next.done
+            ? { done: true as const, nextProject: null, timedOut, serverNow: now }
+            : {
+                done: false as const,
+                nextProject: next.project,
+                nextQueueId: next.queueId,
+                nextArrivedAt: next.arrivedAt,
+                timedOut,
+                serverNow: now,
+              };
+        };
+
+        // A retry of a completion that already landed: hand back the same next
+        // table rather than scoring twice.
+        if (slot.isCompleted) return handOver(!existing);
+
+        if (!slot.arrivedAt) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Tap the table's NFC tag or scan its card before scoring.",
+          });
+        }
+
+        if (isPastCutoff(slot.arrivedAt, now)) {
+          await tx
+            .update(judgeQueue)
+            .set({ isCompleted: true, completedAt: now })
+            .where(eq(judgeQueue.id, slot.id));
+          return handOver(true);
+        }
+
+        // Measured from the server-stamped arrival, which a stale tab or a
+        // skewed phone clock cannot shape.
+        const measuredSeconds = Math.max(
+          0,
+          Math.round((now.getTime() - slot.arrivedAt.getTime()) / 1000),
+        );
+
         await tx
           .insert(judgeVotes)
           .values({
@@ -573,148 +644,84 @@ export const judgePortalRouter = createTRPCRouter({
               scoreSoundness: sql`excluded.score_soundness`,
               durationSeconds: sql`excluded.duration_seconds`,
               comment: sql`excluded.comment`,
-              updatedAt: new Date(),
+              updatedAt: now,
             },
           });
 
-        // 3. Mark queue item as completed
         await tx
           .update(judgeQueue)
-          .set({
-            isCompleted: true,
-            completedAt: new Date(),
-          })
-          .where(eq(judgeQueue.id, input.queueId));
+          .set({ isCompleted: true, completedAt: now })
+          .where(eq(judgeQueue.id, slot.id));
 
-        // 4. Get next uncompleted queue item
-        const nextInQueue = await tx.query.judgeQueue.findFirst({
-          where: and(
-            eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, ctx.judge.hackathonId),
-            eq(judgeQueue.isCompleted, false),
-          ),
-          with: {
-            project: true,
-          },
-          orderBy: [asc(judgeQueue.order)],
-        });
-
-        if (!nextInQueue) {
-          return { done: true, nextProject: null };
-        }
-
-        // Handing a table over is what claims it. Stamping only in getNextTable left
-        // every project after a judge's first one unclaimed, so two judges could be
-        // sent to the same table.
-        await tx
-          .update(judgeQueue)
-          .set({ startedAt: new Date() })
-          .where(eq(judgeQueue.id, nextInQueue.id));
-
-        return {
-          done: false,
-          nextProject: nextInQueue.project,
-          nextQueueId: nextInQueue.id,
-        };
+        return handOver(false);
       });
     }),
 
+  // Passes on the current table without scoring it. The project stays in the
+  // pool for other judges; this judge is not sent back to it.
   skipProject: isJudge
-    .input(
-      z.object({
-        queueId: z.string().uuid(),
-      }),
-    )
+    .input(z.object({ queueId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        // Get the queue item to find the hackathon
+      const now = new Date();
+      return await (ctx.db as DrizzleDB).transaction(async (rawTx) => {
+        const tx = rawTx as unknown as DrizzleDB;
+
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
-          with: { project: true },
         });
 
-        // The queue id addresses any judge's slot, so a row owned by someone else has
-        // to read as missing rather than as an actionable item.
-        if (
-          !queueItem ||
-          (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id)
-        ) {
+        // The queue id addresses any judge's slot, so a row owned by someone
+        // else has to read as missing rather than as an actionable item.
+        if (!queueItem || queueItem.judgeId !== ctx.judge.id) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Queue item not found",
           });
         }
 
-        // Atomically move this item to the end of the queue. Walking away drops the
-        // claim too, so another judge can take the table immediately.
-        await tx
-          .update(judgeQueue)
-          .set({
-            order: sql`(SELECT COALESCE(MAX(${judgeQueue.order}), 0) + 1 FROM ${judgeQueue} WHERE ${judgeQueue.judgeId} = ${ctx.judge.id} AND ${judgeQueue.hackathonId} = ${queueItem.hackathonId})`,
-            startedAt: null,
-          })
-          .where(eq(judgeQueue.id, input.queueId));
+        await lockDispatch(tx, queueItem.hackathonId);
 
-        // Get the next uncompleted item
-        const nextInQueue = await tx.query.judgeQueue.findFirst({
-          where: and(
-            eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, queueItem.hackathonId),
-            eq(judgeQueue.isCompleted, false),
-          ),
-          with: {
-            project: true,
-          },
-          orderBy: [asc(judgeQueue.order)],
-        });
-
-        if (!nextInQueue || nextInQueue.id === input.queueId) {
-          // Only this one project left — the last cannot be skipped. The caller renders
-          // a project card, so hand back the project, not the queue row.
-          return {
-            done: false,
-            skippedToEnd: true,
-            project: queueItem.project,
-            queueId: input.queueId,
-          };
+        if (!queueItem.isCompleted) {
+          await tx
+            .update(judgeQueue)
+            .set({ isCompleted: true, completedAt: now })
+            .where(eq(judgeQueue.id, queueItem.id));
         }
 
-        // Claim the table being handed over, same as getNextTable does.
-        await tx
-          .update(judgeQueue)
-          .set({ startedAt: new Date() })
-          .where(eq(judgeQueue.id, nextInQueue.id));
-
-        return {
-          done: false,
-          skippedToEnd: false,
-          project: nextInQueue.project,
-          queueId: nextInQueue.id,
-        };
+        const next = await dispatchNext(tx, ctx.judge.id, queueItem.hackathonId, now);
+        return next.done
+          ? { done: true as const, project: null, queueId: null, serverNow: now }
+          : {
+              done: false as const,
+              project: next.project,
+              queueId: next.queueId,
+              arrivedAt: next.arrivedAt,
+              serverNow: now,
+            };
       });
     }),
 
+  // Kept for the judge page's "can't finish this one" path. With a shared pool
+  // nothing needs reassigning by hand: closing the slot without a score is
+  // enough for the next judge who asks to be sent there.
   forceSkipOvertime: isJudge
     .input(z.object({ queueId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+      const now = new Date();
+      return await (ctx.db as DrizzleDB).transaction(async (rawTx) => {
+        const tx = rawTx as unknown as DrizzleDB;
+
         const queueItem = await tx.query.judgeQueue.findFirst({
           where: eq(judgeQueue.id, input.queueId),
-          with: { project: true },
         });
-        // The queue id addresses any judge's slot, so a row owned by someone else has
-        // to read as missing rather than as an actionable item.
-        if (
-          !queueItem ||
-          (queueItem.judgeId && queueItem.judgeId !== ctx.judge.id)
-        )
+        if (!queueItem || queueItem.judgeId !== ctx.judge.id) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Queue item not found",
           });
+        }
 
-        // A finished slot has nothing to skip. Repeating the call on one would
-        // hand the project to one more judge each time.
+        // A finished slot has nothing to skip.
         if (queueItem.isCompleted) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -722,166 +729,44 @@ export const judgePortalRouter = createTRPCRouter({
           });
         }
 
-        // Mark completed (no vote submitted)
+        await lockDispatch(tx, queueItem.hackathonId);
         await tx
           .update(judgeQueue)
-          .set({ isCompleted: true, completedAt: new Date() })
-          .where(eq(judgeQueue.id, input.queueId));
+          .set({ isCompleted: true, completedAt: now })
+          .where(eq(judgeQueue.id, queueItem.id));
 
-        let reassigned = false;
-
-        // Try to reassign to another judge with the same track
-        const myAssignment = await tx.query.judgeAssignments.findFirst({
-          where: and(
-            eq(judgeAssignments.judgeId, ctx.judge.id),
-            eq(judgeAssignments.hackathonId, queueItem.hackathonId),
-          ),
-        });
-
-        if (myAssignment) {
-          // Find other judges assigned to the same hackathon
-          const otherAssignments = await tx.query.judgeAssignments.findMany({
-            where: eq(judgeAssignments.hackathonId, queueItem.hackathonId),
-            with: { judge: true },
-          });
-
-          // Get the project's tracks for matching
-          const projectTracks = queueItem.project?.tracks || [];
-
-          // Two queries for the whole candidate set, not two per candidate. This runs
-          // inside an open transaction during judging: at 40 judges the per-candidate
-          // version was ~80 sequential round trips holding a pool connection.
-          const [holders, workloads] = await Promise.all([
-            tx
-              .select({ judgeId: judgeQueue.judgeId })
-              .from(judgeQueue)
-              .where(eq(judgeQueue.projectId, queueItem.projectId)),
-            tx
-              .select({
-                judgeId: judgeQueue.judgeId,
-                remaining: sql<number>`count(*)::int`,
-              })
-              .from(judgeQueue)
-              .where(
-                and(
-                  eq(judgeQueue.hackathonId, queueItem.hackathonId),
-                  eq(judgeQueue.isCompleted, false),
-                ),
-              )
-              .groupBy(judgeQueue.judgeId),
-          ]);
-
-          const alreadyHolding = new Set(holders.map((row) => row.judgeId));
-          const remainingByJudge = new Map(
-            workloads.map((row) => [row.judgeId, row.remaining]),
-          );
-
-          const candidates: {
-            judgeId: string;
-            trackMatch: boolean;
-            remaining: number;
-          }[] = [];
-
-          for (const other of otherAssignments) {
-            if (other.judgeId === ctx.judge.id) continue;
-
-            // A judge who is not active can never open the portal, so handing them the
-            // project strands it with nobody able to score it.
-            if (!other.judge?.isActive) continue;
-
-            if (alreadyHolding.has(other.judgeId)) continue;
-
-            // Check track match: judge's assigned track overlaps with project's tracks
-            const trackMatch = other.track
-              ? projectTracks.includes(other.track)
-              : false;
-
-            candidates.push({
-              judgeId: other.judgeId,
-              trackMatch,
-              // A judge with nothing left has no group row at all, which is the lightest
-              // possible load rather than a missing one.
-              remaining: remainingByJudge.get(other.judgeId) ?? 0,
-            });
-          }
-
-          // Sort: same-track first, then by fewest remaining projects (lightest load)
-          candidates.sort((a, b) => {
-            if (a.trackMatch !== b.trackMatch) return a.trackMatch ? -1 : 1;
-            return a.remaining - b.remaining;
-          });
-
-          const best = candidates[0];
-          if (best) {
-            // Atomic order assignment via SQL subquery
-            await tx.insert(judgeQueue).values({
-              judgeId: best.judgeId,
-              hackathonId: queueItem.hackathonId,
-              projectId: queueItem.projectId,
-              order: sql`(SELECT COALESCE(MAX(${judgeQueue.order}), 0) + 1 FROM ${judgeQueue} WHERE ${judgeQueue.judgeId} = ${best.judgeId} AND ${judgeQueue.hackathonId} = ${queueItem.hackathonId})`,
-            });
-            reassigned = true;
-          }
-        }
-
-        // Get next project for this judge
-        const nextInQueue = await tx.query.judgeQueue.findFirst({
-          where: and(
-            eq(judgeQueue.judgeId, ctx.judge.id),
-            eq(judgeQueue.hackathonId, queueItem.hackathonId),
-            eq(judgeQueue.isCompleted, false),
-          ),
-          with: { project: true },
-          orderBy: [asc(judgeQueue.order)],
-        });
-
-        // Claim the table being handed over, as completeAndNext and skipProject do.
-        // Without this the slot stays unclaimed and the next judge asking for work is
-        // sent to the table this judge just walked up to.
-        if (nextInQueue) {
-          await tx
-            .update(judgeQueue)
-            .set({ startedAt: new Date() })
-            .where(eq(judgeQueue.id, nextInQueue.id));
-        }
-
+        const next = await dispatchNext(tx, ctx.judge.id, queueItem.hackathonId, now);
         return {
-          done: !nextInQueue,
-          project: nextInQueue?.project ?? null,
-          queueId: nextInQueue?.id ?? null,
-          reassigned,
+          done: next.done,
+          project: next.done ? null : next.project,
+          queueId: next.done ? null : next.queueId,
+          // Back in the pool: the next judge who asks is sent there.
+          reassigned: true,
         };
       });
     }),
 
+  // Scored so far, out of the projects this judge is eligible for.
   getProgress: isJudge
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       try {
-        const totalResult = await (ctx.db as DrizzleDB)
-          .select({ count: sql<number>`count(*)` })
-          .from(judgeQueue)
-          .where(
+        const db = ctx.db as DrizzleDB;
+        const { pool } = await loadPool(db, ctx.judge.id, input.hackathonId);
+        const [scored] = await db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(judgeVotes)
+          .innerJoin(
+            judgingProjects,
             and(
-              eq(judgeQueue.judgeId, ctx.judge.id),
-              eq(judgeQueue.hackathonId, input.hackathonId),
+              eq(judgingProjects.id, judgeVotes.projectId),
+              eq(judgingProjects.hackathonId, input.hackathonId),
             ),
-          );
+          )
+          .where(eq(judgeVotes.judgeId, ctx.judge.id));
 
-        const completedResult = await (ctx.db as DrizzleDB)
-          .select({ count: sql<number>`count(*)` })
-          .from(judgeQueue)
-          .where(
-            and(
-              eq(judgeQueue.judgeId, ctx.judge.id),
-              eq(judgeQueue.hackathonId, input.hackathonId),
-              eq(judgeQueue.isCompleted, true),
-            ),
-          );
-
-        const total = Number(totalResult[0]?.count || 0);
-        const completed = Number(completedResult[0]?.count || 0);
-
+        const total = pool.length;
+        const completed = scored?.n ?? 0;
         return {
           total,
           completed,

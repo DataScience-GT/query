@@ -387,10 +387,6 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
     "hackathon:*:judge-analytics",
   ],
   "judge.toggleJudging": ["hackathon:*"],
-  "judge.assignJudgesToProjects": [
-    "hackathon:*:rankings",
-    "hackathon:*:judge-analytics",
-  ],
   // Promotion creates judgeable projects and flips submissions to "judging", so
   // the public project list and the rankings view both move.
   "judge.promoteSubmissions": [

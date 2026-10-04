@@ -73,23 +73,10 @@ export default function AdminResultsPage() {
     message: string | null;
     error: string | null;
   }>({ busy: false, message: null, error: null });
-  // The edition whose assign call was refused. Rebuild anyway sends force
-  // for this id, not whatever is selected now — a late CONFLICT from A must
-  // not rebuild B.
-  const [assignConflictId, setAssignConflictId] = useState<string | null>(
-    null,
-  );
   const selectedHackathonRef = useRef(selectedHackathon);
   const prepGen = useRef(0);
 
   const promoteSubmissions = trpc.judge.promoteSubmissions.useMutation();
-  const assignJudges = trpc.judge.assignJudgesToProjects.useMutation();
-
-  const isAssignConflict = (error: unknown) =>
-    typeof error === "object" &&
-    error !== null &&
-    "data" in error &&
-    (error as { data?: { code?: string } }).data?.code === "CONFLICT";
 
   const stillThisRun = (hackathonId: string, gen: number) =>
     judgingPrepIsCurrent(
@@ -114,7 +101,6 @@ export default function AdminResultsPage() {
     if (!stillThisRun(hackathonId, gen)) return;
     await refetchJudgingStatus();
     if (!stillThisRun(hackathonId, gen)) return;
-    setAssignConflictId(null);
     setPrepState({ busy: false, error: null, message });
   };
 
@@ -122,61 +108,25 @@ export default function AdminResultsPage() {
     const hackathonId = selectedHackathon;
     if (!hackathonId) return;
     const gen = ++prepGen.current;
-    setAssignConflictId(null);
     setPrepState({ busy: true, message: null, error: null });
     try {
       const promoted = await promoteSubmissions.mutateAsync({
         hackathonId,
       });
-      const assigned = await assignJudges.mutateAsync({
-        hackathonId,
-      });
       if (!stillThisRun(hackathonId, gen)) return;
-      const warning = promoted.queuesNeedRebuild
-        ? " One or more new projects carry a track no active judge covers — fix the track, then run this again."
-        : "";
+      // No queues to build: judges draw from the pool of judgeable projects as
+      // soon as judging is open, so syncing is the whole of preparing.
       await finishPrepare(
         hackathonId,
         gen,
-        `Synced ${promoted.created} new submission(s) of ${promoted.total}, and built queues for ${assigned.totalJudges} judge(s) covering ${assigned.coverage.min}-${assigned.coverage.max} projects each. Print the table cards next.${warning}`,
+        `Synced ${promoted.created} new submission(s) of ${promoted.total}. Judges draw tables from these as soon as judging is open. Print the table cards next.`,
       );
     } catch (e) {
       if (!stillThisRun(hackathonId, gen)) return;
-      setAssignConflictId(isAssignConflict(e) ? hackathonId : null);
       setPrepState({
         busy: false,
         message: null,
         error: e instanceof Error ? e.message : "Could not prepare judging.",
-      });
-    }
-  };
-
-  // The server names how many completed slots (or that judging is live) and
-  // asks for confirmation. This is the only control that sends force: true —
-  // /admin/setup used to, and now redirects here.
-  const rebuildQueuesAnyway = async () => {
-    const hackathonId = assignConflictId;
-    if (!hackathonId || hackathonId !== selectedHackathonRef.current) return;
-    const gen = ++prepGen.current;
-    setPrepState((s) => ({ ...s, busy: true }));
-    try {
-      const assigned = await assignJudges.mutateAsync({
-        hackathonId,
-        force: true,
-      });
-      if (!stillThisRun(hackathonId, gen)) return;
-      await finishPrepare(
-        hackathonId,
-        gen,
-        `Rebuilt queues for ${assigned.totalJudges} judge(s) covering ${assigned.coverage.min}-${assigned.coverage.max} projects each. Completed slots were kept.`,
-      );
-    } catch (e) {
-      if (!stillThisRun(hackathonId, gen)) return;
-      setAssignConflictId(isAssignConflict(e) ? hackathonId : null);
-      setPrepState({
-        busy: false,
-        message: null,
-        error: e instanceof Error ? e.message : "Could not rebuild queues.",
       });
     }
   };
@@ -192,11 +142,10 @@ export default function AdminResultsPage() {
     setSelectedHackathon(hackathons[0].id);
   }
 
-  // A new selection drops the previous edition's prep result and conflict.
+  // A new selection drops the previous edition's prep result.
   const [prepShownFor, setPrepShownFor] = useState(selectedHackathon);
   if (prepShownFor !== selectedHackathon) {
     setPrepShownFor(selectedHackathon);
-    setAssignConflictId(null);
     setPrepState({ busy: false, message: null, error: null });
   }
 
@@ -365,19 +314,13 @@ export default function AdminResultsPage() {
                     Prepare judging
                   </p>
                   <p className="text-xs text-[var(--text-muted)] mt-1">
-                    Syncs submissions into judging and builds every judge&apos;s
-                    queue. Run it before starting, and again after late
-                    submissions.
+                    Syncs submissions into judging and gives each a table. Safe
+                    to run again during judging: late submissions join the pool.
                   </p>
                 </div>
                 <button
                   onClick={prepareJudging}
-                  disabled={prepState.busy || judgingStatus?.active}
-                  title={
-                    judgingStatus?.active
-                      ? "End judging first — rebuilding queues mid-session would reorder what judges are working through."
-                      : undefined
-                  }
+                  disabled={prepState.busy}
                   className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors disabled:opacity-40"
                 >
                   {prepState.busy ? "Preparing…" : "Prepare judging"}
@@ -390,26 +333,12 @@ export default function AdminResultsPage() {
                 </p>
               )}
               {prepState.error && (
-                <div
+                <p
                   role="alert"
-                  className={`mt-4 px-4 py-3 rounded-sm text-sm ${
-                    assignConflictId === selectedHackathon
-                      ? "border border-amber-500/30 bg-amber-500/10 text-amber-200"
-                      : "border border-red-500/30 bg-red-500/10 text-red-300"
-                  }`}
+                  className="mt-4 px-4 py-3 rounded-sm text-sm border border-red-500/30 bg-red-500/10 text-red-300"
                 >
-                  <p>{prepState.error}</p>
-                  {assignConflictId === selectedHackathon && (
-                    <button
-                      type="button"
-                      onClick={rebuildQueuesAnyway}
-                      disabled={prepState.busy}
-                      className="mt-4 px-6 py-3 bg-amber-500/10 border border-amber-500/40 text-amber-200 font-bold text-xs uppercase tracking-widest rounded-sm hover:bg-amber-500/20 transition-ui disabled:opacity-40"
-                    >
-                      {prepState.busy ? "Rebuilding…" : "Rebuild anyway"}
-                    </button>
-                  )}
-                </div>
+                  {prepState.error}
+                </p>
               )}
             </div>
           </LiquidGlass>
