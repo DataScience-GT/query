@@ -2,6 +2,14 @@
 
 import React, { useState, useCallback, useMemo, useId } from "react";
 import { AlertCircle } from "lucide-react";
+import {
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+} from "@/components/portal/ui";
 
 // ── Reusable Form Primitives ── //
 
@@ -24,10 +32,7 @@ export function FormInput({
 
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-      >
+      <label htmlFor={id} className={fieldLabel}>
         {label}
         {required && " *"}
       </label>
@@ -37,10 +42,10 @@ export function FormInput({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`w-full bg-[var(--bg-secondary)] border rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
+        className={`${input} ${error ? "border-[var(--danger)]" : ""} ${className}`}
       />
       {error && (
-        <p id={errorId} className="mt-1.5 text-xs text-rose-400 font-medium">
+        <p id={errorId} className="mt-1.5 text-[13px] text-[var(--danger)]">
           {error}
         </p>
       )}
@@ -48,8 +53,7 @@ export function FormInput({
   );
 }
 
-interface FormTextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   required?: boolean;
   error?: string;
@@ -68,10 +72,7 @@ export function FormTextarea({
 
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-      >
+      <label htmlFor={id} className={fieldLabel}>
         {label}
         {required && " *"}
       </label>
@@ -81,10 +82,10 @@ export function FormTextarea({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`w-full bg-[var(--bg-secondary)] border rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui resize-none ${error ? "border-rose-500/50" : "border-[var(--border-subtle)]"} ${className}`}
+        className={`${input} resize-none ${error ? "border-[var(--danger)]" : ""} ${className}`}
       />
       {error && (
-        <p id={errorId} className="mt-1.5 text-xs text-rose-400 font-medium">
+        <p id={errorId} className="mt-1.5 text-[13px] text-[var(--danger)]">
           {error}
         </p>
       )}
@@ -115,17 +116,14 @@ export function FormChipSelect({
     <div>
       {/* A chip group is a set of buttons, not a single control, so it gets a
           labelled group rather than a <label> with nothing to point at. */}
-      <span
-        id={groupId}
-        className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-      >
+      <span id={groupId} className={fieldLabel}>
         {label}
         {required && " *"}
       </span>
       <div
         role="group"
         aria-labelledby={groupId}
-        className="flex flex-wrap gap-2.5"
+        className="flex flex-wrap gap-2"
       >
         {options.map((opt) => (
           <button
@@ -133,10 +131,10 @@ export function FormChipSelect({
             type="button"
             aria-pressed={value === opt}
             onClick={() => onChange(allowDeselect && value === opt ? "" : opt)}
-            className={`px-4 py-2.5 rounded-sm text-sm font-bold border transition-ui ${
+            className={`px-3.5 py-2 rounded-[var(--radius-sm)] text-sm border transition-colors ${
               value === opt
-                ? "bg-accent/15 border-accent/40 text-accent"
-                : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
+                ? "border-accent bg-[var(--accent-dim)] text-[var(--text-primary)] font-semibold"
+                : "border-[var(--border-medium)] text-[var(--text-muted)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
             }`}
           >
             {opt}
@@ -177,16 +175,13 @@ export function FormMultiChipSelect({
 
   return (
     <div>
-      <span
-        id={groupId}
-        className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-      >
+      <span id={groupId} className={fieldLabel}>
         {label}
       </span>
       <div
         role="group"
         aria-labelledby={groupId}
-        className="flex flex-wrap gap-2.5"
+        className="flex flex-wrap gap-2"
       >
         {options.map((opt) => (
           <button
@@ -194,10 +189,10 @@ export function FormMultiChipSelect({
             type="button"
             aria-pressed={selected.includes(opt)}
             onClick={() => toggle(opt)}
-            className={`px-4 py-2 rounded-sm text-sm font-medium border transition-ui ${
+            className={`px-3.5 py-2 rounded-[var(--radius-sm)] text-sm border transition-colors ${
               selected.includes(opt)
-                ? "bg-accent/15 border-accent/40 text-accent"
-                : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
+                ? "border-accent bg-[var(--accent-dim)] text-[var(--text-primary)] font-semibold"
+                : "border-[var(--border-medium)] text-[var(--text-muted)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
             }`}
           >
             {opt}
@@ -323,10 +318,7 @@ export function SearchableSelect({
 
   return (
     <div className="relative">
-      <label
-        htmlFor={inputId}
-        className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-      >
+      <label htmlFor={inputId} className={fieldLabel}>
         {label}
         {required && " *"}
       </label>
@@ -360,18 +352,14 @@ export function SearchableSelect({
           }, 200)
         }
         placeholder={placeholder}
-        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+        className={input}
       />
-      {hint && (
-        <p className="mt-1.5 text-[11px] text-[var(--text-subtle)]">
-          {hint}
-        </p>
-      )}
+      {hint && <p className={fieldHint}>{hint}</p>}
       {open && rows.length > 0 && (
         <div
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-2 w-full max-h-48 overflow-y-auto bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-sm shadow-[var(--shadow-lg)]"
+          className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-[var(--bg-elevated)] border border-[var(--border-medium)] rounded-[var(--radius-sm)] shadow-[var(--shadow-lg)]"
         >
           {rows.map((opt, i) => {
             const isCustom = customEntry !== null && i === 0;
@@ -389,13 +377,15 @@ export function SearchableSelect({
                 }
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(opt)}
-                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
-                  i === active ? "bg-white/10" : "hover:bg-white/5"
+                className={`w-full text-left px-3.5 py-2 text-sm transition-colors ${
+                  i === active
+                    ? "bg-[var(--bg-secondary)]"
+                    : "hover:bg-[var(--bg-secondary)]"
                 } ${
                   isCustom
-                    ? "text-accent border-b border-[var(--border-subtle)]"
+                    ? "font-semibold text-[var(--text-primary)] border-b border-[var(--border-subtle)]"
                     : value === opt
-                      ? "text-accent bg-accent/5"
+                      ? "font-semibold text-[var(--text-primary)]"
                       : "text-[var(--text-muted)]"
                 }`}
               >
@@ -418,22 +408,21 @@ interface StepProgressProps {
 
 export function StepProgress({ steps, current }: StepProgressProps) {
   return (
-    <div className="flex items-center gap-1 mb-10">
+    <ol className="grid grid-cols-4 gap-2 mb-8">
       {steps.map((label, i) => (
-        <div key={label} className="flex-1 flex flex-col items-center gap-2">
-          <div className="w-full flex items-center">
-            <div
-              className={`flex-1 h-1 rounded-sm transition-ui duration-500 ${i <= current ? "bg-accent" : "bg-white/10"}`}
-            />
-          </div>
-          <span
-            className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${i <= current ? "text-accent" : "text-[var(--text-subtle)]"}`}
-          >
-            {label}
-          </span>
-        </div>
+        <li
+          key={label}
+          aria-current={i === current ? "step" : undefined}
+          className={`border-t-2 pt-2 text-[13px] transition-colors ${
+            i <= current
+              ? "border-accent text-[var(--text-primary)]"
+              : "border-[var(--border-subtle)] text-[var(--text-subtle)]"
+          } ${i === current ? "font-semibold" : ""}`}
+        >
+          {label}
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -447,10 +436,8 @@ export function StepContainer({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-5 animate-in fade-in duration-300">
-      <h4 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
-        {title}
-      </h4>
+    <div className="space-y-5">
+      <h4 className={itemTitle}>{title}</h4>
       {children}
     </div>
   );
@@ -461,12 +448,17 @@ export function StepContainer({
 export function FormErrorAlert({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="mt-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-sm flex items-center gap-3">
+    <div
+      role="alert"
+      className="mt-6 flex items-start gap-2.5 border-l-2 border-[var(--danger)] py-1 pl-3"
+    >
       <AlertCircle
-        className="w-5 h-5 text-rose-400 shrink-0"
+        size={16}
+        strokeWidth={1.75}
+        className="mt-0.5 shrink-0 text-[var(--danger)]"
         aria-hidden="true"
       />
-      <p className="text-rose-400 text-sm font-medium">{message}</p>
+      <p className="text-[15px] text-[var(--danger)]">{message}</p>
     </div>
   );
 }
@@ -494,12 +486,12 @@ export function FormNavigation({
 }: FormNavigationProps) {
   const isLastStep = step >= totalSteps - 1;
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-4 pt-8">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-8">
       {step > 0 && (
         <button
           onClick={onBack}
           type="button"
-          className="w-full sm:w-auto px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+          className={`${btnSecondary} w-full sm:w-auto`}
         >
           Back
         </button>
@@ -508,7 +500,7 @@ export function FormNavigation({
         <button
           onClick={onNext}
           type="button"
-          className="w-full sm:w-auto px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+          className={`${btnPrimary} w-full sm:w-auto`}
         >
           Continue
         </button>
@@ -517,7 +509,7 @@ export function FormNavigation({
           onClick={onSubmit}
           type="button"
           disabled={isSubmitting}
-          className="w-full sm:w-auto px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+          className={`${btnPrimary} w-full sm:w-auto`}
         >
           {isSubmitting ? "Submitting…" : "Submit application"}
         </button>
@@ -525,7 +517,7 @@ export function FormNavigation({
       <button
         onClick={onCancel}
         type="button"
-        className="w-full sm:w-auto px-6 py-3 text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+        className="w-full sm:w-auto sm:ml-auto py-2.5 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
       >
         Cancel
       </button>

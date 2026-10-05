@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Rocket } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   ApplicationChip,
@@ -18,6 +16,22 @@ import {
   emptyDraft,
   toInput,
 } from "@/components/portal/initiatives/form-fields";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  meta,
+  object,
+  page,
+  pageDek,
+  pageTitle,
+  sectionTitle,
+} from "@/components/portal/ui";
 import { trpc } from "@/lib/trpc";
 import { loginHref } from "@/lib/safe-callback";
 import type { RouterOutputs } from "@query/api";
@@ -25,6 +39,13 @@ import type { RouterOutputs } from "@query/api";
 type OpenInitiative = RouterOutputs["initiative"]["list"][number];
 type MyApplication = RouterOutputs["initiative"]["myApplications"][number];
 type MyProposal = RouterOutputs["initiative"]["myProposals"][number];
+
+const errorText = "text-sm text-[var(--danger)]";
+const quietAction =
+  "text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50";
+const inlineLink =
+  "font-semibold text-[var(--text-primary)] underline decoration-accent underline-offset-4 hover:decoration-[var(--text-primary)]";
+const listRow = "border-b border-[var(--border-subtle)] py-5";
 
 /**
  * Proposing something to run, rather than joining something that exists.
@@ -50,10 +71,10 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
 
   if (!open) {
     return (
-      <LiquidGlass className="mb-10 flex flex-wrap items-center justify-between gap-4 p-5">
+      <section className="mt-12 flex flex-col justify-between gap-4 border-t border-[var(--border-subtle)] pt-6 md:flex-row md:items-end">
         <div>
-          <p className="font-semibold text-white">Got something to build?</p>
-          <p className="mt-1 text-sm text-white/60">
+          <h2 className={sectionTitle}>Have something to build?</h2>
+          <p className={`${body} mt-2 max-w-xl`}>
             Pitch it. If it is approved you become its project leader and pick
             who joins.
           </p>
@@ -61,30 +82,34 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="shrink-0 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+          className={`${btnSecondary} shrink-0 self-start md:self-auto`}
         >
           Propose a project
         </button>
-      </LiquidGlass>
+      </section>
     );
   }
 
   return (
-    <LiquidGlass className="mb-10 p-5">
+    <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
       <form
         onSubmit={(event) => {
           event.preventDefault();
           propose.mutate(toInput(draft));
         }}
       >
-        <h2 className="mb-4 font-semibold text-white">Propose a project</h2>
+        <h2 className={sectionTitle}>Propose a project</h2>
+        <p className={`${body} mt-2 mb-5 max-w-xl`}>
+          An organiser reviews it. If it is approved you lead it and pick who
+          joins.
+        </p>
         <InitiativeFields draft={draft} onChange={setDraft} />
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-3">
           <button
             type="submit"
             disabled={propose.isPending}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+            className={btnPrimary}
           >
             {propose.isPending ? "Sending…" : "Send for review"}
           </button>
@@ -94,19 +119,19 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
               setOpen(false);
               propose.reset();
             }}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+            className={btnSecondary}
           >
             Cancel
           </button>
         </div>
 
         {propose.error && (
-          <p aria-live="polite" className="mt-3 text-sm text-red-300">
+          <p aria-live="polite" className={`${errorText} mt-3`}>
             {propose.error.message}
           </p>
         )}
       </form>
-    </LiquidGlass>
+    </section>
   );
 }
 
@@ -122,30 +147,34 @@ function ProposalRow({ proposal }: { proposal: MyProposal }) {
   const state = initiativeState(proposal);
 
   return (
-    <LiquidGlass className="p-5">
+    <li className={listRow}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-white">{proposal.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+              {proposal.title}
+            </h3>
             <InitiativeChip state={state} />
           </div>
           {proposal.summary && (
-            <p className="mt-1 text-sm text-white/60">{proposal.summary}</p>
+            <p className={`${body} mt-1`}>{proposal.summary}</p>
           )}
 
           {/* The reviewer's note is the whole point of a decline — without it a
               member has no idea what to change before pitching again. */}
           {proposal.reviewNote && (
-            <p className="mt-2 border-l-2 border-white/10 pl-3 text-sm text-white/70">
+            <p
+              className={`${body} mt-3 border-l-2 border-[var(--border-medium)] pl-3`}
+            >
               {proposal.reviewNote}
             </p>
           )}
 
           {proposal.status === "draft" && (
-            <p className="mt-2 text-sm text-white/60">
-              Approved — finish writing it and open it from{" "}
-              <Link href="/lead" className="font-semibold text-white underline">
-                My Projects
+            <p className={`${body} mt-2`}>
+              Approved. Finish writing it and open it to members from{" "}
+              <Link href="/lead" className={inlineLink}>
+                your projects
               </Link>
               .
             </p>
@@ -157,7 +186,7 @@ function ProposalRow({ proposal }: { proposal: MyProposal }) {
             type="button"
             disabled={withdraw.isPending}
             onClick={() => withdraw.mutate({ id: proposal.id })}
-            className="shrink-0 text-sm font-semibold text-white/50 transition hover:text-white disabled:opacity-50"
+            className={`${quietAction} shrink-0`}
           >
             Withdraw
           </button>
@@ -165,9 +194,9 @@ function ProposalRow({ proposal }: { proposal: MyProposal }) {
       </div>
 
       {withdraw.error && (
-        <p className="mt-3 text-sm text-red-300">{withdraw.error.message}</p>
+        <p className={`${errorText} mt-3`}>{withdraw.error.message}</p>
       )}
-    </LiquidGlass>
+    </li>
   );
 }
 
@@ -215,24 +244,29 @@ function OpenRow({
     setResume(null);
     if (!file) return;
     if (file.type !== "application/pdf") {
-      return setResumeError("Your resume must be a PDF.");
+      return setResumeError(
+        "Your resume must be a PDF. Export it as one and try again.",
+      );
     }
     if (file.size > 1.4 * 1024 * 1024) {
-      return setResumeError("That PDF is over 1.4 MB. Please compress it.");
+      return setResumeError(
+        "That PDF is over 1.4 MB. Compress it and try again.",
+      );
     }
     const reader = new FileReader();
     reader.onload = () =>
       setResume({ fileName: file.name, dataUrl: String(reader.result) });
-    reader.onerror = () => setResumeError("Could not read that file.");
+    reader.onerror = () =>
+      setResumeError("Could not read that file. Try choosing it again.");
     reader.readAsDataURL(file);
   };
 
   return (
-    <LiquidGlass className="p-5">
+    <li className={`${object} p-5`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-white">{initiative.title}</h3>
-          <p className="mt-1 text-sm text-white/60">
+          <h3 className={itemTitle}>{initiative.title}</h3>
+          <p className={`${meta} mt-1`}>
             Led by {initiative.leaderName ?? "a project leader"} ·{" "}
             {seatLabel(initiative.accepted, initiative.maxMembers)}
             {initiative.commitment ? ` · ${initiative.commitment}` : ""}
@@ -240,7 +274,7 @@ function OpenRow({
         </div>
 
         {initiative.isFull ? (
-          <span className="shrink-0 text-sm font-semibold text-white/50">
+          <span className="shrink-0 text-sm font-semibold text-[var(--text-subtle)]">
             Full
           </span>
         ) : (
@@ -249,7 +283,7 @@ function OpenRow({
             <button
               type="button"
               onClick={() => setWriting(true)}
-              className="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+              className={`${btnSecondary} shrink-0`}
             >
               Apply
             </button>
@@ -258,21 +292,20 @@ function OpenRow({
       </div>
 
       {initiative.summary && (
-        <p className="mt-3 text-sm text-white/80">{initiative.summary}</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          {initiative.summary}
+        </p>
       )}
       {initiative.description && (
-        <p className="mt-2 whitespace-pre-line text-sm text-white/60">
+        <p className={`${body} mt-2 whitespace-pre-line`}>
           {initiative.description}
         </p>
       )}
 
       {!canApply && !initiative.isFull && (
-        <p className="mt-3 text-sm text-white/50">
-          An active membership is required to join.{" "}
-          <Link
-            href="/dashboard"
-            className="font-semibold text-white underline"
-          >
+        <p className={`${meta} mt-3`}>
+          Joining needs an active membership.{" "}
+          <Link href="/dashboard" className={inlineLink}>
             Become a member
           </Link>
         </p>
@@ -280,7 +313,7 @@ function OpenRow({
 
       {writing && (
         <form
-          className="mt-4 border-t border-white/10 pt-4"
+          className="mt-5 border-t border-[var(--border-subtle)] pt-5"
           onSubmit={(event) => {
             event.preventDefault();
             join.mutate({
@@ -290,10 +323,7 @@ function OpenRow({
             });
           }}
         >
-          <label
-            htmlFor={`pitch-${initiative.id}`}
-            className="text-xs font-semibold uppercase tracking-wide text-white/50"
-          >
+          <label htmlFor={`pitch-${initiative.id}`} className={fieldLabel}>
             Why do you want to join?
           </label>
           <textarea
@@ -304,12 +334,12 @@ function OpenRow({
             value={pitch}
             onChange={(event) => setPitch(event.target.value)}
             placeholder="What you want to work on, and what you have built before."
-            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+            className={input}
           />
 
           <label
             htmlFor={`resume-${initiative.id}`}
-            className="mt-4 block text-xs font-semibold uppercase tracking-wide text-white/50"
+            className={`${fieldLabel} mt-5`}
           >
             Resume (PDF, optional)
           </label>
@@ -318,24 +348,20 @@ function OpenRow({
             type="file"
             accept="application/pdf,.pdf"
             onChange={(event) => readResume(event.target.files?.[0])}
-            className="mt-2 block w-full text-sm text-white/70 file:mr-3 file:rounded-full file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-white/20"
+            className="block w-full text-sm text-[var(--text-muted)] file:mr-3 file:cursor-pointer file:rounded-[var(--radius-sm)] file:border file:border-solid file:border-[var(--border-medium)] file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--text-primary)] hover:file:bg-[var(--bg-secondary)]"
           />
-          {resume && (
-            <p className="mt-2 text-xs text-white/50">
-              Attached: {resume.fileName}
-            </p>
-          )}
+          {resume && <p className={fieldHint}>Attached: {resume.fileName}</p>}
           {resumeError && (
-            <p aria-live="polite" className="mt-2 text-xs text-red-300">
+            <p aria-live="polite" className={`${errorText} mt-1.5`}>
               {resumeError}
             </p>
           )}
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={join.isPending || !pitch.trim()}
-              className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+              className={btnPrimary}
             >
               {join.isPending ? "Sending…" : "Send application"}
             </button>
@@ -345,20 +371,20 @@ function OpenRow({
                 setWriting(false);
                 join.reset();
               }}
-              className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+              className={btnSecondary}
             >
               Cancel
             </button>
           </div>
 
           {join.error && (
-            <p aria-live="polite" className="mt-3 text-sm text-red-300">
+            <p aria-live="polite" className={`${errorText} mt-3`}>
               {join.error.message}
             </p>
           )}
         </form>
       )}
-    </LiquidGlass>
+    </li>
   );
 }
 
@@ -379,25 +405,28 @@ function ApplicationRow({ application }: { application: MyApplication }) {
   // over — the control would change nothing either way.
   const canWithdraw =
     application.myStatus !== "rejected" && application.archivedAt === null;
+  const leaving = application.myStatus === "accepted";
 
   return (
-    <LiquidGlass className="p-5">
+    <li className={listRow}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-white">{application.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+              {application.title}
+            </h3>
             <ApplicationChip status={application.myStatus} />
           </div>
-          <p className="mt-1 text-sm text-white/60">
+          <p className={`${meta} mt-1`}>
             Led by {application.leaderName ?? "a project leader"}
             {application.archivedAt !== null ? " · archived" : ""}
           </p>
           {application.leaderEmail && (
-            <p className="mt-1 text-sm text-white/60">
+            <p className={`${body} mt-1`}>
               Reach them at{" "}
               <a
                 href={`mailto:${application.leaderEmail}`}
-                className="font-semibold text-white underline"
+                className={inlineLink}
               >
                 {application.leaderEmail}
               </a>
@@ -407,9 +436,9 @@ function ApplicationRow({ application }: { application: MyApplication }) {
 
         {canWithdraw &&
           (confirm ? (
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-white/60">
-                {application.myStatus === "accepted" ? "Leave?" : "Withdraw?"}
+            <span className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-[var(--text-muted)]">
+                {leaving ? "Leave this project?" : "Withdraw your application?"}
               </span>
               <button
                 type="button"
@@ -418,14 +447,14 @@ function ApplicationRow({ application }: { application: MyApplication }) {
                   withdraw.mutate({ initiativeId: application.id });
                   setConfirm(false);
                 }}
-                className="rounded-full bg-red-500/20 px-3 py-1.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/30 disabled:opacity-50"
+                className={btnDanger}
               >
-                Yes
+                {leaving ? "Leave" : "Withdraw"}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirm(false)}
-                className="rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-white/80"
+                className={btnSecondary}
               >
                 Cancel
               </button>
@@ -434,17 +463,17 @@ function ApplicationRow({ application }: { application: MyApplication }) {
             <button
               type="button"
               onClick={() => setConfirm(true)}
-              className="shrink-0 text-sm font-semibold text-white/50 transition hover:text-white"
+              className={`${quietAction} shrink-0`}
             >
-              {application.myStatus === "accepted" ? "Leave" : "Withdraw"}
+              {leaving ? "Leave" : "Withdraw"}
             </button>
           ))}
       </div>
 
       {withdraw.error && (
-        <p className="mt-3 text-sm text-red-300">{withdraw.error.message}</p>
+        <p className={`${errorText} mt-3`}>{withdraw.error.message}</p>
       )}
-    </LiquidGlass>
+    </li>
   );
 }
 
@@ -483,60 +512,39 @@ export default function InitiativesPage() {
   // them a chance to apply again.
   const joinable = (open.data ?? []).filter((row) => row.myStatus === null);
   const canApply = !!memberStatus.data?.isActive;
+  const loadError = open.error ?? mine.error ?? proposals.error;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <header className="mb-8">
-        <div className="flex items-center gap-3">
-          <Rocket className="h-6 w-6 text-white/70" />
-          <h1 className="text-2xl font-bold text-white">Projects</h1>
-        </div>
-        <p className="mt-2 text-white/60">
+    <div className={page}>
+      <Link
+        href="/dashboard"
+        className="text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        ← Dashboard
+      </Link>
+
+      <header className="mt-6">
+        <h1 className={pageTitle}>
+          {joinable.length > 0
+            ? `${joinable.length} club project${joinable.length === 1 ? " is" : "s are"} taking members`
+            : "Club projects"}
+        </h1>
+        <p className={pageDek}>
           Projects the club runs year-round. Leaders post what they are building
           and pick who joins.
         </p>
       </header>
 
-      {(open.error ?? mine.error ?? proposals.error) && (
-        <p className="mb-6 text-sm text-red-300">
-          {(open.error ?? mine.error ?? proposals.error)?.message}
+      {loadError && (
+        <p className={`${errorText} mt-6`}>
+          {loadError.message} Refresh the page to try again.
         </p>
       )}
 
-      <ProposeSection canPropose={canApply} />
-
-      {myProposals.length > 0 && (
-        <section className="mb-10">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
-            What you proposed
-          </h2>
-          <div className="space-y-3">
-            {myProposals.map((proposal) => (
-              <ProposalRow key={proposal.id} proposal={proposal} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {applications.length > 0 && (
-        <section className="mb-10">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
-            Your applications
-          </h2>
-          <div className="space-y-3">
-            {applications.map((application) => (
-              <ApplicationRow key={application.id} application={application} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
-          Open to join
-        </h2>
+      <section className="mt-10">
+        <h2 className={sectionTitle}>Open to join</h2>
         {joinable.length > 0 ? (
-          <div className="space-y-3">
+          <ul className="mt-5 space-y-4">
             {joinable.map((initiative) => (
               <OpenRow
                 key={initiative.id}
@@ -544,21 +552,41 @@ export default function InitiativesPage() {
                 canApply={canApply}
               />
             ))}
-          </div>
+          </ul>
         ) : (
-          <LiquidGlass className="p-8 text-center">
-            <p className="font-semibold text-white">
-              {applications.length > 0
-                ? "Nothing else open right now."
-                : "No projects are taking applications."}
-            </p>
-            <p className="mt-2 text-sm text-white/60">
-              Leaders open these up through the year. Check back, or ask at a
-              general meeting what is being planned.
-            </p>
-          </LiquidGlass>
+          <p className={`${body} mt-3 max-w-xl`}>
+            {applications.length > 0
+              ? "Nothing else is open right now."
+              : "No projects are taking applications right now."}{" "}
+            Leaders open them through the year, so check back or ask at a
+            general meeting what is being planned.
+          </p>
         )}
       </section>
+
+      {applications.length > 0 && (
+        <section className="mt-12">
+          <h2 className={sectionTitle}>Your applications</h2>
+          <ul className="mt-4 border-t border-[var(--border-subtle)]">
+            {applications.map((application) => (
+              <ApplicationRow key={application.id} application={application} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {myProposals.length > 0 && (
+        <section className="mt-12">
+          <h2 className={sectionTitle}>What you proposed</h2>
+          <ul className="mt-4 border-t border-[var(--border-subtle)]">
+            {myProposals.map((proposal) => (
+              <ProposalRow key={proposal.id} proposal={proposal} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <ProposeSection canPropose={canApply} />
     </div>
   );
 }

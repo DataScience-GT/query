@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
+import { Check, X } from "lucide-react";
 import { ModalWrapper } from "./ModalWrapper";
+import { btnPrimary, btnSecondary, itemTitle, label } from "./ui";
 
 interface ScanResultModalProps {
   success: boolean;
@@ -18,82 +20,43 @@ export function ScanResultModal({
 }: ScanResultModalProps) {
   return (
     <ModalWrapper onClose={onClose} maxWidth="md">
-      <div className="text-center space-y-8">
-        {/* Status Icon */}
-        <div
-          className={`inline-block p-6 rounded-sm ${
-            success
-              ? "bg-accent/10 border border-accent/20"
-              : "bg-red-500/10 border border-red-500/20"
-          }`}
-        >
-          {success ? (
-            <svg
-              className="w-12 h-12 text-accent"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="w-12 h-12 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
+      <div className="space-y-6">
         {/* Title */}
-        <div>
-          <h3
-            className={`text-3xl font-black uppercase tracking-tighter mb-2 ${
-              success ? "text-[var(--text-primary)]" : "text-red-400"
-            }`}
-          >
-            {success ? "Check-In Success" : "Check-In Failed"}
+        <div className="flex items-start gap-3">
+          {success ? (
+            <Check
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="mt-1.5 h-5 w-5 shrink-0 text-[var(--success)]"
+            />
+          ) : (
+            <X
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="mt-1.5 h-5 w-5 shrink-0 text-[var(--danger)]"
+            />
+          )}
+          <h3 className={itemTitle}>
+            {success ? "Checked in" : "Check-in didn’t go through"}
           </h3>
-          <p className="text-[10px] font-mono text-accent uppercase tracking-[0.3em]">
-            {success ? "Identity Verified" : "Access Denied"}
-          </p>
         </div>
 
         {/* Success Event Details */}
         {success && eventTitle && (
-          <div className="space-y-3">
-            <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-none p-6">
-              <p className="text-[9px] text-gray-600 uppercase tracking-[0.4em] mb-3 font-mono">
-                Event Payload:
-              </p>
-              <p className="text-xl text-[var(--text-primary)] font-black uppercase italic tracking-tight">
-                {eventTitle}
-              </p>
-            </div>
+          <div className="border-t border-[var(--border-subtle)] pt-4">
+            <p className={label}>Event</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--text-primary)]">
+              {eventTitle}
+            </p>
           </div>
         )}
 
         {/* Error Message */}
         {!success && (
-          <div className="bg-red-500/5 border border-red-500/20 rounded-none p-6">
-            <p className="text-[9px] text-red-500 uppercase tracking-[0.4em] mb-3 font-mono">
-              Error Code:
-            </p>
-            <p className="text-sm text-red-300 font-mono italic">
-              &gt; "{message}"
+          <div className="border-t border-[var(--border-subtle)] pt-4">
+            <p className="text-[15px] text-[var(--danger)]">{message}</p>
+            <p className="mt-2 text-[13px] text-[var(--text-subtle)]">
+              Close this and scan the code again.
             </p>
           </div>
         )}
@@ -102,13 +65,9 @@ export function ScanResultModal({
         <button
           type="button"
           onClick={onClose}
-          className={`w-full px-8 py-5 font-black uppercase text-xs tracking-[0.4em] transition-ui rounded-none ${
-            success
-              ? "bg-accent text-black hover:bg-accent/80 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-              : "bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20"
-          }`}
+          className={`w-full ${success ? btnPrimary : btnSecondary}`}
         >
-          TERMINATE OVERLAY
+          {success ? "Done" : "Close"}
         </button>
       </div>
     </ModalWrapper>

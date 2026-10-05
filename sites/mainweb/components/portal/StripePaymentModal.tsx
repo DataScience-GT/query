@@ -15,6 +15,14 @@ import { useState } from "react";
 import { useTheme } from "next-themes";
 import { formatCents } from "@query/api/pricing";
 import { useIsClient } from "@/lib/use-is-client";
+import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  itemTitle,
+  meta,
+  status,
+} from "@/components/portal/ui";
 
 // ── Inner form (must be inside <Elements>) ─────────────────────────────────
 function CheckoutForm({
@@ -122,30 +130,10 @@ function CheckoutForm({
 
   if (succeeded) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 gap-4">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center animate-in zoom-in-75 duration-300">
-          <svg
-            className="w-8 h-8 text-emerald-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-bold text-[var(--text-primary)]">
-            Payment Successful!
-          </p>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Activating your membership…
-          </p>
-        </div>
+      <div role="status" className="py-8">
+        <p className={status("success")}>Paid</p>
+        <p className={`mt-2 ${itemTitle}`}>Payment received</p>
+        <p className={`mt-1 ${body}`}>Activating your membership…</p>
       </div>
     );
   }
@@ -159,12 +147,9 @@ function CheckoutForm({
       />
 
       {error && (
-        <div className="flex items-start gap-2.5 px-4 py-3 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-medium)]">
-          <span className="text-[var(--text-muted)] text-sm mt-0.5 flex-shrink-0">
-            !
-          </span>
-          <p className="text-sm text-[var(--text-muted)]">{error}</p>
-        </div>
+        <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] leading-relaxed text-[var(--text-primary)]">
+          {error}
+        </p>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 pt-1">
@@ -172,32 +157,35 @@ function CheckoutForm({
           type="button"
           onClick={onCancel}
           disabled={processing}
-          className="flex-1 px-5 py-3 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-ui text-sm font-bold uppercase tracking-widest disabled:opacity-40"
+          className={`flex-1 ${btnSecondary}`}
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!stripe || processing}
-          className="flex-[2] px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-50 flex items-center justify-center gap-2"
+          className={`flex-[2] ${btnPrimary}`}
         >
           {processing ? (
             <>
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span
+                aria-hidden="true"
+                className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"
+              />
               Processing…
             </>
           ) : (
             <>
-              <Lock className="w-4 h-4" />
+              <Lock className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
               Pay {formatCents(amountCents)}
             </>
           )}
         </button>
       </div>
 
-      <p className="text-center text-[10px] text-[var(--text-subtle)] flex items-center justify-center gap-1.5">
-        <Shield className="w-3 h-3" />
-        Secured by Stripe · Your card info is never stored on our servers
+      <p className={`flex items-center gap-1.5 ${meta}`}>
+        <Shield className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} aria-hidden="true" />
+        Secured by Stripe. Your card details never touch our servers.
       </p>
     </form>
   );
@@ -312,10 +300,8 @@ export function StripePaymentModal({
             color: isLight ? "#a1a1aa" : "#6b6b6b",
           },
           ".Label": {
-            fontWeight: "600",
-            fontSize: "11px",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
+            fontWeight: "500",
+            fontSize: "13px",
             color: isLight ? "#71717a" : "#a1a1a1",
           },
           ".Tab": {
@@ -340,8 +326,11 @@ export function StripePaymentModal({
     return (
       <ModalShell onClose={close} amountCents={amountCents}>
         <div className="space-y-4">
-          <p className="text-sm text-[var(--text-muted)] font-mono bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3">
-            🧪 Dev mock mode — no real charge will occur
+          <p className={body}>
+            <span className="font-semibold text-[var(--text-primary)]">
+              Test mode.
+            </span>{" "}
+            No real charge will occur.
           </p>
           <button
             type="button"
@@ -369,12 +358,12 @@ export function StripePaymentModal({
               }
             }}
             disabled={processing}
-            className="w-full px-5 py-3 rounded-sm bg-[var(--accent)] text-[var(--text-on-accent)] font-bold text-sm uppercase tracking-widest hover:opacity-90 transition-ui disabled:opacity-40"
+            className={`w-full ${btnPrimary}`}
           >
-            {processing ? "Recording…" : "Simulate Successful Payment"}
+            {processing ? "Recording…" : "Simulate successful payment"}
           </button>
           {error && (
-            <p role="alert" className="text-xs font-mono text-red-400">
+            <p role="alert" className="text-[13px] text-[var(--danger)]">
               {error}
             </p>
           )}
@@ -428,54 +417,32 @@ function ModalShell({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-[var(--ui-scrim)] backdrop-blur-md animate-in fade-in duration-200"
+        className="absolute inset-0 bg-[var(--ui-scrim)] animate-in fade-in duration-200"
         onClick={onClose}
       />
 
       {/* Modal panel */}
-      <div className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-250">
-        {/* Card */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-medium)] rounded-lg shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)]">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-sm bg-[var(--accent-dim)] border border-[var(--border-accent)]/30 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-[var(--accent)]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">
-                  DSGT Membership
-                </p>
-                <p className="text-xs text-[var(--text-muted)]">
-                  {formatCents(amountCents)} · Secure checkout
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-sm text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-ui"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      <div className="relative z-10 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-medium)] bg-[var(--bg-card)] shadow-xl animate-in fade-in duration-200">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-[var(--border-subtle)]">
+          <div>
+            <p className={itemTitle}>DSGT membership</p>
+            <p className={`mt-0.5 ${meta}`}>
+              {formatCents(amountCents)} · Secure checkout
+            </p>
           </div>
-
-          {/* Body */}
-          <div className="px-6 py-6">{children}</div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="-mr-2 p-2 rounded-[var(--radius-sm)] text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" strokeWidth={1.75} />
+          </button>
         </div>
+
+        {/* Body */}
+        <div className="px-6 py-6">{children}</div>
       </div>
     </div>,
     document.body,

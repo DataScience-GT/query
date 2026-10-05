@@ -1,4 +1,6 @@
 import type { ApplicationStatus, InitiativeStatus } from "@query/db";
+import { status as statusClass } from "@/components/portal/ui";
+import type { Tone } from "@/components/portal/ui";
 
 /**
  * One definition of each state, shared by the member list, the leader's queue
@@ -6,32 +8,29 @@ import type { ApplicationStatus, InitiativeStatus } from "@query/db";
  * green in one place and grey in another.
  */
 
-const base =
-  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold";
-
 const applicationTones: Record<
   ApplicationStatus,
-  { member: string; leader: string; className: string }
+  { member: string; leader: string; tone: Tone }
 > = {
   pending: {
     member: "Waiting on the leader",
     leader: "Undecided",
-    className: "bg-white/10 text-white/70",
+    tone: "warning",
   },
   accepted: {
     member: "On the team",
     leader: "Accepted",
-    className: "bg-emerald-500/15 text-emerald-300",
+    tone: "success",
   },
   rejected: {
     member: "Not this time",
     leader: "Rejected",
-    className: "bg-white/5 text-white/50",
+    tone: "neutral",
   },
   withdrawn: {
     member: "Withdrawn",
     leader: "Withdrawn",
-    className: "bg-white/5 text-white/50",
+    tone: "neutral",
   },
 };
 
@@ -44,7 +43,7 @@ export function ApplicationChip({
 }) {
   const tone = applicationTones[status];
   return (
-    <span className={`${base} ${tone.className}`}>{tone[side]}</span>
+    <span className={`${statusClass(tone.tone)} shrink-0`}>{tone[side]}</span>
   );
 }
 
@@ -53,20 +52,20 @@ export type InitiativeState = InitiativeStatus | "archived";
 
 const initiativeTones: Record<
   InitiativeState,
-  { label: string; className: string }
+  { label: string; tone: Tone }
 > = {
   proposed: {
     label: "Waiting on review",
-    className: "bg-sky-500/15 text-sky-300",
+    tone: "warning",
   },
-  declined: { label: "Not approved", className: "bg-white/5 text-white/50" },
-  draft: { label: "Draft", className: "bg-white/10 text-white/60" },
+  declined: { label: "Not approved", tone: "neutral" },
+  draft: { label: "Draft", tone: "neutral" },
   open: {
     label: "Taking applications",
-    className: "bg-emerald-500/15 text-emerald-300",
+    tone: "accent",
   },
-  closed: { label: "Applications closed", className: "bg-white/10 text-white/60" },
-  archived: { label: "Archived", className: "bg-amber-500/15 text-amber-300" },
+  closed: { label: "Applications closed", tone: "neutral" },
+  archived: { label: "Archived", tone: "neutral" },
 };
 
 export function initiativeState(initiative: {
@@ -78,7 +77,9 @@ export function initiativeState(initiative: {
 
 export function InitiativeChip({ state }: { state: InitiativeState }) {
   const tone = initiativeTones[state];
-  return <span className={`${base} ${tone.className}`}>{tone.label}</span>;
+  return (
+    <span className={`${statusClass(tone.tone)} shrink-0`}>{tone.label}</span>
+  );
 }
 
 /** A null cap is uncapped, not zero — "4 of 0" reads as nobody can join. */
