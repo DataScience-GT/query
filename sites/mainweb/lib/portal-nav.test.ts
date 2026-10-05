@@ -85,8 +85,8 @@ describe("portalNavSections", () => {
       "Judge Portal",
       "Check-In Desk",
     ]);
-    expect(names(sections, "portal")).toContain("Club Check-In");
-    expect(names(sections, "hackathon")).not.toContain("Club Check-In");
+    expect(names(sections, "portal")).toContain("Club Attendance");
+    expect(names(sections, "hackathon")).not.toContain("Club Attendance");
     expect(names(sections, "portal")).not.toContain("Judge Portal");
   });
 
@@ -108,7 +108,7 @@ describe("portalNavSections", () => {
     expect(names(sections, "portal")).toEqual([
       "Club Hub",
       "Club Attendees",
-      "Club Check-In",
+      "Club Attendance",
       "Club Projects",
       "Club Project Applications",
       "Bootcamp",
