@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { ModalWrapper } from "./ModalWrapper";
 import {
   btnPrimary,
@@ -49,6 +50,7 @@ export function EventFormModal({
   mode = "create",
   error = null,
 }: EventFormModalProps) {
+  const readOnly = useReadOnly();
   const [form, setForm] = useState<EventFormData>({
     title: initial?.title ?? "",
     description: initial?.description ?? "",
@@ -177,7 +179,8 @@ export function EventFormModal({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!isValid || isSubmitting}
+          disabled={readOnly || !isValid || isSubmitting}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
           className={`${btnPrimary} mt-2 w-full`}
         >
           {isSubmitting

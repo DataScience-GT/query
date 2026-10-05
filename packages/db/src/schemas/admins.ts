@@ -11,8 +11,10 @@ export const admins = pgTable("admin", {
   // "volunteer" is the weakest tier and is NOT full staff: it lets the people
   // running check-in desks scan badges without holding the role that can delete
   // the hackathon. isAdmin rejects it; only the scanner procedures accept it.
+  // "bug_tester" is read-only QA: it may run every staff query but no
+  // mutation (enforced in the isAdmin / isScanner middleware).
   role: text("role", {
-    enum: ["super_admin", "admin", "moderator", "volunteer"],
+    enum: ["super_admin", "admin", "moderator", "volunteer", "bug_tester"],
   })
     .notNull()
     .default("admin"),

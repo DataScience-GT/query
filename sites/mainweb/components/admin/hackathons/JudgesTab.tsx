@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { UserPlus, Copy } from "lucide-react";
 import {
@@ -26,6 +27,7 @@ import {
 
 export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   // Scoped to this hackathon: a judges row belongs to one edition, and
   // assignToHackathon rejects any judge from another — so an unscoped list
@@ -346,7 +348,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 active: !judgingStatus?.active,
               })
             }
-            disabled={toggleJudging.isPending}
+            disabled={readOnly || toggleJudging.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={judgingStatus?.active ? btnDanger : btnPrimary}
           >
             {judgingStatus?.active ? "Stop judging" : "Start judging"}
@@ -420,7 +423,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   force: computeConflict,
                 });
               }}
-              disabled={computeResults.isPending || isPublished}
+              disabled={readOnly || computeResults.isPending || isPublished}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={btnSecondary}
             >
               {computeResults.isPending
@@ -437,7 +441,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               <button
                 type="button"
                 onClick={announceResults}
-                disabled={announcing}
+                disabled={readOnly || announcing}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={btnSecondary}
               >
                 {announcing ? "Announcing…" : "Email results"}
@@ -448,7 +453,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 <button
                   type="button"
                   onClick={() => unpublishResults.mutate({ hackathonId })}
-                  disabled={unpublishResults.isPending}
+                  disabled={readOnly || unpublishResults.isPending}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   className={btnDanger}
                 >
                   {unpublishResults.isPending ? "Unpublishing…" : "Unpublish"}
@@ -465,7 +471,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                       return;
                     publishResults.mutate({ hackathonId });
                   }}
-                  disabled={publishResults.isPending}
+                  disabled={readOnly || publishResults.isPending}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   className={btnInk}
                 >
                   {publishResults.isPending ? "Publishing…" : "Publish results"}
@@ -513,6 +520,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             type="button"
             onClick={() => setShowAddForm(!showAddForm)}
             aria-expanded={showAddForm}
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnSecondary}
           >
             <UserPlus size={16} strokeWidth={1.75} aria-hidden="true" /> Add judge
@@ -607,10 +616,12 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               <button
                 type="submit"
                 disabled={
+                  readOnly ||
                   (!selectedJudgeId && !newJudgeEmail.trim()) ||
                   createJudge.isPending ||
                   assignJudge.isPending
                 }
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={`${btnInk} whitespace-nowrap`}
               >
                 {createJudge.isPending || assignJudge.isPending
@@ -692,7 +703,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                       <select
                         aria-label="Track"
                         value={assignment?.track ?? ""}
-                        disabled={updateTrack.isPending}
+                        disabled={readOnly || updateTrack.isPending}
+                        title={readOnly ? READ_ONLY_TITLE : undefined}
                         onChange={(e) => {
                           setQueueNotice(null);
                           setTrackConflict(null);
@@ -723,7 +735,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     </div>
                     <button
                       type="button"
-                      disabled={setActive.isPending}
+                      disabled={readOnly || setActive.isPending}
+                      title={readOnly ? READ_ONLY_TITLE : undefined}
                       onClick={() =>
                         setActive.mutate({
                           judgeId: judge.id,
@@ -746,7 +759,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                       </p>
                       <button
                         type="button"
-                        disabled={updateTrack.isPending}
+                        disabled={readOnly || updateTrack.isPending}
+                        title={readOnly ? READ_ONLY_TITLE : undefined}
                         onClick={() =>
                           updateTrack.mutate({
                             judgeId: trackConflict.judgeId,

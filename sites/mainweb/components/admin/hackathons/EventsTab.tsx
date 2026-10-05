@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Plus } from "lucide-react";
 import {
   body,
@@ -69,6 +70,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
   const [deleteBlocked, setDeleteBlocked] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const { data: events, isLoading } = trpc.hackathon.getEvents.useQuery({
     hackathonId,
   });
@@ -173,7 +175,13 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             </Link>
           </p>
         </div>
-        <button type="button" onClick={openCreate} className={btnPrimary}>
+        <button
+          type="button"
+          onClick={openCreate}
+          disabled={readOnly}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
+          className={btnPrimary}
+        >
           <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
           New event
         </button>
@@ -304,7 +312,12 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
             {/* Buttons */}
             <div className="flex items-center gap-3 pt-1">
-              <button type="submit" disabled={isPending} className={btnPrimary}>
+              <button
+                type="submit"
+                disabled={readOnly || isPending}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={btnPrimary}
+              >
                 {isPending
                   ? "Saving…"
                   : editingId
@@ -389,6 +402,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                     <button
                       type="button"
                       onClick={() => openEdit(event)}
+                      disabled={readOnly}
+                      title={readOnly ? READ_ONLY_TITLE : undefined}
                       className={btnSecondary}
                     >
                       Edit
@@ -413,7 +428,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                                 force: !!deleteBlocked,
                               })
                             }
-                            disabled={deleteMutation.isPending}
+                            disabled={readOnly || deleteMutation.isPending}
+                            title={readOnly ? READ_ONLY_TITLE : undefined}
                             className={btnDanger}
                           >
                             {deleteMutation.isPending
@@ -441,6 +457,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                           setDeleteBlocked(null);
                           setDeleteConfirm(event.id);
                         }}
+                        disabled={readOnly}
+                        title={readOnly ? READ_ONLY_TITLE : undefined}
                         className={btnDanger}
                       >
                         Delete

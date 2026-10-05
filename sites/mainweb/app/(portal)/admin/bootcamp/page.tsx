@@ -11,6 +11,7 @@ import type { BootcampWorkshopFormData } from "@/components/portal/BootcampWorks
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { useEventQR } from "@/components/portal/EventQR";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   body,
   btnPrimary,
@@ -142,6 +143,7 @@ export default function AdminBootcampPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const attendance = trpc.bootcamp.attendance.useQuery(
     { term },
@@ -447,6 +449,8 @@ export default function AdminBootcampPage() {
                 setError(null);
                 setModalOpen(true);
               }}
+              disabled={readOnly}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={btnPrimary}
             >
               Add workshop
@@ -566,7 +570,8 @@ export default function AdminBootcampPage() {
                           enabled: !row.checkInEnabled,
                         })
                       }
-                      disabled={toggleCheckIn.isPending}
+                      disabled={readOnly || toggleCheckIn.isPending}
+                      title={readOnly ? READ_ONLY_TITLE : undefined}
                       className={`${btnSecondary} min-h-11`}
                     >
                       {row.checkInEnabled ? "Close check-in" : "Open check-in"}

@@ -34,6 +34,7 @@ export type PortalNavSection = {
 
 type NavFlags = {
   isAdmin: boolean;
+  isBugTester: boolean;
   isScanner: boolean;
   isJudge: boolean;
   isMember: boolean;
@@ -43,6 +44,7 @@ type NavFlags = {
 function flags(ctx: PortalContext | undefined | null): NavFlags {
   return {
     isAdmin: !!ctx?.isAdmin,
+    isBugTester: !!ctx?.isBugTester,
     isScanner: !!ctx?.isScanner,
     isJudge: !!ctx?.isJudge,
     isMember: !!ctx?.member.isMember,
@@ -67,8 +69,12 @@ export function portalNavSections(
 ): PortalNavSection[] {
   const f = flags(ctx);
 
-  if (f.isAdmin) {
-    return [
+  // Bug testers browse the same admin tools read-only. The two links that
+  // only staff can load at all (initiative ownership, the super-admin staff
+  // page) are left out rather than shown as dead ends.
+  if (f.isAdmin || f.isBugTester) {
+    const staffOnly = new Set(["/lead", "/admin/staff"]);
+    const sections: PortalNavSection[] = [
       {
         id: "hackathon",
         label: "Hackathon",
@@ -101,6 +107,12 @@ export function portalNavSections(
         ],
       },
     ];
+    return f.isAdmin
+      ? sections
+      : sections.map((section) => ({
+          ...section,
+          items: section.items.filter((item) => !staffOnly.has(item.href)),
+        }));
   }
 
   const hackathon: PortalNavItem[] = [
