@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { body, btnSecondary, meta, sectionTitle } from "@/components/portal/ui";
 import { Check, Copy, Nfc, Printer } from "lucide-react";
 
@@ -35,6 +36,7 @@ type WriteState = "writing" | "written" | "copied" | { error: string };
  * room by whatever phone the judge happens to own.
  */
 export function TableCards({ hackathonId }: { hackathonId: string }) {
+  const readOnly = useReadOnly();
   const { data: cards, isLoading } = trpc.judge.tableCards.useQuery({
     hackathonId,
   });
@@ -183,7 +185,8 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
                 <button
                   type="button"
                   onClick={() => writeTag(card.id, card.qrCode)}
-                  disabled={writes[card.id] === "writing"}
+                  disabled={readOnly || writes[card.id] === "writing"}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-black px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
                 >
                   <Nfc className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />

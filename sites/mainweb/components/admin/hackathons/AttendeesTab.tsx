@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   ChevronDown,
   ChevronUp,
@@ -58,6 +59,7 @@ export function AttendeesTab({
   status: HackathonStatus;
 }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -534,7 +536,8 @@ export function AttendeesTab({
           <button
             type="button"
             onClick={handleMassAccept}
-            disabled={emailSending || batchUpdateStatus.isPending}
+            disabled={readOnly || emailSending || batchUpdateStatus.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnPrimary}
           >
             {emailSending ? "Sending…" : "Accept and email"}
@@ -542,8 +545,12 @@ export function AttendeesTab({
           <button
             type="button"
             onClick={() => handleBulkAction("approved")}
-            disabled={batchUpdateStatus.isPending}
-            title="Sets the status only. No email is sent; use Accept and email to notify."
+            disabled={readOnly || batchUpdateStatus.isPending}
+            title={
+              readOnly
+                ? READ_ONLY_TITLE
+                : "Sets the status only. No email is sent; use Accept and email to notify."
+            }
             className={btnSecondary}
           >
             Approve without email
@@ -551,7 +558,8 @@ export function AttendeesTab({
           <button
             type="button"
             onClick={() => handleBulkAction("waitlisted")}
-            disabled={batchUpdateStatus.isPending}
+            disabled={readOnly || batchUpdateStatus.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnSecondary}
           >
             Waitlist
@@ -559,7 +567,8 @@ export function AttendeesTab({
           <button
             type="button"
             onClick={() => handleBulkAction("rejected")}
-            disabled={batchUpdateStatus.isPending}
+            disabled={readOnly || batchUpdateStatus.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnDanger}
           >
             Reject
@@ -810,8 +819,12 @@ export function AttendeesTab({
                             onClick={() =>
                               handleStatusUpdate(attendee.id, "approved")
                             }
-                            disabled={updateStatus.isPending}
-                            title="Approve (no email). Use Accept and email to notify."
+                            disabled={readOnly || updateStatus.isPending}
+                            title={
+                              readOnly
+                                ? READ_ONLY_TITLE
+                                : "Approve (no email). Use Accept and email to notify."
+                            }
                             aria-label="Approve (no email)"
                             className={rowAction}
                           >
@@ -824,8 +837,8 @@ export function AttendeesTab({
                             onClick={() =>
                               handleStatusUpdate(attendee.id, "waitlisted")
                             }
-                            disabled={updateStatus.isPending}
-                            title="Waitlist"
+                            disabled={readOnly || updateStatus.isPending}
+                            title={readOnly ? READ_ONLY_TITLE : "Waitlist"}
                             className={rowAction}
                           >
                             Waitlist
@@ -844,8 +857,8 @@ export function AttendeesTab({
                             onClick={() =>
                               handleStatusUpdate(attendee.id, "checked_in")
                             }
-                            disabled={updateStatus.isPending}
-                            title="Check in"
+                            disabled={readOnly || updateStatus.isPending}
+                            title={readOnly ? READ_ONLY_TITLE : "Check in"}
                             className={rowAction}
                           >
                             Check in
@@ -857,8 +870,8 @@ export function AttendeesTab({
                             onClick={() =>
                               handleStatusUpdate(attendee.id, "rejected")
                             }
-                            disabled={updateStatus.isPending}
-                            title="Reject"
+                            disabled={readOnly || updateStatus.isPending}
+                            title={readOnly ? READ_ONLY_TITLE : "Reject"}
                             className={rowActionDanger}
                           >
                             Reject
@@ -1014,10 +1027,15 @@ export function AttendeesTab({
                                     handleStatusUpdate(attendee.id, "approved")
                                   }
                                   disabled={
+                                    readOnly ||
                                     updateStatus.isPending ||
                                     attendee.registrationStatus === "approved"
                                   }
-                                  title="Sets the status only. No email is sent; use Accept and email to notify."
+                                  title={
+                                    readOnly
+                                      ? READ_ONLY_TITLE
+                                      : "Sets the status only. No email is sent; use Accept and email to notify."
+                                  }
                                   className={rowAction}
                                 >
                                   Approve without email
@@ -1031,9 +1049,11 @@ export function AttendeesTab({
                                     )
                                   }
                                   disabled={
+                                    readOnly ||
                                     updateStatus.isPending ||
                                     attendee.registrationStatus === "waitlisted"
                                   }
+                                  title={readOnly ? READ_ONLY_TITLE : undefined}
                                   className={rowAction}
                                 >
                                   Waitlist
@@ -1044,9 +1064,11 @@ export function AttendeesTab({
                                     handleStatusUpdate(attendee.id, "rejected")
                                   }
                                   disabled={
+                                    readOnly ||
                                     updateStatus.isPending ||
                                     attendee.registrationStatus === "rejected"
                                   }
+                                  title={readOnly ? READ_ONLY_TITLE : undefined}
                                   className={rowActionDanger}
                                 >
                                   Reject

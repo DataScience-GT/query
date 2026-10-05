@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { status } from "./ui";
 
 export interface BootcampMaterialRow {
@@ -65,6 +66,7 @@ export function BootcampMaterialsTable({
   isUpdating = false,
 }: BootcampMaterialsTableProps) {
   const admin = !!(onEdit || onDelete || onSetPublished);
+  const readOnly = useReadOnly();
 
   return (
     <div className="overflow-x-auto">
@@ -175,7 +177,8 @@ export function BootcampMaterialsTable({
                     <td className={cell}>
                       <button
                         type="button"
-                        disabled={!onSetPublished || isUpdating}
+                        disabled={readOnly || !onSetPublished || isUpdating}
+                        title={readOnly ? READ_ONLY_TITLE : undefined}
                         onClick={() => onSetPublished?.(row, !row.isPublished)}
                         className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] px-3 py-1.5 transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -193,7 +196,8 @@ export function BootcampMaterialsTable({
                         <button
                           type="button"
                           onClick={() => onEdit?.(row)}
-                          disabled={!onEdit || isUpdating}
+                          disabled={readOnly || !onEdit || isUpdating}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
                           aria-label={`Edit week ${row.week}`}
                           className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] p-2 text-[var(--text-muted)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
                         >
@@ -206,7 +210,8 @@ export function BootcampMaterialsTable({
                         <button
                           type="button"
                           onClick={() => onDelete?.(row)}
-                          disabled={!onDelete || isUpdating}
+                          disabled={readOnly || !onDelete || isUpdating}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
                           aria-label={`Delete week ${row.week}`}
                           className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] p-2 text-[var(--text-muted)] transition-colors hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-50"
                         >
