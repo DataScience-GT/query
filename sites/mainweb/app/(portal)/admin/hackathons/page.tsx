@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,6 +22,7 @@ export default function AdminHackathonsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,6 +58,8 @@ export default function AdminHackathonsPage() {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={`shrink-0 self-start sm:self-auto ${btnPrimary}`}
           >
             New hackathon
@@ -119,6 +123,8 @@ export default function AdminHackathonsPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(true)}
+                disabled={readOnly}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={btnSecondary}
               >
                 Create the first one

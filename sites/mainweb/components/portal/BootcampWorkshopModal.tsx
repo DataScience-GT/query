@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { ModalWrapper } from "./ModalWrapper";
 import {
   btnPrimary,
@@ -44,6 +45,7 @@ export function BootcampWorkshopModal({
   isSubmitting = false,
   error = null,
 }: BootcampWorkshopModalProps) {
+  const readOnly = useReadOnly();
   const [form, setForm] = useState<BootcampWorkshopFormData>({
     week: initial?.week ?? "",
     title: initial?.title ?? "",
@@ -178,7 +180,8 @@ export function BootcampWorkshopModal({
                   </span>
                   <button
                     type="button"
-                    disabled={isSubmitting}
+                    disabled={readOnly || isSubmitting}
+                    title={readOnly ? READ_ONLY_TITLE : undefined}
                     onClick={() => onRemoveFile?.(kind)}
                     className="text-sm font-semibold text-[var(--danger)] underline decoration-[var(--danger)]/40 decoration-2 underline-offset-[5px] transition-colors hover:decoration-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -211,7 +214,8 @@ export function BootcampWorkshopModal({
         <div className="border-t border-[var(--border-subtle)] pt-5">
           <button
             type="button"
-            disabled={!isValid || isSubmitting}
+            disabled={readOnly || !isValid || isSubmitting}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             onClick={() => onSubmit(form)}
             className={`${btnPrimary} w-full sm:w-auto`}
           >

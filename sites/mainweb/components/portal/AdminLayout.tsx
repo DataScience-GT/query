@@ -51,8 +51,8 @@ export default function AdminLayout({
             className="border-b border-[var(--warning)]/40 bg-[var(--warning-glow)] px-4 py-2.5 text-[13px] text-[var(--text-primary)] md:px-6"
           >
             <span className="font-semibold">Read-only QA access.</span> You can
-            open every admin page; saving, deleting and other changes are
-            blocked.
+            open every admin page. Buttons that would save, delete or check
+            someone in are greyed out.
           </div>
         )}
         <div className="p-4 md:p-6">{children}</div>

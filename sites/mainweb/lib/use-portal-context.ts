@@ -30,6 +30,20 @@ export function canViewAdmin(ctx: PortalContext | undefined | null) {
   return !!ctx?.isAdmin || !!ctx?.isBugTester;
 }
 
+/** Tooltip for write controls a bug tester sees disabled. */
+export const READ_ONLY_TITLE =
+  "Read-only access: bug testers can't make changes.";
+
+/**
+ * True for a bug tester on the admin side. Write controls render disabled
+ * with READ_ONLY_TITLE; the API refuses the write either way, this only keeps
+ * the page honest about it.
+ */
+export function useReadOnly() {
+  const { data } = usePortalContext();
+  return !!data?.isBugTester && !data?.isAdmin;
+}
+
 export function useIsAdmin() {
   const { data } = usePortalContext();
   return data?.isAdmin ?? false;

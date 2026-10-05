@@ -2,6 +2,7 @@
 
 import React from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   body,
   btnDanger,
@@ -29,6 +30,7 @@ export function RegistrationControls({
   status: HackathonStatus;
 }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const { data: hackathon } = trpc.hackathon.getById.useQuery({
     id: hackathonId,
   });
@@ -136,6 +138,8 @@ export function RegistrationControls({
                   });
                 }
               }}
+              disabled={readOnly}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={`min-h-11 ${input.replace("w-full", "w-auto")}`}
             />
           </div>
@@ -154,7 +158,8 @@ export function RegistrationControls({
                       : {}),
                   })
                 }
-                disabled={updateHackathon.isPending}
+                disabled={readOnly || updateHackathon.isPending}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={btnPrimary}
               >
                 {deadlinePassed ? "Reopen registration" : "Open registration"}
@@ -172,7 +177,8 @@ export function RegistrationControls({
               onClick={() =>
                 updateHackathon.mutate({ id: hackathonId, status: "closed" })
               }
-              disabled={updateHackathon.isPending}
+              disabled={readOnly || updateHackathon.isPending}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={btnDanger}
             >
               Close registration
@@ -217,9 +223,11 @@ export function RegistrationControls({
               notifyInterest.mutate({ hackathonId });
             }}
             disabled={
+              readOnly ||
               notifyInterest.isPending ||
               (interestStatus.data?.pending ?? 0) === 0
             }
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnSecondary}
           >
             {notifyInterest.isPending
