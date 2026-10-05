@@ -8,8 +8,27 @@ import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
 import { EventFormModal } from "@/components/portal/EventFormModal";
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { QrCode } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  chip,
+  itemTitle,
+  meta,
+  object,
+  page,
+  pageDek,
+  sectionRule,
+  status,
+  textLink,
+} from "@/components/portal/ui";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
+
+const inlineLink =
+  "font-semibold text-[var(--text-primary)] underline decoration-accent underline-offset-4 hover:decoration-[var(--text-primary)]";
 
 type Event = {
   id: string;
@@ -167,45 +186,32 @@ export default function AdminPage() {
 
       {qr.modal}
 
-      <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-6 p-5 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-emerald-900/10 to-transparent rounded-none relative overflow-hidden group hover:border-accent/30 transition-ui duration-500">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
-            <QrCode className="w-3 h-3" /> Club Events
-          </p>
-          <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight mb-2 relative z-10 animate-in fade-in slide-in-from-left-4">
-            Check-in{" "}
-            <span className="text-accent italic font-bold">Manager</span>
-          </h1>
-          <p className="text-[var(--text-muted)] text-sm relative z-10">
+      <div className={page}>
+        <header>
+          <h1 className={adminTitle}>Club check-ins</h1>
+          <p className={pageDek}>
             Club meetings and workshops. Bootcamp sessions are managed on the{" "}
-            <Link
-              href="/admin/bootcamp"
-              className="text-accent hover:underline"
-            >
-              Bootcamp
-            </Link>{" "}
-            page. Hacklytics weekend events live on the hackathon dashboard.
+            <Link href="/admin/bootcamp" className={inlineLink}>
+              bootcamp page
+            </Link>
+            , and Hacklytics weekend events live on the hackathon dashboard.
           </p>
-        </div>
+        </header>
 
-        {/* Events Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] p-1.5 rounded-none gap-1">
+        <section className="mt-10 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div
+              role="group"
+              aria-label="Filter events by check-in"
+              className="flex flex-wrap gap-2"
+            >
               {(["all", "open", "closed"] as const).map((f) => (
                 <button
                   key={f}
+                  type="button"
                   onClick={() => setStatusFilter(f)}
-                  className={`px-4 py-2 rounded-none text-sm font-semibold capitalize transition-ui ${
-                    statusFilter === f
-                      ? f === "open"
-                        ? "bg-accent/20 text-accent border border-accent/30"
-                        : f === "closed"
-                          ? "bg-white/5 text-[var(--text-secondary)] border border-[var(--border-subtle)]"
-                          : "bg-white/10 text-[var(--text-primary)] border border-[var(--border-subtle)]"
-                      : "text-[var(--text-subtle)] hover:text-[var(--text-primary)] hover:bg-white/5"
-                  }`}
+                  aria-pressed={statusFilter === f}
+                  className={`${chip(statusFilter === f)} tabular-nums`}
                 >
                   {f === "all"
                     ? `All (${events?.length ?? 0})`
@@ -216,50 +222,44 @@ export default function AdminPage() {
               ))}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="/scan/club"
-                className="px-6 py-3 border border-accent/30 text-accent font-semibold text-sm rounded-none hover:bg-accent/10 transition-colors"
-              >
-                Scan Passes
+              <Link href="/scan/club" className={btnSecondary}>
+                Scan passes
               </Link>
               <button
+                type="button"
                 onClick={() => setShowCreateEvent(true)}
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-lg shadow-accent/20"
+                className={btnPrimary}
               >
-                + New Event
+                New event
               </button>
             </div>
           </div>
 
           {eventsLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-4" aria-hidden="true">
               {[1, 2, 3].map((n) => (
                 <div
                   key={n}
-                  className="animate-pulse bg-white/5 border border-[var(--border-subtle)] rounded-none p-6 h-28"
+                  className="h-28 animate-pulse rounded-[var(--radius-md)] bg-[var(--bg-secondary)]"
                 />
               ))}
             </div>
           ) : !events || events.length === 0 ? (
-            <LiquidGlass className="p-16 text-center">
-              <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
-                <svg
-                  className="w-8 h-8 text-gray-600"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
-                </svg>
-              </div>
-              <h3 className="text-[var(--text-primary)] font-semibold mb-1">
-                No events yet
-              </h3>
-              <p className="text-[var(--text-subtle)] text-sm font-mono">
-                Create your first event to get started.
+            <div className={sectionRule}>
+              <p className={body}>
+                Club events you create show up here, each with its own check-in
+                QR code.
               </p>
-            </LiquidGlass>
+              <button
+                type="button"
+                onClick={() => setShowCreateEvent(true)}
+                className={`${textLink} mt-4`}
+              >
+                Create the first event
+              </button>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <ul className="space-y-4">
               {events
                 .filter((e) =>
                   statusFilter === "all"
@@ -269,86 +269,74 @@ export default function AdminPage() {
                       : !e.checkInEnabled,
                 )
                 .map((event) => (
-                  <LiquidGlass
-                    key={event.id}
-                    className={`p-6 hover:border-white/20 transition-ui border-l-4 ${
-                      event.checkInEnabled
-                        ? "border-l-accent"
-                        : "border-l-[var(--border-subtle)]"
-                    }`}
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-[var(--text-primary)]">
-                            {event.title}
-                          </h3>
+                  <li key={event.id} className={`${object} p-5 sm:p-6`}>
+                    <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                          <h2 className={itemTitle}>{event.title}</h2>
                           <span
-                            className={`px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold ${
-                              event.checkInEnabled
-                                ? "bg-accent/10 text-accent border border-accent/20"
-                                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"
-                            }`}
+                            className={status(
+                              event.checkInEnabled ? "accent" : "neutral",
+                            )}
                           >
-                            {event.checkInEnabled ? "Open" : "Closed"}
+                            {event.checkInEnabled
+                              ? "Check-in open"
+                              : "Check-in closed"}
                           </span>
                         </div>
                         {event.description && (
-                          <p className="text-[var(--text-muted)] text-sm mb-3">
-                            {event.description}
-                          </p>
+                          <p className={`${body} mt-2`}>{event.description}</p>
                         )}
-                        <div className="flex flex-wrap gap-4 text-xs text-[var(--text-subtle)] font-mono">
-                          <span>{event.location || "No location"}</span>
-                          <span>•</span>
-                          <span>
-                            {new Date(event.eventDate).toLocaleDateString()}
-                          </span>
-                          <span>•</span>
-                          <span className="text-accent">
+                        <p className={`${meta} mt-2 tabular-nums`}>
+                          {event.location || "No location"} ·{" "}
+                          {new Date(event.eventDate).toLocaleDateString()} ·{" "}
+                          <span className="font-semibold text-[var(--text-primary)]">
                             {event.currentCheckIns} check-ins
                           </span>
-                        </div>
+                        </p>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
                         <button
+                          type="button"
                           onClick={() => void qr.show(event)}
                           disabled={qr.generatingFor === event.qrCode}
-                          className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-colors disabled:opacity-50"
+                          className={btnSecondary}
                         >
                           {qr.generatingFor === event.qrCode
                             ? "Generating…"
-                            : "QR Code"}
+                            : "QR code"}
                         </button>
                         <button
+                          type="button"
                           onClick={() =>
                             toggleCheckInMutation.mutate({
                               eventId: event.id,
                               enabled: !event.checkInEnabled,
                             })
                           }
-                          className={`px-4 py-2 border text-sm font-medium rounded-none transition-colors ${
-                            event.checkInEnabled
-                              ? "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5"
-                              : "border-accent/20 text-accent hover:bg-accent/10"
-                          }`}
+                          className={btnSecondary}
                         >
-                          {event.checkInEnabled ? "Close" : "Open"}
+                          {event.checkInEnabled
+                            ? "Close check-in"
+                            : "Open check-in"}
                         </button>
                         <button
+                          type="button"
                           onClick={() => setAttendanceEvent(event)}
-                          className="px-4 py-2 border border-accent/20 text-accent text-sm font-medium rounded-none hover:bg-accent/10 transition-colors"
+                          className={textLink}
                         >
                           Attendance
                         </button>
                         <button
+                          type="button"
                           onClick={() => setEditingEvent(event)}
-                          className="px-4 py-2 border border-[var(--border-subtle)] text-[var(--text-secondary)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                          className={textLink}
                         >
                           Edit
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             if (
                               confirm(
@@ -360,17 +348,17 @@ export default function AdminPage() {
                               deleteEventMutation.mutate({ eventId: event.id });
                             }
                           }}
-                          className="px-4 py-2 border border-[var(--border-subtle)] text-[var(--text-secondary)] text-sm font-medium rounded-none hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                          className={btnDanger}
                         >
                           Delete
                         </button>
                       </div>
                     </div>
-                  </LiquidGlass>
+                  </li>
                 ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
       </div>
     </>
   );

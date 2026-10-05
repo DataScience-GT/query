@@ -5,9 +5,25 @@ import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Clock, AlertCircle, Zap } from "lucide-react";
 import { skipToken } from "@tanstack/react-query";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  fieldLabel,
+  input,
+  itemTitle,
+  meta,
+  object,
+  page,
+  pageDek,
+  status as statusClass,
+} from "@/components/portal/ui";
+import type { Tone } from "@/components/portal/ui";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
@@ -70,212 +86,162 @@ export default function ProjectsPage() {
     return null;
   }
 
-  const getStatusColor = (projectStatus: string) => {
+  const getStatusTone = (projectStatus: string): Tone => {
     switch (projectStatus) {
       case "submitted":
-        return "bg-accent/10 text-accent border border-accent/20";
+        return "accent";
       case "judging":
-        return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+        return "warning";
       case "winner":
-        return "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20";
-      case "draft":
-        return "bg-gray-500/10 text-[var(--text-muted)] border border-gray-500/20";
+        return "success";
       default:
-        return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+        return "neutral";
     }
   };
 
   return (
-    <>
-      <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Animated Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-15%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-accent/6 via-emerald-900/12 to-purple-900/8 blur-[350px] rounded-sm" />
-          <div className="absolute bottom-[-20%] right-[-8%] w-[600px] h-[600px] bg-gradient-to-r from-emerald-900/12 via-emerald-900/10 to-indigo-900/8 blur-[300px] rounded-sm" />
-        </div>
+    <div className={page}>
+      <h1 className={adminTitle}>Hackathon projects</h1>
+      <p className={pageDek}>
+        Browse the projects participants submitted, fix their details, or
+        withdraw one.
+      </p>
 
-        {/* Page Header - Enhanced */}
-        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/12 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
-            <Zap className="w-3 h-3" /> Hackathon Hub
-          </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-ui duration-500">
-            Projects{" "}
-            <span className="text-accent italic font-bold">Manager</span>
-          </h1>
-          <p className="relative text-[var(--text-muted)] text-sm font-mono">
-            Browse and manage hackathon projects submitted by participants.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {/* Hackathon Selector */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none p-1">
-              <select
-                aria-label="Filter projects by hackathon"
-                value={selectedHackathon || ""}
-                onChange={(e) => setSelectedHackathon(e.target.value || null)}
-                className="bg-transparent text-[var(--text-primary)] text-sm font-medium min-h-11 px-4 py-2 focus:outline-none cursor-pointer"
-              >
-                <option value="">Select a hackathon…</option>
-                {hackathonList?.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[var(--text-subtle)] text-sm">
-              {projects?.length || 0} total projects
-            </p>
+      <div className="mt-10 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div className="sm:w-80">
+            <label htmlFor="project-hackathon" className={fieldLabel}>
+              Hackathon
+            </label>
+            <select
+              id="project-hackathon"
+              aria-label="Filter projects by hackathon"
+              value={selectedHackathon || ""}
+              onChange={(e) => setSelectedHackathon(e.target.value || null)}
+              className={`${input} min-h-11 cursor-pointer`}
+            >
+              <option value="">Select a hackathon…</option>
+              {hackathonList?.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.name}
+                </option>
+              ))}
+            </select>
           </div>
+          <p className={`${meta} tabular-nums`}>
+            {projects?.length || 0} total projects
+          </p>
+        </div>
 
-          <div className="space-y-4">
-            {!selectedHackathon ? (
-              <LiquidGlass className="p-16 text-center">
-                <h3 className="text-[var(--text-primary)] font-semibold mb-1">
-                  Select a hackathon
-                </h3>
-                <p className="text-[var(--text-subtle)] text-sm">
-                  Choose a hackathon above to view its submitted projects.
-                </p>
-              </LiquidGlass>
-            ) : isLoading ? (
-              <div className="py-12 text-center">
-                <p className="text-gray-600 font-mono text-sm animate-pulse">
-                  Loading projects...
-                </p>
-              </div>
-            ) : !projects || projects.length === 0 ? (
-              <LiquidGlass className="p-16 text-center">
-                <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
-                  <svg
-                    className="w-8 h-8 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-[var(--text-primary)] font-semibold mb-1">
-                  No projects yet
-                </h3>
-                <p className="text-[var(--text-subtle)] text-sm">
-                  Hackathon projects will appear here once participants submit
-                  them.
-                </p>
-              </LiquidGlass>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {projects.map((project) => (
-                  <LiquidGlass
-                    key={project.id}
-                    className="p-5 hover:border-accent/30 transition-ui group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-[var(--text-primary)] group-hover:text-accent transition-colors">
-                          {project.name}
-                        </h3>
-                        <p className="text-sm text-[var(--text-subtle)] mt-1 line-clamp-2">
-                          {project.description || "No description"}
-                        </p>
-                      </div>
-                      <span
-                        className={`px-2 py-1 rounded-sm text-xs font-semibold ${getStatusColor(project.status)}`}
-                      >
-                        {project.status}
-                      </span>
+        <div className="border-t border-[var(--border-subtle)] pt-6">
+          {!selectedHackathon ? (
+            <p className={body}>
+              Choose a hackathon above to see its submitted projects.
+            </p>
+          ) : isLoading ? (
+            <p className={meta}>Loading projects…</p>
+          ) : !projects || projects.length === 0 ? (
+            <p className={body}>
+              No projects yet. They will appear here once participants submit
+              them.
+            </p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  className={`${object} p-5 flex flex-col`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className={`${itemTitle} break-words`}>
+                        {project.name}
+                      </h3>
+                      <p className="text-[14px] text-[var(--text-muted)] mt-1 line-clamp-2">
+                        {project.description || "No description"}
+                      </p>
                     </div>
+                    <span
+                      className={`${statusClass(getStatusTone(project.status))} shrink-0 capitalize`}
+                    >
+                      {project.status}
+                    </span>
+                  </div>
 
-                    <div className="space-y-2 text-xs text-[var(--text-subtle)] font-mono">
-                      {project.tracks && project.tracks.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          <span>{project.tracks.join(", ")}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-3 w-3" />
-                        <span>Team: {project.team?.name || "Unknown"}</span>
-                      </div>
-                    </div>
+                  <div className={`${meta} space-y-1`}>
+                    {project.tracks && project.tracks.length > 0 && (
+                      <p>Tracks: {project.tracks.join(", ")}</p>
+                    )}
+                    <p>Team: {project.team?.name || "Unknown"}</p>
+                  </div>
 
-                    {editing === project.id ? (
-                      <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] space-y-3">
-                        {(
-                          [
-                            ["name", "Name"],
-                            ["description", "Description"],
-                            ["githubUrl", "Repo URL"],
-                            ["demoUrl", "Demo URL"],
-                            ["videoUrl", "Video URL"],
-                          ] as const
-                        ).map(([field, label]) => (
-                          <div key={field}>
-                            <label
-                              htmlFor={`${project.id}-${field}`}
-                              className="block text-[10px] uppercase tracking-widest font-bold text-[var(--text-subtle)] mb-1 font-mono"
-                            >
-                              {label}
-                            </label>
-                            <input
-                              id={`${project.id}-${field}`}
-                              type="text"
-                              value={form[field]}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  [field]: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-xs font-mono focus:border-accent/50 focus:outline-none"
-                            />
-                          </div>
-                        ))}
-                        <div className="flex gap-2 pt-1">
-                          <button
-                            type="button"
-                            disabled={updateProject.isPending}
-                            onClick={() =>
-                              updateProject.mutate({
-                                projectId: project.id,
-                                name: form.name.trim() || undefined,
-                                description:
-                                  form.description.trim() || undefined,
-                                // null clears; undefined leaves unchanged.
-                                githubUrl: form.githubUrl.trim() || null,
-                                demoUrl: form.demoUrl.trim() || null,
-                                videoUrl: form.videoUrl.trim() || null,
-                              })
+                  {editing === project.id ? (
+                    <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] space-y-3">
+                      {(
+                        [
+                          ["name", "Name"],
+                          ["description", "Description"],
+                          ["githubUrl", "Repo URL"],
+                          ["demoUrl", "Demo URL"],
+                          ["videoUrl", "Video URL"],
+                        ] as const
+                      ).map(([field, label]) => (
+                        <div key={field}>
+                          <label
+                            htmlFor={`${project.id}-${field}`}
+                            className={fieldLabel}
+                          >
+                            {label}
+                          </label>
+                          <input
+                            id={`${project.id}-${field}`}
+                            type="text"
+                            value={form[field]}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                [field]: e.target.value,
+                              }))
                             }
-                            className="px-3 py-2 bg-accent/10 border border-accent/30 text-accent text-[10px] font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors disabled:opacity-40"
-                          >
-                            {updateProject.isPending ? "Saving…" : "Save"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditing(null);
-                              setActionError(null);
-                            }}
-                            className="px-3 py-2 border border-[var(--border-subtle)] text-[var(--text-subtle)] text-[10px] uppercase tracking-widest hover:bg-white/5 transition-colors"
-                          >
-                            Cancel
-                          </button>
+                            className={input}
+                          />
                         </div>
+                      ))}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={updateProject.isPending}
+                          onClick={() =>
+                            updateProject.mutate({
+                              projectId: project.id,
+                              name: form.name.trim() || undefined,
+                              description:
+                                form.description.trim() || undefined,
+                              // null clears; undefined leaves unchanged.
+                              githubUrl: form.githubUrl.trim() || null,
+                              demoUrl: form.demoUrl.trim() || null,
+                              videoUrl: form.videoUrl.trim() || null,
+                            })
+                          }
+                          className={btnPrimary}
+                        >
+                          {updateProject.isPending ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(null);
+                            setActionError(null);
+                          }}
+                          className={btnSecondary}
+                        >
+                          Cancel
+                        </button>
                       </div>
-                    ) : (
-                      <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] flex gap-2">
+                    </div>
+                  ) : (
+                    <div className="mt-auto pt-4">
+                      <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => {
@@ -290,7 +256,7 @@ export default function ProjectsPage() {
                               videoUrl: project.videoUrl || "",
                             });
                           }}
-                          className="px-3 py-2 border border-[var(--border-subtle)] text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                          className={btnSecondary}
                         >
                           Fix details
                         </button>
@@ -308,7 +274,7 @@ export default function ProjectsPage() {
                               });
                               setWithdrawing(project.id);
                             }}
-                            className="px-3 py-2 border border-red-500/20 text-red-400/70 text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
+                            className={btnDanger}
                           >
                             {withdrawing === project.id
                               ? "Withdraw anyway"
@@ -316,25 +282,25 @@ export default function ProjectsPage() {
                           </button>
                         )}
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {actionError &&
-                      (editing === project.id ||
-                        withdrawing === project.id) && (
-                        <p
-                          role="alert"
-                          className="mt-3 text-[10px] font-mono text-amber-300 leading-relaxed"
-                        >
-                          {actionError}
-                        </p>
-                      )}
-                  </LiquidGlass>
-                ))}
-              </div>
-            )}
-          </div>
+                  {actionError &&
+                    (editing === project.id ||
+                      withdrawing === project.id) && (
+                      <p
+                        role="alert"
+                        className="mt-3 text-[13px] leading-relaxed text-[var(--warning)]"
+                      >
+                        {actionError}
+                      </p>
+                    )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
