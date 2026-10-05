@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Rocket } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   InitiativeChip,
@@ -17,6 +15,21 @@ import {
   draftFrom,
   toInput,
 } from "@/components/portal/initiatives/form-fields";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  chip,
+  itemTitle,
+  kicker,
+  label,
+  meta,
+  page,
+  pageDek,
+  pageTitle,
+  textLink,
+} from "@/components/portal/ui";
 import { trpc } from "@/lib/trpc";
 import { loginHref } from "@/lib/safe-callback";
 import type { RouterOutputs } from "@query/api";
@@ -28,6 +41,10 @@ const statuses = [
   { value: "open", label: "Open" },
   { value: "closed", label: "Closed" },
 ] as const;
+
+const errorText = "text-sm text-[var(--danger)]";
+const quietAction =
+  "text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50";
 
 function InitiativeForm({
   initiative,
@@ -56,48 +73,38 @@ function InitiativeForm({
   const pending = create.isPending || update.isPending;
 
   return (
-    <LiquidGlass className="p-5">
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          setError(null);
-          const values = toInput(draft);
-          if (initiative) update.mutate({ ...values, id: initiative.id });
-          else create.mutate(values);
-        }}
-      >
-        <h2 className="mb-4 font-semibold text-white">
-          {initiative ? "Edit project" : "New project"}
-        </h2>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        setError(null);
+        const values = toInput(draft);
+        if (initiative) update.mutate({ ...values, id: initiative.id });
+        else create.mutate(values);
+      }}
+    >
+      <h2 className={`${itemTitle} mb-4`}>
+        {initiative ? `Edit ${initiative.title}` : "New project"}
+      </h2>
 
-        <InitiativeFields draft={draft} onChange={setDraft} />
+      <InitiativeFields draft={draft} onChange={setDraft} />
 
-        {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+      {error && <p className={`${errorText} mt-3`}>{error}</p>}
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
-          >
-            {pending ? "Saving…" : initiative ? "Save changes" : "Create"}
-          </button>
-          <button
-            type="button"
-            onClick={onDone}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
-          >
-            Cancel
-          </button>
-        </div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button type="submit" disabled={pending} className={btnPrimary}>
+          {pending ? "Saving…" : initiative ? "Save changes" : "Create draft"}
+        </button>
+        <button type="button" onClick={onDone} className={btnSecondary}>
+          Cancel
+        </button>
+      </div>
 
-        {!initiative && (
-          <p className="mt-3 text-sm text-white/50">
-            It starts as a draft. Nothing reaches members until you open it.
-          </p>
-        )}
-      </form>
-    </LiquidGlass>
+      {!initiative && (
+        <p className={`${meta} mt-3`}>
+          It starts as a draft. Nothing reaches members until you open it.
+        </p>
+      )}
+    </form>
   );
 }
 
@@ -135,45 +142,44 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
   const archived = state === "archived";
 
   return (
-    <LiquidGlass className="p-5">
+    <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-white">{initiative.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 className={itemTitle}>{initiative.title}</h3>
             <InitiativeChip state={state} />
           </div>
           {initiative.summary && (
-            <p className="mt-1 text-sm text-white/60">{initiative.summary}</p>
+            <p className={`${body} mt-1`}>{initiative.summary}</p>
           )}
-          <p className="mt-1 text-sm text-white/50">
+          <p className={`${meta} mt-1`}>
             {seatLabel(initiative.accepted, initiative.maxMembers)}
             {initiative.pending > 0
               ? ` · ${initiative.pending} waiting on you`
               : " · nobody waiting"}
           </p>
           {!initiative.isMine && (
-            <p className="mt-1 text-sm italic text-white/40">
-              Led by {initiative.leaderName}
-            </p>
+            <p className={`${meta} mt-1`}>Led by {initiative.leaderName}</p>
           )}
         </div>
 
         <Link
           href={`/lead/${initiative.id}`}
-          className={
-            initiative.pending > 0
-              ? "shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
-              : "shrink-0 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
-          }
+          className={`${initiative.pending > 0 ? btnSecondary : textLink} shrink-0`}
         >
           {initiative.pending > 0
-            ? `Review ${initiative.pending}`
+            ? `Review ${initiative.pending} application${initiative.pending === 1 ? "" : "s"}`
             : "Applications"}
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div
+          role="group"
+          aria-label="Status"
+          className="flex flex-wrap items-center gap-2"
+        >
+          <span className={label}>Status</span>
           {statuses.map((option) => (
             <button
               key={option.value}
@@ -183,11 +189,7 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
               onClick={() =>
                 setStatus.mutate({ id: initiative.id, status: option.value })
               }
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                initiative.status === option.value
-                  ? "bg-white text-black"
-                  : "text-white/60 hover:text-white"
-              }`}
+              className={`${chip(initiative.status === option.value)} disabled:cursor-not-allowed disabled:opacity-40`}
             >
               {option.label}
             </button>
@@ -197,16 +199,16 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+          className={textLink}
         >
           Edit
         </button>
 
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+        <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
           {confirmArchive ? (
             <>
-              <span className="text-sm text-white/60">
-                {archived ? "Restore?" : "Archive?"}
+              <span className="text-sm text-[var(--text-muted)]">
+                {archived ? "Restore this project?" : "Archive this project?"}
               </span>
               <button
                 type="button"
@@ -217,14 +219,14 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
                   });
                   setConfirmArchive(false);
                 }}
-                className="rounded-full bg-red-500/20 px-3 py-1.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/30"
+                className={archived ? btnSecondary : btnDanger}
               >
-                Yes
+                {archived ? "Restore" : "Archive"}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmArchive(false)}
-                className="rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-white/80"
+                className={btnSecondary}
               >
                 Cancel
               </button>
@@ -233,7 +235,7 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
             <button
               type="button"
               onClick={() => setConfirmArchive(true)}
-              className="text-sm font-semibold text-white/50 transition hover:text-white"
+              className={quietAction}
             >
               {archived ? "Restore" : "Archive"}
             </button>
@@ -242,11 +244,11 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
       </div>
 
       {(setStatus.error ?? archive.error) && (
-        <p className="mt-3 text-sm text-red-300">
+        <p className={`${errorText} mt-3`}>
           {(setStatus.error ?? archive.error)?.message}
         </p>
       )}
-    </LiquidGlass>
+    </>
   );
 }
 
@@ -267,21 +269,22 @@ export default function LeadPage() {
   if (status === "loading" || listing.isPending) return <LoadingScreen />;
 
   if (listing.error) {
+    const forbidden = listing.error.data?.code === "FORBIDDEN";
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <LiquidGlass className="p-8 text-center">
-          <p className="font-semibold text-white">
-            {listing.error.data?.code === "FORBIDDEN"
-              ? "You are not a project leader."
-              : listing.error.message}
-          </p>
-          <Link
-            href="/initiatives"
-            className="mt-4 inline-block text-sm font-semibold text-white underline"
-          >
-            Browse projects instead
-          </Link>
-        </LiquidGlass>
+      <div className={page}>
+        <h1 className={pageTitle}>
+          {forbidden
+            ? "This page is for project leaders"
+            : "Your projects did not load"}
+        </h1>
+        <p className={pageDek}>
+          {forbidden
+            ? "Pitch a project from the projects page. If it is approved, you lead it and manage it here."
+            : `${listing.error.message} Refresh the page to try again.`}
+        </p>
+        <Link href="/initiatives" className={`${textLink} mt-6`}>
+          Browse projects instead
+        </Link>
       </div>
     );
   }
@@ -290,17 +293,25 @@ export default function LeadPage() {
   const waiting = initiatives.reduce((total, row) => total + row.pending, 0);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className={page}>
+      <Link
+        href="/initiatives"
+        className="text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        ← Club projects
+      </Link>
+
+      <header className="mt-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <div className="flex items-center gap-3">
-            <Rocket className="h-6 w-6 text-white/70" />
-            <h1 className="text-2xl font-bold text-white">My projects</h1>
-          </div>
-          <p className="mt-2 text-white/60">
+          <p className={kicker}>Projects you lead</p>
+          <h1 className={`${pageTitle} mt-2`}>
             {waiting > 0
-              ? `${waiting} application${waiting === 1 ? "" : "s"} waiting on you.`
-              : "Nothing waiting on you."}
+              ? `${waiting} application${waiting === 1 ? "" : "s"} waiting on you`
+              : "Nothing waiting on you"}
+          </h1>
+          <p className={pageDek}>
+            Open a project to members, review who applies, and keep the team
+            list current.
           </p>
         </div>
 
@@ -308,7 +319,7 @@ export default function LeadPage() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+            className={`${btnPrimary} shrink-0 self-start md:self-auto`}
           >
             New project
           </button>
@@ -316,25 +327,38 @@ export default function LeadPage() {
       </header>
 
       {creating && (
-        <div className="mb-6">
+        <section className="mt-10 border-t border-[var(--border-subtle)] pt-6">
           <InitiativeForm onDone={() => setCreating(false)} />
-        </div>
+        </section>
       )}
 
       {initiatives.length > 0 ? (
-        <div className="space-y-3">
+        <ul className="mt-10 border-t border-[var(--border-subtle)]">
           {initiatives.map((initiative) => (
-            <InitiativeRow key={initiative.id} initiative={initiative} />
+            <li
+              key={initiative.id}
+              className="border-b border-[var(--border-subtle)] py-6"
+            >
+              <InitiativeRow initiative={initiative} />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
-        <LiquidGlass className="p-8 text-center">
-          <p className="font-semibold text-white">No projects yet.</p>
-          <p className="mt-2 text-sm text-white/60">
-            A new one starts as a draft, so you can write it up now and open it
-            to members when you are ready.
-          </p>
-        </LiquidGlass>
+        !creating && (
+          <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
+            <p className={`${body} max-w-xl`}>
+              You have no projects yet. A new one starts as a draft, so you can
+              write it up now and open it to members when you are ready.
+            </p>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className={`${textLink} mt-4`}
+            >
+              Start a draft
+            </button>
+          </div>
+        )
       )}
     </div>
   );

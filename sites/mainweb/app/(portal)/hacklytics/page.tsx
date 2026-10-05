@@ -5,6 +5,20 @@ import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { InterestForm } from "@/components/hackathon/InterestForm";
+import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  kicker,
+  label,
+  mastRule,
+  meta,
+  page,
+  pageDek,
+  pageTitle,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 
 /**
  * The public landing page for an edition that has been announced but is not yet
@@ -53,6 +67,24 @@ const formatDeadline = (deadline: Date) =>
     timeZone: "America/New_York",
   });
 
+/**
+ * The sidebar is suppressed here, so the page carries its own masthead line:
+ * the club's wordmark, linking home.
+ */
+function Masthead() {
+  return (
+    <div className={`flex items-baseline justify-between gap-4 ${mastRule}`}>
+      <Link
+        href="/"
+        className="font-[family-name:var(--font-display)] text-[26px] font-semibold leading-none tracking-[-0.01em] text-[var(--text-primary)]"
+      >
+        Query<span className="text-accent">.</span>
+      </Link>
+      <span className={meta}>Data Science @ GT</span>
+    </div>
+  );
+}
+
 export default function HacklyticsPage() {
   const upcoming = trpc.hackathon.getUpcoming.useQuery();
 
@@ -60,15 +92,17 @@ export default function HacklyticsPage() {
 
   if (upcoming.isError) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <p className="text-sm text-[var(--text-muted)]">
-            We could not load the next hackathon just now.
+      <main className={page}>
+        <Masthead />
+        <div className="mt-12">
+          <p className={body}>
+            We could not load the next hackathon just now. Check your
+            connection and try again.
           </p>
           <button
             type="button"
             onClick={() => upcoming.refetch()}
-            className="mt-4 px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+            className={`mt-4 ${btnSecondary}`}
           >
             Try again
           </button>
@@ -81,16 +115,13 @@ export default function HacklyticsPage() {
   // date invented to fill the space.
   if (!upcoming.data) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-md text-center space-y-4">
-          <h1 className="text-3xl font-black uppercase tracking-wider font-oswald text-[var(--text-primary)]">
-            Nothing announced yet
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-            The next Hacklytics has not been announced. Follow Data Science @ GT
-            and it will show up here first.
-          </p>
-        </div>
+      <main className={page}>
+        <Masthead />
+        <h1 className={`mt-12 ${pageTitle}`}>Nothing announced yet</h1>
+        <p className={pageDek}>
+          The next Hacklytics has not been announced. Follow Data Science @ GT
+          and it will show up here first.
+        </p>
       </main>
     );
   }
@@ -102,9 +133,11 @@ export default function HacklyticsPage() {
   const registrationOpen = event.registrationOpen;
 
   return (
-    <main className="min-h-screen px-6 py-20 md:py-28">
-      <div className="max-w-2xl mx-auto">
-        <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
+    <main className={page}>
+      <Masthead />
+
+      <header className="mt-12">
+        <p className={kicker}>
           {registrationOpen
             ? "Registration is open"
             : event.status === "in_progress"
@@ -114,101 +147,85 @@ export default function HacklyticsPage() {
                 : "Registration opens soon"}
         </p>
 
-        <h1 className="text-5xl md:text-6xl font-black uppercase tracking-wider font-oswald text-[var(--text-primary)] leading-[0.95]">
-          {event.name}
-        </h1>
-
-        <dl className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
-          <div>
-            <dt className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
-              When
-            </dt>
-            <dd className="mt-1 text-[var(--text-primary)]">
-              {formatRange(event.startDate, event.endDate)}
-            </dd>
-          </div>
-          {event.location ? (
-            <div>
-              <dt className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
-                Where
-              </dt>
-              <dd className="mt-1 text-[var(--text-primary)]">
-                {event.location}
-              </dd>
-            </div>
-          ) : null}
-          {event.theme ? (
-            <div>
-              <dt className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
-                Theme
-              </dt>
-              <dd className="mt-1 text-[var(--text-primary)]">{event.theme}</dd>
-            </div>
-          ) : null}
-        </dl>
+        <h1 className={`mt-1 ${pageTitle}`}>{event.name}</h1>
 
         {event.description ? (
-          <p className="mt-8 text-base text-[var(--text-muted)] leading-relaxed">
-            {event.description}
-          </p>
+          <p className={pageDek}>{event.description}</p>
         ) : null}
+      </header>
 
-        <div className="mt-12 p-8 rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40">
-          {registrationOpen ? (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold uppercase tracking-wider font-oswald text-[var(--text-primary)]">
-                Registration is open
-              </h2>
-              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                {event.registrationDeadline
-                  ? `Applications close ${formatDeadline(event.registrationDeadline)}.`
-                  : "Applications are reviewed as they arrive."}
-              </p>
-              <Link
-                href={`/hackathons/${hackathonSlug(event.name)}`}
-                className="inline-flex px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
-              >
-                Register now
-              </Link>
-            </div>
-          ) : event.status === "announced" ? (
-            <InterestForm
-              hackathonId={event.id}
-              callbackPath="/hacklytics"
-            />
-          ) : (
-            // The interest list only takes sign-ups before registration opens;
-            // offering it afterwards ended in an error on submit.
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold uppercase tracking-wider font-oswald text-[var(--text-primary)]">
-                {event.status === "in_progress"
-                  ? "Happening now"
-                  : "Registration has closed"}
-              </h2>
-              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                {event.status === "in_progress"
-                  ? "Registered hackers can find their schedule, team and check-in pass on the event page."
-                  : "If you applied, your status is on the event page."}
-              </p>
-              <Link
-                href={`/hackathons/${hackathonSlug(event.name)}`}
-                className="inline-flex px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
-              >
-                Go to the event page
-              </Link>
-            </div>
-          )}
+      <dl className="mt-8 grid grid-cols-1 gap-5 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-3">
+        <div>
+          <dt className={label}>When</dt>
+          <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
+            {formatRange(event.startDate, event.endDate)}
+          </dd>
         </div>
-
-        {event.websiteUrl ? (
-          <a
-            href={event.websiteUrl}
-            className="inline-block mt-8 text-sm text-accent hover:underline underline-offset-4"
-          >
-            More about {event.name} →
-          </a>
+        {event.location ? (
+          <div>
+            <dt className={label}>Where</dt>
+            <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
+              {event.location}
+            </dd>
+          </div>
         ) : null}
-      </div>
+        {event.theme ? (
+          <div>
+            <dt className={label}>Theme</dt>
+            <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
+              {event.theme}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+
+      <section className="mt-12 border-t border-[var(--border-subtle)] pt-8">
+        {registrationOpen ? (
+          <div className="space-y-4">
+            <h2 className={sectionTitle}>Apply for {event.name}</h2>
+            <p className={body}>
+              {event.registrationDeadline
+                ? `Applications close ${formatDeadline(event.registrationDeadline)}.`
+                : "Applications are reviewed as they arrive."}
+            </p>
+            <Link
+              href={`/hackathons/${hackathonSlug(event.name)}`}
+              className={btnPrimary}
+            >
+              Register
+            </Link>
+          </div>
+        ) : event.status === "announced" ? (
+          <InterestForm hackathonId={event.id} callbackPath="/hacklytics" />
+        ) : (
+          // The interest list only takes sign-ups before registration opens;
+          // offering it afterwards ended in an error on submit.
+          <div className="space-y-4">
+            <h2 className={sectionTitle}>
+              {event.status === "in_progress"
+                ? "Happening now"
+                : "Registration has closed"}
+            </h2>
+            <p className={body}>
+              {event.status === "in_progress"
+                ? "Registered hackers can find their schedule, team and check-in pass on the event page."
+                : "If you applied, your status is on the event page."}
+            </p>
+            <Link
+              href={`/hackathons/${hackathonSlug(event.name)}`}
+              className={btnSecondary}
+            >
+              Go to the event page
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {event.websiteUrl ? (
+        <a href={event.websiteUrl} className={`mt-10 ${textLink}`}>
+          More about {event.name}
+        </a>
+      ) : null}
     </main>
   );
 }

@@ -3,7 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  itemTitle,
+  label,
+  meta,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 import {
   FormInput,
   FormTextarea,
@@ -28,7 +38,6 @@ import type { ShirtSize, LevelOfStudy } from "@/components/hackathon/constants";
 import { InterestForm } from "@/components/hackathon/InterestForm";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
-import { Clock, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
@@ -48,6 +57,12 @@ const WITHDRAWABLE = new Set(["pending", "approved", "waitlisted"]);
 
 // Relative to now so the range never goes stale: last year's grads up to an
 // incoming first-year's eight-year horizon.
+// Native checkboxes; the accent colours the tick.
+const checkboxClass =
+  "mt-1 h-4 w-4 shrink-0 accent-[var(--accent)] cursor-pointer";
+const checkboxText =
+  "text-[15px] leading-relaxed text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors";
+
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_GRAD_YEAR = CURRENT_YEAR - 1;
 const MAX_GRAD_YEAR = CURRENT_YEAR + 8;
@@ -304,24 +319,20 @@ export function InfoTab({
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-10">
       {hackathon.description && (
-        <LiquidGlass printed className="p-6">
-          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
-            About
-          </h3>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap">
+        <section>
+          <h3 className={itemTitle}>About</h3>
+          <p className={`mt-2 max-w-2xl whitespace-pre-wrap ${body}`}>
             {hackathon.description}
           </p>
-        </LiquidGlass>
+        </section>
       )}
 
       {hackathon.prizes && hackathon.prizes.length > 0 && (
-        <LiquidGlass printed className="p-6">
-          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
-            Prizes
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <section className="border-t border-[var(--border-subtle)] pt-6">
+          <h3 className={itemTitle}>Prizes</h3>
+          <dl className="mt-3 max-w-2xl">
             {hackathon.prizes.map(
               (
                 p: { place: string; amount: number; description?: string },
@@ -329,82 +340,81 @@ export function InfoTab({
               ) => (
                 <div
                   key={i}
-                  className="p-5 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)]"
+                  className="flex items-baseline justify-between gap-6 border-b border-[var(--border-subtle)] py-3"
                 >
-                  <p className="text-base font-bold text-[var(--text-primary)] mb-1">
-                    {p.place}
-                  </p>
-                  <p className="text-2xl font-black font-oswald text-accent mb-2">
+                  <dt className="min-w-0">
+                    <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+                      {p.place}
+                    </span>
+                    {p.description && (
+                      <span className={`block ${meta}`}>{p.description}</span>
+                    )}
+                  </dt>
+                  <dd className="shrink-0 font-[family-name:var(--font-display)] text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
                     ${p.amount.toLocaleString()}
-                  </p>
-                  {p.description && (
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {p.description}
-                    </p>
-                  )}
+                  </dd>
                 </div>
               ),
             )}
-          </div>
-        </LiquidGlass>
+          </dl>
+        </section>
       )}
 
       {hackathon.rules && (
-        <LiquidGlass printed className="p-6">
-          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
-            Rules
-          </h3>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap">
+        <section className="border-t border-[var(--border-subtle)] pt-6">
+          <h3 className={itemTitle}>Rules</h3>
+          <p className={`mt-2 max-w-2xl whitespace-pre-wrap ${body}`}>
             {hackathon.rules}
           </p>
-        </LiquidGlass>
+        </section>
       )}
 
       {(hackathon.registrationDeadline || hackathon.websiteUrl) && (
-        <div className="flex flex-wrap gap-3">
+        <dl className="grid max-w-2xl grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 border-t border-[var(--border-subtle)] pt-6">
           {hackathon.registrationDeadline && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-              <Clock className="w-3 h-3" />
-              {deadlinePassed
-                ? "Registration closed"
-                : "Registration closes"}{" "}
-              {formatDate(hackathon.registrationDeadline)}
-            </span>
+            <div>
+              <dt className={label}>
+                {deadlinePassed ? "Registration closed" : "Registration closes"}
+              </dt>
+              <dd className="mt-0.5 text-[15px] text-[var(--text-primary)]">
+                {formatDate(hackathon.registrationDeadline)}
+              </dd>
+            </div>
           )}
           {hackathon.websiteUrl && (
-            <a
-              href={hackathon.websiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-subtle)] hover:text-accent hover:border-accent/40 transition-colors"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Event website
-            </a>
+            <div>
+              <dt className={label}>Website</dt>
+              <dd className="mt-0.5">
+                <a
+                  href={hackathon.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={textLink}
+                >
+                  Event website
+                </a>
+              </dd>
+            </div>
           )}
-        </div>
+        </dl>
       )}
 
-      <LiquidGlass printed className="p-6">
+      <section className="border-t border-[var(--border-subtle)] pt-8">
         {success && (
-          <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-sm">
-            <p className="text-accent text-sm font-semibold">
-              Registration received. An organiser will review it; your status
-              updates here.
-            </p>
-          </div>
+          <p className="mb-6 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
+            Registration received. An organiser will review it; your status
+            updates here.
+          </p>
         )}
 
         {isRegistered || success ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col items-start gap-2">
             <StatusBadge status={regStatus} />
-            <p className="text-sm text-[var(--text-muted)]">
-              {STATUS_LINE[regStatus] ?? ""}
-            </p>
+            <p className={body}>{STATUS_LINE[regStatus] ?? ""}</p>
             {regStatus === "checked_in" && (
               <Link
                 href={`/submit?id=${hackathon.id}`}
-                className="mt-2 w-fit inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+                className={`mt-3 ${btnPrimary}`}
               >
                 Submit your project
               </Link>
@@ -412,15 +422,15 @@ export function InfoTab({
             {/* On a team the server refuses until you leave it, so say that
                 up front rather than after two clicks. */}
             {WITHDRAWABLE.has(regStatus) && myReg?.teamId ? (
-              <p className="mt-2 text-xs text-[var(--text-muted)]">
+              <p className={`mt-6 ${meta}`}>
                 To withdraw, leave your team first.
               </p>
             ) : null}
             {WITHDRAWABLE.has(regStatus) &&
               !myReg?.teamId &&
               (confirmWithdraw ? (
-                <div className="mt-2 flex flex-col gap-3">
-                  <p className="text-sm text-[var(--text-muted)]">
+                <div className="mt-6 flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
+                  <p className={body}>
                     Withdraw your registration? You can apply again while
                     registration is open.
                   </p>
@@ -431,9 +441,9 @@ export function InfoTab({
                         withdrawMutation.mutate({ hackathonId: hackathon.id })
                       }
                       disabled={withdrawMutation.isPending}
-                      className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                      className={btnDanger}
                     >
-                      {withdrawMutation.isPending ? "Withdrawing…" : "Confirm"}
+                      {withdrawMutation.isPending ? "Withdrawing…" : "Withdraw"}
                     </button>
                     <button
                       type="button"
@@ -442,38 +452,40 @@ export function InfoTab({
                         setWithdrawError("");
                       }}
                       disabled={withdrawMutation.isPending}
-                      className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+                      className={btnSecondary}
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmWithdraw(true)}
-                  className="mt-2 w-fit px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
-                >
-                  Withdraw registration
-                </button>
+                <div className="mt-6 w-full border-t border-[var(--border-subtle)] pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmWithdraw(true)}
+                    className={btnDanger}
+                  >
+                    Withdraw registration
+                  </button>
+                </div>
               ))}
             {withdrawError && (
-              <p className="text-sm text-rose-400">{withdrawError}</p>
+              <p role="alert" className="text-[15px] text-[var(--danger)]">
+                {withdrawError}
+              </p>
             )}
           </div>
         ) : canRegister && !deadlinePassed ? (
           // Once the form is open it renders below; this branch must not fall
           // through to "Registration is closed" above an open form.
           showForm ? null : (
-            <div className="text-center sm:text-left">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-2">
-                Register
-              </h2>
-              <p className="text-sm text-[var(--text-muted)] mb-6">
+            <div>
+              <h2 className={sectionTitle}>Register</h2>
+              <p className={`mt-2 ${body}`}>
                 Four steps: personal info, school, experience, and logistics.
               </p>
               {isFull && (
-                <p className="text-sm text-[var(--text-muted)] mb-6">
+                <p className={`mt-2 ${body}`}>
                   All seats are taken. You can still apply; new applicants are
                   waitlisted until a seat opens.
                 </p>
@@ -481,7 +493,7 @@ export function InfoTab({
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 w-full sm:w-auto"
+                className={`mt-6 w-full sm:w-auto ${btnPrimary}`}
               >
                 Start registration
               </button>
@@ -496,28 +508,27 @@ export function InfoTab({
             callbackPath={`/hackathons/${hackathonSlug(hackathon.name)}`}
           />
         ) : (
-          <p className="text-sm text-[var(--text-muted)]">
-            Registration is closed.
-          </p>
+          <p className={body}>Registration is closed.</p>
         )}
 
         {showForm && (
-          <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
+          <div>
+            <h2 className={`mb-6 ${sectionTitle}`}>Register</h2>
             <StepProgress steps={REGISTRATION_STEPS} current={step} />
 
             {/* Step 1: Personal Info */}
             {step === 0 && (
-              <StepContainer title="Personal Information">
+              <StepContainer title="Personal information">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <FormInput
-                    label="First Name"
+                    label="First name"
                     required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="John"
                   />
                   <FormInput
-                    label="Last Name"
+                    label="Last name"
                     required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
@@ -526,7 +537,7 @@ export function InfoTab({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <FormInput
-                    label="Phone Number"
+                    label="Phone number"
                     required
                     type="tel"
                     autoComplete="tel"
@@ -559,10 +570,10 @@ export function InfoTab({
                     label="Pronouns"
                     value={pronouns}
                     onChange={(e) => setPronouns(e.target.value)}
-                    placeholder="They/Them"
+                    placeholder="they/them"
                   />
                   <FormInput
-                    label="Race / Ethnicity"
+                    label="Race / ethnicity"
                     value={race}
                     onChange={(e) => setRace(e.target.value)}
                     placeholder="e.g. Asian, Hispanic, White, etc."
@@ -574,9 +585,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={underrepresented}
                       onChange={(e) => setUnderrepresented(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I consider myself part of an underrepresented group in
                       technology.
                     </span>
@@ -587,9 +598,9 @@ export function InfoTab({
 
             {/* Step 2: Academic Info */}
             {step === 1 && (
-              <StepContainer title="Academic Information">
+              <StepContainer title="Academic information">
                 <SearchableSelect
-                  label="School / University"
+                  label="School / university"
                   required
                   value={school}
                   onChange={setSchool}
@@ -599,7 +610,7 @@ export function InfoTab({
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <SearchableSelect
-                    label="Major / Field of Study"
+                    label="Major / field of study"
                     required
                     value={major}
                     onChange={setMajor}
@@ -608,7 +619,7 @@ export function InfoTab({
                     hint="Not listed? Type it in — anything you enter is accepted."
                   />
                   <FormInput
-                    label="Graduation Year"
+                    label="Graduation year"
                     required
                     type="number"
                     value={graduationYear}
@@ -619,7 +630,7 @@ export function InfoTab({
                   />
                 </div>
                 <FormChipSelect
-                  label="Level of Study"
+                  label="Level of study"
                   required
                   options={[...LEVELS_OF_STUDY]}
                   value={levelOfStudy}
@@ -638,9 +649,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={firstGeneration}
                       onChange={(e) => setFirstGeneration(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I am a first-generation college student.
                     </span>
                   </label>
@@ -650,7 +661,7 @@ export function InfoTab({
 
             {/* Step 3: Experience */}
             {step === 2 && (
-              <StepContainer title="Experience & Links">
+              <StepContainer title="Experience and links">
                 <FormInput
                   label="How many hackathons have you attended?"
                   type="number"
@@ -697,15 +708,15 @@ export function InfoTab({
 
             {/* Step 4: Logistics */}
             {step === 3 && (
-              <StepContainer title="Logistics & Consent">
+              <StepContainer title="Logistics and consent">
                 <FormChipSelect
-                  label="T-Shirt Size"
+                  label="T-shirt size"
                   options={[...SHIRT_SIZES]}
                   value={shirtSize}
                   onChange={(v) => setShirtSize(v as ShirtSize | "")}
                 />
                 <FormMultiChipSelect
-                  label="Dietary Restrictions"
+                  label="Dietary restrictions"
                   options={[...DIETARY_OPTIONS]}
                   selected={dietary}
                   onChange={setDietary}
@@ -713,13 +724,13 @@ export function InfoTab({
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <FormInput
-                    label="Emergency Contact"
+                    label="Emergency contact"
                     value={emergencyContact}
                     onChange={(e) => setEmergencyContact(e.target.value)}
-                    placeholder="Full Name"
+                    placeholder="Full name"
                   />
                   <FormInput
-                    label="Emergency Phone"
+                    label="Emergency phone"
                     type="tel"
                     autoComplete="tel"
                     value={emergencyPhone}
@@ -735,9 +746,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={needsHardware}
                       onChange={(e) => setNeedsHardware(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I require hardware provided by the hackathon to
                       participate (e.g., laptop).
                     </span>
@@ -749,11 +760,11 @@ export function InfoTab({
                       type="checkbox"
                       checked={agreeToCoC}
                       onChange={(e) => setAgreeToCoC(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I agree to the{" "}
-                      <span className="text-accent font-semibold">
+                      <span className="font-semibold text-[var(--text-primary)]">
                         Code of Conduct
                       </span>{" "}
                       and acknowledge that my information will be used for event
@@ -767,11 +778,11 @@ export function InfoTab({
                       type="checkbox"
                       checked={mlhCodeOfConduct}
                       onChange={(e) => setMlhCodeOfConduct(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I have read and agree to the{" "}
-                      <span className="text-accent font-semibold">
+                      <span className="font-semibold text-[var(--text-primary)]">
                         MLH Code of Conduct
                       </span>
                       . *
@@ -784,9 +795,9 @@ export function InfoTab({
                       type="checkbox"
                       checked={mlhDataSharing}
                       onChange={(e) => setMlhDataSharing(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I authorize you to share my application/registration
                       information with Major League Hacking for event
                       administration, ranking, and MLH administration. *
@@ -801,9 +812,9 @@ export function InfoTab({
                       onChange={(e) =>
                         setMlhInformationalEmails(e.target.checked)
                       }
-                      className="mt-1 w-5 h-5 rounded-sm accent-[var(--accent)] cursor-pointer"
+                      className={checkboxClass}
                     />
-                    <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors leading-relaxed">
+                    <span className={checkboxText}>
                       I authorize MLH to send me occasional emails about
                       relevant events, career opportunities, and community
                       announcements.
@@ -829,7 +840,7 @@ export function InfoTab({
             />
           </div>
         )}
-      </LiquidGlass>
+      </section>
     </div>
   );
 }
