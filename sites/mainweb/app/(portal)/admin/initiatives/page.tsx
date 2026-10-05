@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import type { RouterOutputs } from "@query/api";
 import {
   body,
@@ -36,6 +37,7 @@ function ProposalRow({
   proposal: RouterOutputs["initiative"]["listProposals"][number];
 }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const [note, setNote] = useState("");
   const [declining, setDeclining] = useState(false);
 
@@ -79,7 +81,8 @@ function ProposalRow({
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <button
             type="button"
-            disabled={review.isPending}
+            disabled={readOnly || review.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             onClick={() =>
               review.mutate({ id: proposal.id, decision: "approve" })
             }
@@ -89,7 +92,8 @@ function ProposalRow({
           </button>
           <button
             type="button"
-            disabled={review.isPending}
+            disabled={readOnly || review.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             onClick={() => setDeclining((prev) => !prev)}
             className={btnSecondary}
           >
@@ -116,7 +120,8 @@ function ProposalRow({
           />
           <button
             type="button"
-            disabled={review.isPending}
+            disabled={readOnly || review.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             onClick={() =>
               review.mutate({
                 id: proposal.id,
@@ -143,6 +148,7 @@ function ProposalRow({
 export default function AdminInitiativesPage() {
   const { data: session, status } = useSession();
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const [userId, setUserId] = useState("");
 
   const leaders = trpc.initiative.listLeaders.useQuery(undefined, {
@@ -234,7 +240,8 @@ export default function AdminInitiativesPage() {
           </div>
           <button
             type="submit"
-            disabled={setLeader.isPending}
+            disabled={readOnly || setLeader.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnPrimary}
           >
             {setLeader.isPending ? "Saving…" : "Make leader"}
@@ -268,7 +275,8 @@ export default function AdminInitiativesPage() {
 
                 <button
                   type="button"
-                  disabled={setLeader.isPending}
+                  disabled={readOnly || setLeader.isPending}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   onClick={() =>
                     setLeader.mutate({
                       userId: leader.userId,

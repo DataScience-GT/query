@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { skipToken } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ const adminTitle =
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const readOnly = useReadOnly();
 
   const [selectedHackathon, setSelectedHackathon] = useState<string | null>(
     null,
@@ -210,7 +212,8 @@ export default function ProjectsPage() {
                       <div className="flex flex-wrap gap-2 pt-1">
                         <button
                           type="button"
-                          disabled={updateProject.isPending}
+                          disabled={readOnly || updateProject.isPending}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
                           onClick={() =>
                             updateProject.mutate({
                               projectId: project.id,
@@ -256,6 +259,8 @@ export default function ProjectsPage() {
                               videoUrl: project.videoUrl || "",
                             });
                           }}
+                          disabled={readOnly}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
                           className={btnSecondary}
                         >
                           Fix details
@@ -263,7 +268,8 @@ export default function ProjectsPage() {
                         {project.status !== "draft" && (
                           <button
                             type="button"
-                            disabled={withdrawProject.isPending}
+                            disabled={readOnly || withdrawProject.isPending}
+                            title={readOnly ? READ_ONLY_TITLE : undefined}
                             onClick={() => {
                               setActionError(null);
                               withdrawProject.mutate({

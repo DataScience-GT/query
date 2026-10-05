@@ -38,6 +38,11 @@ const ROLES = [
     hint: "Hackathon badge scanning at /scan and club pass scanning at /scan/club. Nothing else — the admin pages refuse them.",
   },
   {
+    id: "bug_tester" as const,
+    label: "Bug tester",
+    hint: "Read-only QA. Opens every admin page to test it; the API refuses any change they try to save. No resume downloads.",
+  },
+  {
     id: "moderator" as const,
     label: "Moderator",
     hint: "Full staff access to the admin pages.",
