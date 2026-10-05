@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   body,
   btnInk,
@@ -23,6 +24,7 @@ import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
  */
 export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const [size, setSize] = useState("150");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +120,8 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
           <button
             type="button"
             onClick={runWave}
-            disabled={busy || !validSize || willTake === 0}
+            disabled={readOnly || busy || !validSize || willTake === 0}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnInk}
           >
             {busy

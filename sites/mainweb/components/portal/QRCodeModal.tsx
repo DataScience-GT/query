@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { ModalWrapper } from "./ModalWrapper";
 import {
   btnDanger,
@@ -43,6 +44,7 @@ export function QRCodeModal({
   onRegenerate,
   isRegenerating = false,
 }: QRCodeModalProps) {
+  const readOnly = useReadOnly();
   const handleCopyCode = () => {
     navigator.clipboard.writeText(event.qrCode);
     alert("Check-in code copied.");
@@ -130,7 +132,8 @@ export function QRCodeModal({
           <button
             type="button"
             onClick={handleRegenerate}
-            disabled={isRegenerating}
+            disabled={readOnly || isRegenerating}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={`${btnDanger} w-full`}
           >
             {isRegenerating ? "Replacing…" : "Replace QR code"}

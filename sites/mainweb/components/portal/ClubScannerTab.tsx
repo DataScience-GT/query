@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { QRScannerModal } from "./QRScannerModal";
 import {
   body,
@@ -22,6 +23,7 @@ type Outcome = {
 /** Officer-side check-in for one club event: scan a member pass, or type an email. */
 export function ClubScannerTab({ eventId }: { eventId: string }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
@@ -79,7 +81,8 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
             setOutcome(null);
             setScanning(true);
           }}
-          disabled={busy}
+          disabled={readOnly || busy}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
           className={`${btnPrimary} mt-5`}
         >
           {busy ? "Checking in…" : "Scan member pass"}
@@ -93,7 +96,12 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && email.trim() && !manual.isPending) {
+              if (
+                e.key === "Enter" &&
+                email.trim() &&
+                !manual.isPending &&
+                !readOnly
+              ) {
                 manual.mutate({ eventId, email: email.trim() });
               }
             }}
@@ -104,7 +112,10 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
           <button
             type="button"
             onClick={() => manual.mutate({ eventId, email: email.trim() })}
-            disabled={manual.isPending || email.trim().length === 0}
+            disabled={
+              readOnly || manual.isPending || email.trim().length === 0
+            }
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={`${btnSecondary} shrink-0`}
           >
             Check in
@@ -157,7 +168,8 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
                   onClick={() =>
                     row.user && remove.mutate({ eventId, userId: row.user.id })
                   }
-                  disabled={remove.isPending}
+                  disabled={readOnly || remove.isPending}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   className="shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-[13px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-glow)] disabled:opacity-50"
                 >
                   Remove
