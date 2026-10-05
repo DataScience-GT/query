@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { INTEREST_HINT, INTEREST_URL } from "@/lib/links";
+import { INTEREST_URL } from "@/lib/links";
 
 const navItems = [
   { name: "About", href: "/#about" },
@@ -109,7 +109,7 @@ export default function Navbar() {
           <Link
             href="/"
             onClick={() => setOpen(false)}
-            className="font-display font-extrabold text-lg tracking-[-0.02em] text-ink shrink-0"
+            className="font-display font-bold text-[15px] text-ink shrink-0"
           >
             Hacklytics
           </Link>
@@ -132,7 +132,7 @@ export default function Navbar() {
             href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Notify me. ${INTEREST_HINT}`}
+            aria-label="Notify me (opens a sign-up form)"
             className="btn btn-bloom hidden lg:inline-flex px-4 py-2.5 text-sm shrink-0"
           >
             Notify me
@@ -177,7 +177,7 @@ export default function Navbar() {
               key={name}
               href={href}
               onClick={(e) => handleNavClick(e, href)}
-              className="font-display font-extrabold text-[2rem] leading-none tracking-[-0.03em] text-ink hover:text-ink-2 py-4 border-b border-rule transition-colors"
+              className="font-display font-bold text-[1.5rem] leading-none text-ink hover:text-ink-2 py-4 border-b border-rule transition-colors"
             >
               {name}
             </a>
@@ -189,7 +189,7 @@ export default function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            aria-label={`Notify me. ${INTEREST_HINT}`}
+            aria-label="Notify me (opens a sign-up form)"
             className="btn btn-bloom w-full"
           >
             Notify me

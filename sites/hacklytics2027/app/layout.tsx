@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, Silkscreen } from "next/font/google";
+import { Instrument_Sans, Silkscreen } from "next/font/google";
 import Navbar from "../components/Navbar";
 import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import Footer from "../components/Footer";
@@ -8,12 +8,6 @@ import { INTEREST_URL } from "../lib/links";
 
 // Display face: hero and section titles, set at 800. Variable, with the
 // optical-size axis so the big sizes get the display cut.
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  axes: ["opsz"],
-  variable: "--font-bricolage",
-});
-
 // Text and UI.
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
@@ -28,7 +22,7 @@ const silkscreen = Silkscreen({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#07090A",
+  themeColor: "#131715",
 };
 
 export const metadata: Metadata = {
@@ -114,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // globals.css (--font-display etc.) are declared on :root and resolve there.
     <html
       lang="en"
-      className={`${bricolage.variable} ${instrumentSans.variable} ${silkscreen.variable}`}
+      className={`${instrumentSans.variable} ${silkscreen.variable}`}
     >
       <head>
         <script

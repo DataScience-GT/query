@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { PixelBed, bloomSet, plantBed, withBlooms } from "./pixel/PixelBed";
-import { INTEREST_HINT, INTEREST_URL, PORTAL_ORIGIN } from "@/lib/links";
+import { INTEREST_URL, PORTAL_ORIGIN } from "@/lib/links";
 
 const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
 
@@ -20,7 +20,7 @@ export default function Footer() {
             href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Notify me. ${INTEREST_HINT}`}
+            aria-label="Notify me (opens a sign-up form)"
             className="btn btn-bloom"
           >
             Notify me
@@ -92,20 +92,14 @@ export default function Footer() {
             >
               LinkedIn
             </Link>
-            <Link
-              href="https://discord.gg/hacklytics"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Discord"
-              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors"
-            >
-              Discord
-            </Link>
           </div>
         </div>
       </div>
 
       {/* The page ends in the same bed it started in. */}
+      <h2 className="wrap font-display font-bold text-[15px] text-ink pt-10">
+        Plant a flower
+      </h2>
       <PixelBed plants={FOOTER_BED} className="pt-6" plantable />
     </footer>
   );

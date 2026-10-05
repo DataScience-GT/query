@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   body as bodyText,
   btnPrimary,
@@ -87,6 +88,7 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
   });
 
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const { data: announcements } = trpc.hackathon.listAnnouncements.useQuery({
     hackathonId,
   });
@@ -213,7 +215,8 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
                 </div>
                 <button
                   type="button"
-                  disabled={sending}
+                  disabled={readOnly || sending}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   onClick={() =>
                     drain(announcement.id, announcement.total)
                   }
@@ -359,7 +362,8 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
           <button
             type="button"
             onClick={handleSend}
-            disabled={!canSend}
+            disabled={readOnly || !canSend}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={`${btnPrimary} w-full sm:w-auto`}
           >
             {sending

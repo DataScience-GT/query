@@ -15,18 +15,18 @@
   --color-on-bloom: var(--on-bloom);
 
   /* Font variables come from next/font in app/layout.tsx. */
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-silkscreen), ui-monospace, monospace;
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
 }
 
 :root {
-  --ground: #07090a;
-  --raised: #0e1210;
+  --ground: #131715;
+  --raised: #1a1f1d;
   --ink: #edefea;
   --ink-2: #a9b0aa; /* body */
-  --ink-3: #7c847e; /* meta: 5.2:1 on ground */
-  --rule: #1e2420;
+  --ink-3: #868e88; /* meta: ≥4.5:1 on ground */
+  --rule: #2a312d;
 
   --bloom: #ff4f8b;
   --bloom-deep: #b8285a;
@@ -70,19 +70,20 @@ body {
     .wrap { padding-inline: 3rem; }
   }
 
-  /* Display type: Bricolage at 800, tight. */
+  /* Display type: the Silkscreen pixel face, bold. Pixel glyphs need their
+     own spacing, so no negative tracking. */
   .display {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.035em;
-    line-height: 0.95;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
   }
   .section-title {
     font-family: var(--font-display);
-    font-weight: 800;
-    font-size: clamp(3rem, 2.2rem + 2.6vw, 4rem); /* 48–64px */
-    letter-spacing: -0.035em;
-    line-height: 0.95;
+    font-weight: 700;
+    font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem); /* 32–52px */
+    letter-spacing: 0;
+    line-height: 1.05;
     color: var(--ink);
   }
 
@@ -117,7 +118,7 @@ body {
   .btn-bloom:hover { background: #ff6a9d; }
   .btn-bloom:active { background: var(--bloom-deep); color: var(--ink); }
   .btn-line {
-    border: 1px solid #2a302c;
+    border: 1px solid #39413c;
     color: var(--ink);
   }
   .btn-line:hover { border-color: var(--ink-3); }

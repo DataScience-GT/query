@@ -16,6 +16,7 @@ function ctx(overrides: Partial<PortalContext> = {}): PortalContext {
   return {
     isAdmin: false,
     isScanner: false,
+    isBugTester: false,
     role: null,
     permissions: [],
     isJudge: false,
@@ -122,6 +123,20 @@ describe("portalNavSections", () => {
     expect(sections.flatMap((s) => s.items.map((i) => i.name))).not.toContain(
       "Judging Setup",
     );
+  });
+});
+
+describe("portalNavSections for bug testers", () => {
+  it("shows the admin tools read-only, minus staff-only pages", () => {
+    const sections = portalNavSections(
+      ctx({ isBugTester: true, isScanner: true, role: "bug_tester" }),
+    );
+    expect(hrefs(sections)).toContain("/admin/hackathons");
+    expect(hrefs(sections)).toContain("/admin/judging");
+    expect(hrefs(sections)).toContain("/admin/analytics");
+    // Pages whose queries refuse anyone but full staff.
+    expect(hrefs(sections)).not.toContain("/admin/staff");
+    expect(hrefs(sections)).not.toContain("/lead");
   });
 });
 
