@@ -9,6 +9,7 @@ export * from "./bootcamp";
 export * from "./judge";
 export * from "./initiatives";
 export * from "./club-projects";
+export * from "./subteams";
 export * from "./bootcamp";
 export * from "./stripe";
 export * from "./security";

@@ -35,6 +35,7 @@ const PRIVATE_PREFIXES = [
   "/judge",
   "/lead",
   "/settings",
+  "/subteams",
   "/submit",
   "/verify",
   "/login",
