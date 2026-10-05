@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { usePortalContext } from "@/lib/use-portal-context";
+import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import { useState } from "react";
 import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
@@ -55,7 +55,7 @@ export default function AdminPage() {
   const { data: portalContext } = usePortalContext();
   const { data: allEvents, isLoading: eventsLoading } =
     trpc.events.listAll.useQuery(undefined, {
-      enabled: !!session && !!portalContext?.isAdmin,
+      enabled: !!session && canViewAdmin(portalContext),
     });
   // Bootcamp sessions have their own check-in controls on /admin/bootcamp.
   const events = allEvents?.filter((e) => e.bootcampWeek == null);
