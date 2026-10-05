@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import {
+  body,
+  btnSecondary,
+  itemTitle,
+  label,
+  meta,
+  sectionTitle,
+  status,
+} from "@/components/portal/ui";
+import type { Tone } from "@/components/portal/ui";
 
 type Project = {
   id: string;
@@ -88,6 +97,25 @@ type RankingsViewProps = {
   selectedHackathon: string | null;
 };
 
+const rubric = [
+  { key: "creativity", label: "Creativity" },
+  { key: "impact", label: "Impact" },
+  { key: "scope", label: "Scope" },
+  { key: "clarity", label: "Clarity" },
+  { key: "soundness", label: "Soundness" },
+] as const;
+
+const confidence: Record<string, { tone: Tone; text: string }> = {
+  HIGH: { tone: "success", text: "High" },
+  MEDIUM: { tone: "neutral", text: "Medium" },
+  LOW: { tone: "warning", text: "Low" },
+  NONE: { tone: "neutral", text: "None" },
+};
+
+const th = "py-3 px-4 text-[13px] font-medium text-[var(--text-subtle)]";
+const statValue =
+  "mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums";
+
 export function RankingsView({
   rankings,
   processedRankings,
@@ -98,29 +126,8 @@ export function RankingsView({
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
 
   const confidenceBadge = (level: string) => {
-    if (level === "LOW")
-      return (
-        <span className="ml-2 px-2 py-0.5 rounded-sm text-[8px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-          Low
-        </span>
-      );
-    if (level === "MEDIUM")
-      return (
-        <span className="ml-2 px-2 py-0.5 rounded-sm text-[8px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-          Medium
-        </span>
-      );
-    if (level === "HIGH")
-      return (
-        <span className="ml-2 px-2 py-0.5 rounded-sm text-[8px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">
-          High
-        </span>
-      );
-    return (
-      <span className="ml-2 px-2 py-0.5 rounded-sm text-[8px] font-bold bg-gray-500/20 text-[var(--text-subtle)] border border-gray-500/30">
-        —
-      </span>
-    );
+    const c = confidence[level] ?? confidence.NONE;
+    return <span className={status(c.tone)}>{c.text}</span>;
   };
 
   return (
@@ -182,7 +189,7 @@ export function RankingsView({
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+            className={btnSecondary}
           >
             Download results CSV
           </button>
@@ -190,13 +197,12 @@ export function RankingsView({
       )}
       {/* Tie Warning — Overall */}
       {rankings?.hasTies && (
-        <LiquidGlass printed className="border border-yellow-500/30 p-6 mb-6">
-          <div className="flex items-center gap-4 mb-6">
-            <h3 className="text-xl font-bold text-yellow-500 tracking-wider font-oswald uppercase">
-              Tied scores
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <section className="mb-12 border-t border-[var(--border-subtle)] pt-6">
+          <p className={status("warning")}>Tied scores</p>
+          <p className={`mt-1 ${body}`}>
+            Break these ties by hand before announcing winners.
+          </p>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
             {rankings.ties.map(
               (
                 tie: {
@@ -210,21 +216,18 @@ export function RankingsView({
                 },
                 i: number,
               ) => (
-                <div
-                  key={i}
-                  className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-4 rounded-sm"
-                >
-                  <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                    Weighted score: {tie.score}
+                <div key={i}>
+                  <p className={`${meta} tabular-nums mb-1`}>
+                    Weighted score {tie.score}
                   </p>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {tie.projects.map((p) => (
                       <p
                         key={p.id}
-                        className="text-[var(--text-primary)] text-sm"
+                        className="text-[var(--text-primary)] text-[15px]"
                       >
                         {p.name}{" "}
-                        <span className="text-[var(--text-subtle)]">
+                        <span className="text-[var(--text-subtle)] tabular-nums">
                           ({p.zone || ""}
                           {p.tableNumber})
                         </span>
@@ -235,18 +238,13 @@ export function RankingsView({
               ),
             )}
           </div>
-          <p className="text-sm text-yellow-500/80 mt-6 text-center border-t border-[var(--border-subtle)] pt-4">
-            Break these ties by hand before announcing winners.
-          </p>
-        </LiquidGlass>
+        </section>
       )}
 
       {/* Projected Winners Section */}
       {rankings && rankings.rankings.length > 0 && (
-        <div className="mb-12">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-6">
-            Projected winners
-          </h2>
+        <section className="mb-12">
+          <h2 className={sectionTitle}>Projected winners</h2>
 
           {/* Logic Calculation */}
           {(() => {
@@ -286,87 +284,83 @@ export function RankingsView({
             });
 
             return (
-              <div className="space-y-8">
+              <div className="mt-2 space-y-8">
                 {/* Scoring Method Info */}
-                <div className="px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm">
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Ranked by Bayesian weighted score. Global average{" "}
-                    <span className="text-accent font-bold">
-                      {rankings.globalAvg}
-                    </span>
-                    , prior weight C = 2.
-                  </p>
-                </div>
+                <p className={meta}>
+                  Ranked by Bayesian weighted score. Global average{" "}
+                  <span className="font-semibold text-[var(--text-primary)] tabular-nums">
+                    {rankings.globalAvg}
+                  </span>
+                  , prior weight C = 2.
+                </p>
 
                 {/* Overall Winners */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
                   {overallWinners.map((w, i) => (
-                    <LiquidGlass
+                    <div
                       key={w.project.id}
-                      className={`p-6 rounded-sm border-t-4 ${
+                      className={`pt-4 ${
                         i === 0
-                          ? "border-yellow-500"
-                          : i === 1
-                            ? "border-gray-400"
-                            : "border-orange-700"
+                          ? "border-t-2 border-[var(--text-primary)]"
+                          : "border-t border-[var(--border-subtle)]"
                       }`}
                     >
-                      <p className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest mb-2 font-bold">
+                      <p className={label}>
                         {i === 0
                           ? "Grand prize"
                           : i === 1
                             ? "2nd place"
                             : "3rd place"}
                       </p>
-                      <h3 className="text-xl font-black text-[var(--text-primary)] uppercase mb-1">
-                        {w.project.name}
-                      </h3>
-                      <div className="flex items-end gap-3 mb-2">
-                        <p className="text-3xl font-black text-accent tabular-nums">
+                      <h3 className={`mt-1 ${itemTitle}`}>{w.project.name}</h3>
+                      <div className="flex items-baseline gap-3 mt-2">
+                        <p
+                          className={`font-[family-name:var(--font-display)] text-[40px] font-semibold leading-none tabular-nums ${
+                            i === 0
+                              ? "text-accent"
+                              : "text-[var(--text-primary)]"
+                          }`}
+                        >
                           {w.weightedScore}
                         </p>
-                        <p className="text-sm text-[var(--text-subtle)] tabular-nums mb-1">
+                        <p className={`${meta} tabular-nums`}>
                           avg {w.avgScore}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-[var(--text-muted)]">
+                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                        <p className={meta}>
                           {w.voteCount} judge{w.voteCount !== 1 ? "s" : ""}
                         </p>
                         {confidenceBadge(w.confidenceLevel)}
                       </div>
-                    </LiquidGlass>
+                    </div>
                   ))}
                 </div>
 
                 {/* Track Winners */}
                 {Object.keys(trackWinners).length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                    <h3 className={`${label} mb-3`}>
                       Track winners (excluding overall)
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5">
                       {Object.entries(trackWinners).map(([track, w]) => (
                         <div
                           key={track}
-                          className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm p-5"
+                          className="min-w-0 border-t border-[var(--border-subtle)] pt-3"
                         >
-                          <p className="text-[10px] text-blue-400 uppercase tracking-widest mb-2 font-bold">
-                            {track}
-                          </p>
+                          <p className={meta}>{track}</p>
                           <h4
-                            className="text-lg font-bold text-[var(--text-primary)] mb-1 truncate"
+                            className="mt-0.5 text-[15px] font-semibold text-[var(--text-primary)] truncate"
                             title={w.project.name}
                           >
                             {w.project.name}
                           </h4>
-                          <div className="flex items-end gap-2">
-                            <p className="text-xl font-bold text-[var(--text-muted)] tabular-nums">
-                              {w.weightedScore}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <p className="text-[11px] text-[var(--text-muted)]">
+                          <p className="mt-1 font-[family-name:var(--font-display)] text-[24px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
+                            {w.weightedScore}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            <p className={meta}>
                               {w.voteCount} judge{w.voteCount !== 1 ? "s" : ""}
                             </p>
                             {confidenceBadge(w.confidenceLevel)}
@@ -379,495 +373,349 @@ export function RankingsView({
               </div>
             );
           })()}
-        </div>
+        </section>
       )}
 
       {/* Rankings Table */}
-      <div className="space-y-6">
-        <div className="flex justify-between items-end mb-4">
-          <div>
-            <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
-              Results
-            </p>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-              Rankings{" "}
-              {selectedTrack !== "ALL" && (
-                <span className="text-accent">· {selectedTrack}</span>
-              )}
-            </h2>
-          </div>
-          <div className="text-xs text-[var(--text-muted)]">
+      <section>
+        <div className="flex justify-between items-baseline gap-4 mb-4">
+          <h2 className={sectionTitle}>
+            Rankings
+            {selectedTrack !== "ALL" && (
+              <span className="text-[var(--text-subtle)]">
+                {" "}
+                · {selectedTrack}
+              </span>
+            )}
+          </h2>
+          <p className={`${meta} tabular-nums shrink-0`}>
             {processedRankings.length} projects
-          </div>
+          </p>
         </div>
 
         {!rankings ? (
-          <div className="border border-[var(--border-subtle)] rounded-sm p-12 text-center">
-            <p className="text-sm text-[var(--text-muted)]">
-              Loading rankings…
-            </p>
-          </div>
+          <p className={`border-t border-[var(--border-subtle)] py-12 ${body}`}>
+            Loading rankings…
+          </p>
         ) : processedRankings.length === 0 ? (
-          <div className="border border-[var(--border-subtle)] rounded-sm p-12 text-center">
-            <p className="text-sm text-[var(--text-muted)]">
-              No projects match these filters.
-            </p>
-          </div>
+          <p className={`border-t border-[var(--border-subtle)] py-12 ${body}`}>
+            No projects match these filters.
+          </p>
         ) : (
-          <LiquidGlass printed className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                    <th className="px-6 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                      Pos
-                    </th>
-                    <th className="px-4 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                      Table
-                    </th>
-                    <th className="px-4 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                      Project
-                    </th>
-                    <th
-                      className="px-4 py-6 text-xs font-bold text-accent uppercase tracking-wider text-right"
-                      title="Bayesian Weighted Score"
-                    >
-                      Weighted
-                    </th>
-                    <th className="px-4 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-right">
-                      Avg
-                    </th>
-
-                    {/* Rubric Headers */}
-                    <th
-                      className="px-3 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-center"
-                      title="Creativity"
-                    >
-                      CRE
-                    </th>
-                    <th
-                      className="px-3 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-center"
-                      title="Impact"
-                    >
-                      IMP
-                    </th>
-                    <th
-                      className="px-3 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-center"
-                      title="Scope"
-                    >
-                      SCP
-                    </th>
-                    <th
-                      className="px-3 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-center"
-                      title="Clarity"
-                    >
-                      CLR
-                    </th>
-                    <th
-                      className="px-3 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-center"
-                      title="Soundness"
-                    >
-                      SND
-                    </th>
-
-                    <th className="px-4 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-right">
-                      Judges
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-subtle)]">
-                  {processedRankings.map((r, idx) => {
-                    const isExpanded = expandedProject === r.project.id;
-                    const isTied = rankings?.ties.some(
-                      (t: { projects: { id: string }[] }) =>
-                        t.projects.some((p) => p.id === r.project.id),
-                    );
-
-                    return (
-                      <React.Fragment key={r.project.id}>
-                        <tr
-                          className={`group cursor-pointer transition-ui duration-300 ${
-                            isTied
-                              ? "bg-yellow-500/[0.03]"
-                              : "hover:bg-[var(--bg-primary)]/40"
-                          } ${isExpanded ? "bg-[var(--bg-secondary)]" : ""}`}
-                          onClick={() =>
-                            setExpandedProject(isExpanded ? null : r.project.id)
-                          }
-                        >
-                          <td className="px-8 py-8">
-                            <span
-                              className={`text-3xl font-black font-oswald tabular-nums ${
-                                idx === 0
-                                  ? "text-accent drop-"
-                                  : idx < 3
-                                    ? "text-[var(--text-primary)]"
-                                    : "text-[var(--text-subtle)]"
-                              }`}
-                            >
-                              {String(idx + 1).padStart(2, "0")}
-                            </span>
-                          </td>
-                          <td className="px-8 py-8">
-                            <div className="space-y-1">
-                              <p className="text-sm text-[var(--text-muted)] font-bold">
-                                Table {r.project.zone}
-                                {r.project.tableNumber}
-                              </p>
-                              <p className="text-xs text-[var(--text-subtle)] font-mono">
-                                ID: {r.project.id.slice(-6).toUpperCase()}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-8 py-8">
-                            <div>
-                              <div className="flex items-center gap-3 mb-1">
-                                <p className="text-base font-bold text-[var(--text-primary)] group-hover:text-accent transition-colors">
-                                  {r.project.name}
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {r.project.tracks?.map((t: string) => (
-                                    <span
-                                      key={t}
-                                      className="px-2 py-0.5 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"
-                                    >
-                                      {t}
-                                    </span>
-                                  ))}
-                                  {r.project.challenges?.map((c: string) => (
-                                    <span
-                                      key={c}
-                                      className="px-2 py-0.5 rounded-sm bg-accent/10 border border-accent/30 text-[10px] font-bold text-accent uppercase tracking-widest"
-                                    >
-                                      {c}
-                                    </span>
-                                  ))}
-                                  {r.project.isCreateX && (
-                                    <span className="px-2 py-0.5 rounded-sm bg-yellow-500/10 border border-yellow-500/30 text-[10px] font-bold text-yellow-500 uppercase tracking-widest">
-                                      CREATE-X
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {r.project.teamMembers && (
-                                <p className="text-xs text-[var(--text-muted)]">
-                                  {r.project.teamMembers}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-8 text-right">
-                            <span
-                              className={`text-3xl font-black tabular-nums text-accent`}
-                            >
-                              {r.displayScore}
-                            </span>
-                          </td>
-                          <td className="px-4 py-8 text-right text-[var(--text-muted)] tabular-nums text-lg">
-                            {r.avgScore}
-                          </td>
-
-                          <td className="px-3 py-8 text-center text-[var(--text-muted)] tabular-nums text-sm">
-                            {r.categoryAvg?.creativity ?? "-"}
-                          </td>
-                          <td className="px-3 py-8 text-center text-[var(--text-muted)] tabular-nums text-sm">
-                            {r.categoryAvg?.impact ?? "-"}
-                          </td>
-                          <td className="px-3 py-8 text-center text-[var(--text-muted)] tabular-nums text-sm">
-                            {r.categoryAvg?.scope ?? "-"}
-                          </td>
-                          <td className="px-3 py-8 text-center text-[var(--text-muted)] tabular-nums text-sm">
-                            {r.categoryAvg?.clarity ?? "-"}
-                          </td>
-                          <td className="px-3 py-8 text-center text-[var(--text-muted)] tabular-nums text-sm">
-                            {r.categoryAvg?.soundness ?? "-"}
-                          </td>
-
-                          <td className="px-4 py-8 text-right">
-                            <span className="text-[var(--text-subtle)] tabular-nums text-lg">
-                              {r.voteCount}
-                            </span>
-                            <div className="mt-1">
-                              {r.confidenceLevel === "LOW" && (
-                                <span className="px-2 py-0.5 rounded-sm text-[7px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                                  Low
-                                </span>
-                              )}
-                              {r.confidenceLevel === "MEDIUM" && (
-                                <span className="px-2 py-0.5 rounded-sm text-[7px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                  Medium
-                                </span>
-                              )}
-                              {r.confidenceLevel === "HIGH" && (
-                                <span className="px-2 py-0.5 rounded-sm text-[7px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">
-                                  High
-                                </span>
-                              )}
-                              {r.confidenceLevel === "NONE" && (
-                                <span className="px-2 py-0.5 rounded-sm text-[7px] font-bold bg-gray-500/20 text-[var(--text-subtle)] border border-gray-500/30">
-                                  —
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-
-                        {/* Expanded row with individual votes */}
-                        {isExpanded && (
-                          <tr>
-                            <td
-                              colSpan={12}
-                              className="px-8 py-8 bg-[var(--bg-primary)]/40 border-t border-[var(--border-subtle)]"
-                            >
-                              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                                  Votes
-                                </p>
-                                {r.votes.length === 0 ? (
-                                  <p className="text-sm text-[var(--text-muted)]">
-                                    No votes for this project yet.
-                                  </p>
-                                ) : (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {r.votes.map((v, vi) => (
-                                      <div
-                                        key={vi}
-                                        className="relative bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-5 rounded-sm"
-                                      >
-                                        <div className="flex items-center justify-between mb-4">
-                                          <span className="text-sm font-bold text-[var(--text-primary)]">
-                                            {v.judgeName}
-                                          </span>
-                                          <span className="text-3xl font-black text-accent tabular-nums">
-                                            {v.score}
-                                          </span>
-                                        </div>
-                                        {/* Per-category breakdown */}
-                                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3 mb-3">
-                                          {[
-                                            {
-                                              label: "CRE",
-                                              value: v.scoreCreativity,
-                                            },
-                                            {
-                                              label: "IMP",
-                                              value: v.scoreImpact,
-                                            },
-                                            {
-                                              label: "SCP",
-                                              value: v.scoreScope,
-                                            },
-                                            {
-                                              label: "CLR",
-                                              value: v.scoreClarity,
-                                            },
-                                            {
-                                              label: "SND",
-                                              value: v.scoreSoundness,
-                                            },
-                                          ].map((cat) => (
-                                            <div
-                                              key={cat.label}
-                                              className="rounded-sm px-2 py-1.5 text-center bg-[var(--bg-secondary)]"
-                                            >
-                                              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-subtle)]">
-                                                {cat.label}
-                                              </p>
-                                              <p className="text-sm font-bold tabular-nums mt-0.5 text-[var(--text-primary)]">
-                                                {cat.value ?? "-"}
-                                              </p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                        {v.durationSeconds != null &&
-                                          v.durationSeconds > 300 && (
-                                            <div className="flex items-center gap-2 mt-2">
-                                              <span className="px-2 py-0.5 rounded-sm text-[8px] font-black bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-widest">
-                                                Overtime{" "}
-                                                {Math.floor(
-                                                  v.durationSeconds / 60,
-                                                )}
-                                                :
-                                                {String(
-                                                  v.durationSeconds % 60,
-                                                ).padStart(2, "0")}
-                                              </span>
-                                            </div>
-                                          )}
-                                        {v.comment && (
-                                          <p className="text-[var(--text-muted)] text-sm mt-2 leading-relaxed">
-                                            &ldquo;{v.comment}&rdquo;
-                                          </p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </LiquidGlass>
-        )}
-      </div>
-
-      {/* Judge Roster Section */}
-      <div className="mt-16 space-y-6">
-        <div className="flex justify-between items-end mb-4">
-          <div>
-            <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
-              Judges
-            </p>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-              Judge roster
-            </h2>
-          </div>
-          <div className="text-xs text-[var(--text-muted)]">
-            {judges?.filter((j) => j.isActive).length || 0} active
-          </div>
-        </div>
-
-        <LiquidGlass printed className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                  <th className="px-8 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                    Judge
+                <tr className="border-b border-[var(--border-subtle)]">
+                  <th className={`${th} pl-0`}>Rank</th>
+                  <th className={th}>Table</th>
+                  <th className={th}>Project</th>
+                  <th
+                    className={`${th} text-right text-[var(--text-primary)]`}
+                    title="Bayesian Weighted Score"
+                  >
+                    Weighted
                   </th>
-                  <th className="px-8 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-8 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                    Assigned tracks
-                  </th>
-                  <th className="px-8 py-6 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider text-right">
-                    Status
-                  </th>
+                  <th className={`${th} text-right`}>Avg</th>
+
+                  {/* Rubric Headers */}
+                  {rubric.map((c) => (
+                    <th key={c.key} className={`${th} text-right`}>
+                      {c.label}
+                    </th>
+                  ))}
+
+                  <th className={`${th} text-right`}>Judges</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
-                {judges?.map((j) => (
-                  <tr
-                    key={j.id}
-                    className="hover:bg-[var(--bg-primary)]/40 transition-colors duration-300"
-                  >
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        {}
-                        <img
-                          src={
-                            j.user?.image ||
-                            `https://ui-avatars.com/api/?name=${encodeURIComponent(j.name || "J")}`
-                          }
-                          alt={j.name || ""}
-                          className="w-10 h-10 rounded-sm border border-[var(--border-subtle)] ring-1 ring-accent/20"
-                        />
-                        <div>
-                          <p className="text-sm font-bold text-[var(--text-primary)]">
-                            {j.name}
-                          </p>
-                          <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
-                            {j.specialty || "Generalist"}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {j.user?.email}
-                      </p>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex flex-wrap gap-2">
-                        {j.assignments
-                          .filter((a) => a.hackathonId === selectedHackathon)
-                          .map((a, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center px-2.5 py-1 rounded-sm bg-accent/10 border border-accent/25 text-[11px] font-bold text-accent uppercase tracking-wider"
-                            >
-                              {a.track || "Unassigned"}
-                            </span>
-                          ))}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <span
-                        className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest ${
-                          j.isActive
-                            ? "bg-green-500/10 text-green-500 border border-green-500/20"
-                            : "bg-red-500/10 text-red-500 border border-red-500/20"
+              <tbody>
+                {processedRankings.map((r, idx) => {
+                  const isExpanded = expandedProject === r.project.id;
+                  const isTied = rankings?.ties.some(
+                    (t: { projects: { id: string }[] }) =>
+                      t.projects.some((p) => p.id === r.project.id),
+                  );
+                  const tags = [
+                    ...(r.project.tracks ?? []),
+                    ...(r.project.challenges ?? []),
+                    ...(r.project.isCreateX ? ["CREATE-X"] : []),
+                  ];
+
+                  return (
+                    <React.Fragment key={r.project.id}>
+                      <tr
+                        className={`cursor-pointer border-b border-[var(--border-subtle)] transition-colors ${
+                          isExpanded
+                            ? "bg-[var(--bg-secondary)]"
+                            : isTied
+                              ? "bg-[var(--warning-glow)]"
+                              : "hover:bg-[var(--bg-secondary)]"
                         }`}
+                        onClick={() =>
+                          setExpandedProject(isExpanded ? null : r.project.id)
+                        }
                       >
-                        {j.isActive ? "Active" : "Offline"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {!judges?.length && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-8 py-12 text-center text-sm text-[var(--text-muted)]"
-                    >
-                      No judges have registered yet.
-                    </td>
-                  </tr>
-                )}
+                        <td className="py-4 pr-4 align-top">
+                          <span
+                            className={`font-[family-name:var(--font-display)] text-[28px] font-semibold leading-none tabular-nums ${
+                              idx === 0
+                                ? "text-accent"
+                                : idx < 3
+                                  ? "text-[var(--text-primary)]"
+                                  : "text-[var(--text-subtle)]"
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 align-top whitespace-nowrap">
+                          <p className="text-[14px] font-semibold text-[var(--text-primary)] tabular-nums">
+                            Table {r.project.zone}
+                            {r.project.tableNumber}
+                          </p>
+                          <p className="text-[12px] text-[var(--text-subtle)] font-mono">
+                            {r.project.id.slice(-6).toUpperCase()}
+                          </p>
+                        </td>
+                        <td className="py-4 px-4 align-top min-w-[220px]">
+                          <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                            {r.project.name}
+                          </p>
+                          {tags.length > 0 && (
+                            <p className={meta}>{tags.join(" · ")}</p>
+                          )}
+                          {r.project.teamMembers && (
+                            <p className="text-[13px] text-[var(--text-muted)]">
+                              {r.project.teamMembers}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 align-top text-right">
+                          <span className="font-[family-name:var(--font-display)] text-[24px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
+                            {r.displayScore}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 align-top text-right text-[15px] text-[var(--text-muted)] tabular-nums">
+                          {r.avgScore}
+                        </td>
+
+                        {rubric.map((c) => (
+                          <td
+                            key={c.key}
+                            className="py-4 px-4 align-top text-right text-[14px] text-[var(--text-muted)] tabular-nums"
+                          >
+                            {r.categoryAvg?.[c.key] ?? "-"}
+                          </td>
+                        ))}
+
+                        <td className="py-4 pl-4 align-top text-right">
+                          <p className="text-[15px] text-[var(--text-primary)] tabular-nums">
+                            {r.voteCount}
+                          </p>
+                          <div className="mt-1 whitespace-nowrap">
+                            {confidenceBadge(r.confidenceLevel)}
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Expanded row with individual votes */}
+                      {isExpanded && (
+                        <tr className="border-b border-[var(--border-subtle)]">
+                          <td colSpan={12} className="py-6 md:pl-12">
+                            <p className={`${label} mb-3`}>Votes</p>
+                            {r.votes.length === 0 ? (
+                              <p className={body}>
+                                No votes for this project yet.
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+                                {r.votes.map((v, vi) => (
+                                  <div
+                                    key={vi}
+                                    className="border-t border-[var(--border-subtle)] py-4"
+                                  >
+                                    <div className="flex items-baseline justify-between gap-4">
+                                      <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+                                        {v.judgeName}
+                                      </span>
+                                      <span className="font-[family-name:var(--font-display)] text-[28px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
+                                        {v.score}
+                                      </span>
+                                    </div>
+                                    {/* Per-category breakdown */}
+                                    <dl className="flex flex-wrap gap-x-5 gap-y-1 mt-2">
+                                      {[
+                                        {
+                                          label: "Creativity",
+                                          value: v.scoreCreativity,
+                                        },
+                                        {
+                                          label: "Impact",
+                                          value: v.scoreImpact,
+                                        },
+                                        {
+                                          label: "Scope",
+                                          value: v.scoreScope,
+                                        },
+                                        {
+                                          label: "Clarity",
+                                          value: v.scoreClarity,
+                                        },
+                                        {
+                                          label: "Soundness",
+                                          value: v.scoreSoundness,
+                                        },
+                                      ].map((cat) => (
+                                        <div
+                                          key={cat.label}
+                                          className="flex items-baseline gap-1.5"
+                                        >
+                                          <dt className={meta}>{cat.label}</dt>
+                                          <dd className="text-[14px] font-semibold tabular-nums text-[var(--text-primary)]">
+                                            {cat.value ?? "-"}
+                                          </dd>
+                                        </div>
+                                      ))}
+                                    </dl>
+                                    {v.durationSeconds != null &&
+                                      v.durationSeconds > 300 && (
+                                        <p
+                                          className={`mt-2 ${status("danger")}`}
+                                        >
+                                          Overtime{" "}
+                                          {Math.floor(v.durationSeconds / 60)}:
+                                          {String(
+                                            v.durationSeconds % 60,
+                                          ).padStart(2, "0")}
+                                        </p>
+                                      )}
+                                    {v.comment && (
+                                      <p className={`mt-2 ${body}`}>
+                                        &ldquo;{v.comment}&rdquo;
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </LiquidGlass>
-      </div>
+        )}
+      </section>
+
+      {/* Judge Roster Section */}
+      <section className="mt-16">
+        <div className="flex justify-between items-baseline gap-4 mb-4">
+          <h2 className={sectionTitle}>Judge roster</h2>
+          <p className={`${meta} tabular-nums shrink-0`}>
+            {judges?.filter((j) => j.isActive).length || 0} active
+          </p>
+        </div>
+
+        <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--border-subtle)]">
+                <th className={`${th} pl-0`}>Judge</th>
+                <th className={th}>Contact</th>
+                <th className={th}>Assigned tracks</th>
+                <th className={`${th} pr-0 text-right`}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {judges?.map((j) => (
+                <tr
+                  key={j.id}
+                  className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
+                >
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-3">
+                      {}
+                      <img
+                        src={
+                          j.user?.image ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(j.name || "J")}`
+                        }
+                        alt={j.name || ""}
+                        className="w-8 h-8 rounded-full border border-[var(--border-subtle)]"
+                      />
+                      <div>
+                        <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                          {j.name}
+                        </p>
+                        <p className={meta}>{j.specialty || "Generalist"}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-[14px] text-[var(--text-muted)]">
+                    {j.user?.email}
+                  </td>
+                  <td className="py-3 px-4 text-[14px] text-[var(--text-muted)]">
+                    {j.assignments
+                      .filter((a) => a.hackathonId === selectedHackathon)
+                      .map((a) => a.track || "Unassigned")
+                      .join(", ")}
+                  </td>
+                  <td className="py-3 pl-4 text-right whitespace-nowrap">
+                    <span
+                      className={status(j.isActive ? "success" : "neutral")}
+                    >
+                      {j.isActive ? "Active" : "Offline"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {!judges?.length && (
+                <tr>
+                  <td colSpan={4} className={`py-12 ${body}`}>
+                    No judges have registered yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Global Stats */}
       {rankings && rankings.rankings.length > 0 && (
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <LiquidGlass printed className="rounded-sm p-8 text-center">
-            <p className="text-4xl font-black text-[var(--text-primary)] tabular-nums">
+        <dl className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6 border-t border-[var(--border-subtle)] pt-6">
+          <div>
+            <dt className={label}>Projects</dt>
+            <dd className={`${statValue} text-[var(--text-primary)]`}>
               {rankings.rankings.length}
-            </p>
-            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-3">
-              Projects
-            </p>
-          </LiquidGlass>
-          <LiquidGlass printed className="rounded-sm p-8 text-center">
-            <p className="text-4xl font-black text-accent tabular-nums">
+            </dd>
+          </div>
+          <div>
+            <dt className={label}>Votes</dt>
+            <dd className={`${statValue} text-[var(--text-primary)]`}>
               {rankings.rankings.reduce(
                 (sum: number, r: { voteCount: number }) => sum + r.voteCount,
                 0,
               )}
-            </p>
-            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-3">
-              Votes
-            </p>
-          </LiquidGlass>
-          <LiquidGlass printed className="rounded-sm p-8 text-center">
-            <p className="text-4xl font-black text-accent tabular-nums">
+            </dd>
+          </div>
+          <div>
+            <dt className={label}>Global avg score</dt>
+            <dd className={`${statValue} text-[var(--text-primary)]`}>
               {rankings.globalAvg}
-            </p>
-            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-3">
-              Global avg score
-            </p>
-          </LiquidGlass>
-          <LiquidGlass printed className="rounded-sm p-8 text-center">
-            <p
-              className={`text-4xl font-black tabular-nums ${rankings.ties.length > 0 ? "text-yellow-500" : "text-[var(--text-subtle)]"}`}
+            </dd>
+          </div>
+          <div>
+            <dt className={label}>Ties</dt>
+            <dd
+              className={`${statValue} ${rankings.ties.length > 0 ? "text-[var(--warning)]" : "text-[var(--text-subtle)]"}`}
             >
               {rankings.ties.length}
-            </p>
-            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mt-3">
-              Ties
-            </p>
-          </LiquidGlass>
-        </div>
+            </dd>
+          </div>
+        </dl>
       )}
     </>
   );

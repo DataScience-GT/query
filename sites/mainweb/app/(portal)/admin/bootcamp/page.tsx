@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { GraduationCap, Check, Copy, Mail } from "lucide-react";
+import { Check, Copy, Mail } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import type { BootcampMaterialRow } from "@/components/portal/BootcampMaterialsTable";
@@ -11,6 +11,27 @@ import type { BootcampWorkshopFormData } from "@/components/portal/BootcampWorks
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { useEventQR } from "@/components/portal/EventQR";
 import { trpc } from "@/lib/trpc";
+import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  fieldLabel,
+  input,
+  itemTitle,
+  kicker,
+  label,
+  meta,
+  pageDek,
+  sectionTitle,
+  status as statusDot,
+  textLink,
+} from "@/components/portal/ui";
+
+/** Admin pages carry a smaller headline than member pages. */
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]";
+
+const th = "px-3 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
 function termLabel(term: string) {
@@ -50,34 +71,25 @@ function CohortEmails({ emails }: { emails: string[] }) {
   };
 
   return (
-    <section className="mb-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-            Email the cohort
-          </h2>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
-            {emails.length} address{emails.length === 1 ? "" : "es"}, everyone
-            enrolled this term.
+          <h2 className={itemTitle}>Email the cohort</h2>
+          <p className={`mt-1 ${body}`}>
+            <span className="tabular-nums">{emails.length}</span> address
+            {emails.length === 1 ? "" : "es"}, everyone enrolled this term.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={copy}
-            className="flex items-center gap-2 border border-[var(--border-subtle)] bg-white/5 px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] transition-colors hover:bg-white/10"
-          >
-            <Copy aria-hidden="true" className="h-3.5 w-3.5" />
+          <button type="button" onClick={copy} className={btnSecondary}>
+            <Copy aria-hidden="true" className="h-4 w-4" strokeWidth={1.75} />
             {copied ? "Copied" : "Copy addresses"}
           </button>
 
           {mailto.length <= MAILTO_LIMIT && (
-            <a
-              href={mailto}
-              className="flex items-center gap-2 border border-accent/40 bg-accent/10 px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest text-accent transition-colors hover:bg-accent/20"
-            >
-              <Mail aria-hidden="true" className="h-3.5 w-3.5" />
+            <a href={mailto} className={btnSecondary}>
+              <Mail aria-hidden="true" className="h-4 w-4" strokeWidth={1.75} />
               Open in mail app
             </a>
           )}
@@ -86,7 +98,7 @@ function CohortEmails({ emails }: { emails: string[] }) {
 
       {/* Selectable as well as copyable: a locked-down browser refuses the
           clipboard API, and this still works. */}
-      <p className="mt-4 select-all break-words font-mono text-xs text-[var(--text-subtle)]">
+      <p className="mt-4 select-all break-words text-[13px] leading-relaxed text-[var(--text-subtle)]">
         {list}
       </p>
 
@@ -95,23 +107,28 @@ function CohortEmails({ emails }: { emails: string[] }) {
       </p>
 
       {mailto.length > MAILTO_LIMIT && (
-        <p className="mt-3 text-xs text-[var(--text-subtle)]">
-          Too many addresses for a mail-app link. Copy them and paste into BCC.
+        <p className={`mt-3 ${meta}`}>
+          Too many addresses for a mail-app link. Copy them and paste them into
+          BCC.
         </p>
       )}
     </section>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({
+  label: text,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
-    <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-        {label}
-      </p>
-      <p className="mt-2 text-3xl font-black text-[var(--text-primary)]">
+    <div className="sm:border-l sm:border-[var(--border-subtle)] sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
+      <dt className={label}>{text}</dt>
+      <dd className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums text-[var(--text-primary)] md:text-[36px]">
         {value}
-      </p>
+      </dd>
     </div>
   );
 }
@@ -351,9 +368,11 @@ export default function AdminBootcampPage() {
 
   if (attendance.error || workshops.error) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
-        <p role="alert" className="text-sm text-red-300">
-          {attendance.error?.message ?? workshops.error?.message}
+      <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
+        <p role="alert" className="text-[15px] text-[var(--danger)]">
+          The bootcamp did not load:{" "}
+          {attendance.error?.message ?? workshops.error?.message} Reload the
+          page to try again.
         </p>
       </div>
     );
@@ -364,34 +383,27 @@ export default function AdminBootcampPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 text-[var(--text-muted)]">
-      <main className="mx-auto max-w-7xl px-6 pt-12 md:pt-16">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <main className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 md:px-12 md:py-14">
+        <header className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3">
-              <GraduationCap className="h-6 w-6 text-accent" />
-              <h1 className="text-3xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-                Bootcamp
-              </h1>
-            </div>
-            <p className="mt-2 font-mono text-xs uppercase tracking-widest text-[var(--text-subtle)]">
-              {termLabel(data.term)} · who is enrolled and who turned up
+            <p className={kicker}>{termLabel(data.term)}</p>
+            <h1 className={`mt-2 ${adminTitle}`}>Bootcamp</h1>
+            <p className={pageDek}>
+              Who is enrolled, who turned up, and what each week hands out.
             </p>
           </div>
 
           {/* Attendance outlives its semester, so past terms stay reachable. */}
           {data.terms.length > 1 && (
-            <div>
-              <label
-                htmlFor="bootcamp-term"
-                className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-              >
+            <div className="w-full sm:w-48">
+              <label htmlFor="bootcamp-term" className={fieldLabel}>
                 Term
               </label>
               <select
                 id="bootcamp-term"
                 value={data.term}
                 onChange={(event) => setTerm(event.target.value)}
-                className="mt-2 border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-4 py-2 font-mono text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none"
+                className={input}
               >
                 {data.terms.map((option) => (
                   <option key={option} value={option}>
@@ -403,7 +415,7 @@ export default function AdminBootcampPage() {
           )}
         </header>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-4">
           <Stat label="Enrolled" value={stats.enrolled} />
           <Stat
             label="Sessions held"
@@ -418,17 +430,15 @@ export default function AdminBootcampPage() {
                 : "—"
             }
           />
-        </div>
+        </dl>
 
-        <section className="mb-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-                Published resources
+              <h2 className={sectionTitle}>Workshop materials</h2>
+              <p className={`mt-1 ${meta}`}>
+                What members download each week. New weeks start as drafts.
               </p>
-              <h2 className="mt-1 text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-                Workshop materials
-              </h2>
             </div>
             <button
               type="button"
@@ -437,19 +447,19 @@ export default function AdminBootcampPage() {
                 setError(null);
                 setModalOpen(true);
               }}
-              className="bg-accent px-5 py-3 font-mono text-xs font-black uppercase tracking-widest text-black transition-ui hover:bg-accent/90"
+              className={btnPrimary}
             >
               Add workshop
             </button>
           </div>
 
           {error && !modalOpen && (
-            <p role="alert" className="mb-4 text-sm text-red-300">
+            <p role="alert" className="mb-4 text-sm text-[var(--danger)]">
               {error}
             </p>
           )}
           {notice && (
-            <p className="mb-4 text-sm text-accent" role="status">
+            <p className={`mb-4 ${statusDot("success")}`} role="status">
               {notice}
             </p>
           )}
@@ -499,56 +509,54 @@ export default function AdminBootcampPage() {
           />
         )}
 
-        {sessions.length > 0 && (
-          <section className="mb-8 border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-              At the door
-            </p>
-            <h2 className="mt-1 mb-5 text-2xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-              Session check-in
-            </h2>
+        <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+          <h2 className={sectionTitle}>Session check-in</h2>
+          <p className={`mt-1 ${meta}`}>
+            Show the QR code at the door, then close check-in when the session
+            ends.
+          </p>
 
-            <ul className="divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)]">
+          {sessions.length > 0 && (
+            <ul className="mt-5 border-t border-[var(--border-subtle)]">
               {sessions.map((row) => (
                 <li
                   key={row.id}
-                  className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between"
+                  className="flex flex-col gap-3 border-b border-[var(--border-subtle)] py-4 lg:flex-row lg:items-center lg:justify-between"
                 >
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-mono text-xs font-bold text-accent">
-                        W{row.week}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className={`${label} tabular-nums`}>
+                        Week {row.week}
                       </span>
-                      <span className="font-bold text-[var(--text-primary)]">
+                      <span className="text-[17px] font-semibold text-[var(--text-primary)]">
                         {row.title}
                       </span>
                       <span
-                        className={`px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
-                          row.checkInEnabled
-                            ? "border border-accent/20 bg-accent/10 text-accent"
-                            : "border border-[var(--border-subtle)] text-[var(--text-subtle)]"
-                        }`}
+                        className={statusDot(
+                          row.checkInEnabled ? "accent" : "neutral",
+                        )}
                       >
-                        {row.checkInEnabled ? "Open" : "Closed"}
+                        {row.checkInEnabled ? "Check-in open" : "Check-in closed"}
                       </span>
                     </div>
-                    <p className="mt-1 font-mono text-xs text-[var(--text-subtle)]">
-                      {row.location || "No location"} ·{" "}
+                    <p className={`mt-1 ${meta}`}>
+                      {row.location || "No room set"} ·{" "}
                       {new Date(row.eventDate).toLocaleDateString()} ·{" "}
-                      {row.attendance} checked in
+                      <span className="tabular-nums">{row.attendance}</span>{" "}
+                      checked in
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={() => void qr.show(row)}
                       disabled={qr.generatingFor === row.qrCode}
-                      className="min-h-11 border border-accent/20 bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+                      className={`${btnSecondary} min-h-11`}
                     >
                       {qr.generatingFor === row.qrCode
                         ? "Generating…"
-                        : "QR Code"}
+                        : "Show QR code"}
                     </button>
                     <button
                       type="button"
@@ -559,16 +567,16 @@ export default function AdminBootcampPage() {
                         })
                       }
                       disabled={toggleCheckIn.isPending}
-                      className="min-h-11 border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5 disabled:opacity-50"
+                      className={`${btnSecondary} min-h-11`}
                     >
-                      {row.checkInEnabled ? "Close" : "Open"}
+                      {row.checkInEnabled ? "Close check-in" : "Open check-in"}
                     </button>
                     <button
                       type="button"
                       onClick={() =>
                         setAttendanceFor({ id: row.id, title: row.title })
                       }
-                      className="min-h-11 border border-accent/20 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/10"
+                      className={`${textLink} min-h-11`}
                     >
                       Attendance
                     </button>
@@ -576,146 +584,138 @@ export default function AdminBootcampPage() {
                 </li>
               ))}
             </ul>
-          </section>
-        )}
+          )}
 
-        {sessions.length === 0 ? (
-          <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">
-            <p className="font-bold text-[var(--text-primary)]">
-              No sessions scheduled for {termLabel(data.term)}.
+          <h3 className={`mt-10 ${itemTitle}`}>Attendance by member</h3>
+
+          {sessions.length === 0 ? (
+            <p className={`mt-3 max-w-2xl ${body}`}>
+              No sessions are scheduled for {termLabel(data.term)}. Give a
+              workshop a session date under Workshop materials, and its QR code,
+              check-in controls and attendance column appear here.
             </p>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
-              Give a workshop a session date above to schedule it. Its QR code
-              and check-in controls then appear here.
+          ) : members.length === 0 ? (
+            <p className={`mt-3 max-w-2xl ${body}`}>
+              Nobody has enrolled in this bootcamp yet. Members enrol by adding
+              the bootcamp to their membership payment, and they appear here as
+              soon as it clears.
             </p>
-          </div>
-        ) : members.length === 0 ? (
-          <div className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-8">
-            <p className="font-bold text-[var(--text-primary)]">
-              Nobody has bought into this bootcamp yet.
-            </p>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">
-              Members enrol by adding the bootcamp to their membership payment.
-              They appear here the moment that clears.
-            </p>
-          </div>
-        ) : (
-          /* Twelve weeks will not fit a phone; scrolling beats squeezing. */
-          <div className="overflow-x-auto border border-[var(--border-subtle)]">
-            <table className="w-full border-collapse text-sm">
-              <caption className="sr-only">
-                Bootcamp attendance for {termLabel(data.term)}: one row per
-                enrolled member, one column per session.
-              </caption>
-              <thead>
-                <tr className="border-b border-[var(--border-subtle)] bg-white/5">
-                  <th
-                    scope="col"
-                    className="sticky left-0 z-10 bg-[var(--bg-primary)] px-4 py-3 text-left font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-                  >
-                    Member
-                  </th>
-                  {sessions.map((row) => (
+          ) : (
+            /* Twelve weeks will not fit a phone; scrolling beats squeezing. */
+            <div className="mt-4 overflow-x-auto border-y border-[var(--border-subtle)]">
+              <table className="w-full border-collapse text-[15px]">
+                <caption className="sr-only">
+                  Bootcamp attendance for {termLabel(data.term)}: one row per
+                  enrolled member, one column per session.
+                </caption>
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)]">
                     <th
-                      key={row.id}
                       scope="col"
-                      title={`${row.title} · ${row.attendance} checked in`}
-                      className="px-3 py-3 text-center font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
+                      className={`sticky left-0 z-10 bg-[var(--bg-primary)] pl-0 text-left ${th}`}
                     >
-                      W{row.week}
+                      Member
                     </th>
-                  ))}
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-right font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-                  >
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((member) => {
-                  const attended = new Set(member.attendedEventIds);
-                  return (
-                    <tr
-                      key={member.userId}
-                      className="border-b border-[var(--border-subtle)] last:border-b-0"
-                    >
+                    {sessions.map((row) => (
                       <th
-                        scope="row"
-                        className="sticky left-0 z-10 bg-[var(--bg-primary)] px-4 py-3 text-left font-normal"
+                        key={row.id}
+                        scope="col"
+                        title={`${row.title} · ${row.attendance} checked in`}
+                        className={`text-center tabular-nums ${th}`}
                       >
-                        <span className="block font-bold text-[var(--text-primary)]">
-                          {member.name}
-                        </span>
-                        <span className="block text-xs text-[var(--text-subtle)]">
-                          {member.email}
-                        </span>
+                        W{row.week}
                       </th>
+                    ))}
+                    <th scope="col" className={`pr-0 text-right ${th}`}>
+                      Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((member) => {
+                    const attended = new Set(member.attendedEventIds);
+                    return (
+                      <tr
+                        key={member.userId}
+                        className="group border-b border-[var(--border-subtle)] transition-colors last:border-b-0 hover:bg-[var(--bg-secondary)]"
+                      >
+                        <th
+                          scope="row"
+                          className="sticky left-0 z-10 bg-[var(--bg-primary)] py-3 pr-3 text-left font-normal transition-colors group-hover:bg-[var(--bg-secondary)]"
+                        >
+                          <span className="block font-semibold text-[var(--text-primary)]">
+                            {member.name}
+                          </span>
+                          <span className="block text-[13px] text-[var(--text-subtle)]">
+                            {member.email}
+                          </span>
+                        </th>
 
-                      {sessions.map((row) => (
-                        <td key={row.id} className="px-3 py-3 text-center">
-                          {attended.has(row.id) ? (
-                            <>
-                              <Check
-                                aria-hidden="true"
-                                className="mx-auto h-4 w-4 text-emerald-400"
-                              />
-                              <span className="sr-only">
-                                Attended week {row.week}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span aria-hidden="true" className="text-[var(--text-subtle)]">
-                                ·
-                              </span>
-                              <span className="sr-only">
-                                {row.past ? "Missed" : "Not held yet"} week{" "}
-                                {row.week}
-                              </span>
-                            </>
-                          )}
+                        {sessions.map((row) => (
+                          <td key={row.id} className="px-3 py-3 text-center">
+                            {attended.has(row.id) ? (
+                              <>
+                                <Check
+                                  aria-hidden="true"
+                                  strokeWidth={1.75}
+                                  className="mx-auto h-4 w-4 text-[var(--success)]"
+                                />
+                                <span className="sr-only">
+                                  Attended week {row.week}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span aria-hidden="true" className="text-[var(--text-subtle)]">
+                                  ·
+                                </span>
+                                <span className="sr-only">
+                                  {row.past ? "Missed" : "Not held yet"} week{" "}
+                                  {row.week}
+                                </span>
+                              </>
+                            )}
+                          </td>
+                        ))}
+
+                        <td className="py-3 pl-3 text-right font-semibold tabular-nums text-[var(--text-primary)]">
+                          {member.attendedCount}
                         </td>
-                      ))}
-
-                      <td className="px-4 py-3 text-right font-mono font-bold text-[var(--text-primary)]">
-                        {member.attendedCount}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-[var(--border-subtle)] bg-white/5">
-                  <th
-                    scope="row"
-                    className="sticky left-0 z-10 bg-[var(--bg-primary)] px-4 py-3 text-left font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-                  >
-                    Checked in
-                  </th>
-                  {sessions.map((row) => (
-                    <td
-                      key={row.id}
-                      className="px-3 py-3 text-center font-mono text-xs text-[var(--text-muted)]"
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-[var(--border-subtle)]">
+                    <th
+                      scope="row"
+                      className={`sticky left-0 z-10 bg-[var(--bg-primary)] pl-0 text-left ${th}`}
                     >
-                      {row.attendance}
-                    </td>
-                  ))}
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+                      Checked in
+                    </th>
+                    {sessions.map((row) => (
+                      <td
+                        key={row.id}
+                        className="px-3 py-2.5 text-center text-[13px] tabular-nums text-[var(--text-muted)]"
+                      >
+                        {row.attendance}
+                      </td>
+                    ))}
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
 
-        {sessions.length > 0 && (
-          <p className="mt-4 text-xs text-[var(--text-subtle)]">
-            A session counts anyone who scanned in, member of this bootcamp or
-            not, so a per-session total can run ahead of the rows above. Fix a
-            wrong check-in from the session&rsquo;s Attendance list above.
-          </p>
-        )}
+          {sessions.length > 0 && (
+            <p className={`mt-4 max-w-2xl ${meta}`}>
+              A session counts anyone who scanned in, member of this bootcamp or
+              not, so a per-session total can run ahead of the rows above. Fix a
+              wrong check-in from that session&rsquo;s Attendance list.
+            </p>
+          )}
+        </section>
 
         {modalOpen && (
           <BootcampWorkshopModal

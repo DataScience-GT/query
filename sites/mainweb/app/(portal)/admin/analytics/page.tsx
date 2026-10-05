@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { loginHref } from "@/lib/safe-callback";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import {
-  Users,
-  Trophy,
-  Calendar,
-  TrendingUp,
-  QrCode,
-  GraduationCap,
-  UserCheck,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+  btnSecondary,
+  itemTitle,
+  label,
+  meta,
+  pageDek,
+  sectionTitle,
+} from "@/components/portal/ui";
 
 const Line = dynamic(() => import("react-chartjs-2").then((m) => m.Line), {
   ssr: false,
@@ -30,19 +27,47 @@ const Bar = dynamic(() => import("react-chartjs-2").then((m) => m.Bar), {
 
 function ChartSkeleton() {
   return (
-    <div className="h-full w-full animate-pulse bg-white/[0.03]" aria-hidden />
+    <div
+      className="h-full w-full rounded-[var(--radius-md)] bg-[var(--bg-secondary)]"
+      aria-hidden
+    />
   );
 }
 
+/** Admin pages carry a smaller headline than member pages. */
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]";
+
+const th = "px-4 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
+
 /**
- * Two hues, checked against the surface they sit on rather than picked by eye:
- * teal against violet clears the colour-blind separation floor in both themes,
- * and each theme's teal is the one that stays a colour instead of reading grey.
+ * Canvas cannot read a CSS variable, so the portal tokens are resolved to
+ * literal colours here. Members draw in the accent, bootcamp in ink with a
+ * dash, so the two lines differ by more than hue.
  */
-const PALETTE = {
-  dark: { members: "#00a8a8", bootcamp: "#8b5cf6" },
-  light: { members: "#008b80", bootcamp: "#7c3aed" },
-};
+interface ChartTokens {
+  accent: string;
+  ink: string;
+  muted: string;
+  subtle: string;
+  grid: string;
+  card: string;
+  font: string;
+}
+
+function readTokens(element: HTMLElement): ChartTokens {
+  const root = getComputedStyle(document.documentElement);
+  const read = (name: string) => root.getPropertyValue(name).trim();
+  return {
+    accent: read("--accent"),
+    ink: read("--text-primary"),
+    muted: read("--text-muted"),
+    subtle: read("--text-subtle"),
+    grid: read("--border-subtle"),
+    card: read("--bg-card"),
+    font: getComputedStyle(element).fontFamily,
+  };
+}
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
 function termLabel(term: string) {
@@ -62,51 +87,44 @@ function monthLabel(month: string) {
   return `${name} ${year?.slice(2)}`;
 }
 
-interface StatCardProps {
-  icon: LucideIcon;
+const statCell =
+  "sm:border-l sm:border-[var(--border-subtle)] sm:pl-6 sm:first:border-l-0 sm:first:pl-0";
+
+interface StatProps {
   title: string;
   value: string | number;
   subtitle?: string;
 }
 
-function StatCard({ icon: Icon, title, value, subtitle }: StatCardProps) {
+function Stat({ title, value, subtitle }: StatProps) {
   return (
-    <LiquidGlass className="p-6 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-      {/* Background gradients */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute -top-20 -right-20 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-      <div className="relative flex items-center gap-4">
-        {/* Icon container with gradient */}
-        <div className="group/icon relative flex h-14 w-14 items-center justify-center rounded-none bg-gradient-to-br from-accent/20 to-accent/10 text-[var(--text-primary)] border border-[var(--border-subtle)] group-hover/icon:scale-110 transition-transform duration-300">
-          <div className="absolute inset-0 pointer-events-none rounded-none bg-gradient-to-br from-accent/30 to-accent/20 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300" />
-          <Icon className="h-7 w-7 relative z-10 group-hover/icon:text-[var(--text-primary)] transition-colors" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm text-[var(--text-muted)] font-medium">{title}</p>
-          <p className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
-            {value}
-          </p>
-          {subtitle && (
-            <span className="text-xs text-[var(--text-muted)] font-mono">{subtitle}</span>
-          )}
-          {/* Decorative accent line */}
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </div>
-      </div>
-    </LiquidGlass>
+    <div className={statCell}>
+      <dt className={label}>{title}</dt>
+      <dd className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums text-[var(--text-primary)] md:text-[36px]">
+        {value}
+      </dd>
+      {subtitle && <dd className={`mt-1.5 ${meta}`}>{subtitle}</dd>}
+    </div>
   );
 }
 
-function CardSkeleton() {
+function StatSkeleton() {
   return (
-    <LiquidGlass className="p-6">
-      <div className="animate-pulse space-y-3">
-        <div className="h-14 w-14 rounded-none bg-white/5" />
-        <div className="h-4 w-24 bg-white/5 rounded" />
-        <div className="h-8 w-16 bg-white/5 rounded" />
-      </div>
-    </LiquidGlass>
+    <div className={statCell} aria-hidden>
+      <div className="h-4 w-24 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]" />
+      <div className="mt-2 h-9 w-16 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]" />
+    </div>
+  );
+}
+
+/** A short line in the series colour, dashed for the dashed series. */
+function Swatch({ color, dashed = false }: { color: string; dashed?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block w-5 border-t-2 ${dashed ? "border-dashed" : "border-solid"}`}
+      style={{ borderColor: color }}
+    />
   );
 }
 
@@ -114,7 +132,9 @@ export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { resolvedTheme } = useTheme();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [chartsReady, setChartsReady] = useState(false);
+  const [tokens, setTokens] = useState<ChartTokens | null>(null);
   const [showTable, setShowTable] = useState(false);
 
   const { data: stats, isLoading } = trpc.admin.analyticsOverview.useQuery(
@@ -152,46 +172,53 @@ export default function AnalyticsPage() {
     );
   }, []);
 
-  // Canvas cannot read a CSS variable, so the theme is resolved here instead.
-  const light = resolvedTheme === "light";
-  const colors = PALETTE[light ? "light" : "dark"];
-  const ink = light ? "#71717a" : "#707070";
-  const grid = light ? "#e4e4e7" : "#1f1f1f";
+  // next-themes swaps the class on <html> in its own effect, which runs after
+  // this one, so the tokens are read a frame later when the new theme is live.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (containerRef.current) setTokens(readTokens(containerRef.current));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [resolvedTheme]);
 
-  const options = useMemo(
-    () => ({
+  const options = useMemo(() => {
+    if (!tokens) return undefined;
+    const font = { family: tokens.font, size: 12 };
+    return {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index" as const, intersect: false },
       plugins: {
         // The legend is rendered as HTML above the chart, where it can carry a
-        // shape as well as a colour.
+        // line style as well as a colour.
         legend: { display: false },
         tooltip: {
-          backgroundColor: light ? "#ffffff" : "#121212",
-          borderColor: grid,
+          backgroundColor: tokens.card,
+          borderColor: tokens.grid,
           borderWidth: 1,
-          titleColor: light ? "#09090b" : "#ededed",
-          bodyColor: ink,
+          cornerRadius: 4,
+          titleColor: tokens.ink,
+          bodyColor: tokens.muted,
+          titleFont: { ...font, weight: 600 },
+          bodyFont: font,
           padding: 10,
         },
       },
       scales: {
         x: {
           grid: { display: false },
-          border: { color: grid },
-          ticks: { color: ink, font: { size: 11 } },
+          border: { color: tokens.grid },
+          ticks: { color: tokens.subtle, font },
         },
         y: {
           beginAtZero: true,
-          grid: { color: grid },
+          grid: { color: tokens.grid },
           border: { display: false },
-          ticks: { color: ink, font: { size: 11 }, precision: 0 },
+          ticks: { color: tokens.subtle, font, precision: 0 },
         },
       },
-    }),
-    [light, grid, ink],
-  );
+    };
+  }, [tokens]);
 
   if (status === "unauthenticated") {
     router.push(loginHref());
@@ -201,7 +228,7 @@ export default function AnalyticsPage() {
   const months = growth.data?.months ?? [];
   const terms = growth.data?.terms ?? [];
   const totals = growth.data?.totals;
-  const ready = chartsReady && !growth.isPending;
+  const ready = chartsReady && !!tokens && !growth.isPending;
 
   const growthData = {
     labels: months.map((row) => monthLabel(row.month)),
@@ -209,23 +236,24 @@ export default function AnalyticsPage() {
       {
         label: "Members",
         data: months.map((row) => row.members),
-        borderColor: colors.members,
-        backgroundColor: colors.members,
+        borderColor: tokens?.accent,
+        backgroundColor: tokens?.accent,
         borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius: 3,
+        pointHoverRadius: 5,
         pointStyle: "circle" as const,
         tension: 0.25,
       },
       {
         label: "Bootcamp members",
         data: months.map((row) => row.bootcampMembers),
-        borderColor: colors.bootcamp,
-        backgroundColor: colors.bootcamp,
+        borderColor: tokens?.ink,
+        backgroundColor: tokens?.ink,
         borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        // Marker shape, not colour alone, separates the two lines.
+        // Dash and marker shape, not colour alone, separate the two lines.
+        borderDash: [6, 4],
+        pointRadius: 3,
+        pointHoverRadius: 5,
         pointStyle: "rectRot" as const,
         tension: 0.25,
       },
@@ -238,8 +266,9 @@ export default function AnalyticsPage() {
       {
         label: "Joined",
         data: months.map((row) => row.joined),
-        backgroundColor: colors.members,
-        borderRadius: 4,
+        backgroundColor: tokens?.accent,
+        borderRadius: 2,
+        maxBarThickness: 56,
         borderSkipped: "bottom" as const,
       },
     ],
@@ -251,68 +280,55 @@ export default function AnalyticsPage() {
       {
         label: "Enrolled",
         data: terms.map((row) => row.enrolled),
-        backgroundColor: colors.bootcamp,
-        borderRadius: 4,
+        // Muted, not ink: a full-strength ink bar is a near-white slab in
+        // the night edition.
+        backgroundColor: tokens?.muted,
+        borderRadius: 2,
+        // One term would otherwise stretch to the whole chart width.
+        maxBarThickness: 56,
         borderSkipped: "bottom" as const,
       },
     ],
   };
 
   return (
-    <>
-      <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Ambient Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-15%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-r from-accent/6 via-emerald-900/12 to-purple-900/10 blur-[350px] rounded-sm" />
-          <div className="absolute bottom-[-12%] right-[-8%] w-[600px] h-[600px] bg-gradient-to-r from-emerald-900/12 via-emerald-900/10 to-indigo-900/10 blur-[300px] rounded-sm" />
-        </div>
+    <div
+      ref={containerRef}
+      className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 md:px-12 md:py-14"
+    >
+      <header>
+        <h1 className={adminTitle}>Club growth</h1>
+        <p className={pageDek}>
+          Membership, bootcamp enrolment, and turnout across every event and
+          hackathon.
+        </p>
+      </header>
 
-        {/* Page Header - Enhanced */}
-        <div className="relative mb-8 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/8 via-emerald-900/10 to-transparent rounded-none overflow-hidden group hover:border-accent/40 transition-ui duration-500">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute -top-24 -right-24 w-56 h-56 bg-accent/10 rounded-sm blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
-            <QrCode className="w-3 h-3" /> Operations
-          </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-emerald-100 to-gray-400 transition-ui duration-500">
-            Analytics <span className="text-accent italic">Dashboard</span>
-          </h1>
-          <p className="relative text-[var(--text-muted)] text-sm font-mono">
-            Membership growth, bootcamp enrolment, and turnout across every
-            event and hackathon.
-          </p>
-        </div>
-
-        {/* Membership */}
-        <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
-          Membership
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      {/* Membership */}
+      <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+        <h2 className={sectionTitle}>Membership</h2>
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
           {growth.isPending ? (
-            [1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)
+            [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
           ) : (
             <>
-              <StatCard
-                icon={Users}
+              <Stat
                 title="Members"
                 value={totals?.members ?? 0}
-                subtitle="all time"
+                subtitle="All time"
               />
-              <StatCard
-                icon={UserCheck}
-                title="Active Now"
+              <Stat
+                title="Active now"
                 value={totals?.activeMembers ?? 0}
-                subtitle="memberships not ended"
+                subtitle="Memberships not ended"
               />
-              <StatCard
-                icon={GraduationCap}
-                title="Bootcamp This Term"
+              <Stat
+                title="Bootcamp this term"
                 value={totals?.bootcampThisTerm ?? 0}
                 subtitle={totals ? termLabel(totals.currentTerm) : undefined}
               />
-              <StatCard
-                icon={TrendingUp}
-                title="Bootcamp All Time"
+              <Stat
+                title="Bootcamp all time"
                 value={totals?.bootcampAllTime ?? 0}
                 subtitle={
                   totals?.members
@@ -322,30 +338,20 @@ export default function AnalyticsPage() {
               />
             </>
           )}
-        </div>
+        </dl>
 
         {/* Growth */}
-        <LiquidGlass className="p-6 mb-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">
-              Members and bootcamp, running total
-            </h2>
+        <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+            <h3 className={itemTitle}>Members and bootcamp, running total</h3>
             {/* Identity never rests on colour alone. */}
-            <ul className="flex items-center gap-4">
-              <li className="flex items-center gap-2 font-mono text-xs text-[var(--text-muted)]">
-                <span
-                  aria-hidden
-                  className="h-2 w-4"
-                  style={{ backgroundColor: colors.members }}
-                />
+            <ul className="flex flex-wrap items-center gap-x-5 gap-y-1">
+              <li className="flex items-center gap-2 text-[13px] text-[var(--text-muted)]">
+                <Swatch color="var(--accent)" />
                 Members
               </li>
-              <li className="flex items-center gap-2 font-mono text-xs text-[var(--text-muted)]">
-                <span
-                  aria-hidden
-                  className="h-2 w-4 rotate-45"
-                  style={{ backgroundColor: colors.bootcamp }}
-                />
+              <li className="flex items-center gap-2 text-[13px] text-[var(--text-muted)]">
+                <Swatch color="var(--text-primary)" dashed />
                 Bootcamp members
               </li>
             </ul>
@@ -361,18 +367,16 @@ export default function AnalyticsPage() {
               <ChartSkeleton />
             )}
           </div>
-          <p className="mt-3 text-xs text-[var(--text-subtle)]">
+          <p className={`mt-3 max-w-2xl ${meta}`}>
             A bootcamp member counts from the month they joined the club, not
-            the month they bought the add-on — only the term they bought is
+            the month they bought the add-on. Only the term they bought is
             recorded.
           </p>
-        </LiquidGlass>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-2 mb-6">
-          <LiquidGlass className="p-6">
-            <h2 className="mb-4 text-lg font-bold text-[var(--text-primary)]">
-              New members per month
-            </h2>
+        <div className="mt-10 grid gap-10 border-t border-[var(--border-subtle)] pt-6 lg:grid-cols-2">
+          <div>
+            <h3 className={`mb-4 ${itemTitle}`}>New members per month</h3>
             <div className="h-64">
               {ready ? (
                 <Bar
@@ -384,18 +388,16 @@ export default function AnalyticsPage() {
                 <ChartSkeleton />
               )}
             </div>
-          </LiquidGlass>
+          </div>
 
-          <LiquidGlass className="p-6">
-            <h2 className="mb-4 text-lg font-bold text-[var(--text-primary)]">
-              Bootcamp enrolment per term
-            </h2>
+          <div>
+            <h3 className={`mb-4 ${itemTitle}`}>Bootcamp enrolment per term</h3>
             <div className="h-64">
               {!ready ? (
                 <ChartSkeleton />
               ) : terms.length === 0 ? (
-                <p className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
-                  Nobody has enrolled in a bootcamp yet.
+                <p className="flex h-full items-center justify-center text-[15px] text-[var(--text-muted)]">
+                  Enrolment per term appears here once someone joins a bootcamp.
                 </p>
               ) : (
                 <Bar
@@ -405,37 +407,37 @@ export default function AnalyticsPage() {
                 />
               )}
             </div>
-          </LiquidGlass>
+          </div>
         </div>
 
-        <div className="mb-10">
+        <div className="mt-8">
           <button
             type="button"
             onClick={() => setShowTable((open) => !open)}
             aria-expanded={showTable}
-            className="border border-[var(--border-subtle)] bg-white/5 px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] transition-colors hover:bg-white/10"
+            className={btnSecondary}
           >
             {showTable ? "Hide the numbers" : "Show the numbers"}
           </button>
 
           {showTable && (
-            <div className="mt-4 overflow-x-auto border border-[var(--border-subtle)]">
-              <table className="w-full border-collapse text-sm">
+            <div className="mt-4 overflow-x-auto border-y border-[var(--border-subtle)]">
+              <table className="w-full border-collapse text-[15px]">
                 <caption className="sr-only">
                   The same twelve months as the charts above, as numbers.
                 </caption>
                 <thead>
-                  <tr className="border-b border-[var(--border-subtle)] bg-white/5 text-left font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-                    <th scope="col" className="px-4 py-3">
+                  <tr className="border-b border-[var(--border-subtle)] text-left">
+                    <th scope="col" className={`${th} pl-0`}>
                       Month
                     </th>
-                    <th scope="col" className="px-4 py-3 text-right">
+                    <th scope="col" className={`${th} text-right`}>
                       Joined
                     </th>
-                    <th scope="col" className="px-4 py-3 text-right">
+                    <th scope="col" className={`${th} text-right`}>
                       Members
                     </th>
-                    <th scope="col" className="px-4 py-3 text-right">
+                    <th scope="col" className={`${th} pr-0 text-right`}>
                       Bootcamp members
                     </th>
                   </tr>
@@ -444,21 +446,21 @@ export default function AnalyticsPage() {
                   {months.map((row) => (
                     <tr
                       key={row.month}
-                      className="border-b border-[var(--border-subtle)] last:border-b-0"
+                      className="border-b border-[var(--border-subtle)] transition-colors last:border-b-0 hover:bg-[var(--bg-secondary)]"
                     >
                       <th
                         scope="row"
-                        className="px-4 py-3 text-left font-normal text-[var(--text-primary)]"
+                        className="py-2.5 pr-4 text-left font-normal text-[var(--text-primary)]"
                       >
                         {monthLabel(row.month)}
                       </th>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="px-4 py-2.5 text-right tabular-nums text-[var(--text-primary)]">
                         {row.joined}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="px-4 py-2.5 text-right tabular-nums text-[var(--text-primary)]">
                         {row.members}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="py-2.5 pl-4 text-right tabular-nums text-[var(--text-primary)]">
                         {row.bootcampMembers}
                       </td>
                     </tr>
@@ -468,44 +470,40 @@ export default function AnalyticsPage() {
             </div>
           )}
         </div>
+      </section>
 
-        {/* Events and hackathons */}
-        <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
-          Events and hackathons
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      {/* Events and hackathons */}
+      <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+        <h2 className={sectionTitle}>Events and hackathons</h2>
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
           {isLoading ? (
-            [1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)
+            [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
           ) : (
             <>
-              <StatCard
-                icon={Users}
-                title="Total Participants"
+              <Stat
+                title="Participants"
                 value={stats?.totalParticipants || 0}
-                subtitle="registered across all events"
+                subtitle="Registered across all events"
               />
-              <StatCard
-                icon={Trophy}
-                title="Events Hosted"
+              <Stat
+                title="Events hosted"
                 value={stats?.totalEvents || 0}
-                subtitle="competitions and gatherings"
+                subtitle="Competitions and gatherings"
               />
-              <StatCard
-                icon={Calendar}
+              <Stat
                 title="Hackathons"
                 value={stats?.totalHackathons || 0}
-                subtitle="active and upcoming"
+                subtitle="Active and upcoming"
               />
-              <StatCard
-                icon={QrCode}
-                title="Check-ins Today"
+              <Stat
+                title="Check-ins today"
                 value={stats?.checkinsToday || 0}
-                subtitle="scanned via QR codes"
+                subtitle="Scanned by QR code"
               />
             </>
           )}
-        </div>
-      </div>
-    </>
+        </dl>
+      </section>
+    </div>
   );
 }

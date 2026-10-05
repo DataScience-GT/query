@@ -2,10 +2,20 @@
 
 import React from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  fieldLabel,
+  input,
+  label,
+  meta,
+  sectionTitle,
+  status as statusClass,
+} from "@/components/portal/ui";
 import { toInputDate } from "@/components/admin/hackathons/constants";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
-import { Clock } from "lucide-react";
 
 /**
  * Registration status + deadline controls for one hackathon.
@@ -74,40 +84,61 @@ export function RegistrationControls({
     onError: (error) => setNotifyError(error.message),
   });
 
+  const statusLabel = editionStatus
+    ? editionStatus.charAt(0).toUpperCase() +
+      editionStatus.slice(1).replace("_", " ")
+    : "Unknown";
+
   return (
-    <LiquidGlass className="p-6 border-[var(--border-subtle)] relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+    <section>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div>
-          <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-amber-400" />
-            Registration Controls
-          </h3>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-[var(--text-subtle)] uppercase tracking-wider">
-                Status:
-              </span>
-              <span
-                className={`px-2 py-1 rounded text-xs font-mono font-bold uppercase tracking-wider ${editionStatus === "open" ? "text-green-400 bg-green-500/10 border border-green-500/20" : "text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"}`}
-              >
-                {editionStatus || "unknown"}
-              </span>
+          <h2 className={sectionTitle}>Registration</h2>
+          <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
+            <div>
+              <dt className={label}>Status</dt>
+              <dd className="mt-1">
+                <span
+                  className={statusClass(
+                    editionStatus === "open" ? "accent" : "warning",
+                  )}
+                >
+                  {statusLabel}
+                </span>
+              </dd>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-[var(--text-subtle)] uppercase tracking-wider">
-                Deadline:
-              </span>
-              <span
-                className={`text-xs font-mono font-bold ${deadlinePassed ? "text-red-400" : "text-amber-400"}`}
+            <div className="sm:border-l sm:border-[var(--border-subtle)] sm:pl-8">
+              <dt className={label}>Deadline</dt>
+              <dd
+                className={`mt-1 text-[15px] tabular-nums ${deadlinePassed ? "text-[var(--danger)]" : "text-[var(--text-primary)]"}`}
               >
                 {regDeadline ? regDeadline.toLocaleString() : "No deadline set"}
-                {deadlinePassed ? " (PASSED)" : ""}
-              </span>
+                {deadlinePassed ? " (passed)" : ""}
+              </dd>
             </div>
-          </div>
+          </dl>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label htmlFor={`reg-deadline-${hackathonId}`} className={fieldLabel}>
+              Registration deadline
+            </label>
+            <input
+              id={`reg-deadline-${hackathonId}`}
+              type="datetime-local"
+              aria-label="Registration deadline"
+              defaultValue={regDeadline ? toInputDate(regDeadline) : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  updateHackathon.mutate({
+                    id: hackathonId,
+                    registrationDeadline: new Date(e.target.value),
+                  });
+                }
+              }}
+              className={`min-h-11 ${input.replace("w-full", "w-auto")}`}
+            />
+          </div>
           {editionStatus !== "open" && (
             <div className="flex flex-col gap-1">
               <button
@@ -124,13 +155,13 @@ export function RegistrationControls({
                   })
                 }
                 disabled={updateHackathon.isPending}
-                className="px-4 py-2.5 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider rounded-none hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                className={btnPrimary}
               >
-                {deadlinePassed ? "Reopen Registration" : "Open Registration"}
+                {deadlinePassed ? "Reopen registration" : "Open registration"}
               </button>
               {deadlinePassed && (
-                <span className="text-[10px] font-mono text-[var(--text-subtle)]">
-                  Also extends deadline to event end
+                <span className={meta}>
+                  Also moves the deadline to the event end
                 </span>
               )}
             </div>
@@ -142,36 +173,20 @@ export function RegistrationControls({
                 updateHackathon.mutate({ id: hackathonId, status: "closed" })
               }
               disabled={updateHackathon.isPending}
-              className="px-4 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider rounded-none hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              className={btnDanger}
             >
-              Close Registration
+              Close registration
             </button>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              type="datetime-local"
-              aria-label="Registration deadline"
-              defaultValue={regDeadline ? toInputDate(regDeadline) : ""}
-              onChange={(e) => {
-                if (e.target.value) {
-                  updateHackathon.mutate({
-                    id: hackathonId,
-                    registrationDeadline: new Date(e.target.value),
-                  });
-                }
-              }}
-              className="min-h-11 px-3 py-2 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-xs font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
-            />
-          </div>
         </div>
       </div>
 
       {editionStatus === "announced" && (
-        <div className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
-          <p className="text-xs font-mono text-[var(--text-primary)] uppercase tracking-wider">
+        <div className="mt-6 pt-5 border-t border-[var(--border-subtle)]">
+          <p className="text-[15px] font-semibold text-[var(--text-primary)]">
             Interest list for this edition
           </p>
-          <p className="text-[11px] font-mono text-[var(--text-subtle)] mt-1">
+          <p className={`mt-1 max-w-2xl ${body}`}>
             {interestCount === undefined
               ? "Checking this edition's list…"
               : interestCount === 0
@@ -182,12 +197,12 @@ export function RegistrationControls({
       )}
 
       {registrationOpen && (interestStatus.data?.total ?? 0) > 0 && (
-        <div className="mt-6 pt-6 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mt-6 pt-5 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-mono text-[var(--text-primary)] uppercase tracking-wider">
+            <p className="text-[15px] font-semibold text-[var(--text-primary)]">
               Interest list
             </p>
-            <p className="text-[11px] font-mono text-[var(--text-subtle)] mt-1">
+            <p className={`mt-1 tabular-nums ${meta}`}>
               {interestStatus.data?.pending ?? 0} waiting to be told ·{" "}
               {interestStatus.data?.sent ?? 0} already emailed
               {(interestStatus.data?.pending ?? 0) > 500
@@ -205,7 +220,7 @@ export function RegistrationControls({
               notifyInterest.isPending ||
               (interestStatus.data?.pending ?? 0) === 0
             }
-            className="px-4 py-2.5 bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-wider rounded-none hover:bg-accent/20 transition-colors disabled:opacity-40"
+            className={btnSecondary}
           >
             {notifyInterest.isPending
               ? "Sending…"
@@ -219,11 +234,11 @@ export function RegistrationControls({
       {notifyError && (
         <p
           role="alert"
-          className="mt-4 text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 px-3 py-2"
+          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[13px] text-[var(--danger)]"
         >
           {notifyError}
         </p>
       )}
-    </LiquidGlass>
+    </section>
   );
 }

@@ -6,8 +6,24 @@ import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { skipToken } from "@tanstack/react-query";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Download, QrCode } from "lucide-react";
+import { Download } from "lucide-react";
+import {
+  body,
+  btnSecondary,
+  fieldLabel,
+  input,
+  meta,
+  page,
+  pageDek,
+  sectionRule,
+  status as statusText,
+} from "@/components/portal/ui";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
+
+const th = "px-4 py-3 text-[13px] font-medium text-[var(--text-subtle)]";
+const td = "px-4 py-3";
 
 export default function AttendeesPage() {
   const { data: session, status } = useSession();
@@ -71,162 +87,120 @@ export default function AttendeesPage() {
   };
 
   return (
-    <>
-      <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Animated Background Gradient */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-r from-accent/5 via-accent/2 to-transparent blur-[300px] rounded-sm" />
-          <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-r from-accent/5 via-accent/4 to-transparent blur-[250px] rounded-sm" />
-        </div>
+    <div className={page}>
+      <header>
+        <h1 className={adminTitle}>Club event attendees</h1>
+        <p className={pageDek}>
+          Who checked in to each club meeting. Hackathon applications live on
+          each edition&apos;s dashboard.
+        </p>
+      </header>
 
-        {/* Page Header */}
-        <div className="relative mb-6 p-6 border border-[var(--border-subtle)] bg-gradient-to-br from-accent/5 via-accent-dim to-transparent rounded-none overflow-hidden group hover:border-accent/25 transition-ui duration-500">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <p className="text-[10px] font-mono text-accent/80 uppercase tracking-[0.2em] mb-1 relative z-10 flex items-center gap-2">
-            <QrCode className="w-3 h-3" /> Club Events
-          </p>
-          <h1 className="relative text-3xl font-black text-[var(--text-primary)] tracking-tighter mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-accent group-hover:via-emerald-400 group-hover:to-accent transition-ui duration-500">
-            Attendees{" "}
-            <span className="text-accent italic font-bold">Registry</span>
-          </h1>
-          <p className="relative text-[var(--text-muted)] text-sm font-mono">
-            View and manage attendee check-ins for club meetings. Hackathon
-            applications live on each edition&apos;s dashboard.
-          </p>
-          {/* Decorative Corner Accent */}
-          <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-accent/5 rounded-sm blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        </div>
-
-        <div className="space-y-6">
-          {/* Event Selector - Enhanced */}
-          <div className="flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-3 bg-[var(--bg-primary)]/30 border border-[var(--border-subtle)] rounded-none p-1.5 group-hover:border-white/20 transition-colors">
-              <select
-                aria-label="Filter attendees by club event"
-                value={selectedEvent || ""}
-                onChange={(e) => setSelectedEvent(e.target.value || null)}
-                className="bg-transparent text-[var(--text-primary)] text-sm font-medium min-h-11 px-5 py-3 focus:outline-none cursor-pointer hover:text-[var(--text-primary)] transition-ui"
-              >
-                <option value="">Select a club event…</option>
-                {eventList?.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {selectedEvent && (
-              <button
-                onClick={handleDownloadCSV}
-                className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-r from-accent/10 to-accent/10 border border-accent/25 hover:border-accent/40 text-accent text-sm font-medium rounded-none hover:bg-accent/20 transition-ui active:scale-95 shadow-[0_0_20px_rgba(0,168,168,0.1)] hover:shadow-[0_0_25px_rgba(0,168,168,0.2)]"
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </button>
-            )}
+      <section className="mt-10 space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="w-full sm:max-w-sm">
+            <label htmlFor="attendees-event" className={fieldLabel}>
+              Club event
+            </label>
+            <select
+              id="attendees-event"
+              aria-label="Filter attendees by club event"
+              value={selectedEvent || ""}
+              onChange={(e) => setSelectedEvent(e.target.value || null)}
+              className={`${input} min-h-11 cursor-pointer`}
+            >
+              <option value="">Select a club event…</option>
+              {eventList?.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title}
+                </option>
+              ))}
+            </select>
           </div>
+          {selectedEvent && (
+            <button
+              type="button"
+              onClick={handleDownloadCSV}
+              className={btnSecondary}
+            >
+              <Download
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="h-4 w-4"
+              />
+              Export CSV
+            </button>
+          )}
+        </div>
 
-          {/* Attendees List - Enhanced */}
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="py-12 text-center relative overflow-hidden">
-                <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-accent/5 via-accent-fade to-transparent animate-pulse" />
-                <p className="relative text-[var(--text-muted)] font-mono text-sm animate-pulse">
-                  Loading event check-ins...
-                </p>
-              </div>
-            ) : !attendees || attendees.length === 0 ? (
-              <LiquidGlass className="p-16 text-center">
-                <div className="w-16 h-16 rounded-sm bg-white/5 flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
-                  <svg
-                    className="w-8 h-8 text-[var(--text-muted)]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        {isLoading ? (
+          <p className={`${meta} ${sectionRule}`}>Loading check-ins…</p>
+        ) : !attendees || attendees.length === 0 ? (
+          <p className={`${body} ${sectionRule}`}>
+            {selectedEvent
+              ? "Nobody has checked in to this event yet. Check-ins appear here as people arrive."
+              : "Pick a club event to see who checked in."}
+          </p>
+        ) : (
+          <div className="overflow-x-auto border-y border-[var(--border-subtle)]">
+            <table className="w-full min-w-[640px] text-left text-[15px]">
+              <thead className="border-b border-[var(--border-subtle)]">
+                <tr>
+                  <th scope="col" className={th}>
+                    Name
+                  </th>
+                  <th scope="col" className={th}>
+                    Email
+                  </th>
+                  <th scope="col" className={th}>
+                    Status
+                  </th>
+                  <th scope="col" className={th}>
+                    Checked in at
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendees.map((attendee) => (
+                  <tr
+                    key={attendee.id}
+                    className="border-b border-[var(--border-subtle)] last:border-b-0 transition-colors hover:bg-[var(--bg-secondary)]"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-[var(--text-primary)] font-semibold mb-1">
-                  No attendees yet
-                </h3>
-                <p className="text-[var(--text-muted)] text-sm">
-                  Select an event to view check-ins.
-                </p>
-              </LiquidGlass>
-            ) : (
-              <div className="overflow-x-auto rounded-none border border-[var(--border-subtle)] bg-[var(--bg-primary)]/20 relative overflow-hidden group hover:border-white/20 transition-ui duration-300">
-                <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-accent/[0.02] via-transparent to-accent/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-sm blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <table className="w-full text-left">
-                  <thead className="bg-[var(--bg-primary)]/30 border-b border-[var(--border-subtle)]">
-                    <tr>
-                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
-                        Name
-                      </th>
-                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
-                        Email
-                      </th>
-                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-sm font-medium text-[var(--text-muted)]">
-                        Check-In Time
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {attendees.map((attendee) => (
-                      <tr
-                        key={attendee.id}
-                        className="hover:bg-white/5 transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            {}
-                            <img
-                              src={
-                                attendee.user?.image || "/avatars/default.svg"
-                              }
-                              alt={attendee.user?.name || "Attendee"}
-                              className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover"
-                            />
-                            <div>
-                              <p className="font-medium text-[var(--text-primary)]">
-                                {attendee.user?.name ||
-                                  `${attendee.member?.firstName ?? ""} ${attendee.member?.lastName ?? ""}`.trim() ||
-                                  "Unknown"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-[var(--text-muted)]">
-                          {attendee.user?.email}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1 rounded-sm text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            Checked In
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-[var(--text-muted)]">
-                          {attendee.checkedInAt
-                            ? new Date(attendee.checkedInAt).toLocaleString()
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    <td className={td}>
+                      <div className="flex items-center gap-3">
+                        {}
+                        <img
+                          src={attendee.user?.image || "/avatars/default.svg"}
+                          alt={attendee.user?.name || "Attendee"}
+                          className="h-8 w-8 shrink-0 rounded-full object-cover"
+                        />
+                        <span className="font-semibold text-[var(--text-primary)]">
+                          {attendee.user?.name ||
+                            `${attendee.member?.firstName ?? ""} ${attendee.member?.lastName ?? ""}`.trim() ||
+                            "Unknown"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={`${td} text-[var(--text-muted)]`}>
+                      {attendee.user?.email}
+                    </td>
+                    <td className={td}>
+                      <span className={statusText("success")}>Checked in</span>
+                    </td>
+                    <td
+                      className={`${td} whitespace-nowrap tabular-nums text-[var(--text-muted)]`}
+                    >
+                      {attendee.checkedInAt
+                        ? new Date(attendee.checkedInAt).toLocaleString()
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </div>
-    </>
+        )}
+      </section>
+    </div>
   );
 }

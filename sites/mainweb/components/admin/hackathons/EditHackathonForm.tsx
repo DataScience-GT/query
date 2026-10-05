@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import {
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  meta,
+  object,
+  sectionTitle,
+} from "@/components/portal/ui";
 import { toInputDate } from "@/components/admin/hackathons/constants";
 
 const HACKATHON_STATUSES = [
@@ -134,11 +144,7 @@ export function EditHackathonForm({
 
   if (isLoading || !hackathon) {
     return (
-      <LiquidGlass className="p-6 mb-6">
-        <p className="text-gray-600 font-mono text-sm animate-pulse">
-          Loading hackathon...
-        </p>
-      </LiquidGlass>
+      <p className={`mt-6 ${meta}`}>Loading hackathon…</p>
     );
   }
 
@@ -148,7 +154,7 @@ export function EditHackathonForm({
           control — keyboard users get Escape instead (see the effect above). */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[var(--bg-primary)]/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-[var(--bg-primary)]/80"
         onClick={onClose}
       />
       <div
@@ -157,30 +163,29 @@ export function EditHackathonForm({
         aria-labelledby="edit-hackathon-title"
         className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
-        <LiquidGlass className="p-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
-          <div className="flex items-center justify-between mb-6">
+        <div className={`${object} p-6`}>
+          <div className="flex items-baseline justify-between mb-6">
             <h3
               id="edit-hackathon-title"
-              className="text-lg font-bold text-[var(--text-primary)]"
+              className={sectionTitle}
             >
-              Edit Hackathon
+              Edit hackathon
             </h3>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close edit hackathon dialog"
-              className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm font-mono"
+              className="text-[13px] text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors"
             >
-              X
+              Close
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <label
                 htmlFor="edit-status"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
                 Status
               </label>
@@ -188,16 +193,16 @@ export function EditHackathonForm({
                 id="edit-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as HackathonStatus)}
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+                className={input}
               >
                 {HACKATHON_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")}
                   </option>
                 ))}
               </select>
               {status !== "open" && (
-                <p className="text-[11px] text-amber-400/80 mt-2 font-mono">
+                <p className="mt-1.5 text-[13px] text-[var(--warning)]">
                   Participants can only register while status is
                   &quot;open&quot;.
                 </p>
@@ -207,7 +212,7 @@ export function EditHackathonForm({
             <div>
               <label
                 htmlFor="edit-name"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
                 Name
               </label>
@@ -216,13 +221,13 @@ export function EditHackathonForm({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+                className={input}
               />
             </div>
             <div>
               <label
                 htmlFor="edit-description"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
                 Description
               </label>
@@ -231,14 +236,14 @@ export function EditHackathonForm({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors resize-none"
+                className={`resize-none ${input}`}
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label
                   htmlFor="edit-location"
-                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  className={fieldLabel}
                 >
                   Location
                 </label>
@@ -247,13 +252,13 @@ export function EditHackathonForm({
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+                  className={input}
                 />
               </div>
               <div>
                 <label
                   htmlFor="edit-theme"
-                  className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                  className={fieldLabel}
                 >
                   Theme
                 </label>
@@ -262,20 +267,18 @@ export function EditHackathonForm({
                   type="text"
                   value={theme}
                   onChange={(e) => setTheme(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+                  className={input}
                 />
               </div>
             </div>
 
-            <div className="pt-2">
-              <p className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-primary)] mb-4 font-mono opacity-80">
-                Judging &amp; Info
-              </p>
-              <div className="space-y-4">
+            <div className="border-t border-[var(--border-subtle)] pt-5">
+              <h4 className={`mb-4 ${itemTitle}`}>Judging and info</h4>
+              <div className="space-y-5">
                 <div>
                   <label
                     htmlFor="edit-tracks"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
                     Tracks
                   </label>
@@ -285,9 +288,9 @@ export function EditHackathonForm({
                     value={tracks}
                     onChange={(e) => setTracks(e.target.value)}
                     placeholder="AI, Healthcare, Finance"
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                    className={input}
                   />
-                  <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
+                  <p className={fieldHint}>
                     Comma separated. Teams pick from these when they submit, and
                     judges are matched on them.
                   </p>
@@ -295,9 +298,9 @@ export function EditHackathonForm({
                 <div>
                   <label
                     htmlFor="edit-challenges"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
-                    Sponsor Challenges
+                    Sponsor challenges
                   </label>
                   <input
                     id="edit-challenges"
@@ -305,15 +308,15 @@ export function EditHackathonForm({
                     value={challenges}
                     onChange={(e) => setChallenges(e.target.value)}
                     placeholder="AWS, MongoDB, Capital One"
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                    className={input}
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="edit-website"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
-                    Website URL
+                    Website
                   </label>
                   <input
                     id="edit-website"
@@ -321,13 +324,13 @@ export function EditHackathonForm({
                     value={websiteUrl}
                     onChange={(e) => setWebsiteUrl(e.target.value)}
                     placeholder="https://hacklytics.io"
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                    className={input}
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="edit-rules"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
                     Rules
                   </label>
@@ -337,89 +340,87 @@ export function EditHackathonForm({
                     onChange={(e) => setRules(e.target.value)}
                     rows={5}
                     maxLength={10000}
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors resize-y"
+                    className={`resize-y ${input}`}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="pt-2">
-              <p className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-primary)] mb-4 font-mono opacity-80">
-                Timing
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="border-t border-[var(--border-subtle)] pt-5">
+              <h4 className={`mb-4 ${itemTitle}`}>Timing</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                 <div>
                   <label
                     htmlFor="edit-start-date"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
-                    Start Date
+                    Start date
                   </label>
                   <input
                     id="edit-start-date"
                     type="datetime-local"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                    className={input}
                   />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
-                    Event doors open / schedule begins
+                  <p className={fieldHint}>
+                    When doors open and the schedule begins.
                   </p>
                 </div>
                 <div>
                   <label
                     htmlFor="edit-end-date"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
-                    End Date
+                    End date
                   </label>
                   <input
                     id="edit-end-date"
                     type="datetime-local"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                    className={input}
                   />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
-                    Event closes / everyone leaves
+                  <p className={fieldHint}>
+                    When the event closes.
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label
                     htmlFor="edit-hacking-start-time"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
-                    Hacking Start Time
+                    Hacking start time
                   </label>
                   <input
                     id="edit-hacking-start-time"
                     type="datetime-local"
                     value={hackingStartTime}
                     onChange={(e) => setHackingStartTime(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                    className={input}
                   />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
-                    Defaults to Start Date; must be within event window. Clear
+                  <p className={fieldHint}>
+                    Defaults to the start date; must fall within the event. Clear
                     to reset.
                   </p>
                 </div>
                 <div>
                   <label
                     htmlFor="edit-registration-deadline"
-                    className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                    className={fieldLabel}
                   >
-                    Registration Deadline
+                    Registration deadline
                   </label>
                   <input
                     id="edit-registration-deadline"
                     type="datetime-local"
                     value={regDeadline}
                     onChange={(e) => setRegDeadline(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors [color-scheme:dark]"
+                    className={input}
                   />
-                  <p className="mt-1 text-xs text-[var(--text-subtle)] font-mono">
+                  <p className={fieldHint}>
                     Last chance for participants to sign up.
                   </p>
                 </div>
@@ -429,9 +430,9 @@ export function EditHackathonForm({
             <div>
               <label
                 htmlFor="edit-max-participants"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
-                Max Participants
+                Max participants
               </label>
               <input
                 id="edit-max-participants"
@@ -439,10 +440,10 @@ export function EditHackathonForm({
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(e.target.value)}
                 placeholder="Leave blank for no cap"
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                className={input}
               />
               {/* Counts APPLICATIONS, pending included — not acceptances. */}
-              <p className="text-[10px] font-mono text-amber-300/80 mt-1 leading-relaxed">
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--warning)]">
                 Counts applications, including unreviewed ones. Set it to your
                 venue size and registration closes before you have accepted
                 anyone. Leave blank and close registration by deadline instead.
@@ -450,30 +451,30 @@ export function EditHackathonForm({
             </div>
 
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none">
-                <p className="text-red-400 text-sm font-mono">{error}</p>
+              <div>
+                <p role="alert" className="text-[15px] text-[var(--danger)]">{error}</p>
               </div>
             )}
 
-            <div className="flex items-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={updateMutation.isPending}
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent text-[var(--text-primary)] font-semibold text-sm rounded-none active:scale-[0.98] transition-transform shadow-[4px_4px_0_0_var(--accent)] disabled:opacity-50"
+                className={btnPrimary}
               >
-                {updateMutation.isPending ? "Saving…" : "Save Changes"}
+                {updateMutation.isPending ? "Saving…" : "Save changes"}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-3 text-[var(--text-subtle)] hover:text-[var(--text-primary)] text-sm font-mono transition-colors"
+                className={btnSecondary}
               >
                 Cancel
               </button>
             </div>
           </div>
-        </LiquidGlass>
+        </div>
       </div>
     </div>
   );

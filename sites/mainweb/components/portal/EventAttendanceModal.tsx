@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { ModalWrapper } from "./ModalWrapper";
+import {
+  btnPrimary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  label,
+  meta,
+} from "./ui";
+
+const removeButton =
+  "shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-[13px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-glow)] disabled:opacity-50";
 
 /**
  * Officer-side attendance for a club event.
@@ -71,20 +83,13 @@ export function EventAttendanceModal({
     <ModalWrapper onClose={onClose} maxWidth="2xl">
       <div className="space-y-6">
         <div>
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-1">
-            Attendance
-          </p>
-          <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">
-            {eventTitle}
-          </h2>
+          <p className={label}>Attendance</p>
+          <h2 className={`${itemTitle} mt-1`}>{eventTitle}</h2>
         </div>
 
-        <div className="space-y-2">
-          <label
-            htmlFor="attendance-email"
-            className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono block"
-          >
-            Check somebody in
+        <div>
+          <label htmlFor="attendance-email" className={fieldLabel}>
+            Check someone in by email
           </label>
           <div className="flex gap-2">
             <input
@@ -100,63 +105,59 @@ export function EventAttendanceModal({
                 }
               }}
               placeholder="them@gatech.edu"
-              className="flex-1 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none px-4 py-3 text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent focus:outline-none transition-ui"
+              className={`${input} min-w-0 flex-1`}
             />
             <button
               type="button"
               onClick={() => checkIn.mutate({ eventId, email: email.trim() })}
               disabled={checkIn.isPending || email.trim().length === 0}
-              className="px-6 py-3 bg-accent text-black font-black text-xs uppercase tracking-widest rounded-none hover:bg-accent/90 transition-ui disabled:opacity-40"
+              className={`${btnPrimary} shrink-0`}
             >
-              {checkIn.isPending ? "…" : "Check In"}
+              {checkIn.isPending ? "Checking in…" : "Check in"}
             </button>
           </div>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)]">
-            Recorded as a manual check-in. Membership is not required — they do
-            need to have signed in to the portal at least once.
+          <p className={fieldHint}>
+            Recorded as a manual check-in. They don&apos;t need to be a member,
+            but they must have signed in to the portal at least once.
           </p>
         </div>
 
         {error && (
           <p
             role="alert"
-            className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-mono text-red-300"
+            className="rounded-[var(--radius-sm)] bg-[var(--danger-glow)] px-4 py-3 text-sm text-[var(--danger)]"
           >
             {error}
           </p>
         )}
 
         {notice && !error && (
-          <p className="border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-mono text-accent">
+          <p className="rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] px-4 py-3 text-sm text-[var(--text-primary)]">
             {notice}
           </p>
         )}
 
-        <div className="space-y-2">
-          <p className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono">
+        <div>
+          <p className={`${label} tabular-nums`}>
             Checked in ({roster.data?.matching ?? 0})
           </p>
 
           {roster.isLoading ? (
-            <p className="text-xs font-mono text-[var(--text-subtle)]">
-              Loading roster...
-            </p>
+            <p className={`${meta} mt-2`}>Loading the list…</p>
           ) : attendees.length === 0 ? (
-            <p className="text-xs font-mono text-[var(--text-subtle)]">
-              Nobody has checked in yet.
-            </p>
+            <p className={`${meta} mt-2`}>Nobody has checked in yet.</p>
           ) : (
-            <ul className="max-h-64 overflow-y-auto divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)]">
+            <ul className="mt-2 max-h-64 overflow-y-auto border-t border-[var(--border-subtle)]">
               {attendees.map((row) => (
                 <li
                   key={row.id}
-                  className="flex items-center justify-between gap-4 px-4 py-3"
+                  className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] py-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm text-[var(--text-primary)] truncate">
+                    <p className="truncate text-[15px] text-[var(--text-primary)]">
                       {row.user?.name ?? row.user?.email ?? "Unknown"}
                     </p>
-                    <p className="text-[10px] font-mono text-[var(--text-subtle)] truncate">
+                    <p className={`${meta} truncate`}>
                       {row.user?.email} · {row.checkInMethod}
                     </p>
                   </div>
@@ -167,9 +168,9 @@ export function EventAttendanceModal({
                       remove.mutate({ eventId, userId: row.user.id })
                     }
                     disabled={remove.isPending}
-                    className="shrink-0 px-3 py-2 border border-red-500/20 text-red-400 text-[10px] font-mono uppercase tracking-widest rounded-none hover:bg-red-500/10 transition-ui disabled:opacity-40"
+                    className={removeButton}
                   >
-                    Undo
+                    Remove
                   </button>
                 </li>
               ))}
