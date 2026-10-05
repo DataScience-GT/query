@@ -49,15 +49,17 @@
    means dimmer, in light mode it means lighter, so the visual hierarchy each
    utility was picked for is preserved. */
 .light {
-  --ui-white: #09090b;
-  --ui-black: #ffffff;
-  --ui-gray-200: #18181b;
-  --ui-gray-300: #3f3f46;
-  --ui-gray-400: #52525b;
-  --ui-gray-500: #63636d;
-  --ui-gray-600: #71717a;
-  --ui-gray-700: #8b8b95;
-  --ui-scrim: rgba(9, 9, 11, 0.45);
+  /* Tinted toward the portal's bone paper (liquid-glass.css) so old
+     white/gray utilities do not read as cold Tailwind grey on it. */
+  --ui-white: #15191a;
+  --ui-black: #f6f7f4;
+  --ui-gray-200: #1e2423;
+  --ui-gray-300: #3a4341;
+  --ui-gray-400: #4c5553;
+  --ui-gray-500: #5c6664;
+  --ui-gray-600: #66706e;
+  --ui-gray-700: #87908d;
+  --ui-scrim: rgba(21, 25, 26, 0.45);
 }
 
 body {

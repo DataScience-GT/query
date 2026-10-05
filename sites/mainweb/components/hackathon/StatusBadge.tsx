@@ -1,35 +1,12 @@
-import { AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
+import { status as statusClass } from "@/components/portal/ui";
+import type { Tone } from "@/components/portal/ui";
 
-const STATUSES: Record<
-  string,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  approved: {
-    label: "Accepted",
-    color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-    icon: <CheckCircle className="w-3 h-3" />,
-  },
-  checked_in: {
-    label: "Checked in",
-    color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-    icon: <CheckCircle className="w-3 h-3" />,
-  },
-  waitlisted: {
-    label: "Waitlisted",
-    color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-    icon: <Clock className="w-3 h-3" />,
-  },
-  pending: {
-    label: "Under review",
-    color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-    icon: <Clock className="w-3 h-3" />,
-  },
-  rejected: {
-    label: "Not accepted",
-    color:
-      "text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-medium)]",
-    icon: <XCircle className="w-3 h-3" />,
-  },
+const STATUSES: Record<string, { label: string; tone: Tone }> = {
+  approved: { label: "Accepted", tone: "success" },
+  checked_in: { label: "Checked in", tone: "success" },
+  waitlisted: { label: "Waitlisted", tone: "warning" },
+  pending: { label: "Under review", tone: "warning" },
+  rejected: { label: "Not accepted", tone: "neutral" },
 };
 
 /**
@@ -40,15 +17,7 @@ const STATUSES: Record<
 export function StatusBadge({ status }: { status: string }) {
   const cfg = STATUSES[status] ?? {
     label: status.replace(/_/g, " "),
-    color:
-      "text-[var(--text-subtle)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]",
-    icon: <AlertCircle className="w-3 h-3" />,
+    tone: "neutral" as const,
   };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border ${cfg.color}`}
-    >
-      {cfg.icon} {cfg.label}
-    </span>
-  );
+  return <span className={statusClass(cfg.tone)}>{cfg.label}</span>;
 }
