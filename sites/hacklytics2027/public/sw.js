@@ -1,9 +1,11 @@
 // Service Worker for Hacklytics 2027 — Digital Bloom
-// Implements cache-first for static assets, stale-while-revalidate for pages
+// Pages network-first (cache only when offline), fingerprinted build output
+// cache-first, other public files stale-while-revalidate.
 
-// Bumped when cached assets must be dropped: v3 flushes images that v2 served
-// cache-first forever under unchanged filenames.
-const CACHE_VERSION = "hacklytics-v3";
+// Bumped when cached assets must be dropped: v3 flushed images that v2 served
+// cache-first forever; v4 drops every page cached before the greenhouse
+// redesign. Activation deletes every other cache name.
+const CACHE_VERSION = "hacklytics-v4";
 
 // Shell routes worth having offline. 404 is included so a bad link still
 // renders the themed page instead of the browser's offline error.
@@ -113,17 +115,16 @@ async function cacheFirst(request) {
 
 /**
  * Stale-while-revalidate: return cached version instantly while
- * fetching a fresh copy in the background for the next visit.
+ * fetching a fresh copy in the background for the next visit. Used for
+ * images and fonts from public/, not pages.
  */
-async function staleWhileRevalidate(request, preloadResponse) {
+async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_VERSION);
 
   const cached = await cache.match(request);
 
-  // Kick off a background revalidation regardless of cache hit. If the browser
-  // already started a navigation preload, reuse that in-flight response
-  // instead of issuing a second request.
-  const networkPromise = (preloadResponse ? Promise.resolve(preloadResponse) : fetch(request))
+  // Kick off a background revalidation regardless of cache hit.
+  const networkPromise = fetch(request)
     .then((response) => {
       if (response && response.ok) {
         cache.put(request, response.clone());
@@ -146,6 +147,32 @@ async function staleWhileRevalidate(request, preloadResponse) {
     statusText: "Service Unavailable",
     headers: { "Content-Type": "text/plain" },
   });
+}
+
+/**
+ * Pages: network-first, so a deploy is what the next visit sees. Pages used to
+ * be stale-while-revalidate, which showed the previous deploy first and kept
+ * returning visitors on the old site. The cache is only the offline fallback,
+ * and "/" stands in for a page that was never cached.
+ */
+async function pageNetworkFirst(request, preloadResponse) {
+  const cache = await caches.open(CACHE_VERSION);
+  try {
+    const response = (await preloadResponse) || (await fetch(request));
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+      trimCache(CACHE_VERSION, MAX_ENTRIES);
+    }
+    return response;
+  } catch {
+    const cached = (await cache.match(request)) || (await cache.match("/"));
+    if (cached) return cached;
+    return new Response("Offline", {
+      status: 503,
+      statusText: "Service Unavailable",
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
 }
 
 /**
@@ -185,11 +212,7 @@ self.addEventListener("fetch", (event) => {
   } else if (isPublicAsset(url)) {
     event.respondWith(staleWhileRevalidate(event.request));
   } else if (isNavigationRequest(event.request, url)) {
-    event.respondWith(
-      event.preloadResponse
-        .then((preload) => staleWhileRevalidate(event.request, preload))
-        .catch(() => staleWhileRevalidate(event.request)),
-    );
+    event.respondWith(pageNetworkFirst(event.request, event.preloadResponse));
   } else {
     event.respondWith(networkFirst(event.request));
   }
