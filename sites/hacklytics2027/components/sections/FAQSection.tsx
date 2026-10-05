@@ -10,7 +10,19 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Is it free?",
-    a: "Yes. Meals, snacks, swag, and cloud credits during the event are covered.",
+    a: "Yes. Meals, snacks and swag during the event are covered.",
+  },
+  {
+    q: "How long is it?",
+    a: "36 hours, Friday evening Feb 26 to Sunday Feb 28, 2027.",
+  },
+  {
+    q: "How many people come?",
+    a: "There is room for 1,000+ hackers.",
+  },
+  {
+    q: "What are the tracks?",
+    a: "Finance, Sports Analytics, Healthcare and Entertainment. Sponsor challenges stack on top of a track.",
   },
   {
     q: "Team size?",
@@ -42,16 +54,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         Many people show up solo. We run a team-building session after opening
-        ceremony, and you can find teammates on{" "}
-        <Link
-          href="https://discord.gg/hacklytics"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-link"
-        >
-          Discord
-        </Link>
-        .
+        ceremony to help you find teammates.
       </>
     ),
   },

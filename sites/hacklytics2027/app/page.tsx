@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useSyncExternalStore } from "react";
 import HomeSections from "@/components/HomeSections";
 import { PixelBed, bloomSet, plantBed, withBlooms } from "@/components/pixel/PixelBed";
-import { INTEREST_HINT, INTEREST_URL } from "@/lib/links";
+import { INTEREST_URL } from "@/lib/links";
 
 // ─── Dates ────────────────────────────────────────────────────────────────
 // Check-in opens 5pm ET (the JSON-LD startDate). Without an offset the string
@@ -61,7 +61,7 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
       {units.map(({ label, value }) => (
         <div key={label} className="flex flex-col">
           <span
-            className={`font-display font-semibold text-[2.75rem] leading-none tracking-[-0.03em] tabular-nums ${
+            className={`font-display font-bold text-[2.25rem] leading-none tabular-nums ${
               mounted ? "text-ink" : "text-ink-3/40"
             }`}
           >
@@ -75,13 +75,6 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
 };
 
 // ─── Facts ────────────────────────────────────────────────────────────────
-const facts = [
-  { label: "Room for", value: "1,000+ hackers" },
-  { label: "Tracks", value: "Finance · Sports · Health · Entertainment · Wildcard" },
-  { label: "Length", value: "36 hours" },
-  { label: "Cost", value: "Free" },
-];
-
 // ─── Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   // 0 in the static HTML (all dormant), then the real count after hydration:
@@ -113,63 +106,42 @@ export default function HomePage() {
 
           {/* One line at every width: the size follows the viewport so
               "Hacklytics" fits a 375px phone and tops out at 144px. */}
-          <h1 className="display whitespace-nowrap text-[clamp(3rem,18vw,9rem)] leading-[0.85] tracking-[-0.045em] mt-5 mb-8 md:mb-10">
+          <h1 className="display whitespace-nowrap text-[clamp(2.25rem,10.5vw,7.5rem)] leading-none mt-5 mb-8 md:mb-10">
             Hacklytics
           </h1>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-12 lg:gap-20 lg:items-end">
+          <div>
             <div>
               <p className="font-sans text-[17px] md:text-[19px] leading-[1.5] text-ink-2 max-w-[34rem]">
                 36 hours of data science and AI in Atlanta, run by Data Science
-                @ GT. Free to attend; meals, swag and cloud credits are covered.
+                @ GT. Free to attend; meals and swag are covered.
               </p>
 
-              {/* The caption sits under the pair, not under Notify me alone:
-                  stacked with it, the button column was taller than the
-                  other button and the row lost its alignment. */}
-              <div className="mt-8 flex flex-col gap-3">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a
-                    href={INTEREST_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-describedby="notify-handoff-hint"
-                    className="btn btn-bloom"
-                  >
-                    Notify me
-                  </a>
-                  <a href="#tracks" className="btn btn-line">
-                    See tracks and prizes
-                  </a>
-                </div>
-                <span
-                  id="notify-handoff-hint"
-                  className="font-sans text-[13px] leading-snug text-ink-3"
+              <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                <a
+                  href={INTEREST_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-bloom"
                 >
-                  {INTEREST_HINT}
-                </span>
+                  Notify me
+                </a>
+                <a href="#tracks" className="btn btn-line">
+                  See tracks and prizes
+                </a>
               </div>
 
               <Countdown targetDate={EVENT_START} />
             </div>
-
-            <dl className="font-sans text-[15px]">
-              {facts.map((f) => (
-                <div
-                  key={f.label}
-                  className="flex items-baseline justify-between gap-6 border-t border-rule py-3"
-                >
-                  <dt className="text-ink-3 shrink-0">{f.label}</dt>
-                  <dd className="text-ink text-right">{f.value}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
         </div>
 
         {/* The flower bed the hero stands in. Its share in bloom tracks the
             season; visitors can plant their own. */}
         <div className="pb-6">
+          <h2 className="wrap font-display font-bold text-[15px] text-ink mb-3">
+            Plant a flower
+          </h2>
           <PixelBed
             plants={heroBed}
             soil

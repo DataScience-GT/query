@@ -37,5 +37,3 @@ export const PORTAL_INTEREST_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeU
   INTEREST_PATH,
 )}`;
 
-/** Caption next to Notify me. */
-export const INTEREST_HINT = "Opens a short sign-up form in a new tab.";
