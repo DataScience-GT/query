@@ -14,6 +14,7 @@ import { body, btnPrimary, btnSecondary, pageDek } from "@/components/portal/ui"
 import { HackathonCard } from "@/components/admin/hackathons/HackathonCard";
 import { CreateHackathonForm } from "@/components/admin/hackathons/CreateHackathonForm";
 import { EditHackathonForm } from "@/components/admin/hackathons/EditHackathonForm";
+import { HackathonBans } from "@/components/admin/hackathons/HackathonBans";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]";
@@ -146,6 +147,8 @@ export default function AdminHackathonsPage() {
               })}
             </div>
           )}
+
+          <HackathonBans />
         </div>
       </div>
     </>
