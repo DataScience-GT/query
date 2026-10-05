@@ -584,3 +584,22 @@ export const hackathonAnnouncementRecipientsRelations = relations(
     }),
   }),
 );
+
+// People barred from taking part in hackathons: registering, the interest
+// list, teams, submitting and judging. Club membership is untouched. Keyed by
+// lowercased email rather than user id, so signing in again through another
+// provider, or with a new account on the same address, is still refused.
+// Lifting a ban deletes the row; who banned and lifted whom is in audit_logs.
+export const hackathonBans = pgTable(
+  "hackathon_ban",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(),
+    reason: text("reason").notNull(),
+    bannedBy: text("banned_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("hackathon_ban_email_idx").on(table.email)],
+);
