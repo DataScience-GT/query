@@ -23,7 +23,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "../../trpc";
-import { isAdmin } from "../../middleware/procedures";
+import { isAdmin, notHackathonBanned } from "../../middleware/procedures";
 import { rateLimit } from "../../middleware/security";
 import { VOLATILE_TTL } from "../../middleware/cache";
 
@@ -154,7 +154,7 @@ export const hackathonInterestRouter = createTRPCRouter({
   // Upserted, so submitting twice edits one entry rather than failing on the
   // unique index or quietly creating a second. Somebody correcting their
   // graduation year should not have to find a delete button.
-  registerInterest: protectedProcedure
+  registerInterest: notHackathonBanned
     .input(interestInput)
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;

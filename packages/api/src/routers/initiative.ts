@@ -21,7 +21,7 @@ const notFound = (message = "Project not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
 
 /** Postgres unique_violation. Drizzle wraps driver errors, so walk `.cause`. */
-function isUniqueViolation(error: unknown) {
+export function isUniqueViolation(error: unknown) {
   for (let cursor: unknown = error, depth = 0; cursor && depth < 5; depth++) {
     if (typeof cursor !== "object") break;
     if ((cursor as { code?: string }).code === "23505") return true;
@@ -94,8 +94,12 @@ function canManage(
 // Applying is a member benefit, so it needs an unlapsed membership. Keyed on
 // the person alone: this used to resolve a "current edition" and check
 // against it, so between hackathons it refused everybody — which is how the
-// club half went dead outside event season.
-async function requireActiveMember(db: Reader, userId: string) {
+// club half went dead outside event season. Subteam applications share it.
+export async function requireActiveMember(
+  db: Reader,
+  userId: string,
+  message = "An active membership is required to join a project.",
+) {
   const member = await db.query.members.findFirst({
     where: eq(members.userId, userId),
     columns: { isActive: true, membershipEndDate: true },
@@ -110,7 +114,7 @@ async function requireActiveMember(db: Reader, userId: string) {
   if (!active) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "An active membership is required to join a project.",
+      message,
     });
   }
 }
