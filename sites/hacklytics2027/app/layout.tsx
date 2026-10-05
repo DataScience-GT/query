@@ -22,8 +22,15 @@ const silkscreen = Silkscreen({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#131715",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eef1ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#131715" },
+  ],
 };
+
+// Runs before first paint so a saved light/dark choice never flashes the
+// other theme. Kept tiny and dependency-free; the key matches ThemeToggle.
+const themeScript = `try{var t=localStorage.getItem("hl-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "Hacklytics 2027: Digital Bloom · Data Science Hackathon at Georgia Tech",
@@ -109,8 +116,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       className={`${instrumentSans.variable} ${silkscreen.variable}`}
+      suppressHydrationWarning
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

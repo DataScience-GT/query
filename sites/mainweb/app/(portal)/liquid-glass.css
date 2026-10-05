@@ -403,3 +403,48 @@ a {
 .card-printed {
   position: relative;
 }
+
+/* ===== HACKLYTICS (the public /hacklytics page) =====
+   The page people reach from hacklytics.io, so it wears that site's look,
+   not the portal's: dark grey ground, one bloom pink, pixel headings. The
+   tokens are overridden on the wrapper, so the portal primitives and the
+   interest form inside follow without their own variants. Same values as
+   sites/hacklytics2027/app/globals.css. */
+.hl-theme {
+  --bg-primary: #131715;
+  --bg-secondary: #1a1f1d;
+  --bg-tertiary: #131715;
+  --bg-card: #1a1f1d;
+  --bg-elevated: #1a1f1d;
+  --bg-input: #1a1f1d;
+  --text-primary: #edefea;
+  --text-secondary: #c3c9c4;
+  --text-muted: #a9b0aa;
+  --text-subtle: #868e88;
+  --text-on-accent: #16060c;
+  --border-subtle: #2a312d;
+  --border-medium: #39413c;
+  --border-hover: #5a625c;
+  --border-accent: #ff4f8b;
+  --accent: #ff4f8b;
+  --accent-primary: #ff4f8b;
+  --accent-secondary: #ff6a9d;
+  --accent-hover: #ff6a9d;
+  --accent-dim: rgba(255, 79, 139, 0.12);
+  --font-display: var(--font-hl-pixel), ui-monospace, monospace;
+  --font-ui: var(--font-hl-sans), ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+}
+
+/* Pixel glyphs carry their own spacing; the serif's negative tracking would
+   run them together. */
+.hl-theme h1,
+.hl-theme h2,
+.hl-theme h3 {
+  letter-spacing: 0;
+  font-weight: 700;
+}
