@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
+import { notHackathonBanned } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
 import {
   hackathons,
@@ -37,7 +38,7 @@ const isDuplicateRegistration = (error: unknown) => {
 };
 
 export const hackathonRegistrationRouter = createTRPCRouter({
-  register: protectedProcedure
+  register: notHackathonBanned
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),

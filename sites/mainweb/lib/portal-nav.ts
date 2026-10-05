@@ -17,6 +17,7 @@ import {
   GraduationCap,
   UserCircle,
   Calendar,
+  UsersRound,
 } from "lucide-react";
 import type { PortalContext } from "@query/api";
 
@@ -90,13 +91,14 @@ export function portalNavSections(
         items: [
           { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
           { name: "Club Attendees", href: "/admin/attendees", icon: Users },
-          { name: "Club Check-In", href: "/scan/club", icon: Calendar },
+          { name: "Club Attendance", href: "/scan/club", icon: Calendar },
           { name: "Club Projects", href: "/admin/initiatives", icon: Rocket },
           {
             name: "Club Project Applications",
             href: "/lead",
             icon: Rocket,
           },
+          { name: "Subteams", href: "/admin/subteams", icon: UsersRound },
           { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
           { name: "Memberships", href: "/admin/members", icon: CreditCard },
           { name: "Resume Book", href: "/admin/resumes", icon: BookOpen },
@@ -145,10 +147,13 @@ export function portalNavSections(
     // Attendance is open to everyone; the Club Portal's scanner is not.
     { name: "Event Check-In", href: "/checkin", icon: QrCode },
     ...(f.isScanner
-      ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
+      ? [{ name: "Club Attendance", href: "/scan/club", icon: Calendar }]
       : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
     { name: "Club Projects", href: "/initiatives", icon: Rocket },
+    ...(f.isMember
+      ? [{ name: "Subteams", href: "/subteams", icon: UsersRound }]
+      : []),
     ...(f.isProjectLeader
       ? [{ name: "My Club Projects", href: "/lead", icon: Rocket }]
       : []),

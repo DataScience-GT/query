@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../trpc";
 import {
   admins,
+  hackathonBans,
+  users,
   judges,
   judgingProjects,
   judgeQueue,
@@ -259,5 +261,53 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput })
     }
 
     return next({ ctx: { ...ctx, judge } });
+  },
+);
+
+/** Cache key for a hackathon-ban lookup. Shared with the ban/unban mutations. */
+export const hackathonBanCacheKey = (email: string) =>
+  `hackathon-ban:${email.trim().toLowerCase()}`;
+
+// Refuses people banned from hackathons. Goes on the procedures where someone
+// takes part — registering, the interest list, teams, submitting, applying to
+// judge — and not on reads or on the ways out (withdraw, leave), so a banned
+// person can still see and undo what they already did. The ban is by email,
+// so it holds across providers and new accounts on the same address. Cached
+// 60s, the negative answer too; ban and unban clear the key.
+export const notHackathonBanned = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    const db = ctx.db as NonNullable<typeof ctx.db>;
+
+    let email = ctx.session?.user?.email ?? null;
+    if (!email) {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, ctx.userId as string),
+        columns: { email: true },
+      });
+      email = user?.email ?? null;
+    }
+
+    if (email) {
+      const key = hackathonBanCacheKey(email);
+      let banned = ctx.cache.get<boolean>(key);
+      if (banned === null) {
+        const ban = await db.query.hackathonBans.findFirst({
+          where: eq(hackathonBans.email, email.trim().toLowerCase()),
+          columns: { id: true },
+        });
+        banned = !!ban;
+        ctx.cache.set(key, banned, 60);
+      }
+
+      if (banned) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "You can't take part in Hacklytics events. If you think this is a mistake, email hello@hacklytics.io.",
+        });
+      }
+    }
+
+    return next({ ctx });
   },
 );

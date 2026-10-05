@@ -69,6 +69,7 @@ vi.mock("@query/db", () => {
         stripePayments: table("stripePayments"),
         userAccountLinks: table("userAccountLinks"),
         auditLogs: table("auditLogs"),
+        hackathonBans: table("hackathonBans"),
       },
       insert: (...insertArgs: any[]) => ({
         values: (...valArgs: any[]) => {
@@ -124,6 +125,12 @@ vi.mock("@query/db", () => {
       role: "role",
     },
     users: { _t: "users", id: "id", email: "email" },
+    hackathonBans: {
+      _t: "hackathonBans",
+      id: "id",
+      email: "email",
+      createdAt: "created_at",
+    },
     userProfiles: { _t: "userProfiles", userId: "user_id" },
     hackathons: {
       _t: "hackathons",
@@ -497,6 +504,80 @@ describe("Hackathon admin management edge cases", () => {
       await expect(
         caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
       ).rejects.toThrow(/Super admin access required/);
+    });
+  });
+
+  // =====================================================================
+  describe("Hackathon bans", () => {
+    const BANNED = "Banned.Person@Example.com";
+
+    // A signed-in participant whose email comes from their user row, the
+    // path taken when the session carries no email.
+    const participant = (banned: boolean) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users") return { email: BANNED };
+        if (table === "hackathonBans") return banned ? { id: "ban-1" } : undefined;
+        return undefined;
+      });
+      return appRouter.createCaller(createMockCtx("participant-user"));
+    };
+
+    it("refuses a banned person every way of taking part", async () => {
+      const caller = participant(true);
+      const refused = /can't take part in Hacklytics/;
+
+      await expect(
+        caller.hackathon.registerInterest({ hackathonId: HACK_A }),
+      ).rejects.toThrow(refused);
+      await expect(
+        caller.team.joinTeam({ inviteCode: "ABCDEF" } as never),
+      ).rejects.toThrow(refused);
+      await expect(
+        caller.team.createTeam({ hackathonId: HACK_A, name: "Team" } as never),
+      ).rejects.toThrow(refused);
+    });
+
+    it("lets everyone else through the ban gate", async () => {
+      const caller = participant(false);
+      const result = await caller.hackathon
+        .registerInterest({ hackathonId: HACK_A })
+        .catch((e: Error) => e);
+      expect(String(result)).not.toMatch(/can't take part/);
+    });
+
+    it("stores the ban by lowercased email and audits it", async () => {
+      const caller = adminCaller({}, "admin");
+      mockInsert.mockReturnValue([{ id: "ban-1" }]);
+
+      await caller.hackathon.banFromHackathons({
+        email: BANNED,
+        reason: "Harassment at Hacklytics 2026",
+      });
+
+      const values = mockInsert.mock.calls.map((c) => c[2]?.[0]);
+      expect(values).toContainEqual(
+        expect.objectContaining({ email: "banned.person@example.com" }),
+      );
+      expect(values).toContainEqual(
+        expect.objectContaining({ action: "hackathon.ban" }),
+      );
+    });
+
+    it("refuses a bug tester banning or lifting", async () => {
+      const caller = adminCaller({}, "bug_tester");
+
+      await expect(
+        caller.hackathon.banFromHackathons({ email: BANNED, reason: "Test" }),
+      ).rejects.toThrow(/read-only/);
+      await expect(
+        caller.hackathon.liftHackathonBan({ email: BANNED }),
+      ).rejects.toThrow(/read-only/);
+    });
+
+    it("refuses a non-staff account the ban list", async () => {
+      await expect(participant(false).hackathon.listBans()).rejects.toThrow(
+        /Admin access required/,
+      );
     });
   });
 

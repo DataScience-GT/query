@@ -274,6 +274,60 @@ export async function sendInitiativeDecisionEmail({
   });
 }
 
+// An application to join a subteam: received, accepted or turned down. The
+// receipt exists because an application nobody acknowledges reads as lost.
+export async function sendSubteamApplicationEmail({
+  email,
+  subteamName,
+  outcome,
+  note,
+  host = DEFAULT_HOST,
+}: {
+  email: string;
+  subteamName: string;
+  outcome: "received" | "accepted" | "rejected";
+  note?: string | null;
+  host?: string;
+}) {
+  const subject =
+    outcome === "received"
+      ? `We got your application to ${subteamName}`
+      : outcome === "accepted"
+        ? `You're in: ${subteamName}`
+        : `An update on ${subteamName}`;
+
+  const paragraphs =
+    outcome === "received"
+      ? [
+          `Your application to ${subteamName} is in. An organiser will review it and you will hear back by email.`,
+          "You can check its status, or withdraw it while it is waiting, from the subteams page.",
+        ]
+      : outcome === "accepted"
+        ? [
+            `You've been accepted to ${subteamName}. An organiser will be in touch with what happens next.`,
+          ]
+        : [
+            `Your application to ${subteamName} was not accepted this time.`,
+            "Applying again later is welcome.",
+          ];
+
+  if (note) paragraphs.push(note);
+
+  await sendTransactionalEmail({
+    email,
+    subject,
+    heading:
+      outcome === "received"
+        ? "Application received"
+        : outcome === "accepted"
+          ? "Good news"
+          : "An update",
+    paragraphs,
+    ctaLabel: "See subteams",
+    ctaUrl: `${host}/subteams`,
+  });
+}
+
 /** Results are published and public. */
 export async function sendResultsPublishedEmail({
   email,
