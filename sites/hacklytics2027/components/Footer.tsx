@@ -1,43 +1,44 @@
 "use client";
 import Link from "next/link";
-import { PixelGround } from "./pixel/PixelGarden";
-import { INTEREST_URL, PORTAL_ORIGIN } from "@/lib/links";
+import { PixelBed, bloomSet, plantBed, withBlooms } from "./pixel/PixelBed";
+import { INTEREST_HINT, INTEREST_URL, PORTAL_ORIGIN } from "@/lib/links";
 
 const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
 
+const FOOTER_BED = withBlooms(plantBed(3), bloomSet(4));
+
 export default function Footer() {
   return (
-    // Starts at the sections' 70% and fades to solid: a solid edge here drew a
-    // visible band where the translucent sections above it ended.
-    <footer className="relative z-10 w-full bg-gradient-to-b from-[#020204]/70 to-[#020204] to-40% overflow-hidden">
-      <div className="section-wrap max-w-7xl mx-auto pt-20 md:pt-28 pb-10 px-6 relative z-10">
-        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl text-white leading-[1] tracking-[-0.03em] mb-8">
+    <footer className="relative w-full border-t border-rule overflow-hidden">
+      <div className="wrap pt-24 md:pt-32 pb-10">
+        <h2 className="section-title mb-8">
           Applications open soon.
         </h2>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 mb-16">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-16">
           <a
             href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="pixel-btn inline-flex items-center justify-center px-10 py-4 font-pixel text-xs w-full sm:w-auto"
+            aria-label={`Notify me. ${INTEREST_HINT}`}
+            className="btn btn-bloom"
           >
-            Notify me →
+            Notify me
           </a>
-          <p className="font-sans text-base text-white/65 max-w-sm leading-relaxed">
+          <p className="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
             We’ll let you know the moment they do.
           </p>
         </div>
 
         {/* Side by side only once both rows fit: at tablet width the contact
             links wrapped "MLH Code of Conduct" onto three lines. */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-10 pt-8 border-t border-white/10">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-10 pt-8 border-t border-rule">
           <nav className="flex flex-wrap gap-x-6 gap-y-3">
             {navIds.map((id) => (
               <Link
                 key={id}
                 href={`/#${id}`}
-                className="font-sans text-[11px] uppercase tracking-[0.22em] text-white/40 hover:text-white transition-colors"
+                className="font-sans text-sm capitalize text-ink-2 hover:text-ink transition-colors"
               >
                 {id === "faqs" ? "FAQ" : id}
               </Link>
@@ -47,7 +48,7 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 sm:gap-x-8 whitespace-nowrap">
             <Link
               href="mailto:hello@hacklytics.io"
-              className="font-sans text-sm text-white/45 hover:text-white transition-colors"
+              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
             >
               hello@hacklytics.io
             </Link>
@@ -55,7 +56,7 @@ export default function Footer() {
               href={PORTAL_ORIGIN}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans text-sm text-white/45 hover:text-white transition-colors"
+              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
             >
               datasciencegt.org
             </Link>
@@ -63,7 +64,7 @@ export default function Footer() {
               href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans text-sm text-white/45 hover:text-white transition-colors"
+              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
             >
               MLH Code of Conduct
             </Link>
@@ -71,14 +72,14 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <p className="font-sans text-xs text-white/35">© 2027 Data Science @ GT</p>
+          <p className="font-sans text-[13px] text-ink-3">© 2027 Data Science @ GT</p>
           <div className="flex items-center gap-5">
             <Link
               href="https://instagram.com/dsgt"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
-              className="font-sans text-xs text-white/35 hover:text-white transition-colors"
+              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors"
             >
               Instagram
             </Link>
@@ -87,7 +88,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="font-sans text-xs text-white/35 hover:text-white transition-colors"
+              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors"
             >
               LinkedIn
             </Link>
@@ -96,7 +97,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Discord"
-              className="font-sans text-xs text-white/35 hover:text-white transition-colors"
+              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors"
             >
               Discord
             </Link>
@@ -104,7 +105,8 @@ export default function Footer() {
         </div>
       </div>
 
-      <PixelGround seed={9} count={14} />
+      {/* The page ends in the same bed it started in. */}
+      <PixelBed plants={FOOTER_BED} className="pt-6" plantable />
     </footer>
   );
 }
