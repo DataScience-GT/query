@@ -426,6 +426,80 @@ describe("Hackathon admin management edge cases", () => {
     });
   });
 
+  // =====================================================================
+  describe("Bug tester tier (read-only QA)", () => {
+    const testerCaller = (rows: Record<string, unknown> = {}) =>
+      adminCaller(rows, "bug_tester");
+
+    /**
+     * Reads must get past the staff gate. Whatever a query does after that is
+     * its own business; it must not fail on the role.
+     */
+    it("lets a bug tester run staff queries", async () => {
+      const caller = testerCaller({
+        hackathons: { id: HACK_A, name: "Hacklytics 2027" },
+        hackathonEvents: { id: EVENT_A, hackathonId: HACK_A },
+      });
+      mockFindMany.mockReturnValue([]);
+
+      const attendees = await caller.hackathon
+        .adminGetAttendees({ hackathonId: HACK_A })
+        .catch((e: Error) => e);
+      expect(String(attendees)).not.toMatch(/Admin access required|read-only/);
+
+      await expect(
+        caller.hackathon.getEventAttendees({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+        }),
+      ).resolves.toMatchObject({ matching: 0 });
+    });
+
+    /**
+     * The whole point of the tier: every write is refused at the gate, for
+     * full-staff, super-admin and scan-desk mutations alike, and nothing is
+     * written.
+     */
+    it("refuses a bug tester every mutation", async () => {
+      const caller = testerCaller({
+        hackathons: { id: HACK_A, name: "Hacklytics 2027" },
+      });
+
+      await expect(
+        caller.hackathon.batchUpdateParticipantStatus({
+          hackathonId: HACK_A,
+          participantIds: [PART_A1],
+          status: "approved",
+        }),
+      ).rejects.toThrow(/read-only/);
+
+      await expect(
+        caller.hackathon.delete({
+          hackathonId: HACK_A,
+          confirmName: "Hacklytics 2027",
+        }),
+      ).rejects.toThrow(/read-only/);
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).rejects.toThrow(/read-only/);
+
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("keeps super-admin queries closed to a bug tester", async () => {
+      const caller = testerCaller();
+
+      await expect(
+        caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
+      ).rejects.toThrow(/Super admin access required/);
+    });
+  });
+
   const liveHackathon = (overrides: Record<string, unknown> = {}) => ({
     id: HACK_A,
     name: "Hacklytics 2027",

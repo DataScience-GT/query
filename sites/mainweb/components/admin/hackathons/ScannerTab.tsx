@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { QrCode } from "lucide-react";
 import {
   body,
@@ -37,6 +38,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
     hackathonId,
   });
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const roster = trpc.hackathon.getEventAttendees.useQuery(
     { hackathonId, eventId: selectedEventId },
@@ -199,7 +201,8 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         <button
           type="button"
           onClick={() => setShowScanner(true)}
-          disabled={!selectedEventId || showScanner}
+          disabled={readOnly || !selectedEventId || showScanner}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
           className={`mt-6 w-full py-4 ${btnPrimary}`}
         >
           <QrCode className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
@@ -248,7 +251,8 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                     </div>
                     <button
                       type="button"
-                      disabled={removeAttendance.isPending}
+                      disabled={readOnly || removeAttendance.isPending}
+                      title={readOnly ? READ_ONLY_TITLE : undefined}
                       onClick={() => {
                         if (!row.participant?.id) return;
                         if (

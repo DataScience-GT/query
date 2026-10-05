@@ -323,8 +323,8 @@ export default function Dashboard() {
           </Destination>
         )}
 
-        {/* Admin Panel — admins only */}
-        {isAdmin && (
+        {/* Admin Panel — admins, and bug testers read-only */}
+        {(isAdmin || !!portalContext?.isBugTester) && (
           <Destination href="/admin" title="Admin Panel">
             Manage events, attendees, and analytics.
           </Destination>

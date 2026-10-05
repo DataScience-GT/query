@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { ModalWrapper } from "./ModalWrapper";
 import {
   btnPrimary,
@@ -33,6 +34,7 @@ export function EventAttendanceModal({
   onClose: () => void;
 }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -100,7 +102,7 @@ export function EventAttendanceModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && email.trim()) {
+                if (e.key === "Enter" && email.trim() && !readOnly) {
                   checkIn.mutate({ eventId, email: email.trim() });
                 }
               }}
@@ -110,7 +112,10 @@ export function EventAttendanceModal({
             <button
               type="button"
               onClick={() => checkIn.mutate({ eventId, email: email.trim() })}
-              disabled={checkIn.isPending || email.trim().length === 0}
+              disabled={
+                readOnly || checkIn.isPending || email.trim().length === 0
+              }
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={`${btnPrimary} shrink-0`}
             >
               {checkIn.isPending ? "Checking in…" : "Check in"}
@@ -167,7 +172,8 @@ export function EventAttendanceModal({
                       row.user &&
                       remove.mutate({ eventId, userId: row.user.id })
                     }
-                    disabled={remove.isPending}
+                    disabled={readOnly || remove.isPending}
+                    title={readOnly ? READ_ONLY_TITLE : undefined}
                     className={removeButton}
                   >
                     Remove

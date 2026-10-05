@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   btnPrimary,
   btnSecondary,
@@ -101,6 +102,7 @@ export function EditHackathonForm({
     setLoaded(true);
   }
 
+  const readOnly = useReadOnly();
   const updateMutation = trpc.hackathon.update.useMutation({
     onSuccess: () => onSaved(),
     onError: (e) => setError(e.message),
@@ -460,7 +462,8 @@ export function EditHackathonForm({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={updateMutation.isPending}
+                disabled={readOnly || updateMutation.isPending}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={btnPrimary}
               >
                 {updateMutation.isPending ? "Saving…" : "Save changes"}

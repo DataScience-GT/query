@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { usePortalContext } from "@/lib/use-portal-context";
+import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 
 export default function AdminLayout({
   children,
@@ -20,16 +20,16 @@ export default function AdminLayout({
     if (status === "unauthenticated") {
       window.location.href = loginHref();
     } else if (status === "authenticated" && !portalLoading) {
-      if (!portalContext?.isAdmin) {
+      if (!canViewAdmin(portalContext)) {
         router.push("/dashboard");
       }
     }
-  }, [status, portalContext?.isAdmin, portalLoading, router]);
+  }, [status, portalContext, portalLoading, router]);
 
   const loading = !(
     status === "authenticated" &&
     !portalLoading &&
-    portalContext?.isAdmin
+    canViewAdmin(portalContext)
   );
 
   if (loading) {
@@ -45,6 +45,16 @@ export default function AdminLayout({
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-muted)] font-sans selection:bg-accent/30 overflow-x-hidden flex flex-col md:flex-row">
       <div className="flex-1 transition-ui duration-300 w-full">
+        {portalContext?.isBugTester && (
+          <div
+            role="status"
+            className="border-b border-[var(--warning)]/40 bg-[var(--warning-glow)] px-4 py-2.5 text-[13px] text-[var(--text-primary)] md:px-6"
+          >
+            <span className="font-semibold">Read-only QA access.</span> You can
+            open every admin page. Buttons that would save, delete or check
+            someone in are greyed out.
+          </div>
+        )}
         <div className="p-4 md:p-6">{children}</div>
       </div>
     </div>

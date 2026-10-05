@@ -11,6 +11,7 @@ import { cache, clearMembershipCaches } from "../middleware/cache";
 import {
   EMPTY_MEMBER_CONTEXT,
   isStaffRole,
+  isBugTesterRole,
   isExpiredAdmin,
 } from "../types/portal-context";
 import type { MemberContext, PortalContext } from "../types/portal-context";
@@ -138,6 +139,7 @@ export async function fetchPortalContext(
     // renders nav that every one of those pages rejects.
     isAdmin: isStaffRole(staff?.role),
     isScanner: !!staff,
+    isBugTester: isBugTesterRole(staff?.role),
     role: staff?.role ?? null,
     permissions: staff?.permissions ?? [],
     isJudge: !!judgeRecord,
