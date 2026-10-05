@@ -20,8 +20,7 @@ const AboutSection: React.FC = () => {
               February 26–28, 2027.
             </p>
             <p className="font-sans text-[17px] md:text-[19px] text-ink-2 leading-[1.55] max-w-[60ch] mt-5">
-              Room for 1,000+ hackers. It costs nothing to attend: meals, swag,
-              and cloud credits are covered.
+              Room for 1,000+ hackers. It costs nothing to attend: meals and swag are covered.
             </p>
           </div>
         </div>

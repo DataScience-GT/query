@@ -17,6 +17,7 @@ import {
   GraduationCap,
   UserCircle,
   Calendar,
+  UsersRound,
 } from "lucide-react";
 import type { PortalContext } from "@query/api";
 
@@ -34,6 +35,7 @@ export type PortalNavSection = {
 
 type NavFlags = {
   isAdmin: boolean;
+  isBugTester: boolean;
   isScanner: boolean;
   isJudge: boolean;
   isMember: boolean;
@@ -43,6 +45,7 @@ type NavFlags = {
 function flags(ctx: PortalContext | undefined | null): NavFlags {
   return {
     isAdmin: !!ctx?.isAdmin,
+    isBugTester: !!ctx?.isBugTester,
     isScanner: !!ctx?.isScanner,
     isJudge: !!ctx?.isJudge,
     isMember: !!ctx?.member.isMember,
@@ -67,8 +70,12 @@ export function portalNavSections(
 ): PortalNavSection[] {
   const f = flags(ctx);
 
-  if (f.isAdmin) {
-    return [
+  // Bug testers browse the same admin tools read-only. The two links that
+  // only staff can load at all (initiative ownership, the super-admin staff
+  // page) are left out rather than shown as dead ends.
+  if (f.isAdmin || f.isBugTester) {
+    const staffOnly = new Set(["/lead", "/admin/staff"]);
+    const sections: PortalNavSection[] = [
       {
         id: "hackathon",
         label: "Hackathon",
@@ -84,13 +91,14 @@ export function portalNavSections(
         items: [
           { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
           { name: "Club Attendees", href: "/admin/attendees", icon: Users },
-          { name: "Club Check-In", href: "/scan/club", icon: Calendar },
+          { name: "Club Attendance", href: "/scan/club", icon: Calendar },
           { name: "Club Projects", href: "/admin/initiatives", icon: Rocket },
           {
             name: "Club Project Applications",
             href: "/lead",
             icon: Rocket,
           },
+          { name: "Subteams", href: "/admin/subteams", icon: UsersRound },
           { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
           { name: "Memberships", href: "/admin/members", icon: CreditCard },
           { name: "Resume Book", href: "/admin/resumes", icon: BookOpen },
@@ -101,6 +109,12 @@ export function portalNavSections(
         ],
       },
     ];
+    return f.isAdmin
+      ? sections
+      : sections.map((section) => ({
+          ...section,
+          items: section.items.filter((item) => !staffOnly.has(item.href)),
+        }));
   }
 
   const hackathon: PortalNavItem[] = [
@@ -133,10 +147,13 @@ export function portalNavSections(
     // Attendance is open to everyone; the Club Portal's scanner is not.
     { name: "Event Check-In", href: "/checkin", icon: QrCode },
     ...(f.isScanner
-      ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
+      ? [{ name: "Club Attendance", href: "/scan/club", icon: Calendar }]
       : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
     { name: "Club Projects", href: "/initiatives", icon: Rocket },
+    ...(f.isMember
+      ? [{ name: "Subteams", href: "/subteams", icon: UsersRound }]
+      : []),
     ...(f.isProjectLeader
       ? [{ name: "My Club Projects", href: "/lead", icon: Rocket }]
       : []),

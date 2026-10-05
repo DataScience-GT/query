@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../trpc";
 import {
   admins,
+  hackathonBans,
+  users,
   judges,
   judgingProjects,
   judgeQueue,
@@ -10,7 +12,11 @@ import {
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
 import { resolveHackathonId } from "../services/portal-context";
-import { isStaffRole, isExpiredAdmin } from "../types/portal-context";
+import {
+  isStaffRole,
+  isBugTesterRole,
+  isExpiredAdmin,
+} from "../types/portal-context";
 import type { Context } from "../context";
 
 // Admin check for a publicProcedure that widens its response for staff.
@@ -29,8 +35,10 @@ export const callerIsAdmin = async (ctx: Context) => {
     where: and(eq(admins.userId, ctx.userId), eq(admins.isActive, true)),
   });
 
-  const isStaff =
-    !!admin && admin.role !== "volunteer" && !isExpiredAdmin(admin);
+  // Staff only: this widens public responses and, through isProjectLeader,
+  // lets the caller act on other leaders' initiatives. A bug tester gets
+  // neither.
+  const isStaff = !!admin && isStaffRole(admin.role) && !isExpiredAdmin(admin);
 
   ctx.cache.set(cacheKey, isStaff, 60);
 
@@ -67,7 +75,7 @@ const loadAdminRow = async (ctx: Context) => {
 // Anyone staffing the event, volunteers included. Scoped to badge scanning
 // and its undo: a 2000-person event runs several check-in stations, and those
 // people should not hold the role that can delete the hackathon.
-export const isScanner = protectedProcedure.use(async ({ ctx, next }) => {
+export const isScanner = protectedProcedure.use(async ({ ctx, next, type }) => {
   const admin = await loadAdminRow(ctx);
 
   if (!admin) {
@@ -77,20 +85,36 @@ export const isScanner = protectedProcedure.use(async ({ ctx, next }) => {
     });
   }
 
+  if (isBugTesterRole(admin.role) && type !== "query") {
+    throw new TRPCError({ code: "FORBIDDEN", message: READ_ONLY_MESSAGE });
+  }
+
   return next({ ctx: { ...ctx, admin } });
 });
 
+const READ_ONLY_MESSAGE =
+  "Bug testers have read-only access. Ask an admin to make this change.";
+
 // Full staff. Volunteers are rejected here — they hold an admins row, so
-// without the role check they would pass every admin gate in the API. Cached
-// 60s per user to avoid a round trip on every request.
-export const isAdmin = protectedProcedure.use(async ({ ctx, next }) => {
+// without the role check they would pass every admin gate in the API. Bug
+// testers pass for queries only: the check is on the procedure type, so every
+// mutation behind this gate (and isSuperAdmin, built on it) refuses them
+// without each procedure having to remember to. Cached 60s per user to avoid
+// a round trip on every request.
+export const isAdmin = protectedProcedure.use(async ({ ctx, next, type }) => {
   const admin = await loadAdminRow(ctx);
 
-  if (!admin || !isStaffRole(admin.role)) {
+  const readOnly = !!admin && isBugTesterRole(admin.role);
+
+  if (!admin || (!isStaffRole(admin.role) && !readOnly)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Admin access required",
     });
+  }
+
+  if (readOnly && type !== "query") {
+    throw new TRPCError({ code: "FORBIDDEN", message: READ_ONLY_MESSAGE });
   }
 
   return next({ ctx: { ...ctx, admin } });
@@ -237,5 +261,53 @@ export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput })
     }
 
     return next({ ctx: { ...ctx, judge } });
+  },
+);
+
+/** Cache key for a hackathon-ban lookup. Shared with the ban/unban mutations. */
+export const hackathonBanCacheKey = (email: string) =>
+  `hackathon-ban:${email.trim().toLowerCase()}`;
+
+// Refuses people banned from hackathons. Goes on the procedures where someone
+// takes part — registering, the interest list, teams, submitting, applying to
+// judge — and not on reads or on the ways out (withdraw, leave), so a banned
+// person can still see and undo what they already did. The ban is by email,
+// so it holds across providers and new accounts on the same address. Cached
+// 60s, the negative answer too; ban and unban clear the key.
+export const notHackathonBanned = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    const db = ctx.db as NonNullable<typeof ctx.db>;
+
+    let email = ctx.session?.user?.email ?? null;
+    if (!email) {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, ctx.userId as string),
+        columns: { email: true },
+      });
+      email = user?.email ?? null;
+    }
+
+    if (email) {
+      const key = hackathonBanCacheKey(email);
+      let banned = ctx.cache.get<boolean>(key);
+      if (banned === null) {
+        const ban = await db.query.hackathonBans.findFirst({
+          where: eq(hackathonBans.email, email.trim().toLowerCase()),
+          columns: { id: true },
+        });
+        banned = !!ban;
+        ctx.cache.set(key, banned, 60);
+      }
+
+      if (banned) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "You can't take part in Hacklytics events. If you think this is a mistake, email hello@hacklytics.io.",
+        });
+      }
+    }
+
+    return next({ ctx });
   },
 );

@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import { body, btnPrimary, btnSecondary, pageDek } from "@/components/portal/ui"
 import { HackathonCard } from "@/components/admin/hackathons/HackathonCard";
 import { CreateHackathonForm } from "@/components/admin/hackathons/CreateHackathonForm";
 import { EditHackathonForm } from "@/components/admin/hackathons/EditHackathonForm";
+import { HackathonBans } from "@/components/admin/hackathons/HackathonBans";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]";
@@ -21,6 +23,7 @@ export default function AdminHackathonsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,6 +59,8 @@ export default function AdminHackathonsPage() {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={`shrink-0 self-start sm:self-auto ${btnPrimary}`}
           >
             New hackathon
@@ -119,6 +124,8 @@ export default function AdminHackathonsPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(true)}
+                disabled={readOnly}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={btnSecondary}
               >
                 Create the first one
@@ -140,6 +147,8 @@ export default function AdminHackathonsPage() {
               })}
             </div>
           )}
+
+          <HackathonBans />
         </div>
       </div>
     </>

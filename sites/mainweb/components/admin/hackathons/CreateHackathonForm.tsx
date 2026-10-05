@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   btnPrimary,
   btnSecondary,
@@ -51,6 +52,7 @@ export function CreateHackathonForm({
   const [status, setStatus] = useState<"draft" | "announced" | "open">("draft");
   const [error, setError] = useState("");
 
+  const readOnly = useReadOnly();
   const createMutation = trpc.hackathon.create.useMutation({
     onSuccess: () => onCreated(),
     onError: (e) => setError(e.message),
@@ -366,7 +368,8 @@ export function CreateHackathonForm({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={createMutation.isPending}
+            disabled={readOnly || createMutation.isPending}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
             className={btnPrimary}
           >
             {createMutation.isPending ? "Creating…" : "Create hackathon"}

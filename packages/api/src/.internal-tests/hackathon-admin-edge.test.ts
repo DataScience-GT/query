@@ -69,6 +69,7 @@ vi.mock("@query/db", () => {
         stripePayments: table("stripePayments"),
         userAccountLinks: table("userAccountLinks"),
         auditLogs: table("auditLogs"),
+        hackathonBans: table("hackathonBans"),
       },
       insert: (...insertArgs: any[]) => ({
         values: (...valArgs: any[]) => {
@@ -124,6 +125,12 @@ vi.mock("@query/db", () => {
       role: "role",
     },
     users: { _t: "users", id: "id", email: "email" },
+    hackathonBans: {
+      _t: "hackathonBans",
+      id: "id",
+      email: "email",
+      createdAt: "created_at",
+    },
     userProfiles: { _t: "userProfiles", userId: "user_id" },
     hackathons: {
       _t: "hackathons",
@@ -423,6 +430,154 @@ describe("Hackathon admin management edge cases", () => {
           eventId: EVENT_A,
         }),
       ).resolves.toBeDefined();
+    });
+  });
+
+  // =====================================================================
+  describe("Bug tester tier (read-only QA)", () => {
+    const testerCaller = (rows: Record<string, unknown> = {}) =>
+      adminCaller(rows, "bug_tester");
+
+    /**
+     * Reads must get past the staff gate. Whatever a query does after that is
+     * its own business; it must not fail on the role.
+     */
+    it("lets a bug tester run staff queries", async () => {
+      const caller = testerCaller({
+        hackathons: { id: HACK_A, name: "Hacklytics 2027" },
+        hackathonEvents: { id: EVENT_A, hackathonId: HACK_A },
+      });
+      mockFindMany.mockReturnValue([]);
+
+      const attendees = await caller.hackathon
+        .adminGetAttendees({ hackathonId: HACK_A })
+        .catch((e: Error) => e);
+      expect(String(attendees)).not.toMatch(/Admin access required|read-only/);
+
+      await expect(
+        caller.hackathon.getEventAttendees({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+        }),
+      ).resolves.toMatchObject({ matching: 0 });
+    });
+
+    /**
+     * The whole point of the tier: every write is refused at the gate, for
+     * full-staff, super-admin and scan-desk mutations alike, and nothing is
+     * written.
+     */
+    it("refuses a bug tester every mutation", async () => {
+      const caller = testerCaller({
+        hackathons: { id: HACK_A, name: "Hacklytics 2027" },
+      });
+
+      await expect(
+        caller.hackathon.batchUpdateParticipantStatus({
+          hackathonId: HACK_A,
+          participantIds: [PART_A1],
+          status: "approved",
+        }),
+      ).rejects.toThrow(/read-only/);
+
+      await expect(
+        caller.hackathon.delete({
+          hackathonId: HACK_A,
+          confirmName: "Hacklytics 2027",
+        }),
+      ).rejects.toThrow(/read-only/);
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).rejects.toThrow(/read-only/);
+
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("keeps super-admin queries closed to a bug tester", async () => {
+      const caller = testerCaller();
+
+      await expect(
+        caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
+      ).rejects.toThrow(/Super admin access required/);
+    });
+  });
+
+  // =====================================================================
+  describe("Hackathon bans", () => {
+    const BANNED = "Banned.Person@Example.com";
+
+    // A signed-in participant whose email comes from their user row, the
+    // path taken when the session carries no email.
+    const participant = (banned: boolean) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users") return { email: BANNED };
+        if (table === "hackathonBans") return banned ? { id: "ban-1" } : undefined;
+        return undefined;
+      });
+      return appRouter.createCaller(createMockCtx("participant-user"));
+    };
+
+    it("refuses a banned person every way of taking part", async () => {
+      const caller = participant(true);
+      const refused = /can't take part in Hacklytics/;
+
+      await expect(
+        caller.hackathon.registerInterest({ hackathonId: HACK_A }),
+      ).rejects.toThrow(refused);
+      await expect(
+        caller.team.joinTeam({ inviteCode: "ABCDEF" } as never),
+      ).rejects.toThrow(refused);
+      await expect(
+        caller.team.createTeam({ hackathonId: HACK_A, name: "Team" } as never),
+      ).rejects.toThrow(refused);
+    });
+
+    it("lets everyone else through the ban gate", async () => {
+      const caller = participant(false);
+      const result = await caller.hackathon
+        .registerInterest({ hackathonId: HACK_A })
+        .catch((e: Error) => e);
+      expect(String(result)).not.toMatch(/can't take part/);
+    });
+
+    it("stores the ban by lowercased email and audits it", async () => {
+      const caller = adminCaller({}, "admin");
+      mockInsert.mockReturnValue([{ id: "ban-1" }]);
+
+      await caller.hackathon.banFromHackathons({
+        email: BANNED,
+        reason: "Harassment at Hacklytics 2026",
+      });
+
+      const values = mockInsert.mock.calls.map((c) => c[2]?.[0]);
+      expect(values).toContainEqual(
+        expect.objectContaining({ email: "banned.person@example.com" }),
+      );
+      expect(values).toContainEqual(
+        expect.objectContaining({ action: "hackathon.ban" }),
+      );
+    });
+
+    it("refuses a bug tester banning or lifting", async () => {
+      const caller = adminCaller({}, "bug_tester");
+
+      await expect(
+        caller.hackathon.banFromHackathons({ email: BANNED, reason: "Test" }),
+      ).rejects.toThrow(/read-only/);
+      await expect(
+        caller.hackathon.liftHackathonBan({ email: BANNED }),
+      ).rejects.toThrow(/read-only/);
+    });
+
+    it("refuses a non-staff account the ban list", async () => {
+      await expect(participant(false).hackathon.listBans()).rejects.toThrow(
+        /Admin access required/,
+      );
     });
   });
 

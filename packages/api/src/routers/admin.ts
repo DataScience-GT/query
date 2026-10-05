@@ -307,7 +307,14 @@ export const adminRouter = createTRPCRouter({
         // "volunteer" is the check-in desk tier: an active admins row that isAdmin
         // deliberately rejects, so it grants badge scanning and nothing else. Without
         // it the only way to staff a scan station is a hand-written INSERT.
-        role: z.enum(["super_admin", "admin", "moderator", "volunteer"]),
+        // "bug_tester" is read-only QA: every staff query, no mutation.
+        role: z.enum([
+          "super_admin",
+          "admin",
+          "moderator",
+          "volunteer",
+          "bug_tester",
+        ]),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         // Fixed-term appointment. Omitted means standing, which is what the people
         // who run the club hold.
@@ -370,7 +377,7 @@ export const adminRouter = createTRPCRouter({
         // Same set as create — otherwise an existing admin could be made a volunteer
         // but a volunteer could never be promoted back.
         role: z
-          .enum(["super_admin", "admin", "moderator", "volunteer"])
+          .enum(["super_admin", "admin", "moderator", "volunteer", "bug_tester"])
           .optional(),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         isActive: z.boolean().optional(),
