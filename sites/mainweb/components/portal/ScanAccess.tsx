@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { body, sectionTitle, textLink } from "@/components/portal/ui";
 
 /**
  * Volunteers are not admins, so both check-in desks live outside /admin.
@@ -34,22 +34,17 @@ export function ScanAccess({ children }: { children: React.ReactNode }) {
 
   if (!portalContext?.isScanner) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <LiquidGlass className="p-12 max-w-md text-center">
-          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
-            Not a Scanner
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] font-mono mb-8">
+      <div className="flex min-h-screen items-center justify-center px-5 py-10">
+        <div className="w-full max-w-md">
+          <h1 className={sectionTitle}>You&apos;re not on event staff</h1>
+          <p className={`${body} mt-3`}>
             This is the event check-in desk. Ask an organiser to add you as
             event staff.
           </p>
-          <Link
-            href="/dashboard"
-            className="px-6 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors"
-          >
-            Back to Dashboard
+          <Link href="/dashboard" className={`${textLink} mt-6`}>
+            Back to dashboard
           </Link>
-        </LiquidGlass>
+        </div>
       </div>
     );
   }

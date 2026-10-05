@@ -6,14 +6,16 @@ import { trpc } from "@/lib/trpc";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { body, btnPrimary, btnSecondary, pageDek } from "@/components/portal/ui";
 
 // Extracted Components
 
 import { HackathonCard } from "@/components/admin/hackathons/HackathonCard";
 import { CreateHackathonForm } from "@/components/admin/hackathons/CreateHackathonForm";
 import { EditHackathonForm } from "@/components/admin/hackathons/EditHackathonForm";
-import { Layers, Plus, Zap } from "lucide-react";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]";
 
 export default function AdminHackathonsPage() {
   const { data: session, status } = useSession();
@@ -42,27 +44,23 @@ export default function AdminHackathonsPage() {
 
   return (
     <>
-      <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-            <Zap className="w-3 h-3" /> Admin
-          </p>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-            Hackathons
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Manage your hackathons, participants, and event check-in locations.
-          </p>
-        </div>
-        <div className="flex items-center justify-between">
+      <div className="mx-auto w-full max-w-5xl py-4 md:py-8">
+        <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className={adminTitle}>Hackathons</h1>
+            <p className={pageDek}>
+              Every edition, its schedule and who has signed up. Open one to
+              review applications, check people in and run judging.
+            </p>
+          </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+            className={`shrink-0 self-start sm:self-auto ${btnPrimary}`}
           >
-            <Plus className="w-4 h-4" />
             New hackathon
           </button>
-        </div>
+        </header>
 
         {showCreate && (
           <CreateHackathonForm
@@ -88,45 +86,46 @@ export default function AdminHackathonsPage() {
           />
         )}
 
-        <div className="space-y-8">
+        <div className="mt-10">
           {/* Checked before the skeleton: a failed query leaves data
               undefined, which used to hold the skeleton up forever. */}
           {isError ? (
-            <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
-              <p className="text-sm text-rose-400">
+            <div className="flex flex-col items-start gap-4 border-t border-[var(--border-subtle)] pt-6">
+              <p role="alert" className="text-[15px] text-[var(--danger)]">
                 Couldn&apos;t load hackathons. {error.message}
               </p>
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+                className={btnSecondary}
               >
                 Try again
               </button>
-            </LiquidGlass>
+            </div>
           ) : isLoading || hackathons === undefined ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {[1, 2, 3].map((n) => (
                 <div
                   key={n}
-                  className="animate-pulse bg-white/5 border border-[var(--border-subtle)] rounded-sm p-6 h-36"
+                  className="h-36 animate-pulse rounded-[var(--radius-md)] bg-[var(--bg-secondary)]"
                 />
               ))}
             </div>
           ) : hackathons.length === 0 ? (
-            <LiquidGlass
-              printed
-              className="p-8 text-center flex flex-col items-center gap-3"
-            >
-              <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
-                <Layers className="w-5 h-5 text-[var(--text-subtle)]" />
-              </div>
-              <p className="text-sm text-[var(--text-muted)]">
-                No hackathons yet. Create your first one to get started.
+            <div className="flex flex-col items-start gap-4 border-t border-[var(--border-subtle)] pt-6">
+              <p className={body}>
+                No hackathons yet. Each edition you create will be listed here.
               </p>
-            </LiquidGlass>
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                className={btnSecondary}
+              >
+                Create the first one
+              </button>
+            </div>
           ) : (
-            <div className="space-y-12">
+            <div className="space-y-8">
               {hackathons.map((h: NonNullable<typeof hackathons>[number]) => {
                 return (
                   <HackathonCard
