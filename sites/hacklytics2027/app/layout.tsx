@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Silkscreen } from "next/font/google";
 import Navbar from "../components/Navbar";
-import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import Footer from "../components/Footer";
 import { INTEREST_URL } from "../lib/links";
 
@@ -123,7 +122,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         {children}
         <Footer />
-        <ServiceWorkerRegistrar />
       </body>
     </html>
   );
