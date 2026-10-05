@@ -3,6 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { ModalWrapper } from "./ModalWrapper";
+import { itemTitle, label, meta } from "./ui";
 
 const Scanner = dynamic(
   () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
@@ -10,9 +11,7 @@ const Scanner = dynamic(
     ssr: false,
     loading: () => (
       <div className="h-[350px] flex items-center justify-center bg-[var(--bg-secondary)]">
-        <p className="text-[10px] text-[var(--text-subtle)] uppercase tracking-widest font-mono">
-          Starting camera...
-        </p>
+        <p className={meta}>Starting camera…</p>
       </div>
     ),
   },
@@ -42,33 +41,29 @@ export function QRScannerModal({
   return (
     <ModalWrapper onClose={handleClose} maxWidth="md">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-start gap-4 mb-5">
         <div>
-          <h3 className="text-xl font-black text-[var(--text-primary)] italic uppercase tracking-tighter">
-            QR Scanner
-          </h3>
-          <p className="text-[9px] font-mono text-accent uppercase tracking-widest">
-            Event Check-In System
-          </p>
+          <h3 className={itemTitle}>Scan a QR code</h3>
+          <p className={`${meta} mt-1`}>Point your camera at the code.</p>
         </div>
         <button
           type="button"
           onClick={handleClose}
           disabled={isProcessing}
-          className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
+          className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
         >
-          [ Close ]
+          Close
         </button>
       </div>
 
       {/* Camera Feed */}
-      <div className="relative rounded-none overflow-hidden border-2 border-accent/30">
+      <div className="relative rounded-[var(--radius-sm)] overflow-hidden border border-[var(--border-medium)]">
         {isProcessing && (
-          <div className="absolute inset-0 bg-[var(--bg-primary)]/80 z-10 flex items-center justify-center">
+          <div className="absolute inset-0 bg-[var(--bg-primary)]/85 z-10 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-sm animate-spin mx-auto mb-3" />
-              <p className="text-[10px] text-accent uppercase tracking-widest font-mono">
-                Verifying...
+              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-[13px] font-semibold text-[var(--text-primary)]">
+                Checking the code…
               </p>
             </div>
           </div>
@@ -96,14 +91,12 @@ export function QRScannerModal({
       </div>
 
       {/* Instructions */}
-      <div className="mt-4 bg-accent/10 border border-accent/30 rounded-none p-4">
-        <p className="text-[9px] text-accent uppercase tracking-widest font-bold mb-2">
-          Instructions:
-        </p>
-        <ul className="text-[8px] text-[var(--text-subtle)] space-y-1 font-mono">
-          <li>• Hold phone steady over QR code</li>
-          <li>• Ensure good lighting conditions</li>
-          <li>• Scan happens automatically</li>
+      <div className="mt-5">
+        <p className={label}>Tips</p>
+        <ul className="mt-1.5 list-disc pl-5 space-y-1 text-[13px] text-[var(--text-muted)] marker:text-[var(--text-subtle)]">
+          <li>Hold the phone steady over the code.</li>
+          <li>Find good light; glare on a screen can block the scan.</li>
+          <li>The scan happens on its own, no button needed.</li>
         </ul>
       </div>
     </ModalWrapper>

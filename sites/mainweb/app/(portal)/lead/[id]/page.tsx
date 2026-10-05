@@ -2,8 +2,6 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   ApplicationChip,
@@ -11,11 +9,33 @@ import {
   initiativeState,
   seatLabel,
 } from "@/components/portal/initiatives/chips";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  label,
+  meta,
+  page,
+  pageDek,
+  pageTitle,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@query/api";
 import type { ApplicationStatus } from "@query/db";
 
 type Applicant = RouterOutputs["initiative"]["getById"]["applicants"][number];
+
+const errorText = "text-sm text-[var(--danger)]";
+const quietAction =
+  "text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:text-[var(--danger)] disabled:opacity-50";
+const backLink =
+  "text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]";
+const factRow =
+  "grid grid-cols-1 gap-1 border-b border-[var(--border-subtle)] py-3.5 sm:grid-cols-[200px_1fr] sm:gap-6";
+const factValue = "text-[15px] font-semibold text-[var(--text-primary)]";
 
 function ApplicantRow({
   initiativeId,
@@ -52,22 +72,27 @@ function ApplicantRow({
     decide.mutate({ initiativeId, userId: applicant.userId, decision });
 
   return (
-    <LiquidGlass className="p-4">
+    <li className="border-b border-[var(--border-subtle)] py-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-white">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-[15px] font-semibold text-[var(--text-primary)]">
               {applicant.name ?? applicant.email}
             </p>
             <ApplicationChip status={applicant.status} side="leader" />
           </div>
-          <p className="mt-0.5 text-sm text-white/50">
-            <a href={`mailto:${applicant.email}`} className="hover:text-white">
+          <p className={`${meta} mt-0.5`}>
+            <a
+              href={`mailto:${applicant.email}`}
+              className="transition-colors hover:text-[var(--text-primary)]"
+            >
               {applicant.email}
             </a>
           </p>
           {applicant.pitch && (
-            <p className="mt-2 whitespace-pre-line border-l-2 border-white/10 pl-3 text-sm text-white/80">
+            <p
+              className={`${body} mt-3 max-w-2xl whitespace-pre-line border-l-2 border-[var(--border-medium)] pl-3`}
+            >
               {applicant.pitch}
             </p>
           )}
@@ -77,7 +102,7 @@ function ApplicantRow({
               <a
                 href={resume.data.dataUrl}
                 download={resume.data.fileName}
-                className="mt-2 inline-block text-sm font-semibold text-white underline"
+                className={`${textLink} mt-3`}
               >
                 Download {resume.data.fileName}
               </a>
@@ -86,7 +111,7 @@ function ApplicantRow({
                 type="button"
                 onClick={() => setWantResume(true)}
                 disabled={resume.isFetching}
-                className="mt-2 text-sm font-semibold text-white/80 underline hover:text-white disabled:opacity-50"
+                className={`${textLink} mt-3 disabled:opacity-50`}
               >
                 {resume.isFetching
                   ? "Loading resume…"
@@ -94,20 +119,20 @@ function ApplicantRow({
               </button>
             ))}
           {resume.error && (
-            <p aria-live="polite" className="mt-2 text-sm text-red-300">
+            <p aria-live="polite" className={`${errorText} mt-2`}>
               {resume.error.message}
             </p>
           )}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
           {applicant.status === "pending" && (
             <>
               <button
                 type="button"
                 disabled={decide.isPending || full}
                 onClick={() => send("accepted")}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+                className={btnPrimary}
               >
                 Accept
               </button>
@@ -115,7 +140,7 @@ function ApplicantRow({
                 type="button"
                 disabled={decide.isPending}
                 onClick={() => send("rejected")}
-                className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5 disabled:opacity-40"
+                className={btnDanger}
               >
                 Reject
               </button>
@@ -127,7 +152,7 @@ function ApplicantRow({
               type="button"
               disabled={decide.isPending || full}
               onClick={() => send("accepted")}
-              className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5 disabled:opacity-40"
+              className={btnSecondary}
             >
               Accept after all
             </button>
@@ -136,7 +161,9 @@ function ApplicantRow({
           {applicant.status === "accepted" &&
             (confirmRemove ? (
               <>
-                <span className="text-sm text-white/60">Take them off?</span>
+                <span className="text-sm text-[var(--text-muted)]">
+                  Take them off the team?
+                </span>
                 <button
                   type="button"
                   disabled={decide.isPending}
@@ -144,14 +171,14 @@ function ApplicantRow({
                     send("rejected");
                     setConfirmRemove(false);
                   }}
-                  className="rounded-full bg-red-500/20 px-3 py-1.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/30"
+                  className={btnDanger}
                 >
-                  Yes
+                  Remove
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmRemove(false)}
-                  className="rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-white/80"
+                  className={btnSecondary}
                 >
                   Cancel
                 </button>
@@ -160,7 +187,7 @@ function ApplicantRow({
               <button
                 type="button"
                 onClick={() => setConfirmRemove(true)}
-                className="text-sm font-semibold text-white/50 transition hover:text-red-300"
+                className={quietAction}
               >
                 Remove
               </button>
@@ -169,9 +196,9 @@ function ApplicantRow({
       </div>
 
       {decide.error && (
-        <p className="mt-3 text-sm text-red-300">{decide.error.message}</p>
+        <p className={`${errorText} mt-3`}>{decide.error.message}</p>
       )}
-    </LiquidGlass>
+    </li>
   );
 }
 
@@ -186,12 +213,14 @@ function Group({
 }) {
   if (rows.length === 0) return null;
   return (
-    <section className="mt-8">
-      <h2 className="mb-3 flex items-baseline justify-between text-xs font-semibold uppercase tracking-wide text-white/50">
-        {title}
-        <span>{rows.length}</span>
-      </h2>
-      <div className="space-y-3">{rows.map(render)}</div>
+    <section className="mt-12">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className={sectionTitle}>{title}</h2>
+        <span className={`${meta} tabular-nums`}>{rows.length}</span>
+      </div>
+      <ul className="mt-4 border-t border-[var(--border-subtle)]">
+        {rows.map(render)}
+      </ul>
     </section>
   );
 }
@@ -208,16 +237,17 @@ export default function LeadInitiativePage({
 
   if (detail.error) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <LiquidGlass className="p-8 text-center">
-          <p className="font-semibold text-white">{detail.error.message}</p>
-          <Link
-            href="/lead"
-            className="mt-4 inline-block text-sm font-semibold text-white underline"
-          >
-            Back to your projects
-          </Link>
-        </LiquidGlass>
+      <div className={page}>
+        <Link href="/lead" className={backLink}>
+          ← Your projects
+        </Link>
+        <h1 className={`${pageTitle} mt-6`}>This project did not load</h1>
+        <p className={pageDek}>
+          {detail.error.message} Go back to your projects and open it again.
+        </p>
+        <Link href="/lead" className={`${textLink} mt-6`}>
+          Back to your projects
+        </Link>
       </div>
     );
   }
@@ -240,48 +270,67 @@ export default function LeadInitiativePage({
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <Link
-        href="/lead"
-        className="mb-6 inline-flex items-center gap-1 text-sm font-semibold text-white/60 transition hover:text-white"
-      >
-        <ChevronLeft className="h-4 w-4" /> Back to your projects
+    <div className={page}>
+      <Link href="/lead" className={backLink}>
+        ← Your projects
       </Link>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-white">{initiative.title}</h1>
-        <InitiativeChip state={state} />
-      </div>
-      <p className="mt-2 text-white/60">
-        {seatLabel(accepted, initiative.maxMembers)}
-        {initiative.commitment ? ` · ${initiative.commitment}` : ""}
-      </p>
+      <header className="mt-6">
+        <h1 className={pageTitle}>{initiative.title}</h1>
 
-      {/* Said once, at the top: every Accept below is off and the reason has to
-          be readable without hovering a disabled button. */}
-      {full && (
-        <p className="mt-3 text-sm text-white/60">
-          Every spot is taken. Raise the team size, or remove somebody, before
-          accepting anyone else.
-        </p>
-      )}
+        {/* Said once, at the top: every Accept below is off and the reason has to
+            be readable without hovering a disabled button. */}
+        {full && (
+          <p className={pageDek}>
+            Every spot is taken. Raise the team size, or remove somebody, before
+            accepting anyone else.
+          </p>
+        )}
 
-      {state === "draft" && (
-        <p className="mt-3 text-sm text-white/60">
-          This is still a draft, so members cannot see it or apply. Open it from
-          your projects list.
-        </p>
-      )}
+        {state === "draft" && (
+          <p className={pageDek}>
+            This is still a draft, so members cannot see it or apply. Open it
+            from your projects list.
+          </p>
+        )}
+      </header>
+
+      <dl className="mt-8 max-w-3xl border-t border-[var(--border-subtle)]">
+        <div className={factRow}>
+          <dt className={label}>Status</dt>
+          <dd>
+            <InitiativeChip state={state} />
+          </dd>
+        </div>
+        <div className={factRow}>
+          <dt className={label}>Team</dt>
+          <dd className={factValue}>
+            {seatLabel(accepted, initiative.maxMembers)}
+          </dd>
+        </div>
+        {initiative.commitment && (
+          <div className={factRow}>
+            <dt className={label}>Commitment</dt>
+            <dd className={factValue}>{initiative.commitment}</dd>
+          </div>
+        )}
+      </dl>
 
       {applicants.length === 0 ? (
-        <LiquidGlass className="mt-8 p-8 text-center">
-          <p className="font-semibold text-white">Nobody has applied yet.</p>
-          <p className="mt-2 text-sm text-white/60">
+        <section className="mt-12">
+          <h2 className={sectionTitle}>Applications</h2>
+          <p className={`${body} mt-3 max-w-xl`}>
+            Nobody has applied yet.{" "}
             {state === "open"
               ? "It is open, so it is showing on the members' projects page."
               : "Open it from your projects list and it will start showing to members."}
           </p>
-        </LiquidGlass>
+          {state !== "open" && (
+            <Link href="/lead" className={`${textLink} mt-4`}>
+              Go to your projects
+            </Link>
+          )}
+        </section>
       ) : (
         <>
           <Group

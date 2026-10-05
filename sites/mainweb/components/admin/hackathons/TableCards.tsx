@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { body, btnSecondary, meta, sectionTitle } from "@/components/portal/ui";
 import { Check, Copy, Nfc, Printer } from "lucide-react";
 
 /** Web NFC is Chrome on Android only and not in the TS DOM lib. */
@@ -107,34 +107,28 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
 
   if (isLoading) {
     return (
-      <p className="text-[var(--text-subtle)] font-mono text-center py-20 animate-pulse">
-        Building table cards...
-      </p>
+      <p className={`py-20 ${meta}`}>Building table cards…</p>
     );
   }
 
   if (!cards || cards.length === 0) {
     return (
-      <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
-        <h3 className="text-[var(--text-primary)] font-bold mb-1">
-          No tables yet
-        </h3>
-        <p className="text-sm text-[var(--text-subtle)] font-mono">
+      <section>
+        <h2 className={sectionTitle}>No tables yet</h2>
+        <p className={`mt-1 max-w-xl ${body}`}>
           Sync submissions into judging first — each project gets a table number
           and a code at that point.
         </p>
-      </LiquidGlass>
+      </section>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 print:hidden">
         <div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-wider">
-            Table Cards
-          </h2>
-          <p className="text-sm font-mono text-[var(--text-subtle)]">
+          <h2 className={sectionTitle}>Table cards</h2>
+          <p className={`mt-1 max-w-2xl ${body}`}>
             {cards.length} card(s). Print and put one on each table — judges
             scan it to start scoring. For tap-to-start, stick an NFC tag on
             each card and write its table link to it.
@@ -143,9 +137,9 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
         <button
           type="button"
           onClick={() => window.print()}
-          className="px-4 py-2 bg-white/5 border border-[var(--border-subtle)] hover:bg-white/10 transition-colors rounded-none font-mono text-xs uppercase tracking-wider font-bold text-[var(--text-primary)] flex items-center gap-2"
+          className={`shrink-0 ${btnSecondary}`}
         >
-          <Printer className="w-4 h-4" /> Print
+          <Printer className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" /> Print
         </button>
       </div>
 
@@ -154,12 +148,12 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
           <div
             key={card.id}
             // break-inside-avoid so a card is never split across two sheets.
-            className="bg-white text-black p-8 text-center break-inside-avoid border border-[var(--border-subtle)]"
+            className="rounded-[var(--radius-md)] bg-white text-black p-8 text-center break-inside-avoid border border-[var(--border-subtle)]"
           >
-            <p className="text-5xl font-black tracking-tighter mb-1">
+            <p className="font-[family-name:var(--font-display)] text-5xl font-semibold tabular-nums mb-1">
               {card.tableNumber}
             </p>
-            <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-500 mb-5">
+            <p className="text-[13px] text-neutral-500 mb-5">
               {card.zone ? `Zone ${card.zone}` : "Table"}
             </p>
             {images[card.id] ? (
@@ -173,13 +167,13 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
             ) : (
               <div className="w-48 h-48 mx-auto bg-neutral-100" />
             )}
-            <p className="mt-5 text-lg font-bold leading-tight">{card.name}</p>
+            <p className="mt-5 font-[family-name:var(--font-display)] text-[22px] font-semibold leading-snug">{card.name}</p>
             {card.teamMembers ? (
-              <p className="text-xs text-neutral-500 mt-1">
+              <p className="text-[13px] text-neutral-500 mt-1">
                 {card.teamMembers}
               </p>
             ) : null}
-            <p className="mt-4 text-[10px] font-mono uppercase tracking-widest text-neutral-400">
+            <p className="mt-4 text-[13px] text-neutral-500">
               Judges: tap or scan to begin
             </p>
 
@@ -190,27 +184,27 @@ export function TableCards({ hackathonId }: { hackathonId: string }) {
                   type="button"
                   onClick={() => writeTag(card.id, card.qrCode)}
                   disabled={writes[card.id] === "writing"}
-                  className="px-3 py-2 bg-black text-white text-[11px] font-mono uppercase tracking-wider font-bold flex items-center gap-2 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-black px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
                 >
-                  <Nfc className="w-4 h-4" />
+                  <Nfc className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
                   {writes[card.id] === "writing" ? "Hold tag to phone…" : "Write NFC tag"}
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => copyLink(card.id, card.qrCode)}
-                className="px-3 py-2 border border-neutral-300 text-neutral-700 text-[11px] font-mono uppercase tracking-wider font-bold flex items-center gap-2 hover:bg-neutral-100"
+                className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] border border-neutral-300 px-3 py-2 text-[13px] font-semibold text-neutral-800 hover:bg-neutral-100"
               >
-                <Copy className="w-4 h-4" /> Copy link
+                <Copy className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" /> Copy link
               </button>
               {(writes[card.id] === "written" || writes[card.id] === "copied") && (
-                <span className="flex items-center gap-1 text-[11px] font-mono text-green-700">
-                  <Check className="w-4 h-4" />
+                <span className="flex items-center gap-1 text-[13px] text-neutral-700">
+                  <Check className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
                   {writes[card.id] === "written" ? "Tag written" : "Copied"}
                 </span>
               )}
               {typeof writes[card.id] === "object" && (
-                <p role="alert" className="basis-full text-[11px] font-mono text-red-700">
+                <p role="alert" className="basis-full text-[13px] text-red-700">
                   {(writes[card.id] as { error: string }).error}
                 </p>
               )}
