@@ -2,7 +2,12 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { usePortalContext } from "@/lib/use-portal-context";
+import {
+  canViewAdmin,
+  READ_ONLY_TITLE,
+  usePortalContext,
+  useReadOnly,
+} from "@/lib/use-portal-context";
 import { useState } from "react";
 import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
@@ -53,9 +58,10 @@ export default function AdminPage() {
   const [editError, setEditError] = useState<string | null>(null);
 
   const { data: portalContext } = usePortalContext();
+  const readOnly = useReadOnly();
   const { data: allEvents, isLoading: eventsLoading } =
     trpc.events.listAll.useQuery(undefined, {
-      enabled: !!session && !!portalContext?.isAdmin,
+      enabled: !!session && canViewAdmin(portalContext),
     });
   // Bootcamp sessions have their own check-in controls on /admin/bootcamp.
   const events = allEvents?.filter((e) => e.bootcampWeek == null);
@@ -228,6 +234,8 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateEvent(true)}
+                disabled={readOnly}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={btnPrimary}
               >
                 New event
@@ -253,7 +261,9 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateEvent(true)}
-                className={`${textLink} mt-4`}
+                disabled={readOnly}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={`${textLink} mt-4 disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 Create the first event
               </button>
@@ -315,6 +325,8 @@ export default function AdminPage() {
                               enabled: !event.checkInEnabled,
                             })
                           }
+                          disabled={readOnly}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
                           className={btnSecondary}
                         >
                           {event.checkInEnabled
@@ -331,7 +343,9 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => setEditingEvent(event)}
-                          className={textLink}
+                          disabled={readOnly}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
+                          className={`${textLink} disabled:cursor-not-allowed disabled:opacity-50`}
                         >
                           Edit
                         </button>
@@ -348,6 +362,8 @@ export default function AdminPage() {
                               deleteEventMutation.mutate({ eventId: event.id });
                             }
                           }}
+                          disabled={readOnly}
+                          title={readOnly ? READ_ONLY_TITLE : undefined}
                           className={btnDanger}
                         >
                           Delete
