@@ -6,6 +6,7 @@ import { hackathonEventsRouter } from "./events";
 import { hackathonContentRouter } from "./content";
 import { hackathonInterestRouter } from "./interest";
 import { hackathonAnnounceRouter } from "./announce";
+import { hackathonBansRouter } from "./bans";
 
 export const hackathonRouter = mergeRouters(
   hackathonCrudRouter,
@@ -15,4 +16,5 @@ export const hackathonRouter = mergeRouters(
   hackathonContentRouter,
   hackathonInterestRouter,
   hackathonAnnounceRouter,
+  hackathonBansRouter,
 );
