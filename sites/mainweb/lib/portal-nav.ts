@@ -90,7 +90,7 @@ export function portalNavSections(
         items: [
           { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
           { name: "Club Attendees", href: "/admin/attendees", icon: Users },
-          { name: "Club Check-In", href: "/scan/club", icon: Calendar },
+          { name: "Club Attendance", href: "/scan/club", icon: Calendar },
           { name: "Club Projects", href: "/admin/initiatives", icon: Rocket },
           {
             name: "Club Project Applications",
@@ -145,7 +145,7 @@ export function portalNavSections(
     // Attendance is open to everyone; the Club Portal's scanner is not.
     { name: "Event Check-In", href: "/checkin", icon: QrCode },
     ...(f.isScanner
-      ? [{ name: "Club Check-In", href: "/scan/club", icon: Calendar }]
+      ? [{ name: "Club Attendance", href: "/scan/club", icon: Calendar }]
       : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
     { name: "Club Projects", href: "/initiatives", icon: Rocket },
