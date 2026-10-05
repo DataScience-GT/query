@@ -29,10 +29,65 @@
   --rule: #2a312d;
 
   --bloom: #ff4f8b;
+  --bloom-hover: #ff6a9d;
   --bloom-deep: #b8285a;
   --on-bloom: #16060c;
+  --line-border: #39413c;
+
+  /* Neon halo on blooming flowers. */
+  --glow-1: #ff4f8b;
+  --glow-2: #ff4f8b;
+  --glow-3: rgba(255, 79, 139, 0.45);
 
   --navbar-height: 72px;
+  color-scheme: dark;
+}
+
+/* Day: the same greenhouse with the lights on. A cool sage ground (not
+   cream), near-black ink, and a deeper pink, since the night pink is too
+   light to read as text on a pale ground. Used when the visitor picks light,
+   or has no choice saved and their system is light. */
+:root[data-theme="light"] {
+  --ground: #eef1ec;
+  --raised: #f7f8f5;
+  --ink: #121613;
+  --ink-2: #444c46;
+  --ink-3: #5f6761; /* meta: ≥4.5:1 on ground */
+  --rule: #d3d9d3;
+
+  --bloom: #c2185b;
+  --bloom-hover: #a8134d;
+  --bloom-deep: #8e0f41;
+  --on-bloom: #ffffff;
+  --line-border: #bfc7c0;
+
+  --glow-1: rgba(194, 24, 91, 0.55);
+  --glow-2: rgba(194, 24, 91, 0.35);
+  --glow-3: rgba(194, 24, 91, 0.18);
+
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ground: #eef1ec;
+    --raised: #f7f8f5;
+    --ink: #121613;
+    --ink-2: #444c46;
+    --ink-3: #5f6761;
+    --rule: #d3d9d3;
+
+    --bloom: #c2185b;
+    --bloom-hover: #a8134d;
+    --bloom-deep: #8e0f41;
+    --on-bloom: #ffffff;
+    --line-border: #bfc7c0;
+
+    --glow-1: rgba(194, 24, 91, 0.55);
+    --glow-2: rgba(194, 24, 91, 0.35);
+    --glow-3: rgba(194, 24, 91, 0.18);
+
+    color-scheme: light;
+  }
 }
 
 /* ─── Base ─── */
@@ -115,10 +170,10 @@ body {
     background: var(--bloom);
     color: var(--on-bloom);
   }
-  .btn-bloom:hover { background: #ff6a9d; }
+  .btn-bloom:hover { background: var(--bloom-hover); }
   .btn-bloom:active { background: var(--bloom-deep); color: var(--ink); }
   .btn-line {
-    border: 1px solid #39413c;
+    border: 1px solid var(--line-border);
     color: var(--ink);
   }
   .btn-line:hover { border-color: var(--ink-3); }
@@ -174,9 +229,9 @@ body {
   will-change: opacity;
   transform-origin: 50% calc(var(--top) / 2);
   filter:
-    drop-shadow(0 0 2px #ff4f8b)
-    drop-shadow(0 0 8px #ff4f8b)
-    drop-shadow(0 0 22px rgba(255, 79, 139, 0.45));
+    drop-shadow(0 0 2px var(--glow-1))
+    drop-shadow(0 0 8px var(--glow-2))
+    drop-shadow(0 0 22px var(--glow-3));
 }
 
 [data-bloom="on"] .flower-stem {
