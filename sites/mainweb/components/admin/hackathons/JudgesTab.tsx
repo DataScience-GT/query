@@ -5,8 +5,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { UserPlus, Gavel, Copy } from "lucide-react";
+import { UserPlus, Copy } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnInk,
+  btnPrimary,
+  btnSecondary,
+  fieldLabel,
+  input,
+  itemTitle,
+  label,
+  meta,
+  object,
+  sectionRule,
+  sectionTitle,
+  status,
+  textLink,
+} from "@/components/portal/ui";
 
 export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
@@ -293,99 +309,104 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   }
 
   if (judgesLoading) {
-    return (
-      <div className="text-[var(--text-subtle)] font-mono text-center py-20 animate-pulse">
-        Loading Judges...
-      </div>
-    );
+    return <p className={`py-16 ${body}`}>Loading judges…</p>;
   }
 
+  const totalVotes =
+    rankings?.rankings?.reduce((sum, r) => sum + r.votes.length, 0) || 0;
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+    <div className="space-y-12">
       {/* Judging Control Panel */}
-      <LiquidGlass className="p-6 border-[var(--border-subtle)] relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
-              <Gavel className="w-4 h-4 text-purple-400" />
-              Judging Controls
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-[var(--text-subtle)] uppercase tracking-wider">
-                Status:
-              </span>
-              <span
-                className={`px-2 py-1 rounded text-xs font-mono font-bold uppercase tracking-wider ${judgingStatus?.active ? "text-green-400 bg-green-500/10 border border-green-500/20" : "text-red-400 bg-red-500/10 border border-red-500/20"}`}
-              >
-                {judgingStatus?.active ? "LIVE" : "INACTIVE"}
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Judging opens onto whatever is queued; promoting submissions
-              and assigning judges happen on the Judging page. */}
-            {!judgingStatus?.active && (
-              <Link
-                href={`/admin/judging?hackathonId=${hackathonId}`}
-                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
-              >
-                Prepare judging
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                toggleJudging.mutate({
-                  hackathonId,
-                  active: !judgingStatus?.active,
-                })
-              }
-              disabled={toggleJudging.isPending}
-              className={`px-6 py-3 text-sm font-bold uppercase tracking-wider rounded-none transition-ui disabled:opacity-50 ${
-                judgingStatus?.active
-                  ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
-                  : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
-              }`}
+      <section className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h2 className={sectionTitle}>Judging</h2>
+          <p className="mt-2">
+            <span className={status(judgingStatus?.active ? "accent" : "neutral")}>
+              {judgingStatus?.active ? "Live" : "Not running"}
+            </span>
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Judging opens onto whatever is queued; promoting submissions
+            and assigning judges happen on the Judging page. */}
+          {!judgingStatus?.active && (
+            <Link
+              href={`/admin/judging?hackathonId=${hackathonId}`}
+              className={btnSecondary}
             >
-              {judgingStatus?.active ? "Stop Judging" : "Start Judging"}
-            </button>
+              Prepare judging
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              toggleJudging.mutate({
+                hackathonId,
+                active: !judgingStatus?.active,
+              })
+            }
+            disabled={toggleJudging.isPending}
+            className={judgingStatus?.active ? btnDanger : btnPrimary}
+          >
+            {judgingStatus?.active ? "Stop judging" : "Start judging"}
+          </button>
+        </div>
+      </section>
+
+      {(judgeError || queueNotice) && (
+        <div className="-mt-6 space-y-3">
+          {judgeError && (
+            <p
+              role="alert"
+              className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
+            >
+              {judgeError}
+            </p>
+          )}
+
+          {queueNotice && (
+            <p
+              role="status"
+              className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]"
+            >
+              {queueNotice}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Stats */}
+      <dl className="flex flex-wrap gap-y-4">
+        {[
+          { label: "Assigned judges", value: assignedJudges.length },
+          { label: "Judges in total", value: allJudges?.length || 0 },
+          { label: "Projects", value: rankings?.rankings?.length || 0 },
+          { label: "Votes", value: totalVotes },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="pr-6 mr-6 border-r border-[var(--border-subtle)] last:border-r-0 last:mr-0 last:pr-0"
+          >
+            <dt className={label}>{stat.label}</dt>
+            <dd className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
+              {stat.value}
+            </dd>
           </div>
-        </div>
-      </LiquidGlass>
-
-      {judgeError && (
-        <div
-          role="alert"
-          className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-mono text-red-300"
-        >
-          {judgeError}
-        </div>
-      )}
-
-      {queueNotice && (
-        <div
-          role="status"
-          className="border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-mono text-accent"
-        >
-          {queueNotice}
-        </div>
-      )}
+        ))}
+      </dl>
 
       {/* Results — computed once judging closes, reviewed, then published. */}
-      <LiquidGlass className="p-6 border-[var(--border-subtle)]">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <section className={sectionRule}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
           <div>
-            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
-              <Gavel className="w-4 h-4 text-amber-400" />
-              Results
-            </h3>
-            <p className="text-xs font-mono text-[var(--text-subtle)]">
+            <h3 className={itemTitle}>Results</h3>
+            <p className={`mt-1 ${meta}`}>
               {!hasDraft
                 ? "Not computed yet. Scores move with every vote until you freeze them."
                 : isPublished
-                  ? `Published — ${resultsDraft?.length} placing(s) visible to everyone.`
-                  : `Draft ready — ${resultsDraft?.length} placing(s), not yet visible.`}
+                  ? `Published. ${resultsDraft?.length} placing(s) visible to everyone.`
+                  : `Draft ready. ${resultsDraft?.length} placing(s), not visible yet.`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -400,7 +421,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 });
               }}
               disabled={computeResults.isPending || isPublished}
-              className="px-5 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest rounded-none hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className={btnSecondary}
             >
               {computeResults.isPending
                 ? "Computing…"
@@ -408,7 +429,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   ? "Compute anyway"
                   : hasDraft
                     ? "Recompute"
-                    : "Compute"}
+                    : "Compute results"}
             </button>
             {/* Publishing shows the results on the public tab; telling people
                 was a separate step nobody was prompted about. */}
@@ -417,9 +438,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 type="button"
                 onClick={announceResults}
                 disabled={announcing}
-                className="px-5 py-3 bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-30"
+                className={btnSecondary}
               >
-                {announcing ? "Announcing…" : "Announce Results"}
+                {announcing ? "Announcing…" : "Email results"}
               </button>
             )}
             {hasDraft &&
@@ -428,9 +449,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   type="button"
                   onClick={() => unpublishResults.mutate({ hackathonId })}
                   disabled={unpublishResults.isPending}
-                  className="px-5 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-red-500/20 transition-colors disabled:opacity-30"
+                  className={btnDanger}
                 >
-                  {unpublishResults.isPending ? "…" : "Unpublish"}
+                  {unpublishResults.isPending ? "Unpublishing…" : "Unpublish"}
                 </button>
               ) : (
                 <button
@@ -445,9 +466,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     publishResults.mutate({ hackathonId });
                   }}
                   disabled={publishResults.isPending}
-                  className="px-5 py-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-amber-500/20 transition-colors disabled:opacity-30"
+                  className={btnInk}
                 >
-                  {publishResults.isPending ? "…" : "Publish"}
+                  {publishResults.isPending ? "Publishing…" : "Publish results"}
                 </button>
               ))}
           </div>
@@ -456,89 +477,50 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
         {resultsError && (
           <p
             role="alert"
-            className="mt-4 text-xs font-mono text-amber-300 leading-relaxed"
+            className="mt-4 border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--warning)]"
           >
             {resultsError}
           </p>
         )}
 
         {hasDraft && (
-          <ol className="mt-5 space-y-1 max-h-64 overflow-y-auto">
+          <ol className="mt-5 max-h-64 overflow-y-auto border-t border-[var(--border-subtle)]">
             {resultsDraft?.slice(0, 20).map((row) => (
               <li
                 key={row.id}
-                className="flex items-center justify-between gap-3 text-xs font-mono border-b border-[var(--border-subtle)] py-2"
+                className="flex items-baseline justify-between gap-3 border-b border-[var(--border-subtle)] py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 <span className="text-[var(--text-primary)] truncate">
-                  <span className="text-accent font-bold mr-3">
-                    #{row.placement}
+                  <span className="inline-block w-10 font-semibold tabular-nums text-[var(--text-subtle)]">
+                    {row.placement}
                   </span>
                   {row.project?.name ?? "Unknown"}
                 </span>
-                <span className="text-[var(--text-subtle)] shrink-0">
+                <span className="shrink-0 tabular-nums text-[var(--text-subtle)]">
                   {row.weightedScore ?? "—"} · {row.voteCount} vote(s)
                 </span>
               </li>
             ))}
           </ol>
         )}
-      </LiquidGlass>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 rounded-none bg-purple-500/5 border border-purple-500/15 text-left">
-          <p className="text-2xl font-black font-mono text-purple-400">
-            {assignedJudges.length}
-          </p>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-widest mt-1">
-            Assigned Judges
-          </p>
-        </div>
-        <div className="p-4 rounded-none bg-white/5 border border-[var(--border-subtle)] text-left">
-          <p className="text-2xl font-black font-mono text-[var(--text-primary)]">
-            {allJudges?.length || 0}
-          </p>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-widest mt-1">
-            Total Judges
-          </p>
-        </div>
-        <div className="p-4 rounded-none bg-emerald-500/5 border border-emerald-500/15 text-left">
-          <p className="text-2xl font-black font-mono text-accent">
-            {rankings?.rankings?.length || 0}
-          </p>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-widest mt-1">
-            Projects
-          </p>
-        </div>
-        <div className="p-4 rounded-none bg-amber-500/5 border border-amber-500/15 text-left">
-          <p className="text-2xl font-black font-mono text-amber-400">
-            {rankings?.rankings?.reduce((sum, r) => sum + r.votes.length, 0) ||
-              0}
-          </p>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] uppercase tracking-widest mt-1">
-            Total Votes
-          </p>
-        </div>
-      </div>
+      </section>
 
       {/* Assigned Judges */}
-      <div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-wider">
-            Assigned Judges
-          </h2>
+      <section className={sectionRule}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-5">
+          <h2 className={itemTitle}>Assigned judges</h2>
           <button
             type="button"
             onClick={() => setShowAddForm(!showAddForm)}
             aria-expanded={showAddForm}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+            className={btnSecondary}
           >
-            <UserPlus className="w-3.5 h-3.5" /> Add judge
+            <UserPlus size={16} strokeWidth={1.75} aria-hidden="true" /> Add judge
           </button>
         </div>
 
         {showAddForm && (
-          <LiquidGlass printed className="p-6 mb-4 space-y-5">
+          <div className="mb-8 space-y-4 border-y border-[var(--border-subtle)] py-6">
             <form
               className="grid gap-4 sm:grid-cols-[1fr_12rem_auto] items-end"
               onSubmit={(e) => {
@@ -564,17 +546,14 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             >
               {unassignedJudges.length > 0 ? (
                 <div className="sm:col-span-3">
-                  <label
-                    htmlFor="select-judge"
-                    className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-                  >
+                  <label htmlFor="select-judge" className={fieldLabel}>
                     Judge
                   </label>
                   <select
                     id="select-judge"
                     value={selectedJudgeId}
                     onChange={(e) => setSelectedJudgeId(e.target.value)}
-                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                    className={input}
                   >
                     <option value="">Someone new, by email</option>
                     {unassignedJudges.map((j) => (
@@ -592,10 +571,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 <div />
               ) : (
                 <div>
-                  <label
-                    htmlFor="new-judge-email"
-                    className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-                  >
+                  <label htmlFor="new-judge-email" className={fieldLabel}>
                     Email
                   </label>
                   <input
@@ -606,22 +582,19 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     value={newJudgeEmail}
                     onChange={(e) => setNewJudgeEmail(e.target.value)}
                     placeholder="judge@company.com"
-                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                    className={input}
                   />
                 </div>
               )}
               <div>
-                <label
-                  htmlFor="track"
-                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-                >
+                <label htmlFor="track" className={fieldLabel}>
                   Track
                 </label>
                 <select
                   id="track"
                   value={assignTrack}
                   onChange={(e) => setAssignTrack(e.target.value)}
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                  className={input}
                 >
                   <option value="">All projects</option>
                   {trackOptions.map((t) => (
@@ -638,19 +611,19 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                   createJudge.isPending ||
                   assignJudge.isPending
                 }
-                className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 whitespace-nowrap"
+                className={`${btnInk} whitespace-nowrap`}
               >
                 {createJudge.isPending || assignJudge.isPending
                   ? "Adding…"
-                  : "Add"}
+                  : "Add judge"}
               </button>
             </form>
-            <p className="text-xs text-[var(--text-muted)]">
+            <p className={meta}>
               The person needs a portal account; signing in once creates one.
               Judges added here are active straight away.
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-[var(--border-subtle)]">
-              <p className="text-xs text-[var(--text-muted)] flex-1">
+              <p className={`flex-1 ${meta}`}>
                 Or send judges the application link. You approve each one below.
               </p>
               <button
@@ -661,24 +634,21 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     setTimeout(() => setLinkCopied(false), 2000);
                   });
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+                className={btnSecondary}
               >
-                <Copy className="w-3.5 h-3.5" />
+                <Copy size={16} strokeWidth={1.75} aria-hidden="true" />
                 {linkCopied ? "Copied" : "Copy apply link"}
               </button>
             </div>
-          </LiquidGlass>
+          </div>
         )}
 
         {/* Judges Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {assignedJudges.length === 0 ? (
-            <div className="md:col-span-2 lg:col-span-3 p-8 bg-white/[0.01] border border-dashed border-[var(--border-subtle)] rounded-none text-center">
-              <p className="text-[var(--text-subtle)] font-mono text-xs uppercase tracking-widest">
-                No judges yet. Use "Add judge" above, or send the application
-                link.
-              </p>
-            </div>
+            <p className={`md:col-span-2 lg:col-span-3 ${body}`}>
+              No judges yet. Add one above, or send the application link.
+            </p>
           ) : (
             assignedJudges.map((judge) => {
               const assignment = judge.assignments.find(
@@ -689,93 +659,89 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               );
 
               return (
-                <LiquidGlass
-                  key={judge.id}
-                  className="p-5 border-[var(--border-subtle)] hover:border-purple-500/20 transition-ui"
-                >
+                <article key={judge.id} className={`${object} p-5`}>
                   <div className="flex items-start gap-3">
                     <Image
                       src={judge.user?.image || "/avatars/default.svg"}
                       alt="Judge"
                       width={40}
                       height={40}
-                      className="rounded-sm bg-[var(--bg-primary)] shrink-0"
+                      className="rounded-full bg-[var(--bg-secondary)] shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[var(--text-primary)] font-bold text-sm truncate">
+                      <p className="text-[15px] font-semibold text-[var(--text-primary)] truncate">
                         {judge.user?.name || judge.name}
                       </p>
-                      <p className="text-[var(--text-subtle)] text-xs font-mono truncate">
-                        {judge.user?.email}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {/* A wrong track routes the judge to an empty pool and
-                            used to be permanent — assignToHackathon refuses a
-                            second assignment and nothing else could edit it. */}
-                        <select
-                          aria-label="Track"
-                          value={assignment?.track ?? ""}
-                          disabled={updateTrack.isPending}
-                          onChange={(e) => {
-                            setQueueNotice(null);
-                            setTrackConflict(null);
-                            updateTrack.mutate({
-                              judgeId: judge.id,
-                              hackathonId,
-                              track: e.target.value || null,
-                            });
-                          }}
-                          className="px-2 py-0.5 text-[9px] font-mono rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest focus:outline-none disabled:opacity-40"
-                        >
-                          <option value="">All projects</option>
-                          {trackOptions.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                          {/* A track the edition no longer lists still has to
-                              be shown, or the select would silently misreport
-                              what the judge is actually assigned to. */}
-                          {assignment?.track &&
-                            !trackOptions.includes(assignment.track) && (
-                              <option value={assignment.track}>
-                                {assignment.track} (not on this edition)
-                              </option>
-                            )}
-                        </select>
-                        {assignment?.isLead && (
-                          <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
-                            Lead
-                          </span>
-                        )}
-                        <span
-                          className={`px-2 py-0.5 text-[9px] font-mono rounded uppercase tracking-widest ${judge.isActive ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}
-                        >
+                      <p className={`truncate ${meta}`}>{judge.user?.email}</p>
+                      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className={status(judge.isActive ? "success" : "warning")}>
                           {judge.isActive ? "Active" : "Inactive"}
                         </span>
-                        <button
-                          type="button"
-                          disabled={setActive.isPending}
-                          onClick={() =>
-                            setActive.mutate({
-                              judgeId: judge.id,
-                              isActive: !judge.isActive,
-                            })
-                          }
-                          className="px-2 py-0.5 text-[9px] font-mono rounded uppercase tracking-widest border border-[var(--border-subtle)] text-[var(--text-primary)] hover:bg-white/10 transition-colors disabled:opacity-40"
-                        >
-                          {judge.isActive ? "Suspend" : "Approve"}
-                        </button>
-                      </div>
+                        {assignment?.isLead && (
+                          <span className={meta}>Lead judge</span>
+                        )}
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-end gap-3">
+                    <div className="flex-1 min-w-[10rem]">
+                      {/* A wrong track routes the judge to an empty pool and
+                          used to be permanent — assignToHackathon refuses a
+                          second assignment and nothing else could edit it. */}
+                      <select
+                        aria-label="Track"
+                        value={assignment?.track ?? ""}
+                        disabled={updateTrack.isPending}
+                        onChange={(e) => {
+                          setQueueNotice(null);
+                          setTrackConflict(null);
+                          updateTrack.mutate({
+                            judgeId: judge.id,
+                            hackathonId,
+                            track: e.target.value || null,
+                          });
+                        }}
+                        className={`${input} py-2 text-sm`}
+                      >
+                        <option value="">All projects</option>
+                        {trackOptions.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                        {/* A track the edition no longer lists still has to
+                            be shown, or the select would silently misreport
+                            what the judge is actually assigned to. */}
+                        {assignment?.track &&
+                          !trackOptions.includes(assignment.track) && (
+                            <option value={assignment.track}>
+                              {assignment.track} (not on this edition)
+                            </option>
+                          )}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={setActive.isPending}
+                      onClick={() =>
+                        setActive.mutate({
+                          judgeId: judge.id,
+                          isActive: !judge.isActive,
+                        })
+                      }
+                      className={judge.isActive ? btnDanger : btnSecondary}
+                    >
+                      {judge.isActive ? "Suspend" : "Approve"}
+                    </button>
                   </div>
 
                   {trackConflict?.judgeId === judge.id && (
                     <div
                       role="alert"
-                      className="mt-3 p-3 border border-amber-500/30 bg-amber-500/10"
+                      className="mt-4 border-l-2 border-[var(--warning)] pl-3"
                     >
-                      <p className="text-[11px] font-mono text-amber-300 leading-relaxed">
+                      <p className="text-[13px] leading-relaxed text-[var(--warning)]">
                         {trackConflict.message}
                       </p>
                       <button
@@ -789,7 +755,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                             force: true,
                           })
                         }
-                        className="mt-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 transition-colors disabled:opacity-40"
+                        className={`mt-2 ${textLink}`}
                       >
                         Change track anyway
                       </button>
@@ -798,31 +764,27 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
                   {/* Stats */}
                   {stats && (
-                    <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-[var(--border-subtle)]">
+                    <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-[var(--border-subtle)] pt-3">
                       <div>
-                        <p className="text-[8px] font-mono text-[var(--text-subtle)] uppercase tracking-widest">
-                          Judged
-                        </p>
-                        <p className="text-sm font-bold text-[var(--text-primary)] font-mono">
+                        <dt className={meta}>Judged</dt>
+                        <dd className="text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
                           {stats.projectsJudged} projects
-                        </p>
+                        </dd>
                       </div>
                       <div>
-                        <p className="text-[8px] font-mono text-[var(--text-subtle)] uppercase tracking-widest">
-                          Avg Score
-                        </p>
-                        <p className="text-sm font-bold text-accent font-mono">
+                        <dt className={meta}>Average score</dt>
+                        <dd className="text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
                           {Math.round(stats.avgScore)}/50
-                        </p>
+                        </dd>
                       </div>
-                    </div>
+                    </dl>
                   )}
-                </LiquidGlass>
+                </article>
               );
             })
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

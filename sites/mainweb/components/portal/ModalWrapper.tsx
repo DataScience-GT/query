@@ -72,7 +72,7 @@ export function ModalWrapper({
         type="button"
         aria-label="Close dialog"
         onClick={onClose}
-        className="absolute inset-0 bg-[var(--bg-primary)]/95 backdrop-blur-md cursor-default"
+        className="absolute inset-0 bg-[var(--bg-primary)]/85 cursor-default"
       />
       <div
         ref={panelRef}
@@ -80,7 +80,7 @@ export function ModalWrapper({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[var(--bg-card)] border border-accent/30 rounded-none p-8 shadow-[0_0_50px_rgba(16,185,129,0.2)] animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto overscroll-contain focus:outline-none`}
+        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] p-6 sm:p-8 shadow-[var(--shadow-xl)] max-h-[90vh] overflow-y-auto overscroll-contain focus:outline-none`}
       >
         {children}
       </div>

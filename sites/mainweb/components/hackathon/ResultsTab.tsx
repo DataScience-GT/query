@@ -1,8 +1,13 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Trophy } from "lucide-react";
+import {
+  body,
+  btnSecondary,
+  itemTitle,
+  meta,
+  textLink,
+} from "@/components/portal/ui";
 
 /**
  * The published placings.
@@ -13,18 +18,16 @@ import { Trophy } from "lucide-react";
  * button was a no-op that told the organiser "everyone will see them
  * immediately", and the winners existed only inside one admin response.
  */
-const MEDAL = ["text-yellow-400", "text-slate-300", "text-amber-600"];
-
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
-  const { data: results, isLoading, isError, refetch } =
-    trpc.hackathon.getResults.useQuery({ hackathonId });
+  const {
+    data: results,
+    isLoading,
+    isError,
+    refetch,
+  } = trpc.hackathon.getResults.useQuery({ hackathonId });
 
   if (isLoading) {
-    return (
-      <div className="py-16 text-center text-sm text-[var(--text-muted)]">
-        Loading results…
-      </div>
-    );
+    return <p className={`py-16 ${body}`}>Loading results…</p>;
   }
 
   // Distinguished from "no results yet": a failed request rendered as an empty
@@ -32,93 +35,84 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   // worse message on the one page teams check after the ceremony.
   if (isError) {
     return (
-      <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
-        <p className="text-sm text-[var(--text-muted)] mb-4">
-          We could not load the results just now.
+      <div className="flex flex-col items-start gap-4">
+        <p className={body}>
+          We could not load the results just now. Try again in a moment.
         </p>
         <button
           type="button"
           onClick={() => refetch()}
-          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+          className={btnSecondary}
         >
           Try again
         </button>
-      </LiquidGlass>
+      </div>
     );
   }
 
   if (!results || results.length === 0) {
     return (
-      <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
-        <Trophy className="w-8 h-8 text-[var(--text-subtle)] mx-auto mb-4" />
-        <h3 className="text-[var(--text-primary)] font-bold mb-1">
-          Results not published yet
-        </h3>
-        <p className="text-sm text-[var(--text-muted)]">
+      <div>
+        <h3 className={itemTitle}>Results not published yet</h3>
+        <p className={`mt-1 ${body}`}>
           They will appear here once judging is finished and the organisers
           release them.
         </p>
-      </LiquidGlass>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3 animate-in fade-in duration-300">
+    <ol className="border-t border-[var(--border-subtle)]">
       {results.map((row) => {
         const name =
           row.sourceProject?.name ?? row.project?.name ?? "Unknown project";
         const team = row.sourceProject?.team?.name ?? row.project?.teamMembers;
         return (
-          <LiquidGlass
+          <li
             key={row.id}
-            className={`p-5 border-[var(--border-subtle)] ${
-              row.placement <= 3 ? "border-accent/30" : ""
-            }`}
+            className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
           >
-            <div className="flex items-center gap-5">
-              <span
-                className={`text-3xl font-black font-mono shrink-0 ${
-                  MEDAL[row.placement - 1] ?? "text-[var(--text-subtle)]"
-                }`}
-              >
-                {row.placement}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-lg font-bold text-[var(--text-primary)] truncate">
-                  {name}
-                </p>
-                {team ? (
-                  <p className="text-xs text-[var(--text-muted)] truncate">
-                    {team}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                {row.sourceProject?.githubUrl ? (
-                  <a
-                    href={row.sourceProject.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-[var(--text-muted)] hover:text-accent transition-colors"
-                  >
-                    Code
-                  </a>
-                ) : null}
-                {row.sourceProject?.demoUrl ? (
-                  <a
-                    href={row.sourceProject.demoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-[var(--text-muted)] hover:text-accent transition-colors"
-                  >
-                    Demo
-                  </a>
-                ) : null}
-              </div>
+            <span
+              className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
+                row.placement === 1
+                  ? "text-accent"
+                  : row.placement <= 3
+                    ? "text-[var(--text-primary)]"
+                    : "text-[var(--text-subtle)]"
+              }`}
+            >
+              {row.placement}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className={`${itemTitle} truncate`}>{name}</p>
+              {team ? <p className={`${meta} truncate`}>{team}</p> : null}
             </div>
-          </LiquidGlass>
+            <div className="flex items-center gap-4 shrink-0">
+              {row.sourceProject?.githubUrl ? (
+                <a
+                  href={row.sourceProject.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={textLink}
+                >
+                  Code
+                </a>
+              ) : null}
+              {row.sourceProject?.demoUrl ? (
+                <a
+                  href={row.sourceProject.demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={textLink}
+                >
+                  Demo
+                </a>
+              ) : null}
+            </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

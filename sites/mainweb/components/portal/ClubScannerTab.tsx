@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "./LiquidGlass";
 import { QRScannerModal } from "./QRScannerModal";
+import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  input,
+  label,
+  meta,
+  sectionRule,
+} from "./ui";
 
 type Outcome = {
   ok: boolean;
@@ -59,10 +67,10 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
   const attendees = roster.data?.attendees ?? [];
 
   return (
-    <div className="space-y-6">
-      <LiquidGlass className="p-8 text-center">
-        <p className="text-sm text-[var(--text-muted)] mb-6">
-          Scan the member pass from their portal, or check somebody in by email.
+    <div className="space-y-10">
+      <section>
+        <p className={`${body} max-w-lg`}>
+          Scan the member pass from their portal, or check someone in by email.
         </p>
 
         <button
@@ -72,12 +80,12 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
             setScanning(true);
           }}
           disabled={busy}
-          className="px-8 py-4 bg-accent text-black font-black text-xs uppercase tracking-widest rounded-none hover:bg-accent/90 transition-colors disabled:opacity-40"
+          className={`${btnPrimary} mt-5`}
         >
-          {busy ? "Checking in…" : "Scan Member Pass"}
+          {busy ? "Checking in…" : "Scan member pass"}
         </button>
 
-        <div className="mt-6 flex gap-2">
+        <div className="mt-6 flex max-w-lg gap-2">
           <input
             type="email"
             autoComplete="email"
@@ -89,60 +97,58 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
                 manual.mutate({ eventId, email: email.trim() });
               }
             }}
-            placeholder="or check in by email"
+            placeholder="Or check in by email"
             aria-label="Check in by email"
-            className="flex-1 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+            className={`${input} min-w-0 flex-1`}
           />
           <button
             type="button"
             onClick={() => manual.mutate({ eventId, email: email.trim() })}
             disabled={manual.isPending || email.trim().length === 0}
-            className="px-5 py-3 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-mono uppercase tracking-widest hover:bg-white/5 transition-colors disabled:opacity-40"
+            className={`${btnSecondary} shrink-0`}
           >
-            Add
+            Check in
           </button>
         </div>
 
         {outcome && (
           <div
             role="status"
-            className={`mt-6 px-4 py-3 border text-sm font-mono ${
+            className={`mt-6 max-w-lg rounded-[var(--radius-sm)] px-4 py-3 text-sm ${
               outcome.ok
-                ? "border-accent/30 bg-accent/10 text-accent"
-                : "border-red-500/30 bg-red-500/10 text-red-300"
+                ? "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                : "bg-[var(--danger-glow)] text-[var(--danger)]"
             }`}
           >
             {outcome.message}
             {outcome.warning && (
-              <span className="block mt-1 text-amber-400">
+              <span className="mt-1 block font-semibold text-[var(--warning)]">
                 {outcome.warning}
               </span>
             )}
           </div>
         )}
-      </LiquidGlass>
+      </section>
 
-      <LiquidGlass className="p-6">
-        <p className="text-xs text-[var(--text-subtle)] uppercase tracking-widest font-mono mb-3">
+      <section className={sectionRule}>
+        <p className={`${label} tabular-nums`}>
           Checked in ({roster.data?.matching ?? 0})
         </p>
 
         {attendees.length === 0 ? (
-          <p className="text-xs font-mono text-[var(--text-subtle)]">
-            Nobody yet.
-          </p>
+          <p className={`${meta} mt-2`}>Nobody has checked in yet.</p>
         ) : (
-          <ul className="max-h-72 overflow-y-auto divide-y divide-[var(--border-subtle)]">
+          <ul className="mt-2 max-h-72 overflow-y-auto border-t border-[var(--border-subtle)]">
             {attendees.map((row) => (
               <li
                 key={row.id}
-                className="flex items-center justify-between gap-4 py-3"
+                className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] py-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm text-[var(--text-primary)] truncate">
+                  <p className="truncate text-[15px] text-[var(--text-primary)]">
                     {row.user?.name ?? row.user?.email ?? "Unknown"}
                   </p>
-                  <p className="text-[10px] font-mono text-[var(--text-subtle)] truncate">
+                  <p className={`${meta} truncate`}>
                     {row.user?.email} · {row.checkInMethod}
                   </p>
                 </div>
@@ -152,15 +158,15 @@ export function ClubScannerTab({ eventId }: { eventId: string }) {
                     row.user && remove.mutate({ eventId, userId: row.user.id })
                   }
                   disabled={remove.isPending}
-                  className="shrink-0 px-3 py-2 border border-red-500/20 text-red-400 text-[10px] font-mono uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                  className="shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-[13px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-glow)] disabled:opacity-50"
                 >
-                  Undo
+                  Remove
                 </button>
               </li>
             ))}
           </ul>
         )}
-      </LiquidGlass>
+      </section>
 
       {scanning && (
         <QRScannerModal

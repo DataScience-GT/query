@@ -4,6 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  sectionTitle,
+} from "@/components/portal/ui";
 
 const EXPERIENCE_OPTIONS = [
   { value: "first", label: "This would be my first" },
@@ -24,21 +33,12 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-        {label}
-      </span>
+      <span className={fieldLabel}>{label}</span>
       {children}
-      {hint ? (
-        <span className="block mt-1.5 text-xs text-[var(--text-subtle)]">
-          {hint}
-        </span>
-      ) : null}
+      {hint ? <span className={`block ${fieldHint}`}>{hint}</span> : null}
     </label>
   );
 }
-
-const inputClass =
-  "w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui";
 
 /**
  * Join / leave the interest list for one edition.
@@ -114,23 +114,21 @@ export function InterestForm({
   const busy = join.isPending || leave.isPending;
 
   if (sessionStatus === "loading") {
-    return <p className="text-sm text-[var(--text-muted)]">Checking sign-in…</p>;
+    return <p className={body}>Checking sign-in…</p>;
   }
 
   if (!session) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-          Get told the moment it opens
-        </h2>
-        <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-          Sign in so we have a verified address to reach you at. Google,
-          GitHub, or a code sent to any email — no account needed beforehand,
-          and it works wherever you are in the world.
+        <h2 className={sectionTitle}>Get told the moment it opens</h2>
+        <p className={`${body} max-w-2xl`}>
+          Sign in so we have a verified address to reach you at. Google, GitHub,
+          or a code sent to any email — no account needed beforehand, and it
+          works wherever you are in the world.
         </p>
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(callbackPath)}`}
-          className="inline-flex px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+          className={btnPrimary}
         >
           Sign in to join the list
         </Link>
@@ -141,10 +139,10 @@ export function InterestForm({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+        <h2 className={sectionTitle}>
           {onList ? "You're on the list" : "Join the interest list"}
         </h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)] leading-relaxed">
+        <p className={`mt-2 max-w-2xl ${body}`}>
           {onList
             ? `We'll email ${session.user?.email} the moment registration opens.`
             : "Four optional questions. They only shape how we plan the event — none of them affect whether you get in."}
@@ -153,7 +151,7 @@ export function InterestForm({
 
       {showForm ? (
         <form
-          className="space-y-5"
+          className="max-w-xl space-y-5"
           onSubmit={(e) => {
             e.preventDefault();
             const parsedYear = graduationYear.trim()
@@ -179,7 +177,7 @@ export function InterestForm({
         >
           <Field label="School or university">
             <input
-              className={inputClass}
+              className={input}
               value={school}
               onChange={(e) => setSchool(e.target.value)}
               placeholder="Georgia Institute of Technology"
@@ -192,7 +190,7 @@ export function InterestForm({
             hint="Hacklytics is open worldwide — this helps us plan travel and timing."
           >
             <input
-              className={inputClass}
+              className={input}
               value={country}
               onChange={(e) => setCountry(e.target.value)}
               placeholder="United States"
@@ -202,7 +200,7 @@ export function InterestForm({
 
           <Field label="Graduation year">
             <input
-              className={inputClass}
+              className={input}
               value={graduationYear}
               onChange={(e) => setGraduationYear(e.target.value)}
               placeholder="2029"
@@ -212,11 +210,9 @@ export function InterestForm({
 
           <Field label="Hackathon experience">
             <select
-              className={inputClass}
+              className={input}
               value={experience}
-              onChange={(e) =>
-                setExperience(e.target.value as Experience | "")
-              }
+              onChange={(e) => setExperience(e.target.value as Experience | "")}
             >
               <option value="">Prefer not to say</option>
               {EXPERIENCE_OPTIONS.map((option) => (
@@ -228,15 +224,13 @@ export function InterestForm({
           </Field>
 
           {error ? (
-            <p className="text-sm text-rose-400">{error}</p>
+            <p role="alert" className="text-[15px] text-[var(--danger)]">
+              {error}
+            </p>
           ) : null}
 
           <div className="flex flex-wrap gap-3 pt-1">
-            <button
-              type="submit"
-              disabled={busy}
-              className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
-            >
+            <button type="submit" disabled={busy} className={btnPrimary}>
               {busy
                 ? "Saving…"
                 : onList
@@ -251,7 +245,7 @@ export function InterestForm({
                   setError("");
                 }}
                 disabled={busy}
-                className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+                className={btnSecondary}
               >
                 Cancel
               </button>
@@ -259,11 +253,11 @@ export function InterestForm({
           </div>
         </form>
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+            className={btnSecondary}
           >
             Edit my answers
           </button>
@@ -271,7 +265,7 @@ export function InterestForm({
             type="button"
             onClick={() => leave.mutate({ hackathonId })}
             disabled={busy}
-            className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-rose-400 transition-colors disabled:opacity-40"
+            className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors disabled:opacity-50"
           >
             {leave.isPending ? "Leaving…" : "Take me off the list"}
           </button>
@@ -279,7 +273,9 @@ export function InterestForm({
       )}
 
       {error && !showForm ? (
-        <p className="text-sm text-rose-400">{error}</p>
+        <p role="alert" className="text-[15px] text-[var(--danger)]">
+          {error}
+        </p>
       ) : null}
     </div>
   );
