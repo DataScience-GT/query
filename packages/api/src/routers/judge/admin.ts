@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "../../trpc";
+import { createTRPCRouter } from "../../trpc";
 import {
   judges,
   judgeAssignments,
@@ -13,7 +13,11 @@ import {
   hackathonParticipants,
 } from "@query/db";
 import { eq, and, asc, sql, inArray, isNull } from "drizzle-orm";
-import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
+import {
+  isAdmin,
+  isSuperAdmin,
+  notHackathonBanned,
+} from "../../middleware/procedures";
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { isLive, loadGroups, loadPool } from "./dispatch";
@@ -911,7 +915,7 @@ export const judgeAdminRouter = createTRPCRouter({
       return result;
     }),
 
-  register: protectedProcedure
+  register: notHackathonBanned
     .input(
       z.object({
         hackathonId: z.string().uuid(),
