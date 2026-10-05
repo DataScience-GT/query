@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import type { KeyboardEvent } from "react";
+import { input, fieldHint } from "@/components/portal/ui";
 
 interface SkillsInterestsInputProps {
   items: string[];
   setItems: (items: string[]) => void;
   placeholder: string;
   maxItems: number;
-  accentColor: string;
 }
 
 export default function SkillsInterestsInput({
@@ -16,7 +16,6 @@ export default function SkillsInterestsInput({
   setItems,
   placeholder,
   maxItems,
-  accentColor,
 }: SkillsInterestsInputProps) {
   const [inputValue, setInputValue] = useState("");
 
@@ -36,23 +35,26 @@ export default function SkillsInterestsInput({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {items.map((item, index) => (
-          <span
-            key={index}
-            className={`px-3 py-1.5 bg-${accentColor}/10 border border-${accentColor}/30 text-${accentColor} text-[10px] uppercase tracking-wide flex items-center gap-2 group`}
-          >
-            {item}
-            <button
-              type="button"
-              onClick={() => removeItem(index)}
-              className="text-red-500 hover:text-red-400 transition-colors"
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {items.map((item, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-medium)] pl-3 pr-2 py-1 text-[13px] text-[var(--text-primary)]"
             >
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
+              {item}
+              <button
+                type="button"
+                onClick={() => removeItem(index)}
+                aria-label={`Remove ${item}`}
+                className="px-1 leading-none text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <input
         type="text"
         value={inputValue}
@@ -60,11 +62,11 @@ export default function SkillsInterestsInput({
         onKeyDown={handleKeyDown}
         maxLength={50}
         disabled={items.length >= maxItems}
-        className="w-full bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded px-4 py-3 text-[var(--text-primary)] text-sm focus:border-accent/50 focus:outline-none transition-ui disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`${input} disabled:cursor-not-allowed`}
         placeholder={items.length >= maxItems ? `Limit reached` : placeholder}
       />
-      <p className="text-[10px] text-gray-600 mt-1">
-        Press Enter to add • {items.length}/{maxItems}
+      <p className={fieldHint}>
+        Press Enter to add · {items.length}/{maxItems}
       </p>
     </div>
   );

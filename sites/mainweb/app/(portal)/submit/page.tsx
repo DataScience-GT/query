@@ -5,10 +5,27 @@ import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
-import { Calendar, ChevronLeft, Send } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  chip,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  kicker,
+  label,
+  meta,
+  page,
+  pageDek,
+  pageTitle,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 
 /**
  * Deadlines are rendered in the event's own time zone, not the viewer's. Half
@@ -177,9 +194,7 @@ function SubmitPortalContent() {
       utils.hackathon.myRegistrations.invalidate();
       utils.team.mySubmission.invalidate();
       setError("");
-      setSuccessMessage(
-        "Project submitted.",
-      );
+      setSuccessMessage("Project submitted.");
       setProjectSubmitted(true);
     },
     onError: (err) => setError(err.message),
@@ -250,569 +265,504 @@ function SubmitPortalContent() {
   const activeRegs = myRegs?.filter(isActiveReg) || [];
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-tertiary)]">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-accent/5 blur-[200px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[5%] w-[500px] h-[500px] bg-indigo-600/5 blur-[180px] rounded-full" />
-      </div>
+    <main className={page}>
+      <Link
+        href="/dashboard"
+        className="text-[13px] text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors"
+      >
+        ← Dashboard
+      </Link>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-8">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-          Dashboard
-        </Link>
+      <header className="mt-6">
+        {currentReg && <p className={kicker}>{currentReg.hackathon.name}</p>}
+        <h1 className={`mt-1 ${pageTitle}`}>Submit your project</h1>
+        <p className={pageDek}>
+          Pick the event, set up your team, then fill in your project.
+        </p>
+      </header>
 
-        <div className="w-full space-y-8">
-          <div>
-            <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
-              Hackathon
-            </p>
-            <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-              Submit a project
-            </h1>
-            <p className="text-sm text-[var(--text-muted)] mt-1">
-              Pick the event, set up your team, then fill in your project.
-            </p>
-          </div>
-
-          {!myRegs || myRegs.length === 0 ? (
-            <LiquidGlass
-              printed
-              className="p-8 text-center flex flex-col items-center gap-3"
-            >
-              <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-[var(--text-subtle)]" />
-              </div>
-              <p className="text-sm text-[var(--text-muted)]">
-                You haven&apos;t registered for any hackathons yet.
-              </p>
-              <Link
-                href="/hackathons"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+      {!myRegs || myRegs.length === 0 ? (
+        <section className="mt-10 border-t border-[var(--border-subtle)] pt-6">
+          <p className={body}>
+            Once you register for a hackathon, you can submit your project
+            here.
+          </p>
+          <Link href="/hackathons" className={`mt-4 ${btnPrimary}`}>
+            Browse hackathons
+          </Link>
+        </section>
+      ) : (
+        <div className="mt-10 grid grid-cols-1 gap-10 border-t border-[var(--border-subtle)] pt-8 lg:grid-cols-12">
+          {/* Context and team */}
+          <aside className="space-y-8 lg:col-span-4">
+            <div>
+              <label htmlFor="event-context" className={fieldLabel}>
+                Hackathon
+              </label>
+              <select
+                id="event-context"
+                className={input}
+                value={selectedHackathonId}
+                onChange={(e) => {
+                  setSelectedHackathonId(e.target.value);
+                  setError("");
+                  setSuccessMessage("");
+                  setProjectSubmitted(false);
+                }}
               >
-                Browse hackathons
-              </Link>
-            </LiquidGlass>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* LEFT ALCOVE - CONTEXT / TEAM */}
-              <div className="lg:col-span-4 space-y-8">
-                <LiquidGlass printed className="p-6">
-                  <div className="mb-6">
-                    <label htmlFor="event-context" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                      Hackathon
-                    </label>
-                    <select
-                      id="event-context"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                      value={selectedHackathonId}
-                      onChange={(e) => {
-                        setSelectedHackathonId(e.target.value);
-                        setError("");
-                        setSuccessMessage("");
-                        setProjectSubmitted(false);
-                      }}
-                    >
-                      <option value="" disabled>
-                        Select a hackathon…
-                      </option>
-                      {activeRegs.map((r) => (
-                        <option key={r.hackathonId} value={r.hackathonId}>
-                          {r.hackathon.name}
-                        </option>
-                      ))}
-                    </select>
+                <option value="" disabled>
+                  Select a hackathon…
+                </option>
+                {activeRegs.map((r) => (
+                  <option key={r.hackathonId} value={r.hackathonId}>
+                    {r.hackathon.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {currentReg?.team ? (
+              <div className="border-t border-[var(--border-subtle)] pt-6">
+                <h2 className={label}>Your team</h2>
+                <p className={`mt-1 ${itemTitle}`}>{currentReg.team.name}</p>
+                <p className={`mt-1 ${meta}`}>
+                  {currentReg.team.currentMembers} of{" "}
+                  {currentReg.team.maxMembers} members
+                </p>
+
+                <div className="mt-5">
+                  <p className={fieldLabel}>Invite code</p>
+                  <div className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] bg-[var(--bg-input)] px-3 py-2 text-center font-mono text-[13px] text-[var(--text-primary)] select-all break-all">
+                    {currentReg.team.id}
                   </div>
+                  <p className={fieldHint}>Share this so teammates can join.</p>
+                </div>
 
-                  {currentReg?.team ? (
-                    <div className="space-y-4">
-                      <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2">
-                        Your team
-                      </h3>
-                      <div className="p-4 bg-accent/5 border border-accent/20 rounded-sm">
-                        <p className="text-base font-bold text-[var(--text-primary)] mb-4">
-                          {currentReg.team.name}
-                        </p>
-
-                        <div>
-                          <p className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Invite code</p>
-                          <div className="p-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm font-mono text-xs text-accent text-center select-all">
-                            {currentReg.team.id}
-                          </div>
-                          <p className="mt-2 text-xs text-[var(--text-muted)]">
-                            Share this so teammates can join.
-                          </p>
-                        </div>
-
-                        <div className="mt-6 pt-4 border-t border-[var(--border-subtle)]">
-                          <p className="text-xs text-[var(--text-muted)]">
-                            {currentReg.team.currentMembers} of{" "}
-                            {currentReg.team.maxMembers} members
-                          </p>
-                        </div>
-
-                        {currentReg.team.captainId === session?.user?.id ? (
-                          <div className="mt-4 space-y-3">
-                            <p className="text-xs text-[var(--text-muted)]">
-                              You&apos;re the team captain.
-                            </p>
-                            {/* leaveTeam refuses for a captain and points here;
-                                without this the captain has no way out. */}
-                            <button
-                              onClick={() => {
-                                const teamId = currentReg.team?.id;
-                                if (!teamId) return;
-                                disbandTeam.mutate({
-                                  hackathonId: selectedHackathonId,
-                                  teamId,
-                                });
-                              }}
-                              disabled={disbandTeam.isPending || !canLeaveTeam}
-                              className="w-full px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
-                            >
-                              {disbandTeam.isPending
-                                ? "Disbanding…"
-                                : "Disband team"}
-                            </button>
-                            {!canLeaveTeam && (
-                              <p className="text-xs text-[var(--text-muted)]">
-                                Rosters are locked for the final 12 hours before
-                                the deadline.
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-6 space-y-2">
-                            <button
-                              onClick={() =>
-                                leaveTeam.mutate({
-                                  hackathonId: selectedHackathonId,
-                                })
-                              }
-                              disabled={leaveTeam.isPending || !canLeaveTeam}
-                              className="w-full px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
-                            >
-                              {leaveTeam.isPending ? "Leaving…" : "Leave team"}
-                            </button>
-                            {!canLeaveTeam && (
-                              <p className="text-xs text-[var(--text-muted)]">
-                                Rosters are locked for the final 12 hours before
-                                the deadline.
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2">
-                        Team
-                      </h3>
-                      <p className="text-sm text-[var(--text-muted)]">
-                        {admitted
-                          ? "You're submitting solo. Create a team or join one with an invite code."
-                          : "You can create or join a team once you have been accepted."}
-                      </p>
-
-                      {teamWindowNotice && (
-                        <p className="p-3 rounded-sm border border-amber-500/20 bg-amber-500/5 text-xs text-amber-400">
-                          {teamWindowNotice}
-                        </p>
-                      )}
-
-                      {admitted && (
-                        <>
-                          <div className="pt-2 space-y-3">
-                            <input
-                              type="text"
-                              aria-label="Team name"
-                              placeholder="Team name"
-                              value={teamName}
-                              onChange={(e) => setTeamName(e.target.value)}
-                              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                            />
-                            <button
-                              onClick={() => {
-                                if (teamName.trim().length === 0) {
-                                  setError("Team name is required.");
-                                  return;
-                                }
-                                createTeam.mutate({
-                                  hackathonId: selectedHackathonId,
-                                  name: teamName,
-                                });
-                              }}
-                              disabled={createTeam.isPending || !teamsOpen}
-                              className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
-                            >
-                              {createTeam.isPending
-                                ? "Creating…"
-                                : "Create team"}
-                            </button>
-                          </div>
-
-                          <div className="flex items-center gap-4 py-2">
-                            <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
-                            <span className="text-xs text-[var(--text-subtle)]">
-                              or
-                            </span>
-                            <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <input
-                              type="text"
-                              aria-label="Invite code"
-                              placeholder="Paste invite code"
-                              value={joinTeamId}
-                              onChange={(e) => setJoinTeamId(e.target.value)}
-                              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                            />
-                            <button
-                              onClick={() =>
-                                joinTeam.mutate({
-                                  hackathonId: selectedHackathonId,
-                                  teamId: joinTeamId,
-                                })
-                              }
-                              disabled={
-                                joinTeam.isPending ||
-                                joinTeamId.trim().length === 0 ||
-                                !teamsOpen
-                              }
-                              className="w-full px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40"
-                            >
-                              {joinTeam.isPending ? "Joining…" : "Join team"}
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </LiquidGlass>
-              </div>
-
-              {/* RIGHT ALCOVE - PROJECT SUBMISSION */}
-              <div className="lg:col-span-8 flex flex-col">
-                <LiquidGlass printed className="p-6 md:p-8 flex-1">
-                  <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-2">
-                    Your project
-                  </h2>
-                  <p className="text-sm text-[var(--text-muted)] mb-6">
-                    Name and description are required. On a team, only the
-                    captain can submit.
-                  </p>
-
-                  {/* Where judges will come. The table is assigned when an
-                      organiser opens judging, and nothing else told the team. */}
-                  {mySubmission.data?.tableNumber != null && (
-                    <div className="p-4 mb-6 rounded-sm border bg-accent/5 border-accent/20">
-                      <p className="text-sm text-accent">
-                        Your project is at table{" "}
-                        <span className="font-bold">
-                          {mySubmission.data.tableNumber}
-                        </span>
-                        . Be there when judging starts; judges come to you.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Admission, said before the form is filled in. Acceptance
-                      lets you form a team; submitting needs the badge scan,
-                      because judging happens in person at a table number. */}
-                  {currentReg &&
-                    currentReg.registrationStatus !== "checked_in" && (
-                      <div className="p-4 mb-6 rounded-sm border bg-amber-500/10 border-amber-500/30">
-                        <p className="text-sm text-amber-300">
-                          {currentReg.registrationStatus === "approved"
-                            ? "You're accepted — check in at the event before submitting. Find a volunteer and have your badge scanned."
-                            : currentReg.registrationStatus === "pending"
-                              ? "Your registration is still being reviewed. You can form a team once you have been accepted."
-                              : currentReg.registrationStatus === "waitlisted"
-                                ? "You're on the waitlist. If a seat opens, you'll be accepted and can submit."
-                                : "Your registration wasn't accepted, so you can't submit to this hackathon."}
-                        </p>
-                      </div>
-                    )}
-
-                  {/* The window this form is gated on, said before it is filled
-                      in. Without it an attendee wrote a full description and
-                      learned it was refused only on submit. */}
-                  {submissionWindow.data && (
-                    <div
-                      className={`p-4 mb-8 rounded-sm border ${
-                        submissionWindow.data.isOpen
-                          ? "bg-accent/5 border-accent/20"
-                          : "bg-amber-500/10 border-amber-500/30"
-                      }`}
+                {currentReg.team.captainId === session?.user?.id ? (
+                  <div className="mt-6 space-y-3">
+                    <p className={meta}>You&apos;re the team captain.</p>
+                    {/* leaveTeam refuses for a captain and points here;
+                        without this the captain has no way out. */}
+                    <button
+                      onClick={() => {
+                        const teamId = currentReg.team?.id;
+                        if (!teamId) return;
+                        disbandTeam.mutate({
+                          hackathonId: selectedHackathonId,
+                          teamId,
+                        });
+                      }}
+                      disabled={disbandTeam.isPending || !canLeaveTeam}
+                      className={`w-full ${btnDanger}`}
                     >
-                      <p
-                        className={`text-sm ${submissionWindow.data.isOpen ? "text-accent" : "text-amber-300"}`}
-                      >
-                        {submissionWindow.data.cancelled
-                          ? "This hackathon has been cancelled — nothing can be submitted."
-                          : submissionWindow.data.notYetOpen
-                            ? `Submission opens ${formatMoment(submissionWindow.data.opensAt)}. The form is here early so you can see what it asks for.`
-                            : !submissionWindow.data.isOpen
-                              ? `Submission closed ${formatMoment(submissionWindow.data.closesAt)}.`
-                              : submissionWindow.data.canEditExisting
-                                ? `Open until ${formatMoment(submissionWindow.data.closesAt)} · edits to an existing submission close ${formatMoment(submissionWindow.data.editsCloseAt)}.`
-                                : `Open until ${formatMoment(submissionWindow.data.closesAt)} — but edits to an existing submission are closed, so this can only file a first entry.`}
+                      {disbandTeam.isPending ? "Disbanding…" : "Disband team"}
+                    </button>
+                    {!canLeaveTeam && (
+                      <p className={meta}>
+                        Rosters are locked for the final 12 hours before the
+                        deadline.
                       </p>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-sm">
-                      <p className="text-red-400 text-sm">{error}</p>
-                    </div>
-                  )}
-
-                  {successMessage && (
-                    <div className="p-4 mb-8 bg-accent/10 border border-accent/20 rounded-sm flex flex-wrap items-center justify-between gap-4">
-                      <p className="text-accent text-sm font-bold">
-                        {successMessage}
-                      </p>
-                      <Link
-                        href="/dashboard"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
-                      >
-                        Back to dashboard
-                      </Link>
-                    </div>
-                  )}
-
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      submitProject.mutate({
-                        hackathonId: selectedHackathonId,
-                        teamId: currentReg?.team?.id,
-                        name: projectName,
-                        description: projectDesc,
-                        githubUrl,
-                        demoUrl,
-                        videoUrl,
-                        tracks,
-                        challenges,
-                        isCreateX,
-                      });
-                    }}
-                    className="space-y-8"
-                  >
-                    {/* Name & Desc */}
-                    <div className="space-y-4">
-                      <div>
-                        <label htmlFor="project-name" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                          Project name <span className="text-accent">*</span>
-                        </label>
-                        <input
-                          id="project-name"
-                          type="text"
-                          required
-                          value={projectName}
-                          onChange={(e) => setProjectName(e.target.value)}
-                          placeholder="e.g. Transit delay predictor"
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="project-description" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                          Description{" "}
-                          <span className="text-accent">*</span>
-                        </label>
-                        <textarea
-                          id="project-description"
-                          required
-                          value={projectDesc}
-                          onChange={(e) => setProjectDesc(e.target.value)}
-                          placeholder="Explain the problem you solved and how you built it…"
-                          rows={5}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui resize-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tracks, challenges and CreateX — what judge assignment
-                        routes on. Rendered only when the organisers configured
-                        them, so an event without tracks shows nothing rather
-                        than an empty box. */}
-                    {(availableTracks.length > 0 ||
-                      availableChallenges.length > 0) && (
-                      <div className="rounded-sm border border-[var(--border-subtle)] p-5">
-                        <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                          Tracks & challenges
-                        </h3>
-                        <p className="text-sm text-[var(--text-muted)] mb-6">
-                          This decides which judges see your project. Pick
-                          everything you are competing for.
-                        </p>
-
-                        {availableTracks.length > 0 && (
-                          <div className="mb-6">
-                            <p className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                              Tracks
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {availableTracks.map((track) => (
-                                <button
-                                  key={track}
-                                  type="button"
-                                  onClick={() =>
-                                    toggle(track, tracks, setTracks)
-                                  }
-                                  aria-pressed={tracks.includes(track)}
-                                  className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-sm border transition-colors ${
-                                    tracks.includes(track)
-                                      ? "bg-accent/15 border-accent/40 text-accent"
-                                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
-                                  }`}
-                                >
-                                  {track}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {availableChallenges.length > 0 && (
-                          <div className="mb-6">
-                            <p className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                              Sponsor challenges
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {availableChallenges.map((challenge) => (
-                                <button
-                                  key={challenge}
-                                  type="button"
-                                  onClick={() =>
-                                    toggle(challenge, challenges, setChallenges)
-                                  }
-                                  aria-pressed={challenges.includes(challenge)}
-                                  className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-sm border transition-colors ${
-                                    challenges.includes(challenge)
-                                      ? "bg-accent/15 border-accent/40 text-accent"
-                                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
-                                  }`}
-                                >
-                                  {challenge}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <label htmlFor="is-createx" className="flex items-center gap-3 text-sm text-[var(--text-muted)] cursor-pointer">
-                          <input
-                            id="is-createx"
-                            type="checkbox"
-                            checked={isCreateX}
-                            onChange={(e) => setIsCreateX(e.target.checked)}
-                            className="w-4 h-4 rounded-sm accent-[var(--accent)]"
-                          />
-                          We are competing for the CreateX entrepreneurship prize
-                        </label>
-                      </div>
                     )}
-
-                    {/* Links */}
-                    <div className="rounded-sm border border-[var(--border-subtle)] p-5">
-                      <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">
-                        Links
-                      </h3>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="github-url" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                            GitHub repository
-                          </label>
-                          <input
-                            id="github-url"
-                            type="url"
-                            value={githubUrl}
-                            onChange={(e) => setGithubUrl(e.target.value)}
-                            placeholder="https://github.com/…"
-                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="video-url" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                            Demo video
-                          </label>
-                          <input
-                            id="video-url"
-                            type="url"
-                            value={videoUrl}
-                            onChange={(e) => setVideoUrl(e.target.value)}
-                            placeholder="https://youtube.com/…"
-                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="demo-url" className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                            Live demo URL
-                          </label>
-                          <input
-                            id="demo-url"
-                            type="url"
-                            value={demoUrl}
-                            onChange={(e) => setDemoUrl(e.target.value)}
-                            placeholder="https://…"
-                            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-4">
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {hasSubmitted
-                          ? "You've already submitted. Saving replaces your current entry."
-                          : ""}
+                  </div>
+                ) : (
+                  <div className="mt-6 space-y-3">
+                    <button
+                      onClick={() =>
+                        leaveTeam.mutate({
+                          hackathonId: selectedHackathonId,
+                        })
+                      }
+                      disabled={leaveTeam.isPending || !canLeaveTeam}
+                      className={`w-full ${btnDanger}`}
+                    >
+                      {leaveTeam.isPending ? "Leaving…" : "Leave team"}
+                    </button>
+                    {!canLeaveTeam && (
+                      <p className={meta}>
+                        Rosters are locked for the final 12 hours before the
+                        deadline.
                       </p>
-                      {hasSubmitted && (
-                        <button
-                          type="button"
-                          disabled={withdrawProject.isPending}
-                          onClick={() => {
-                            setError("");
-                            setSuccessMessage("");
-                            withdrawProject.mutate({
-                              hackathonId: selectedHackathonId,
-                            });
-                          }}
-                          className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
-                        >
-                          {withdrawProject.isPending
-                            ? "Withdrawing…"
-                            : "Withdraw submission"}
-                        </button>
-                      )}
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4 border-t border-[var(--border-subtle)] pt-6">
+                <h2 className={label}>Team</h2>
+                <p className={body}>
+                  {admitted
+                    ? "You're submitting solo. Create a team or join one with an invite code."
+                    : "You can create or join a team once you have been accepted."}
+                </p>
+
+                {teamWindowNotice && (
+                  <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
+                    {teamWindowNotice}
+                  </p>
+                )}
+
+                {admitted && (
+                  <>
+                    <div className="space-y-3 pt-2">
+                      <input
+                        type="text"
+                        aria-label="Team name"
+                        placeholder="Team name"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        className={input}
+                      />
                       <button
-                        type="submit"
-                        disabled={submitProject.isPending}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+                        onClick={() => {
+                          if (teamName.trim().length === 0) {
+                            setError("Team name is required.");
+                            return;
+                          }
+                          createTeam.mutate({
+                            hackathonId: selectedHackathonId,
+                            name: teamName,
+                          });
+                        }}
+                        disabled={createTeam.isPending || !teamsOpen}
+                        className={`w-full ${btnSecondary}`}
                       >
-                        {submitProject.isPending
-                          ? "Submitting…"
-                          : hasSubmitted
-                            ? "Save changes"
-                            : "Submit project"}
-                        {!submitProject.isPending && <Send className="w-4 h-4" />}
+                        {createTeam.isPending ? "Creating…" : "Create team"}
                       </button>
                     </div>
-                  </form>
-                </LiquidGlass>
+
+                    <div className="flex items-center gap-4 py-1">
+                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                      <span className={meta}>or</span>
+                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        aria-label="Invite code"
+                        placeholder="Paste invite code"
+                        value={joinTeamId}
+                        onChange={(e) => setJoinTeamId(e.target.value)}
+                        className={`font-mono ${input}`}
+                      />
+                      <button
+                        onClick={() =>
+                          joinTeam.mutate({
+                            hackathonId: selectedHackathonId,
+                            teamId: joinTeamId,
+                          })
+                        }
+                        disabled={
+                          joinTeam.isPending ||
+                          joinTeamId.trim().length === 0 ||
+                          !teamsOpen
+                        }
+                        className={`w-full ${btnSecondary}`}
+                      >
+                        {joinTeam.isPending ? "Joining…" : "Join team"}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
+            )}
+          </aside>
+
+          {/* Project submission */}
+          <section className="border-t border-[var(--border-subtle)] pt-8 lg:col-span-8 lg:border-t-0 lg:pt-0">
+            <h2 className={sectionTitle}>Your project</h2>
+            <p className={`mt-2 ${body}`}>
+              Name and description are required. On a team, only the captain
+              can submit.
+            </p>
+
+            <div className="mt-6 space-y-4 empty:hidden">
+              {/* Where judges will come. The table is assigned when an
+                  organiser opens judging, and nothing else told the team. */}
+              {mySubmission.data?.tableNumber != null && (
+                <p className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
+                  Your project is at table{" "}
+                  <span className="font-semibold tabular-nums">
+                    {mySubmission.data.tableNumber}
+                  </span>
+                  . Be there when judging starts; judges come to you.
+                </p>
+              )}
+
+              {/* Admission, said before the form is filled in. Acceptance
+                  lets you form a team; submitting needs the badge scan,
+                  because judging happens in person at a table number. */}
+              {currentReg && currentReg.registrationStatus !== "checked_in" && (
+                <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
+                  {currentReg.registrationStatus === "approved"
+                    ? "You're accepted. Check in at the event before submitting: find a volunteer and have your badge scanned."
+                    : currentReg.registrationStatus === "pending"
+                      ? "Your registration is still being reviewed. You can form a team once you have been accepted."
+                      : currentReg.registrationStatus === "waitlisted"
+                        ? "You're on the waitlist. If a seat opens, you'll be accepted and can submit."
+                        : "Your registration wasn't accepted, so you can't submit to this hackathon."}
+                </p>
+              )}
+
+              {/* The window this form is gated on, said before it is filled
+                  in. Without it an attendee wrote a full description and
+                  learned it was refused only on submit. */}
+              {submissionWindow.data && (
+                <p
+                  className={`border-l-2 pl-3 text-[15px] text-[var(--text-primary)] ${
+                    submissionWindow.data.isOpen
+                      ? "border-accent"
+                      : "border-[var(--warning)]"
+                  }`}
+                >
+                  {submissionWindow.data.cancelled
+                    ? "This hackathon has been cancelled, so nothing can be submitted."
+                    : submissionWindow.data.notYetOpen
+                      ? `Submission opens ${formatMoment(submissionWindow.data.opensAt)}. The form is here early so you can see what it asks for.`
+                      : !submissionWindow.data.isOpen
+                        ? `Submission closed ${formatMoment(submissionWindow.data.closesAt)}.`
+                        : submissionWindow.data.canEditExisting
+                          ? `Open until ${formatMoment(submissionWindow.data.closesAt)}. Edits to an existing submission close ${formatMoment(submissionWindow.data.editsCloseAt)}.`
+                          : `Open until ${formatMoment(submissionWindow.data.closesAt)}. Edits to an existing submission are closed, so this can only file a first entry.`}
+                </p>
+              )}
+
+              {error && (
+                <p
+                  role="alert"
+                  className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
+                >
+                  {error}
+                </p>
+              )}
+
+              {successMessage && (
+                <div className="flex flex-wrap items-center justify-between gap-4 border-l-2 border-[var(--success)] pl-3">
+                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                    {successMessage}
+                  </p>
+                  <Link href="/dashboard" className={textLink}>
+                    Back to dashboard
+                  </Link>
+                </div>
+              )}
             </div>
-          )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitProject.mutate({
+                  hackathonId: selectedHackathonId,
+                  teamId: currentReg?.team?.id,
+                  name: projectName,
+                  description: projectDesc,
+                  githubUrl,
+                  demoUrl,
+                  videoUrl,
+                  tracks,
+                  challenges,
+                  isCreateX,
+                });
+              }}
+              className="mt-8 space-y-10"
+            >
+              {/* Name & Desc */}
+              <div className="space-y-5">
+                <div>
+                  <label htmlFor="project-name" className={fieldLabel}>
+                    Project name{" "}
+                    <span className="font-normal text-[var(--text-subtle)]">
+                      (required)
+                    </span>
+                  </label>
+                  <input
+                    id="project-name"
+                    type="text"
+                    required
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="e.g. Transit delay predictor"
+                    className={input}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="project-description" className={fieldLabel}>
+                    Description{" "}
+                    <span className="font-normal text-[var(--text-subtle)]">
+                      (required)
+                    </span>
+                  </label>
+                  <textarea
+                    id="project-description"
+                    required
+                    value={projectDesc}
+                    onChange={(e) => setProjectDesc(e.target.value)}
+                    placeholder="Explain the problem you solved and how you built it…"
+                    rows={5}
+                    className={`resize-none ${input}`}
+                  />
+                </div>
+              </div>
+
+              {/* Tracks, challenges and CreateX — what judge assignment
+                  routes on. Rendered only when the organisers configured
+                  them, so an event without tracks shows nothing rather
+                  than an empty box. */}
+              {(availableTracks.length > 0 ||
+                availableChallenges.length > 0) && (
+                <div className="border-t border-[var(--border-subtle)] pt-6">
+                  <h3 className={itemTitle}>Tracks and challenges</h3>
+                  <p className={`mt-1 ${body}`}>
+                    This decides which judges see your project. Pick
+                    everything you are competing for.
+                  </p>
+
+                  {availableTracks.length > 0 && (
+                    <div className="mt-5">
+                      <p className={fieldLabel}>Tracks</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTracks.map((track) => (
+                          <button
+                            key={track}
+                            type="button"
+                            onClick={() => toggle(track, tracks, setTracks)}
+                            aria-pressed={tracks.includes(track)}
+                            className={chip(tracks.includes(track))}
+                          >
+                            {track}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {availableChallenges.length > 0 && (
+                    <div className="mt-5">
+                      <p className={fieldLabel}>Sponsor challenges</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableChallenges.map((challenge) => (
+                          <button
+                            key={challenge}
+                            type="button"
+                            onClick={() =>
+                              toggle(challenge, challenges, setChallenges)
+                            }
+                            aria-pressed={challenges.includes(challenge)}
+                            className={chip(challenges.includes(challenge))}
+                          >
+                            {challenge}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <label
+                    htmlFor="is-createx"
+                    className="mt-6 flex cursor-pointer items-start gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <input
+                      id="is-createx"
+                      type="checkbox"
+                      checked={isCreateX}
+                      onChange={(e) => setIsCreateX(e.target.checked)}
+                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+                    />
+                    We are competing for the CreateX entrepreneurship prize
+                  </label>
+                </div>
+              )}
+
+              {/* Links */}
+              <div className="border-t border-[var(--border-subtle)] pt-6">
+                <h3 className={itemTitle}>Links</h3>
+
+                <div className="mt-4 space-y-5">
+                  <div>
+                    <label htmlFor="github-url" className={fieldLabel}>
+                      GitHub repository
+                    </label>
+                    <input
+                      id="github-url"
+                      type="url"
+                      value={githubUrl}
+                      onChange={(e) => setGithubUrl(e.target.value)}
+                      placeholder="https://github.com/…"
+                      className={input}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="video-url" className={fieldLabel}>
+                      Demo video
+                    </label>
+                    <input
+                      id="video-url"
+                      type="url"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      placeholder="https://youtube.com/…"
+                      className={input}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="demo-url" className={fieldLabel}>
+                      Live demo URL
+                    </label>
+                    <input
+                      id="demo-url"
+                      type="url"
+                      value={demoUrl}
+                      onChange={(e) => setDemoUrl(e.target.value)}
+                      placeholder="https://…"
+                      className={input}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6">
+                <p className={meta}>
+                  {hasSubmitted
+                    ? "You've already submitted. Saving replaces your current entry."
+                    : ""}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {hasSubmitted && (
+                    <button
+                      type="button"
+                      disabled={withdrawProject.isPending}
+                      onClick={() => {
+                        setError("");
+                        setSuccessMessage("");
+                        withdrawProject.mutate({
+                          hackathonId: selectedHackathonId,
+                        });
+                      }}
+                      className={btnDanger}
+                    >
+                      {withdrawProject.isPending
+                        ? "Withdrawing…"
+                        : "Withdraw submission"}
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitProject.isPending}
+                    className={btnPrimary}
+                  >
+                    {submitProject.isPending
+                      ? "Submitting…"
+                      : hasSubmitted
+                        ? "Save changes"
+                        : "Submit project"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </section>
         </div>
-      </main>
-    </div>
+      )}
+    </main>
   );
 }
 

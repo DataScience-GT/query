@@ -3,8 +3,21 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { AlertCircle, Plus, Users } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  fieldLabel,
+  input,
+  itemTitle,
+  label,
+  meta,
+  object,
+  sectionTitle,
+  status,
+} from "@/components/portal/ui";
 
 export function TeamsTab({
   hackathonId,
@@ -64,27 +77,22 @@ export function TeamsTab({
     onError: (e) => setError(e.message),
   });
 
-  if (isLoading)
-    return (
-      <div className="py-16 text-center text-sm text-[var(--text-muted)]">
-        Loading teams…
-      </div>
-    );
+  if (isLoading) return <p className={`py-16 ${body}`}>Loading teams…</p>;
 
   if (isError)
     return (
-      <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
-        <p className="text-sm text-rose-400">
+      <div className="flex flex-col items-start gap-4">
+        <p className="text-[15px] text-[var(--danger)]">
           Couldn&apos;t load teams. {listError.message}
         </p>
         <button
           type="button"
           onClick={() => refetch()}
-          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+          className={btnSecondary}
         >
           Try again
         </button>
-      </LiquidGlass>
+      </div>
     );
 
   // The server only lets accepted people create or join (pending and
@@ -111,15 +119,15 @@ export function TeamsTab({
   const windowNotice = !teamWindow
     ? null
     : !teamWindow.isOpen
-        ? `Team creation closed ${fmt(teamWindow.closesAt)}.`
-        : !teamWindow.canLeave
-          ? `Teams are locked. Leaving closed ${fmt(teamWindow.leaveLocksAt)}, 12 hours before the project deadline.`
-          : null;
+      ? `Team creation closed ${fmt(teamWindow.closesAt)}.`
+      : !teamWindow.canLeave
+        ? `Teams are locked. Leaving closed ${fmt(teamWindow.leaveLocksAt)}, 12 hours before the project deadline.`
+        : null;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-10">
       {!isAdmitted && (
-        <p className="text-sm text-[var(--text-muted)]">
+        <p className={body}>
           {isRegistered
             ? "You can form or join a team once you're accepted."
             : "Register for this hackathon to form a team."}
@@ -127,71 +135,64 @@ export function TeamsTab({
       )}
 
       {isRegistered && windowNotice && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-sm">
-          <p className="text-amber-400 text-sm font-medium">{windowNotice}</p>
-        </div>
+        <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--warning)]">
+          {windowNotice}
+        </p>
       )}
 
       {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-sm flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-          <p className="text-rose-400 text-sm font-medium">{error}</p>
+        <div className="flex items-start gap-2.5 border-l-2 border-[var(--danger)] py-1 pl-3">
+          <AlertCircle
+            size={16}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-[var(--danger)]"
+          />
+          <p className="text-[15px] text-[var(--danger)]">{error}</p>
         </div>
       )}
 
       {myTeam && (
-        <LiquidGlass printed className="p-6">
-          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
-            Your team
-          </h3>
-          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-3">
-            {myTeam.name}
-          </h2>
+        <section className={`${object} p-6`}>
+          <p className={label}>Your team</p>
+          <h2 className={`mt-1 ${sectionTitle}`}>{myTeam.name}</h2>
           {myTeam.description && (
-            <p className="text-[var(--text-muted)] text-sm mb-6 max-w-2xl leading-relaxed">
-              {myTeam.description}
-            </p>
+            <p className={`mt-2 max-w-2xl ${body}`}>{myTeam.description}</p>
           )}
 
-          <div className="flex flex-wrap gap-3 mb-6">
+          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-3">
             {(myTeam.participants || []).map(
               (p: {
                 userId: string;
                 user: { name?: string | null; image?: string | null };
               }) => (
-                <div
-                  key={p.userId}
-                  className="flex items-center gap-3 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm"
-                >
+                <li key={p.userId} className="flex items-center gap-2.5">
                   {p.user.image ? (
                     <Image
                       src={p.user.image}
                       alt=""
-                      width={24}
-                      height={24}
-                      className="rounded-sm"
+                      width={28}
+                      height={28}
+                      className="rounded-full"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-sm bg-[var(--bg-elevated)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">
+                    <div className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-muted)]">
                       {(p.user.name?.[0] ?? "?").toUpperCase()}
                     </div>
                   )}
-                  <span className="text-sm text-[var(--text-primary)] font-medium">
+                  <span className="text-[15px] text-[var(--text-primary)]">
                     {p.user.name ?? "Unknown"}
                   </span>
                   {p.userId === myTeam.captainId && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-amber-400 bg-amber-400/10 border-amber-400/20">
-                      Captain
-                    </span>
+                    <span className={meta}>Captain</span>
                   )}
-                </div>
+                </li>
               ),
             )}
-          </div>
+          </ul>
 
-          <div className="flex items-center gap-5 pt-4 border-t border-[var(--border-subtle)]">
-            <span className="text-sm text-[var(--text-muted)] flex items-center gap-2">
-              <Users className="w-3.5 h-3.5 text-[var(--text-subtle)]" />
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-4">
+            <span className={meta}>
               {myTeam.currentMembers} of {myTeam.maxMembers} members
             </span>
             <button
@@ -202,7 +203,7 @@ export function TeamsTab({
               }}
               disabled={leaveTeam.isPending || !canLeave}
               title={canLeave ? undefined : (windowNotice ?? undefined)}
-              className="px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className={btnDanger}
             >
               {leaveTeam.isPending
                 ? "Leaving…"
@@ -211,42 +212,30 @@ export function TeamsTab({
                   : "Roster locked"}
             </button>
           </div>
-        </LiquidGlass>
+        </section>
       )}
 
       {isAdmitted && !myTeamId && (
-        <LiquidGlass printed className="p-6">
+        <section>
           {!canCreate ? (
             <div className="flex flex-col gap-1">
-              <p className="text-sm text-[var(--text-muted)]">
-                Team creation is closed.
-              </p>
-              {windowNotice && (
-                <p className="text-xs text-[var(--text-subtle)]">
-                  {windowNotice}
-                </p>
-              )}
+              <p className={body}>Team creation is closed.</p>
+              {windowNotice && <p className={meta}>{windowNotice}</p>}
             </div>
           ) : !showCreate ? (
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+              className={btnPrimary}
             >
-              <Plus className="w-4 h-4" />
               Create a team
             </button>
           ) : (
-            <div className="space-y-5">
-              <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                New team
-              </h3>
+            <div className="max-w-xl space-y-5">
+              <h3 className={itemTitle}>New team</h3>
 
               <div>
-                <label
-                  htmlFor="team-name"
-                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-                >
+                <label htmlFor="team-name" className={fieldLabel}>
                   Team name
                 </label>
                 <input
@@ -255,15 +244,12 @@ export function TeamsTab({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   maxLength={100}
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+                  className={input}
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="team-description"
-                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-                >
+                <label htmlFor="team-description" className={fieldLabel}>
                   Description
                 </label>
                 <textarea
@@ -273,15 +259,12 @@ export function TeamsTab({
                   placeholder="What are you building, and who do you need?"
                   maxLength={1000}
                   rows={4}
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui resize-none"
+                  className={`${input} resize-none`}
                 />
               </div>
 
               <div>
-                <span
-                  id="team-capacity-label"
-                  className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-                >
+                <span id="team-capacity-label" className={fieldLabel}>
                   Capacity
                 </span>
                 <div
@@ -296,7 +279,11 @@ export function TeamsTab({
                       aria-pressed={maxMembers === n}
                       aria-label={`${n} members`}
                       onClick={() => setMaxMembers(n)}
-                      className={`w-12 h-12 rounded-sm text-sm font-bold border transition-ui ${maxMembers === n ? "bg-accent/15 border-accent/40 text-accent" : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"}`}
+                      className={`w-11 h-11 rounded-[var(--radius-sm)] border text-[15px] tabular-nums transition-colors ${
+                        maxMembers === n
+                          ? "border-accent bg-[var(--accent-dim)] text-[var(--text-primary)] font-semibold"
+                          : "border-[var(--border-medium)] text-[var(--text-muted)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+                      }`}
                     >
                       {n}
                     </button>
@@ -304,7 +291,7 @@ export function TeamsTab({
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-[var(--border-subtle)]">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -317,7 +304,7 @@ export function TeamsTab({
                     });
                   }}
                   disabled={!teamName.trim() || createTeam.isPending}
-                  className="w-full sm:w-auto px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+                  className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {createTeam.isPending ? "Creating…" : "Create team"}
                 </button>
@@ -327,36 +314,29 @@ export function TeamsTab({
                     setShowCreate(false);
                     setError("");
                   }}
-                  className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  className="py-2.5 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           )}
-        </LiquidGlass>
+        </section>
       )}
 
-      <div>
-        <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">
-          Open teams ({otherTeams.length})
-        </h3>
+      <section className="border-t border-[var(--border-subtle)] pt-8">
+        <div className="flex items-baseline justify-between gap-4 mb-5">
+          <h3 className={sectionTitle}>Open teams</h3>
+          <span className={meta}>{otherTeams.length}</span>
+        </div>
 
         {otherTeams.length === 0 && !myTeam && (
-          <LiquidGlass
-            printed
-            className="p-8 text-center flex flex-col items-center gap-3"
-          >
-            <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-center">
-              <Users className="w-5 h-5 text-[var(--text-subtle)]" />
-            </div>
-            <p className="text-sm text-[var(--text-muted)]">
-              No teams yet. Create one above, or wait for others to form.
-            </p>
-          </LiquidGlass>
+          <p className={body}>
+            No teams yet. Create one above, or wait for others to form.
+          </p>
         )}
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {otherTeams.map((team) => {
             const isFull = team.currentMembers >= team.maxMembers;
             const canJoin =
@@ -367,70 +347,63 @@ export function TeamsTab({
               windowAllowsJoin;
 
             return (
-              <LiquidGlass key={team.id} printed className="p-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-base font-bold text-[var(--text-primary)] truncate">
-                        {team.name}
-                      </h3>
-                      {!team.isOpen && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-rose-400 bg-rose-500/10 border-rose-500/20">
-                          Closed
-                        </span>
-                      )}
-                      {isFull && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-amber-400 bg-amber-500/10 border-amber-500/20">
-                          Full
-                        </span>
-                      )}
-                    </div>
-                    {team.description && (
-                      <p className="text-[var(--text-muted)] text-sm mb-4 line-clamp-2 leading-relaxed">
-                        {team.description}
-                      </p>
+              <article
+                key={team.id}
+                className={`${object} p-5 flex flex-col gap-4`}
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h4 className={`${itemTitle} truncate`}>{team.name}</h4>
+                    {!team.isOpen && (
+                      <span className={status("neutral")}>Closed</span>
                     )}
+                    {isFull && <span className={status("warning")}>Full</span>}
+                  </div>
+                  {team.description && (
+                    <p className={`mt-1.5 line-clamp-2 ${body}`}>
+                      {team.description}
+                    </p>
+                  )}
+                </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-2">
-                        {(team.participants || [])
-                          .slice(0, 5)
-                          .map(
-                            (p: {
-                              userId: string;
-                              user: {
-                                name?: string | null;
-                                image?: string | null;
-                              };
-                            }) =>
-                              p.user.image ? (
-                                <Image
-                                  key={p.userId}
-                                  src={p.user.image}
-                                  alt=""
-                                  width={32}
-                                  height={32}
-                                  className="rounded-sm border-2 border-[var(--bg-primary)] relative z-10"
-                                />
-                              ) : (
-                                <div
-                                  key={p.userId}
-                                  className="w-8 h-8 rounded-sm bg-[var(--bg-elevated)] border-2 border-[var(--bg-primary)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)] relative z-10"
-                                >
-                                  {(p.user.name?.[0] ?? "?").toUpperCase()}
-                                </div>
-                              ),
-                          )}
-                        {team.currentMembers > 5 && (
-                          <div className="w-8 h-8 rounded-sm bg-[var(--bg-secondary)] border-2 border-[var(--bg-primary)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)] relative z-10">
-                            +{team.currentMembers - 5}
-                          </div>
-                        )}
-                      </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-bold uppercase tracking-wider border text-[var(--text-muted)] bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-                        {team.currentMembers} / {team.maxMembers}
-                      </span>
+                <div className="mt-auto flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                      {(team.participants || []).slice(0, 5).map(
+                        (p: {
+                          userId: string;
+                          user: {
+                            name?: string | null;
+                            image?: string | null;
+                          };
+                        }) =>
+                          p.user.image ? (
+                            <Image
+                              key={p.userId}
+                              src={p.user.image}
+                              alt=""
+                              width={28}
+                              height={28}
+                              className="rounded-full border-2 border-[var(--bg-card)] relative z-10"
+                            />
+                          ) : (
+                            <div
+                              key={p.userId}
+                              className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-muted)] relative z-10"
+                            >
+                              {(p.user.name?.[0] ?? "?").toUpperCase()}
+                            </div>
+                          ),
+                      )}
+                      {team.currentMembers > 5 && (
+                        <div className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-muted)] relative z-10">
+                          +{team.currentMembers - 5}
+                        </div>
+                      )}
                     </div>
+                    <span className={`${meta} tabular-nums`}>
+                      {team.currentMembers} of {team.maxMembers}
+                    </span>
                   </div>
 
                   {canJoin && (
@@ -441,17 +414,17 @@ export function TeamsTab({
                         joinTeam.mutate({ hackathonId, teamId: team.id });
                       }}
                       disabled={joinTeam.isPending}
-                      className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors disabled:opacity-50"
+                      className={`${btnSecondary} shrink-0`}
                     >
                       {joinTeam.isPending ? "Joining…" : "Join team"}
                     </button>
                   )}
                 </div>
-              </LiquidGlass>
+              </article>
             );
           })}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

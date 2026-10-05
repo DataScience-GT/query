@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { GraduationCap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useInvalidatePortalContext } from "@/lib/use-portal-context";
 import { BOOTCAMP_ADDON_CENTS, formatCents } from "@query/api/pricing";
+import { btnPrimary, fieldHint } from "@/components/portal/ui";
 
 const StripePaymentModal = dynamic(
   () =>
@@ -58,20 +58,19 @@ export function BootcampAddOn({ term }: { term: string }) {
         type="button"
         disabled={createIntent.isPending}
         onClick={() => createIntent.mutate({ bootcamp: true })}
-        className="mt-6 inline-flex items-center gap-2 bg-accent px-6 py-3 text-sm font-black uppercase tracking-widest text-black transition-ui hover:bg-accent/90 disabled:opacity-50"
+        className={`${btnPrimary} mt-6`}
       >
-        <GraduationCap className="h-4 w-4" />
         {createIntent.isPending
           ? "Starting…"
           : `Join for ${formatCents(BOOTCAMP_ADDON_CENTS)}`}
       </button>
 
-      <p className="mt-2 text-xs text-[var(--text-subtle)]">
+      <p className={fieldHint}>
         Covers {term}. Your membership is untouched — this does not renew it.
       </p>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red-300">
+        <p role="alert" className="mt-3 text-sm text-[var(--danger)]">
           {error}
         </p>
       )}

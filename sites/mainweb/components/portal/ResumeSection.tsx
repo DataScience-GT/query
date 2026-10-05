@@ -5,6 +5,14 @@ import { FileText, Upload, Trash2, Eye, EyeOff, ExternalLink } from "lucide-reac
 import { trpc } from "@/lib/trpc";
 import { MAX_RESUME_BYTES, decodeStoredFileName } from "@/lib/resume-file";
 import { ResumePreview } from "@/components/portal/ResumePreview";
+import {
+  itemTitle,
+  meta,
+  sectionRule,
+  object,
+  btnSecondary,
+  btnDanger,
+} from "@/components/portal/ui";
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -32,7 +40,7 @@ export function ResumeSection() {
     setNotice(null);
 
     if (file.type !== "application/pdf") {
-      setError("Resumes must be a PDF.");
+      setError("Resumes must be a PDF. Save it as a PDF and try again.");
       return;
     }
     if (file.size > MAX_RESUME_BYTES) {
@@ -59,7 +67,7 @@ export function ResumeSection() {
         originalBytes?: number;
       } | null;
 
-      if (!res.ok) throw new Error(body?.error ?? "Upload failed.");
+      if (!res.ok) throw new Error(body?.error ?? "Upload failed. Try again.");
 
       // Only worth saying when it actually shrank — a scan will not.
       if (
@@ -74,7 +82,7 @@ export function ResumeSection() {
 
       await utils.resume.me.invalidate();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
+      setError(err instanceof Error ? err.message : "Upload failed. Try again.");
     } finally {
       setBusy(false);
     }
@@ -86,25 +94,25 @@ export function ResumeSection() {
     setNotice(null);
     try {
       const res = await fetch("/api/resume", { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not remove your resume.");
+      if (!res.ok) throw new Error("Could not remove your resume. Try again.");
       setPreview(false);
       await utils.resume.me.invalidate();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove.");
+      setError(err instanceof Error ? err.message : "Could not remove your resume. Try again.");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="space-y-3 border-t border-[var(--border-subtle)] pt-6">
-      <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-        <FileText className="w-3.5 h-3.5" /> Resume
+    <div className={`${sectionRule} space-y-4`}>
+      <div>
+        <h3 className={itemTitle}>Resume</h3>
+        <p className={`${meta} mt-1`}>
+          PDF, up to {formatSize(MAX_RESUME_BYTES)}. Shared with sponsors and
+          recruiters through the club resume book. Remove it any time.
+        </p>
       </div>
-      <p className="text-[10px] text-[var(--text-subtle)] font-mono">
-        PDF, up to {formatSize(MAX_RESUME_BYTES)}. Shared with sponsors and
-        recruiters through the club resume book. Remove it any time.
-      </p>
 
       <input
         ref={inputRef}
@@ -116,63 +124,68 @@ export function ResumeSection() {
       />
 
       {isLoading ? (
-        <div className="h-[68px] rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)] animate-pulse" />
+        <div className="h-[74px] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] animate-pulse" />
       ) : resume ? (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="p-2.5 rounded-sm bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shrink-0">
-                <FileText className="w-5 h-5 text-accent" />
-              </div>
+          <div className={`${object} flex flex-wrap items-center justify-between gap-4 p-4`}>
+            <div className="flex items-start gap-3 min-w-0">
+              <FileText
+                className="w-4 h-4 mt-0.5 shrink-0 text-[var(--text-subtle)]"
+                strokeWidth={1.75}
+              />
               <div className="min-w-0">
-                <p className="text-sm font-bold text-[var(--text-primary)] truncate">
+                <p className="text-[15px] font-semibold text-[var(--text-primary)] truncate">
                   {decodeStoredFileName(resume.fileName)}
                 </p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5 font-mono">
-                  {formatSize(resume.sizeBytes)} · uploaded{" "}
+                <p className={`${meta} mt-0.5`}>
+                  <span className="font-mono">{formatSize(resume.sizeBytes)}</span>
+                  {" · "}Uploaded{" "}
                   {new Date(resume.uploadedAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <a
                 href="/api/resume/me"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+                className={btnSecondary}
               >
-                <ExternalLink className="w-3.5 h-3.5" /> Open
+                <ExternalLink className="w-4 h-4" strokeWidth={1.75} /> Open
               </a>
               <button
+                type="button"
                 onClick={() => setPreview((open) => !open)}
                 aria-expanded={preview}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+                className={btnSecondary}
               >
                 {preview ? (
                   <>
-                    <EyeOff className="w-3.5 h-3.5" /> Hide
+                    <EyeOff className="w-4 h-4" strokeWidth={1.75} /> Hide
                   </>
                 ) : (
                   <>
-                    <Eye className="w-3.5 h-3.5" /> Preview
+                    <Eye className="w-4 h-4" strokeWidth={1.75} /> Preview
                   </>
                 )}
               </button>
               <button
+                type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={busy}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                className={btnSecondary}
               >
-                <Upload className="w-3.5 h-3.5" /> Replace
+                <Upload className="w-4 h-4" strokeWidth={1.75} /> Replace
               </button>
               <button
+                type="button"
                 onClick={handleRemove}
                 disabled={busy}
                 aria-label="Remove resume"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-sm border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                className={`${btnDanger} sm:ml-4`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" strokeWidth={1.75} /> Remove
               </button>
             </div>
           </div>
@@ -188,29 +201,30 @@ export function ResumeSection() {
         </>
       ) : (
         <button
+          type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="w-full flex flex-col items-center justify-center gap-2 p-8 rounded-sm border-2 border-dashed border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:border-accent hover:text-[var(--text-primary)] transition-ui disabled:opacity-50"
+          className="w-full flex flex-col items-center justify-center gap-1.5 px-6 py-8 rounded-[var(--radius-md)] border border-dashed border-[var(--border-medium)] text-[var(--text-muted)] hover:border-accent hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <Upload className="w-6 h-6 text-[var(--text-subtle)]" />
-          <span className="text-sm font-bold uppercase tracking-widest">
+          <Upload className="w-4 h-4 text-[var(--text-subtle)]" strokeWidth={1.75} />
+          <span className="text-[15px] font-semibold text-[var(--text-primary)]">
             {busy ? "Uploading…" : "Upload your resume"}
           </span>
-          <span className="text-[10px] font-mono text-[var(--text-subtle)]">
-            PDF only, max {formatSize(MAX_RESUME_BYTES)}
+          <span className={meta}>
+            No resume on file yet. PDF only, up to {formatSize(MAX_RESUME_BYTES)}.
           </span>
         </button>
       )}
 
       {error && (
-        <div className="px-4 py-3 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <p role="alert" className="text-[13px] text-[var(--danger)]">
           {error}
-        </div>
+        </p>
       )}
       {notice && (
-        <div className="px-4 py-3 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+        <p role="status" className="text-[13px] text-[var(--success)]">
           {notice}
-        </div>
+        </p>
       )}
     </div>
   );
