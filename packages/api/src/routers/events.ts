@@ -2,7 +2,18 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members, users } from "@query/db";
-import { eq, and, lt, sql } from "drizzle-orm";
+import {
+  eq,
+  and,
+  lt,
+  gt,
+  gte,
+  lte,
+  sql,
+  count,
+  max,
+  desc,
+} from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
@@ -19,6 +30,18 @@ const isUniqueViolation = (error: unknown) => {
   }
   return false;
 };
+
+// The first instant of the term currentTerm() names, in Atlanta: spring opens
+// Jan 1 and fall Jun 1, since summer sells fall. Jan 1 is always standard time
+// and Jun 1 always daylight time, so each has one fixed offset.
+const termStart = (now: Date) => {
+  const [year, season] = currentTerm(now).split("-");
+  return season === "spring"
+    ? new Date(`${year}-01-01T00:00:00-05:00`)
+    : new Date(`${year}-06-01T00:00:00-04:00`);
+};
+
+const ATTENDANCE_RANGES = ["term", "90d", "all"] as const;
 
 export const eventRouter = createTRPCRouter({
   create: isAdmin
@@ -766,6 +789,109 @@ export const eventRouter = createTRPCRouter({
 
           return { success: true };
         },
+      );
+    }),
+
+  /**
+   * Club meeting attendance for /scan/club. Every number is aggregated in the
+   * database: one row per event and one per person, never a row per check-in.
+   * Club events only, which includes bootcamp sessions (they are rows of this
+   * table); hackathon events live in their own tables and are not read here.
+   */
+  attendanceMetrics: isAdmin
+    .input(z.object({ range: z.enum(ATTENDANCE_RANGES).default("term") }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as NonNullable<typeof ctx.db>;
+
+      const compute = async () => {
+        const now = new Date();
+        const from =
+          input.range === "term"
+            ? termStart(now)
+            : input.range === "90d"
+              ? new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+              : null;
+        // Held means it has happened. A meeting on next week's calendar has no
+        // check-ins yet and would only drag the average down.
+        const held = and(
+          lte(events.eventDate, now),
+          from ? gte(events.eventDate, from) : undefined,
+        );
+        const activeMember = and(
+          eq(members.isActive, true),
+          gt(members.membershipEndDate, now),
+        );
+
+        const [eventRows, people, [active]] = await Promise.all([
+          db
+            .select({
+              id: events.id,
+              title: events.title,
+              location: events.location,
+              eventDate: events.eventDate,
+              maxCheckIns: events.maxCheckIns,
+              bootcampWeek: events.bootcampWeek,
+              checkIns: count(eventCheckIns.id),
+            })
+            .from(events)
+            .leftJoin(eventCheckIns, eq(eventCheckIns.eventId, events.id))
+            .where(held)
+            .groupBy(events.id)
+            .orderBy(desc(events.eventDate)),
+          // Grouped on the two primary keys, so their other columns can be
+          // selected as they are. A user holds at most one member row.
+          db
+            .select({
+              userId: users.id,
+              userName: users.name,
+              email: users.email,
+              firstName: members.firstName,
+              lastName: members.lastName,
+              isMember: sql<boolean>`coalesce(bool_or(${activeMember}), false)`,
+              eventsAttended: count(eventCheckIns.id),
+              lastAttended: max(events.eventDate),
+            })
+            .from(eventCheckIns)
+            .innerJoin(events, eq(events.id, eventCheckIns.eventId))
+            .innerJoin(users, eq(users.id, eventCheckIns.userId))
+            .leftJoin(members, eq(members.userId, eventCheckIns.userId))
+            .where(held)
+            .groupBy(users.id, members.id)
+            .orderBy(
+              desc(count(eventCheckIns.id)),
+              desc(max(events.eventDate)),
+            ),
+          db.select({ count: count() }).from(members).where(activeMember),
+        ]);
+
+        const checkIns = eventRows.reduce((sum, row) => sum + row.checkIns, 0);
+        return {
+          from,
+          summary: {
+            eventsHeld: eventRows.length,
+            checkIns,
+            uniqueAttendees: people.length,
+            averagePerEvent: eventRows.length ? checkIns / eventRows.length : 0,
+            activeMembers: active?.count ?? 0,
+            // Members active today who came to at least one meeting in range.
+            activeMembersAttended: people.filter((p) => p.isMember).length,
+          },
+          events: eventRows,
+          people: people.map(({ firstName, lastName, userName, ...person }) => ({
+            ...person,
+            name:
+              `${firstName ?? ""} ${lastName ?? ""}`.trim() ||
+              userName ||
+              "Unknown",
+          })),
+        };
+      };
+
+      // Every check-in path clears `event*`, which this key falls under.
+      return await ctx.cache.getOrSet<Awaited<ReturnType<typeof compute>>>(
+        `events:attendance:${input.range}`,
+        compute,
+        60,
       );
     }),
 
