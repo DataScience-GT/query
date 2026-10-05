@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { INTEREST_URL } from "@/lib/links";
+import ThemeToggle from "./ThemeToggle";
 
 const navItems = [
   { name: "About", href: "/#about" },
@@ -66,9 +67,13 @@ export default function Navbar() {
     return () => document.body.classList.remove("overflow-hidden");
   }, [open]);
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
     // Cmd/ctrl-click opens a new tab; that is the browser's to handle.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+      return;
     setOpen(false);
     const id = href.replace("/#", "");
     const el = document.getElementById(id);
@@ -128,33 +133,36 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <a
-            href={INTEREST_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Notify me (opens a sign-up form)"
-            className="btn btn-bloom hidden lg:inline-flex px-4 py-2.5 text-sm shrink-0"
-          >
-            Notify me
-          </a>
+          <div className="flex items-center gap-3 shrink-0">
+            <ThemeToggle />
+            <a
+              href={INTEREST_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Notify me (opens a sign-up form)"
+              className="btn btn-bloom hidden lg:inline-flex px-4 py-2.5 text-sm shrink-0"
+            >
+              Notify me
+            </a>
 
-          <button
-            aria-label="Toggle menu"
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-            onClick={() => setOpen((s) => !s)}
-            className="lg:hidden w-11 h-11 rounded-full flex flex-col justify-center items-center gap-[6px] border border-rule hover:border-ink-3 transition-colors bg-transparent"
-          >
-            <span
-              className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
-            />
-            <span
-              className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "opacity-0 scale-x-0" : ""}`}
-            />
-            <span
-              className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "-rotate-45 -translate-y-[7px]" : ""}`}
-            />
-          </button>
+            <button
+              aria-label="Toggle menu"
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              onClick={() => setOpen((s) => !s)}
+              className="lg:hidden w-11 h-11 rounded-full flex flex-col justify-center items-center gap-[6px] border border-rule hover:border-ink-3 transition-colors bg-transparent"
+            >
+              <span
+                className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
+              />
+              <span
+                className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "opacity-0 scale-x-0" : ""}`}
+              />
+              <span
+                className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "-rotate-45 -translate-y-[7px]" : ""}`}
+              />
+            </button>
+          </div>
         </div>
       </header>
 
