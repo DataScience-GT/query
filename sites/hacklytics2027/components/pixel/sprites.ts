@@ -2,8 +2,8 @@
  * Pixel-art sprite maps — Terraria-style flora for the Digital Bloom theme.
  *
  * Each sprite is a string[] where one character = one pixel. Characters are
- * looked up in a palette, so the same map can be tinted pink / cyan / lime /
- * purple. "." is transparent.
+ * looked up in a palette, so the same map can be drawn dormant (grey) or in
+ * bloom (pink). "." is transparent.
  *
  *   p/P  petal dark / light      c  petal core      Y  bloom center
  *   W    highlight               g  stem            G  leaf
@@ -137,26 +137,43 @@ export const SPORE: SpriteMap = [
   ".W.",
 ];
 
-/* ─── Palettes ─────────────────────────────────────────────────────────── */
+/* ─── Palettes ───────────────────────────────────────────────────────────
+   Two states, not four colours. "dormant" is the night: grey petals on green
+   stems. "bloom" is the one accent, pink. Stems and leaves are the only green
+   on the page and they never change. */
 
 const shared = {
-  g: "#1f7a3d",
-  G: "#3fd66b",
-  W: "#ffffff",
-  m: "#7a1030",
-  M: "#c41f4f",
-  w: "#ffe9f0",
-  s: "#e8dcc8",
-  S: "#c9b898",
-  d: "#3a2a1e",
-  r: "#55423a",
+  g: "#2f6b3a",
+  G: "#4c9a55",
+  s: "#5a625c",
+  S: "#3a403c",
+  d: "#1e2420",
+  r: "#2a302c",
 };
 
-export const PALETTES: Record<"pink" | "cyan" | "lime" | "purple", Palette> = {
-  pink: { ...shared, p: "#ff2d78", P: "#ff7aa8", c: "#ffb3cb", Y: "#ffe066" },
-  cyan: { ...shared, p: "#00a6bd", P: "#00e5ff", c: "#a8f4ff", Y: "#ffe066" },
-  lime: { ...shared, p: "#8fb800", P: "#c8ff00", c: "#e8ff9e", Y: "#fff2a8" },
-  purple: { ...shared, p: "#6a00b0", P: "#9b00ff", c: "#d3a3ff", Y: "#ffe066" },
+export const PALETTES: Record<"bloom" | "dormant", Palette> = {
+  bloom: {
+    ...shared,
+    p: "#b8285a",
+    P: "#ff4f8b",
+    c: "#ffc2d6",
+    Y: "#ffe9f0",
+    W: "#ffffff",
+    m: "#b8285a",
+    M: "#ff4f8b",
+    w: "#ffe9f0",
+  },
+  dormant: {
+    ...shared,
+    p: "#3a403c",
+    P: "#5a625c",
+    c: "#8a938c",
+    Y: "#c9cfc9",
+    W: "#c9cfc9",
+    m: "#3a403c",
+    M: "#5a625c",
+    w: "#8a938c",
+  },
 };
 
 export type PaletteName = keyof typeof PALETTES;

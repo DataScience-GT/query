@@ -1,8 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import PixelSprite from "./pixel/PixelSprite";
-import { SPROUT } from "./pixel/sprites";
 import { INTEREST_HINT, INTEREST_URL } from "@/lib/links";
 
 const navItems = [
@@ -96,36 +94,34 @@ export default function Navbar() {
         ref={headerRef}
         className={`
           fixed top-0 left-0 right-0 z-50
+          bg-ground border-b
           transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}
-          ${scrolled ? "bg-[#04040a]/92 border-b border-white/10" : "bg-transparent"}
+          ${scrolled ? "border-rule" : "border-transparent"}
         `}
         style={{ height: "var(--navbar-height)" }}
       >
         {/* The right padding keeps clear of the MLH badge hanging from the top
             right of the hero (owned elsewhere): 20px + 56px wide on phones,
-            48px + up to 90px from md. Not section-wrap: its unlayered padding
-            beat these utilities, and the badge sat on the menu toggle. */}
-        <div className="max-w-7xl mx-auto h-full flex items-center justify-between pl-6 md:pl-12 xl:pl-20 pr-[5.75rem] md:pr-40">
+            48px + up to 90px from md. .wrap sits in the components layer, so
+            this right padding wins over its gutter. */}
+        <div className="wrap h-full flex items-center justify-between gap-6 pr-[5.75rem] md:pr-40">
           <Link
             href="/"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3 group shrink-0"
+            className="font-display font-extrabold text-lg tracking-[-0.02em] text-ink shrink-0"
           >
-            <PixelSprite map={SPROUT} palette="lime" scale={2} glow />
-            <span className="font-pixel text-xs text-white group-hover:text-bloom-lime transition-colors">
-              DS @ GT
-            </span>
+            Hacklytics
           </Link>
 
           {/* Six links, the logo and the button do not fit below 1024px. */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+          <nav className="hidden lg:flex items-center gap-7">
             {navItems.map(({ name, href }) => (
               <a
                 key={name}
                 href={href}
                 onClick={(e) => handleNavClick(e, href)}
-                className="font-sans text-xs uppercase tracking-[0.2em] text-white/70 hover:text-bloom-cyan transition-colors py-2"
+                className="font-sans text-sm text-ink-2 hover:text-ink transition-colors py-2"
               >
                 {name}
               </a>
@@ -137,7 +133,7 @@ export default function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Notify me. ${INTEREST_HINT}`}
-            className="pixel-btn hidden lg:inline-flex items-center justify-center px-6 py-2.5 font-pixel text-[11px] shrink-0"
+            className="btn btn-bloom hidden lg:inline-flex px-4 py-2.5 text-sm shrink-0"
           >
             Notify me
           </a>
@@ -147,16 +143,16 @@ export default function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => setOpen((s) => !s)}
-            className="lg:hidden w-11 h-11 flex flex-col justify-center items-center gap-[6px] border border-white/15 hover:border-white/40 transition-colors bg-transparent"
+            className="lg:hidden w-11 h-11 rounded-full flex flex-col justify-center items-center gap-[6px] border border-rule hover:border-ink-3 transition-colors bg-transparent"
           >
             <span
-              className={`block w-4 h-[1px] bg-white transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
+              className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
             />
             <span
-              className={`block w-4 h-[1px] bg-white transition-all duration-300 ${open ? "opacity-0 scale-x-0" : ""}`}
+              className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "opacity-0 scale-x-0" : ""}`}
             />
             <span
-              className={`block w-4 h-[1px] bg-white transition-all duration-300 ${open ? "-rotate-45 -translate-y-[7px]" : ""}`}
+              className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "-rotate-45 -translate-y-[7px]" : ""}`}
             />
           </button>
         </div>
@@ -169,38 +165,38 @@ export default function Navbar() {
         inert={!open}
         className={`
           fixed inset-0 z-40 flex flex-col
-          bg-[#04040a]/98
+          bg-ground
           transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
         `}
         style={{ paddingTop: "var(--navbar-height)" }}
       >
-        <nav className="flex flex-col px-8 pt-10 gap-0">
+        <nav className="wrap flex flex-col pt-8 gap-0">
           {navItems.map(({ name, href }) => (
             <a
               key={name}
               href={href}
               onClick={(e) => handleNavClick(e, href)}
-              className="font-sans font-medium text-3xl text-white/75 hover:text-bloom-cyan py-4 border-b border-white/10 transition-colors tracking-tight"
+              className="font-display font-extrabold text-[2rem] leading-none tracking-[-0.03em] text-ink hover:text-ink-2 py-4 border-b border-rule transition-colors"
             >
               {name}
             </a>
           ))}
         </nav>
-        <div className="px-8 mt-12">
+        <div className="wrap mt-10">
           <a
             href={INTEREST_URL}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
             aria-label={`Notify me. ${INTEREST_HINT}`}
-            className="pixel-btn flex items-center justify-center w-full font-pixel text-xs px-8 py-4"
+            className="btn btn-bloom w-full"
           >
             Notify me
           </a>
         </div>
-        <div className="px-8 mt-auto pb-12">
-          <span className="font-sans text-[11px] uppercase tracking-[0.28em] text-white/35">
+        <div className="wrap mt-auto pb-12">
+          <span className="font-sans text-[13px] text-ink-3">
             Digital Bloom · 2027
           </span>
         </div>
