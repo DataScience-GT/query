@@ -16,9 +16,16 @@ import { JudgesTab } from "@/components/admin/hackathons/JudgesTab";
 import { AnnouncementsTab } from "@/components/admin/hackathons/AnnouncementsTab";
 import { TableCards } from "@/components/admin/hackathons/TableCards";
 import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  sectionTitle,
+  tab as tabClass,
+  tabList,
+} from "@/components/portal/ui";
+import {
   BarChart3,
   Calendar,
-  ChevronLeft,
   Gavel,
   Megaphone,
   QrCode,
@@ -85,51 +92,51 @@ export default function AdminHackathonDashboard() {
     );
   }
 
+  const icon = { className: "w-4 h-4", strokeWidth: 1.75, "aria-hidden": true } as const;
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     {
       id: "attendees",
       label: "Applications",
-      icon: <Users className="w-5 h-5" />,
+      icon: <Users {...icon} />,
     },
     {
       id: "events",
       label: "Events",
-      icon: <Calendar className="w-5 h-5" />,
+      icon: <Calendar {...icon} />,
     },
-    { id: "scanner", label: "Scan", icon: <ScanLine className="w-5 h-5" /> },
+    { id: "scanner", label: "Scan", icon: <ScanLine {...icon} /> },
     {
       id: "analytics",
       label: "Stats",
-      icon: <BarChart3 className="w-5 h-5" />,
+      icon: <BarChart3 {...icon} />,
     },
-    { id: "judges", label: "Judges", icon: <Gavel className="w-5 h-5" /> },
+    { id: "judges", label: "Judges", icon: <Gavel {...icon} /> },
     {
       id: "tables",
-      label: "Table Cards",
-      icon: <QrCode className="w-5 h-5" />,
+      label: "Table cards",
+      icon: <QrCode {...icon} />,
     },
     {
       id: "announcements",
       label: "Email",
-      icon: <Megaphone className="w-5 h-5" />,
+      icon: <Megaphone {...icon} />,
     },
   ];
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-muted)] flex flex-col pb-32 md:pb-12">
-      <header className="relative sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)]">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-start justify-between gap-4">
+      <header className="relative sticky top-0 z-30 bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] md:border-b-0">
+        <div className="max-w-7xl mx-auto px-4 pt-4 pb-4 md:pb-0">
+          <div className="flex items-end justify-between gap-4">
             <div className="flex-1 min-w-0">
               <Link
                 href="/admin/hackathons"
-                className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-accent mb-1"
+                className="text-[13px] text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors"
                 aria-label="Back to hackathons hub"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Hackathons</span>
+                ← <span className="hidden md:inline">All hackathons</span>
               </Link>
-              <h1 className="text-lg md:text-2xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase truncate">
+              <h1 className="mt-2 truncate font-[family-name:var(--font-display)] text-[28px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
                 {hackathon.name}
               </h1>
             </div>
@@ -140,39 +147,33 @@ export default function AdminHackathonDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("scanner")}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
+                  className={btnSecondary}
                 >
-                  <ScanLine className="w-4 h-4 shrink-0" />
+                  <ScanLine className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
                   Scan
                 </button>
               )}
             </div>
           </div>
+
+          {/* DESKTOP TABS - Hidden on mobile */}
+          <div className={`hidden md:flex mt-6 ${tabList}`}>
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${tabClass(activeTab === tab.id)}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* DESKTOP TABS - Hidden on mobile */}
-      <div className="hidden md:block border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/30">
-        <div className="max-w-7xl mx-auto px-4 flex gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-h-[56px] flex items-center justify-center gap-3 px-4 py-4 text-sm font-bold uppercase tracking-widest transition-colors border-b-2 ${
-                activeTab === tab.id
-                  ? "border-accent text-accent"
-                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-4 md:p-6 min-h-[calc(100vh-200px)]">
+      <main className="flex-1 px-4 py-6 md:py-8 min-h-[calc(100vh-200px)]">
         <div className="max-w-7xl mx-auto w-full">
           {activeTab === "events" && <EventsTab hackathonId={hackathon.id} />}
           {activeTab === "scanner" && <ScannerTab hackathonId={hackathon.id} />}
@@ -199,23 +200,20 @@ export default function AdminHackathonDashboard() {
           seven tabs, so Table Cards and Email were laid out off the right edge
           of the phone an organiser actually carries — unreachable, with nothing
           to suggest they existed. */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/98 backdrop-blur-2xl border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`shrink-0 basis-1/5 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
-              activeTab === tab.id ? "text-accent" : "text-[var(--text-muted)]"
+            className={`shrink-0 basis-1/5 flex flex-col items-center justify-center gap-1 border-t-2 -mt-px py-3 transition-colors ${
+              activeTab === tab.id
+                ? "border-accent text-[var(--text-primary)] font-semibold"
+                : "border-transparent text-[var(--text-muted)]"
             }`}
           >
-            <div
-              className={`p-2 rounded-sm transition-colors ${activeTab === tab.id ? "bg-accent/10" : ""}`}
-            >
-              {tab.icon}
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider">
-              {tab.label}
-            </span>
+            {tab.icon}
+            <span className="text-[12px]">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -232,27 +230,16 @@ function DashboardUnavailable({
 }) {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md text-center rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-8">
-        <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase mb-3">
-          Hackathon unavailable
-        </h1>
-        <p className="text-sm text-[var(--text-muted)] mb-6 break-words">
-          {message}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+      <div className="w-full max-w-md">
+        <h1 className={sectionTitle}>Hackathon unavailable</h1>
+        <p className={`mt-3 break-words ${body}`}>{message}</p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-3">
           {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
-            >
-              Retry
+            <button type="button" onClick={onRetry} className={btnPrimary}>
+              Try again
             </button>
           )}
-          <Link
-            href="/admin/hackathons"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
-          >
+          <Link href="/admin/hackathons" className={btnSecondary}>
             Back to hackathons
           </Link>
         </div>

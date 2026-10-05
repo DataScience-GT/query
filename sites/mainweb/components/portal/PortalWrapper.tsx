@@ -18,16 +18,16 @@ export default function PortalWrapper({
     pathname === "/verify" ||
     pathname === "/hacklytics";
 
-  // Default to minimized state
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Open by default: collapsed, the rail is a column of unlabeled icons.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="font-mono bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row">
+    <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row">
       {!isAuthPage && (
         <PortalSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       )}
       <div
-        className={`flex-1 w-full transition-ui duration-300 ${isAuthPage ? "" : isSidebarOpen ? "md:pl-64 pt-16 md:pt-0" : "md:pl-20 pt-16 md:pt-0"}`}
+        className={`flex-1 w-full transition-[padding] duration-200 ${isAuthPage ? "" : isSidebarOpen ? "md:pl-60 pt-16 md:pt-0" : "md:pl-[72px] pt-16 md:pt-0"}`}
       >
         {children}
       </div>

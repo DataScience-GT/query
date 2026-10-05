@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <AppThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <AppThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <SessionProvider basePath="/api/auth">
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

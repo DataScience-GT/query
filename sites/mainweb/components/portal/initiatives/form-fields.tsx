@@ -1,5 +1,7 @@
 "use client";
 
+import { input } from "@/components/portal/ui";
+
 /**
  * The initiative fields, shared by the leader's create/edit form and the
  * member's proposal form. A proposal becomes the initiative on approval, so
@@ -51,9 +53,6 @@ export function toInput(draft: InitiativeDraft) {
   };
 }
 
-const field =
-  "w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none";
-
 export function InitiativeFields({
   draft,
   onChange,
@@ -72,14 +71,14 @@ export function InitiativeFields({
         placeholder="Title"
         value={draft.title}
         onChange={(e) => set("title")(e.target.value)}
-        className={field}
+        className={input}
       />
       <input
         maxLength={300}
         placeholder="One line — what a member reads before opening it"
         value={draft.summary}
         onChange={(e) => set("summary")(e.target.value)}
-        className={field}
+        className={input}
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <input
@@ -87,7 +86,7 @@ export function InitiativeFields({
           placeholder="Time commitment, e.g. 3-4 hrs/week"
           value={draft.commitment}
           onChange={(e) => set("commitment")(e.target.value)}
-          className={field}
+          className={input}
         />
         <input
           type="number"
@@ -95,7 +94,7 @@ export function InitiativeFields({
           placeholder="Team size (blank = no limit)"
           value={draft.maxMembers}
           onChange={(e) => set("maxMembers")(e.target.value)}
-          className={field}
+          className={input}
         />
       </div>
       <textarea
@@ -104,7 +103,7 @@ export function InitiativeFields({
         placeholder="What you want to build, and who you need"
         value={draft.description}
         onChange={(e) => set("description")(e.target.value)}
-        className={field}
+        className={input}
       />
     </div>
   );

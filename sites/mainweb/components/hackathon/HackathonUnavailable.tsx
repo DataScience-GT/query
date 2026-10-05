@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { page, pageDek, pageTitle, textLink } from "@/components/portal/ui";
 
 interface HackathonUnavailableProps {
   message?: string;
@@ -16,22 +16,13 @@ interface HackathonUnavailableProps {
  */
 export function HackathonUnavailable({ message }: HackathonUnavailableProps) {
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center px-6">
-      <div className="flex flex-col items-center gap-6 text-center">
-        <div>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-            Hackathon not found
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1 max-w-md">
-            {message ??
-              "The link may be wrong, or the event is no longer listed."}
-          </p>
-        </div>
-        <Link
-          href="/hackathons"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
+    <div className={page}>
+      <h1 className={pageTitle}>Hackathon not found</h1>
+      <p className={pageDek}>
+        {message ?? "The link may be wrong, or the event is no longer listed."}
+      </p>
+      <div className="mt-8">
+        <Link href="/hackathons" className={textLink}>
           Back to hackathons
         </Link>
       </div>

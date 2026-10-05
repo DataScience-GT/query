@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { meta, sectionTitle, status } from "@/components/portal/ui";
+import type { Tone } from "@/components/portal/ui";
 
 type Project = {
   id: string;
@@ -30,31 +31,40 @@ type RoomAssignmentsViewProps = {
   rankings: RankingsData | null;
 };
 
+const confidence: Record<string, { tone: Tone; text: string }> = {
+  HIGH: { tone: "success", text: "High" },
+  MEDIUM: { tone: "neutral", text: "Medium" },
+  LOW: { tone: "warning", text: "Low" },
+  NONE: { tone: "neutral", text: "None" },
+};
+
+const th = "py-3 px-4 text-[13px] font-medium text-[var(--text-subtle)]";
+const td = "py-3 px-4 text-[14px]";
+
 export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
   if (!rankings) return null;
 
   return (
-    <LiquidGlass printed className="rounded-sm overflow-hidden mb-12">
-      <div className="p-6 border-b border-[var(--border-subtle)]">
-        <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-          Room assignments
-        </h2>
-        <p className="text-sm text-[var(--text-muted)] mt-1">
+    <section className="mb-12">
+      <div className="mb-4">
+        <h2 className={sectionTitle}>Room assignments</h2>
+        <p className={`mt-1 ${meta}`}>
           {rankings.rankings.length} projects assigned
         </p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-subtle)]">
-              <th className="text-left py-3 px-6">Table</th>
-              <th className="text-left py-3 px-6">Project</th>
-              <th className="text-left py-3 px-6">Team</th>
-              <th className="text-left py-3 px-6">Main track</th>
-              <th className="text-left py-3 px-6">Extra tracks</th>
-              <th className="text-left py-3 px-6">Votes</th>
-              <th className="text-left py-3 px-6">Avg score</th>
-              <th className="text-left py-3 px-6">Weighted</th>
+            <tr className="border-b border-[var(--border-subtle)]">
+              <th className={`${th} text-left`}>Table</th>
+              <th className={`${th} text-left`}>Project</th>
+              <th className={`${th} text-left`}>Team</th>
+              <th className={`${th} text-left`}>Main track</th>
+              <th className={`${th} text-left`}>Extra tracks</th>
+              <th className={`${th} text-right`}>Votes</th>
+              <th className={`${th} text-right`}>Avg score</th>
+              <th className={`${th} text-right`}>Weighted</th>
+              <th className={`${th} text-left`}>Confidence</th>
             </tr>
           </thead>
           <tbody>
@@ -63,94 +73,60 @@ export function RoomAssignmentsView({ rankings }: RoomAssignmentsViewProps) {
                 (a, b) =>
                   (a.project.tableNumber || 0) - (b.project.tableNumber || 0),
               )
-              .map((r) => (
-                <tr
-                  key={r.project.id}
-                  className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
-                >
-                  <td className="py-4 px-6">
-                    <span className="text-lg font-black text-[var(--text-primary)] tabular-nums">
+              .map((r) => {
+                const extras = (r.project.tracks?.slice(1) || [])
+                  .concat(r.project.challenges || [])
+                  .concat(r.project.isCreateX ? ["CREATE-X"] : []);
+                const conf = confidence[r.confidenceLevel] ?? {
+                  tone: "neutral" as Tone,
+                  text: r.confidenceLevel,
+                };
+                return (
+                  <tr
+                    key={r.project.id}
+                    className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <td className={`${td} font-semibold text-[var(--text-primary)] tabular-nums`}>
                       {r.project.zone || ""}
                       {r.project.tableNumber || "?"}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <p className="text-sm font-bold text-[var(--text-primary)]">
+                    </td>
+                    <td className={`${td} font-semibold text-[var(--text-primary)]`}>
                       {r.project.name}
-                    </p>
-                  </td>
-                  <td className="py-4 px-6">
-                    <p className="text-xs text-[var(--text-muted)]">
+                    </td>
+                    <td className={`${td} text-[var(--text-muted)]`}>
                       {r.project.teamMembers || "-"}
-                    </p>
-                  </td>
-                  <td className="py-4 px-6">
-                    {r.project.tracks?.[0] ? (
-                      <span className="px-3 py-1 rounded-sm text-[9px] font-bold bg-accent/10 text-accent border border-accent/20 uppercase tracking-widest">
-                        {r.project.tracks[0]}
-                      </span>
-                    ) : (
-                      <span className="text-[var(--text-subtle)]">-</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex flex-wrap gap-1">
-                      {(r.project.tracks?.slice(1) || [])
-                        .concat(r.project.challenges || [])
-                        .map((t: string, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-sm text-[8px] font-bold bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] uppercase tracking-widest"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      {r.project.isCreateX && (
-                        <span className="px-2 py-0.5 rounded-sm text-[8px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest">
-                          CREATE-X
-                        </span>
+                    </td>
+                    <td className={`${td} text-[var(--text-muted)]`}>
+                      {r.project.tracks?.[0] || (
+                        <span className="text-[var(--text-subtle)]">-</span>
                       )}
-                      {!(
-                        r.project.tracks?.slice(1)?.length ||
-                        r.project.challenges?.length ||
-                        r.project.isCreateX
-                      ) && <span className="text-[var(--text-subtle)] text-xs">-</span>}
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm font-bold text-[var(--text-muted)] tabular-nums">
+                    </td>
+                    <td className={`${td} text-[var(--text-muted)]`}>
+                      {extras.length > 0 ? (
+                        extras.join(", ")
+                      ) : (
+                        <span className="text-[var(--text-subtle)]">-</span>
+                      )}
+                    </td>
+                    <td className={`${td} text-right tabular-nums text-[var(--text-muted)]`}>
                       {r.voteCount}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-lg font-black text-[var(--text-primary)] tabular-nums">
+                    </td>
+                    <td className={`${td} text-right tabular-nums text-[var(--text-primary)]`}>
                       {r.avgScore}
-                    </span>
-                    <span className="text-xs text-[var(--text-subtle)] ml-1">/50</span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-black text-accent tabular-nums">
-                        {r.weightedScore}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-sm text-[8px] font-bold uppercase tracking-widest border ${
-                          r.confidenceLevel === "HIGH"
-                            ? "bg-green-500/20 text-green-400 border-green-500/30"
-                            : r.confidenceLevel === "MEDIUM"
-                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                        }`}
-                      >
-                        {r.confidenceLevel}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      <span className="text-[var(--text-subtle)] ml-0.5">/50</span>
+                    </td>
+                    <td className={`${td} text-right tabular-nums font-semibold text-[var(--text-primary)]`}>
+                      {r.weightedScore}
+                    </td>
+                    <td className={td}>
+                      <span className={status(conf.tone)}>{conf.text}</span>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
-    </LiquidGlass>
+    </section>
   );
 }
