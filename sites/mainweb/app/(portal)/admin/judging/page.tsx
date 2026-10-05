@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { usePortalContext } from "@/lib/use-portal-context";
+import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
@@ -46,7 +46,7 @@ export default function AdminResultsPage() {
   const { data: hackathons } = trpc.hackathon.list.useQuery(
     {},
     {
-      enabled: !!session && !!portalContext?.isAdmin,
+      enabled: !!session && canViewAdmin(portalContext),
     },
   );
 
@@ -58,7 +58,7 @@ export default function AdminResultsPage() {
 
   // Get judges
   const { data: judges } = trpc.judge.list.useQuery(undefined, {
-    enabled: !!session && !!portalContext?.isAdmin,
+    enabled: !!session && canViewAdmin(portalContext),
   });
 
   // Judging active status

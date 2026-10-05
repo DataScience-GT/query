@@ -22,6 +22,14 @@ export function useInvalidatePortalContext() {
   return () => utils.user.getPortalContext.invalidate();
 }
 
+/**
+ * Who may open the admin pages: staff, plus read-only bug testers. Writes are
+ * refused by the API for bug testers, so this only decides what renders.
+ */
+export function canViewAdmin(ctx: PortalContext | undefined | null) {
+  return !!ctx?.isAdmin || !!ctx?.isBugTester;
+}
+
 export function useIsAdmin() {
   const { data } = usePortalContext();
   return data?.isAdmin ?? false;
