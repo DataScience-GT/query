@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { usePortalContext } from "@/lib/use-portal-context";
+import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
@@ -59,7 +59,7 @@ export default function AdminHackathonDashboard() {
     refetch,
   } = trpc.hackathon.getById.useQuery(
     { id: hackathonId },
-    { enabled: !!hackathonId && !!portalContext?.isAdmin },
+    { enabled: !!hackathonId && canViewAdmin(portalContext) },
   );
 
   // isLoading is false on the render where the query flips enabled but has not
@@ -75,7 +75,7 @@ export default function AdminHackathonDashboard() {
   // Not found rather than a permission error: telling a non-admin that this
   // edition exists behind a door they cannot open is the whole leak, and the
   // query is disabled for them anyway, so waiting on it spun forever.
-  if (!portalContext?.isAdmin) {
+  if (!canViewAdmin(portalContext)) {
     return <DashboardUnavailable message="Hackathon not found" />;
   }
 

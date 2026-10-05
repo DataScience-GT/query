@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Eye, EyeOff } from "lucide-react";
 import {
   body,
@@ -40,6 +41,7 @@ export function HackathonCard({
   onStatusChange: (s: HackathonStatus) => void;
 }) {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const { data: events, isLoading: eventsLoading } =
     trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
@@ -215,11 +217,14 @@ export function HackathonCard({
                   isPublic: !hackathon.isPublic,
                 });
               }}
+              disabled={readOnly}
               className={btnSecondary}
               title={
-                hackathon.isPublic
-                  ? "Hiding removes this edition from the public funnel and from /judge/register and /scan. Staff judging tools keep showing it."
-                  : "Hidden: invisible on the public funnel, /judge/register and /scan. Staff judging tools still show it."
+                readOnly
+                  ? READ_ONLY_TITLE
+                  : hackathon.isPublic
+                    ? "Hiding removes this edition from the public funnel and from /judge/register and /scan. Staff judging tools keep showing it."
+                    : "Hidden: invisible on the public funnel, /judge/register and /scan. Staff judging tools still show it."
               }
             >
               {hackathon.isPublic ? (
@@ -244,7 +249,8 @@ export function HackathonCard({
                   confirmName: typed,
                 });
               }}
-              disabled={deleteMutation.isPending}
+              disabled={readOnly || deleteMutation.isPending}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={btnDanger}
             >
               {deleteMutation.isPending ? "Deleting…" : "Delete"}
@@ -259,7 +265,13 @@ export function HackathonCard({
 
           {/* Right group: Edit + Dashboard */}
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={onEdit} className={btnSecondary}>
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={readOnly}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={btnSecondary}
+            >
               Edit
             </button>
             <Link

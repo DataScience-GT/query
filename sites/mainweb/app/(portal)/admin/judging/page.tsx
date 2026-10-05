@@ -4,7 +4,12 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { usePortalContext } from "@/lib/use-portal-context";
+import {
+  READ_ONLY_TITLE,
+  canViewAdmin,
+  usePortalContext,
+  useReadOnly,
+} from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
@@ -41,12 +46,13 @@ export default function AdminResultsPage() {
   );
 
   const { data: portalContext } = usePortalContext();
+  const readOnly = useReadOnly();
 
   // Get hackathons
   const { data: hackathons } = trpc.hackathon.list.useQuery(
     {},
     {
-      enabled: !!session && !!portalContext?.isAdmin,
+      enabled: !!session && canViewAdmin(portalContext),
     },
   );
 
@@ -58,7 +64,7 @@ export default function AdminResultsPage() {
 
   // Get judges
   const { data: judges } = trpc.judge.list.useQuery(undefined, {
-    enabled: !!session && !!portalContext?.isAdmin,
+    enabled: !!session && canViewAdmin(portalContext),
   });
 
   // Judging active status
@@ -271,7 +277,8 @@ export default function AdminResultsPage() {
                     active: !judgingStatus?.active,
                   })
                 }
-                disabled={toggleJudging.isPending}
+                disabled={readOnly || toggleJudging.isPending}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={`shrink-0 ${btnPrimary}`}
               >
                 {toggleJudging.isPending
@@ -305,7 +312,8 @@ export default function AdminResultsPage() {
                 </div>
                 <button
                   onClick={prepareJudging}
-                  disabled={prepState.busy}
+                  disabled={readOnly || prepState.busy}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
                   className={`shrink-0 ${btnSecondary}`}
                 >
                   {prepState.busy ? "Preparing…" : "Prepare judging"}

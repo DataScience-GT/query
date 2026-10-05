@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   btnDanger,
   btnPrimary,
@@ -28,6 +29,7 @@ const adminTitle =
  */
 export default function AdminMembersPage() {
   const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
 
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState("");
@@ -214,7 +216,8 @@ export default function AdminMembersPage() {
                   note: note.trim(),
                 })
               }
-              disabled={busy || !note.trim() || months === 0}
+              disabled={readOnly || busy || !note.trim() || months === 0}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
               className={btnPrimary}
             >
               {months >= 0 ? `Add ${months} month(s)` : `Remove ${-months} month(s)`}
@@ -234,7 +237,8 @@ export default function AdminMembersPage() {
                     note: note.trim(),
                   });
                 }}
-                disabled={busy || !note.trim()}
+                disabled={readOnly || busy || !note.trim()}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
                 className={`${btnDanger} sm:ml-auto`}
               >
                 End membership
