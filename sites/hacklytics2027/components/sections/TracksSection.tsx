@@ -1,87 +1,47 @@
 "use client";
-import React, { useMemo } from "react";
-import PixelSprite from "../pixel/PixelSprite";
-import { BLOOM, DAISY, GROUND, MUSHROOM, SPROUT, TULIP } from "../pixel/sprites";
-import type { PaletteName, SpriteMap } from "../pixel/sprites";
-import { spriteToDataUri } from "../pixel/spriteUri";
+import React from "react";
+import { BloomSprite } from "../pixel/PixelSprite";
+import { useBloomInView } from "../pixel/useInView";
+import { BLOOM, BUD, DAISY, MUSHROOM, TULIP } from "../pixel/sprites";
+import type { SpriteMap } from "../pixel/sprites";
 
-const tracks: {
-  title: string;
-  description: string;
-  sprite: SpriteMap;
-  palette: PaletteName;
-}[] = [
-  { title: "Finance", description: "Markets, models, and fintech.", sprite: DAISY, palette: "lime" },
-  { title: "Sports Analytics", description: "Performance, strategy, and the game.", sprite: TULIP, palette: "cyan" },
-  { title: "Healthcare", description: "Care, bioinformatics, and health tech.", sprite: BLOOM, palette: "pink" },
-  { title: "Entertainment", description: "Media, games, and interactive AI.", sprite: MUSHROOM, palette: "purple" },
-  { title: "Pure Imagination", description: "Wildcard. Build the unexpected.", sprite: SPROUT, palette: "lime" },
+const tracks: { title: string; description: string; sprite: SpriteMap }[] = [
+  { title: "Finance", description: "Markets, models, and fintech.", sprite: DAISY },
+  { title: "Sports Analytics", description: "Performance, strategy, and the game.", sprite: TULIP },
+  { title: "Healthcare", description: "Care, bioinformatics, and health tech.", sprite: BLOOM },
+  { title: "Entertainment", description: "Media, games, and interactive AI.", sprite: MUSHROOM },
+  { title: "Pure Imagination", description: "Wildcard. Build the unexpected.", sprite: BUD },
 ];
 
-const GROUND_SCALE = 4;
-
 export default function TracksSection() {
-  const ground = useMemo(() => spriteToDataUri(GROUND, "lime"), []);
+  // The signature: the five plants are dormant until the row is seen, then
+  // bloom pink one after another, left to right.
+  const bedRef = useBloomInView<HTMLUListElement>();
 
   return (
-    <section id="tracks" className="section-anchor relative text-white">
-      <div className="section-wrap max-w-7xl mx-auto py-24 md:py-32 px-6">
-        <h2 className="font-sans font-bold text-4xl sm:text-5xl md:text-6xl text-white leading-[1] tracking-[-0.03em] mb-14 md:mb-20">
-          Tracks
-        </h2>
+    <section id="tracks" className="section-anchor relative border-t border-rule">
+      <div className="wrap py-24 md:py-32">
+        <p className="kicker mb-5">Five tracks</p>
+        <h2 className="section-title mb-14 md:mb-20">Tracks</h2>
 
-        {/* The tracks are the garden: one plant each, rooted in the same bed
-            of soil as the hero. Phones get a plain list; five plants do not
-            share a 390px bed. */}
-        <ul className="lg:hidden flex flex-col gap-8">
-          {tracks.map((t) => (
-            <li key={t.title} className="flex items-end gap-5">
-              <span className="flex w-14 shrink-0 justify-center">
-                <PixelSprite map={t.sprite} palette={t.palette} scale={4} glow />
-              </span>
-              <div className="pb-1">
-                <h3 className="font-sans font-bold text-xl text-white tracking-tight">{t.title}</h3>
-                <p className="font-sans text-base text-white/65 mt-1">{t.description}</p>
+        {/* One plant per track, each standing on the same hairline. */}
+        <ul
+          ref={bedRef}
+          data-bloom="off"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-14"
+        >
+          {tracks.map((t, i) => (
+            <li key={t.title}>
+              <div className="flex h-32 items-end border-b border-rule">
+                <BloomSprite map={t.sprite} scale={6} blooms index={i} />
               </div>
+              <h3 className="font-display font-extrabold text-[20px] sm:text-[22px] leading-tight tracking-[-0.02em] text-ink mt-5">
+                {t.title}
+              </h3>
+              <p className="font-sans text-[17px] leading-[1.5] text-ink-2 mt-2">{t.description}</p>
             </li>
           ))}
         </ul>
-
-        <div className="hidden lg:block">
-          <ul className="grid grid-cols-5 items-end">
-            {tracks.map((t, i) => (
-              <li key={t.title} className="flex justify-center">
-                <PixelSprite
-                  map={t.sprite}
-                  palette={t.palette}
-                  scale={7}
-                  glow
-                  className="animate-sway origin-bottom"
-                  style={{ animationDuration: `${6 + i * 0.7}s`, animationDelay: `${-i * 1.3}s` }}
-                />
-              </li>
-            ))}
-          </ul>
-          <div
-            aria-hidden
-            className="w-full"
-            style={{
-              backgroundImage: ground.uri,
-              backgroundRepeat: "repeat-x",
-              backgroundSize: `${ground.w * GROUND_SCALE}px ${ground.h * GROUND_SCALE}px`,
-              height: ground.h * GROUND_SCALE,
-              imageRendering: "pixelated",
-            }}
-          />
-          <ul className="grid grid-cols-5 gap-6 mt-8">
-            {tracks.map((t) => (
-              <li key={t.title} className="text-center">
-                <h3 className="font-sans font-bold text-xl xl:text-2xl text-white tracking-tight">{t.title}</h3>
-                <p className="font-sans text-base text-white/65 mt-2">{t.description}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </section>
   );

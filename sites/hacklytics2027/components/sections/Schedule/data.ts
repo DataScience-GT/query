@@ -1,7 +1,7 @@
 export interface BoardEvent {
   when: string;
   event: string;
-  /** Cyan emphasis — same role as DAYS on the hero countdown. */
+  /** Set in semibold: the two times the weekend turns on. */
   accent?: boolean;
 }
 
