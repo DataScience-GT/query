@@ -1,5 +1,21 @@
 import type { Metadata } from "next";
+import { Instrument_Sans, Silkscreen } from "next/font/google";
 import { db, hackathons, inArray, eq, and, asc } from "@query/db";
+
+// The Hacklytics site's own faces (sites/hacklytics2027): Silkscreen for
+// headings, Instrument Sans for text. Scoped to this route by .hl-theme.
+const silkscreen = Silkscreen({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-hl-pixel",
+  display: "swap",
+});
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-hl-sans",
+  display: "swap",
+});
 
 const SITE = "https://datasciencegt.org";
 const URL = `${SITE}/hacklytics`;
@@ -65,7 +81,7 @@ export async function generateMetadata(): Promise<Metadata> {
       // The root layout's template appends the organisation.
       title: "Hacklytics",
       description:
-        "Georgia Tech's premier data science hackathon, run by Data Science @ Georgia Tech.",
+        "Georgia Tech's data science hackathon, run by Data Science @ Georgia Tech.",
       alternates: { canonical: URL },
     };
   }
@@ -73,7 +89,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const dates = formatRange(edition.startDate, edition.endDate);
   const description =
     edition.description ??
-    "Georgia Tech's premier data science hackathon, open to students nationwide.";
+    "Georgia Tech's data science hackathon, open to students nationwide.";
   const title = `${edition.name} | ${dates}`;
 
   return {
@@ -141,7 +157,7 @@ async function EventJsonLd() {
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     description:
       edition.description ??
-      "Georgia Tech's premier data science hackathon, open to students nationwide.",
+      "Georgia Tech's data science hackathon, open to students nationwide.",
     url: URL,
     image: [`${SITE}/logo512.png`],
     organizer: {
@@ -201,9 +217,11 @@ export default function HacklyticsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div
+      className={`hl-theme ${silkscreen.variable} ${instrumentSans.variable}`}
+    >
       <EventJsonLd />
       {children}
-    </>
+    </div>
   );
 }
