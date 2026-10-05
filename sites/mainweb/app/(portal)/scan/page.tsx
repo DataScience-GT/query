@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import {
+  body,
+  fieldLabel,
+  input,
+  kicker,
+  page,
+  pageDek,
+  pageTitle,
+} from "@/components/portal/ui";
 import { ScanAccess } from "@/components/portal/ScanAccess";
 import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
 
@@ -25,32 +33,25 @@ export default function ScanPage() {
 
   return (
     <ScanAccess>
-      <div className="relative z-10 max-w-4xl mx-auto">
-        <div className="mb-8">
-          <p className="text-[10px] font-mono text-accent/80 uppercase tracking-[0.2em] mb-2">
-            Hackathon
-          </p>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tighter mb-1">
-            Check-In <span className="text-accent italic">Desk</span>
-          </h1>
-          <p className="text-sm font-mono text-[var(--text-subtle)]">
-            Scan participant badges into this edition&apos;s workshops, meals,
+      <main className={page}>
+        <header>
+          <p className={kicker}>Hackathon staff</p>
+          <h1 className={`mt-1 ${pageTitle}`}>Hackathon check-in desk</h1>
+          <p className={pageDek}>
+            Scan participant badges into this edition&apos;s workshops, meals
             and ceremonies.
           </p>
-        </div>
+        </header>
 
-        <div className="mb-6">
-          <label
-            htmlFor="scan-hackathon"
-            className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-          >
+        <div className="mt-8 max-w-md">
+          <label htmlFor="scan-hackathon" className={fieldLabel}>
             Hackathon
           </label>
           <select
             id="scan-hackathon"
             value={hackathonId}
             onChange={(e) => setHackathonId(e.target.value)}
-            className="w-full min-h-11 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+            className={`min-h-11 ${input}`}
           >
             <option value="">Select a hackathon…</option>
             {hackathons?.map((h) => (
@@ -61,16 +62,16 @@ export default function ScanPage() {
           </select>
         </div>
 
-        {hackathonId ? (
-          <ScannerTab hackathonId={hackathonId} />
-        ) : (
-          <LiquidGlass className="p-12 text-center border-[var(--border-subtle)]">
-            <p className="text-sm text-[var(--text-subtle)] font-mono">
+        <div className="mt-8 border-t border-[var(--border-subtle)] pt-8">
+          {hackathonId ? (
+            <ScannerTab hackathonId={hackathonId} />
+          ) : (
+            <p className={body}>
               Choose a hackathon above to start scanning.
             </p>
-          </LiquidGlass>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </ScanAccess>
   );
 }

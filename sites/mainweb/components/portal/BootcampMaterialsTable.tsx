@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { status } from "./ui";
 
 export interface BootcampMaterialRow {
   id: string;
@@ -37,11 +38,23 @@ const dateLabel = (date: Date | string | null) =>
     : "TBA";
 
 const fileLabel = (name: string | null, size: number | null) => {
-  if (!name) return "Download ZIP";
-  if (!size) return name;
+  const label = name ?? "Download ZIP";
+  if (!size) return label;
   const megabytes = size / (1024 * 1024);
-  return `${name} (${megabytes.toFixed(megabytes >= 10 ? 0 : 1)} MB)`;
+  return (
+    <>
+      {label}{" "}
+      <span className="font-mono text-[12px] font-normal text-[var(--text-subtle)]">
+        {megabytes.toFixed(megabytes >= 10 ? 0 : 1)} MB
+      </span>
+    </>
+  );
 };
+
+const fileLink =
+  "font-semibold text-[var(--text-primary)] underline decoration-accent decoration-2 underline-offset-[5px] hover:decoration-[var(--text-primary)] transition-colors";
+const pending = "text-[13px] text-[var(--text-subtle)]";
+const cell = "py-3.5 pr-4 align-top";
 
 export function BootcampMaterialsTable({
   rows,
@@ -54,13 +67,13 @@ export function BootcampMaterialsTable({
   const admin = !!(onEdit || onDelete || onSetPublished);
 
   return (
-    <div className="overflow-x-auto border border-[var(--border-subtle)]">
-      <table className="w-full border-collapse text-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-[15px]">
         <caption className="sr-only">
           Bootcamp workshop materials for {term}, one row per week.
         </caption>
         <thead>
-          <tr className="border-b border-[var(--border-subtle)] bg-white/5">
+          <tr className="border-b border-[var(--border-subtle)]">
             {[
               "Week",
               "Date",
@@ -73,7 +86,7 @@ export function BootcampMaterialsTable({
               <th
                 key={heading}
                 scope="col"
-                className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
+                className="py-2.5 pr-4 text-left text-[13px] font-medium text-[var(--text-subtle)]"
               >
                 {heading}
               </th>
@@ -85,7 +98,7 @@ export function BootcampMaterialsTable({
             <tr>
               <td
                 colSpan={admin ? 8 : 6}
-                className="px-4 py-8 text-center text-[var(--text-muted)]"
+                className="py-8 text-[var(--text-muted)]"
               >
                 No workshop materials have been posted yet.
               </td>
@@ -94,96 +107,114 @@ export function BootcampMaterialsTable({
             rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-[var(--border-subtle)] last:border-b-0"
+                className="border-b border-[var(--border-subtle)]"
               >
                 <th
                   scope="row"
-                  className="px-4 py-4 text-left font-mono font-bold text-accent"
+                  className={`${cell} text-left font-semibold tabular-nums text-[var(--text-primary)]`}
                 >
                   {row.week}
                 </th>
-                <td className="whitespace-nowrap px-4 py-4 text-[var(--text-muted)]">
+                <td className={`${cell} whitespace-nowrap text-[var(--text-muted)]`}>
                   {dateLabel(row.eventDate)}
                 </td>
-                <td className="min-w-48 px-4 py-4 font-bold text-[var(--text-primary)]">
+                <td className={`${cell} min-w-48 font-semibold text-[var(--text-primary)]`}>
                   {row.title}
                 </td>
-                <td className="min-w-48 px-4 py-4">
+                <td className={`${cell} min-w-48`}>
                   {row.materialsKey ? (
                     <a
                       href={`/api/bootcamp/materials/${row.id}/materials`}
-                      className="font-bold text-accent hover:underline"
+                      className={fileLink}
                     >
                       {fileLabel(row.materialsFileName, row.materialsSizeBytes)}
                     </a>
                   ) : (
-                    <span className="text-[var(--text-subtle)]">
+                    <span className={pending}>
                       Posted after the workshop
                     </span>
                   )}
                 </td>
-                <td className="min-w-48 px-4 py-4">
+                <td className={`${cell} min-w-48`}>
                   {row.solutionKey ? (
                     <a
                       href={`/api/bootcamp/materials/${row.id}/solution`}
-                      className="font-bold text-accent hover:underline"
+                      className={fileLink}
                     >
                       {fileLabel(row.solutionFileName, row.solutionSizeBytes)}
                     </a>
                   ) : (
-                    <span className="text-[var(--text-subtle)]">
+                    <span className={pending}>
                       Posted after the workshop
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-4">
+                <td className={cell}>
                   {row.recordingUrl ? (
                     <a
                       href={row.recordingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 font-bold text-accent hover:underline"
+                      className={`${fileLink} inline-flex items-center gap-1.5`}
                     >
                       Watch
-                      <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                      <ExternalLink
+                        aria-hidden="true"
+                        strokeWidth={1.75}
+                        className="h-4 w-4"
+                      />
                     </a>
                   ) : (
-                    <span className="text-[var(--text-subtle)]">
+                    <span className={pending}>
                       Posted after the workshop
                     </span>
                   )}
                 </td>
                 {admin && (
                   <>
-                    <td className="px-4 py-4">
+                    <td className={cell}>
                       <button
                         type="button"
                         disabled={!onSetPublished || isUpdating}
                         onClick={() => onSetPublished?.(row, !row.isPublished)}
-                        className="border border-[var(--border-subtle)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)] transition-ui hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] px-3 py-1.5 transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {row.isPublished ? "Published" : "Draft"}
+                        <span
+                          className={status(
+                            row.isPublished ? "success" : "neutral",
+                          )}
+                        >
+                          {row.isPublished ? "Published" : "Draft"}
+                        </span>
                       </button>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className={cell}>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => onEdit?.(row)}
                           disabled={!onEdit || isUpdating}
                           aria-label={`Edit week ${row.week}`}
-                          className="border border-[var(--border-subtle)] p-2 text-[var(--text-muted)] transition-ui hover:border-accent hover:text-accent disabled:opacity-50"
+                          className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] p-2 text-[var(--text-muted)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
                         >
-                          <Pencil aria-hidden="true" className="h-4 w-4" />
+                          <Pencil
+                            aria-hidden="true"
+                            strokeWidth={1.75}
+                            className="h-4 w-4"
+                          />
                         </button>
                         <button
                           type="button"
                           onClick={() => onDelete?.(row)}
                           disabled={!onDelete || isUpdating}
                           aria-label={`Delete week ${row.week}`}
-                          className="border border-[var(--border-subtle)] p-2 text-[var(--text-muted)] transition-ui hover:border-red-400 hover:text-red-300 disabled:opacity-50"
+                          className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] p-2 text-[var(--text-muted)] transition-colors hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-50"
                         >
-                          <Trash2 aria-hidden="true" className="h-4 w-4" />
+                          <Trash2
+                            aria-hidden="true"
+                            strokeWidth={1.75}
+                            className="h-4 w-4"
+                          />
                         </button>
                       </div>
                     </td>

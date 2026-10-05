@@ -1,43 +1,45 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Roboto_Mono, Space_Grotesk, Silkscreen } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans, Silkscreen } from "next/font/google";
 import Navbar from "../components/Navbar";
 import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import Footer from "../components/Footer";
 import { INTEREST_URL } from "../lib/links";
 
-const robotoMono = Roboto_Mono({
+// Display face: hero and section titles, set at 800. Variable, with the
+// optical-size axis so the big sizes get the display cut.
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-mono",
+  axes: ["opsz"],
+  variable: "--font-bricolage",
 });
 
-const spaceGrotesk = Space_Grotesk({
+// Text and UI.
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-sans",
+  variable: "--font-instrument",
 });
 
-// Pixel face for the Terraria-style flora labels and badges.
+// Pixel face, for the small kickers only.
 const silkscreen = Silkscreen({
   subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-pixel",
+  weight: "400",
+  variable: "--font-silkscreen",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#050508",
+  themeColor: "#07090A",
 };
 
 export const metadata: Metadata = {
-  title: "Hacklytics 2027: Digital Bloom | Premier Data Science Hackathon",
+  title: "Hacklytics 2027: Digital Bloom · Data Science Hackathon at Georgia Tech",
   description:
-    "Join Data Science @ GT for Hacklytics 2027, the premier data science and AI hackathon in the Southeast. 36 hours of coding, prizes, and networking in Atlanta.",
+    "Hacklytics 2027 is a free, 36-hour data science and AI hackathon run by Data Science @ GT at Georgia Tech in Atlanta, February 26–28, 2027.",
   keywords: ["hackathon", "data science", "machine learning", "AI", "Georgia Tech", "Atlanta", "coding", "competition"],
   authors: [{ name: "Data Science @ GT" }],
   openGraph: {
     title: "Hacklytics 2027: Digital Bloom",
-    description: "The premier data science hackathon. 36 hours. Join 1,000+ hackers in Atlanta.",
+    description: "A 36-hour data science and AI hackathon at Georgia Tech. Room for 1,000+ hackers in Atlanta.",
     url: "https://hacklytics.io",
     siteName: "Hacklytics",
     images: [
@@ -54,7 +56,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Hacklytics 2027: Digital Bloom",
-    description: "The premier data science hackathon at Georgia Tech.",
+    description: "A 36-hour data science and AI hackathon at Georgia Tech.",
     images: ["/og-image.jpg"],
     creator: "@datasciencegt",
   },
@@ -87,7 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     image: [
       "https://hacklytics.io/og-image.jpg"
     ],
-    description: "Data Science @ GT — The premier data science hackathon in the Southeast. 36 hours of coding, data science, and AI.",
+    description: "Data Science @ GT runs the Southeast’s data science hackathon: 36 hours of data science and AI at Georgia Tech.",
     offers: {
       "@type": "Offer",
       url: INTEREST_URL,
@@ -108,7 +110,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="en">
+    // Font variables go on <html>, not <body>: the theme tokens in
+    // globals.css (--font-display etc.) are declared on :root and resolve there.
+    <html
+      lang="en"
+      className={`${bricolage.variable} ${instrumentSans.variable} ${silkscreen.variable}`}
+    >
       <head>
         <script
           type="application/ld+json"
@@ -116,7 +123,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className={`${robotoMono.variable} ${spaceGrotesk.variable} ${silkscreen.variable} font-sans antialiased`}
+        className="font-sans antialiased"
         suppressHydrationWarning
       >
         <Navbar />

@@ -2,8 +2,14 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Waves } from "lucide-react";
+import {
+  body,
+  btnInk,
+  fieldLabel,
+  input,
+  sectionRule,
+  sectionTitle,
+} from "@/components/portal/ui";
 import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
 
 /**
@@ -80,31 +86,23 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
   };
 
   return (
-    <LiquidGlass className="p-6 border-[var(--border-subtle)] relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-
+    <section className={sectionRule}>
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div>
-          <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
-            <Waves className="w-4 h-4 text-accent" />
-            Acceptance Waves
-          </h3>
-          <p className="text-xs font-mono text-[var(--text-subtle)] leading-relaxed max-w-md">
+          <h2 className={sectionTitle}>Acceptance waves</h2>
+          <p className={`mt-1 max-w-md ${body}`}>
             Takes the oldest pending applications first. Wave{" "}
             {status?.nextWave ?? 1} would accept{" "}
-            <span className="text-[var(--text-primary)] font-bold">
+            <span className="font-semibold tabular-nums text-[var(--text-primary)]">
               {willTake}
             </span>{" "}
-            of {pending} pending.
+            of <span className="tabular-nums">{pending}</span> pending.
           </p>
         </div>
 
         <div className="flex items-end gap-3 flex-wrap">
           <div>
-            <label
-              htmlFor="wave-size"
-              className="block text-[10px] uppercase tracking-widest font-bold text-[var(--text-subtle)] mb-2 font-mono"
-            >
+            <label htmlFor="wave-size" className={fieldLabel}>
               Wave size
             </label>
             <input
@@ -114,20 +112,20 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
               max={MASS_EMAIL_BATCH}
               value={size}
               onChange={(e) => setSize(e.target.value)}
-              className="w-28 min-h-11 px-3 py-2.5 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+              className={`min-h-11 tabular-nums ${input.replace("w-full", "w-28")}`}
             />
           </div>
           <button
             type="button"
             onClick={runWave}
             disabled={busy || !validSize || willTake === 0}
-            className="px-5 py-2.5 bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-wider rounded-none hover:bg-accent/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className={btnInk}
           >
             {busy
               ? "Working…"
               : pending === 0
                 ? "Nothing pending"
-                : `Accept + email wave ${status?.nextWave ?? 1}`}
+                : `Accept and email wave ${status?.nextWave ?? 1}`}
           </button>
         </div>
       </div>
@@ -136,40 +134,42 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
           account's daily quota so a wave cannot exhaust it and take sign-in
           codes down with it. A bigger wave is refused, not truncated. */}
       {!validSize && (
-        <p className="mt-4 text-[11px] font-mono text-amber-300/80">
+        <p className="mt-4 text-[13px] text-[var(--warning)]">
           Wave size must be between 1 and {MASS_EMAIL_BATCH}.
         </p>
       )}
 
       {(status?.waves.length ?? 0) > 0 && (
-        <div className="mt-6 pt-6 border-t border-[var(--border-subtle)] flex flex-wrap gap-x-6 gap-y-2">
+        <ul className="mt-6 max-w-xl">
           {status?.waves.map((wave) => (
-            <span
+            <li
               key={wave.wave}
-              className="text-[11px] font-mono text-[var(--text-subtle)]"
+              className="flex items-baseline justify-between gap-6 border-b border-[var(--border-subtle)] py-2 text-[14px]"
             >
-              <span className="text-[var(--text-primary)] font-bold">
+              <span className="font-semibold text-[var(--text-primary)]">
                 Wave {wave.wave}
-              </span>{" "}
-              · {wave.accepted} accepted · {wave.emailed} emailed
-            </span>
+              </span>
+              <span className="tabular-nums text-[var(--text-muted)]">
+                {wave.accepted} accepted · {wave.emailed} emailed
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {result && (
-        <p className="mt-4 text-xs font-mono text-accent border border-accent/30 bg-accent/5 px-3 py-2">
+        <p className="mt-4 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
           {result}
         </p>
       )}
       {error && (
         <p
           role="alert"
-          className="mt-4 text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 px-3 py-2"
+          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
         >
           {error}
         </p>
       )}
-    </LiquidGlass>
+    </section>
   );
 }

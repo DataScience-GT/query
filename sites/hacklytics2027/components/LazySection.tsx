@@ -69,7 +69,7 @@ export default function LazySection({
           className="flex items-center justify-center"
         >
           {/* Subtle loading shimmer */}
-          <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-bloom-cyan/50 animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-rule border-t-ink-3 animate-spin" />
         </div>
       )}
     </div>

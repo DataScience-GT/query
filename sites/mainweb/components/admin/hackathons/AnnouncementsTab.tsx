@@ -2,8 +2,20 @@
 
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { Megaphone } from "lucide-react";
+import {
+  body as bodyText,
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  label,
+  meta,
+  sectionRule,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 
 const AUDIENCES = [
   {
@@ -170,27 +182,29 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
     }
   };
 
+  const th = "py-2 pr-4 text-[13px] font-medium text-[var(--text-subtle)]";
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+    <div className="space-y-12">
       {/* A send that stopped part-way — a closed tab, a lost connection, a
           timeout. The remaining recipients are recorded server-side, so this
           continues rather than starting a second announcement. */}
       {unfinished.length > 0 && (
-        <LiquidGlass className="p-6 border-amber-500/30">
-          <h2 className="text-sm font-bold text-amber-300 uppercase tracking-widest mb-3">
+        <section className="border-l-2 border-[var(--warning)] pl-4">
+          <h2 className="text-[15px] font-semibold text-[var(--warning)] mb-3">
             Unfinished sends
           </h2>
-          <div className="space-y-3">
+          <div className="divide-y divide-[var(--border-subtle)]">
             {unfinished.map((announcement) => (
               <div
                 key={announcement.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3"
               >
                 <div>
-                  <p className="text-sm text-[var(--text-primary)] font-mono">
+                  <p className="text-[15px] text-[var(--text-primary)]">
                     {announcement.subject}
                   </p>
-                  <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
+                  <p className={`mt-1 tabular-nums ${meta}`}>
                     {announcement.sent} sent · {announcement.pending} remaining
                     {announcement.failed > 0
                       ? ` · ${announcement.failed} rejected`
@@ -203,30 +217,25 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
                   onClick={() =>
                     drain(announcement.id, announcement.total)
                   }
-                  className="px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider rounded-none hover:bg-amber-500/20 transition-colors disabled:opacity-40"
+                  className={btnSecondary}
                 >
-                  Resume
+                  Resume sending
                 </button>
               </div>
             ))}
           </div>
-        </LiquidGlass>
+        </section>
       )}
 
-      <LiquidGlass className="p-6 border-[var(--border-subtle)]">
-        <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2 mb-2">
-          <Megaphone className="w-4 h-4 text-accent" />
-          Send an Announcement
-        </h2>
-        <p className="text-xs font-mono text-[var(--text-subtle)] mb-6">
-          Plain text only. Written exactly as typed — no HTML.
+      <section>
+        <h2 className={sectionTitle}>Send an announcement</h2>
+        <p className={`mt-1 ${meta}`}>
+          Plain text only. Sent exactly as typed, no HTML.
         </p>
 
-        <fieldset className="mb-6">
-          <legend className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-3 font-mono">
-            Audience
-          </legend>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <fieldset className="mt-6">
+          <legend className={`${label} mb-3`}>Audience</legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-5">
             {AUDIENCES.map((option) => (
               <button
                 key={option.id}
@@ -247,21 +256,19 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
                   }
                 }}
                 aria-pressed={audience === option.id}
-                className={`p-4 text-left border rounded-none transition-colors ${
+                className={`py-3 text-left border-t-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   audience === option.id
-                    ? "bg-accent/10 border-accent/40"
-                    : "bg-[var(--bg-primary)]/40 border-[var(--border-subtle)] hover:border-accent/20"
+                    ? "border-accent"
+                    : "border-[var(--border-subtle)] hover:border-[var(--border-hover)]"
                 }`}
               >
                 <p
-                  className={`text-sm font-bold ${audience === option.id ? "text-accent" : "text-[var(--text-primary)]"}`}
+                  className={`text-[15px] ${audience === option.id ? "font-semibold text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}
                 >
                   {option.label}
                 </p>
-                <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
-                  {option.hint}
-                </p>
-                <p className="text-lg font-black font-mono text-[var(--text-primary)] mt-2">
+                <p className={`mt-0.5 ${meta}`}>{option.hint}</p>
+                <p className="mt-2 font-[family-name:var(--font-display)] text-[28px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
                   {counts?.[option.id] ?? "—"}
                 </p>
               </button>
@@ -269,12 +276,9 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
           </div>
         </fieldset>
 
-        <div className="space-y-4">
+        <div className="mt-8 max-w-2xl space-y-5">
           <div>
-            <label
-              htmlFor="ann-subject"
-              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-            >
+            <label htmlFor="ann-subject" className={fieldLabel}>
               Subject line
             </label>
             <input
@@ -284,16 +288,13 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
               onChange={(e) => setSubject(e.target.value)}
               maxLength={200}
               placeholder="Registration for Hacklytics is now open"
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+              className={input}
             />
           </div>
 
           <div>
-            <label
-              htmlFor="ann-heading"
-              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-            >
-              Heading (inside the email)
+            <label htmlFor="ann-heading" className={fieldLabel}>
+              Heading inside the email
             </label>
             <input
               id="ann-heading"
@@ -302,15 +303,12 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
               onChange={(e) => setHeading(e.target.value)}
               maxLength={200}
               placeholder="Registration is open"
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+              className={input}
             />
           </div>
 
           <div>
-            <label
-              htmlFor="ann-body"
-              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-            >
+            <label htmlFor="ann-body" className={fieldLabel}>
               Message
             </label>
             <textarea
@@ -320,19 +318,16 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
               maxLength={5000}
               rows={8}
               placeholder={"Hey,\n\nApplications are open until…"}
-              className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors resize-y"
+              className={`${input} resize-y`}
             />
-            <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
-              {body.length}/5000 — blank lines become paragraphs
+            <p className={`${fieldHint} tabular-nums`}>
+              {body.length}/5000. Blank lines become paragraphs.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="ann-cta-label"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-              >
+              <label htmlFor="ann-cta-label" className={fieldLabel}>
                 Button label (optional)
               </label>
               <input
@@ -342,14 +337,11 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
                 onChange={(e) => setCtaLabel(e.target.value)}
                 maxLength={60}
                 placeholder="Apply now"
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                className={input}
               />
             </div>
             <div>
-              <label
-                htmlFor="ann-cta-url"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-              >
+              <label htmlFor="ann-cta-url" className={fieldLabel}>
                 Button link
               </label>
               <input
@@ -359,94 +351,94 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
                 onChange={(e) => setCtaUrl(e.target.value)}
                 maxLength={500}
                 placeholder="https://datasciencegt.org/hackathons"
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                className={input}
               />
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!canSend}
+            className={`${btnPrimary} w-full sm:w-auto`}
+          >
+            {sending
+              ? "Sending…"
+              : `Send to ${recipientCount} recipient(s)`}
+          </button>
+
+          {error && (
+            <p
+              role="alert"
+              className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
+            >
+              {error}
+            </p>
+          )}
+
+          {progress && (
+            <p
+              role="status"
+              className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)] tabular-nums"
+            >
+              {progress}
+            </p>
+          )}
         </div>
+      </section>
 
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!canSend}
-          className="mt-6 w-full px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-sm uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono"
-        >
-          {sending
-            ? "Sending…"
-            : `Send to ${recipientCount} recipient(s)`}
-        </button>
-
-        {error && (
-          <div
-            role="alert"
-            className="mt-4 border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-mono text-red-300"
-          >
-            {error}
-          </div>
-        )}
-
-        {progress && (
-          <div
-            role="status"
-            className="mt-4 border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-mono text-accent"
-          >
-            {progress}
-          </div>
-        )}
-      </LiquidGlass>
-
-      <LiquidGlass className="p-6 border-[var(--border-subtle)]">
-        <div className="flex items-center justify-between gap-4">
+      <section className={sectionRule}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
-              Who is on the interest list
-            </h2>
-            <p className="text-xs font-mono text-[var(--text-subtle)] mt-1">
-              School, country, graduation year and experience — the answers the
+            <h2 className={itemTitle}>Who is on the interest list</h2>
+            <p className={`mt-1 max-w-2xl ${meta}`}>
+              School, country, graduation year and experience: the answers the
               public form collects.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowInterest((open) => !open)}
-            className="px-4 py-2.5 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-wider rounded-none hover:bg-white/10 transition-colors"
+            className={textLink}
           >
-            {showInterest ? "Hide" : "Show"}
+            {showInterest ? "Hide list" : "Show list"}
           </button>
         </div>
 
         {showInterest && (
           <div className="mt-4 overflow-x-auto">
             {(interestRows?.length ?? 0) === 0 ? (
-              <p className="text-xs font-mono text-[var(--text-subtle)]">
+              <p className={bodyText}>
                 Nobody has registered interest yet.
               </p>
             ) : (
-              <table className="w-full text-left text-[11px] font-mono">
-                <thead className="text-[var(--text-subtle)] uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2 pr-4">Name</th>
-                    <th className="py-2 pr-4">Email</th>
-                    <th className="py-2 pr-4">School</th>
-                    <th className="py-2 pr-4">Country</th>
-                    <th className="py-2 pr-4">Grad</th>
-                    <th className="py-2 pr-4">Experience</th>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)]">
+                    <th className={th}>Name</th>
+                    <th className={th}>Email</th>
+                    <th className={th}>School</th>
+                    <th className={th}>Country</th>
+                    <th className={`${th} text-right`}>Grad year</th>
+                    <th className={`${th} pr-0`}>Experience</th>
                   </tr>
                 </thead>
                 <tbody className="text-[var(--text-muted)]">
                   {interestRows?.map((row) => (
                     <tr
                       key={row.userId}
-                      className="border-t border-[var(--border-subtle)]"
+                      className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
                     >
-                      <td className="py-2 pr-4 text-[var(--text-primary)]">
+                      <td className="py-2.5 pr-4 text-[var(--text-primary)]">
                         {row.name ?? "—"}
                       </td>
-                      <td className="py-2 pr-4">{row.email}</td>
-                      <td className="py-2 pr-4">{row.school ?? "—"}</td>
-                      <td className="py-2 pr-4">{row.country ?? "—"}</td>
-                      <td className="py-2 pr-4">{row.graduationYear ?? "—"}</td>
-                      <td className="py-2 pr-4">{row.experience ?? "—"}</td>
+                      <td className="py-2.5 pr-4">{row.email}</td>
+                      <td className="py-2.5 pr-4">{row.school ?? "—"}</td>
+                      <td className="py-2.5 pr-4">{row.country ?? "—"}</td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums">
+                        {row.graduationYear ?? "—"}
+                      </td>
+                      <td className="py-2.5">{row.experience ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -454,7 +446,7 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
             )}
           </div>
         )}
-      </LiquidGlass>
+      </section>
     </div>
   );
 }

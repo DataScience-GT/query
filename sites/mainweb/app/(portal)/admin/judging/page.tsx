@@ -7,7 +7,6 @@ import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { JudgingTools } from "@/components/admin/judging/JudgingTools";
 import { RoomAssignmentsView } from "@/components/admin/judging/RoomAssignmentsView";
 import { JudgeMatrixView } from "@/components/admin/judging/JudgeMatrixView";
@@ -15,6 +14,15 @@ import { RankingsView } from "@/components/admin/judging/RankingsView";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { JudgeLiveBoard } from "@/components/admin/hackathons/JudgeLiveBoard";
 import { judgingPrepIsCurrent } from "@/lib/judging-prep";
+import {
+  body,
+  btnPrimary,
+  btnSecondary,
+  kicker,
+  meta,
+  pageDek,
+  status as statusClass,
+} from "@/components/portal/ui";
 
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
@@ -219,57 +227,41 @@ export default function AdminResultsPage() {
       .sort((a, b) => b.displayScore - a.displayScore);
   }, [rankings, selectedCategory, selectedTrack]);
 
+  const selectedName = hackathons?.find((h) => h.id === selectedHackathon)
+    ?.name;
+
   if (!mounted) return <LoadingScreen message="Loading judging…" />;
 
   return (
     <>
       <div className="relative z-10 max-w-7xl mx-auto">
         <header className="mb-10">
-          <p className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em] mb-2">
-            Admin
-          </p>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
+          {selectedName && <p className={`${kicker} mb-2`}>{selectedName}</p>}
+          <h1 className="font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
             Judging results
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+          <p className={pageDek}>
             {!selectedHackathon
               ? "Pick a hackathon to see its results."
-              : judgingStatus?.active
-                ? "Judging is live."
-                : "Judging is closed."}
+              : "Open and close judging, watch the floor, and compare scores."}
           </p>
         </header>
 
         {/* Judging Control Panel */}
         {selectedHackathon && (
-          <LiquidGlass
-            printed
-            className={`p-6 mb-12 relative border-t-4 ${
-              judgingStatus?.active
-                ? "border-t-accent"
-                : "border-t-[var(--border-medium)]"
-            }`}
-          >
+          <section className="mb-12 border-t border-[var(--border-subtle)] pt-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <span
-                  aria-hidden="true"
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    judgingStatus?.active
-                      ? "bg-accent"
-                      : "bg-[var(--text-subtle)]"
-                  }`}
-                />
-                <div>
-                  <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-                    {judgingStatus?.active ? "Judging live" : "Judging closed"}
-                  </h2>
-                  <p className="text-sm text-[var(--text-muted)] mt-1">
-                    {judgingStatus?.active
-                      ? "Judges are scoring projects now."
-                      : "Judges can't score until you start judging."}
-                  </p>
-                </div>
+              <div>
+                <p
+                  className={statusClass(judgingStatus?.active ? "accent" : "neutral")}
+                >
+                  {judgingStatus?.active ? "Judging is live" : "Judging is closed"}
+                </p>
+                <p className={`mt-1 ${body}`}>
+                  {judgingStatus?.active
+                    ? "Judges are scoring projects now."
+                    : "Judges can't score until you start judging."}
+                </p>
               </div>
 
               <button
@@ -280,11 +272,7 @@ export default function AdminResultsPage() {
                   })
                 }
                 disabled={toggleJudging.isPending}
-                className={
-                  judgingStatus?.active
-                    ? "px-6 py-3 rounded-sm border border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold text-sm uppercase tracking-widest hover:bg-amber-500/20 transition-ui disabled:opacity-50"
-                    : "px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
-                }
+                className={`shrink-0 ${btnPrimary}`}
               >
                 {toggleJudging.isPending
                   ? "Saving…"
@@ -297,10 +285,7 @@ export default function AdminResultsPage() {
                 press looks like a no-op. Scoped to the event it was for. */}
             {toggleJudging.error &&
               toggleJudging.variables?.hackathonId === selectedHackathon && (
-              <p
-                role="alert"
-                className="mt-4 px-4 py-3 rounded-sm text-sm border border-red-500/30 bg-red-500/10 text-red-300"
-              >
+              <p role="alert" className="mt-4 text-sm text-[var(--danger)]">
                 {toggleJudging.error.message}
               </p>
             )}
@@ -310,10 +295,10 @@ export default function AdminResultsPage() {
             <div className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                 <div>
-                  <p className="text-sm font-bold text-[var(--text-primary)]">
+                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
                     Prepare judging
                   </p>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                  <p className={`mt-1 ${meta}`}>
                     Syncs submissions into judging and gives each a table. Safe
                     to run again during judging: late submissions join the pool.
                   </p>
@@ -321,31 +306,26 @@ export default function AdminResultsPage() {
                 <button
                   onClick={prepareJudging}
                   disabled={prepState.busy}
-                  className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-accent/10 border border-accent/25 text-accent text-xs font-bold uppercase tracking-widest hover:bg-accent/20 transition-colors disabled:opacity-40"
+                  className={`shrink-0 ${btnSecondary}`}
                 >
                   {prepState.busy ? "Preparing…" : "Prepare judging"}
                 </button>
               </div>
 
               {prepState.message && (
-                <p className="mt-4 px-4 py-3 rounded-sm border border-accent/30 bg-accent/10 text-sm text-accent">
-                  {prepState.message}
-                </p>
+                <p className={`mt-4 ${body}`}>{prepState.message}</p>
               )}
               {prepState.error && (
-                <p
-                  role="alert"
-                  className="mt-4 px-4 py-3 rounded-sm text-sm border border-red-500/30 bg-red-500/10 text-red-300"
-                >
+                <p role="alert" className="mt-4 text-sm text-[var(--danger)]">
                   {prepState.error}
                 </p>
               )}
             </div>
-          </LiquidGlass>
+          </section>
         )}
 
         {selectedHackathon && (
-          <div className="mt-6">
+          <div className="mb-12">
             <JudgeLiveBoard
               hackathonId={selectedHackathon}
               active={!!judgingStatus?.active}

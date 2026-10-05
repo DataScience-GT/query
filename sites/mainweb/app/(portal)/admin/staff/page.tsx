@@ -2,10 +2,25 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { usePortalContext } from "@/lib/use-portal-context";
-import { ShieldCheck } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  meta,
+  object,
+  page,
+  pageDek,
+  sectionTitle,
+} from "@/components/portal/ui";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 /**
  * Staff and roles.
@@ -88,38 +103,26 @@ export default function StaffPage() {
   // a form whose every button is refused.
   if (!isSuperAdmin) {
     return (
-      <div className="max-w-3xl mx-auto py-16 px-6">
-        <LiquidGlass className="p-8 border-[var(--border-subtle)]">
-          <h1 className="text-xl font-black uppercase tracking-tight text-[var(--text-primary)] mb-2">
-            Staff &amp; roles
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] font-mono">
-            Only a super admin can grant or change staff roles. Ask one of them
-            to add you or the person you are trying to add.
-          </p>
-        </LiquidGlass>
+      <div className={page}>
+        <h1 className={adminTitle}>Staff &amp; roles</h1>
+        <p className={pageDek}>
+          Only a super admin can grant or change staff roles. Ask one of them
+          to add you or the person you are trying to add.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-16 px-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tight text-[var(--text-primary)] flex items-center gap-3">
-          <ShieldCheck className="w-6 h-6 text-accent" />
-          Staff &amp; roles
-        </h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)] font-mono">
-          Grant the volunteer tier before the event, not at the door.
-        </p>
-      </div>
+    <div className={page}>
+      <h1 className={adminTitle}>Staff &amp; roles</h1>
+      <p className={pageDek}>
+        Grant the volunteer role before the event, not at the door.
+      </p>
 
-      <LiquidGlass className="p-6 border-[var(--border-subtle)] space-y-5">
+      <section className="mt-10 space-y-6">
         <div>
-          <label
-            htmlFor="staff-email"
-            className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-          >
+          <label htmlFor="staff-email" className={fieldLabel}>
             Their sign-in email
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -131,7 +134,7 @@ export default function StaffPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="them@gatech.edu"
-              className="flex-1 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+              className={`${input} sm:flex-1`}
             />
             <button
               type="button"
@@ -141,35 +144,33 @@ export default function StaffPage() {
                 setSearchedEmail(email.trim().toLowerCase());
               }}
               disabled={!email.trim()}
-              className="px-6 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest rounded-none hover:bg-white/10 transition-colors disabled:opacity-30"
+              className={btnSecondary}
             >
               Find
             </button>
           </div>
-          <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-2">
-            They must have signed in at least once — the role attaches to an
+          <p className={fieldHint}>
+            They must have signed in at least once. The role attaches to an
             existing account.
           </p>
         </div>
 
         {searchedEmail && !lookup.isPending && !lookup.data && (
-          <p className="text-xs font-mono text-amber-300">
+          <p className="text-[13px] text-[var(--warning)]">
             No account for {searchedEmail}. Ask them to sign in once, then look
             again.
           </p>
         )}
 
         {lookup.data && (
-          <div className="p-4 bg-white/[0.02] border border-[var(--border-subtle)] space-y-4">
+          <div className={`${object} p-5 space-y-5`}>
             <div>
-              <p className="text-sm text-[var(--text-primary)] font-bold">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)]">
                 {lookup.data.name ?? "Unnamed account"}
               </p>
-              <p className="text-xs font-mono text-[var(--text-subtle)]">
-                {lookup.data.email}
-              </p>
+              <p className={meta}>{lookup.data.email}</p>
               {lookup.data.existingRole && (
-                <p className="text-xs font-mono text-accent mt-2">
+                <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
                   Already {lookup.data.existingRole.role}
                   {lookup.data.existingRole.isActive ? "" : " (deactivated)"}
                   {lookup.data.existingRole.expiresAt
@@ -180,9 +181,7 @@ export default function StaffPage() {
             </div>
 
             <fieldset>
-              <legend className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-3 font-mono">
-                Role
-              </legend>
+              <legend className={fieldLabel}>Role</legend>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {ROLES.map((option) => (
                   <button
@@ -190,20 +189,16 @@ export default function StaffPage() {
                     type="button"
                     onClick={() => setRole(option.id)}
                     aria-pressed={role === option.id}
-                    className={`p-3 text-left border rounded-none transition-colors ${
+                    className={`p-3 text-left rounded-[var(--radius-sm)] border transition-colors ${
                       role === option.id
-                        ? "bg-accent/10 border-accent/40"
-                        : "bg-[var(--bg-primary)]/40 border-[var(--border-subtle)] hover:border-accent/20"
+                        ? "border-accent bg-[var(--bg-secondary)]"
+                        : "border-[var(--border-medium)] hover:border-[var(--border-hover)]"
                     }`}
                   >
-                    <p
-                      className={`text-sm font-bold ${role === option.id ? "text-accent" : "text-[var(--text-primary)]"}`}
-                    >
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
                       {option.label}
                     </p>
-                    <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
-                      {option.hint}
-                    </p>
+                    <p className={`${meta} mt-1`}>{option.hint}</p>
                   </button>
                 ))}
               </div>
@@ -225,7 +220,7 @@ export default function StaffPage() {
                 }
               }}
               disabled={createStaff.isPending || updateStaff.isPending}
-              className="px-6 py-3 bg-accent/10 border border-accent/40 text-accent text-xs font-bold uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-40"
+              className={btnPrimary}
             >
               {lookup.data.existingRole ? "Change role" : "Grant role"}
             </button>
@@ -233,47 +228,37 @@ export default function StaffPage() {
         )}
 
         {error && (
-          <p
-            role="alert"
-            className="text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 px-3 py-2"
-          >
+          <p role="alert" className="text-[13px] text-[var(--danger)]">
             {error}
           </p>
         )}
         {notice && (
-          <p
-            role="status"
-            className="text-xs font-mono text-accent border border-accent/30 bg-accent/10 px-3 py-2"
-          >
+          <p role="status" className="text-[13px] text-[var(--success)]">
             {notice}
           </p>
         )}
-      </LiquidGlass>
+      </section>
 
-      <LiquidGlass className="p-6 border-[var(--border-subtle)]">
-        <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest mb-4">
-          Current staff
-        </h2>
+      <section className="mt-12 border-t border-[var(--border-subtle)] pt-8">
+        <h2 className={`${sectionTitle} mb-4`}>Current staff</h2>
         {staffLoading ? (
-          <p className="text-xs font-mono text-[var(--text-subtle)]">
-            Loading...
-          </p>
+          <p className={meta}>Loading…</p>
         ) : (staff?.length ?? 0) === 0 ? (
-          <p className="text-xs font-mono text-[var(--text-subtle)]">
-            Nobody yet.
+          <p className={body}>
+            Nobody has a staff role yet. Find someone above to grant one.
           </p>
         ) : (
-          <div className="divide-y divide-[var(--border-subtle)]">
+          <div className="border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
             {staff?.map((row) => (
               <div
                 key={row.id}
                 className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
-                <div>
-                  <p className="text-sm text-[var(--text-primary)]">
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
                     {row.user?.name ?? "Unnamed account"}
                   </p>
-                  <p className="text-[11px] font-mono text-[var(--text-subtle)]">
+                  <p className={`${meta} break-all`}>
                     {row.user?.email} · {row.role}
                     {row.isActive ? "" : " · deactivated"}
                     {row.expiresAt
@@ -294,11 +279,7 @@ export default function StaffPage() {
                     });
                   }}
                   disabled={updateStaff.isPending}
-                  className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-none border transition-colors disabled:opacity-40 ${
-                    row.isActive
-                      ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
-                      : "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
-                  }`}
+                  className={`${row.isActive ? btnDanger : btnSecondary} shrink-0 self-start sm:self-auto`}
                 >
                   {row.isActive ? "Deactivate" : "Reactivate"}
                 </button>
@@ -306,7 +287,7 @@ export default function StaffPage() {
             ))}
           </div>
         )}
-      </LiquidGlass>
+      </section>
     </div>
   );
 }

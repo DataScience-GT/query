@@ -2,6 +2,20 @@
 
 import React from "react";
 import { ModalWrapper } from "./ModalWrapper";
+import {
+  btnDanger,
+  btnSecondary,
+  itemTitle,
+  label,
+  meta,
+  status,
+} from "./ui";
+
+const closeButton =
+  "shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]";
+
+const infoRow =
+  "flex items-baseline justify-between gap-4 border-b border-[var(--border-subtle)] py-3";
 
 interface Event {
   id: string;
@@ -31,11 +45,15 @@ export function QRCodeModal({
 }: QRCodeModalProps) {
   const handleCopyCode = () => {
     navigator.clipboard.writeText(event.qrCode);
-    alert("Access Code copied to buffer.");
+    alert("Check-in code copied.");
   };
 
   const handleRegenerate = () => {
-    if (confirm("Regenerate protocols? Current QR will be deprecated.")) {
+    if (
+      confirm(
+        "Replace this QR code? The current code, and anything printed with it, stops working.",
+      )
+    ) {
       onRegenerate();
     }
   };
@@ -43,28 +61,20 @@ export function QRCodeModal({
   return (
     <ModalWrapper onClose={onClose} maxWidth="lg">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8 pb-6 border-b border-[var(--border-subtle)]">
-        <div>
-          <h3 className="text-3xl font-black text-[var(--text-primary)] italic uppercase tracking-tighter">
-            QR Protocols
-          </h3>
-          <p className="text-sm font-mono text-accent uppercase tracking-widest mt-1">
-            {event.title}
-          </p>
+      <div className="mb-6 flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+        <div className="min-w-0">
+          <h3 className={itemTitle}>Check-in QR code</h3>
+          <p className={`${meta} mt-1`}>{event.title}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-xs uppercase tracking-widest font-mono p-2 hover:bg-white/5 rounded"
-        >
-          [ Close ]
+        <button type="button" onClick={onClose} className={closeButton}>
+          Close
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* QR Code Display - literal white in both themes so scanners keep the
             contrast the code needs */}
-        <div className="bg-[#ffffff] p-8 rounded-none shadow-lg mx-auto max-w-sm">
+        <div className="mx-auto max-w-sm rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[#ffffff] p-6">
           {qrCodeDataURL && (
             <img
               src={qrCodeDataURL}
@@ -75,59 +85,60 @@ export function QRCodeModal({
         </div>
 
         {/* Event Info */}
-        <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none p-6 space-y-4">
-          <div className="flex justify-between text-sm font-mono">
-            <span className="text-gray-600 uppercase">IDENT:</span>
-            <span className="text-[var(--text-primary)]">{event.title}</span>
+        <dl className="border-t border-[var(--border-subtle)]">
+          <div className={infoRow}>
+            <dt className={label}>Event</dt>
+            <dd className="text-right text-[15px] text-[var(--text-primary)]">
+              {event.title}
+            </dd>
           </div>
-          <div className="flex justify-between text-sm font-mono">
-            <span className="text-gray-600 uppercase">SYNC COUNT:</span>
-            <span className="text-[var(--text-primary)]">
+          <div className={infoRow}>
+            <dt className={label}>Checked in</dt>
+            <dd className="text-right text-[15px] tabular-nums text-[var(--text-primary)]">
               {event.currentCheckIns}{" "}
-              {event.maxCheckIns ? `/ ${event.maxCheckIns}` : "/ Unlimited"}
-            </span>
+              {event.maxCheckIns ? `of ${event.maxCheckIns}` : "(no limit)"}
+            </dd>
           </div>
-          <div className="flex justify-between text-sm font-mono">
-            <span className="text-gray-600 uppercase">STATUS:</span>
-            <span
-              className={
-                event.checkInEnabled
-                  ? "text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                  : "text-red-500"
-              }
-            >
-              {event.checkInEnabled ? "LINK ACTIVE" : "LINK TERMINATED"}
-            </span>
+          <div className={infoRow}>
+            <dt className={label}>Check-in</dt>
+            <dd>
+              <span
+                className={status(event.checkInEnabled ? "accent" : "neutral")}
+              >
+                {event.checkInEnabled ? "Open" : "Closed"}
+              </span>
+            </dd>
           </div>
-        </div>
+        </dl>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            type="button"
-            onClick={onDownload}
-            className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-ui rounded-none font-mono"
-          >
-            SAVE IMG
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={onDownload} className={btnSecondary}>
+            Download PNG
           </button>
           <button
             type="button"
             onClick={handleCopyCode}
-            className="px-6 py-4 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-ui rounded-none font-mono"
+            className={btnSecondary}
           >
-            COPY VAL
+            Copy code
           </button>
         </div>
 
         {/* Regenerate Button */}
-        <button
-          type="button"
-          onClick={handleRegenerate}
-          disabled={isRegenerating}
-          className="w-full px-6 py-4 bg-red-500/5 border border-red-500/20 text-red-500/80 font-bold text-sm uppercase tracking-widest hover:bg-red-500/10 transition-ui disabled:opacity-50 rounded-none font-mono"
-        >
-          {isRegenerating ? "RENEWING…" : "REBOOT QR SYSTEM"}
-        </button>
+        <div className="border-t border-[var(--border-subtle)] pt-5">
+          <button
+            type="button"
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+            className={`${btnDanger} w-full`}
+          >
+            {isRegenerating ? "Replacing…" : "Replace QR code"}
+          </button>
+          <p className={`${meta} mt-2`}>
+            The current code, and anything printed with it, stops working.
+          </p>
+        </div>
       </div>
     </ModalWrapper>
   );

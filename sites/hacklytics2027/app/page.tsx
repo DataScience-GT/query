@@ -1,26 +1,25 @@
 "use client";
 import React, { useState, useEffect, useSyncExternalStore } from "react";
 import HomeSections from "@/components/HomeSections";
-import PixelGarden, { PixelGround } from "@/components/pixel/PixelGarden";
-import PixelSprite from "@/components/pixel/PixelSprite";
-import { DAISY, SPROUT, TULIP } from "@/components/pixel/sprites";
+import { PixelBed, bloomSet, plantBed, withBlooms } from "@/components/pixel/PixelBed";
 import { INTEREST_HINT, INTEREST_URL } from "@/lib/links";
 
-// ─── Background: two soft color fields ────────────────────────────────────
-const FloralBackground = () => (
-  <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020204]">
-    {/* Ambient light fields — static radial gradients instead of pulsing
-        blur() layers, which re-rasterized a 50vw surface every frame. */}
-    <div
-      className="absolute top-0 left-1/4 w-[40vw] h-[40vw] rounded-full"
-      style={{ background: "radial-gradient(circle, rgba(255,45,120,0.16) 0%, transparent 70%)" }}
-    />
-    <div
-      className="absolute bottom-0 right-1/4 w-[50vw] h-[50vw] rounded-full"
-      style={{ background: "radial-gradient(circle, rgba(0,229,255,0.14) 0%, transparent 70%)" }}
-    />
-  </div>
-);
+// ─── Dates ────────────────────────────────────────────────────────────────
+// Check-in opens 5pm ET (the JSON-LD startDate). Without an offset the string
+// meant midnight in each visitor's own timezone.
+const EVENT_START = new Date("2027-02-26T17:00:00-05:00");
+// When the 2027 season opened. The hero bed fills in from here to
+// EVENT_START: a tenth of it in bloom at the start, all of it on the day.
+const SEASON_START = new Date("2026-09-01T00:00:00-04:00");
+
+const HERO_BED = plantBed(0);
+
+/** How many hero flowers are in bloom at `now`: at least one, all from the event on. */
+function bloomCount(now: number) {
+  const span = EVENT_START.getTime() - SEASON_START.getTime();
+  const progress = Math.min(1, Math.max(0.1, (now - SEASON_START.getTime()) / span));
+  return Math.max(1, Math.round(progress * HERO_BED.length));
+}
 
 // ─── Countdown ────────────────────────────────────────────────────────────
 const subscribeNoop = () => () => {};
@@ -50,38 +49,51 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   const fmt = (n?: number) => String(n ?? 0).padStart(2, "0");
 
   const units = [
-    { label: "Days",    value: timeLeft?.days,    color: "text-white" },
-    { label: "Hours",   value: timeLeft?.hours,   color: "text-white" },
-    { label: "Minutes", value: timeLeft?.minutes, color: "text-white" },
-    { label: "Seconds", value: timeLeft?.seconds, color: "text-bloom-cyan" },
+    { label: "days",    value: timeLeft?.days },
+    { label: "hours",   value: timeLeft?.hours },
+    { label: "minutes", value: timeLeft?.minutes },
+    { label: "seconds", value: timeLeft?.seconds },
   ];
 
+  // Quiet figures: a big number over a small unit, no colour.
   return (
-    <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 mt-12 md:mt-20">
-      {units.map(({ label, value, color }) => (
-        <div key={label} className="flex flex-col items-center">
-          <span className={`font-sans font-medium text-5xl md:text-7xl tracking-tighter tabular-nums ${mounted ? color : "text-white/10"} transition-colors duration-1000`}>
+    <div className="flex flex-wrap gap-x-8 gap-y-4 mt-12">
+      {units.map(({ label, value }) => (
+        <div key={label} className="flex flex-col">
+          <span
+            className={`font-display font-semibold text-[2.75rem] leading-none tracking-[-0.03em] tabular-nums ${
+              mounted ? "text-ink" : "text-ink-3/40"
+            }`}
+          >
             {mounted ? fmt(value) : "00"}
           </span>
-          <span className="font-pixel text-[10px] md:text-xs text-white/60 mt-3">
-            {label}
-          </span>
+          <span className="font-sans text-[13px] text-ink-3 mt-2">{label}</span>
         </div>
       ))}
     </div>
   );
 };
 
+// ─── Facts ────────────────────────────────────────────────────────────────
+const facts = [
+  { label: "Room for", value: "1,000+ hackers" },
+  { label: "Tracks", value: "Finance · Sports · Health · Entertainment · Wildcard" },
+  { label: "Length", value: "36 hours" },
+  { label: "Cost", value: "Free" },
+];
+
 // ─── Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  // 0 in the static HTML (all dormant), then the real count after hydration:
+  // a build-time count would be stale by the time anyone loads the page.
+  const inBloom = useSyncExternalStore(subscribeNoop, () => bloomCount(Date.now()), () => 0);
+  const heroBed = withBlooms(HERO_BED, bloomSet(inBloom));
+
   return (
-    <main className="relative w-full text-white bg-[#020204] overflow-x-hidden selection:bg-bloom-pink/30 selection:text-white min-h-screen">
-      
-      <FloralBackground />
-      <PixelGarden />
+    <main className="relative w-full overflow-x-hidden">
 
       {/* ── HERO ── */}
-      <section className="relative w-full min-h-screen flex flex-col justify-center items-center overflow-hidden">
+      <section className="relative flex min-h-[100svh] flex-col">
 
         {/* MLH badge */}
         <a
@@ -93,104 +105,86 @@ export default function HomePage() {
           <img src="/mlh-trust-badge.svg" alt="Major League Hacking 2027" className="w-full drop-shadow-2xl" />
         </a>
 
-        {/* Hero content */}
-        {/* Bottom padding clears the pixel garden with its soil (136px, 168px
-            from md), which covered the countdown labels on short screens. */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-32 pb-40 md:pt-48 md:pb-48 flex flex-col items-center text-center animate-fade-in-up">
+        {/* Top padding clears the navbar and the MLH badge, which hangs to
+            98px on phones and 158px from md (90px wide, 1:1.75). The flower
+            bed is in the flow below, not on top, so nothing can sit on it. */}
+        <div className="wrap flex-1 pt-[8.5rem] md:pt-[11.5rem] pb-14 md:pb-20">
+          <p className="kicker">Feb 26–28, 2027 · Klaus, Georgia Tech</p>
 
-          {/* Pill Badge */}
-          {/* Main title - Elegantly oversized, tight tracking */}
-          <div className="flex items-end justify-center gap-4 md:gap-10 mb-10 md:mb-12">
-            <PixelSprite
-              map={TULIP}
-              palette="pink"
-              scale={7}
-              glow
-              className="hidden lg:block animate-sway origin-bottom"
-              style={{ animationDuration: "6s" }}
-            />
-            <h1
-              className="font-sans font-medium text-[16vw] sm:text-[14vw] md:text-[11vw] lg:text-[10rem] xl:text-[12rem] leading-[0.8] tracking-[-0.04em] text-white"
-            >
-              Hacklytics
-            </h1>
-            <PixelSprite
-              map={DAISY}
-              palette="cyan"
-              scale={7}
-              glow
-              className="hidden lg:block animate-sway origin-bottom"
-              style={{ animationDuration: "7.5s", animationDelay: "-2s" }}
-            />
-          </div>
+          {/* One line at every width: the size follows the viewport so
+              "Hacklytics" fits a 375px phone and tops out at 144px. */}
+          <h1 className="display whitespace-nowrap text-[clamp(3rem,18vw,9rem)] leading-[0.85] tracking-[-0.045em] mt-5 mb-8 md:mb-10">
+            Hacklytics
+          </h1>
 
-          {/* When, where and who, up front: the hero said none of them. */}
-          <p className="font-pixel text-xs md:text-sm uppercase text-bloom-cyan mb-6">
-            Feb 26–28, 2027 · Georgia Tech, Atlanta
-          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-12 lg:gap-20 lg:items-end">
+            <div>
+              <p className="font-sans text-[17px] md:text-[19px] leading-[1.5] text-ink-2 max-w-[34rem]">
+                36 hours of data science and AI in Atlanta, run by Data Science
+                @ GT. Free to attend; meals, swag and cloud credits are covered.
+              </p>
 
-          <p className="font-sans text-lg md:text-xl lg:text-2xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12 font-light tracking-wide">
-            A 36-hour data science and AI hackathon <br className="hidden md:block"/>
-            run by Data Science @ GT. Free to attend.
-          </p>
+              {/* The caption sits under the pair, not under Notify me alone:
+                  stacked with it, the button column was taller than the
+                  other button and the row lost its alignment. */}
+              <div className="mt-8 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={INTEREST_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-describedby="notify-handoff-hint"
+                    className="btn btn-bloom"
+                  >
+                    Notify me
+                  </a>
+                  <a href="#tracks" className="btn btn-line">
+                    See tracks and prizes
+                  </a>
+                </div>
+                <span
+                  id="notify-handoff-hint"
+                  className="font-sans text-[13px] leading-snug text-ink-3"
+                >
+                  {INTEREST_HINT}
+                </span>
+              </div>
 
-          {/* The caption sits under the pair, not under Notify me alone:
-              stacked with it, the button column was taller than Explore and
-              centring the row pushed Explore halfway down beside it. */}
-          <div className="flex flex-col items-center gap-3 w-full sm:w-auto">
-            <div className="flex flex-col sm:flex-row sm:items-stretch justify-center gap-5 w-full sm:w-auto">
-              <a
-                href={INTEREST_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-describedby="notify-handoff-hint"
-                className="pixel-btn relative inline-flex items-center justify-center px-10 py-4 font-pixel text-xs w-full sm:w-auto"
-              >
-                NOTIFY ME →
-              </a>
-
-              <a
-                href="#about"
-                className="pixel-frame pixel-lime inline-flex items-center justify-center gap-3 px-10 py-4 font-pixel text-xs text-white/80 hover:text-white bg-white/[0.03] w-full sm:w-auto"
-              >
-                <PixelSprite map={SPROUT} palette="lime" scale={2} glow />
-                EXPLORE
-              </a>
+              <Countdown targetDate={EVENT_START} />
             </div>
-            <span
-              id="notify-handoff-hint"
-              className="font-sans text-xs leading-snug text-white/55 text-center"
-            >
-              {INTEREST_HINT}
-            </span>
+
+            <dl className="font-sans text-[15px]">
+              {facts.map((f) => (
+                <div
+                  key={f.label}
+                  className="flex items-baseline justify-between gap-6 border-t border-rule py-3"
+                >
+                  <dt className="text-ink-3 shrink-0">{f.label}</dt>
+                  <dd className="text-ink text-right">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
-
-          {/* Check-in opens 5pm ET (the JSON-LD startDate). Without an offset
-              the string meant midnight in each visitor's own timezone. */}
-          <Countdown targetDate={new Date("2027-02-26T17:00:00-05:00")} />
-
         </div>
-        
-        {/* Pixel garden bed the hero stands in */}
-        <div className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none">
-          <PixelGround seed={5} count={12} />
+
+        {/* The flower bed the hero stands in. Its share in bloom tracks the
+            season; visitors can plant their own. */}
+        <div className="pb-6">
+          <PixelBed
+            plants={heroBed}
+            soil
+            plantable
+            hint
+            caption={
+              inBloom
+                ? `${inBloom} of ${HERO_BED.length} in bloom · fills in as Feb 26 gets closer`
+                : undefined
+            }
+          />
         </div>
       </section>
 
-      <div className="relative z-10 bg-[#020204]/70 border-t border-white/5">
-        <HomeSections />
-      </div>
-      
-      {/* Hero entrance animation, not in the tailwind config */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}} />
+      <HomeSections />
     </main>
   );
 }

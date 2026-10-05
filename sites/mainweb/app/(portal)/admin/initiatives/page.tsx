@@ -2,11 +2,26 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Rocket } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@query/api";
+import {
+  body,
+  btnDanger,
+  btnInk,
+  btnPrimary,
+  btnSecondary,
+  fieldLabel,
+  input,
+  itemTitle,
+  meta,
+  page,
+  pageDek,
+  sectionTitle,
+} from "@/components/portal/ui";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 /**
  * Who runs club initiatives.
@@ -35,23 +50,25 @@ function ProposalRow({
   });
 
   return (
-    <LiquidGlass className="p-5">
+    <div className="py-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-white">{proposal.title}</h3>
-          <p className="mt-0.5 text-sm text-white/50">
+          <h3 className={itemTitle}>{proposal.title}</h3>
+          <p className={`${meta} mt-0.5 break-all`}>
             {proposal.proposerName ?? proposal.proposerEmail} ·{" "}
             {proposal.proposerEmail}
           </p>
           {proposal.summary && (
-            <p className="mt-2 text-sm text-white/80">{proposal.summary}</p>
+            <p className="mt-3 text-[15px] text-[var(--text-secondary)]">
+              {proposal.summary}
+            </p>
           )}
           {proposal.description && (
-            <p className="mt-2 whitespace-pre-line text-sm text-white/60">
+            <p className={`${body} mt-2 whitespace-pre-line`}>
               {proposal.description}
             </p>
           )}
-          <p className="mt-2 text-sm text-white/50">
+          <p className={`${meta} mt-3`}>
             {proposal.commitment ?? "No commitment given"} ·{" "}
             {proposal.maxMembers === null
               ? "no team cap"
@@ -66,7 +83,7 @@ function ProposalRow({
             onClick={() =>
               review.mutate({ id: proposal.id, decision: "approve" })
             }
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+            className={btnInk}
           >
             Approve
           </button>
@@ -74,7 +91,7 @@ function ProposalRow({
             type="button"
             disabled={review.isPending}
             onClick={() => setDeclining((prev) => !prev)}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5 disabled:opacity-50"
+            className={btnSecondary}
           >
             Decline
           </button>
@@ -84,11 +101,8 @@ function ProposalRow({
       {/* A decline without a reason is the thing a member can do nothing with,
           so the note is asked for at the moment of declining. */}
       {declining && (
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <label
-            htmlFor={`note-${proposal.id}`}
-            className="text-xs font-semibold uppercase tracking-wide text-white/50"
-          >
+        <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
+          <label htmlFor={`note-${proposal.id}`} className={fieldLabel}>
             Why (shown to them)
           </label>
           <textarea
@@ -98,7 +112,7 @@ function ProposalRow({
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Too close to an existing project, needs a clearer scope, …"
-            className="mt-2 w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+            className={`${input} min-h-11`}
           />
           <button
             type="button"
@@ -110,7 +124,7 @@ function ProposalRow({
                 note: note.trim() || undefined,
               })
             }
-            className="mt-3 rounded-full bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/30 disabled:opacity-50"
+            className={`${btnDanger} mt-3`}
           >
             Confirm decline
           </button>
@@ -118,9 +132,11 @@ function ProposalRow({
       )}
 
       {review.error && (
-        <p className="mt-3 text-sm text-red-300">{review.error.message}</p>
+        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+          {review.error.message}
+        </p>
       )}
-    </LiquidGlass>
+    </div>
   );
 }
 
@@ -147,10 +163,11 @@ export default function AdminInitiativesPage() {
 
   if (leaders.error) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <LiquidGlass className="p-8 text-center">
-          <p className="font-semibold text-white">{leaders.error.message}</p>
-        </LiquidGlass>
+      <div className={page}>
+        <h1 className={adminTitle}>Project leaders</h1>
+        <p role="alert" className="mt-3 text-[15px] text-[var(--danger)]">
+          {leaders.error.message}
+        </p>
       </div>
     );
   }
@@ -158,57 +175,53 @@ export default function AdminInitiativesPage() {
   const rows = leaders.data ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <header className="mb-8">
-        <div className="flex items-center gap-3">
-          <Rocket className="h-6 w-6 text-white/70" />
-          <h1 className="text-2xl font-bold text-white">Project leaders</h1>
-        </div>
-        <p className="mt-2 text-white/60">
-          A project leader can post projects and pick who joins them. It grants
-          nothing else — admin screens stay admin-only.
-        </p>
-      </header>
+    <div className={page}>
+      <h1 className={adminTitle}>Project leaders</h1>
+      <p className={pageDek}>
+        A project leader can post projects and pick who joins them. It grants
+        nothing else; admin screens stay admin-only.
+      </p>
 
-      <section className="mb-10">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
+      <section className="mt-10 border-t border-[var(--border-subtle)] pt-6">
+        <h2 className={sectionTitle}>
           Proposals waiting on you
-          {proposals.data && proposals.data.length > 0
-            ? ` · ${proposals.data.length}`
-            : ""}
+          {proposals.data && proposals.data.length > 0 ? (
+            <span className="ml-2 text-[var(--text-subtle)] tabular-nums">
+              {proposals.data.length}
+            </span>
+          ) : null}
         </h2>
         {proposals.error ? (
-          <p className="text-sm text-red-300">{proposals.error.message}</p>
+          <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+            {proposals.error.message}
+          </p>
         ) : (proposals.data ?? []).length > 0 ? (
-          <div className="space-y-3">
+          <div className="mt-2 divide-y divide-[var(--border-subtle)]">
             {(proposals.data ?? []).map((proposal) => (
               <ProposalRow key={proposal.id} proposal={proposal} />
             ))}
           </div>
         ) : (
-          <LiquidGlass className="p-6 text-center">
-            <p className="text-sm text-white/60">
-              Nothing waiting. Members pitch projects from their Projects page;
-              approving one makes them a project leader.
-            </p>
-          </LiquidGlass>
+          <p className={`${body} mt-3`}>
+            Nothing waiting. Members pitch projects from their Projects page;
+            approving one makes them a project leader.
+          </p>
         )}
       </section>
 
-      <LiquidGlass className="p-5">
+      <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+        <h2 className={sectionTitle}>Project leaders</h2>
+
         <form
-          className="flex flex-wrap items-end gap-3"
+          className="mt-4 flex flex-col sm:flex-row sm:items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (!userId.trim()) return;
             setLeader.mutate({ userId: userId.trim(), isLeader: true });
           }}
         >
-          <div className="min-w-64 flex-1">
-            <label
-              htmlFor="leader-user-id"
-              className="text-xs font-semibold uppercase tracking-wide text-white/50"
-            >
+          <div className="min-w-0 sm:flex-1">
+            <label htmlFor="leader-user-id" className={fieldLabel}>
               Grant by user id
             </label>
             <input
@@ -216,71 +229,64 @@ export default function AdminInitiativesPage() {
               value={userId}
               onChange={(event) => setUserId(event.target.value)}
               placeholder="User id from the attendees list"
-              className="mt-2 w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+              className={`${input} min-h-11 font-mono`}
             />
           </div>
           <button
             type="submit"
             disabled={setLeader.isPending}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+            className={btnPrimary}
           >
             {setLeader.isPending ? "Saving…" : "Make leader"}
           </button>
         </form>
 
         {setLeader.error && (
-          <p className="mt-3 text-sm text-red-300">{setLeader.error.message}</p>
+          <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+            {setLeader.error.message}
+          </p>
         )}
-      </LiquidGlass>
-
-      <section className="mt-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">
-          Project leaders
-        </h2>
 
         {rows.length > 0 ? (
-          <div className="space-y-3">
+          <div className="mt-8 border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
             {rows.map((leader) => (
-              <LiquidGlass key={leader.id} className="p-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-white">
-                      {leader.name ?? leader.email}
-                      {!leader.isActive && (
-                        <span className="ml-2 text-sm font-normal text-white/40">
-                          revoked
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-0.5 text-sm text-white/50">
-                      {leader.email}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={setLeader.isPending}
-                    onClick={() =>
-                      setLeader.mutate({
-                        userId: leader.userId,
-                        isLeader: !leader.isActive,
-                      })
-                    }
-                    className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/5 disabled:opacity-50"
-                  >
-                    {leader.isActive ? "Revoke" : "Restore"}
-                  </button>
+              <div
+                key={leader.id}
+                className="py-3 flex flex-wrap items-center justify-between gap-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                    {leader.name ?? leader.email}
+                    {!leader.isActive && (
+                      <span className="ml-2 text-[13px] font-normal text-[var(--text-subtle)]">
+                        revoked
+                      </span>
+                    )}
+                  </p>
+                  <p className={`${meta} break-all`}>{leader.email}</p>
                 </div>
-              </LiquidGlass>
+
+                <button
+                  type="button"
+                  disabled={setLeader.isPending}
+                  onClick={() =>
+                    setLeader.mutate({
+                      userId: leader.userId,
+                      isLeader: !leader.isActive,
+                    })
+                  }
+                  className={leader.isActive ? btnDanger : btnSecondary}
+                >
+                  {leader.isActive ? "Revoke" : "Restore"}
+                </button>
+              </div>
             ))}
           </div>
         ) : (
-          <LiquidGlass className="p-8 text-center">
-            <p className="font-semibold text-white">No leaders yet.</p>
-            <p className="mt-2 text-sm text-white/60">
-              Grant the role above and it takes effect on their next request.
-            </p>
-          </LiquidGlass>
+          <p className={`${body} mt-8`}>
+            No leaders yet. Grant the role above and it takes effect on their
+            next request.
+          </p>
         )}
       </section>
     </div>

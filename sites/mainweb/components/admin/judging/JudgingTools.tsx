@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { chip, label, tab, tabList } from "@/components/portal/ui";
 
 type Hackathon = {
   id: string;
@@ -35,24 +36,21 @@ export function JudgingTools({
   setSelectedTrack,
 }: JudgingToolsProps) {
   return (
-    <div className="flex flex-col gap-8 mb-12">
+    <div className="flex flex-col gap-6 mb-10">
       {/* Hackathon Selector */}
       {hackathons && hackathons.length > 0 && (
         <div className="flex flex-col">
-          <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+          <label className={`${label} mb-2`}>
             Hackathon
           </label>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {hackathons.map((h) => (
               <button
                 type="button"
                 key={h.id}
                 onClick={() => setSelectedHackathon(h.id)}
-                className={`px-5 py-2.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
-                  selectedHackathon === h.id
-                    ? "bg-accent/15 border-accent/40 text-accent"
-                    : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
-                }`}
+                aria-pressed={selectedHackathon === h.id}
+                className={chip(selectedHackathon === h.id)}
               >
                 {h.name}
               </button>
@@ -63,53 +61,43 @@ export function JudgingTools({
 
       {/* View Mode Toggle */}
       {selectedHackathon && (
-        <div className="flex flex-col">
-          <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
-            View
-          </label>
-          <div className="flex flex-wrap gap-3">
-            {(["results", "rooms", "judges"] as const).map((mode) => (
-              <button
-                type="button"
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-5 py-2.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
-                  viewMode === mode
-                    ? "bg-accent/15 border-accent/40 text-accent"
-                    : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
-                }`}
-              >
-                {mode === "results"
-                  ? "Results"
-                  : mode === "rooms"
-                    ? "Room assignments"
-                    : "Judge performance"}
-              </button>
-            ))}
-          </div>
+        <div role="tablist" aria-label="View" className={tabList}>
+          {(["results", "rooms", "judges"] as const).map((mode) => (
+            <button
+              type="button"
+              key={mode}
+              role="tab"
+              aria-selected={viewMode === mode}
+              onClick={() => setViewMode(mode)}
+              className={tab(viewMode === mode)}
+            >
+              {mode === "results"
+                ? "Results"
+                : mode === "rooms"
+                  ? "Room assignments"
+                  : "Judge performance"}
+            </button>
+          ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Category Filter */}
         {categories.length > 1 && (
           <div className="flex flex-col">
-            <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+            <label className={`${label} mb-2`}>
               Category
             </label>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
                 <button
                   type="button"
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
-                    selectedCategory === cat
-                      ? "bg-accent/15 border-accent/40 text-accent"
-                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
-                  }`}
+                  aria-pressed={selectedCategory === cat}
+                  className={chip(selectedCategory === cat)}
                 >
-                  {cat}
+                  {cat === "ALL" ? "All" : cat}
                 </button>
               ))}
             </div>
@@ -119,22 +107,19 @@ export function JudgingTools({
         {/* Track Filter */}
         {tracks.length > 1 && (
           <div className="flex flex-col">
-            <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+            <label className={`${label} mb-2`}>
               Track
             </label>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {tracks.map((track) => (
                 <button
                   type="button"
                   key={track}
                   onClick={() => setSelectedTrack(track)}
-                  className={`px-3 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wider transition-ui border ${
-                    selectedTrack === track
-                      ? "bg-accent/15 border-accent/40 text-accent"
-                      : "bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-hover)]"
-                  }`}
+                  aria-pressed={selectedTrack === track}
+                  className={chip(selectedTrack === track)}
                 >
-                  {track}
+                  {track === "ALL" ? "All" : track}
                 </button>
               ))}
             </div>
