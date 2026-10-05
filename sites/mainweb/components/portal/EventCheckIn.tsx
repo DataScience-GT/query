@@ -29,7 +29,7 @@ export function useEventCheckIn() {
     onSuccess: async (data) => {
       setScanResult({
         success: true,
-        message: "Check-in successful!",
+        message: "You're checked in.",
         eventTitle: data.eventTitle,
       });
       setShowScanner(false);
@@ -46,7 +46,7 @@ export function useEventCheckIn() {
     onError: (error) => {
       setScanResult({
         success: false,
-        message: error.message || "Check-in failed",
+        message: error.message || "We couldn't record your check-in.",
       });
       setShowScanner(false);
       setIsProcessing(false);

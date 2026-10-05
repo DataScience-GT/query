@@ -5,15 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import {
-  LogOut,
-  Menu,
-  X,
-  Sun,
-  Moon,
-  Home,
-  Zap,
-} from "lucide-react";
+import { LogOut, Menu, X, Sun, Moon, PanelLeftClose } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
@@ -49,281 +41,242 @@ export default function PortalSidebar({
 
   if (pathname === "/login" || pathname === "/verify") return null;
 
+  const themeLabel = theme === "dark" ? "Paper edition" : "Night edition";
+  const ThemeIcon = theme === "dark" ? Sun : Moon;
+
+  const wordmark = (
+    <span className="font-[family-name:var(--font-display)] text-[26px] font-semibold leading-none tracking-[-0.01em] text-[var(--text-primary)]">
+      Query<span className="text-accent">.</span>
+    </span>
+  );
+
+  const textButton =
+    "flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors";
+
   return (
     <>
-      {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg-primary)]/95 backdrop-blur-xl border-b border-[var(--border-subtle)] z-40 flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-none bg-gradient-to-br from-[#00A8A8]/20 to-transparent">
-            <Image
-              src={logo}
-              alt="DSGT Logo"
-              className="h-6 w-auto"
-              width={24}
-              height={24}
-            />
-          </div>
-          <span className="text-lg font-black text-[var(--text-primary)] tracking-tight">
-            DSGT Portal
-          </span>
-        </div>
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] z-40 flex items-center justify-between px-4">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Image src={logo} alt="" className="h-6 w-6" width={24} height={24} />
+          {wordmark}
+        </Link>
         <button
           type="button"
           onClick={() => setIsMobileOpen(true)}
-          className="p-2 hover:bg-white/5 rounded-none transition-colors"
+          aria-label="Open menu"
+          className="p-2.5 rounded-[var(--radius-sm)] hover:bg-[var(--bg-secondary)] transition-colors"
         >
-          <Menu className="h-6 w-6 text-[var(--text-muted)]" />
+          <Menu className="h-5 w-5 text-[var(--text-primary)]" strokeWidth={1.75} />
         </button>
       </div>
 
-      {/* MOBILE FULLSCREEN MENU (Centered) */}
+      {/* Mobile menu */}
       {isMobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-[var(--bg-primary)]/98 backdrop-blur-3xl flex flex-col items-center pt-20 pb-10 px-6 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-          <button
-            type="button"
-            onClick={() => setIsMobileOpen(false)}
-            className="absolute top-4 right-4 p-3 bg-[var(--bg-secondary)] rounded-sm hover:bg-[var(--bg-elevated)] transition-colors"
-          >
-            <X className="w-6 h-6 text-[var(--text-primary)]" />
-          </button>
-
-          <div className="w-full max-w-sm flex flex-col items-center gap-10 mt-4">
-            {sections.map((section, index) => {
-              const SectionIcon = section.id === "hackathon" ? Zap : Home;
-              return (
-                <div key={section.id} className="w-full text-center">
-                  {index > 0 && (
-                    <div className="w-full h-px bg-[var(--border-subtle)] mb-10" />
-                  )}
-                  <h3 className="text-xs uppercase tracking-widest text-accent font-bold mb-6 flex flex-col items-center gap-2">
-                    <SectionIcon className="w-6 h-6 opacity-50" />
-                    {section.label}
-                  </h3>
-                  <div className="flex flex-col gap-3">
-                    {section.items.map((route) => {
-                      const isActive = isPortalNavActive(pathname, route.href);
-                      return (
-                        <Link
-                          key={route.href}
-                          href={route.href}
-                          onClick={() => setIsMobileOpen(false)}
-                          className={`flex items-center justify-center gap-3 py-4 rounded-none transition-ui ${
-                            isActive
-                              ? "bg-accent/10 text-accent border border-accent/20 font-bold"
-                              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                          }`}
-                        >
-                          <route.icon className="w-5 h-5" />
-                          <span className="text-lg">{route.name}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Mobile User Section */}
-            <div className="mt-auto w-full pt-8 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3 bg-[var(--bg-secondary)] px-6 py-4 rounded-sm border border-[var(--border-subtle)]">
-                <img
-                  src={session?.user?.image || "/avatars/default.svg"}
-                  alt=""
-                  className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover"
-                />
-                <div className="text-left max-w-[150px]">
-                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">
-                    {session?.user?.name || "Guest"}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold uppercase tracking-wider text-sm py-2"
-              >
-                <LogOut className="w-4 h-4" /> Sign Out
-              </button>
-
-              {mounted && (
-                <button
-                  type="button"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold uppercase tracking-wider text-sm py-2"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="w-4 h-4" />
-                  ) : (
-                    <Moon className="w-4 h-4" />
-                  )}
-                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* DESKTOP SIDEBAR */}
-      <div
-        className={`hidden md:flex flex-col fixed left-0 top-0 z-40 h-screen border-r border-[var(--border-subtle)] bg-[var(--bg-primary)] dark:bg-darkBlue/80 backdrop-blur-3xl transition-ui duration-300 ${isOpen ? "w-64" : "w-20"}`}
-      >
-        {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-[var(--border-subtle)] px-4">
-          {isOpen && (
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-none bg-gradient-to-br from-[#00A8A8]/10 to-transparent">
-                <Image
-                  src={logo}
-                  alt="DSGT Logo"
-                  className="h-6 w-auto transition-transform duration-500 hover:rotate-180"
-                  width={24}
-                  height={24}
-                />
-              </div>
-              <span className="text-lg font-black text-[var(--text-primary)] tracking-tight">
-                DSGT Portal
-              </span>
-            </div>
-          )}
-          {!isOpen && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-none bg-gradient-to-br from-[#00A8A8]/10 to-transparent mx-auto">
-              <Image
-                src={logo}
-                alt="DSGT Logo"
-                className="h-5 w-auto transition-transform duration-500 hover:rotate-180"
-                width={20}
-                height={20}
-              />
-            </div>
-          )}
-          {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-[var(--bg-primary)] flex flex-col px-6 pt-4 pb-8 overflow-y-auto">
+          <div className="flex h-12 items-center justify-between">
+            {wordmark}
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-white/5 rounded-none transition-colors"
+              onClick={() => setIsMobileOpen(false)}
+              aria-label="Close menu"
+              className="p-2.5 rounded-[var(--radius-sm)] hover:bg-[var(--bg-secondary)] transition-colors"
             >
-              <Menu className="h-5 w-5 text-[var(--text-muted)] hover:text-[var(--text-primary)]" />
-            </button>
-          )}
-        </div>
-
-        {!isOpen && (
-          <div className="flex justify-center pt-2">
-            <button
-              type="button"
-              onClick={() => setIsOpen(true)}
-              className="p-2 hover:bg-white/5 rounded-none transition-colors"
-            >
-              <Menu className="h-5 w-5 text-[var(--text-muted)] hover:text-[var(--text-primary)]" />
+              <X className="w-5 h-5 text-[var(--text-primary)]" strokeWidth={1.75} />
             </button>
           </div>
-        )}
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {sections.map((section, index) => {
-            const SectionIcon = section.id === "hackathon" ? Zap : Home;
-            return (
-              <div key={section.id} className={index === 0 ? "mb-1" : "mb-4"}>
-                {index > 0 && (
-                  <div
-                    className={`my-3 ${isOpen ? "border-t border-[var(--border-subtle)]" : "w-8 h-px bg-[var(--border-medium)] mx-auto"}`}
-                  />
-                )}
-                {isOpen && (
-                  <div className="flex items-center gap-2 px-3 pb-2 mb-1">
-                    <SectionIcon className="h-3 w-3 text-accent/60 flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-accent/60 uppercase tracking-[0.2em]">
-                      {section.label}
-                    </span>
-                  </div>
-                )}
-                {!isOpen && (
-                  <div className="w-8 h-px bg-accent/20 mx-auto mb-3" />
-                )}
-                <div className="space-y-1">
+          <nav className="mt-8 flex flex-col gap-8">
+            {sections.map((section) => (
+              <div key={section.id}>
+                <h3 className="text-xs text-[var(--text-subtle)] mb-2">
+                  {section.label}
+                </h3>
+                <div className="flex flex-col border-t border-[var(--border-subtle)]">
                   {section.items.map((route) => {
                     const isActive = isPortalNavActive(pathname, route.href);
                     return (
                       <Link
                         key={route.href}
                         href={route.href}
-                        title={!isOpen ? route.name : undefined}
-                        className={`group flex items-center gap-3 rounded-none px-3 py-3 transition-ui ${
+                        onClick={() => setIsMobileOpen(false)}
+                        aria-current={isActive ? "page" : undefined}
+                        className={`flex items-center justify-between py-3.5 border-b border-[var(--border-subtle)] font-[family-name:var(--font-display)] text-2xl tracking-[-0.01em] ${
                           isActive
-                            ? "bg-gradient-to-r from-accent/10 to-transparent text-accent font-medium border-l-2 border-accent"
-                            : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                            ? "text-[var(--text-primary)] font-semibold"
+                            : "text-[var(--text-muted)]"
                         }`}
                       >
-                        <route.icon
-                          className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-accent" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
-                        />
-                        {isOpen && (
-                          <span className="text-sm truncate">{route.name}</span>
+                        {route.name}
+                        {isActive && (
+                          <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
                         )}
                       </Link>
                     );
                   })}
                 </div>
               </div>
-            );
-          })}
-        </nav>
+            ))}
+          </nav>
 
-        {/* User section */}
-        <div className="border-t border-[var(--border-subtle)] px-3 py-4">
-          <div className="flex items-center gap-3 rounded-none bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-3">
-            {isOpen && (
-              <>
-                <img
-                  src={session?.user?.image || "/avatars/default.svg"}
-                  alt=""
-                  className="h-10 w-10 rounded-sm border border-[var(--border-subtle)] object-cover"
-                />
-                <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                    {session?.user?.name || "Guest"}
-                  </p>
-                  <p className="text-xs text-[var(--text-subtle)] truncate">
-                    {session?.user?.email || "User"}
-                  </p>
-                </div>
-              </>
-            )}
-            {!isOpen && (
+          <div className="mt-auto pt-10 flex flex-col gap-1">
+            <div className="flex items-center gap-3 pb-4">
               <img
                 src={session?.user?.image || "/avatars/default.svg"}
                 alt=""
-                className="h-8 w-8 rounded-sm border border-[var(--border-subtle)] object-cover mx-auto"
+                className="h-9 w-9 rounded-full object-cover"
               />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  {session?.user?.name || "Guest"}
+                </p>
+                <p className="text-xs text-[var(--text-subtle)] truncate">
+                  {session?.user?.email}
+                </p>
+              </div>
+            </div>
+            {mounted && (
+              <button
+                type="button"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className={textButton}
+              >
+                <ThemeIcon className="w-4 h-4" strokeWidth={1.75} />
+                {themeLabel}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className={textButton}
+            >
+              <LogOut className="w-4 h-4" strokeWidth={1.75} /> Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <div
+        className={`hidden md:flex flex-col fixed left-0 top-0 z-40 h-screen border-r border-[var(--border-subtle)] bg-[var(--bg-primary)] transition-[width] duration-200 ${isOpen ? "w-60" : "w-[72px]"}`}
+      >
+        <div
+          className={`flex h-20 items-center ${isOpen ? "justify-between px-6" : "justify-center"}`}
+        >
+          {isOpen ? (
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <Image src={logo} alt="" className="h-6 w-6" width={24} height={24} />
+              {wordmark}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+              className="p-2 rounded-[var(--radius-sm)] hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              <Image src={logo} alt="" className="h-6 w-6" width={24} height={24} />
+            </button>
+          )}
+          {isOpen && (
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+              className="p-2 -mr-2 rounded-[var(--radius-sm)] hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              <PanelLeftClose className="h-4 w-4 text-[var(--text-subtle)]" strokeWidth={1.75} />
+            </button>
+          )}
+        </div>
+
+        <nav className={`flex-1 overflow-y-auto pb-6 ${isOpen ? "px-3" : "px-2"}`}>
+          {sections.map((section, index) => (
+            <div key={section.id} className={index > 0 ? "mt-7" : "mt-1"}>
+              {isOpen ? (
+                <div className="px-3 pb-1.5 text-xs text-[var(--text-subtle)]">
+                  {section.label}
+                </div>
+              ) : (
+                index > 0 && (
+                  <div className="mx-auto mb-3 h-px w-6 bg-[var(--border-medium)]" />
+                )
+              )}
+              <div className="flex flex-col gap-px">
+                {section.items.map((route) => {
+                  const isActive = isPortalNavActive(pathname, route.href);
+                  return (
+                    <Link
+                      key={route.href}
+                      href={route.href}
+                      title={!isOpen ? route.name : undefined}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`group relative flex items-center gap-3 rounded-[var(--radius-sm)] text-sm transition-colors ${
+                        isOpen ? "px-3 py-2" : "justify-center py-2.5"
+                      } ${
+                        isActive
+                          ? "text-[var(--text-primary)] font-semibold bg-[var(--bg-secondary)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                      }`}
+                    >
+                      {isActive && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-accent"
+                        />
+                      )}
+                      <route.icon
+                        strokeWidth={1.75}
+                        className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-accent" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
+                      />
+                      {isOpen && <span className="truncate">{route.name}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className={`border-t border-[var(--border-subtle)] py-4 ${isOpen ? "px-3" : "px-2"}`}>
+          <div className={`flex items-center gap-3 ${isOpen ? "px-3 pb-3" : "justify-center pb-2"}`}>
+            <img
+              src={session?.user?.image || "/avatars/default.svg"}
+              alt=""
+              className={`${isOpen ? "h-8 w-8" : "h-7 w-7"} rounded-full object-cover flex-shrink-0`}
+            />
+            {isOpen && (
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  {session?.user?.name || "Guest"}
+                </p>
+                <p className="text-xs text-[var(--text-subtle)] truncate">
+                  {session?.user?.email}
+                </p>
+              </div>
             )}
           </div>
           {isOpen && (
-            <div className="mt-3 flex flex-col gap-2 w-full">
+            <div className="flex flex-col">
               {mounted && (
                 <button
                   type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex w-full items-center gap-3 rounded-none px-3 py-3 text-[var(--text-subtle)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors"
+                  className={textButton}
                 >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" />
-                  ) : (
-                    <Moon className="h-5 w-5" />
-                  )}
-                  <span className="text-sm font-semibold">
-                    {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                  </span>
+                  <ThemeIcon className="h-4 w-4" strokeWidth={1.75} />
+                  {themeLabel}
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex w-full items-center gap-3 rounded-none px-3 py-3 text-[var(--text-subtle)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className={textButton}
               >
-                <LogOut className="h-5 w-5" />
-                <span className="text-sm font-semibold">Log out</span>
+                <LogOut className="h-4 w-4" strokeWidth={1.75} />
+                Sign out
               </button>
             </div>
           )}

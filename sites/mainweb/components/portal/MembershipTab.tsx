@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import SkillsInterestsInput from "@/components/portal/profile/SkillsInterestsInput";
+import {
+  sectionTitle,
+  itemTitle,
+  body,
+  fieldLabel,
+  input,
+  btnPrimary,
+  status as statusClass,
+} from "@/components/portal/ui";
 
 /**
  * The club member profile.
@@ -15,9 +24,6 @@ import SkillsInterestsInput from "@/components/portal/profile/SkillsInterestsInp
  * Membership itself is not editable here: a term comes from a payment, and the
  * only things this writes are the profile fields.
  */
-
-const inputClass =
-  "w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors";
 
 export function MembershipTab() {
   const utils = trpc.useUtils();
@@ -136,42 +142,59 @@ export function MembershipTab() {
 
   if (isPending) {
     return (
-      <p className="text-sm font-mono text-[var(--text-subtle)]">Loading…</p>
+      <p className="text-[13px] text-[var(--text-subtle)]">Loading…</p>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h2 className="text-xl font-black uppercase tracking-tight text-[var(--text-primary)]">
-          Membership
-        </h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          {status?.isMember
-            ? `Active until ${status.expiresAt ? new Date(status.expiresAt).toLocaleDateString() : "—"}${
-                status.daysRemaining !== null
-                  ? ` · ${status.daysRemaining} days left`
-                  : ""
-              }`
-            : status?.hasLapsed
-              ? "Your membership has lapsed. Renew from the portal dashboard."
-              : "You are not a paid member yet. Membership is bought from the portal dashboard."}
-        </p>
+        <h2 className={sectionTitle}>Membership</h2>
+        {status?.isMember ? (
+          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={statusClass("success")}>
+              Active until{" "}
+              {status.expiresAt
+                ? new Date(status.expiresAt).toLocaleDateString()
+                : "—"}
+            </span>
+            {status.daysRemaining !== null && (
+              <span className="text-[13px] text-[var(--text-subtle)]">
+                {status.daysRemaining} days left
+              </span>
+            )}
+          </p>
+        ) : status?.hasLapsed ? (
+          <div className="mt-3 space-y-1">
+            <p className={statusClass("warning")}>Lapsed</p>
+            <p className={body}>
+              Your membership has lapsed. Renew from the portal dashboard.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-1">
+            <p className={statusClass("neutral")}>Not a member</p>
+            <p className={body}>
+              You are not a paid member yet. Membership is bought from the
+              portal dashboard.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-6 border-t border-[var(--border-subtle)] pt-6">
         {!member && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label
                 htmlFor="member-first"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
                 First name
               </label>
               <input
                 id="member-first"
-                className={inputClass}
+                className={input}
                 value={form.firstName}
                 onChange={(e) =>
                   setForm({ ...form, firstName: e.target.value })
@@ -182,13 +205,13 @@ export function MembershipTab() {
             <div>
               <label
                 htmlFor="member-last"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
                 Last name
               </label>
               <input
                 id="member-last"
-                className={inputClass}
+                className={input}
                 value={form.lastName}
                 onChange={(e) => setForm({ ...form, lastName: e.target.value })}
                 maxLength={100}
@@ -201,13 +224,13 @@ export function MembershipTab() {
           <div>
             <label
               htmlFor="member-school"
-              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              className={fieldLabel}
             >
               School
             </label>
             <input
               id="member-school"
-              className={inputClass}
+              className={input}
               value={form.school}
               onChange={(e) => setForm({ ...form, school: e.target.value })}
               placeholder="Georgia Institute of Technology"
@@ -217,13 +240,13 @@ export function MembershipTab() {
           <div>
             <label
               htmlFor="member-major"
-              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              className={fieldLabel}
             >
               Major
             </label>
             <input
               id="member-major"
-              className={inputClass}
+              className={input}
               value={form.major}
               onChange={(e) => setForm({ ...form, major: e.target.value })}
               placeholder="Computer Science"
@@ -233,13 +256,13 @@ export function MembershipTab() {
           <div>
             <label
               htmlFor="member-grad"
-              className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+              className={fieldLabel}
             >
               Graduation year
             </label>
             <input
               id="member-grad"
-              className={inputClass}
+              className={input}
               value={form.graduationYear}
               onChange={(e) =>
                 setForm({ ...form, graduationYear: e.target.value })
@@ -251,7 +274,7 @@ export function MembershipTab() {
         </div>
 
         <div>
-          <p className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+          <p className={fieldLabel}>
             Skills
           </p>
           <SkillsInterestsInput
@@ -259,12 +282,11 @@ export function MembershipTab() {
             setItems={setSkills}
             placeholder="Type a skill and press Enter"
             maxItems={20}
-            accentColor="accent"
           />
         </div>
 
         <div>
-          <p className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
+          <p className={fieldLabel}>
             Interests
           </p>
           <SkillsInterestsInput
@@ -272,7 +294,6 @@ export function MembershipTab() {
             setItems={setInterests}
             placeholder="Type an interest and press Enter"
             maxItems={20}
-            accentColor="accent"
           />
         </div>
 
@@ -287,13 +308,13 @@ export function MembershipTab() {
             <div key={field}>
               <label
                 htmlFor={`member-${field}`}
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
+                className={fieldLabel}
               >
                 {label}
               </label>
               <input
                 id={`member-${field}`}
-                className={inputClass}
+                className={input}
                 value={form[field]}
                 onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                 placeholder={placeholder}
@@ -306,7 +327,7 @@ export function MembershipTab() {
         {error && (
           <p
             role="alert"
-            className="text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 px-3 py-2"
+            className="text-[13px] text-[var(--danger)]"
           >
             {error}
           </p>
@@ -314,7 +335,7 @@ export function MembershipTab() {
         {saved && (
           <p
             role="status"
-            className="text-xs font-mono text-accent border border-accent/30 bg-accent/10 px-3 py-2"
+            className="text-[13px] text-[var(--success)]"
           >
             Saved.
           </p>
@@ -324,26 +345,28 @@ export function MembershipTab() {
           type="button"
           onClick={save}
           disabled={create.isPending || update.isPending}
-          className="px-8 py-4 bg-accent/10 border border-accent/40 text-accent font-bold text-xs uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-40"
+          className={btnPrimary}
         >
           {create.isPending || update.isPending ? "Saving…" : "Save profile"}
         </button>
       </div>
 
       {(history?.length ?? 0) > 0 && (
-        <div>
-          <h3 className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
-            Membership history
-          </h3>
-          <ul className="space-y-1">
+        <div className="border-t border-[var(--border-subtle)] pt-6">
+          <h3 className={itemTitle}>Membership history</h3>
+          <ul className="mt-3 border-t border-[var(--border-subtle)]">
             {history?.map((row) => (
               <li
                 key={row.id}
-                className="text-[11px] font-mono text-[var(--text-muted)]"
+                className="flex flex-wrap items-baseline gap-x-2 py-2.5 border-b border-[var(--border-subtle)] text-[15px] text-[var(--text-primary)]"
               >
-                {new Date(row.startDate).toLocaleDateString()} →{" "}
-                {row.endDate ? new Date(row.endDate).toLocaleDateString() : "—"}{" "}
-                · {row.action}
+                <span>
+                  {new Date(row.startDate).toLocaleDateString()} –{" "}
+                  {row.endDate ? new Date(row.endDate).toLocaleDateString() : "—"}
+                </span>
+                <span className="text-[13px] text-[var(--text-subtle)]">
+                  · {row.action}
+                </span>
               </li>
             ))}
           </ul>

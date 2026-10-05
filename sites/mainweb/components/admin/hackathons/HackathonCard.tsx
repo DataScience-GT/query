@@ -3,8 +3,19 @@
 import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, Eye, EyeOff, MapPin } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { Eye, EyeOff } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  itemTitle,
+  label,
+  meta,
+  object,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
@@ -54,222 +65,148 @@ export function HackathonCard({
   });
 
   return (
-    <LiquidGlass printed className="p-6 md:p-8">
-      <div className="flex flex-col gap-10">
+    <article className={`${object} p-5 md:p-8`}>
+      <div className="flex flex-col gap-8">
         {/* Info Section */}
         <div className="min-w-0">
-          <div className="flex items-center gap-4 mb-4">
-            <Link
-              href={adminHackathonPath(hackathon.name, hackathon.id)}
-            >
-              <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase hover:text-accent transition-colors leading-tight">
-                {hackathon.name}
-              </h3>
-            </Link>
-          </div>
+          <Link
+            href={adminHackathonPath(hackathon.name, hackathon.id)}
+            className="decoration-accent decoration-2 underline-offset-[5px] hover:underline"
+          >
+            <h3 className={sectionTitle}>{hackathon.name}</h3>
+          </Link>
           {hackathon.description && (
-            <p className="text-sm text-[var(--text-muted)] mb-6 line-clamp-4 leading-relaxed max-w-5xl">
+            <p className={`mt-2 line-clamp-4 max-w-3xl ${body}`}>
               {hackathon.description}
             </p>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-            <div className="p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm">
-              <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                Location
-              </p>
-              <p className="text-base font-semibold text-[var(--text-primary)] truncate">
+          <dl className="mt-6 grid grid-cols-1 gap-y-4 sm:grid-cols-3 sm:gap-x-8">
+            <div className="min-w-0">
+              <dt className={label}>Location</dt>
+              <dd className="mt-1 truncate text-[15px] text-[var(--text-primary)]">
                 {hackathon.location || "No location"}
-              </p>
+              </dd>
             </div>
-            <div className="p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm">
-              <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                Duration
-              </p>
-              <p className="text-base font-semibold text-[var(--text-primary)]">
+            <div className="min-w-0 sm:border-l sm:border-[var(--border-subtle)] sm:pl-8">
+              <dt className={label}>Dates</dt>
+              <dd className="mt-1 text-[15px] tabular-nums text-[var(--text-primary)]">
                 {new Date(hackathon.startDate).toLocaleDateString()} –{" "}
                 {new Date(hackathon.endDate).toLocaleDateString()}
-              </p>
+              </dd>
             </div>
-            <div className="p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm">
-              <div className="flex justify-between items-center mb-2">
-                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+            <div className="min-w-0 sm:border-l sm:border-[var(--border-subtle)] sm:pl-8">
+              <dt className={label}>
+                {hackathon.status === "announced"
+                  ? "Interest list"
+                  : "Participants"}
+              </dt>
+              <dd className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                <span className="font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight tabular-nums text-[var(--text-primary)]">
                   {hackathon.status === "announced"
-                    ? "Interest list"
-                    : "Participants"}
-                </p>
+                    ? `${interestCount ?? "…"} interested`
+                    : `${hackathon.currentParticipants}${
+                        hackathon.maxParticipants
+                          ? ` of ${hackathon.maxParticipants}`
+                          : " registered"
+                      }`}
+                </span>
                 {hackathon.status !== "announced" &&
                   hackathon.maxParticipants && (
-                  <span className="text-xs text-accent font-bold">
+                  <span className={`tabular-nums ${meta}`}>
                     {Math.round(
                       (hackathon.currentParticipants /
                         hackathon.maxParticipants) *
                         100,
                     )}
-                    %
+                    % full
                   </span>
                 )}
-              </div>
-              <p className="text-base font-semibold text-accent">
-                {hackathon.status === "announced"
-                  ? `${interestCount ?? "…"} interested`
-                  : `${hackathon.currentParticipants}${
-                      hackathon.maxParticipants
-                        ? ` of ${hackathon.maxParticipants}`
-                        : " registered"
-                    }`}
-              </p>
+              </dd>
             </div>
-          </div>
+          </dl>
 
           {/* Registration Progress Bar */}
           {hackathon.status !== "announced" && hackathon.maxParticipants && (
-            <div className="mt-6 space-y-2">
-              <div className="h-2 w-full bg-[var(--bg-secondary)] rounded-sm overflow-hidden border border-[var(--border-subtle)]">
-                <div
-                  className="h-full bg-accent rounded-sm transition-ui duration-500"
-                  style={{
-                    width: `${Math.min(100, Math.max(4, (hackathon.currentParticipants / hackathon.maxParticipants) * 100))}%`,
-                  }}
-                />
-              </div>
+            <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
+              <div
+                className="h-full bg-accent transition-[width] duration-500"
+                style={{
+                  width: `${Math.min(100, Math.max(4, (hackathon.currentParticipants / hackathon.maxParticipants) * 100))}%`,
+                }}
+              />
             </div>
           )}
 
           {/* Events Showcase Section */}
-          <div className="mt-10 pt-8 border-t border-[var(--border-subtle)] space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                Schedule
-              </h4>
+          <div className="mt-8 border-t border-[var(--border-subtle)] pt-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h4 className={itemTitle}>Schedule</h4>
               {events && events.length > 0 && (
                 <Link
                   href={adminHackathonPath(hackathon.name, hackathon.id)}
-                  className="text-xs font-semibold text-accent hover:underline flex items-center gap-1"
+                  className={textLink}
                 >
                   Manage schedule ({events.length})
-                  <ArrowRight className="w-3 h-3" aria-hidden="true" />
                 </Link>
               )}
             </div>
 
             {eventsLoading ? (
-              <div className="py-4 text-left text-sm text-[var(--text-muted)]">
-                Loading events…
-              </div>
+              <p className={`mt-3 ${meta}`}>Loading events…</p>
             ) : !events || events.length === 0 ? (
-              <div className="p-4 border border-dashed border-[var(--border-subtle)] rounded-sm text-center text-sm text-[var(--text-muted)]">
+              <p className={`mt-3 ${body}`}>
                 No schedule yet. Open the dashboard to add workshops
                 and meals for this edition — club meetings stay on Club Hub.
-              </div>
+              </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {events.slice(0, 4).map((event) => {
-                  const typeColors: Record<
-                    string,
-                    { bg: string; text: string; border: string }
-                  > = {
-                    workshop: {
-                      bg: "bg-accent/10",
-                      text: "text-accent",
-                      border: "border-accent/20",
-                    },
-                    meal: {
-                      bg: "bg-accent/10",
-                      text: "text-accent",
-                      border: "border-accent/20",
-                    },
-                    ceremony: {
-                      bg: "bg-purple-500/10",
-                      text: "text-purple-400",
-                      border: "border-purple-500/20",
-                    },
-                    activity: {
-                      bg: "bg-amber-500/10",
-                      text: "text-amber-400",
-                      border: "border-amber-500/20",
-                    },
-                    sponsor_session: {
-                      bg: "bg-blue-500/10",
-                      text: "text-blue-400",
-                      border: "border-blue-500/20",
-                    },
-                  };
-                  const tc = typeColors[event.type] || {
-                    bg: "bg-[var(--bg-secondary)]",
-                    text: "text-[var(--text-muted)]",
-                    border: "border-[var(--border-subtle)]",
-                  };
-
-                  return (
-                    <div
-                      key={event.id}
-                      className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm flex flex-col justify-between gap-3"
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <h5 className="font-semibold text-[var(--text-primary)] text-sm truncate">
-                          {event.name}
-                        </h5>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 mt-1 mb-1">
-                        <div className="flex flex-col p-2 rounded-sm border border-[var(--border-subtle)]">
-                          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                            Attendance
-                          </span>
-                          <span className="text-xs font-bold text-[var(--text-primary)]">
-                            {event.attendeeCount || 0} checked in
-                          </span>
-                        </div>
-                        <div className="flex flex-col p-2 rounded-sm border border-[var(--border-subtle)]">
-                          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                            Engagement
-                          </span>
-                          <span className="text-xs font-bold text-accent">
-                            {hackathon.currentParticipants > 0
-                              ? Math.round(
-                                  ((event.attendeeCount || 0) /
-                                    hackathon.currentParticipants) *
-                                    100,
-                                )
-                              : 0}
-                            % of registrants
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-sm border text-[11px] uppercase font-bold tracking-wider ${tc.bg} ${tc.text} ${tc.border}`}
-                        >
-                          {event.type.replace("_", " ")}
-                        </span>
-                        <span className="truncate max-w-[120px] text-[11px] flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-[var(--text-subtle)]" aria-hidden="true" />
-                          {event.location}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+              <ul className="mt-2 grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
+                {events.slice(0, 4).map((event) => (
+                  <li
+                    key={event.id}
+                    className="min-w-0 border-b border-[var(--border-subtle)] py-3"
+                  >
+                    <p className="truncate text-[15px] font-semibold text-[var(--text-primary)]">
+                      {event.name}
+                    </p>
+                    <p className={`mt-0.5 truncate ${meta}`}>
+                      <span className="capitalize">
+                        {event.type.replace("_", " ")}
+                      </span>
+                      {event.location ? ` · ${event.location}` : ""}
+                    </p>
+                    <p className="mt-1 text-[13px] tabular-nums text-[var(--text-muted)]">
+                      {event.attendeeCount || 0} checked in ·{" "}
+                      {hackathon.currentParticipants > 0
+                        ? Math.round(
+                            ((event.attendeeCount || 0) /
+                              hackathon.currentParticipants) *
+                              100,
+                          )
+                        : 0}
+                      % of registrants
+                    </p>
+                  </li>
+                ))}
                 {events.length > 4 && (
-                  <div className="md:col-span-2 p-3 border border-[var(--border-subtle)] rounded-sm text-center">
+                  <li className="pt-3 md:col-span-2">
                     <Link
                       href={adminHackathonPath(hackathon.name, hackathon.id)}
-                      className="text-xs font-semibold text-[var(--text-muted)] hover:text-accent transition-colors"
+                      className="text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]"
                     >
                       {events.length - 4} more events. View the full schedule
                     </Link>
-                  </div>
+                  </li>
                 )}
-              </div>
+              </ul>
             )}
           </div>
         </div>
 
         {/* Actions Section — full width row */}
-        <div className="flex flex-wrap items-center justify-between gap-6 pt-6 border-t border-[var(--border-subtle)]">
-          {/* Left group: Status + Visibility */}
-          <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-6 border-t border-[var(--border-subtle)] pt-6">
+          {/* Left group: Visibility, with Delete kept away from the primary action */}
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -278,11 +215,7 @@ export function HackathonCard({
                   isPublic: !hackathon.isPublic,
                 });
               }}
-              className={`whitespace-nowrap inline-flex items-center gap-2 px-5 py-2.5 border text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
-                hackathon.isPublic
-                  ? "border-accent/25 text-accent hover:bg-accent/10"
-                  : "border-red-500/30 text-red-400 hover:bg-red-500/10"
-              }`}
+              className={btnSecondary}
               title={
                 hackathon.isPublic
                   ? "Hiding removes this edition from the public funnel and from /judge/register and /scan. Staff judging tools keep showing it."
@@ -290,30 +223,12 @@ export function HackathonCard({
               }
             >
               {hackathon.isPublic ? (
-                <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+                <Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               ) : (
-                <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
+                <EyeOff className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               )}
               {hackathon.isPublic ? "Public" : "Hidden"}
             </button>
-            {!hackathon.isPublic && (
-              <p className="text-xs text-amber-400">
-                Hidden — judges cannot find this at /judge/register, and it is
-                absent from /scan.
-              </p>
-            )}
-          </div>
-
-          {/* Right group: Dashboard + Edit */}
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={onEdit}
-              className="whitespace-nowrap px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
-            >
-              Edit
-            </button>
-
             <button
               type="button"
               onClick={() => {
@@ -330,21 +245,32 @@ export function HackathonCard({
                 });
               }}
               disabled={deleteMutation.isPending}
-              className="whitespace-nowrap px-5 py-2.5 rounded-sm border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-40"
+              className={btnDanger}
             >
               {deleteMutation.isPending ? "Deleting…" : "Delete"}
             </button>
+            {!hackathon.isPublic && (
+              <p className="basis-full text-[13px] text-[var(--warning)]">
+                Hidden. Judges can&apos;t find it at /judge/register, and it
+                isn&apos;t listed on /scan.
+              </p>
+            )}
+          </div>
 
+          {/* Right group: Edit + Dashboard */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={onEdit} className={btnSecondary}>
+              Edit
+            </button>
             <Link
               href={adminHackathonPath(hackathon.name, hackathon.id)}
-              className="whitespace-nowrap inline-flex items-center gap-2 px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
+              className={btnPrimary}
             >
-              Dashboard
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              Open dashboard
             </Link>
           </div>
         </div>
       </div>
-    </LiquidGlass>
+    </article>
   );
 }

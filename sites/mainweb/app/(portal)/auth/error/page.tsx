@@ -3,7 +3,7 @@
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { btnPrimary, kicker, pageDek, pageTitle } from "@/components/portal/ui";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 function AuthErrorContent() {
@@ -33,23 +33,18 @@ function AuthErrorContent() {
     (error && errorMessages[error]) || errorMessages.Default;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-tertiary)] flex flex-col items-center justify-center px-6 text-center">
-      <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-6" />
-
-      <div className="max-w-lg mb-8">
-        <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-          {title}
-        </h1>
-        <p className="text-sm text-[var(--text-muted)] mt-2">{desc}</p>
+    <main className="min-h-screen flex items-center px-5 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-16">
+        <p className={kicker}>Sign-in</p>
+        <h1 className={`mt-2 ${pageTitle}`}>{title}</h1>
+        <p className={pageDek}>{desc}</p>
+        <div className="mt-8">
+          <Link href="/login" className={btnPrimary}>
+            Back to sign in
+          </Link>
+        </div>
       </div>
-
-      <Link
-        href="/login"
-        className="px-6 py-3 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50"
-      >
-        Back to sign in
-      </Link>
-    </div>
+    </main>
   );
 }
 

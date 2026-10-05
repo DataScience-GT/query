@@ -3,7 +3,17 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { QrCode } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import {
+  body,
+  btnPrimary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  meta,
+  sectionRule,
+  sectionTitle,
+} from "@/components/portal/ui";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 
@@ -74,7 +84,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         !payload.participantId ||
         !payload.hackathonId
       ) {
-        throw new Error("Invalid format. Expected a Hackathon Event Pass.");
+        throw new Error("This isn't a hackathon pass. Scan the QR code on their event pass.");
       }
       // A pass from another edition would be looked up against this tab's
       // event and come back as "Event not found", which reads like a setup
@@ -95,7 +105,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         eventTitle:
           events?.find(
             (e: NonNullable<typeof events>[number]) => e.id === selectedEventId,
-          )?.name || "Hackathon Event",
+          )?.name || "Hackathon event",
       });
       setShowScanner(false);
     } catch (error: unknown) {
@@ -114,7 +124,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   };
 
   return (
-    <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-300 h-full">
+    <div className="w-full max-w-md">
       {showScanner && (
         <QRScannerModal
           onClose={() => {
@@ -137,32 +147,20 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         />
       )}
 
-      <LiquidGlass
-        printed
-        className="p-6 md:p-8 w-full max-w-md mt-4 md:mt-12"
-      >
-        <div className="mb-8 text-center">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-            Check-in scanner
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Pick an event, then scan badges.
-          </p>
-        </div>
+      <section>
+        <h2 className={sectionTitle}>Check-in scanner</h2>
+        <p className={`mt-1 ${body}`}>Pick an event, then scan badges.</p>
 
-        <div className="mb-8">
-          <label
-            htmlFor="target-event"
-            className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2"
-          >
+        <div className="mt-6">
+          <label htmlFor="target-event" className={fieldLabel}>
             Event
           </label>
           {isLoading ? (
-            <p className="text-sm text-[var(--text-muted)]">Loading events…</p>
+            <p className={meta}>Loading events…</p>
           ) : (
             <select
               id="target-event"
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+              className={input}
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
             >
@@ -179,19 +177,19 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           {/* A failed fetch also leaves events empty; only call it "none yet"
               when the list actually loaded. */}
           {isError && (
-            <p className="mt-3 text-sm text-rose-400">
+            <p role="alert" className="mt-3 text-[15px] text-[var(--danger)]">
               Couldn&apos;t load events.{" "}
               <button
                 type="button"
                 onClick={() => void refetch()}
-                className="font-bold underline underline-offset-2 hover:text-rose-300"
+                className="font-semibold underline underline-offset-2 hover:text-[var(--text-primary)]"
               >
                 Try again
               </button>
             </p>
           )}
           {!isLoading && !isError && (events?.length ?? 0) === 0 && (
-            <p className="mt-3 text-sm text-[var(--text-muted)]">
+            <p className={fieldHint}>
               Create a check-in event under Events first; scans are recorded
               against an event.
             </p>
@@ -202,37 +200,31 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           type="button"
           onClick={() => setShowScanner(true)}
           disabled={!selectedEventId || showScanner}
-          className="w-full px-6 py-8 bg-accent text-[var(--text-on-accent)] rounded-sm font-bold text-sm uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-ui disabled:opacity-50 flex flex-col items-center justify-center gap-3"
+          className={`mt-6 w-full py-4 ${btnPrimary}`}
         >
-          <QrCode className="w-8 h-8" aria-hidden="true" />
+          <QrCode className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
           <span>Scan badge</span>
         </button>
-      </LiquidGlass>
+      </section>
 
       {/* Who has been scanned into this event, and the way back out. A station
           left on the wrong event used to produce check-ins nobody could see or
           remove. */}
       {selectedEventId && (
-        <LiquidGlass printed className="p-6 w-full max-w-md mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-              Checked in
-            </h3>
-            <span className="text-xs text-[var(--text-muted)]">
+        <section className={`mt-10 ${sectionRule}`}>
+          <div className="flex items-baseline justify-between mb-2">
+            <h3 className={itemTitle}>Checked in</h3>
+            <span className={`tabular-nums ${meta}`}>
               {roster.data?.matching ?? 0} total
             </span>
           </div>
 
           {roster.isLoading ? (
-            <p className="text-sm text-[var(--text-muted)]">
-              Loading check-ins…
-            </p>
+            <p className={meta}>Loading check-ins…</p>
           ) : (roster.data?.attendees.length ?? 0) === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">
-              Nobody has scanned into this event yet.
-            </p>
+            <p className={body}>Nobody has scanned into this event yet.</p>
           ) : (
-            <ul className="space-y-2 max-h-80 overflow-y-auto">
+            <ul className="max-h-80 overflow-y-auto">
               {roster.data?.attendees.map((row) => {
                 const name =
                   row.participant?.user?.name ||
@@ -244,13 +236,13 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                 return (
                   <li
                     key={row.id}
-                    className="flex items-center justify-between gap-3 rounded-sm border border-[var(--border-subtle)] px-3 py-2"
+                    className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] py-2.5"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm text-[var(--text-primary)] truncate">
+                      <p className="truncate text-[15px] text-[var(--text-primary)]">
                         {name}
                       </p>
-                      <p className="text-[11px] text-[var(--text-subtle)]">
+                      <p className={`tabular-nums ${meta}`}>
                         {new Date(row.checkedInAt).toLocaleTimeString()}
                       </p>
                     </div>
@@ -271,7 +263,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                           participantId: row.participant.id,
                         });
                       }}
-                      className="px-2.5 py-1 rounded-sm border border-red-500/30 text-red-400 text-[11px] font-bold uppercase tracking-wider hover:bg-red-500/10 transition-colors disabled:opacity-40 shrink-0"
+                      className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--danger)]/40 px-2.5 py-1 text-[13px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-glow)] disabled:opacity-50"
                     >
                       Undo
                     </button>
@@ -280,7 +272,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
               })}
             </ul>
           )}
-        </LiquidGlass>
+        </section>
       )}
     </div>
   );

@@ -2,8 +2,22 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
-import { CreditCard } from "lucide-react";
+import {
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  label,
+  meta,
+  page,
+  pageDek,
+} from "@/components/portal/ui";
+
+const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 /**
  * Membership operations for staff.
@@ -64,23 +78,15 @@ export default function AdminMembersPage() {
   const selectedRow = results.data?.find((row) => row.userId === selected);
 
   return (
-    <div className="max-w-5xl mx-auto py-16 px-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tight text-[var(--text-primary)] flex items-center gap-3">
-          <CreditCard className="w-6 h-6 text-accent" />
-          Memberships
-        </h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)] font-mono">
-          Grant, extend or end a membership. Every change is recorded in the
-          audit log and in the member&apos;s own history.
-        </p>
-      </div>
+    <div className={page}>
+      <h1 className={adminTitle}>Memberships</h1>
+      <p className={pageDek}>
+        Grant, extend or end a membership. Every change is recorded in the
+        audit log and in the member&apos;s own history.
+      </p>
 
-      <LiquidGlass className="p-6 border-[var(--border-subtle)] space-y-4">
-        <label
-          htmlFor="member-search"
-          className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] font-mono"
-        >
+      <section className="mt-10">
+        <label htmlFor="member-search" className={fieldLabel}>
           Find someone by name or email
         </label>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -93,7 +99,7 @@ export default function AdminMembersPage() {
               if (e.key === "Enter") setSearched(query.trim());
             }}
             placeholder="ada@gatech.edu"
-            className="flex-1 px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+            className={`${input} sm:flex-1`}
           />
           <button
             type="button"
@@ -103,20 +109,21 @@ export default function AdminMembersPage() {
               setSearched(query.trim());
             }}
             disabled={!query.trim()}
-            className="px-6 py-3 bg-white/5 border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest rounded-none hover:bg-white/10 transition-colors disabled:opacity-30"
+            className={btnSecondary}
           >
             Search
           </button>
         </div>
 
         {searched && results.data?.length === 0 && (
-          <p className="text-xs font-mono text-amber-300">
-            Nobody matches “{searched}”. They must have signed in at least once.
+          <p className="mt-3 text-[13px] text-[var(--warning)]">
+            Nobody matches “{searched}”. They need to have signed in at least
+            once.
           </p>
         )}
 
         {(results.data?.length ?? 0) > 0 && (
-          <div className="divide-y divide-[var(--border-subtle)]">
+          <div className="mt-6 border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
             {results.data?.map((row) => (
               <button
                 key={row.userId}
@@ -126,18 +133,18 @@ export default function AdminMembersPage() {
                   setNotice(null);
                   setError(null);
                 }}
-                className={`w-full text-left py-3 px-2 transition-colors ${
+                className={`w-full text-left py-3 px-3 border-l-2 transition-colors ${
                   selected === row.userId
-                    ? "bg-accent/5"
-                    : "hover:bg-white/[0.02]"
+                    ? "border-accent bg-[var(--bg-secondary)]"
+                    : "border-transparent hover:bg-[var(--bg-secondary)]"
                 }`}
               >
-                <p className="text-sm text-[var(--text-primary)]">
+                <p className="text-[15px] font-semibold text-[var(--text-primary)]">
                   {row.name ||
                     `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim() ||
                     "Unnamed account"}
                 </p>
-                <p className="text-[11px] font-mono text-[var(--text-subtle)]">
+                <p className={meta}>
                   {row.email} ·{" "}
                   {row.isCurrentMember
                     ? `member until ${row.membershipEndDate?.toLocaleDateString()}`
@@ -149,15 +156,13 @@ export default function AdminMembersPage() {
             ))}
           </div>
         )}
-      </LiquidGlass>
+      </section>
 
       {selectedRow && (
-        <LiquidGlass className="p-6 border-[var(--border-subtle)] space-y-5">
+        <section className="mt-12 border-t border-[var(--border-subtle)] pt-8 space-y-6">
           <div>
-            <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
-              {selectedRow.email}
-            </h2>
-            <p className="text-[11px] font-mono text-[var(--text-subtle)] mt-1">
+            <h2 className={`${itemTitle} break-all`}>{selectedRow.email}</h2>
+            <p className={`${meta} mt-1`}>
               {selectedRow.isCurrentMember
                 ? `Active until ${selectedRow.membershipEndDate?.toLocaleDateString()} · renewed ${selectedRow.renewalCount ?? 0}×`
                 : "No current membership"}
@@ -166,10 +171,7 @@ export default function AdminMembersPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label
-                htmlFor="grant-months"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-              >
+              <label htmlFor="grant-months" className={fieldLabel}>
                 Months
               </label>
               <input
@@ -179,17 +181,15 @@ export default function AdminMembersPage() {
                 max={24}
                 value={months}
                 onChange={(e) => setMonths(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono focus:border-accent/50 focus:outline-none transition-colors"
+                className={`${input} tabular-nums`}
               />
-              <p className="text-[10px] font-mono text-[var(--text-subtle)] mt-1">
-                Added to whatever term is left. Negative takes time away.
+              <p className={fieldHint}>
+                Added to whatever term is left. A negative number takes time
+                away.
               </p>
             </div>
             <div className="sm:col-span-2">
-              <label
-                htmlFor="grant-note"
-                className="block text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono"
-              >
+              <label htmlFor="grant-note" className={fieldLabel}>
                 Reason (recorded)
               </label>
               <input
@@ -199,7 +199,7 @@ export default function AdminMembersPage() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Paid $15 cash at the fall kickoff"
                 maxLength={500}
-                className="w-full px-4 py-3 bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)] rounded-none text-[var(--text-primary)] text-sm font-mono placeholder:text-gray-600 focus:border-accent/50 focus:outline-none transition-colors"
+                className={input}
               />
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function AdminMembersPage() {
                 })
               }
               disabled={busy || !note.trim() || months === 0}
-              className="px-6 py-3 bg-accent/10 border border-accent/40 text-accent text-xs font-bold uppercase tracking-widest rounded-none hover:bg-accent/20 transition-colors disabled:opacity-30"
+              className={btnPrimary}
             >
               {months >= 0 ? `Add ${months} month(s)` : `Remove ${-months} month(s)`}
             </button>
@@ -235,7 +235,7 @@ export default function AdminMembersPage() {
                   });
                 }}
                 disabled={busy || !note.trim()}
-                className="px-6 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-none hover:bg-red-500/20 transition-colors disabled:opacity-30"
+                className={`${btnDanger} sm:ml-auto`}
               >
                 End membership
               </button>
@@ -243,39 +243,31 @@ export default function AdminMembersPage() {
           </div>
 
           {error && (
-            <p
-              role="alert"
-              className="text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 px-3 py-2"
-            >
+            <p role="alert" className="text-[13px] text-[var(--danger)]">
               {error}
             </p>
           )}
           {notice && (
-            <p
-              role="status"
-              className="text-xs font-mono text-accent border border-accent/30 bg-accent/10 px-3 py-2"
-            >
+            <p role="status" className="text-[13px] text-[var(--success)]">
               {notice}
             </p>
           )}
 
-          <div>
-            <h3 className="text-xs uppercase tracking-[0.15em] font-bold text-[var(--text-subtle)] mb-2 font-mono">
-              History
-            </h3>
+          <div className="border-t border-[var(--border-subtle)] pt-6">
+            <h3 className={`${label} mb-2`}>History</h3>
             {(history.data?.length ?? 0) === 0 ? (
-              <p className="text-[11px] font-mono text-[var(--text-subtle)]">
-                Nothing recorded yet.
+              <p className={meta}>
+                Nothing recorded yet. Grants and endings will be listed here.
               </p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="divide-y divide-[var(--border-subtle)]">
                 {history.data?.map((row) => (
                   <li
                     key={row.id}
-                    className="text-[11px] font-mono text-[var(--text-muted)]"
+                    className="py-2 text-[14px] text-[var(--text-muted)] tabular-nums"
                   >
                     {row.createdAt.toLocaleDateString()} · {row.action} ·{" "}
-                    {row.startDate.toLocaleDateString()} →{" "}
+                    {row.startDate.toLocaleDateString()} to{" "}
                     {row.endDate ? row.endDate.toLocaleDateString() : "—"}
                     {row.notes ? ` · ${row.notes}` : ""}
                   </li>
@@ -283,7 +275,7 @@ export default function AdminMembersPage() {
               </ul>
             )}
           </div>
-        </LiquidGlass>
+        </section>
       )}
     </div>
   );

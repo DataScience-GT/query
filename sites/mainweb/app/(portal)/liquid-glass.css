@@ -1,106 +1,86 @@
-/* DSGT Portal - Minimalist Developer Aesthetic (SaaS/Vercel-inspired) */
+/* Query portal: "the club newsletter".
+   Light is the paper edition (cool bone ground, near-black ink, one teal spot
+   colour); dark is the night edition (the same hue, deepened), not an inverse.
+   Newsreader carries headlines, Schibsted Grotesk carries everything a person
+   reads or presses. Both are loaded with next/font in (portal)/layout.tsx. */
 
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Bebas+Neue&family=Cormorant+Garamond:wght@600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@500;600;700&family=Sora:wght@500;600;700;800&family=Teko:wght@500;600;700&display=swap");
+:root,
+.dark {
+  /* ===== NIGHT EDITION (dark) ===== */
+  --bg-primary: #111615;
+  --bg-secondary: #182020;
+  --bg-tertiary: #0D1110;
+  --bg-card: #151C1B;
+  --bg-elevated: #1D2625;
+  --bg-glass: #151C1B;
+  --bg-input: #0F1413;
 
-:root {
-  /* ===== COMMON GROUND DESIGN SYSTEM INSPIRATION ===== */
-  --font-bebas: "Bebas Neue", sans-serif;
-  --font-oswald: "Oswald", sans-serif;
-  --font-barlow: "Barlow Condensed", sans-serif;
-  --font-cormorant: "Cormorant Garamond", serif;
-  --font-sora: "Sora", sans-serif;
-  --font-teko: "Teko", sans-serif;
+  --text-primary: #E6EAE7;
+  --text-secondary: #B5BFBC;
+  --text-muted: #96A19E;
+  --text-subtle: #7D8885;
+  --text-disabled: #4A5452;
+  --text-on-accent: #06201E;
 
-  --print-grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.84' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.72'/%3E%3C/svg%3E");
+  --border-subtle: #252E2D;
+  --border-medium: #33403E;
+  --border-strong: #5FC4BB;
+  --border-hover: #4A5856;
+  --border-accent: #5FC4BB;
 
-  /* ===== BACKGROUND COLORS ===== */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #121212;
-  --bg-tertiary: #0e0e0e;
-  --bg-card: #121212;
-  --bg-elevated: #1a1a1a;
-  --bg-glass: #121212;
-  --bg-input: #0a0a0a;
+  /* One accent, one role: the action to take next, and "you are here". */
+  --accent: #5FC4BB;
+  --accent-primary: #5FC4BB;
+  --accent-secondary: #7FD3CB;
+  --accent-hover: #7FD3CB;
+  --accent-dim: rgba(95, 196, 187, 0.1);
+  --accent-glow: rgba(95, 196, 187, 0.1);
+  --accent-gradient: var(--accent);
+  --accent-fade: rgba(95, 196, 187, 0.06);
 
-  /* ===== TEXT COLORS ===== */
-  --text-primary: #ededed;
-  --text-secondary: #a1a1a1;
-  --text-muted: #707070;
-  --text-subtle: #525252;
-  --text-disabled: #3a3a3a;
-  --text-on-accent: #ffffff;
+  /* Semantic, only where state needs it. */
+  --success: #7CC79A;
+  --success-glow: rgba(124, 199, 154, 0.12);
+  --warning: #E2B865;
+  --warning-glow: rgba(226, 184, 101, 0.12);
+  --danger: #F08C82;
+  --danger-glow: rgba(240, 140, 130, 0.12);
+  --info: var(--accent);
+  --info-glow: var(--accent-dim);
 
-  /* ===== BORDER COLORS ===== */
-  --border-subtle: #1f1f1f;
-  --border-medium: #2e2e2e;
-  --border-strong: #00A8A8;
-  --border-hover: #3e3e3e;
-  --border-accent: #00A8A8;
-
-  /* ===== ACCENT COLORS ===== */
-  --accent: #00A8A8;
-  --accent-primary: #00A8A8;
-  --accent-secondary: #008f8f;
-  --accent-hover: #007676;
-  --accent-dim: rgba(0, 168, 168, 0.08);
-  --accent-glow: rgba(0, 168, 168, 0.1);
-  --accent-gradient: linear-gradient(135deg, #00A8A8, #008f8f);
-  --accent-fade: rgba(0, 168, 168, 0.05);
-
-  /* ===== STATUS COLORS ===== */
-  --success: #10b981;
-  --success-glow: rgba(16, 185, 129, 0.1);
-  --warning: #f59e0b;
-  --warning-glow: rgba(245, 158, 11, 0.1);
-  --danger: #ef4444;
-  --danger-glow: rgba(239, 68, 68, 0.1);
-  --info: #06b6d4;
-  --info-glow: rgba(6, 182, 212, 0.1);
-
-  /* ===== ACCENT GRADIENTS ===== */
-  --gradient-primary: linear-gradient(135deg, #00A8A8, #008f8f);
-  --gradient-warm: linear-gradient(135deg, #f43f5e, #8b5cf6);
-  --gradient-cool: linear-gradient(135deg, #06b6d4, #00A8A8);
-  --gradient-teal: linear-gradient(135deg, #00A8A8, #10b981);
-  --gradient-mystic: linear-gradient(135deg, #6366f1, #06b6d4);
-
-  /* ===== BORDER RADIUS - Sleek & Modern ===== */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-  --radius-3xl: 24px;
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
   --radius-full: 9999px;
 
-  /* ===== SHADOWS - Minimal and Soft ===== */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0 10px 24px -10px rgba(0, 0, 0, 0.25);
-  --shadow-xl: 0 20px 32px -12px rgba(0, 0, 0, 0.3);
-  --shadow-2xl: 0 30px 48px -15px rgba(0, 0, 0, 0.4);
-  --shadow-accent: 0 4px 12px 0 rgba(0, 168, 168, 0.1);
-  --shadow-success: 0 4px 12px 0 rgba(16, 185, 129, 0.1);
-  --shadow-warning: 0 4px 12px 0 rgba(245, 158, 11, 0.1);
-  --shadow-danger: 0 4px 12px 0 rgba(239, 68, 68, 0.1);
-  --shadow-inner-sm: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-inner-md: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  /* Paper does not float. Shadows are kept as names for old call sites and
+     resolve to almost nothing. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 32px -12px rgba(0, 0, 0, 0.55);
+  --shadow-2xl: 0 24px 48px -16px rgba(0, 0, 0, 0.6);
+  --shadow-accent: none;
+  --shadow-success: none;
+  --shadow-warning: none;
+  --shadow-danger: none;
+  --shadow-inner-sm: none;
+  --shadow-inner-md: none;
 
-  /* ===== GLASS EFFECT (CLEAN FLAT OVERLAYS) ===== */
-  --glass-bg: #121212;
-  --glass-border: #1f1f1f;
-  --glass-border-hover: #2e2e2e;
+  --glass-bg: var(--bg-card);
+  --glass-border: var(--border-subtle);
+  --glass-border-hover: var(--border-medium);
   --glass-highlight: transparent;
   --glass-blur: 0px;
-  --glass-border-radius: 8px;
+  --glass-border-radius: var(--radius-md);
 
-  /* ===== TYPOGRAPHY ===== */
-  --font-sans: "Geist Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Geist Mono", "Roboto Mono", SFMono-Regular, Consolas, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, Consolas, monospace;
 
-  /* ===== ANIMATION ===== */
   --ease-linear: linear;
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
@@ -110,7 +90,6 @@
   --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* ===== DURATION ===== */
   --duration-instant: 0ms;
   --duration-fast: 100ms;
   --duration-normal: 180ms;
@@ -118,50 +97,67 @@
   --duration-slower: 350ms;
 }
 
-/* ========================================================
-   LIGHT MODE
-   ======================================================== */
+/* ===== PAPER EDITION (light, the default) ===== */
 .light {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f3f4f6;
-  --bg-tertiary: #f9fafb;
-  --bg-card: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-glass: #ffffff;
-  --bg-input: #f4f4f5;
+  --bg-primary: #EEF0EC;
+  --bg-secondary: #E4E8E3;
+  --bg-tertiary: #E8EBE6;
+  --bg-card: #F6F7F4;
+  --bg-elevated: #FBFBF9;
+  --bg-glass: #F6F7F4;
+  --bg-input: #FBFBF9;
 
-  --text-primary: #09090b;
-  --text-secondary: #3f3f46;
-  --text-muted: #71717a;
-  --text-subtle: #a1a1aa;
-  --text-disabled: #d4d4d8;
-  --text-on-accent: #ffffff;
+  --text-primary: #15191A;
+  --text-secondary: #3A4341;
+  --text-muted: #4C5553;
+  --text-subtle: #66706E;
+  --text-disabled: #A3ABA8;
+  --text-on-accent: #FFFFFF;
 
-  --border-subtle: #e4e4e7;
-  --border-medium: #d1d5db;
-  --border-strong: #00A8A8;
-  --border-hover: #9ca3af;
-  --border-accent: #00A8A8;
+  --border-subtle: #D3D8D4;
+  --border-medium: #BEC5C0;
+  --border-strong: #00756F;
+  --border-hover: #8E9894;
+  --border-accent: #00756F;
 
-  --accent: #007a7a;
-  --accent-primary: #007a7a;
-  --accent-secondary: #006060;
-  --accent-hover: #005050;
-  --accent-dim: rgba(0, 122, 122, 0.08);
-  --accent-glow: rgba(0, 122, 122, 0.06);
-  --accent-gradient: linear-gradient(135deg, #007a7a, #006060);
-  --accent-fade: rgba(0, 122, 122, 0.03);
+  --accent: #00756F;
+  --accent-primary: #00756F;
+  --accent-secondary: #005E59;
+  --accent-hover: #005E59;
+  --accent-dim: rgba(0, 117, 111, 0.08);
+  --accent-glow: rgba(0, 117, 111, 0.08);
+  --accent-fade: rgba(0, 117, 111, 0.05);
 
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.07);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
-  --shadow-accent: 0 4px 6px -1px rgba(0, 122, 122, 0.12);
+  --success: #2E7048;
+  --success-glow: rgba(46, 112, 72, 0.1);
+  --warning: #8A5B0B;
+  --warning-glow: rgba(138, 91, 11, 0.1);
+  --danger: #A8322A;
+  --danger-glow: rgba(168, 50, 42, 0.1);
 
-  --glass-bg: #ffffff;
-  --glass-border: #e4e4e7;
+  --shadow-md: 0 1px 2px rgba(21, 25, 26, 0.06);
+  --shadow-lg: 0 8px 24px -12px rgba(21, 25, 26, 0.18);
+  --shadow-xl: 0 16px 32px -12px rgba(21, 25, 26, 0.2);
+  --shadow-2xl: 0 24px 48px -16px rgba(21, 25, 26, 0.24);
+}
+
+:root {
+  --font-display: var(--font-newsreader), "Iowan Old Style", Georgia, serif;
+  --font-ui: var(--font-schibsted), -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-ui);
+  /* Legacy heading classes used across admin now resolve to the display face. */
+  --font-oswald: var(--font-display);
+  --font-bebas: var(--font-display);
+  --font-barlow: var(--font-ui);
+  --font-cormorant: var(--font-display);
+  --font-sora: var(--font-ui);
+  --font-teko: var(--font-display);
+}
+
+/* body:has() also covers modals that portal out to <body>. */
+body:has(.portal-type),
+.portal-type {
+  font-family: var(--font-ui);
 }
 
 /* Reset */
@@ -182,7 +178,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   position: relative;
   transition: all var(--duration-normal) var(--ease-out);
 }
@@ -196,11 +192,11 @@
   display: none;
 }
 
-.liquid-glass:hover,
-.liquid-glass-lg:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
+/* Only things you can press react to the pointer. */
+a.liquid-glass:hover,
+a.liquid-glass-lg:hover,
+button.liquid-glass:hover {
+  border-color: var(--border-hover);
 }
 
 .liquid-glass:focus-visible {
@@ -363,33 +359,12 @@ a {
   color: var(--text-primary);
 }
 
-/* Elevation reads as shadow on a light page, not as a lighter fill. */
-.light .liquid-glass,
-.light .liquid-glass-lg {
-  background: var(--bg-card);
-  border-color: var(--border-subtle);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-primary);
-}
-
-.light .liquid-glass:hover,
-.light .liquid-glass-lg:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
-}
-
-/* The grain and color-dodge sheen only read against a dark card. */
-.light .card-printed::before,
-.light .card-holographic::after {
-  display: none;
-}
 
 .light input:focus,
 .light textarea:focus,
 .light select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 122, 122, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 /* Glow shadows are invisible on white; swap the neutral drop shadow in. */
@@ -423,74 +398,8 @@ a {
   font-family: var(--font-teko), sans-serif;
 }
 
-/* Print grain overlay card */
+/* The grain and holographic sheen are retired: paper is flat. The class names
+   stay because LiquidGlass still accepts the props across admin. */
 .card-printed {
   position: relative;
-  overflow: hidden;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  transition: all var(--duration-normal) var(--ease-out);
 }
-
-.card-printed::before {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  content: "";
-  opacity: 0.16;
-  background-image: var(--print-grain-texture);
-  background-size: 180px 180px;
-  mix-blend-mode: overlay;
-}
-
-.card-printed:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
-}
-
-.card-printed > * {
-  position: relative;
-  z-index: 2;
-}
-
-/* Holographic sheen card */
-.card-holographic {
-  position: relative;
-}
-
-.card-holographic::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 3;
-  background:
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 255, 255, 0.15) 0%,
-      rgba(200, 160, 255, 0.06) 25%,
-      transparent 60%
-    ),
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(0, 168, 168, 0.08) 40%,
-      rgba(139, 92, 246, 0.08) 50%,
-      rgba(0, 168, 168, 0.08) 60%,
-      rgba(255, 255, 255, 0) 70%
-    );
-  background-size: 200% 200%;
-  background-position: 0% 0%;
-  mix-blend-mode: color-dodge;
-  opacity: 0;
-  transition: opacity 300ms ease, background-position 300ms ease;
-}
-
-.card-holographic:hover::after {
-  opacity: 1;
-  background-position: 100% 100%;
-}
-

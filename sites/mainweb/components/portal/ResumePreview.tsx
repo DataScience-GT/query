@@ -59,13 +59,16 @@ function ResumeFrame({ src, title }: { src: string; title: string }) {
 
   if (error) {
     return (
-      <p className="px-4 py-8 rounded-sm border border-red-500/20 bg-red-500/10 text-red-400 text-sm text-center">
+      <p
+        role="alert"
+        className="px-4 py-8 rounded-[var(--radius-md)] border border-[var(--danger)]/40 bg-[var(--danger-glow)] text-[var(--danger)] text-[15px] text-center"
+      >
         {error}{" "}
         <a
           href={src}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-red-300"
+          className="font-semibold underline underline-offset-[5px] decoration-2 hover:text-[var(--text-primary)] transition-colors"
         >
           Open in a new tab
         </a>
@@ -76,7 +79,7 @@ function ResumeFrame({ src, title }: { src: string; title: string }) {
   if (!blobUrl) {
     return (
       <div
-        className="w-full h-[70vh] min-h-[420px] rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] animate-pulse"
+        className="w-full h-[70vh] min-h-[420px] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] animate-pulse"
         aria-hidden
       />
     );
@@ -86,7 +89,7 @@ function ResumeFrame({ src, title }: { src: string; title: string }) {
     <iframe
       src={blobUrl}
       title={title}
-      className="w-full h-[70vh] min-h-[420px] rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
+      className="w-full h-[70vh] min-h-[420px] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
     />
   );
 }

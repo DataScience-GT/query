@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { ModalWrapper } from "./ModalWrapper";
+import {
+  btnPrimary,
+  fieldHint,
+  fieldLabel,
+  input,
+  itemTitle,
+  meta,
+  textLink,
+} from "./ui";
 
 export interface BootcampWorkshopFormData {
   week: string;
@@ -53,31 +62,24 @@ export function BootcampWorkshopModal({
 
   return (
     <ModalWrapper onClose={onClose} maxWidth="2xl">
-      <div className="mb-8 flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
+      <div className="mb-6 flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
         <div>
-          <h3 className="text-3xl font-black uppercase italic tracking-tight text-[var(--text-primary)]">
-            {mode === "edit" ? "Edit Workshop" : "Create Workshop"}
+          <h3 className={itemTitle}>
+            {mode === "edit" ? "Edit workshop" : "Add a workshop"}
           </h3>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]">
-            Metadata and weekly files
+          <p className={`mt-1 ${meta}`}>
+            Details, session time and the week&rsquo;s files.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-2 font-mono text-xs uppercase tracking-widest text-[var(--text-subtle)] transition-ui hover:bg-white/5 hover:text-[var(--text-primary)]"
-        >
-          [ Close ]
+        <button type="button" onClick={onClose} className={textLink}>
+          Close
         </button>
       </div>
 
       <div className="space-y-6">
-        <div className="grid gap-6 sm:grid-cols-[8rem_1fr]">
+        <div className="grid gap-5 sm:grid-cols-[8rem_1fr]">
           <div>
-            <label
-              htmlFor="workshop-week"
-              className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-            >
+            <label htmlFor="workshop-week" className={fieldLabel}>
               Week
             </label>
             <input
@@ -89,31 +91,25 @@ export function BootcampWorkshopModal({
               // The session joins on the week, so it is fixed once created.
               disabled={mode === "edit"}
               onChange={(event) => setForm({ ...form, week: event.target.value })}
-              className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none disabled:opacity-60"
+              className={`${input} tabular-nums`}
             />
           </div>
           <div>
-            <label
-              htmlFor="workshop-title"
-              className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-            >
+            <label htmlFor="workshop-title" className={fieldLabel}>
               Workshop title
             </label>
             <input
               id="workshop-title"
               value={form.title}
               onChange={(event) => setForm({ ...form, title: event.target.value })}
-              className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none"
+              className={input}
             />
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label
-              htmlFor="workshop-session-date"
-              className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-            >
+            <label htmlFor="workshop-session-date" className={fieldLabel}>
               Session date
             </label>
             <input
@@ -123,18 +119,15 @@ export function BootcampWorkshopModal({
               onChange={(event) =>
                 setForm({ ...form, sessionDate: event.target.value })
               }
-              className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none"
+              className={input}
             />
-            <p className="mt-2 text-xs text-[var(--text-subtle)]">
-              Leave blank for TBA. Clearing a saved date keeps its event, QR,
-              and attendance, but removes it from this workshop.
+            <p className={fieldHint}>
+              Leave blank for TBA. Clearing a saved date keeps its event, QR
+              code and attendance, but detaches it from this workshop.
             </p>
           </div>
           <div>
-            <label
-              htmlFor="workshop-location"
-              className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-            >
+            <label htmlFor="workshop-location" className={fieldLabel}>
               Location (optional)
             </label>
             <input
@@ -144,16 +137,13 @@ export function BootcampWorkshopModal({
                 setForm({ ...form, location: event.target.value })
               }
               placeholder="e.g., Klaus 2443"
-              className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none"
+              className={input}
             />
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="workshop-recording"
-            className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-          >
+          <label htmlFor="workshop-recording" className={fieldLabel}>
             Recording URL
           </label>
           <input
@@ -164,7 +154,7 @@ export function BootcampWorkshopModal({
               setForm({ ...form, recordingUrl: event.target.value })
             }
             placeholder="https://…"
-            className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 px-4 py-3 text-sm text-[var(--text-primary)] focus:border-accent focus:outline-none"
+            className={input}
           />
         </div>
 
@@ -176,24 +166,23 @@ export function BootcampWorkshopModal({
           return (
             <div
               key={kind}
-              className="border border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 p-5"
+              className="border-t border-[var(--border-subtle)] pt-5"
             >
-              <label
-                htmlFor={`workshop-${kind}`}
-                className="block font-mono text-[10px] uppercase tracking-widest text-[var(--text-subtle)]"
-              >
-                {kind} ZIP
+              <label htmlFor={`workshop-${kind}`} className={fieldLabel}>
+                {kind === "materials" ? "Materials ZIP" : "Solution ZIP"}
               </label>
               {existing && (
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--text-muted)]">
-                  <span>{existing}</span>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+                  <span className="break-all text-[15px] text-[var(--text-muted)]">
+                    {existing}
+                  </span>
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => onRemoveFile?.(kind)}
-                    className="font-mono text-xs font-bold uppercase tracking-widest text-red-300 transition-ui hover:text-red-200 disabled:opacity-50"
+                    className="text-sm font-semibold text-[var(--danger)] underline decoration-[var(--danger)]/40 decoration-2 underline-offset-[5px] transition-colors hover:decoration-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Remove
+                    Remove file
                   </button>
                 </div>
               )}
@@ -207,30 +196,32 @@ export function BootcampWorkshopModal({
                     [kind]: event.target.files?.[0] ?? null,
                   })
                 }
-                className="mt-3 block w-full text-sm text-[var(--text-muted)] file:mr-4 file:border file:border-accent/40 file:bg-accent/10 file:px-4 file:py-2 file:font-bold file:text-accent"
+                className="mt-3 block w-full text-sm text-[var(--text-muted)] file:mr-4 file:cursor-pointer file:rounded-[var(--radius-sm)] file:border file:border-solid file:border-[var(--border-medium)] file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--text-primary)] hover:file:bg-[var(--bg-secondary)]"
               />
             </div>
           );
         })}
 
         {error && (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-sm text-[var(--danger)]">
             {error}
           </p>
         )}
 
-        <button
-          type="button"
-          disabled={!isValid || isSubmitting}
-          onClick={() => onSubmit(form)}
-          className="w-full bg-accent px-8 py-4 font-black uppercase tracking-widest text-black transition-ui hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isSubmitting
-            ? "Saving…"
-            : mode === "edit"
-              ? "Save workshop"
-              : "Create workshop"}
-        </button>
+        <div className="border-t border-[var(--border-subtle)] pt-5">
+          <button
+            type="button"
+            disabled={!isValid || isSubmitting}
+            onClick={() => onSubmit(form)}
+            className={`${btnPrimary} w-full sm:w-auto`}
+          >
+            {isSubmitting
+              ? "Saving…"
+              : mode === "edit"
+                ? "Save workshop"
+                : "Create workshop"}
+          </button>
+        </div>
       </div>
     </ModalWrapper>
   );

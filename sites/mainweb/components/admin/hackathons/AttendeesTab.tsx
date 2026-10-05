@@ -3,18 +3,23 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
 import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Check,
-  X,
-  Clock,
   Download,
-  Mail,
-  QrCode,
 } from "lucide-react";
+import {
+  body,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  input,
+  meta,
+  sectionRule,
+  sectionTitle,
+  textLink,
+} from "@/components/portal/ui";
 /**
  * Recipients per request, shared with the server so the chunk size and the
  * procedure's cap cannot drift — a chunk larger than the cap fails every send
@@ -167,27 +172,23 @@ export function AttendeesTab({
   };
 
   if (isLoading)
-    return (
-      <div className="text-sm text-[var(--text-muted)] text-center py-20">
-        Loading registrations…
-      </div>
-    );
+    return <p className={`py-16 ${body}`}>Loading registrations…</p>;
 
   // Without this a failed fetch renders as "No matching registrations.".
   if (isError && !data)
     return (
-      <LiquidGlass printed className="p-6 flex flex-col items-start gap-4">
-        <p className="text-sm text-rose-400">
+      <div className="flex flex-col items-start gap-4 py-8">
+        <p className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]">
           Couldn&apos;t load registrations. {error.message}
         </p>
         <button
           type="button"
           onClick={() => refetch()}
-          className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+          className={btnSecondary}
         >
           Try again
         </button>
-      </LiquidGlass>
+      </div>
     );
 
   // Already filtered and paged by the database.
@@ -428,65 +429,70 @@ export function AttendeesTab({
     setSelectedAllMatching(false);
   };
 
+  const th = "px-3 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
+  const rowAction =
+    "rounded-[var(--radius-sm)] border border-[var(--border-medium)] px-2.5 py-1 text-[13px] font-semibold text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  const rowActionDanger =
+    "rounded-[var(--radius-sm)] border border-[var(--danger)]/40 px-2.5 py-1 text-[13px] font-semibold text-[var(--danger)] hover:bg-[var(--danger-glow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  const detailLabel = "text-[13px] font-medium text-[var(--text-subtle)] mb-1";
+  const detailGroup =
+    "border-t border-[var(--border-subtle)] pt-3 text-[13px] font-semibold text-[var(--text-primary)]";
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+    <div className="space-y-8">
       <RegistrationControls hackathonId={hackathonId} status={status} />
 
       {announced ? (
-        <LiquidGlass printed className="p-6">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-            Interest list
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1 mb-6">
+        <section className={sectionRule}>
+          <h2 className={sectionTitle}>Interest list</h2>
+          <p className={`mt-1 mb-6 max-w-2xl ${body}`}>
             People who asked to be told when{" "}
             <span className="text-[var(--text-primary)]">{hackathonName}</span>{" "}
-            opens. This is not an application queue — opening registration lets
+            opens. This is not an application queue; opening registration lets
             them apply.
           </p>
           {interestLoading ? (
-            <p className="text-sm text-[var(--text-muted)]">
-              Loading this edition&apos;s list…
-            </p>
+            <p className={body}>Loading this edition&apos;s list…</p>
           ) : (interestRows?.length ?? 0) === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className={body}>
               Nobody has joined this edition yet. The public form writes here.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="text-[var(--text-muted)] uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2 pr-4">Name</th>
-                    <th className="py-2 pr-4">Email</th>
-                    <th className="py-2 pr-4">School</th>
-                    <th className="py-2 pr-4">Country</th>
-                    <th className="py-2 pr-4">Grad</th>
-                    <th className="py-2 pr-4">Experience</th>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)]">
+                    <th className={`${th} pl-0`}>Name</th>
+                    <th className={th}>Email</th>
+                    <th className={th}>School</th>
+                    <th className={th}>Country</th>
+                    <th className={`${th} text-right`}>Grad year</th>
+                    <th className={th}>Experience</th>
                   </tr>
                 </thead>
                 <tbody className="text-[var(--text-muted)]">
                   {interestRows?.map((row) => (
                     <tr
                       key={row.userId}
-                      className="border-t border-[var(--border-subtle)]"
+                      className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
                     >
-                      <td className="py-2 pr-4 text-[var(--text-primary)]">
+                      <td className="py-2.5 pr-3 text-[var(--text-primary)]">
                         {row.name ?? "—"}
                       </td>
-                      <td className="py-2 pr-4">{row.email}</td>
-                      <td className="py-2 pr-4">{row.school ?? "—"}</td>
-                      <td className="py-2 pr-4">{row.country ?? "—"}</td>
-                      <td className="py-2 pr-4">
+                      <td className="px-3 py-2.5">{row.email}</td>
+                      <td className="px-3 py-2.5">{row.school ?? "—"}</td>
+                      <td className="px-3 py-2.5">{row.country ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">
                         {row.graduationYear ?? "—"}
                       </td>
-                      <td className="py-2 pr-4">{row.experience ?? "—"}</td>
+                      <td className="px-3 py-2.5">{row.experience ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </LiquidGlass>
+        </section>
       ) : (
         <>
       <AcceptanceWaves hackathonId={hackathonId} />
@@ -498,79 +504,76 @@ export function AttendeesTab({
       />
 
       {/* Header + Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 ${sectionRule}`}>
         <div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-wider font-oswald uppercase">
-            Applications
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+          <h2 className={sectionTitle}>Applications</h2>
+          <p className={`mt-1 tabular-nums ${meta}`}>
             {matching === 0
               ? "No matching registrations."
               : `Showing ${page * PAGE_SIZE + 1}-${page * PAGE_SIZE + filteredAttendees.length} of ${matching}`}
-            {isFetching && " • updating…"}
+            {isFetching && " · updating…"}
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 animate-in fade-in duration-200">
-              <span className="text-xs text-accent font-bold">
-                {selectedIds.size} selected
-              </span>
-              <button
-                type="button"
-                onClick={() => handleBulkAction("approved")}
-                disabled={batchUpdateStatus.isPending}
-                title="Sets the status only. No email is sent; use Accept + Email to notify."
-                className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Check className="w-3 h-3" /> Approve all (no email)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleBulkAction("rejected")}
-                disabled={batchUpdateStatus.isPending}
-                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <X className="w-3 h-3" /> Reject all
-              </button>
-              <button
-                type="button"
-                onClick={() => handleBulkAction("waitlisted")}
-                disabled={batchUpdateStatus.isPending}
-                className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Clock className="w-3 h-3" /> Waitlist all
-              </button>
-              <button
-                type="button"
-                onClick={handleMassAccept}
-                disabled={emailSending || batchUpdateStatus.isPending}
-                className="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-accent/20 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Mail className="w-3 h-3" />{" "}
-                {emailSending ? "Sending…" : "Accept + Email"}
-              </button>
-            </div>
-          )}
+        <button
+          type="button"
+          onClick={exportToCSV}
+          disabled={exporting}
+          className={btnSecondary}
+        >
+          <Download size={16} strokeWidth={1.75} aria-hidden="true" />
+          {exporting ? "Exporting…" : "Export CSV"}
+        </button>
+      </div>
+
+      {/* Bulk actions for the current selection. */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 border-y border-[var(--border-subtle)] py-3">
+          <span className="mr-1 text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
+            {selectedIds.size} selected
+          </span>
           <button
             type="button"
-            onClick={exportToCSV}
-            disabled={exporting}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={handleMassAccept}
+            disabled={emailSending || batchUpdateStatus.isPending}
+            className={btnPrimary}
           >
-            <Download className="w-4 h-4" aria-hidden="true" />
-            {exporting ? "Exporting…" : "Export CSV"}
+            {emailSending ? "Sending…" : "Accept and email"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBulkAction("approved")}
+            disabled={batchUpdateStatus.isPending}
+            title="Sets the status only. No email is sent; use Accept and email to notify."
+            className={btnSecondary}
+          >
+            Approve without email
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBulkAction("waitlisted")}
+            disabled={batchUpdateStatus.isPending}
+            className={btnSecondary}
+          >
+            Waitlist
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBulkAction("rejected")}
+            disabled={batchUpdateStatus.isPending}
+            className={btnDanger}
+          >
+            Reject
           </button>
         </div>
-      </div>
+      )}
 
       {/* Without this, "select all" silently means "select this page" and a
           bulk approve covers 50 of 2000 while reporting success. */}
       {pageFullySelected && matching > filteredAttendees.length && (
-        <div className="rounded-sm border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
           {selectedAllMatching ? (
             <>
-              <span>
+              <span className="tabular-nums">
                 All {selectedIds.size} matching applicant(s) are selected.
               </span>
               <button
@@ -579,20 +582,20 @@ export function AttendeesTab({
                   setSelectedIds(new Set());
                   setSelectedAllMatching(false);
                 }}
-                className="underline underline-offset-4 hover:no-underline"
+                className={textLink}
               >
                 Clear selection
               </button>
             </>
           ) : (
             <>
-              <span>
+              <span className="tabular-nums">
                 All {filteredAttendees.length} on this page are selected.
               </span>
               <button
                 type="button"
                 onClick={selectAllMatching}
-                className="font-bold underline underline-offset-4 hover:no-underline"
+                className={textLink}
               >
                 Select all {matching} matching
               </button>
@@ -602,32 +605,32 @@ export function AttendeesTab({
       )}
 
       {bulkError && (
-        <div
+        <p
           role="alert"
-          className="rounded-sm border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
         >
-          Action failed: {bulkError}
-        </div>
+          That action did not go through: {bulkError}
+        </p>
       )}
 
       {emailProgress && (
-        <div
+        <p
           role="status"
-          className="rounded-sm border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent"
+          className="border-l-2 border-accent pl-3 text-[15px] tabular-nums text-[var(--text-primary)]"
         >
           {emailProgress}
-        </div>
+        </p>
       )}
 
       {/* Search */}
-      <div className="flex-1">
+      <div className="max-w-xl">
         <input
           type="search"
           aria-label="Search attendees"
-          placeholder="Search by name, email, school, major, or response…"
+          placeholder="Search by name, email, school, major or response"
           value={searchQuery}
           onChange={(e) => changeSearch(e.target.value)}
-          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-ui"
+          className={input}
         />
       </div>
 
@@ -637,15 +640,15 @@ export function AttendeesTab({
       {isError && data && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-rose-500/30 bg-rose-500/10 px-4 py-3"
+          className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-[var(--danger)] pl-3"
         >
-          <p className="text-sm text-rose-400">
+          <p className="text-[15px] text-[var(--danger)]">
             Couldn&apos;t load these results. The rows below are from before.
           </p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest"
+            className={btnSecondary}
           >
             Try again
           </button>
@@ -653,14 +656,11 @@ export function AttendeesTab({
       )}
 
       {/* Table */}
-      <LiquidGlass
-        printed
-        className="p-0 overflow-x-auto relative z-10"
-      >
+      <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
         <table className="w-full text-left text-sm whitespace-nowrap min-w-[900px]">
-          <thead className="bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-4 font-semibold w-10">
+          <thead>
+            <tr className="border-b border-[var(--border-subtle)]">
+              <th className={`${th} w-10`}>
                 <input
                   type="checkbox"
                   aria-label="Select all on this page"
@@ -668,35 +668,38 @@ export function AttendeesTab({
                   // unchecked whenever the selection is the whole roster.
                   checked={pageFullySelected}
                   onChange={selectAllVisible}
-                  className="w-4 h-4 rounded-sm accent-[var(--accent)] cursor-pointer"
+                  className="w-4 h-4 rounded-sm accent-[var(--accent)] cursor-pointer align-middle"
                 />
               </th>
-              <th className="px-4 py-4 font-semibold w-8"></th>
-              <th className="px-4 py-4 font-semibold">Applicant</th>
-              <th className="px-4 py-4 font-semibold">Status</th>
-              <th className="px-4 py-4 font-semibold">School & Major</th>
-              <th className="px-4 py-4 font-semibold">Applied</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              <th className={`${th} w-8`}>
+                <span className="sr-only">Details</span>
+              </th>
+              <th className={th}>Applicant</th>
+              <th className={th}>Status</th>
+              <th className={th}>School and major</th>
+              <th className={`${th} text-right`}>Applied</th>
+              <th className={`${th} text-right`}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border-subtle)]">
+          <tbody>
             {filteredAttendees.length === 0 ? (
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-6 py-12 text-center text-sm text-[var(--text-muted)]"
-                >
-                  No registrations found.
+                <td colSpan={7} className={`px-3 py-12 ${body}`}>
+                  No registrations match this search or filter.
                 </td>
               </tr>
             ) : (
               filteredAttendees.map((attendee) => (
                 <React.Fragment key={attendee.id}>
                   <tr
-                    className={`hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer ${selectedIds.has(attendee.id) ? "bg-accent/[0.03]" : ""}`}
+                    className={`border-b border-[var(--border-subtle)] transition-colors cursor-pointer ${
+                      selectedIds.has(attendee.id)
+                        ? "bg-[var(--accent-dim)]"
+                        : "hover:bg-[var(--bg-secondary)]"
+                    }`}
                   >
                     <td
-                      className="px-4 py-5"
+                      className="px-3 py-3"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleSelect(attendee.id);
@@ -706,11 +709,11 @@ export function AttendeesTab({
                         type="checkbox"
                         checked={selectedIds.has(attendee.id)}
                         onChange={() => toggleSelect(attendee.id)}
-                        className="w-4 h-4 rounded-sm accent-[var(--accent)] cursor-pointer"
+                        className="w-4 h-4 rounded-sm accent-[var(--accent)] cursor-pointer align-middle"
                       />
                     </td>
                     <td
-                      className="px-4 py-5"
+                      className="px-3 py-3"
                       onClick={() =>
                         setExpandedRow(
                           expandedRow === attendee.id ? null : attendee.id,
@@ -718,13 +721,21 @@ export function AttendeesTab({
                       }
                     >
                       {expandedRow === attendee.id ? (
-                        <ChevronUp className="w-5 h-5 text-accent" />
+                        <ChevronUp
+                          size={16}
+                          strokeWidth={1.75}
+                          className="text-[var(--text-primary)]"
+                        />
                       ) : (
-                        <ChevronDown className="w-5 h-5 text-[var(--text-subtle)]" />
+                        <ChevronDown
+                          size={16}
+                          strokeWidth={1.75}
+                          className="text-[var(--text-subtle)]"
+                        />
                       )}
                     </td>
                     <td
-                      className="px-4 py-5"
+                      className="px-3 py-3"
                       onClick={() =>
                         setExpandedRow(
                           expandedRow === attendee.id ? null : attendee.id,
@@ -737,24 +748,24 @@ export function AttendeesTab({
                             attendee.user?.image || "/avatars/default.svg"
                           }
                           alt="Avatar"
-                          width={40}
-                          height={40}
-                          className="rounded-sm bg-[var(--bg-primary)] shrink-0"
+                          width={32}
+                          height={32}
+                          className="rounded-full bg-[var(--bg-secondary)] shrink-0"
                         />
                         <div>
-                          <p className="text-[var(--text-primary)] font-bold text-base">
+                          <p className="text-[15px] font-semibold text-[var(--text-primary)]">
                             {attendee.firstName && attendee.lastName
                               ? `${attendee.firstName} ${attendee.lastName}`
-                              : attendee.user?.name || "Unknown User"}
+                              : attendee.user?.name || "Unknown user"}
                           </p>
-                          <p className="text-[var(--text-muted)] text-sm">
+                          <p className={meta}>
                             {attendee.user?.email || "No email"}
                           </p>
                         </div>
                       </div>
                     </td>
                     <td
-                      className="px-4 py-5"
+                      className="px-3 py-3"
                       onClick={() =>
                         setExpandedRow(
                           expandedRow === attendee.id ? null : attendee.id,
@@ -764,22 +775,22 @@ export function AttendeesTab({
                       <StatusBadge status={attendee.registrationStatus} />
                     </td>
                     <td
-                      className="px-4 py-5"
+                      className="px-3 py-3"
                       onClick={() =>
                         setExpandedRow(
                           expandedRow === attendee.id ? null : attendee.id,
                         )
                       }
                     >
-                      <p className="text-[var(--text-primary)] text-sm max-w-[200px] truncate">
+                      <p className="text-[var(--text-primary)] max-w-[200px] truncate">
                         {attendee.school || "N/A"}
                       </p>
-                      <p className="text-[var(--text-muted)] text-xs truncate max-w-[200px] mt-0.5">
+                      <p className={`truncate max-w-[200px] ${meta}`}>
                         {attendee.major || "N/A"}
                       </p>
                     </td>
                     <td
-                      className="px-4 py-5 text-sm text-[var(--text-muted)]"
+                      className="px-3 py-3 text-right tabular-nums text-[var(--text-muted)]"
                       onClick={() =>
                         setExpandedRow(
                           expandedRow === attendee.id ? null : attendee.id,
@@ -789,7 +800,7 @@ export function AttendeesTab({
                       {new Date(attendee.registeredAt).toLocaleDateString()}
                     </td>
                     <td
-                      className="px-4 py-4 text-right"
+                      className="px-3 py-3 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1.5">
@@ -800,24 +811,11 @@ export function AttendeesTab({
                               handleStatusUpdate(attendee.id, "approved")
                             }
                             disabled={updateStatus.isPending}
-                            title="Approve (no email). Use Accept + Email to notify."
+                            title="Approve (no email). Use Accept and email to notify."
                             aria-label="Approve (no email)"
-                            className="p-2 rounded-sm bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-ui disabled:opacity-50"
+                            className={rowAction}
                           >
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {attendee.registrationStatus !== "rejected" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleStatusUpdate(attendee.id, "rejected")
-                            }
-                            disabled={updateStatus.isPending}
-                            title="Reject"
-                            className="p-2 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-ui disabled:opacity-50"
-                          >
-                            <X className="w-3.5 h-3.5" />
+                            Approve
                           </button>
                         )}
                         {attendee.registrationStatus !== "waitlisted" && (
@@ -828,9 +826,9 @@ export function AttendeesTab({
                             }
                             disabled={updateStatus.isPending}
                             title="Waitlist"
-                            className="p-2 rounded-sm bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-ui disabled:opacity-50"
+                            className={rowAction}
                           >
-                            <Clock className="w-3.5 h-3.5" />
+                            Waitlist
                           </button>
                         )}
                         {/* Checking somebody in by hand. The door scan does
@@ -848,48 +846,57 @@ export function AttendeesTab({
                             }
                             disabled={updateStatus.isPending}
                             title="Check in"
-                            className="p-2 rounded-sm bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-ui disabled:opacity-50"
+                            className={rowAction}
                           >
-                            <QrCode className="w-3.5 h-3.5" />
+                            Check in
+                          </button>
+                        )}
+                        {attendee.registrationStatus !== "rejected" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStatusUpdate(attendee.id, "rejected")
+                            }
+                            disabled={updateStatus.isPending}
+                            title="Reject"
+                            className={rowActionDanger}
+                          >
+                            Reject
                           </button>
                         )}
                       </div>
                     </td>
                   </tr>
                   {expandedRow === attendee.id && (
-                    <tr className="bg-[var(--bg-secondary)]">
+                    <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                       <td colSpan={7} className="p-0">
-                        <div className="p-6 md:p-8 animate-in fade-in duration-300 whitespace-normal">
+                        <div className="px-4 py-6 md:px-8 whitespace-normal">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {/* Application Details */}
                             <div className="space-y-4">
-                              <h4 className="text-xs uppercase font-bold tracking-widest text-accent border-b border-accent/20 pb-2 mb-3">
+                              <h4 className={detailGroup}>
                                 Application details
                               </h4>
                               <div>
-                                <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">
-                                  Education
-                                </p>
+                                <p className={detailLabel}>Education</p>
                                 <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.school} • {attendee.levelOfStudy}
+                                  {attendee.school} · {attendee.levelOfStudy}
                                 </p>
                                 <p className="text-sm text-[var(--text-muted)]">
-                                  {attendee.major} (Class of{" "}
+                                  {attendee.major} (class of{" "}
                                   {attendee.graduationYear})
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">
-                                  Personal
-                                </p>
+                                <p className={detailLabel}>Personal</p>
                                 <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.age} years old •{" "}
+                                  {attendee.age} years old ·{" "}
                                   {attendee.gender || "Not specified"}
                                 </p>
                                 <p className="text-sm text-[var(--text-primary)]">
                                   {attendee.country}
                                 </p>
-                                <p className="text-sm text-[var(--text-muted)] mt-1">
+                                <p className="text-sm tabular-nums text-[var(--text-muted)] mt-1">
                                   {attendee.phone}
                                 </p>
                               </div>
@@ -897,19 +904,23 @@ export function AttendeesTab({
 
                             {/* Experience & Logistics */}
                             <div className="space-y-4">
-                              <h4 className="text-xs uppercase font-bold tracking-widest text-accent border-b border-accent/20 pb-2 mb-3">
+                              <h4 className={detailGroup}>
                                 Logistics and links
                               </h4>
-                              <div className="flex gap-4">
+                              <div className="flex flex-wrap gap-4">
                                 {attendee.resumeUrl && (
                                   <a
                                     href={attendee.resumeUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 text-sm font-bold text-accent hover:underline"
+                                    className={textLink}
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5" />{" "}
                                     Resume
+                                    <ExternalLink
+                                      size={14}
+                                      strokeWidth={1.75}
+                                      aria-hidden="true"
+                                    />
                                   </a>
                                 )}
                                 {attendee.githubUrl && (
@@ -917,10 +928,14 @@ export function AttendeesTab({
                                     href={attendee.githubUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 text-sm font-bold text-accent hover:underline"
+                                    className={textLink}
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5" />{" "}
                                     GitHub
+                                    <ExternalLink
+                                      size={14}
+                                      strokeWidth={1.75}
+                                      aria-hidden="true"
+                                    />
                                   </a>
                                 )}
                                 {attendee.linkedinUrl && (
@@ -928,26 +943,26 @@ export function AttendeesTab({
                                     href={attendee.linkedinUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 text-sm font-bold text-accent hover:underline"
+                                    className={textLink}
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5" />{" "}
                                     LinkedIn
+                                    <ExternalLink
+                                      size={14}
+                                      strokeWidth={1.75}
+                                      aria-hidden="true"
+                                    />
                                   </a>
                                 )}
                               </div>
                               <div className="grid grid-cols-2 gap-4 pt-2">
                                 <div>
-                                  <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">
-                                    Shirt size
-                                  </p>
-                                  <p className="text-sm text-[var(--text-primary)] font-bold">
+                                  <p className={detailLabel}>Shirt size</p>
+                                  <p className="text-sm text-[var(--text-primary)]">
                                     {attendee.shirtSize || "N/A"}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">
-                                    Dietary
-                                  </p>
+                                  <p className={detailLabel}>Dietary</p>
                                   <p className="text-sm text-[var(--text-primary)]">
                                     {(attendee.dietaryRestrictions || []).join(
                                       ", ",
@@ -956,13 +971,11 @@ export function AttendeesTab({
                                 </div>
                               </div>
                               <div>
-                                <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">
-                                  Emergency
-                                </p>
+                                <p className={detailLabel}>Emergency contact</p>
                                 <p className="text-sm text-[var(--text-primary)]">
                                   {attendee.emergencyContact}
                                 </p>
-                                <p className="text-sm text-[var(--text-muted)]">
+                                <p className="text-sm tabular-nums text-[var(--text-muted)]">
                                   {attendee.emergencyPhone}
                                 </p>
                               </div>
@@ -970,33 +983,29 @@ export function AttendeesTab({
 
                             {/* Questionnaire Response */}
                             <div className="space-y-4 lg:col-span-1 md:col-span-2">
-                              <h4 className="text-xs uppercase font-bold tracking-widest text-accent border-b border-accent/20 pb-2 mb-3">
-                                Questionnaire
-                              </h4>
+                              <h4 className={detailGroup}>Questionnaire</h4>
                               <div>
-                                <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">
+                                <p className={detailLabel}>
                                   Hackathons attended
                                 </p>
-                                <p className="text-sm text-[var(--text-primary)] font-bold">
+                                <p className="text-sm tabular-nums text-[var(--text-primary)]">
                                   {attendee.hackathonsAttended ?? 0}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-2">
+                                <p className={detailLabel}>
                                   Why do you want to attend?
                                 </p>
-                                <div className="bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 rounded-sm">
-                                  <p className="text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                                    {attendee.whyAttend
-                                      ? `"${attendee.whyAttend}"`
-                                      : "No answer provided."}
-                                  </p>
-                                </div>
+                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
+                                  {attendee.whyAttend
+                                    ? `"${attendee.whyAttend}"`
+                                    : "No answer provided."}
+                                </p>
                               </div>
 
                               {/* Quick action buttons in expanded view */}
-                              <div className="pt-4 flex items-center gap-3 border-t border-[var(--border-subtle)]">
-                                <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                              <div className="pt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)]">
+                                <span className="mr-1 text-[13px] font-medium text-[var(--text-subtle)]">
                                   Decision
                                 </span>
                                 <button
@@ -1008,24 +1017,10 @@ export function AttendeesTab({
                                     updateStatus.isPending ||
                                     attendee.registrationStatus === "approved"
                                   }
-                                  title="Sets the status only. No email is sent; use Accept + Email to notify."
-                                  className="px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
+                                  title="Sets the status only. No email is sent; use Accept and email to notify."
+                                  className={rowAction}
                                 >
-                                  <Check className="w-3 h-3" /> Approve (no
-                                  email)
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleStatusUpdate(attendee.id, "rejected")
-                                  }
-                                  disabled={
-                                    updateStatus.isPending ||
-                                    attendee.registrationStatus === "rejected"
-                                  }
-                                  className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
-                                >
-                                  <X className="w-3 h-3" /> Reject
+                                  Approve without email
                                 </button>
                                 <button
                                   type="button"
@@ -1039,9 +1034,22 @@ export function AttendeesTab({
                                     updateStatus.isPending ||
                                     attendee.registrationStatus === "waitlisted"
                                   }
-                                  className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-blue-500/20 transition-colors disabled:opacity-30 flex items-center gap-1.5"
+                                  className={rowAction}
                                 >
-                                  <Clock className="w-3 h-3" /> Waitlist
+                                  Waitlist
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleStatusUpdate(attendee.id, "rejected")
+                                  }
+                                  disabled={
+                                    updateStatus.isPending ||
+                                    attendee.registrationStatus === "rejected"
+                                  }
+                                  className={rowActionDanger}
+                                >
+                                  Reject
                                 </button>
                               </div>
                             </div>
@@ -1055,7 +1063,7 @@ export function AttendeesTab({
             )}
           </tbody>
         </table>
-      </LiquidGlass>
+      </div>
 
       {pageCount > 1 && (
         <nav
@@ -1066,18 +1074,18 @@ export function AttendeesTab({
             type="button"
             onClick={() => goToPage(page - 1)}
             disabled={page === 0 || isFetching}
-            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+            className={btnSecondary}
           >
             Previous
           </button>
-          <span className="text-xs text-[var(--text-muted)]">
+          <span className={`tabular-nums ${meta}`}>
             Page {page + 1} of {pageCount}
           </span>
           <button
             type="button"
             onClick={() => goToPage(page + 1)}
             disabled={page >= pageCount - 1 || isFetching}
-            className="px-5 py-2.5 rounded-sm border border-[var(--border-medium)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-ui text-xs font-bold uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+            className={btnSecondary}
           >
             Next
           </button>
