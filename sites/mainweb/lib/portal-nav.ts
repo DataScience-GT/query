@@ -17,6 +17,7 @@ import {
   GraduationCap,
   UserCircle,
   Calendar,
+  UsersRound,
 } from "lucide-react";
 import type { PortalContext } from "@query/api";
 
@@ -97,6 +98,7 @@ export function portalNavSections(
             href: "/lead",
             icon: Rocket,
           },
+          { name: "Subteams", href: "/admin/subteams", icon: UsersRound },
           { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
           { name: "Memberships", href: "/admin/members", icon: CreditCard },
           { name: "Resume Book", href: "/admin/resumes", icon: BookOpen },
@@ -149,6 +151,9 @@ export function portalNavSections(
       : []),
     { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
     { name: "Club Projects", href: "/initiatives", icon: Rocket },
+    ...(f.isMember
+      ? [{ name: "Subteams", href: "/subteams", icon: UsersRound }]
+      : []),
     ...(f.isProjectLeader
       ? [{ name: "My Club Projects", href: "/lead", icon: Rocket }]
       : []),

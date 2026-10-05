@@ -55,6 +55,8 @@ describe("portalNavSections", () => {
       "Settings",
     ]);
     expect(names(sections, "portal")).not.toContain("Club Portal");
+    // Applying to a subteam needs a membership, so the link waits for one.
+    expect(names(sections, "portal")).not.toContain("Subteams");
   });
 
   it("moves Dashboard and Club Portal onto the portal side for a member", () => {
@@ -72,6 +74,7 @@ describe("portalNavSections", () => {
       "Event Check-In",
       "Bootcamp",
       "Club Projects",
+      "Subteams",
       "Settings",
     ]);
   });
@@ -88,6 +91,18 @@ describe("portalNavSections", () => {
     expect(names(sections, "portal")).toContain("Club Check-In");
     expect(names(sections, "hackathon")).not.toContain("Club Check-In");
     expect(names(sections, "portal")).not.toContain("Judge Portal");
+  });
+
+  it("sends members to /subteams and staff to /admin/subteams", () => {
+    const member = portalNavSections(
+      ctx({ member: { ...emptyMember, isMember: true, isActive: true } }),
+    );
+    expect(hrefs(member)).toContain("/subteams");
+    expect(hrefs(member)).not.toContain("/admin/subteams");
+
+    const admin = portalNavSections(ctx({ isAdmin: true, role: "admin" }));
+    expect(hrefs(admin)).toContain("/admin/subteams");
+    expect(hrefs(admin)).not.toContain("/subteams");
   });
 
   it("adds My Club Projects on the portal side for a project leader", () => {
@@ -111,6 +126,7 @@ describe("portalNavSections", () => {
       "Club Check-In",
       "Club Projects",
       "Club Project Applications",
+      "Subteams",
       "Bootcamp",
       "Memberships",
       "Resume Book",
@@ -134,6 +150,7 @@ describe("portalNavSections for bug testers", () => {
     expect(hrefs(sections)).toContain("/admin/hackathons");
     expect(hrefs(sections)).toContain("/admin/judging");
     expect(hrefs(sections)).toContain("/admin/analytics");
+    expect(hrefs(sections)).toContain("/admin/subteams");
     // Pages whose queries refuse anyone but full staff.
     expect(hrefs(sections)).not.toContain("/admin/staff");
     expect(hrefs(sections)).not.toContain("/lead");
