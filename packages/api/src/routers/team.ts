@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { notHackathonBanned } from "../middleware/procedures";
 import {
   hackathonTeams,
   hackathonParticipants,
@@ -211,7 +212,7 @@ async function assertNoLiveSoloSubmission(
 }
 
 export const teamRouter = createTRPCRouter({
-  createTeam: protectedProcedure
+  createTeam: notHackathonBanned
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -305,7 +306,7 @@ export const teamRouter = createTRPCRouter({
       }
     }),
 
-  joinTeam: protectedProcedure
+  joinTeam: notHackathonBanned
     .input(
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -663,7 +664,7 @@ export const teamRouter = createTRPCRouter({
       }
     }),
 
-  submitProject: protectedProcedure
+  submitProject: notHackathonBanned
     .input(
       z.object({
         hackathonId: z.string().uuid(),
