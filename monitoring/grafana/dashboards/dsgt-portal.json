@@ -144,8 +144,103 @@
     },
     {
       "type": "row",
-      "title": "Payments (per-instance counters — a sample in production)",
+      "title": "Hackathon (read from the database — correct in production)",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Checked in",
+      "description": "Accepted participants whose badge was scanned, for each live edition.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (edition) (dsgt_hackathon_participants{env=~\"$env\",status=\"checked_in\"})",
+          "legendFormat": "{{edition}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Approved, not checked in",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (edition) (dsgt_hackathon_participants{env=~\"$env\",status=\"approved\"})",
+          "legendFormat": "{{edition}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Projects submitted",
+      "description": "Not drafts, and not withdrawn by an organiser.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (edition) (dsgt_hackathon_projects{env=~\"$env\"})",
+          "legendFormat": "{{edition}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Badge scans today",
+      "description": "Hackathon QR scans since midnight Eastern. Club door check-ins are not in this number.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (edition) (dsgt_hackathon_checkins_today{env=~\"$env\"})",
+          "legendFormat": "{{edition}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Judging tables",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (edition) (dsgt_hackathon_judging_projects{env=~\"$env\"})",
+          "legendFormat": "{{edition}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Judge scores",
+      "description": "Zero while judging is switched on is what HackathonJudgingIdle fires on.",
+      "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (edition) (dsgt_hackathon_votes{env=~\"$env\"})",
+          "legendFormat": "{{edition}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Payments (per-instance counters — a sample in production)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 12 },
       "collapsed": false,
       "panels": []
     },
@@ -154,7 +249,7 @@
       "title": "Grant failures",
       "description": "Payment recorded, membership not. Non-zero means money taken with nothing given.",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 7 },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 13 },
       "fieldConfig": {
         "defaults": {
           "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 1 },
@@ -174,7 +269,7 @@
       "type": "timeseries",
       "title": "Grants by source",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 7 },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 13 },
       "fieldConfig": {
         "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50, "stacking": { "mode": "normal" } } },
         "overrides": []
@@ -191,7 +286,7 @@
       "type": "timeseries",
       "title": "Intents minted, by what was bought",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 7 },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 13 },
       "fieldConfig": {
         "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50 } },
         "overrides": []
@@ -207,7 +302,7 @@
     {
       "type": "row",
       "title": "App health",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
       "collapsed": false,
       "panels": []
     },
@@ -215,7 +310,7 @@
       "type": "timeseries",
       "title": "Portal API calls / sec",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 15 },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 21 },
       "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
       "targets": [
         {
@@ -229,7 +324,7 @@
       "type": "timeseries",
       "title": "Latency p50 / p95 / p99",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 21 },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
@@ -253,7 +348,7 @@
       "type": "timeseries",
       "title": "Slowest procedures (p99)",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 21 },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
@@ -267,7 +362,7 @@
       "type": "timeseries",
       "title": "Process memory",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 22 },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 28 },
       "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
       "targets": [
         {
@@ -286,7 +381,7 @@
       "type": "timeseries",
       "title": "Event loop lag (p99)",
       "datasource": { "type": "prometheus", "uid": "dsgt-prometheus" },
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 22 },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 28 },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
