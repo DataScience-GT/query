@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rank } from "../../../../../judging/core/src/index";
+import { rank } from "@query/judging-core";
 import { weightProjects } from "./weight";
 
 const projects = [

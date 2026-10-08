@@ -5,5 +5,5 @@
     "rootDir": "src"
   },
   "include": ["src", "src/.internal-tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/routers/judge/replay.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }

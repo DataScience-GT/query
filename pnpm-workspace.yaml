@@ -7,4 +7,3 @@ packages:
   - packages/auth
   - packages/db
   - packages/ui
-  - judging/*
