@@ -54,6 +54,8 @@ next-env.d.ts
 *.db
 *.db-journal
 migrations/
+!judging/db/migrations/
+!judging/db/migrations/**
 
 # Editor
 .vscode/*
