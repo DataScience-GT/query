@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck",
-    "test": "vitest run packages/api packages/auth packages/db sites/mainweb/lib judging/core"
+    "test": "vitest run packages/api packages/auth packages/db sites/mainweb/lib judging/core judging/server judging/cli"
   },
   "dependencies": {
     "next": "16.3.7",

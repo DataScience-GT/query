@@ -57,6 +57,11 @@ export default function AdminResultsPage() {
   );
 
   // Get rankings for selected hackathon
+  const { data: panelConsole } = trpc.judge.panelConsole.useQuery(
+    { hackathonId: selectedHackathon as string },
+    { enabled: !!selectedHackathon },
+  );
+
   const { data: rankings } = trpc.judge.getRankings.useQuery(
     { hackathonId: selectedHackathon as string },
     { enabled: !!selectedHackathon },
@@ -251,6 +256,11 @@ export default function AdminResultsPage() {
               ? "Pick a hackathon to see its results."
               : "Open and close judging, watch the floor, and compare scores."}
           </p>
+          {panelConsole?.url ? (
+            <a className={body} href={panelConsole.url}>
+              Open the panel console
+            </a>
+          ) : null}
         </header>
 
         {/* Judging Control Panel */}

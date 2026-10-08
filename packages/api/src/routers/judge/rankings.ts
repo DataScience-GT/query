@@ -6,7 +6,8 @@ import { and, eq, isNotNull, sql , isNull } from "drizzle-orm";
 import { isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import type { DrizzleDB } from "@query/db";
-import { zNormalize } from "./helpers";
+import { weightProjects } from "./weight";
+import { pullPanelResults } from "../../services/panel-sync";
 
 // The whole ranking pipeline in one place, so the live view and the frozen
 // snapshot cannot drift: two implementations of a scoring formula are two
@@ -34,74 +35,25 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
   });
 
   const round2 = (n: number) => Math.round(n * 100) / 100;
-
-  // Step 1: raw scores grouped by judge. Per-judge distributions are what
-  // Z-score normalization needs to cancel harsh-judge / lenient-judge bias.
   type VoteWithJudge = (typeof projects)[number]["votes"][number];
-  const scoresByJudge = new Map<string, number[]>();
-  for (const project of projects) {
-    for (const v of project.votes) {
-      const existing = scoresByJudge.get(v.judgeId) ?? [];
-      existing.push(v.score);
-      scoresByJudge.set(v.judgeId, existing);
-    }
-  }
-
-  // ─── Step 2: Compute global score distribution ─────────────────────────
-  const allRawScores = [...scoresByJudge.values()].flat();
-  const globalMean =
-    allRawScores.length > 0
-      ? allRawScores.reduce((a, b) => a + b, 0) / allRawScores.length
-      : 0;
-  const globalVariance =
-    allRawScores.length > 0
-      ? allRawScores.reduce((s, v) => s + (v - globalMean) ** 2, 0) /
-        allRawScores.length
-      : 1;
-  const globalStd = Math.sqrt(globalVariance) || 1;
-
-  // Step 3: per judge, map their raw score index to a Z-normalized score.
-  const normalizedScoreLookup = new Map<string, Map<number, number>>();
-  for (const [judgeId, rawScores] of scoresByJudge.entries()) {
-    const normalized = zNormalize(rawScores, globalMean, globalStd);
-    // Map raw score value -> normalized value (index-based, preserves order)
-    const lookup = new Map<number, number>();
-    rawScores.forEach((raw, i) => {
-      // If same raw score appears multiple times, average the normalized values
-      const existing = lookup.get(raw);
-      lookup.set(
-        raw,
-        existing !== undefined
-          ? (existing + normalized[i]!) / 2
-          : normalized[i]!,
-      );
-    });
-    normalizedScoreLookup.set(judgeId, lookup);
-  }
-
-  const getNormalized = (judgeId: string, rawScore: number): number => {
-    const lookup = normalizedScoreLookup.get(judgeId);
-    return lookup?.get(rawScore) ?? rawScore;
-  };
-
-  // ─── Step 4: Build raw + normalized stats per project ─────────────────
-  const C = 2; // Bayesian confidence weight
+  const weighted = new Map(
+    weightProjects(
+      projects.map((project) => ({
+        id: project.id,
+        votes: project.votes.map((vote) => ({ judgeId: vote.judgeId, score: vote.score })),
+      })),
+    ).map((row) => [row.id, row]),
+  );
 
   const rawRankings = projects.map((project) => {
+    const scored = weighted.get(project.id);
     const voteCount = project.votes.length;
+    const normalizedScores = scored?.normalizedScores ?? [];
+    const normalizedAvg = scored?.normalizedAvg ?? 0;
 
     // Raw scores (unadjusted)
     const totalScore = project.votes.reduce((sum, v) => sum + v.score, 0);
     const avgScore = voteCount > 0 ? totalScore / voteCount : 0;
-
-    // Z-score normalized scores (bias-corrected)
-    const normalizedScores = project.votes.map((v) =>
-      getNormalized(v.judgeId, v.score),
-    );
-    const normalizedAvg =
-      voteCount > 0
-        ? round2(normalizedScores.reduce((a, b) => a + b, 0) / voteCount)
-        : 0;
 
     // Per-category averages (raw)
     const sumCat = {
@@ -182,26 +134,9 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
     };
   });
 
-  // ─── Step 5: Compute global normalized average for Bayesian prior ──────
-  const votedProjects = rawRankings.filter((r) => r.voteCount > 0);
-  const globalAvg =
-    votedProjects.length > 0
-      ? round2(
-          votedProjects.reduce((sum, r) => sum + r.normalizedAvg, 0) /
-            votedProjects.length,
-        )
-      : 0;
-
-  // Step 6: Bayesian + Z-score final. weightedScore blends the normalized
-  // average toward the global mean when few judges voted.
   const rankings = rawRankings.map((r) => {
     const n = r.voteCount;
-    const weightedScore =
-      n > 0
-        ? round2(
-            (n / (n + C)) * r.normalizedAvg + (C / (n + C)) * globalAvg,
-          )
-        : 0;
+    const weightedScore = weighted.get(r.project.id)?.weightedScore ?? 0;
     const confidenceLevel: "NONE" | "LOW" | "MEDIUM" | "HIGH" =
       n === 0 ? "NONE" : n === 1 ? "LOW" : n === 2 ? "MEDIUM" : "HIGH";
     const scoreShift = round2(r.normalizedAvg - r.avgScore); // how much bias-correction shifted this project
@@ -310,6 +245,12 @@ async function computeRanking(db: DrizzleDB, hackathonId: string) {
       }
     });
   }
+
+  const votedRows = [...weighted.values()].filter((row) => row.voteCount > 0);
+  const globalAvg =
+    votedRows.length > 0
+      ? round2(votedRows.reduce((sum, row) => sum + row.normalizedAvg, 0) / votedRows.length)
+      : 0;
 
   const result = {
     rankings,
@@ -481,6 +422,7 @@ export const judgeRankingsRouter = createTRPCRouter({
   publishResults: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      await pullPanelResults(ctx.db as DrizzleDB, input.hackathonId);
       const rows = await (ctx.db as DrizzleDB)
         .update(hackathonResults)
         .set({ publishedAt: new Date() })

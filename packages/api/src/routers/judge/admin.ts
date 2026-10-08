@@ -21,6 +21,7 @@ import {
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { isLive, loadGroups, loadPool } from "./dispatch";
+import { syncJudgeToPanel, syncProjectsToPanel } from "../../services/panel-sync";
 
 // Judges draw tables from a shared pool (dispatch.ts) instead of holding a
 // list built in advance. Clears rows an earlier version built that the judge
@@ -263,7 +264,7 @@ export const judgeAdminRouter = createTRPCRouter({
   promoteSubmissions: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+      const promoted = await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // Serializes concurrent promotions, so two organisers pressing the button
         // together cannot both read the same max table number and duplicate it.
         await tx
@@ -350,6 +351,8 @@ export const judgeAdminRouter = createTRPCRouter({
           total: submissions.length,
         };
       });
+      await syncProjectsToPanel(ctx.db as DrizzleDB, input.hackathonId);
+      return promoted;
     }),
 
   setActive: isAdmin
@@ -467,6 +470,12 @@ export const judgeAdminRouter = createTRPCRouter({
         }
       }
 
+      if (input.isActive) {
+        await syncJudgeToPanel(ctx.db as DrizzleDB, {
+          hackathonId: updated.hackathonId,
+          email: updated.email,
+        });
+      }
       return { success: true, isActive: input.isActive, queuedProjects };
     }),
 

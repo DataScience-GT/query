@@ -6,9 +6,10 @@ Accepted
 
 ## Decision
 
-Panel lives under `judging/` with its own packages, its own Postgres database,
-and its own deploy. It does not share a schema or a module graph with the
-application that hosts the first event.
+Panel lives under `judging/` with its own packages and its own deploy. It does
+not share a module graph with the application that hosts the first event.
+ADR-003 puts the tables in that application's Postgres instead of a second
+database.
 
 Internal imports are `@panel/*` only. A lint rule rejects imports from the
 host. The host is allowed to import `@panel/*`. That one-way edge is what
@@ -19,4 +20,5 @@ rewrite.
 
 Judging welded into one event's tables cannot be given to the next event, or
 to anyone else, without carrying the rest of that application with it.
-A separate database means the extraction has no data to untangle.
+The panel tables are prefixed so they can share that database until an
+extraction.

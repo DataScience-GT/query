@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { zNormalize } from "./zscore";
 import { bayesianShrink, round2 } from "./bayes";
 import { rank } from "./rank";
-import type { ProjectInput, RankConfig, VoteInput } from "./rank";
+import type { ProjectInput, RankComparison, RankConfig, VoteInput } from "./rank";
 
 /**
  * The ranking the current event publishes: z-score per judge against the
@@ -200,5 +200,45 @@ describe("rank", () => {
       .filter((row) => row.placement !== null)
       .sort((a, b) => (a.placement ?? 0) - (b.placement ?? 0));
     expect(placed.map((row) => row.projectId)).toEqual(["A", "B", "C"]);
+  });
+});
+
+describe("rank at pairwise weight 1", () => {
+  it("keeps the true order when every comparison agrees", () => {
+    const ids = ["a", "b", "c", "d", "e"];
+    let seed = 11;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    for (let trial = 0; trial < 20; trial += 1) {
+      const truth = [...ids].sort(() => random() - 0.5);
+      const better = new Map(truth.map((id, index) => [id, index]));
+      const comparisons: RankComparison[] = [];
+      for (let left = 0; left < ids.length; left += 1) {
+        for (let right = left + 1; right < ids.length; right += 1) {
+          const a = ids[left] ?? "";
+          const b = ids[right] ?? "";
+          const aWins = (better.get(a) ?? 0) < (better.get(b) ?? 0);
+          comparisons.push({
+            judgeId: "j1",
+            judgeGroup: "main",
+            a,
+            b,
+            outcome: aWins ? ("a" as const) : ("b" as const),
+          });
+        }
+      }
+      const rows = rank(
+        ids.map((id) => ({ id, trackIds: ["overall"] })),
+        [],
+        comparisons,
+        { ...config, pairwiseWeight: 1 },
+      );
+      const placed = rows
+        .filter((row) => row.placement !== null)
+        .sort((left, right) => (left.placement ?? 0) - (right.placement ?? 0));
+      expect(placed.map((row) => row.projectId)).toEqual(truth);
+    }
   });
 });

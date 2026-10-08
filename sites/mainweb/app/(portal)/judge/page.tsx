@@ -55,6 +55,9 @@ export default function JudgePage() {
   // Gated on any approved application, not isJudge: isJudge answers for the
   // current edition only, while assignments span every edition, so a judge
   // approved for another one saw "Awaiting approval" forever.
+  const { data: panelDesk } = trpc.judge.panelDesk.useQuery(undefined, {
+    enabled: !!session,
+  });
   const { data: assignments } = trpc.judge.getMyAssignments.useQuery(
     undefined,
     {
@@ -112,6 +115,11 @@ export default function JudgePage() {
           Apply to judge an event. An organiser approves you before you can
           score.
         </p>
+        {panelDesk?.url ? (
+          <a className={textLink} href={panelDesk.url}>
+            Open the judging desk
+          </a>
+        ) : null}
       </header>
 
       {!hackathons?.length ? (

@@ -54,6 +54,8 @@
   },
   "globalEnv": [
     "PORT",
+    "PORT_A",
+    "PORT_B",
     "DATABASE_URL",
     "NEXTAUTH_SECRET",
     "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
@@ -94,6 +96,19 @@
     "NODE_ENV",
     "CI",
     "npm_lifecycle_event",
-    "JUDGING_TEST_DATABASE_URL"
+    "JUDGING_TEST_DATABASE_URL",
+    "PANEL_DATABASE_URL",
+    "PANEL_JWT_SECRET",
+    "PANEL_JWKS_URL",
+    "PANEL_DEV_AUTH",
+    "PANEL_SMTP_URL",
+    "PANEL_SMTP_FROM",
+    "PANEL_URL",
+    "PANEL_SERVICE_TOKEN",
+    "PANEL_EVENT_ID",
+    "PANEL_WEB_URL",
+    "PANEL_ORG_SLUG",
+    "PANEL_EVENT_SLUG",
+    "REDIS_URL"
   ]
 }

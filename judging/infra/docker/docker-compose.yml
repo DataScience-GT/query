@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: panel
+      POSTGRES_PASSWORD: panel
+      POSTGRES_DB: panel
+    ports:
+      - "54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panel"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  server:
+    build:
+      context: ../../..
+      dockerfile: judging/infra/docker/Dockerfile
+    environment:
+      PANEL_DATABASE_URL: postgres://panel:panel@postgres:5432/panel
+      DATABASE_URL: postgres://panel:panel@postgres:5432/panel
+      PANEL_JWT_SECRET: dev-only-change-me
+      PANEL_DEV_AUTH: "1"
+      PORT: "8787"
+    ports:
+      - "8787:8787"
+    depends_on:
+      postgres:
+        condition: service_healthy

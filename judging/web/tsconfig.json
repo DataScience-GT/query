@@ -1,0 +1,11 @@
+{
+  "extends": "../../tooling/typescript/nextjs.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "plugins": [{ "name": "next" }],
+    "jsx": "preserve",
+    "noEmit": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "e2e", "playwright.config.ts"]
+}
