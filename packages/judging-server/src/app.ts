@@ -41,6 +41,7 @@ const openApi = {
     "/v1/session/vote": { post: { summary: "Store the score for the open visit." } },
     "/v1/session/skip": { post: { summary: "Pass on the open table without a score." } },
     "/v1/session/progress": { get: { summary: "How many projects this judge has scored." } },
+    "/v1/session/status": { get: { summary: "Whether the open visit was voided or the judge recalled." } },
     "/v1/session/compare": { post: { summary: "Record which of the last two tables was better." } },
     "/v1/session/rubric": { get: { summary: "Criteria for the event's default rubric." } },
     "/v1/catalog/projects": { get: { summary: "Projects for table cards. Organizer." } },
@@ -290,6 +291,11 @@ export function createApp(options: {
       .object({ eventId: z.string().uuid(), visitId: z.string().uuid() })
       .parse(await c.req.json());
     return rest((caller) => caller.session.skip(body))(c);
+  });
+  app.get("/v1/session/status", async (c) => {
+    const eventId = z.string().uuid().parse(c.req.query("eventId"));
+    const visitId = z.string().uuid().parse(c.req.query("visitId"));
+    return rest((caller) => caller.session.status({ eventId, visitId }))(c);
   });
   app.get("/v1/session/progress", async (c) => {
     const eventId = z.string().uuid().parse(c.req.query("eventId"));

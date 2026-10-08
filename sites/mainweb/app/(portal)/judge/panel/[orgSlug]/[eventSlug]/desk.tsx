@@ -127,6 +127,53 @@ export function JudgeDesk({
     return () => window.removeEventListener("online", send);
   }, []);
 
+  const openVisitId = visit && !visit.done ? visit.visitId : undefined;
+  const acknowledgedRecall = useRef<string | null>(null);
+  useEffect(() => {
+    // Recall and void are the only things an organizer sends a judge. Ask only
+    // while a visit is open and the screen is on: judging is live then, so the
+    // database is awake anyway, and a phone in a pocket costs nothing.
+    if (!openVisitId) return;
+    let stop = false;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const check = async () => {
+      const response = await fetch(
+        `${apiBase}/v1/session/status?eventId=${event.eventId}&visitId=${openVisitId}`,
+      );
+      if (!response.ok || stop) return;
+      const status = (await response.json()) as {
+        voided: boolean;
+        recalledAt: string | null;
+      };
+      if (status.voided) {
+        setVisit(null);
+        setMessage("This visit was voided.");
+        return;
+      }
+      if (
+        status.recalledAt &&
+        status.recalledAt !== acknowledgedRecall.current
+      ) {
+        acknowledgedRecall.current = status.recalledAt;
+        setVisit(null);
+        setMessage("Come back to the desk.");
+      }
+    };
+    const sync = () => {
+      clearInterval(timer);
+      if (document.visibilityState !== "visible") return;
+      void check();
+      timer = setInterval(() => void check(), 15_000);
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      stop = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [openVisitId, event.eventId]);
+
   const walkingSince =
     visit?.handedOutAt && !visit.arrivedAt && !visit.done
       ? new Date(visit.handedOutAt).getTime()

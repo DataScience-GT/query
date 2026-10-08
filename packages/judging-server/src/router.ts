@@ -10,7 +10,7 @@ import type { Bus } from "./bus";
 import type { Metrics } from "./metrics";
 import { log } from "./log";
 import { arrive } from "./services/arrive";
-import { dispatchNext, judgeProgress, skipVisit } from "./services/dispatch";
+import { dispatchNext, judgeProgress, skipVisit, visitStatus } from "./services/dispatch";
 import {
   assignJudge,
   applyAsJudge,
@@ -277,6 +277,20 @@ export const appRouter = t.router({
         const row = await requireJudge(ctx, input.eventId);
         try {
           return await judgeProgress(ctx.db, { eventId: input.eventId, judgeId: row.id });
+        } catch (error) {
+          asTrpc(error);
+        }
+      }),
+    status: authed
+      .input(z.object({ eventId: uuid, visitId: uuid }))
+      .query(async ({ ctx, input }) => {
+        const row = await requireJudge(ctx, input.eventId);
+        try {
+          return await visitStatus(ctx.db, {
+            eventId: input.eventId,
+            judgeId: row.id,
+            visitId: input.visitId,
+          });
         } catch (error) {
           asTrpc(error);
         }

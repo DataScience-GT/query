@@ -36,7 +36,9 @@ event an edition uses. Without them the portal shows no panel links.
 
 Live views poll, and only while they can change. The board polls at the
 event's `board_poll_seconds` and the console polls the floor every five
-seconds, both only during `judging_live` and only while the tab is visible.
+seconds, both only during `judging_live` and only while the tab is visible. The judge
+desk asks `/v1/session/status` every 15 seconds while a visit is open and the
+screen is on, which is how a recall or a voided visit reaches the phone.
 Neon suspends after five idle minutes and the free plan has 100 compute hours
 a month, so a forgotten board in any other phase must not keep it awake.
 `/api/panel/readyz` and `/api/panel/metrics` are not exposed for the same
