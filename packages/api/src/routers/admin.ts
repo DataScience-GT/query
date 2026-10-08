@@ -18,6 +18,7 @@ import { compareTerms, currentTerm } from "@query/db/services/membership";
 import { isExpiredAdmin, isStaffRole } from "../types/portal-context";
 import type { DrizzleDB } from "@query/db";
 import { startOfEasternDay } from "../services/eastern-time";
+import { readLiveHackathons } from "../services/metrics";
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
@@ -78,6 +79,8 @@ export const adminRouter = createTRPCRouter({
       totalEvents: number;
       totalHackathons: number;
       checkinsToday: number;
+      badgeScansToday: number;
+      doorCheckinsToday: number;
     }>(
       cacheKey,
       async () => {
@@ -114,17 +117,33 @@ export const adminRouter = createTRPCRouter({
             .where(gte(eventCheckIns.checkedInAt, startOfToday)),
         ]);
 
+        const badgeScansToday = badgeScansResult[0]?.count ?? 0;
+        const doorCheckinsToday = doorCheckinsResult[0]?.count ?? 0;
+
         const result = {
           totalParticipants: participantsResult[0]?.count ?? 0,
           totalEvents: eventsResult[0]?.count ?? 0,
           totalHackathons: hackathonsResult[0]?.count ?? 0,
-          checkinsToday:
-            (badgeScansResult[0]?.count ?? 0) +
-            (doorCheckinsResult[0]?.count ?? 0),
+          // Kept as the sum so a caller that only knew the blended number
+          // still moves. The page reads the two halves, because a hackathon
+          // weekend and a club meeting are not the same turnout.
+          badgeScansToday,
+          doorCheckinsToday,
+          checkinsToday: badgeScansToday + doorCheckinsToday,
         };
 
         return result;
       },
+      15,
+    );
+  }),
+
+  // The same counts the Prometheus gauges use, for the analytics page. A
+  // scrape is optional; this is what staff open during the weekend.
+  hackathonLive: isAdmin.query(async ({ ctx }) => {
+    return await ctx.cache.getOrSet(
+      "admin:hackathon-live",
+      () => readLiveHackathons(ctx.db as DrizzleDB),
       15,
     );
   }),

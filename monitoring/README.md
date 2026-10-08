@@ -42,6 +42,12 @@ number of instances is irrelevant:
 - `dsgt_members_active`, `dsgt_members_lapsed`
 - `dsgt_bootcamp_enrolled{term}`
 - `dsgt_payments_by_plan{plan}` — the yearly/semester split
+- `dsgt_hackathon_participants{edition,phase,status}`, `dsgt_hackathon_projects`,
+  `dsgt_hackathon_checkins_today`, `dsgt_hackathon_judging_projects`,
+  `dsgt_hackathon_votes`, `dsgt_hackathon_judging_active` — only editions that
+  are `open`, `closed`, or `in_progress`. A completed edition disappears on
+  the next refresh. Badge scans are hackathon QR rows since midnight Eastern,
+  not club door check-ins.
 - `dsgt_payments_unlinked` — paid, claimed by nobody. This is **not** zero and
   is not supposed to be: as of August 2026 it sits around 428 of 443 paid rows,
   nearly all from the August–September 2025 and January 2026 drives. Those are
@@ -85,6 +91,8 @@ The alerts that matter:
 - `MembershipGrantFailing` — a payment was recorded and the membership was not.
 - `UnlinkedPaymentsClimbing` — the link paths are not claiming payments.
 - `ReconcileRecoveringOften` — the backstop is carrying the fast path.
+- `HackathonJudgingIdle` — judging is on, tables are assigned, and no scores
+  have landed for 30 minutes.
 
 To route them into ClickUp, run Alertmanager with a webhook receiver and pipe
 its payload to `node scripts/clickup-task.mjs --stdin`. That step is not built
