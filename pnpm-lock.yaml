@@ -41,175 +41,6 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@7.3.6(@types/node@22.20.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
 
-  judging/cli:
-    dependencies:
-      '@panel/db':
-        specifier: workspace:*
-        version: link:../db
-      '@panel/server':
-        specifier: workspace:*
-        version: link:../server
-      drizzle-orm:
-        specifier: 0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
-    devDependencies:
-      '@query/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint
-      '@query/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      '@types/node':
-        specifier: 22.20.4
-        version: 22.20.4
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-
-  judging/core:
-    devDependencies:
-      '@query/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint
-      '@query/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      '@types/node':
-        specifier: 22.20.4
-        version: 22.20.4
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: ^5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@7.3.6(@types/node@22.20.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
-
-  judging/db:
-    dependencies:
-      '@panel/core':
-        specifier: workspace:*
-        version: link:../core
-      drizzle-orm:
-        specifier: 0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)
-      pg:
-        specifier: 8.23.0
-        version: 8.23.0
-    devDependencies:
-      '@query/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint
-      '@query/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      '@types/node':
-        specifier: 22.20.4
-        version: 22.20.4
-      '@types/pg':
-        specifier: ^8.23.1
-        version: 8.23.1
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-
-  judging/server:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.0
-        version: 1.19.17(hono@4.13.13)
-      '@panel/core':
-        specifier: workspace:*
-        version: link:../core
-      '@panel/db':
-        specifier: workspace:*
-        version: link:../db
-      '@trpc/server':
-        specifier: 11.19.0
-        version: 11.19.0(typescript@7.0.2)
-      drizzle-orm:
-        specifier: 0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)
-      hono:
-        specifier: ^4.9.0
-        version: 4.13.13
-      ioredis:
-        specifier: ^5.8.2
-        version: 5.11.1
-      jose:
-        specifier: ^6.1.0
-        version: 6.2.3
-      nodemailer:
-        specifier: ^10.0.10
-        version: 10.0.10
-      prom-client:
-        specifier: 15.1.3
-        version: 15.1.3
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
-      ws:
-        specifier: ^8.20.1
-        version: 8.21.3
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@query/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint
-      '@query/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      '@types/node':
-        specifier: 22.20.4
-        version: 22.20.4
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.2
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: ^5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@7.3.6(@types/node@22.20.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
-
-  judging/web:
-    dependencies:
-      next:
-        specifier: 16.3.7
-        version: 16.3.7(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: 19.3.0
-        version: 19.3.0
-      react-dom:
-        specifier: 19.3.0
-        version: 19.3.0(react@19.3.0)
-    devDependencies:
-      '@playwright/test':
-        specifier: ^1.58.2
-        version: 1.64.0
-      '@query/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint
-      '@query/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      '@types/node':
-        specifier: 22.20.4
-        version: 22.20.4
-      '@types/react':
-        specifier: ^19.3.0
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: ^19.3.0
-        version: 19.3.0(@types/react@19.3.0)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-
   packages/api:
     dependencies:
       '@query/auth':
@@ -255,6 +86,9 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      '@query/judging-core':
+        specifier: workspace:*
+        version: link:../judging-core
       '@query/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
@@ -357,6 +191,141 @@ importers:
         specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
         version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
+  packages/judging-cli:
+    dependencies:
+      '@query/judging-db':
+        specifier: workspace:*
+        version: link:../judging-db
+      '@query/judging-server':
+        specifier: workspace:*
+        version: link:../judging-server
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+    devDependencies:
+      '@query/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint
+      '@query/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 22.20.4
+        version: 22.20.4
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  packages/judging-core:
+    devDependencies:
+      '@query/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint
+      '@query/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 22.20.4
+        version: 22.20.4
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@7.3.6(@types/node@22.20.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
+
+  packages/judging-db:
+    dependencies:
+      '@query/judging-core':
+        specifier: workspace:*
+        version: link:../judging-core
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@query/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint
+      '@query/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 22.20.4
+        version: 22.20.4
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  packages/judging-server:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.0
+        version: 1.19.17(hono@4.13.13)
+      '@query/judging-core':
+        specifier: workspace:*
+        version: link:../judging-core
+      '@query/judging-db':
+        specifier: workspace:*
+        version: link:../judging-db
+      '@trpc/server':
+        specifier: 11.19.0
+        version: 11.19.0(typescript@7.0.2)
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)
+      hono:
+        specifier: ^4.9.0
+        version: 4.13.13
+      ioredis:
+        specifier: ^5.8.2
+        version: 5.11.1
+      jose:
+        specifier: ^6.1.0
+        version: 6.2.3
+      nodemailer:
+        specifier: ^10.0.10
+        version: 10.0.10
+      prom-client:
+        specifier: 15.1.3
+        version: 15.1.3
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      ws:
+        specifier: ^8.20.1
+        version: 8.21.3
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@query/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint
+      '@query/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 22.20.4
+        version: 22.20.4
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.2
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@7.3.6(@types/node@22.20.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
+
   packages/ui:
     dependencies:
       minimatch:
@@ -445,6 +414,40 @@ importers:
       typescript-eslint:
         specifier: ^8.70.1
         version: 8.70.1(eslint@10.11.0(jiti@2.7.0))(typescript@7.0.2)
+
+  sites/judging:
+    dependencies:
+      next:
+        specifier: 16.3.7
+        version: 16.3.7(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@22.20.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: 19.3.0
+        version: 19.3.0(react@19.3.0)
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.64.0
+      '@query/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint
+      '@query/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: 22.20.4
+        version: 22.20.4
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   sites/mainweb:
     dependencies:

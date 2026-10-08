@@ -1,0 +1,33 @@
+{
+  "name": "@query/judging-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure judging decisions: dispatch, rubric, phase, and ranking.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "build": "tsc -p tsconfig.build.json && node scripts/emit-extensions.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts"
+  },
+  "devDependencies": {
+    "@query/eslint-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
+    "@types/node": "22.20.4",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

@@ -116,6 +116,29 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Judging ──────────────────────────────────────────────────────────────
+  #
+  # The judging server on the same Postgres as the club site:
+  #
+  #   docker compose --profile judging up -d --build
+
+  judging-server:
+    build:
+      context: .
+      dockerfile: packages/judging-server/Dockerfile
+    container_name: monorepo-judging-server
+    profiles: ["judging"]
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/neondb
+      PANEL_JWT_SECRET: dev-only-change-me
+      PANEL_DEV_AUTH: "1"
+      PORT: "8787"
+    ports:
+      - "8787:8787"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
   promdata:

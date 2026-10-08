@@ -2,11 +2,9 @@
 
 **Repo:** `query` · **Drafted:** 2026-10-07 · **Working name:** `panel` (rename freely)
 
-A standalone hackathon judging platform, built inside this monorepo under
-`judging/`, with no knowledge of DSGT in it. Hacklytics is its first user
-through an adapter. When it is stable it leaves this repo with
-`git subtree split --prefix=judging` and ships as an open-source project with
-its own licence, docs, CI and Docker image.
+A hackathon judging platform built as ordinary workspaces in this monorepo
+(`packages/judging-*`, `sites/judging`, scope `@query/judging-*`). Hacklytics
+is its first user. It is not being split into its own repository.
 
 The current judging code in `packages/api/src/routers/judge` and
 `sites/mainweb` keeps running until cutover, then is deleted.
@@ -42,37 +40,30 @@ per-instance and polling for every live view.
 ## 1. Layout
 
 ```
-judging/
-  core/        @panel/core      pure TS, zero runtime deps. rubric validation,
-                                dispatch, distance, uncertainty, aggregators,
-                                phase state machine, timers
-  db/          @panel/db        Drizzle schema, SQL migrations (generated,
-                                committed), seed, demo data
-  server/      @panel/server    Node service: tRPC over HTTP, OpenAPI mirror,
-                                WebSocket hub, auth adapters, outbox + webhooks,
-                                Prometheus metrics
-  web/         @panel/web       Next.js: judge PWA, admin console, live board,
-                                public leaderboard, team feedback
-  cli/         @panel/cli       import/export/seed/migrate/doctor
-  infra/
-    docker/                     Dockerfiles, docker-compose.yml (full stack)
-    gcp/                        optional Terraform module (Cloud Run, Memorystore,
-                                Secret Manager, Monitoring)
-  docs/                         architecture, ADRs, deploy, API, rubric guide
-  README.md  LICENSE (MIT)  CONTRIBUTING.md  CHANGELOG.md
+packages/judging-core/    @query/judging-core    pure TS, zero runtime deps. rubric
+                                                 validation, dispatch, distance,
+                                                 uncertainty, aggregators, phase
+                                                 state machine, timers
+packages/judging-db/      @query/judging-db      Drizzle schema, SQL migrations
+                                                 (generated, committed), seed, demo
+packages/judging-server/  @query/judging-server  Node service: tRPC over HTTP,
+                                                 OpenAPI mirror, WebSocket hub, auth
+                                                 adapters, outbox + webhooks,
+                                                 Prometheus metrics. Dockerfile and
+                                                 optional Terraform (terraform/)
+packages/judging-cli/     @query/judging-cli     import/export/seed/migrate/doctor
+sites/judging/            @query/judging-web     Next.js: judge PWA, admin console,
+                                                 live board, public leaderboard,
+                                                 team feedback. Dockerfile
+docs/judging/                                    ADRs, deploy, API, rubric guide
 ```
 
-Registered as workspaces in `pnpm-workspace.yaml`. Internal imports are
-`@panel/*` only; nothing under `judging/` imports from `packages/*` or
-`sites/*`. A lint rule (`no-restricted-imports`) enforces the boundary, which is
-what makes the later extraction a one-command job.
-
-The reverse direction, `packages/api` importing `@panel/*`, is allowed and is
-how the club site integrates (§7).
+Lint, typecheck, test and build run with the rest of the repo in `ci.yml`.
+`packages/api` imports `@query/judging-*` like any other workspace (§7).
 
 ---
 
-## 2. Domain model (`@panel/db`)
+## 2. Domain model (`@query/judging-db`)
 
 Multi-tenant from day one so one deployment can host many events; a
 single-event self-host simply has one org and one event.
@@ -150,13 +141,13 @@ Design notes:
   admin can compute twice and compare before publishing one.
 - `external_id` on project and judge is how an integrator (the club site, a
   Devpost CSV, a Google Form) keeps its own identity in sync.
-- Migrations are generated SQL files committed under `judging/db/migrations`,
+- Migrations are generated SQL files committed under `packages/judging-db/migrations`,
   applied with `panel migrate`. No `drizzle-kit push` in this product; a
   self-hoster needs reproducible, reviewable migrations.
 
 ---
 
-## 3. The core (`@panel/core`)
+## 3. The core (`@query/judging-core`)
 
 No IO, no dates from the clock (every function takes `now`), no randomness
 without an injected source. Each module has a fixture-based test file.
@@ -185,7 +176,7 @@ export.
 
 ---
 
-## 4. Server (`@panel/server`)
+## 4. Server (`@query/judging-server`)
 
 Node 22, Hono as the HTTP shell, tRPC router mounted on it, `trpc-openapi`
 exposing the same procedures as REST with a generated OpenAPI document for
@@ -256,7 +247,7 @@ from `../PLAN.md` W8.
 
 ---
 
-## 5. Web (`@panel/web`)
+## 5. Web (`@query/judging-web`)
 
 Next.js app, standalone output, one Docker image. Branding from
 `organization.branding`; no hardcoded name or colours.
@@ -283,7 +274,7 @@ Next.js app, standalone output, one Docker image. Branding from
 
 ---
 
-## 6. CLI (`@panel/cli`)
+## 6. CLI (`@query/judging-cli`)
 
 `panel migrate`, `panel seed demo` (an event with 40 projects, 6 judges,
 three tracks, a sponsor rubric), `panel import projects <csv>` (column map in
@@ -302,7 +293,7 @@ The club adapter does not use it; it imports through the API.
 Thin and replaceable.
 
 - `packages/api/src/routers/judging.ts` (new, small): on `promoteSubmissions`
-  calls `@panel/server` `project.upsert` with `external_id = hackathon_project.id`;
+  calls `@query/judging-server` `project.upsert` with `external_id = hackathon_project.id`;
   on judge approval calls `judge.upsert`; on publish, pulls results and
   feedback tokens back into `hackathon_result` so `/hackathons/[id]` keeps
   rendering from its own tables.
@@ -311,10 +302,10 @@ Thin and replaceable.
 - Old `routers/judge/*` and the judging UI stay behind a feature flag per
   edition (`hackathon.judging_backend = legacy | panel`) until one event has
   run on the new system, then are deleted.
-- Deploy: `@panel/server` and `@panel/web` as two Cloud Run services in the
+- Deploy: `@query/judging-server` and `@query/judging-web` as two Cloud Run services in the
   same GCP project, Postgres as a second Neon database (not a schema in the
   club DB, so the extraction is clean), Memorystore Redis only if more than
-  one server instance is wanted. Terraform under `judging/infra/gcp`.
+  one server instance is wanted. Terraform under `packages/judging-server/terraform`.
 
 ---
 
@@ -328,14 +319,14 @@ Each phase ships green on `pnpm test`, `lint --max-warnings 0`, `typecheck`,
 - Workspaces, tsconfig, eslint boundary rule, `judging/README.md` with the
   vision, MIT `LICENSE`, ADR-001 (why standalone), ADR-002 (pure core).
 - Port `pickNext`, `isLive`, `isPastCutoff`, `projectMatchesTrack`,
-  `zNormalize`, the Bayesian step into `@panel/core` as parametrised
+  `zNormalize`, the Bayesian step into `@query/judging-core` as parametrised
   functions. Bring `dispatch.test.ts` cases with them.
 - Add `distance`, `phase`, `rubric`, `bradleyTerry`, `blend`, `uncertainty`
   with tests.
 
-**Verify:** `@panel/core` has no dependencies and 100% of exported functions
+**Verify:** `@query/judging-core` has no dependencies and 100% of exported functions
 have a test. The legacy `rankings.ts` output on the seed equals
-`@panel/core` `rank()` output byte for byte at `pairwise_weight = 0`.
+`@query/judging-core` `rank()` output byte for byte at `pairwise_weight = 0`.
 
 ### Phase 1 — Data and server (2 weeks)
 
@@ -398,19 +389,18 @@ before publish and for the wrong token.
 **Verify:** the legacy and new systems produce the same placings on a replay
 of an old event's votes. Post-event retro recorded as ADR-00x.
 
-### Phase 6 — Open-source release (1 week)
+### Phase 6 — Cleanup (1 week)
 
-- `CONTRIBUTING.md`, issue templates, GitHub Actions (test, lint, typecheck,
-  build, Docker publish to GHCR, `@panel/core` to npm on tag).
-- Docs: quick start (`docker compose up`, `panel seed demo`), deploy guide,
-  API reference from OpenAPI, rubric design guide, scoring explainer.
-- `git subtree split --prefix=judging -b panel-main`, push to the new repo,
-  replace `judging/` here with a git submodule or a pinned npm dependency.
+- Docs: quick start (`docker compose --profile judging up`, `panel seed demo`),
+  deploy guide, API reference from OpenAPI, rubric design guide, scoring
+  explainer.
 - Delete `routers/judge/*` and the legacy judging UI from the club site.
 
-**Verify:** a fresh clone of the new repo runs the demo in under five
-minutes with nothing but Docker. No string "DSGT", "Hacklytics" or
-"datasciencegt" anywhere under `judging/`.
+**Verify:** a fresh clone runs the demo in under five minutes with nothing
+but Docker.
+
+Dropped: splitting judging into its own repository. It stays in this
+monorepo.
 
 ---
 
@@ -418,8 +408,8 @@ minutes with nothing but Docker. No string "DSGT", "Hacklytics" or
 
 **Taken**
 
-- Standalone product in `judging/`, extracted later by subtree. Not a schema
-  inside the club database, so the extraction has no data entanglement.
+- Judging lives in the monorepo as `@query/judging-*` workspaces on the club
+  Postgres (ADR-003). No later extraction.
 - WebSockets on our own server with a bus adapter; Redis optional.
 - Terraform for GCP as an optional module; Docker Compose is the primary
   documented deploy.
