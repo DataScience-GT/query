@@ -3,7 +3,7 @@
 ## Status
 
 Superseded. Panel's packages are ordinary monorepo workspaces
-(`packages/judging-*`, `sites/judging`) under the `@query/*` scope. The import
+(`packages/judging-*`) under the `@query/*` scope, served by the portal. The import
 boundary and the plan to split it out were dropped.
 
 ## Decision

@@ -1,6 +1,6 @@
 # Contributing
 
-Panel is `packages/judging-*` and `sites/judging`. `pnpm lint`, `pnpm typecheck`, and `pnpm test` at the root cover it with the rest of the repository.
+Panel is `packages/judging-*` plus its portal routes in `sites/mainweb` (listed in `README.md`). `pnpm lint`, `pnpm typecheck`, and `pnpm test` at the root cover it with the rest of the repository.
 
 ## Checks
 
@@ -12,10 +12,10 @@ pnpm --filter @query/judging-server test
 pnpm --filter @query/judging-cli test
 pnpm --filter @query/judging-core lint
 pnpm --filter @query/judging-server lint
-pnpm --filter @query/judging-web lint
+pnpm --filter web lint
 pnpm --filter @query/judging-db typecheck
 pnpm --filter @query/judging-server typecheck
-pnpm --filter @query/judging-web typecheck
+pnpm --filter web typecheck
 pnpm --filter @query/judging-cli typecheck
 ```
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -257,9 +258,9 @@ export default function AdminResultsPage() {
               : "Open and close judging, watch the floor, and compare scores."}
           </p>
           {panelConsole?.url ? (
-            <a className={body} href={panelConsole.url}>
+            <Link className={body} href={panelConsole.url}>
               Open the panel console
-            </a>
+            </Link>
           ) : null}
         </header>
 

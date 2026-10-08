@@ -116,9 +116,9 @@ export default function JudgePage() {
           score.
         </p>
         {panelDesk?.url ? (
-          <a className={textLink} href={panelDesk.url}>
+          <Link className={textLink} href={panelDesk.url}>
             Open the judging desk
-          </a>
+          </Link>
         ) : null}
       </header>
 

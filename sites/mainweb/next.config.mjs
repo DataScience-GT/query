@@ -58,7 +58,15 @@ const cspHeaderName =
 const nextConfig = {
   output: "standalone",
   reactCompiler: true,
-  transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
+  transpilePackages: [
+    "@query/api",
+    "@query/auth",
+    "@query/db",
+    "@query/judging-core",
+    "@query/judging-db",
+    "@query/judging-server",
+    "@query/ui",
+  ],
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // Native/dynamic requires that a bundler mangles. Left external so the
   // standalone output loads them from node_modules at runtime.

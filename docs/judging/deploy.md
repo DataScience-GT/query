@@ -1,25 +1,19 @@
 # Deploy
 
-Docker Compose is the deploy to start from. From the repository root:
+Judging ships with mainweb. There is no separate service or image: the API is
+`/api/panel` in the portal, and the pages are portal routes (see `README.md`).
+
+Before the first event on panel, against the production database:
 
 ```
-docker compose --profile judging up -d --build
-```
-
-Then, against the published Postgres port:
-
-```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5433/neondb
-PANEL_JWT_SECRET=dev-only-change-me
+DATABASE_URL=<the club database>
 pnpm --filter @query/judging-cli panel migrate
-pnpm --filter @query/judging-cli panel seed demo
 pnpm --filter @query/judging-cli panel doctor
 ```
 
-`panel doctor` must report postgres, migrations, and jwt as ok. Set `DATABASE_URL` to the same Postgres the club app uses. `PANEL_DATABASE_URL` is only read when `DATABASE_URL` is unset. The stack is one API server. Leave `REDIS_URL` unset so live updates stay in that process. Clients that miss a socket message recover from `GET /v1/live`.
+Then set `PANEL_EVENT_ID`, `PANEL_ORG_SLUG`, and `PANEL_EVENT_SLUG` in the
+mainweb environment (`apphosting.yaml`) and switch the edition's
+`judging_backend` to `panel`.
 
-The optional GCP module is `packages/judging-server/terraform`. It is not required to run the stack. The server image is `packages/judging-server/Dockerfile` and the web image is `sites/judging/Dockerfile`. Pass `NEXT_PUBLIC_PANEL_URL` at build time so the desk calls the API.
-
-Set `PANEL_SMTP_URL` to an SMTP URL when sign-in codes should be emailed.
-Without it, `PANEL_DEV_AUTH=1` returns the code in the response. OIDC waits
-on a provider; trusted JWT from the club site is the handoff that works now.
+`PANEL_JWT_SECRET` is only needed for callers outside the portal that send a
+bearer token; API keys from `catalog.issueApiKey` work without it.
