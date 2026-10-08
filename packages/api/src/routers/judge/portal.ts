@@ -69,23 +69,16 @@ export const judgePortalRouter = createTRPCRouter({
       return result;
     }),
 
-  /** A short-lived ticket into the panel desk, only for an edition that opted in. */
+  /** The panel judge desk in the portal, only for an edition that opted in. */
   panelDesk: protectedProcedure.query(async ({ ctx }) => {
     return panelDeskUrl(ctx.db as DrizzleDB, ctx.userId as string);
   }),
 
-  /** Organizer handoff into the panel console when this edition uses panel. */
+  /** The panel organizer console in the portal when this edition uses panel. */
   panelConsole: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const email = ctx.session?.user?.email;
-      if (!email) return { url: null as string | null };
-      return panelConsoleUrl(ctx.db as DrizzleDB, {
-        hackathonId: input.hackathonId,
-        userId: ctx.userId as string,
-        email,
-        name: ctx.session?.user?.name ?? email,
-      });
+      return panelConsoleUrl(ctx.db as DrizzleDB, input.hackathonId);
     }),
 
   getMyAssignments: protectedProcedure.query(async ({ ctx }) => {

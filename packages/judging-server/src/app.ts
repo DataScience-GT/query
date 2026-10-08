@@ -8,7 +8,7 @@ import type { PanelDb } from "@query/judging-db";
 import { event, loginCode, membership, organization, user, visit } from "@query/judging-db";
 import { hashCode, newLoginCode, roleAtLeast, signActor, verifyActor } from "./auth";
 import { sendLoginCode } from "./mail";
-import type { Role } from "./auth";
+import type { Actor, Role } from "./auth";
 import type { Bus } from "./bus";
 import { InMemoryBus } from "./bus";
 import { feedbackCard, feedbackTokenForExternal, actorForApiKey } from "./services/catalog";
@@ -64,6 +64,8 @@ export function createApp(options: {
   smtpUrl?: string;
   busMode: "memory" | "redis";
   bus?: Bus;
+  /** Who is signed in when the request carries no bearer token, e.g. a portal session cookie. */
+  resolveActor?: (request: Request) => Promise<Actor | null>;
 }) {
   const bus = options.bus ?? new InMemoryBus();
   const app = new Hono();
@@ -215,7 +217,9 @@ export function createApp(options: {
     return c.json(row);
   });
 
-  const contextFor = async (c: { req: { header: (name: string) => string | undefined } }): Promise<Context> => {
+  const contextFor = async (c: {
+    req: { header: (name: string) => string | undefined; raw: Request };
+  }): Promise<Context> => {
     const header = c.req.header("authorization");
     let actor: Context["actor"] = null;
     if (header?.startsWith("Bearer ")) {
@@ -228,6 +232,8 @@ export function createApp(options: {
       } catch {
         actor = await actorForApiKey(options.db, token);
       }
+    } else if (options.resolveActor) {
+      actor = await options.resolveActor(c.req.raw);
     }
     return { db: options.db, actor, now: new Date(), bus, metrics: options.metrics };
   };
@@ -329,31 +335,13 @@ export function createApp(options: {
   });
 
   app.get("/v1/results/run/:runId", async (c) => {
-    const header = c.req.header("authorization");
-    if (!header?.startsWith("Bearer ")) return c.json({ message: "Unauthorized" }, 401);
-    try {
-      await verifyActor(header.slice("Bearer ".length), {
-        secret: options.jwtSecret,
-        jwksUrl: options.jwksUrl,
-      });
-    } catch {
-      return c.json({ message: "Unauthorized" }, 401);
-    }
+    if (!(await contextFor(c)).actor) return c.json({ message: "Unauthorized" }, 401);
     const runId = z.string().uuid().parse(c.req.param("runId"));
     return c.json(await inspectRun(options.db, runId));
   });
 
   app.get("/v1/results/:eventId", async (c) => {
-    const header = c.req.header("authorization");
-    if (!header?.startsWith("Bearer ")) return c.json({ message: "Unauthorized" }, 401);
-    try {
-      await verifyActor(header.slice("Bearer ".length), {
-        secret: options.jwtSecret,
-        jwksUrl: options.jwksUrl,
-      });
-    } catch {
-      return c.json({ message: "Unauthorized" }, 401);
-    }
+    if (!(await contextFor(c)).actor) return c.json({ message: "Unauthorized" }, 401);
     const eventId = z.string().uuid().parse(c.req.param("eventId"));
     const placements = await publishedPlacements(options.db, eventId);
     if (!placements) return c.json({ message: "Not found" }, 404);

@@ -3,7 +3,8 @@
 **Repo:** `query` · **Drafted:** 2026-10-07 · **Working name:** `panel` (rename freely)
 
 A hackathon judging platform built as ordinary workspaces in this monorepo
-(`packages/judging-*`, `sites/judging`, scope `@query/judging-*`). Hacklytics
+(`packages/judging-*`, scope `@query/judging-*`) and served by the portal
+(`sites/mainweb`). Hacklytics
 is its first user. It is not being split into its own repository.
 
 The current judging code in `packages/api/src/routers/judge` and
@@ -49,12 +50,13 @@ packages/judging-db/      @query/judging-db      Drizzle schema, SQL migrations
 packages/judging-server/  @query/judging-server  Node service: tRPC over HTTP,
                                                  OpenAPI mirror, WebSocket hub, auth
                                                  adapters, outbox + webhooks,
-                                                 Prometheus metrics. Dockerfile and
-                                                 optional Terraform (terraform/)
+                                                 Prometheus metrics. A library:
+                                                 mainweb mounts it at /api/panel
 packages/judging-cli/     @query/judging-cli     import/export/seed/migrate/doctor
-sites/judging/            @query/judging-web     Next.js: judge PWA, admin console,
-                                                 live board, public leaderboard,
-                                                 team feedback. Dockerfile
+sites/mainweb/            web                    portal routes: judge desk
+                                                 (/judge/panel), organizer console
+                                                 (/admin/judging/panel), public
+                                                 board and team feedback (/judging)
 docs/judging/                                    ADRs, deploy, API, rubric guide
 ```
 
@@ -297,15 +299,13 @@ Thin and replaceable.
   on judge approval calls `judge.upsert`; on publish, pulls results and
   feedback tokens back into `hackathon_result` so `/hackathons/[id]` keeps
   rendering from its own tables.
-- `sites/mainweb` `/judge` becomes a trusted-JWT handoff to the judge PWA.
-  Admin "Judging" tab deep-links into the console with the same handoff.
+- The judge desk and organizer console are portal routes on the portal
+  session (`/judge/panel/...`, `/admin/judging/panel/...`). No handoff.
 - Old `routers/judge/*` and the judging UI stay behind a feature flag per
   edition (`hackathon.judging_backend = legacy | panel`) until one event has
   run on the new system, then are deleted.
-- Deploy: `@query/judging-server` and `@query/judging-web` as two Cloud Run services in the
-  same GCP project, Postgres as a second Neon database (not a schema in the
-  club DB, so the extraction is clean), Memorystore Redis only if more than
-  one server instance is wanted. Terraform under `packages/judging-server/terraform`.
+- Deploy: ships with mainweb. The API is `/api/panel` in the same process,
+  on the club Postgres (ADR-003). No separate service.
 
 ---
 
