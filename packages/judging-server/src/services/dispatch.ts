@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { isLive, pickNext } from "@query/judging-core";
 import type { TimerConfig } from "@query/judging-core";
 import type { PanelDb, PanelTx } from "@query/judging-db";
@@ -389,6 +389,48 @@ export async function skipVisit(
     });
     return { projectId: row.projectId };
   });
+}
+
+/**
+ * Whether the judge's open visit still stands: an organizer may have voided
+ * it, or called the judge back to the desk since it was handed out. The
+ * recall lookup reads only log rows written since the hand-out
+ * (event_log_event_idx), so a phone can ask while it walks.
+ */
+export async function visitStatus(
+  db: PanelDb,
+  input: { eventId: string; judgeId: string; visitId: string },
+) {
+  const [row] = await db
+    .select({ handedOutAt: visit.handedOutAt, voidedAt: visit.voidedAt })
+    .from(visit)
+    .where(
+      and(
+        eq(visit.id, input.visitId),
+        eq(visit.eventId, input.eventId),
+        eq(visit.judgeId, input.judgeId),
+      ),
+    );
+  if (!row) throw new Error("Visit not found");
+  const [recall] = await db
+    .select({ at: eventLog.createdAt })
+    .from(eventLog)
+    .where(
+      and(
+        eq(eventLog.eventId, input.eventId),
+        gte(eventLog.createdAt, row.handedOutAt),
+        eq(eventLog.kind, "judge.recalled"),
+        sql`${eventLog.subject}->>'judgeId' = ${input.judgeId}`,
+      ),
+    )
+    .orderBy(desc(eventLog.createdAt))
+    .limit(1);
+  // A recall does not void the visit, so the same visit can come back from
+  // dispatch. The time lets the phone act once per recall, not once per poll.
+  return {
+    voided: row.voidedAt !== null,
+    recalledAt: recall ? recall.at.toISOString() : null,
+  };
 }
 
 export async function judgeProgress(
