@@ -21,6 +21,7 @@ import {
   lockDispatch,
 } from "./dispatch";
 import type { DrizzleDB } from "@query/db";
+import { panelConsoleUrl, panelDeskUrl } from "../../services/panel-sync";
 
 
 export const judgePortalRouter = createTRPCRouter({
@@ -66,6 +67,25 @@ export const judgePortalRouter = createTRPCRouter({
       ctx.cache.set(cacheKey, result, 60);
 
       return result;
+    }),
+
+  /** A short-lived ticket into the panel desk, only for an edition that opted in. */
+  panelDesk: protectedProcedure.query(async ({ ctx }) => {
+    return panelDeskUrl(ctx.db as DrizzleDB, ctx.userId as string);
+  }),
+
+  /** Organizer handoff into the panel console when this edition uses panel. */
+  panelConsole: isAdmin
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const email = ctx.session?.user?.email;
+      if (!email) return { url: null as string | null };
+      return panelConsoleUrl(ctx.db as DrizzleDB, {
+        hackathonId: input.hackathonId,
+        userId: ctx.userId as string,
+        email,
+        name: ctx.session?.user?.name ?? email,
+      });
     }),
 
   getMyAssignments: protectedProcedure.query(async ({ ctx }) => {

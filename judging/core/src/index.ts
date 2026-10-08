@@ -12,6 +12,8 @@ export type {
 } from "./aggregate/rank";
 export type { Comparison } from "./comparison";
 export { pickNext } from "./dispatch";
+export { assignTables } from "./tables";
+export type { Assignment, Seat, SeatedProject } from "./tables";
 export type {
   Candidate,
   DispatchConfig,

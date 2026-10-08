@@ -56,6 +56,11 @@ export const hackathons = pgTable(
     websiteUrl: text("website_url"),
     isPublic: boolean("is_public").notNull().default(true),
     judgingActive: boolean("judging_active").notNull().default(false),
+    // legacy keeps the current judge portal. panel hands the same edition to
+    // the standalone judging service. Additive: existing rows stay on legacy.
+    judgingBackend: text("judging_backend", { enum: ["legacy", "panel"] })
+      .notNull()
+      .default("legacy"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

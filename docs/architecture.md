@@ -33,7 +33,7 @@
 
 ## Two products, one database
 
-The schema is split on purpose. Mixing them previously made membership vanish when a new hackathon edition was drafted.
+The schema is split on purpose. Mixing them previously made membership vanish when a new hackathon edition was drafted. Panel judging tables live in this same Postgres database.
 
 ### Club
 

@@ -249,6 +249,14 @@ function rankTrack(
   );
   placeable.sort((a, b) => {
     if (a.score !== b.score) return b.score - a.score;
+    // Hundredths can tie two neighbours. The unrounded pairwise strength
+    // still has the order the comparisons produced.
+    if (
+      config.pairwiseWeight > 0 &&
+      a.pairwiseComponent !== b.pairwiseComponent
+    ) {
+      return b.pairwiseComponent - a.pairwiseComponent;
+    }
     return (order.get(a.projectId) ?? 0) - (order.get(b.projectId) ?? 0);
   });
   placeable.forEach((row, index) => {
