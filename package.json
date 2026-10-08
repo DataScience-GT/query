@@ -19,7 +19,7 @@
     "typescript": "^7.0.2"
   },
   "devDependencies": {
-    "turbo": "^2.11.3",
+    "turbo": "^2.11.7",
     "vite": "^7.3.5",
     "vitest": "^5.0.3"
   },
