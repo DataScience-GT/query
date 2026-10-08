@@ -3,8 +3,12 @@ import { eq, isNull } from "drizzle-orm";
 import type { PanelDb } from "@query/judging-db";
 import { outbox, webhook } from "@query/judging-db";
 
-/** Delivers pending outbox rows. A topic with no active webhook is delivered. */
-export async function drainOutbox(db: PanelDb, now = new Date()): Promise<number> {
+/**
+ * Delivers pending outbox rows. A topic with no active webhook is delivered.
+ * A delivered row is deleted: event_log already keeps the history, and on a
+ * 0.5 GB database a second copy of every vote is not worth keeping.
+ */
+export async function drainOutbox(db: PanelDb): Promise<number> {
   const pending = await db
     .select()
     .from(outbox)
@@ -42,10 +46,7 @@ export async function drainOutbox(db: PanelDb, now = new Date()): Promise<number
         .where(eq(outbox.id, row.id));
       continue;
     }
-    await db
-      .update(outbox)
-      .set({ deliveredAt: now, attempts: row.attempts + 1 })
-      .where(eq(outbox.id, row.id));
+    await db.delete(outbox).where(eq(outbox.id, row.id));
     delivered += 1;
   }
   return delivered;

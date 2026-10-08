@@ -17,6 +17,7 @@ const phases = [
 
 export function Console({ event }: { event: PublicEvent }) {
   const [message, setMessage] = useState(event.phase);
+  const [phase, setPhase] = useState(event.phase);
   const [floor, setFloor] = useState<{
     tables: { tableNumber: number | null; looks: number }[];
     judges: {
@@ -67,7 +68,11 @@ export function Console({ event }: { event: PublicEvent }) {
   }
 
   useEffect(() => {
+    // The floor only moves while judging is live, and only matters on screen.
+    // Anything else would keep the database awake (see the public board).
+    if (phase !== "judging_live") return;
     let stop = false;
+    let timer: ReturnType<typeof setInterval> | undefined;
     const pull = async () => {
       const response = await fetch(`${apiBase}/v1/floor/${event.eventId}`);
       if (!response.ok || stop) return;
@@ -83,13 +88,20 @@ export function Console({ event }: { event: PublicEvent }) {
         },
       );
     };
-    void pull();
-    const timer = setInterval(() => void pull(), 5000);
+    const sync = () => {
+      clearInterval(timer);
+      if (document.visibilityState !== "visible") return;
+      void pull();
+      timer = setInterval(() => void pull(), 5000);
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
     return () => {
       stop = true;
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", sync);
     };
-  }, [event.eventId]);
+  }, [phase, event.eventId]);
 
   return (
     <main style={{ maxWidth: 40 * 16, margin: "2rem auto", padding: "0 1rem" }}>
@@ -140,6 +152,7 @@ export function Console({ event }: { event: PublicEvent }) {
           onClick={async () => {
             try {
               await post("event.setPhase", { eventId: event.eventId, phase });
+              setPhase(phase);
               setMessage(phase);
             } catch (error) {
               setMessage(
