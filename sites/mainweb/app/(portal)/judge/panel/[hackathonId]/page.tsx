@@ -6,16 +6,16 @@ import { loadEvent } from "@/lib/panel.server";
 export default async function JudgePage({
   params,
 }: {
-  params: Promise<{ orgSlug: string; eventSlug: string }>;
+  params: Promise<{ hackathonId: string }>;
 }) {
-  const { orgSlug, eventSlug } = await params;
+  const { hackathonId } = await params;
   const actor = await portalActor();
   if (!actor) {
     redirect(
-      `/login?callbackUrl=${encodeURIComponent(`/judge/panel/${orgSlug}/${eventSlug}`)}`,
+      `/login?callbackUrl=${encodeURIComponent(`/judge/panel/${hackathonId}`)}`,
     );
   }
-  const event = await loadEvent(orgSlug, eventSlug);
+  const event = await loadEvent(hackathonId);
   if (!event)
     return (
       <main style={{ padding: "2rem" }}>This event is not available.</main>

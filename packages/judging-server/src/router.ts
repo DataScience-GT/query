@@ -49,6 +49,7 @@ import {
   saveConfig,
 } from "./services/catalog";
 import { castVote } from "./services/vote";
+import { drainOutbox } from "./services/outbox";
 
 export type Context = {
   db: PanelDb;
@@ -482,6 +483,13 @@ export const appRouter = t.router({
             now: ctx.now,
           });
           tell(ctx, input.eventId, null, "results.published");
+          // Nothing drains the queue on a timer, and publish is the one step
+          // every event takes. Webhooks go out here; rows nobody listens for
+          // are cleared. A failed delivery stays queued for `panel outbox drain`.
+          for (let batch = 0; batch < 20; batch += 1) {
+            const delivered = await drainOutbox(ctx.db).catch(() => 0);
+            if (delivered === 0) break;
+          }
           return outcome;
         } catch (error) {
           asTrpc(error);

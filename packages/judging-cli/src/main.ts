@@ -107,11 +107,13 @@ async function main() {
       }
     }
 
+    // Optional: the portal signs judges in with its own session. The secret
+    // only matters for callers outside it that send a bearer token.
     const secret = process.env.PANEL_JWT_SECRET;
     checks.push({
       name: "jwt",
-      ok: Boolean(secret),
-      detail: secret ? "PANEL_JWT_SECRET is set" : "PANEL_JWT_SECRET is not set",
+      ok: true,
+      detail: secret ? "PANEL_JWT_SECRET is set" : "not set (portal sign-in only)",
     });
     checks.push({
       name: "redis",

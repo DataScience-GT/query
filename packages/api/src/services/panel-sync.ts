@@ -1,8 +1,9 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { hackathonProjects, hackathonResults, hackathons, judges, judgingProjects } from "@query/db";
 import type { DrizzleDB } from "@query/db";
+import { judge as panelJudge } from "@query/judging-db";
 import { publishedPlacements } from "@query/judging-server";
-import { panel, panelAsPortal } from "./panel";
+import { panel, panelAsPortal, panelEventFor } from "./panel";
 
 /**
  * Copies an edition into judging when that edition has opted in.
@@ -40,34 +41,78 @@ export async function syncProjectsToPanel(db: DrizzleDB, hackathonId: string) {
   }
 }
 
+/**
+ * Mirrors a portal judge into the edition's judging event. Approval in the
+ * portal is approval in judging; deactivating suspends them there.
+ */
 export async function syncJudgeToPanel(
   db: DrizzleDB,
-  judge: { hackathonId: string; email: string | null },
+  judge: { hackathonId: string; email: string | null; isActive: boolean },
 ) {
   try {
     if (!judge.email) return;
     const target = await panelTarget(db, judge.hackathonId);
     if (!target) return;
-    await panelAsPortal().judge.upsert({
-      eventId: target.eventId,
-      email: judge.email,
-      name: judge.email,
-      externalId: null,
-    });
+    await mirrorJudge(target.eventId, judge.email, judge.isActive);
   } catch {
     return;
   }
 }
 
+async function mirrorJudge(eventId: string, email: string, isActive: boolean) {
+  const caller = panelAsPortal();
+  // Upsert is refused once judging is closed; a judge already there can
+  // still be suspended or reinstated.
+  const stored = await caller.judge
+    .upsert({ eventId, email, name: email, externalId: null })
+    .catch(() => undefined);
+  let judgeId = stored?.id;
+  if (!judgeId) {
+    const [row] = await panel()
+      .db.select({ id: panelJudge.id })
+      .from(panelJudge)
+      .where(and(eq(panelJudge.eventId, eventId), eq(panelJudge.email, email.toLowerCase())));
+    judgeId = row?.id;
+  }
+  if (!judgeId) return;
+  await caller.judge.setStatus({
+    eventId,
+    judgeId,
+    status: isActive ? "approved" : "suspended",
+  });
+}
+
+/**
+ * Moves an edition onto panel judging: creates its event, then copies in the
+ * submitted projects and the judges the portal has approved. Switching back
+ * leaves the panel event in place, so switching again resumes it.
+ */
+export async function setJudgingBackend(
+  db: DrizzleDB,
+  hackathonId: string,
+  backend: "legacy" | "panel",
+) {
+  await db.update(hackathons).set({ judgingBackend: backend }).where(eq(hackathons.id, hackathonId));
+  if (backend === "legacy") return;
+  const target = await panelTarget(db, hackathonId);
+  if (!target) return;
+  await syncProjectsToPanel(db, hackathonId);
+  const rows = await db
+    .select({ email: judges.email, isActive: judges.isActive })
+    .from(judges)
+    .where(eq(judges.hackathonId, hackathonId));
+  for (const row of rows) {
+    if (row.email) await mirrorJudge(target.eventId, row.email, row.isActive);
+  }
+}
+
 async function panelTarget(db: DrizzleDB, hackathonId: string) {
-  const eventId = process.env.PANEL_EVENT_ID;
-  if (!eventId) return null;
   const [row] = await db
-    .select({ backend: hackathons.judgingBackend })
+    .select({ id: hackathons.id, name: hackathons.name, backend: hackathons.judgingBackend })
     .from(hackathons)
     .where(eq(hackathons.id, hackathonId));
   if (row?.backend !== "panel") return null;
-  return { eventId };
+  return panelEventFor(row);
 }
 
 export async function pullPanelResults(db: DrizzleDB, hackathonId: string) {
@@ -120,11 +165,8 @@ export async function pullPanelResults(db: DrizzleDB, hackathonId: string) {
 }
 
 export async function panelDeskUrl(db: DrizzleDB, userId: string) {
-  const org = process.env.PANEL_ORG_SLUG;
-  const eventSlug = process.env.PANEL_EVENT_SLUG;
-  if (!org || !eventSlug) return { url: null as string | null };
   const [row] = await db
-    .select({ email: judges.email })
+    .select({ hackathonId: judges.hackathonId })
     .from(judges)
     .innerJoin(hackathons, eq(hackathons.id, judges.hackathonId))
     .where(
@@ -134,18 +176,18 @@ export async function panelDeskUrl(db: DrizzleDB, userId: string) {
         eq(hackathons.judgingBackend, "panel"),
       ),
     );
-  if (!row?.email) return { url: null };
-  return { url: `/judge/panel/${org}/${eventSlug}` };
+  if (!row) return { url: null as string | null };
+  return { url: `/judge/panel/${row.hackathonId}` };
 }
 
 export async function panelConsoleUrl(db: DrizzleDB, hackathonId: string) {
-  const org = process.env.PANEL_ORG_SLUG;
-  const eventSlug = process.env.PANEL_EVENT_SLUG;
-  if (!org || !eventSlug) return { url: null as string | null };
   const [row] = await db
     .select({ backend: hackathons.judgingBackend })
     .from(hackathons)
     .where(eq(hackathons.id, hackathonId));
-  if (row?.backend !== "panel") return { url: null };
-  return { url: `/admin/judging/panel/${org}/${eventSlug}` };
+  const backend = row?.backend ?? "legacy";
+  return {
+    backend,
+    url: backend === "panel" ? `/admin/judging/panel/${hackathonId}` : null,
+  };
 }

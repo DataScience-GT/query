@@ -21,7 +21,7 @@ import {
   lockDispatch,
 } from "./dispatch";
 import type { DrizzleDB } from "@query/db";
-import { panelConsoleUrl, panelDeskUrl } from "../../services/panel-sync";
+import { panelConsoleUrl, panelDeskUrl, setJudgingBackend } from "../../services/panel-sync";
 
 
 export const judgePortalRouter = createTRPCRouter({
@@ -78,6 +78,19 @@ export const judgePortalRouter = createTRPCRouter({
   panelConsole: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      return panelConsoleUrl(ctx.db as DrizzleDB, input.hackathonId);
+    }),
+
+  /** Moves an edition between classic judging and panel. Panel gets its event and a first sync. */
+  setJudgingBackend: isAdmin
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        backend: z.enum(["legacy", "panel"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await setJudgingBackend(ctx.db as DrizzleDB, input.hackathonId, input.backend);
       return panelConsoleUrl(ctx.db as DrizzleDB, input.hackathonId);
     }),
 

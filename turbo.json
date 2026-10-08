@@ -99,9 +99,6 @@
     "PANEL_JWT_SECRET",
     "PANEL_SMTP_URL",
     "PANEL_SMTP_FROM",
-    "PANEL_EVENT_ID",
-    "PANEL_ORG_SLUG",
-    "PANEL_EVENT_SLUG",
     "REDIS_URL"
   ]
 }
