@@ -10,8 +10,11 @@ const PREFIX = "/api/panel";
 async function handler(req: Request) {
   const url = new URL(req.url);
   url.pathname = url.pathname.slice(PREFIX.length) || "/";
-  // Process metrics are not public; the portal's own /api/metrics is the scrape target.
-  if (url.pathname === "/metrics") return new Response(null, { status: 404 });
+  // Not public: process metrics, and a readiness probe that queries Postgres.
+  // An uptime checker on /readyz would keep Neon awake around the clock.
+  if (url.pathname === "/metrics" || url.pathname === "/readyz") {
+    return new Response(null, { status: 404 });
+  }
   const body =
     req.method === "GET" || req.method === "HEAD"
       ? undefined

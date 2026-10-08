@@ -74,8 +74,14 @@ export function JudgeDesk({
       headers: { "content-type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     });
-    const payload = (await response.json()) as { message?: string };
-    if (!response.ok) throw new Error(payload.message ?? "Request failed");
+    const payload = (await response.json().catch(() => ({}))) as {
+      message?: string;
+    };
+    if (!response.ok) {
+      throw Object.assign(new Error(payload.message ?? "Request failed"), {
+        status: response.status,
+      });
+    }
     return payload;
   }
 
@@ -102,15 +108,19 @@ export function JudgeDesk({
           headers: { "content-type": "application/json" },
           body: JSON.stringify(payload),
         }).then((response) => {
-          if (!response.ok) throw new Error("still offline");
+          // A refusal (past the hard limit, a voided visit) is final; only an
+          // outage keeps the score on the phone for another try.
+          if (response.status >= 500) throw new Error("still offline");
         }),
-      ).then((sent) => {
-        if (sent > 0) {
-          setMessage(
-            `Sent ${sent} score${sent === 1 ? "" : "s"} held on this phone.`,
-          );
-        }
-      });
+      )
+        .then((sent) => {
+          if (sent > 0) {
+            setMessage(
+              `Sent ${sent} score${sent === 1 ? "" : "s"} held on this phone.`,
+            );
+          }
+        })
+        .catch(() => undefined);
     };
     send();
     window.addEventListener("online", send);
@@ -372,6 +382,15 @@ export function JudgeDesk({
                   setMessage("Score stored.");
                   setVisit(null);
                 } catch (error) {
+                  const status = (error as { status?: number }).status;
+                  if (status !== undefined && status < 500) {
+                    // The server refused this score. Holding it would resend
+                    // the same refusal every time the page opens.
+                    setMessage(
+                      error instanceof Error ? error.message : "Score refused",
+                    );
+                    return;
+                  }
                   await holdVote(body);
                   setMessage(
                     error instanceof Error

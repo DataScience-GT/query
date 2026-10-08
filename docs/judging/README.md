@@ -34,9 +34,13 @@ are pulled back into `hackathon_result`.
 Set `PANEL_EVENT_ID`, `PANEL_ORG_SLUG`, and `PANEL_EVENT_SLUG` to the judging
 event an edition uses. Without them the portal shows no panel links.
 
-Live views poll. There is no WebSocket in the portal process; the board uses
-the event's `board_poll_seconds` and the console polls the floor every five
-seconds.
+Live views poll, and only while they can change. The board polls at the
+event's `board_poll_seconds` and the console polls the floor every five
+seconds, both only during `judging_live` and only while the tab is visible.
+Neon suspends after five idle minutes and the free plan has 100 compute hours
+a month, so a forgotten board in any other phase must not keep it awake.
+`/api/panel/readyz` and `/api/panel/metrics` are not exposed for the same
+reason. Judging uses the club's connection pool rather than a second one.
 
 ## Checks
 
@@ -56,5 +60,7 @@ pnpm --filter @query/judging-cli panel seed demo
 pnpm --filter @query/judging-cli panel doctor
 ```
 
-Webhooks queue in `outbox`. Drain them with `panel outbox drain`, on a
-schedule if an event uses webhooks.
+Webhooks queue in `outbox`. Drain them with `panel outbox drain`; delivered
+rows are deleted, since `event_log` keeps the history. Run it after each event
+even without webhooks, so the queue does not sit in the 0.5 GB database. A
+Hacklytics-size event is on the order of 20 MB across the judging tables.

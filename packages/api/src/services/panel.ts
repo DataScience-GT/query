@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import { admins, hackathons, judges } from "@query/db";
+import { admins, db as clubDb, hackathons, judges } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { createDb } from "@query/judging-db";
+import { createDbFromPool } from "@query/judging-db";
 import type { PanelDb } from "@query/judging-db";
 import {
   InMemoryBus,
@@ -28,19 +28,15 @@ const globalForPanel = globalThis as unknown as { panel?: Embedded };
 
 /**
  * Judging runs inside the portal: same process, same Postgres, and the portal
- * sign-in decides who the caller is. One instance per process, so the metrics
- * registry and the pool are not rebuilt on every request.
+ * sign-in decides who the caller is. It borrows the club's pool rather than
+ * opening its own: the club pool is tuned to let Neon scale to zero, and a
+ * second pool would hold a second set of connections to the same database.
+ * One instance per process, so the metrics registry is not rebuilt per request.
  */
 export function panel(): Embedded {
   if (globalForPanel.panel) return globalForPanel.panel;
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  const { db } = createDb(url, {
-    ssl:
-      process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: true }
-        : undefined,
-  });
+  if (!clubDb) throw new Error("DATABASE_URL is not set");
+  const { db } = createDbFromPool(clubDb.$client);
   const metrics = createMetrics();
   const bus = new InMemoryBus();
   const app = createApp({
