@@ -470,12 +470,11 @@ export const judgeAdminRouter = createTRPCRouter({
         }
       }
 
-      if (input.isActive) {
-        await syncJudgeToPanel(ctx.db as DrizzleDB, {
-          hackathonId: updated.hackathonId,
-          email: updated.email,
-        });
-      }
+      await syncJudgeToPanel(ctx.db as DrizzleDB, {
+        hackathonId: updated.hackathonId,
+        email: updated.email,
+        isActive: input.isActive,
+      });
       return { success: true, isActive: input.isActive, queuedProjects };
     }),
 

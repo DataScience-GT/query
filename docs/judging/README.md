@@ -16,23 +16,27 @@ club Postgres, and the portal sign-in decides who is judging or organizing.
 
 ## In the portal
 
+Judging is per hackathon edition. On `/admin/judging`, staff pick the edition
+and press "Switch to panel judging". That creates the edition's judging event
+(organization `hacklytics`, event slug = the hackathon id) in `setup`, with
+default timers and the club's five criteria out of ten, then copies in the
+submitted projects and the portal's judges. Switching back to classic leaves
+the event in place.
+
 | Route | Who | What |
 | --- | --- | --- |
 | `/api/panel/*` | the pages below | The judging API. Same routes as `docs/judging/api.md`, without the prefix. |
-| `/judge/panel/[org]/[event]` | approved judges | Judge desk: next table, QR or table number, scores, pairwise, offline hold. |
-| `/admin/judging/panel/[org]/[event]` | staff | Organizer console: phases, floor, tables, rubric, tracks, judges, results. |
-| `/judging/[org]/[event]` | anyone | Public board while judging, placements after publish. |
-| `/judging/[org]/[event]/feedback/[token]` | a team | That team's feedback card after publish. |
+| `/judge/panel/[hackathonId]` | approved judges | Judge desk: next table, QR or table number, scores, pairwise, offline hold. |
+| `/admin/judging/panel/[hackathonId]` | staff | Organizer console: phases, floor, tables, rubric, tracks, judges, results. |
+| `/judging/[hackathonId]` | anyone | Public board while judging, placements after publish. |
+| `/judging/[hackathonId]/feedback/[token]` | a team | That team's feedback card after publish. |
 
 Roles come from the `admins` row: `super_admin` is owner, other staff are
 admin, a volunteer row is volunteer, a bug tester has none. A judge is matched
-by the email on their portal judge row for an edition whose
-`judging_backend` is `panel`. Projects and judges are copied in process when
-an organizer promotes submissions or approves a judge, and published results
-are pulled back into `hackathon_result`.
-
-Set `PANEL_EVENT_ID`, `PANEL_ORG_SLUG`, and `PANEL_EVENT_SLUG` to the judging
-event an edition uses. Without them the portal shows no panel links.
+by the email on their portal judge row. Approving a judge in the portal
+approves them in judging, and deactivating suspends them. Promoting
+submissions copies projects in, and pulling results writes published
+placements back into `hackathon_result`.
 
 Live views poll, and only while they can change. The board polls at the
 event's `board_poll_seconds` and the console polls the floor every five
@@ -62,7 +66,7 @@ pnpm --filter @query/judging-cli panel seed demo
 pnpm --filter @query/judging-cli panel doctor
 ```
 
-Webhooks queue in `outbox`. Drain them with `panel outbox drain`; delivered
-rows are deleted, since `event_log` keeps the history. Run it after each event
-even without webhooks, so the queue does not sit in the 0.5 GB database. A
-Hacklytics-size event is on the order of 20 MB across the judging tables.
+Webhooks queue in `outbox`. Publishing results drains it; delivered rows are
+deleted, since `event_log` keeps the history. A delivery that failed stays
+queued for `panel outbox drain`. A Hacklytics-size event is on the order of
+20 MB across the judging tables.

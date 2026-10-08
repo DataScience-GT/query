@@ -1,13 +1,13 @@
 import { LiveBoard } from "./board";
-import { loadEvent } from "@/lib/panel.server";
+import { PANEL_ORG, loadEvent } from "@/lib/panel.server";
 
 export default async function PublicBoard({
   params,
 }: {
-  params: Promise<{ orgSlug: string; eventSlug: string }>;
+  params: Promise<{ hackathonId: string }>;
 }) {
-  const { orgSlug, eventSlug } = await params;
-  const event = await loadEvent(orgSlug, eventSlug);
+  const { hackathonId } = await params;
+  const event = await loadEvent(hackathonId);
   if (!event)
     return (
       <main style={{ padding: "2rem" }}>This event is not available.</main>
@@ -21,7 +21,7 @@ export default async function PublicBoard({
           ? "Results are published."
           : "Judging is in progress."}
       </p>
-      <LiveBoard orgSlug={orgSlug} eventSlug={eventSlug} />
+      <LiveBoard orgSlug={PANEL_ORG.slug} eventSlug={hackathonId} />
     </main>
   );
 }

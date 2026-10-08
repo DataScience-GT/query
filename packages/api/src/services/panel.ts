@@ -8,6 +8,7 @@ import {
   appRouter,
   createApp,
   createMetrics,
+  ensureEvent,
 } from "@query/judging-server";
 import type { Actor, Role } from "@query/judging-server";
 import { createContext } from "../context";
@@ -16,6 +17,19 @@ import {
   isExpiredAdmin,
   isStaffRole,
 } from "../types/portal-context";
+
+/** Every hackathon edition is one judging event in this organization. */
+export const PANEL_ORG = { slug: "hacklytics", name: "Hacklytics" } as const;
+
+/** The judging event for an edition, keyed by the hackathon id. Created on first use. */
+export async function panelEventFor(hackathon: { id: string; name: string }) {
+  return ensureEvent(panel().db, {
+    orgSlug: PANEL_ORG.slug,
+    orgName: PANEL_ORG.name,
+    eventSlug: hackathon.id,
+    name: hackathon.name,
+  });
+}
 
 type Embedded = {
   db: PanelDb;
@@ -101,7 +115,7 @@ export async function portalActor(): Promise<Actor | null> {
     sub: ctx.userId,
     email: judgeRows[0]?.email ?? email,
     name: ctx.session?.user?.name ?? email,
-    org: process.env.PANEL_ORG_SLUG ?? null,
+    org: PANEL_ORG.slug,
     role: roleFor(admin ?? null),
     judgeExternalId: null,
   };

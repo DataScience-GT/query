@@ -4,10 +4,10 @@ import { loadEvent } from "@/lib/panel.server";
 export default async function OrganizerPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string; eventSlug: string }>;
+  params: Promise<{ hackathonId: string }>;
 }) {
-  const { orgSlug, eventSlug } = await params;
-  const event = await loadEvent(orgSlug, eventSlug);
+  const { hackathonId } = await params;
+  const event = await loadEvent(hackathonId);
   if (!event)
     return (
       <main style={{ padding: "2rem" }}>This event is not available.</main>

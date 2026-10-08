@@ -88,6 +88,9 @@ export default function AdminResultsPage() {
   // enforced: sync submissions, then build the queues. Doing them in the wrong
   // order leaves late projects in nobody's queue.
   const utils = trpc.useUtils();
+  const setJudgingBackend = trpc.judge.setJudgingBackend.useMutation({
+    onSuccess: () => utils.judge.panelConsole.invalidate(),
+  });
   const [prepState, setPrepState] = useState<{
     busy: boolean;
     message: string | null;
@@ -257,10 +260,35 @@ export default function AdminResultsPage() {
               ? "Pick a hackathon to see its results."
               : "Open and close judging, watch the floor, and compare scores."}
           </p>
-          {panelConsole?.url ? (
-            <Link className={body} href={panelConsole.url}>
-              Open the panel console
-            </Link>
+          {selectedHackathon && panelConsole ? (
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <p className={meta}>
+                {panelConsole.backend === "panel"
+                  ? "Judged on panel: judges score from their phones."
+                  : "Classic judging."}
+              </p>
+              {panelConsole.url ? (
+                <Link className={body} href={panelConsole.url}>
+                  Open the panel console
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() =>
+                  setJudgingBackend.mutate({
+                    hackathonId: selectedHackathon,
+                    backend: panelConsole.backend === "panel" ? "legacy" : "panel",
+                  })
+                }
+                disabled={readOnly || setJudgingBackend.isPending}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={btnSecondary}
+              >
+                {panelConsole.backend === "panel"
+                  ? "Switch to classic judging"
+                  : "Switch to panel judging"}
+              </button>
+            </div>
           ) : null}
         </header>
 

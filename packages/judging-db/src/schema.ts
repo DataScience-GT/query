@@ -3,7 +3,6 @@ import {
   integer,
   jsonb,
   numeric,
-  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -12,39 +11,23 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import {
+  comparisonOutcome,
+  dispatchStrategy,
+  eventPhase,
+  judgeStatus,
+  membershipRole,
+  trackKind,
+} from "./enums";
 
-export const eventPhase = pgEnum("event_phase", [
-  "setup",
-  "submissions_open",
-  "submissions_closed",
-  "judging_live",
-  "judging_closed",
-  "published",
-  "archived",
-]);
-
-export const trackKind = pgEnum("track_kind", ["main", "sponsor", "special"]);
-
-export const dispatchStrategy = pgEnum("dispatch_strategy", [
-  "coverage",
-  "uncertainty",
-]);
-
-export const judgeStatus = pgEnum("judge_status", [
-  "invited",
-  "applied",
-  "approved",
-  "suspended",
-]);
-
-export const comparisonOutcome = pgEnum("comparison_outcome", ["a", "b", "tie"]);
-
-export const membershipRole = pgEnum("membership_role", [
-  "owner",
-  "admin",
-  "organizer",
-  "volunteer",
-]);
+export {
+  comparisonOutcome,
+  dispatchStrategy,
+  eventPhase,
+  judgeStatus,
+  membershipRole,
+  trackKind,
+};
 
 export const organization = pgTable("organization", {
   id: uuid("id").defaultRandom().primaryKey(),
