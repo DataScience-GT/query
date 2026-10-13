@@ -1417,17 +1417,17 @@ describe("Hackathon admin management edge cases", () => {
 
   // =====================================================================
   describe("Day-of dashboard", () => {
-    // BUG: analyticsOverview counts eventCheckIns (the club check-in table),
-    // not hackathonEventAttendees, which is what scanParticipantPass writes.
-    it("counts today's hackathon badge scans", async () => {
+    it("counts today's hackathon badge scans apart from club door check-ins", async () => {
       const caller = adminCaller({}, "admin");
       mockCount.mockImplementation((t: string) =>
-        t === "hackathonEventAttendees" ? 7 : 0,
+        t === "hackathonEventAttendees" ? 7 : t === "eventCheckIns" ? 2 : 0,
       );
 
       const res = await caller.admin.analyticsOverview();
 
-      expect(res.checkinsToday).toBe(7);
+      expect(res.badgeScansToday).toBe(7);
+      expect(res.doorCheckinsToday).toBe(2);
+      expect(res.checkinsToday).toBe(9);
     });
   });
 });
