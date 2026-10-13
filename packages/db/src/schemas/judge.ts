@@ -13,6 +13,14 @@ import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonProjects } from "./hackathons";
 
+// The judge roster is live: `judge` (one row per person per edition) and
+// `judge_assignment` (their application, with the track they would like).
+//
+// judging_project, judge_vote, hackathon_result and judge_queue belong to the
+// retired pool-dispatch judging. Nothing writes them any more. They stay
+// declared for past editions' data: hackathon.getResults still reads
+// hackathon_result. Room judging is in judging.ts.
+
 export const judges = pgTable(
   "judge",
   {
@@ -71,8 +79,8 @@ export const judgeAssignments = pgTable(
   (table) => [
     index("assignment_judge_id_idx").on(table.judgeId),
     index("assignment_hackathon_id_idx").on(table.hackathonId),
-    // assignToHackathon and judge.register both enforce one assignment per judge
-    // per hackathon with a read before the insert.
+    // judge.register enforces one assignment per judge per hackathon with a
+    // read before the insert.
     uniqueIndex("assignment_judge_hackathon_idx").on(
       table.judgeId,
       table.hackathonId,
@@ -80,7 +88,8 @@ export const judgeAssignments = pgTable(
   ],
 );
 
-// Projects with table numbers for judging (extends hackathon projects concept)
+// Retired (see the top of this file). Projects with table numbers for the
+// pool-dispatch judging.
 export const judgingProjects = pgTable(
   "judging_project",
   {
@@ -219,8 +228,8 @@ export const hackathonResults = pgTable(
   ],
 );
 
-// One row per visit: written when the judging pool hands a judge a table
-// (api routers/judge/dispatch.ts), not as a list built in advance.
+// Retired (see the top of this file). One row per visit: written when the
+// judging pool handed a judge a table.
 export const judgeQueue = pgTable(
   "judge_queue",
   {

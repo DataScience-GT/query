@@ -1,6 +1,5 @@
 import { defineConfig } from "drizzle-kit";
 import * as dotenv from "dotenv";
-import fs from "fs";
 import path from "path";
 
 // Load .env from root (two levels up)
@@ -10,29 +9,44 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not defined in .env file");
 }
 
-// Judging (packages/judging-db) keeps its tables in this database and applies
-// them with its own SQL migrations. Left visible, push sees them as tables to
-// drop and stops at a prompt; the build has no TTY, so the prompt errors, push
-// exits 0, and every club schema change after that is silently skipped.
-// The list comes from the migration files, so a new judging table is covered.
-const judgingMigrations = path.resolve(__dirname, "../judging-db/migrations");
-const judgingTables = [
+// Tables the retired panel judging service created in this database with its
+// own SQL migrations. Nothing reads them. Left visible, push sees them as
+// tables to drop and stops at a prompt; the build has no TTY, so the prompt
+// errors, push exits 0, and every schema change after it is silently skipped.
+// Their enum types are declared in src/schemas/retired.ts for the same reason.
+const retiredPanelTables = [
   "panel_migration",
-  ...fs
-    .readdirSync(judgingMigrations)
-    .filter((file) => file.endsWith(".sql"))
-    .flatMap((file) =>
-      [
-        ...fs
-          .readFileSync(path.join(judgingMigrations, file), "utf8")
-          .matchAll(/^create table (\w+)/gm),
-      ].map((match) => match[1] as string),
-    ),
+  "organization",
+  "panel_user",
+  "panel_event",
+  "event_config",
+  "rubric",
+  "criterion",
+  "track",
+  "prize",
+  "zone",
+  "floor_table",
+  "project",
+  "project_track",
+  "panel_judge",
+  "visit",
+  "vote",
+  "vote_score",
+  "comparison",
+  "result_run",
+  "result",
+  "event_log",
+  "outbox",
+  "webhook",
+  "api_key",
+  "membership",
+  "judge_identity",
+  "login_code",
 ];
 
 export default defineConfig({
-  schema: ["./src/schemas/**/*.ts", "../judging-db/src/enums.ts"],
-  tablesFilter: judgingTables.map((table) => `!${table}`),
+  schema: "./src/schemas/**/*.ts",
+  tablesFilter: retiredPanelTables.map((table) => `!${table}`),
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {

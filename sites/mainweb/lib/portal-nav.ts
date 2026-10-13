@@ -59,8 +59,8 @@ function flags(ctx: PortalContext | undefined | null): NavFlags {
  * appear; it does not mix the two back together.
  *
  * Staff see the same split on the admin tools. Judging Setup is gone — an
- * edition created from /admin/hackathons is the judging edition, and queue
- * prep lives on /admin/judging.
+ * edition created from /admin/hackathons is the judging edition, and room
+ * judging is run from /admin/judging.
  *
  * Club meetings (Hub, attendees, pass scan) stay on Portal. They are not a
  * tab or mode of a hackathon edition.

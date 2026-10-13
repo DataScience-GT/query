@@ -132,6 +132,14 @@ export function ScheduleTab({
               {passPlaceholder}
             </p>
           )}
+
+          {isRegistered && qrData && (
+            <p className={`mt-5 ${meta}`}>
+              It never changes, so a screenshot works. Events that show a
+              check-in code also take it typed into the Points tab, no pass
+              needed.
+            </p>
+          )}
         </section>
 
         {isRegistered && myRecord && (

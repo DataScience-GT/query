@@ -1,0 +1,96 @@
+import type { ChallengeMode } from "./scope";
+
+// When a judge may write an evaluation, and against what clock. Pure: the desk
+// loads the rows, this decides.
+//
+// Nothing is timed until organisers save a schedule, and a challenge whose
+// root is unscheduled or remote is never timed: open the project and judge it.
+// A scheduled challenge is judged at its presentation. The judge has to be
+// sitting in a room that serves the challenge, and the presentation has to
+// have started. Until the slot's deadline (setup plus judging minutes in) the
+// answers run against that deadline, and a draft still open when it passes is
+// submitted for the judge. After the deadline the judge may still submit,
+// untimed: a late evaluation is better than a missed one.
+//
+// An evaluation the judge already submitted is always editable while judging
+// is open; the clock only governs the first submission.
+
+export type TimingInput = {
+  /** Whether the edition has a saved schedule. */
+  hasSchedule: boolean;
+  /** The challenge's effective mode (its root's). */
+  mode: ChallengeMode;
+  /** The (root) challenge the evaluation is for. */
+  challengeId: string;
+  /** This judge's submitted evaluation of the project for the challenge. */
+  evaluation: { appointmentId: string | null } | null;
+  /** The project's presentation for the challenge in the saved schedule. */
+  appointment: { id: string; startsAt: Date; deadlineAt: Date } | null;
+  /** The challenge served by the room the judge is sitting in, if any. */
+  presenceChallengeId: string | null;
+};
+
+export type EvaluationTiming =
+  | {
+      canEdit: true;
+      /** Set while a presentation is running: the draft is submitted then. */
+      deadlineAt: Date | null;
+      appointmentId: string | null;
+    }
+  | {
+      canEdit: false;
+      reason: string;
+      /** When the judge can start, if waiting is all it takes. */
+      opensAt: Date | null;
+    };
+
+export function evaluationTiming(
+  input: TimingInput,
+  now: Date,
+): EvaluationTiming {
+  if (input.evaluation) {
+    return {
+      canEdit: true,
+      deadlineAt: null,
+      appointmentId: input.evaluation.appointmentId,
+    };
+  }
+
+  if (!input.hasSchedule || input.mode !== "scheduled") {
+    return { canEdit: true, deadlineAt: null, appointmentId: null };
+  }
+
+  if (!input.appointment) {
+    return {
+      canEdit: false,
+      reason:
+        "This project has no presentation slot for this challenge yet. Ask an organiser to place it on the schedule.",
+      opensAt: null,
+    };
+  }
+
+  if (input.presenceChallengeId !== input.challengeId) {
+    return {
+      canEdit: false,
+      reason:
+        "Join a room that judges this challenge to evaluate this project.",
+      opensAt: null,
+    };
+  }
+
+  if (now < input.appointment.startsAt) {
+    return {
+      canEdit: false,
+      reason:
+        "This project has not presented yet. You can judge it once its presentation starts.",
+      opensAt: input.appointment.startsAt,
+    };
+  }
+
+  return {
+    canEdit: true,
+    deadlineAt:
+      now < input.appointment.deadlineAt ? input.appointment.deadlineAt : null,
+    appointmentId: input.appointment.id,
+  };
+}

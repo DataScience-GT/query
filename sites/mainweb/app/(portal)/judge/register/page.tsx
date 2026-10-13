@@ -330,10 +330,9 @@ export default function JudgeRegisterPage() {
 
         {step === 3 && (
           <StepContainer title="Logistics">
-            {/* The chosen edition's own labels, not free text: judging routes
-                on an exact string match, so a typed track that does not exist
-                filters the judge's pool to nothing. Leaving it unset means
-                "any project", which is a real and common answer. */}
+            {/* The chosen edition's own labels, not free text, so organisers
+                placing judges in rooms see a track that exists. Leaving it
+                unset means "any project", which is a real and common answer. */}
             {trackOptions.length > 0 ? (
               <FormChipSelect
                 label="Track you would like to judge"

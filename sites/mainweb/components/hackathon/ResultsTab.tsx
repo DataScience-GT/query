@@ -5,6 +5,7 @@ import {
   body,
   btnSecondary,
   itemTitle,
+  label,
   meta,
   textLink,
 } from "@/components/portal/ui";
@@ -13,10 +14,9 @@ import {
  * The published placings.
  *
  * Reads `hackathon.getResults`, which returns only rows an organiser has
- * actually published — so this shows nothing until Publish is pressed, and
- * goes back to showing nothing if it is unpublished. Without this the publish
- * button was a no-op that told the organiser "everyone will see them
- * immediately", and the winners existed only inside one admin response.
+ * actually published — so this shows nothing until results are published, and
+ * goes back to showing nothing if they are unpublished. Rows come grouped:
+ * overall first, then each prize, each in placing order.
  */
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   const {
@@ -62,57 +62,80 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     );
   }
 
+  // The server already orders by scope, then placing.
+  const groups: { scope: string; label: string; rows: typeof results }[] = [];
+  for (const row of results) {
+    const last = groups[groups.length - 1];
+    if (last && last.scope === row.scope) last.rows.push(row);
+    else groups.push({ scope: row.scope, label: row.scopeLabel, rows: [row] });
+  }
+  const showLabels = groups.length > 1 || groups[0]?.scope !== "overall";
+
   return (
-    <ol className="border-t border-[var(--border-subtle)]">
-      {results.map((row) => {
-        const name =
-          row.sourceProject?.name ?? row.project?.name ?? "Unknown project";
-        const team = row.sourceProject?.team?.name ?? row.project?.teamMembers;
-        return (
-          <li
-            key={row.id}
-            className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
-          >
-            <span
-              className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
-                row.placement === 1
-                  ? "text-accent"
-                  : row.placement <= 3
-                    ? "text-[var(--text-primary)]"
-                    : "text-[var(--text-subtle)]"
-              }`}
-            >
-              {row.placement}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className={`${itemTitle} truncate`}>{name}</p>
-              {team ? <p className={`${meta} truncate`}>{team}</p> : null}
-            </div>
-            <div className="flex items-center gap-4 shrink-0">
-              {row.sourceProject?.githubUrl ? (
-                <a
-                  href={row.sourceProject.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={textLink}
+    <div className="space-y-10">
+      {groups.map((group) => (
+        <section key={group.scope}>
+          {showLabels && <h3 className={`mb-3 ${label}`}>{group.label}</h3>}
+          <ol className="border-t border-[var(--border-subtle)]">
+            {group.rows.map((row) => (
+              <li
+                key={row.id}
+                className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
+              >
+                <span
+                  className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
+                    row.placement === 1
+                      ? "text-accent"
+                      : row.placement <= 3
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-subtle)]"
+                  }`}
                 >
-                  Code
-                </a>
-              ) : null}
-              {row.sourceProject?.demoUrl ? (
-                <a
-                  href={row.sourceProject.demoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={textLink}
-                >
-                  Demo
-                </a>
-              ) : null}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+                  {row.placement}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`${itemTitle} truncate`}>{row.projectName}</p>
+                  {row.teamName ? (
+                    <p className={`${meta} truncate`}>{row.teamName}</p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  {row.githubUrl ? (
+                    <a
+                      href={row.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={textLink}
+                    >
+                      Code
+                    </a>
+                  ) : null}
+                  {row.demoUrl ? (
+                    <a
+                      href={row.demoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={textLink}
+                    >
+                      Demo
+                    </a>
+                  ) : null}
+                  {row.submissionUrl ? (
+                    <a
+                      href={row.submissionUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={textLink}
+                    >
+                      Devpost
+                    </a>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
   );
 }

@@ -14,12 +14,24 @@ import {
   meta,
   sectionRule,
   sectionTitle,
+  tab,
+  tabList,
 } from "@/components/portal/ui";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
+import { ManualCheckIn } from "@/components/admin/hackathons/points/ManualCheckIn";
+
+// How a roster row was made, for the volunteer reading the list.
+const METHOD_LABEL: Record<string, string> = {
+  scan: "Pass",
+  code: "Event code",
+  manual: "By name",
+};
 
 export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
+  // Search is for people without their pass on them.
+  const [mode, setMode] = useState<"scan" | "search">("scan");
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<{
     success: boolean;
@@ -40,9 +52,11 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
 
+  // Polled: hackers typing the event code land here without this station
+  // doing anything.
   const roster = trpc.hackathon.getEventAttendees.useQuery(
     { hackathonId, eventId: selectedEventId },
-    { enabled: !!selectedEventId },
+    { enabled: !!selectedEventId, refetchInterval: 10_000 },
   );
 
   const removeAttendance = trpc.hackathon.removeEventAttendance.useMutation({
@@ -151,7 +165,9 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
 
       <section>
         <h2 className={sectionTitle}>Check-in scanner</h2>
-        <p className={`mt-1 ${body}`}>Pick an event, then scan badges.</p>
+        <p className={`mt-1 ${body}`}>
+          Pick an event, then scan passes or find people by name.
+        </p>
 
         <div className="mt-6">
           <label htmlFor="target-event" className={fieldLabel}>
@@ -198,16 +214,61 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowScanner(true)}
-          disabled={readOnly || !selectedEventId || showScanner}
-          title={readOnly ? READ_ONLY_TITLE : undefined}
-          className={`mt-6 w-full py-4 ${btnPrimary}`}
+        <div
+          role="tablist"
+          aria-label="Check-in method"
+          className={`mt-6 ${tabList}`}
         >
-          <QrCode className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
-          <span>Scan badge</span>
-        </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "scan"}
+            onClick={() => setMode("scan")}
+            className={`min-h-11 ${tab(mode === "scan")}`}
+          >
+            Scan pass
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "search"}
+            onClick={() => setMode("search")}
+            className={`min-h-11 ${tab(mode === "search")}`}
+          >
+            Find by name
+          </button>
+        </div>
+
+        {mode === "scan" ? (
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            disabled={readOnly || !selectedEventId || showScanner}
+            title={readOnly ? READ_ONLY_TITLE : undefined}
+            className={`mt-6 w-full py-4 ${btnPrimary}`}
+          >
+            <QrCode className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
+            <span>Scan badge</span>
+          </button>
+        ) : selectedEventId ? (
+          <div className="mt-6">
+            <ManualCheckIn
+              // A different event is a different list of who is already in.
+              key={selectedEventId}
+              hackathonId={hackathonId}
+              eventId={selectedEventId}
+              readOnly={readOnly}
+              onCheckedIn={() =>
+                void utils.hackathon.getEventAttendees.invalidate({
+                  hackathonId,
+                  eventId: selectedEventId,
+                })
+              }
+            />
+          </div>
+        ) : (
+          <p className={`mt-6 ${body}`}>Pick an event first.</p>
+        )}
       </section>
 
       {/* Who has been scanned into this event, and the way back out. A station
@@ -247,6 +308,9 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                       </p>
                       <p className={`tabular-nums ${meta}`}>
                         {new Date(row.checkedInAt).toLocaleTimeString()}
+                        {row.method && METHOD_LABEL[row.method]
+                          ? ` · ${METHOD_LABEL[row.method]}`
+                          : ""}
                       </p>
                     </div>
                     <button

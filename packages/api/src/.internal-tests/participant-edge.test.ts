@@ -55,7 +55,7 @@ vi.mock("@query/db", async () => {
         eventCheckIns: table("eventCheckIns"),
         judges: table("judges"),
         judgeAssignments: table("judgeAssignments"),
-        judgingProjects: table("judgingProjects"),
+        judgingEntries: table("judgingEntries"),
         judgeVotes: table("judgeVotes"),
         judgeQueue: table("judgeQueue"),
         stripePayments: table("stripePayments"),
@@ -208,10 +208,10 @@ vi.mock("@query/db", async () => {
       isActive: "is_active",
     },
     judgeAssignments: { judgeId: "judge_id", hackathonId: "hackathon_id" },
-    judgingProjects: {
+    judgingEntries: {
       id: "id",
-      hackathonId: "hackathon_id",
-      tableNumber: "table_number",
+      sourceProjectId: "source_project_id",
+      deletedAt: "deleted_at",
     },
     judgeVotes: { judgeId: "judge_id", projectId: "project_id", score: "score" },
     judgeQueue: {
@@ -371,6 +371,24 @@ describe("Participant edge cases", () => {
       await expect(
         caller.team.submitProject(projectInput()),
       ).rejects.toThrow(/captain/i);
+    });
+
+    // An organiser removed it from judging: the removed judging entry is the
+    // record, and re-saving would put the project back in the gallery.
+    it("refuses a resubmit after an organiser removed the project from judging", async () => {
+      const caller = teammateCaller(20, { captainId: "user_a" });
+      await caller.team.submitProject(projectInput());
+
+      const base = mockFindFirst.getMockImplementation()!;
+      mockFindFirst.mockImplementation((table, ...rest) =>
+        table === "judgingEntries"
+          ? { id: "entry_1" }
+          : base(table, ...rest),
+      );
+
+      await expect(
+        caller.team.submitProject(projectInput({ name: "Renamed" })),
+      ).rejects.toThrow(/organiser withdrew/i);
     });
 
     // BUG: team.ts:494 only looks up an existing project when input.teamId is
@@ -627,6 +645,23 @@ describe("Participant edge cases", () => {
         currentMembers: 1,
         project: { id: PROJECT_A, teamId: TEAM_A, status: "judging" },
       });
+
+      await expect(
+        caller.team.withdrawProject({ hackathonId: HACK_A }),
+      ).rejects.toThrow(/Judging has started/i);
+    });
+
+    // Promotion into room judging is recorded as a judging entry; that alone
+    // means judging has the project, whatever the submission's status says.
+    it("refuses to withdraw once the project has a live judging entry", async () => {
+      const caller = captainCaller(20, {
+        currentMembers: 1,
+        project: { id: PROJECT_A, teamId: TEAM_A, status: "submitted" },
+      });
+      const base = mockFindFirst.getMockImplementation()!;
+      mockFindFirst.mockImplementation((table, ...rest) =>
+        table === "judgingEntries" ? { id: "entry_1" } : base(table, ...rest),
+      );
 
       await expect(
         caller.team.withdrawProject({ hackathonId: HACK_A }),
