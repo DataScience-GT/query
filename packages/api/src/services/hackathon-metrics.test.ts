@@ -86,7 +86,15 @@ describe("hackathon gauges", () => {
       select() {
         return {
           from(table: Parameters<typeof getTableName>[0]) {
-            const pending: any = Promise.resolve(rowsFor(getTableName(table)));
+            type Pending = Promise<unknown> & {
+              from?: () => Pending;
+              innerJoin?: () => Pending;
+              groupBy?: () => Pending;
+              where?: (condition: unknown) => Pending;
+            };
+            const pending: Pending = Promise.resolve(
+              rowsFor(getTableName(table)),
+            );
             pending.from = () => pending;
             pending.innerJoin = () => pending;
             pending.groupBy = () => pending;
