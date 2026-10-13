@@ -12,8 +12,33 @@ import {
   Gauge,
   collectDefaultMetrics,
 } from "prom-client";
-import { sql } from "drizzle-orm";
-import type { DrizzleDB } from "@query/db";
+import {
+  and,
+  count,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  sum,
+} from "drizzle-orm";
+import {
+  type DrizzleDB,
+  hackathonEventAttendees,
+  hackathonEvents,
+  hackathonParticipants,
+  hackathonProjects,
+  hackathons,
+  judgeVotes,
+  judgingProjects,
+  memberResumes,
+  members,
+  stripePayments,
+} from "@query/db";
+import { startOfEasternDay } from "./eastern-time";
 
 export const registry = new Registry();
 
@@ -137,6 +162,215 @@ const gaugeRefreshFailures = new Counter({
   registers: [registry],
 });
 
+// Live editions only: open (registration), closed (registration shut, event
+// not finished), in progress (the weekend). A completed edition drops off on
+// the next refresh, so last year does not sit on the dashboard as current.
+// Same rule as the other gauges — counted from the database, so which instance
+// Prometheus scraped does not matter.
+
+const PARTICIPANT_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+  "waitlisted",
+  "checked_in",
+] as const;
+
+const participantGauge = new Gauge({
+  name: "dsgt_hackathon_participants",
+  help: "Registrations for a live hackathon edition, by status.",
+  labelNames: ["edition", "phase", "status"] as const,
+  registers: [registry],
+});
+
+const projectGauge = new Gauge({
+  name: "dsgt_hackathon_projects",
+  help: "Submitted projects for a live edition, excluding admin withdrawals and drafts.",
+  labelNames: ["edition", "phase"] as const,
+  registers: [registry],
+});
+
+const hackathonCheckinsToday = new Gauge({
+  name: "dsgt_hackathon_checkins_today",
+  help: "Hackathon badge scans since midnight Eastern, for a live edition.",
+  labelNames: ["edition", "phase"] as const,
+  registers: [registry],
+});
+
+const hackathonJudgingProjects = new Gauge({
+  name: "dsgt_hackathon_judging_projects",
+  help: "Projects on the judging floor for a live edition, excluding withdrawals.",
+  labelNames: ["edition", "phase"] as const,
+  registers: [registry],
+});
+
+const hackathonVotes = new Gauge({
+  name: "dsgt_hackathon_votes",
+  help: "Judge scores recorded for a live edition.",
+  labelNames: ["edition", "phase"] as const,
+  registers: [registry],
+});
+
+const hackathonJudgingActive = new Gauge({
+  name: "dsgt_hackathon_judging_active",
+  help: "1 when judging is switched on for a live edition, otherwise 0.",
+  labelNames: ["edition", "phase"] as const,
+  registers: [registry],
+});
+
+export type LiveHackathon = {
+  edition: string;
+  phase: string;
+  judgingActive: boolean;
+  projects: number;
+  checkinsToday: number;
+  judgingProjects: number;
+  votes: number;
+  participants: Record<(typeof PARTICIPANT_STATUSES)[number], number>;
+};
+
+const LIVE_PHASES = ["open", "closed", "in_progress"] as const;
+
+const blankParticipants = (): LiveHackathon["participants"] => ({
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  waitlisted: 0,
+  checked_in: 0,
+});
+
+const countByEdition = (
+  rows: { hackathonId: string; total: number }[],
+) => {
+  const totals = new Map<string, number>();
+  for (const row of rows) totals.set(row.hackathonId, Number(row.total));
+  return totals;
+};
+
+// Shared with the admin analytics page. Prometheus is optional; the portal
+// has to be able to show the same counts when nothing is scraping.
+export async function readLiveHackathons(
+  db: DrizzleDB,
+  now = new Date(),
+): Promise<LiveHackathon[]> {
+  const startOfToday = startOfEasternDay(now);
+
+  const editions = await db
+    .select({
+      id: hackathons.id,
+      edition: hackathons.name,
+      phase: hackathons.status,
+      judgingActive: hackathons.judgingActive,
+    })
+    .from(hackathons)
+    .where(inArray(hackathons.status, [...LIVE_PHASES]));
+
+  if (editions.length === 0) return [];
+
+  const ids = editions.map((edition) => edition.id);
+
+  const [byStatus, projectRows, scanRows, judgingRows, voteRows] =
+    await Promise.all([
+      db
+        .select({
+          hackathonId: hackathonParticipants.hackathonId,
+          status: hackathonParticipants.registrationStatus,
+          total: count(),
+        })
+        .from(hackathonParticipants)
+        .where(inArray(hackathonParticipants.hackathonId, ids))
+        .groupBy(
+          hackathonParticipants.hackathonId,
+          hackathonParticipants.registrationStatus,
+        ),
+      db
+        .select({
+          hackathonId: hackathonProjects.hackathonId,
+          total: count(),
+        })
+        .from(hackathonProjects)
+        .where(
+          and(
+            inArray(hackathonProjects.hackathonId, ids),
+            ne(hackathonProjects.status, "draft"),
+            isNull(hackathonProjects.withdrawnByAdminAt),
+          ),
+        )
+        .groupBy(hackathonProjects.hackathonId),
+      db
+        .select({
+          hackathonId: hackathonEvents.hackathonId,
+          total: count(),
+        })
+        .from(hackathonEventAttendees)
+        .innerJoin(
+          hackathonEvents,
+          eq(hackathonEvents.id, hackathonEventAttendees.eventId),
+        )
+        .where(
+          and(
+            inArray(hackathonEvents.hackathonId, ids),
+            gte(hackathonEventAttendees.checkedInAt, startOfToday),
+          ),
+        )
+        .groupBy(hackathonEvents.hackathonId),
+      db
+        .select({
+          hackathonId: judgingProjects.hackathonId,
+          total: count(),
+        })
+        .from(judgingProjects)
+        .where(
+          and(
+            inArray(judgingProjects.hackathonId, ids),
+            isNull(judgingProjects.withdrawnAt),
+          ),
+        )
+        .groupBy(judgingProjects.hackathonId),
+      db
+        .select({
+          hackathonId: judgingProjects.hackathonId,
+          total: count(),
+        })
+        .from(judgeVotes)
+        .innerJoin(
+          judgingProjects,
+          eq(judgingProjects.id, judgeVotes.projectId),
+        )
+        .where(
+          and(
+            inArray(judgingProjects.hackathonId, ids),
+            isNull(judgingProjects.withdrawnAt),
+          ),
+        )
+        .groupBy(judgingProjects.hackathonId),
+    ]);
+
+  const participantsByEdition = new Map<string, LiveHackathon["participants"]>();
+  for (const row of byStatus) {
+    const bucket =
+      participantsByEdition.get(row.hackathonId) ?? blankParticipants();
+    if (row.status in bucket) bucket[row.status] = Number(row.total);
+    participantsByEdition.set(row.hackathonId, bucket);
+  }
+
+  const projects = countByEdition(projectRows);
+  const scans = countByEdition(scanRows);
+  const judging = countByEdition(judgingRows);
+  const votes = countByEdition(voteRows);
+
+  return editions.map((edition) => ({
+    edition: edition.edition,
+    phase: edition.phase,
+    judgingActive: edition.judgingActive,
+    projects: projects.get(edition.id) ?? 0,
+    checkinsToday: scans.get(edition.id) ?? 0,
+    judgingProjects: judging.get(edition.id) ?? 0,
+    votes: votes.get(edition.id) ?? 0,
+    participants: participantsByEdition.get(edition.id) ?? blankParticipants(),
+  }));
+}
+
 /** Long enough that a 30s scrape loop cannot turn into a query loop. */
 const GAUGE_TTL_MS = 60_000;
 
@@ -171,6 +405,14 @@ const gaugeCache = new GaugeCache();
 // Eastern time like currentTerm, or the label flips four hours early at the
 // May and December boundaries. If the two disagree the gauge is mislabelled,
 // nothing more.
+/** Null metadata is a year. Anything that is not a JSON object is left out. */
+function planFromMetadata(metadata: string | null) {
+  if (metadata == null) return "annual";
+  if (!metadata.startsWith("{")) return null;
+  const parsed = JSON.parse(metadata) as { plan?: unknown };
+  return typeof parsed.plan === "string" && parsed.plan ? parsed.plan : "annual";
+}
+
 const currentTermLabel = (now = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -191,65 +433,103 @@ export async function refreshDbGauges(db: DrizzleDB | null | undefined) {
   await gaugeCache.refresh(async () => {
     try {
       const term = currentTermLabel();
+      const now = new Date();
 
-      const totals = await db.execute<{
-        active: string;
-        lapsed: string;
-        bootcamp: string;
-        unlinked: string;
-      }>(sql`
-        select
-          count(*) filter (
-            where "is_active" and "membership_end_date" > now()
-          ) as active,
-          count(*) filter (
-            where "membership_end_date" is not null
-              and "membership_end_date" <= now()
-          ) as lapsed,
-          count(*) filter (where "bootcamp_term" = ${term}) as bootcamp,
-          (
-            select count(*) from "stripe_payment"
-            where "payment_status" = 'paid' and "linked_user_id" is null
-          ) as unlinked
-        from "member"
-      `);
+      const [
+        [active],
+        [lapsed],
+        [bootcamp],
+        [unlinked],
+        paidRows,
+        [resumeTotals],
+      ] = await Promise.all([
+        db
+          .select({ total: count() })
+          .from(members)
+          .where(
+            and(eq(members.isActive, true), gt(members.membershipEndDate, now)),
+          ),
+        db
+          .select({ total: count() })
+          .from(members)
+          .where(
+            and(
+              isNotNull(members.membershipEndDate),
+              lte(members.membershipEndDate, now),
+            ),
+          ),
+        db
+          .select({ total: count() })
+          .from(members)
+          .where(eq(members.bootcampTerm, term)),
+        db
+          .select({ total: count() })
+          .from(stripePayments)
+          .where(
+            and(
+              eq(stripePayments.paymentStatus, "paid"),
+              isNull(stripePayments.linkedUserId),
+            ),
+          ),
+        db
+          .select({ metadata: stripePayments.metadata })
+          .from(stripePayments)
+          .where(eq(stripePayments.paymentStatus, "paid")),
+        db
+          .select({
+            files: count(),
+            bytes: sum(memberResumes.sizeBytes),
+          })
+          .from(memberResumes),
+      ]);
 
-      const counts = totals.rows[0];
+      membersActive.set(Number(active?.total ?? 0));
+      membersLapsed.set(Number(lapsed?.total ?? 0));
+      bootcampEnrolled.set({ term }, Number(bootcamp?.total ?? 0));
+      paymentsUnlinked.set(Number(unlinked?.total ?? 0));
 
-      if (counts) {
-        membersActive.set(Number(counts.active));
-        membersLapsed.set(Number(counts.lapsed));
-        bootcampEnrolled.set({ term }, Number(counts.bootcamp));
-        paymentsUnlinked.set(Number(counts.unlinked));
+      // Plan lives in the payment metadata string. Rows that are not JSON are
+      // skipped; a missing plan is the only product that existed then, a year.
+      // One unparseable object still fails the refresh, same as a bad cast did.
+      const plans = new Map<string, number>();
+      for (const row of paidRows) {
+        const plan = planFromMetadata(row.metadata);
+        if (!plan) continue;
+        plans.set(plan, (plans.get(plan) ?? 0) + 1);
       }
-
-      // `like '{%'` before the jsonb cast, deliberately: one row of unparseable
-      // metadata would error the whole statement, and rows written before the plan
-      // existed have no `plan` key — those bought the only thing on offer, a year.
-      const byPlan = await db.execute<{ plan: string; total: string }>(sql`
-        select
-          coalesce(("metadata"::jsonb ->> 'plan'), 'annual') as plan,
-          count(*) as total
-        from "stripe_payment"
-        where "payment_status" = 'paid'
-          and ("metadata" is null or "metadata" like '{%')
-        group by 1
-      `);
 
       paymentsByPlan.reset();
-      for (const row of byPlan.rows) {
-        paymentsByPlan.set({ plan: row.plan }, Number(row.total));
+      for (const [plan, total] of plans) {
+        paymentsByPlan.set({ plan }, total);
       }
 
-      const resumes = await db.execute<{ files: string; bytes: string }>(sql`
-        select count(*) as files, coalesce(sum("size_bytes"), 0) as bytes
-        from "member_resume"
-      `);
+      resumesStored.set(Number(resumeTotals?.files ?? 0));
+      resumeBytesStored.set(Number(resumeTotals?.bytes ?? 0));
 
-      const resumeTotals = resumes.rows[0];
-      if (resumeTotals) {
-        resumesStored.set(Number(resumeTotals.files));
-        resumeBytesStored.set(Number(resumeTotals.bytes));
+      const live = await readLiveHackathons(db);
+
+      // reset before set: an edition that left the live set has to disappear,
+      // or the dashboard keeps yesterday's registration count.
+      participantGauge.reset();
+      projectGauge.reset();
+      hackathonCheckinsToday.reset();
+      hackathonJudgingProjects.reset();
+      hackathonVotes.reset();
+      hackathonJudgingActive.reset();
+
+      for (const edition of live) {
+        const labels = { edition: edition.edition, phase: edition.phase };
+        projectGauge.set(labels, edition.projects);
+        hackathonCheckinsToday.set(labels, edition.checkinsToday);
+        hackathonJudgingProjects.set(labels, edition.judgingProjects);
+        hackathonVotes.set(labels, edition.votes);
+        hackathonJudgingActive.set(labels, edition.judgingActive ? 1 : 0);
+        for (const status of PARTICIPANT_STATUSES) {
+          participantGauge.set(
+            { ...labels, status },
+            edition.participants[status],
+          );
+        }
       }
     } catch {
       // Stale gauges beat a 500 on the scrape endpoint.
