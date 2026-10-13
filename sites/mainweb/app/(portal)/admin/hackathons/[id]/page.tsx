@@ -14,7 +14,8 @@ import { AnalyticsTab } from "@/components/admin/hackathons/AnalyticsTab";
 import { EventsTab } from "@/components/admin/hackathons/EventsTab";
 import { JudgesTab } from "@/components/admin/hackathons/JudgesTab";
 import { AnnouncementsTab } from "@/components/admin/hackathons/AnnouncementsTab";
-import { TableCards } from "@/components/admin/hackathons/TableCards";
+import { PointsAdminTab } from "@/components/admin/hackathons/points/PointsAdminTab";
+import { StoreTab } from "@/components/admin/hackathons/points/StoreTab";
 import {
   body,
   btnPrimary,
@@ -26,10 +27,11 @@ import {
 import {
   BarChart3,
   Calendar,
+  Coins,
   Gavel,
   Megaphone,
-  QrCode,
   ScanLine,
+  Store,
   Users,
 } from "lucide-react";
 
@@ -39,8 +41,9 @@ type Tab =
   | "attendees"
   | "analytics"
   | "judges"
-  | "announcements"
-  | "tables";
+  | "points"
+  | "store"
+  | "announcements";
 
 export default function AdminHackathonDashboard() {
   const { status } = useSession();
@@ -111,11 +114,8 @@ export default function AdminHackathonDashboard() {
       icon: <BarChart3 {...icon} />,
     },
     { id: "judges", label: "Judges", icon: <Gavel {...icon} /> },
-    {
-      id: "tables",
-      label: "Table cards",
-      icon: <QrCode {...icon} />,
-    },
+    { id: "points", label: "Points", icon: <Coins {...icon} /> },
+    { id: "store", label: "Store", icon: <Store {...icon} /> },
     {
       id: "announcements",
       label: "Email",
@@ -188,7 +188,10 @@ export default function AdminHackathonDashboard() {
             <AnalyticsTab hackathonId={hackathon.id} />
           )}
           {activeTab === "judges" && <JudgesTab hackathonId={hackathon.id} />}
-          {activeTab === "tables" && <TableCards hackathonId={hackathon.id} />}
+          {activeTab === "points" && (
+            <PointsAdminTab hackathonId={hackathon.id} />
+          )}
+          {activeTab === "store" && <StoreTab hackathonId={hackathon.id} />}
           {activeTab === "announcements" && (
             <AnnouncementsTab hackathonId={hackathon.id} />
           )}
@@ -197,8 +200,8 @@ export default function AdminHackathonDashboard() {
 
       {/* MOBILE BOTTOM NAVIGATION */}
       {/* Scrolls horizontally rather than a fixed 5-column grid: there are
-          seven tabs, so Table Cards and Email were laid out off the right edge
-          of the phone an organiser actually carries — unreachable, with nothing
+          eight tabs, so the last ones would be laid out off the right edge of
+          the phone an organiser actually carries — unreachable, with nothing
           to suggest they existed. */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (

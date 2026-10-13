@@ -319,7 +319,7 @@ export default function Dashboard() {
         {/* Judge Portal — judges only */}
         {isJudge && (
           <Destination href="/judge" title="Judge Portal">
-            Score projects and manage your judging queue.
+            Your judging editions, rooms and the projects you score.
           </Destination>
         )}
 

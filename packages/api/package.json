@@ -19,7 +19,7 @@
     "./metrics": "./src/services/metrics.ts",
     "./portal-context": "./src/types/portal-context.ts",
     "./resume-list": "./src/services/resume-list.ts",
-    "./panel": "./src/services/panel.ts"
+    "./judging-access": "./src/services/judging/principal.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -29,8 +29,6 @@
   "dependencies": {
     "@query/auth": "workspace:*",
     "@query/db": "workspace:*",
-    "@query/judging-db": "workspace:*",
-    "@query/judging-server": "workspace:*",
     "@tanstack/react-query": "5.103.2",
     "@trpc/client": "11.19.0",
     "@trpc/next": "11.19.0",
@@ -45,7 +43,6 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@query/judging-core": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/sanitize-html": "^2.16.0",
     "typescript": "7.0.2",

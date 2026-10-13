@@ -6,8 +6,14 @@ import {
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter } from "../../trpc";
 import { isAdmin, isScanner } from "../../middleware/procedures";
-import { isUniqueViolation } from "../../middleware/db-errors";
 import { recordAdminAction } from "../../middleware/audit";
+import {
+  alreadyCheckedInMessage,
+  fullName,
+  personName,
+  recordEventAttendance,
+  searchParticipants,
+} from "../../services/points";
 import { CacheKeys } from "../../middleware/cache";
 import { MASS_EMAIL_BATCH } from "../../services/email-limits";
 import {
@@ -960,7 +966,10 @@ export const hackathonAdminRouter = createTRPCRouter({
             eq(hackathonEventAttendees.participantId, input.participantId),
           ),
         )
-        .returning({ id: hackathonEventAttendees.id });
+        .returning({
+          id: hackathonEventAttendees.id,
+          pointsAwarded: hackathonEventAttendees.pointsAwarded,
+        });
 
       if (deleted.length === 0) {
         throw new TRPCError({
@@ -979,6 +988,8 @@ export const hackathonAdminRouter = createTRPCRouter({
         metadata: {
           eventId: input.eventId,
           hackathonId: input.hackathonId,
+          // The row carried the points, so undoing it takes them back.
+          pointsRemoved: deleted[0]?.pointsAwarded ?? 0,
         },
       });
 
@@ -1061,19 +1072,26 @@ export const hackathonAdminRouter = createTRPCRouter({
         ),
       });
 
-      const alreadyCheckedIn = `${participant.user.name || participant.user.email} is already checked into ${event.name}.`;
+      const attendance = {
+        event,
+        participant: {
+          id: participant.id,
+          name: participant.user.name || participant.user.email,
+        },
+        method: "scan" as const,
+        actorId: ctx.userId,
+      };
 
       if (existingScan) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: alreadyCheckedIn,
+          message: alreadyCheckedInMessage(attendance),
         });
       }
 
-      // 4. Record attendance. The unique index event_attendee_event_participant_idx
-      // is the real guard:
-      // two scanners can both pass the read above, so the loser's 23505 has to read
-      // as the same conflict, not a raw INTERNAL_SERVER_ERROR.
+      // 4. Record attendance. The unique index is the real guard, and
+      // recordEventAttendance turns a racing scanner's 23505 into the same
+      // conflict as the read above.
       // Attendance and the roster promotion are one transaction. Split, a promotion
       // failing after the attendance row committed left the scan half-done — and
       // the retry hits the duplicate guard, so that attendee could never submit.
@@ -1081,20 +1099,7 @@ export const hackathonAdminRouter = createTRPCRouter({
       let promotedToCheckedIn = false;
 
       await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        try {
-          await tx.insert(hackathonEventAttendees).values({
-            eventId: input.eventId,
-            participantId: input.participantId,
-          });
-        } catch (error: unknown) {
-          if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: alreadyCheckedIn,
-            });
-          }
-          throw error;
-        }
+        await recordEventAttendance(tx, attendance);
 
         // The first scan is the check-in. `checked_in` previously had no writer
         // anywhere, which was harmless while it was only a label — but submitting now
@@ -1134,7 +1139,144 @@ export const hackathonAdminRouter = createTRPCRouter({
       return {
         success: true,
         checkedIn: promotedToCheckedIn,
+        pointsAwarded: event.points,
         message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
       };
+    }),
+
+  // The station without a camera: staff type part of a name or email. Each
+  // match says whether that person is already in this event, so the list
+  // answers "did I get them?" without a second lookup.
+  searchEventCheckIn: isScanner
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        eventId: z.string().uuid("Invalid event ID"),
+        query: z.string().trim().min(1).max(120),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const event = await db.query.hackathonEvents.findFirst({
+        where: and(
+          eq(hackathonEvents.id, input.eventId),
+          eq(hackathonEvents.hackathonId, input.hackathonId),
+        ),
+        columns: { id: true },
+      });
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+      }
+
+      const matches = await searchParticipants(db, {
+        hackathonId: input.hackathonId,
+        query: input.query,
+        limit: 20,
+      });
+
+      const attended =
+        matches.length === 0
+          ? []
+          : await db
+              .select({ participantId: hackathonEventAttendees.participantId })
+              .from(hackathonEventAttendees)
+              .where(
+                and(
+                  eq(hackathonEventAttendees.eventId, input.eventId),
+                  inArray(
+                    hackathonEventAttendees.participantId,
+                    matches.map((match) => match.id),
+                  ),
+                ),
+              );
+      const inEvent = new Set(attended.map((row) => row.participantId));
+
+      return matches.map((match) => ({
+        ...match,
+        checkedIntoEvent: inEvent.has(match.id),
+      }));
+    }),
+
+  // Checks one person in by name. Unlike the pass scan it never admits anyone
+  // to the hackathon: arrival happens at the registration desk, and a name in
+  // a search box is not proof somebody is in the building.
+  manualEventCheckIn: isScanner
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        eventId: z.string().uuid("Invalid event ID"),
+        participantId: z.string().uuid("Invalid participant ID"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const [participant, event] = await Promise.all([
+        db.query.hackathonParticipants.findFirst({
+          where: and(
+            eq(hackathonParticipants.id, input.participantId),
+            eq(hackathonParticipants.hackathonId, input.hackathonId),
+          ),
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            registrationStatus: true,
+          },
+          with: { user: { columns: { name: true, email: true } } },
+        }),
+        db.query.hackathonEvents.findFirst({
+          where: and(
+            eq(hackathonEvents.id, input.eventId),
+            eq(hackathonEvents.hackathonId, input.hackathonId),
+          ),
+          columns: { id: true, name: true, points: true, endTime: true },
+        }),
+      ]);
+
+      if (!participant) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That person is not registered for this hackathon.",
+        });
+      }
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+      }
+
+      const name = fullName(
+        personName({ ...participant, accountName: participant.user.name }),
+        participant.user.email,
+      );
+
+      if (participant.registrationStatus !== "checked_in") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `${name} has not checked in at the registration desk yet. Send them there first.`,
+        });
+      }
+
+      // Same bound as the pass scan, for the same reason: a station left on
+      // a finished event keeps handing out its points.
+      if (event.endTime < new Date()) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `${event.name} has already ended. Credit somebody who was there with a points adjustment.`,
+        });
+      }
+
+      const { pointsAwarded } = await recordEventAttendance(db, {
+        event,
+        participant: { id: participant.id, name },
+        method: "manual",
+        actorId: ctx.userId,
+      });
+
+      ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
+
+      return { name, eventName: event.name, pointsAwarded };
     }),
 });

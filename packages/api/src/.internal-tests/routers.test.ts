@@ -1685,7 +1685,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
     );
   });
 
-  describe("13. Judging System, Queue & Live Rankings", () => {
+  describe("13. Judge roster", () => {
     const hackathonId = "00000000-0000-4000-8000-000000000050";
 
     it("should allow admin to create a judge profile", async () => {
@@ -1715,76 +1715,6 @@ describe("Router Integration and Access Control Verification Suite", () => {
       });
 
       expect(judge.name).toBe("Judge Dread");
-    });
-
-    it("should calculate bias-corrected Z-score and Bayesian rankings for hackathon projects", async () => {
-      const ctx = createMockCtx("admin_user_id");
-
-      mockFindFirst.mockImplementation((table) => {
-        if (table === "admins") {
-          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
-        }
-        return null;
-      });
-
-      mockFindMany.mockImplementation((table) => {
-        if (table === "judgingProjects") {
-          return [
-            {
-              id: "proj_1",
-              name: "AI Health Assistant",
-              tableNumber: 1,
-              votes: [
-                {
-                  judgeId: "j1",
-                  score: 45,
-                  scoreCreativity: 9,
-                  scoreImpact: 9,
-                  scoreScope: 9,
-                  scoreClarity: 9,
-                  scoreSoundness: 9,
-                  judge: { name: "Strict Judge", user: { name: "Strict Judge" } },
-                },
-                {
-                  judgeId: "j2",
-                  score: 48,
-                  scoreCreativity: 10,
-                  scoreImpact: 10,
-                  scoreScope: 9,
-                  scoreClarity: 10,
-                  scoreSoundness: 9,
-                  judge: { name: "Lenient Judge", user: { name: "Lenient Judge" } },
-                },
-              ],
-            },
-            {
-              id: "proj_2",
-              name: "Simple Web App",
-              tableNumber: 2,
-              votes: [
-                {
-                  judgeId: "j1",
-                  score: 25,
-                  scoreCreativity: 5,
-                  scoreImpact: 5,
-                  scoreScope: 5,
-                  scoreClarity: 5,
-                  scoreSoundness: 5,
-                  judge: { name: "Strict Judge", user: { name: "Strict Judge" } },
-                },
-              ],
-            },
-          ];
-        }
-        return [];
-      });
-
-      const caller = appRouter.createCaller(ctx);
-      const res = await caller.judge.getRankings({ hackathonId });
-
-      expect(res.rankings.length).toBe(2);
-      expect(res.rankings[0].project.name).toBe("AI Health Assistant");
-      expect(res.rankings[0].weightedScore).toBeGreaterThan(res.rankings[1].weightedScore);
     });
   });
 

@@ -75,9 +75,9 @@ export async function resolveHackathonId(
   // twice a year. "" means none, since a miss also reads as null.
   //
   // getOrSet, not get/set: this is one key shared by the whole instance, and
-  // when it expires every request in flight resolves the edition again. The
-  // judge gate reads it on the fallback path, so at a running event that is
-  // a burst of identical queries once a minute.
+  // when it expires every request in flight resolves the edition again.
+  // judge.isJudge reads it whenever no edition is named, so at a running event
+  // that is a burst of identical queries once a minute.
   const resolved = await cache.getOrSet(
     CURRENT_HACKATHON_KEY,
     // The rule lives in @query/db so sign-in and the webhook share it; this

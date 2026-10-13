@@ -24,6 +24,8 @@ import { ScheduleTab } from "@/components/hackathon/ScheduleTab";
 import { ProjectsTab } from "@/components/hackathon/ProjectsTab";
 import { ResultsTab } from "@/components/hackathon/ResultsTab";
 import { TeamsTab } from "@/components/hackathon/TeamsTab";
+import { HackerJudgingTab } from "@/components/hackathon/judging/HackerJudgingTab";
+import { PointsTab } from "@/components/hackathon/points/PointsTab";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
@@ -48,13 +50,22 @@ function formatDateRange(start: Date | string, end: Date | string) {
   return `${formatDate(s)} - ${formatDate(e)}`;
 }
 
-type TabType = "INFO" | "SCHEDULE" | "PROJECTS" | "TEAMS" | "RESULTS";
+type TabType =
+  | "INFO"
+  | "SCHEDULE"
+  | "PROJECTS"
+  | "TEAMS"
+  | "JUDGING"
+  | "POINTS"
+  | "RESULTS";
 
 const TABS: { id: TabType; label: string }[] = [
   { id: "INFO", label: "Overview" },
   { id: "SCHEDULE", label: "Schedule & pass" },
   { id: "PROJECTS", label: "Projects" },
   { id: "TEAMS", label: "Teams" },
+  { id: "JUDGING", label: "Judging" },
+  { id: "POINTS", label: "Points" },
   { id: "RESULTS", label: "Results" },
 ];
 
@@ -176,6 +187,10 @@ export default function HackathonDetailPage() {
             hackathonId={hackathon.id}
             isRegistered={isRegistered}
           />
+        ) : tab === "JUDGING" ? (
+          <HackerJudgingTab hackathonId={hackathon.id} />
+        ) : tab === "POINTS" ? (
+          <PointsTab hackathonId={hackathon.id} />
         ) : tab === "RESULTS" ? (
           <ResultsTab hackathonId={hackathon.id} />
         ) : tab === "PROJECTS" ? (

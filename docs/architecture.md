@@ -33,7 +33,7 @@
 
 ## Two products, one database
 
-The schema is split on purpose. Mixing them previously made membership vanish when a new hackathon edition was drafted. Panel judging tables live in this same Postgres database.
+The schema is split on purpose. Mixing them previously made membership vanish when a new hackathon edition was drafted.
 
 ### Club
 
@@ -54,7 +54,9 @@ Edition-scoped event operations. Everything hangs off `hackathon`.
 
 - Editions, interest list, registration, teams, project submission
 - Weekend schedule (`hackathon_event`) and badge scans
-- Judging (`judge`, `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result`)
+- Judge roster (`judge`, `judge_assignment`): applications and approval
+- Judging: room-based judging with Devpost import — `judging_*` tables (`judging.ts`). The older pool-dispatch tables (`judging_project`, `judge_vote`, `judge_queue`, `hackathon_result`) are retired and kept for past editions' results
+- Points: `hackathon_event` points, staff adjustments and the point store (`points.ts`)
 - Announcements and acceptance waves
 
 Hackathon participation is **open to non-members**. Membership is not a registration requirement.
@@ -68,7 +70,7 @@ Hackathon participation is **open to non-members**. Membership is not a registra
 3. Browser calls `/api/trpc/*` via `@trpc/react-query`. Superjson is the transformer.
 4. `createContext` loads the NextAuth session (when `db` exists), attaches `userId`, client IP, and the in-process cache.
 5. Procedures run through DB-required, sanitizer, content-type, rate-limit / DDoS, and (for mutations) cache invalidation middleware.
-6. Role gates (`isAdmin`, `isScanner`, `isJudge`, `isProjectLeader`, `isSuperAdmin`) live in `packages/api/src/middleware/procedures.ts`. There is no `adminProcedure` alias that skips a role check.
+6. Role gates (`isAdmin`, `isScanner`, `isProjectLeader`, `isSuperAdmin`) live in `packages/api/src/middleware/procedures.ts`. There is no `adminProcedure` alias that skips a role check.
 
 ## Auth
 

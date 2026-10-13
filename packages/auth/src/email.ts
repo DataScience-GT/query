@@ -218,7 +218,7 @@ export async function sendJudgeApprovedEmail({
     heading: "You're confirmed as a judge",
     paragraphs: [
       `Your application to judge ${hackathonName} has been approved.`,
-      "Your judging queue is ready. On the day, scan the QR card on each table to start, score the project, and move to the next one.",
+      "On the day, scan the QR code on your judging room's door to take your seat, then score each project as it presents.",
     ],
     ctaLabel: "Open the judge portal",
     ctaUrl: `${host}/judge`,
@@ -350,6 +350,39 @@ export async function sendResultsPublishedEmail({
     ],
     ctaLabel: "See the results",
     ctaUrl: resultsUrl ?? `${host}/hackathons`,
+  });
+}
+
+// A link that attaches a judged project to the recipient's portal account.
+// Devpost lists the address someone signed up there with, which is often not
+// the one they sign in with here, so matching on email alone strands them.
+export async function sendJudgingClaimEmail({
+  email,
+  hackathonName,
+  projectTitle,
+  claimUrl,
+  invitedBy,
+}: {
+  email: string;
+  hackathonName: string;
+  projectTitle: string;
+  claimUrl: string;
+  /** The teammate who added them, when Devpost did not list them. */
+  invitedBy?: string | null;
+}) {
+  await sendTransactionalEmail({
+    email,
+    subject: `Claim your place on ${projectTitle}`,
+    heading: "Claim your project",
+    paragraphs: [
+      invitedBy
+        ? `${invitedBy} added you to ${projectTitle} for judging at ${hackathonName}.`
+        : `${projectTitle} is entered for judging at ${hackathonName}, and you are listed on its team.`,
+      "Open the link while signed in to the portal account you checked in with. Your judging times, rooms and feedback then appear on the Judging tab.",
+      "The link works once and stops working when the event ends.",
+    ],
+    ctaLabel: "Claim your place",
+    ctaUrl: claimUrl,
   });
 }
 

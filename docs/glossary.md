@@ -13,11 +13,11 @@
 | **Staff** | Active admin whose role is not `volunteer`. |
 | **Project leader** | `project_leader` row. Runs **club projects**. Not a staff role. |
 | **Club project** | `initiative` row. Members apply to join with a pitch and an optional resume. Never judged. Distinct from a hackathon **project**, which is a judged submission. The UI says "club project"; the table is still `initiative`. |
-| **Hackathon project** | Team/solo submission (`hackathon_project`). Promoted into `judging_project` for scoring. |
+| **Hackathon project** | Team/solo submission (`hackathon_project`). Promoted into a `judging_entry` for judging, alongside projects imported from Devpost. |
 | **Interest** | “Tell me when registration opens” (`hackathon_interest`). Requires a signed-in user. |
 | **Current edition** | In-progress hackathon if one exists; otherwise the newest edition that is not `draft` or `announced`. |
 | **Announced** | Public landing + interest, registration closed, **not** current for membership resolution. |
 | **Wave** | Batch accept of oldest pending applicants; acceptance email is stamped per participant so retries are safe. |
-| **Judging queue** | Per-judge ordered tables. `startedAt` is a short claim; `arrivedAt` is the QR scan at the table. |
+| **Judging room** | `judging_room`. Judges sit in a room that serves one challenge; projects present to it on the schedule. The QR code on its door seats a judge, or starts a guest judge's session. |
 | **Results snapshot** | `hackathon_result` — frozen placing. Live z-score is only used when computing that snapshot. |
 | **Bootcamp term** | String like `2026-fall`. Access checks this, not the never-expiring `bootcamp_member` boolean. |

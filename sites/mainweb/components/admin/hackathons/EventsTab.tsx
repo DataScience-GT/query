@@ -11,6 +11,7 @@ import {
   btnDanger,
   btnPrimary,
   btnSecondary,
+  fieldHint,
   fieldLabel,
   input,
   itemTitle,
@@ -20,6 +21,7 @@ import {
   textLink,
 } from "@/components/portal/ui";
 import { toInputDate } from "@/components/admin/hackathons/constants";
+import { EventCheckInControls } from "@/components/admin/hackathons/points/EventCheckInControls";
 
 type EventType =
   | "workshop"
@@ -50,6 +52,8 @@ interface EventFormData {
   location: string;
   startTime: string;
   endTime: string;
+  points: string;
+  selfCheckIn: boolean;
 }
 
 const emptyForm: EventFormData = {
@@ -59,6 +63,8 @@ const emptyForm: EventFormData = {
   location: "",
   startTime: "",
   endTime: "",
+  points: "0",
+  selfCheckIn: false,
 };
 
 export function EventsTab({ hackathonId }: { hackathonId: string }) {
@@ -71,13 +77,22 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
-  const { data: events, isLoading } = trpc.hackathon.getEvents.useQuery({
-    hackathonId,
-  });
+  // The staff read, with check-in codes; the public getEvents leaves them out.
+  // Polled like the other officer screens so attendance counts keep moving.
+  const { data: events, isLoading } = trpc.hackathon.adminGetEvents.useQuery(
+    { hackathonId },
+    { refetchInterval: 10_000 },
+  );
+
+  // The scanner tab reads the public list, so both go stale together.
+  const refreshEvents = () => {
+    void utils.hackathon.adminGetEvents.invalidate({ hackathonId });
+    void utils.hackathon.getEvents.invalidate({ hackathonId });
+  };
 
   const createMutation = trpc.hackathon.createEvent.useMutation({
     onSuccess: () => {
-      utils.hackathon.getEvents.invalidate({ hackathonId });
+      refreshEvents();
       setShowCreate(false);
       setForm(emptyForm);
     },
@@ -85,7 +100,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
   const updateMutation = trpc.hackathon.updateEvent.useMutation({
     onSuccess: () => {
-      utils.hackathon.getEvents.invalidate({ hackathonId });
+      refreshEvents();
       setEditingId(null);
       setForm(emptyForm);
     },
@@ -93,7 +108,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
   const deleteMutation = trpc.hackathon.deleteEvent.useMutation({
     onSuccess: () => {
-      utils.hackathon.getEvents.invalidate({ hackathonId });
+      refreshEvents();
       setDeleteConfirm(null);
       setDeleteBlocked(null);
     },
@@ -120,6 +135,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
       location: event.location,
       startTime: toInputDate(event.startTime),
       endTime: toInputDate(event.endTime),
+      points: String(event.points),
+      selfCheckIn: event.selfCheckIn,
     });
     setShowCreate(false);
   }
@@ -144,6 +161,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         location: form.location,
         startTime: new Date(form.startTime),
         endTime: new Date(form.endTime),
+        points: Number(form.points) || 0,
+        selfCheckIn: form.selfCheckIn,
       });
     } else {
       createMutation.mutate({
@@ -154,6 +173,8 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         location: form.location,
         startTime: new Date(form.startTime),
         endTime: new Date(form.endTime),
+        points: Number(form.points) || 0,
+        selfCheckIn: form.selfCheckIn,
       });
     }
   }
@@ -300,6 +321,51 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               </div>
             </div>
 
+            {/* Points + self check-in */}
+            <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr] gap-4 md:items-start">
+              <div>
+                <label htmlFor="event-points" className={fieldLabel}>
+                  Points
+                </label>
+                <input
+                  id="event-points"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={10000}
+                  step={1}
+                  required
+                  value={form.points}
+                  onChange={(e) =>
+                    setForm({ ...form, points: e.target.value })
+                  }
+                  className={`tabular-nums ${input}`}
+                />
+                <p className={fieldHint}>
+                  Given at each check-in. Changing it leaves past check-ins
+                  as they were.
+                </p>
+              </div>
+              <div className="md:pt-6">
+                <label className="inline-flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] text-[var(--text-primary)]">
+                  <input
+                    type="checkbox"
+                    checked={form.selfCheckIn}
+                    onChange={(e) =>
+                      setForm({ ...form, selfCheckIn: e.target.checked })
+                    }
+                    className="h-4 w-4 cursor-pointer rounded-sm accent-[var(--accent)]"
+                  />
+                  Self check-in
+                </label>
+                <p className={`-mt-1 ${fieldHint}`}>
+                  Hackers check themselves in by typing the event&apos;s code,
+                  from 15 minutes before the start until the end. Make the
+                  code from the event row once it is saved.
+                </p>
+              </div>
+            </div>
+
             {/* Error */}
             {error && (
               <p
@@ -394,7 +460,23 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                         {event.description}
                       </p>
                     )}
-                    <p className={`mt-1 ${meta}`}>{event.location}</p>
+                    <p className={`mt-1 tabular-nums ${meta}`}>
+                      {event.location}
+                      <span className="mx-1.5" aria-hidden="true">
+                        ·
+                      </span>
+                      {event.points} point{event.points === 1 ? "" : "s"}
+                      <span className="mx-1.5" aria-hidden="true">
+                        ·
+                      </span>
+                      {event.attendeeCount} checked in
+                    </p>
+                    <EventCheckInControls
+                      hackathonId={hackathonId}
+                      event={event}
+                      readOnly={readOnly}
+                      onChanged={refreshEvents}
+                    />
                   </div>
 
                   {/* Right: Actions */}

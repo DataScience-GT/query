@@ -194,7 +194,9 @@ function SubmitPortalContent() {
       utils.hackathon.myRegistrations.invalidate();
       utils.team.mySubmission.invalidate();
       setError("");
-      setSuccessMessage("Project submitted.");
+      setSuccessMessage(
+        "Project submitted. Judging is in person: your team presents in a room for each challenge, and the event's Judging tab shows where and when.",
+      );
       setProjectSubmitted(true);
     },
     onError: (err) => setError(err.message),
@@ -477,21 +479,25 @@ function SubmitPortalContent() {
             </p>
 
             <div className="mt-6 space-y-4 empty:hidden">
-              {/* Where judges will come. The table is assigned when an
-                  organiser opens judging, and nothing else told the team. */}
-              {mySubmission.data?.tableNumber != null && (
+              {/* Once the project is in judging, the team's times and rooms
+                  live on the hackathon's Judging tab. */}
+              {mySubmission.data?.inJudging && (
                 <p className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
-                  Your project is at table{" "}
-                  <span className="font-semibold tabular-nums">
-                    {mySubmission.data.tableNumber}
-                  </span>
-                  . Be there when judging starts; judges come to you.
+                  Your project is in judging. Your team presents to judges in
+                  a room for each challenge it entered, and the{" "}
+                  <Link
+                    href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                    className="font-semibold underline decoration-accent decoration-2 underline-offset-[5px]"
+                  >
+                    Judging tab
+                  </Link>{" "}
+                  shows where and when once organisers publish the schedule.
                 </p>
               )}
 
               {/* Admission, said before the form is filled in. Acceptance
                   lets you form a team; submitting needs the badge scan,
-                  because judging happens in person at a table number. */}
+                  because judging happens in person. */}
               {currentReg && currentReg.registrationStatus !== "checked_in" && (
                 <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
                   {currentReg.registrationStatus === "approved"
@@ -613,8 +619,9 @@ function SubmitPortalContent() {
                 <div className="border-t border-[var(--border-subtle)] pt-6">
                   <h3 className={itemTitle}>Tracks and challenges</h3>
                   <p className={`mt-1 ${body}`}>
-                    This decides which judges see your project. Pick
-                    everything you are competing for.
+                    Your project presents to judges in a room for each
+                    challenge you pick, so pick everything you are competing
+                    for.
                   </p>
 
                   {availableTracks.length > 0 && (
