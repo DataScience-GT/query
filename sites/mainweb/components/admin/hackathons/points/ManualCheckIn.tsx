@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Check, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE } from "@/lib/use-portal-context";
@@ -113,20 +114,39 @@ export function ManualCheckIn({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Ada or ada@gatech.edu"
-          className={`min-h-11 ${input}`}
+          // Clears the fixed top bar on a phone, so the field rises above the
+          // keyboard with the first results beneath it. Touch only: with a
+          // mouse there is no keyboard to clear, and the page would jump.
+          onFocus={(e) => {
+            if (window.matchMedia("(pointer: coarse)").matches)
+              e.currentTarget.scrollIntoView({ block: "start", behavior: "smooth" });
+          }}
+          className={`scroll-mt-20 min-h-11 ${input}`}
         />
         <p className={fieldHint}>
-          Tap a name to check them in. Someone not admitted to the hackathon yet
-          needs Admit (ID checked) first.
+          Tap a name to check them in. Check photo ID before Admit.
         </p>
       </div>
 
       {outcome && (
         <p
           role={outcome.ok ? "status" : "alert"}
-          className={`text-[15px] ${outcome.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
+          className="flex items-start gap-2 text-[15px] leading-snug text-[var(--text-primary)]"
         >
-          {outcome.text}
+          {outcome.ok ? (
+            <Check
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--success)]"
+            />
+          ) : (
+            <X
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--danger)]"
+            />
+          )}
+          <span>{outcome.text}</span>
         </p>
       )}
 
@@ -152,12 +172,19 @@ export function ManualCheckIn({
                 admit.isPending && admit.variables?.participantId === person.id;
               return (
                 <li key={person.id}>
-                  {arrived ? (
+                  {person.checkedIntoEvent ? (
+                    // Not a disabled button: the portal dims every :disabled to
+                    // half, which made the finished state look unavailable.
+                    <div className={rowClass}>
+                      <PersonLabel name={person.name} email={person.email} />
+                      <span className={`shrink-0 ${status("success")}`}>
+                        Checked in
+                      </span>
+                    </div>
+                  ) : arrived ? (
                     <button
                       type="button"
-                      disabled={
-                        readOnly || person.checkedIntoEvent || checkIn.isPending
-                      }
+                      disabled={readOnly || checkIn.isPending}
                       title={readOnly ? READ_ONLY_TITLE : undefined}
                       onClick={() => {
                         setOutcome(null);
@@ -170,14 +197,8 @@ export function ManualCheckIn({
                       className={`${rowClass} text-left transition-colors enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent`}
                     >
                       <PersonLabel name={person.name} email={person.email} />
-                      <span className="max-w-[11rem] shrink-0 text-right">
-                        {person.checkedIntoEvent ? (
-                          <span className={status("success")}>Checked in</span>
-                        ) : (
-                          <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-                            {busy ? "Checking in…" : "Check in"}
-                          </span>
-                        )}
+                      <span className="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-sm)] border border-[var(--border-medium)] px-4 text-sm font-semibold text-[var(--text-primary)]">
+                        {busy ? "Checking in…" : "Check in"}
                       </span>
                     </button>
                   ) : (
@@ -204,7 +225,7 @@ export function ManualCheckIn({
                         }}
                         className={`shrink-0 ${btnSecondary}`}
                       >
-                        {admitting ? "Admitting…" : "Admit (ID checked)"}
+                        {admitting ? "Admitting…" : "Admit"}
                       </button>
                     </div>
                   )}

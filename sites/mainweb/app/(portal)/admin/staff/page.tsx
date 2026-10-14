@@ -18,6 +18,7 @@ import {
   page,
   pageDek,
   sectionTitle,
+  status,
 } from "@/components/portal/ui";
 
 const adminTitle =
@@ -36,7 +37,7 @@ const ROLES = [
   {
     id: "volunteer" as const,
     label: "Volunteer",
-    hint: "Hackathon badge scanning at /scan and club pass scanning at /scan/club. Nothing else — the admin pages refuse them.",
+    hint: "Scans hackathon badges and club passes. No access to admin pages.",
   },
   {
     id: "bug_tester" as const,
@@ -61,6 +62,9 @@ const ROLES = [
 ];
 
 type Role = (typeof ROLES)[number]["id"];
+
+/** The name people know a role by, not its database key. */
+const roleLabel = (id: string) => ROLES.find((r) => r.id === id)?.label ?? id;
 
 /** ISO day rather than a locale format: this renders on the server too, and a
  *  locale-dependent string mismatches on hydration. */
@@ -143,7 +147,7 @@ export default function StaffPage() {
           <label htmlFor="staff-email" className={fieldLabel}>
             Their sign-in email
           </label>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex gap-3">
             <input
               id="staff-email"
               type="email"
@@ -152,7 +156,7 @@ export default function StaffPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="them@gatech.edu"
-              className={`${input} sm:flex-1`}
+              className={`${input} min-w-0 flex-1`}
             />
             <button
               type="button"
@@ -162,7 +166,7 @@ export default function StaffPage() {
                 setSearchedEmail(email.trim().toLowerCase());
               }}
               disabled={!email.trim()}
-              className={btnSecondary}
+              className={`shrink-0 ${btnSecondary}`}
             >
               Find
             </button>
@@ -189,7 +193,7 @@ export default function StaffPage() {
               <p className={meta}>{lookup.data.email}</p>
               {lookup.data.existingRole && (
                 <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-                  Already {lookup.data.existingRole.role}
+                  Already {roleLabel(lookup.data.existingRole.role).toLowerCase()}
                   {lookup.data.existingRole.isActive ? "" : " (deactivated)"}
                   {lookup.data.existingRole.expiresAt
                     ? ` until ${termDate(lookup.data.existingRole.expiresAt)}`
@@ -198,29 +202,35 @@ export default function StaffPage() {
               )}
             </div>
 
-            <fieldset>
-              <legend className={fieldLabel}>Role</legend>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {roleOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setRole(option.id)}
-                    aria-pressed={role === option.id}
-                    className={`p-3 text-left rounded-[var(--radius-sm)] border transition-colors ${
-                      role === option.id
-                        ? "border-accent bg-[var(--bg-secondary)]"
-                        : "border-[var(--border-medium)] hover:border-[var(--border-hover)]"
-                    }`}
-                  >
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">
-                      {option.label}
-                    </p>
-                    <p className={`${meta} mt-1`}>{option.hint}</p>
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+            {roleOptions.length > 1 ? (
+              <fieldset>
+                <legend className={fieldLabel}>Role</legend>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {roleOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setRole(option.id)}
+                      aria-pressed={role === option.id}
+                      className={`p-3 text-left rounded-[var(--radius-sm)] border transition-colors ${
+                        role === option.id
+                          ? "border-accent ring-1 ring-accent"
+                          : "border-[var(--border-medium)] hover:border-[var(--border-hover)]"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        {option.label}
+                      </p>
+                      <p className={`${meta} mt-1`}>{option.hint}</p>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            ) : (
+              <p className="text-[15px] leading-relaxed text-[var(--text-secondary)]">
+                {roleOptions[0]?.hint}
+              </p>
+            )}
 
             <button
               type="button"
@@ -245,11 +255,16 @@ export default function StaffPage() {
               }
               className={btnPrimary}
             >
-              {lookup.data.existingRole ? "Change role" : "Grant role"}
+              {lookup.data.existingRole
+                ? "Change role"
+                : roleOptions.length > 1
+                  ? "Grant role"
+                  : "Grant volunteer role"}
             </button>
             {locked && (
               <p className={fieldHint}>
-                Only a super admin can change a {heldRole} role.
+                Only a super admin can change the{" "}
+                {roleLabel(heldRole ?? "").toLowerCase()} role.
               </p>
             )}
           </div>
@@ -280,15 +295,28 @@ export default function StaffPage() {
             {staff?.map((row) => (
               <div
                 key={row.id}
-                className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="py-3 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
-                    {row.user?.name ?? "Unnamed account"}
+                  <p
+                    className={`flex items-center gap-2 text-[15px] font-semibold ${
+                      row.isActive
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-muted)]"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {row.user?.name ?? "Unnamed account"}
+                    </span>
+                    {!row.isActive && (
+                      <span className={`shrink-0 ${status("neutral")}`}>
+                        Deactivated
+                      </span>
+                    )}
                   </p>
-                  <p className={`${meta} break-all`}>
-                    {row.user?.email} · {row.role}
-                    {row.isActive ? "" : " · deactivated"}
+                  <p className={`${meta} truncate`}>{row.user?.email}</p>
+                  <p className={meta}>
+                    {roleLabel(row.role)}
                     {row.expiresAt
                       ? new Date(row.expiresAt) < new Date()
                         ? ` · expired ${termDate(row.expiresAt)}`
@@ -308,7 +336,7 @@ export default function StaffPage() {
                       });
                     }}
                     disabled={updateStaff.isPending}
-                    className={`${row.isActive ? btnDanger : btnSecondary} shrink-0 self-start sm:self-auto`}
+                    className={`${row.isActive ? btnDanger : btnSecondary} shrink-0`}
                   >
                     {row.isActive ? "Deactivate" : "Reactivate"}
                   </button>
