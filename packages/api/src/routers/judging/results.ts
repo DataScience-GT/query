@@ -37,6 +37,10 @@ import { assertHackathonExists } from "../../services/judging/config";
 import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import type { JudgingDb } from "../../services/judging/config";
 import { lockJudgingConfig } from "../../services/judging/claims";
+import {
+  notifyResultsPublished,
+  resultsPublishedBefore,
+} from "../../services/judging/notify";
 import { evaluationScore, meanOrNull } from "../../services/judging/scoring";
 import {
   OVERALL_SCOPE,
@@ -246,6 +250,10 @@ export const judgingResultsRouter = createTRPCRouter({
       return rows.length;
     });
 
+    // Read before this publish is recorded: only the first one tells hackers.
+    const announce =
+      published > 0 && !(await resultsPublishedBefore(db, input.hackathonId));
+
     await recordAdminAction(db, {
       userId: ctx.userId,
       action: "judging.results.publish",
@@ -253,6 +261,8 @@ export const judgingResultsRouter = createTRPCRouter({
       severity: "warn",
       metadata: { placements: published },
     });
+
+    if (announce) void notifyResultsPublished(db, input.hackathonId);
 
     return { published, publishedAt: now };
   }),

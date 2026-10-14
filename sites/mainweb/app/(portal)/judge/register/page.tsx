@@ -20,6 +20,7 @@ import Link from "next/link";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   body,
+  btnPrimary,
   btnSecondary,
   fieldHint,
   meta,
@@ -37,12 +38,21 @@ const JUDGE_REGISTRATION_STEPS = [
 
 export default function JudgeRegisterPage() {
   const router = useRouter();
-  const { status: authStatus } = useSession();
-  const [step, setStep] = useState(0);
+  const { data: session, status: authStatus } = useSession();
+  // Null until the judge moves, so the first step can depend on data that has
+  // not loaded yet.
+  const [pickedStep, setStep] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery({});
+  // An application or a participant registration for the edition means the
+  // form would only end in a refusal from judge.register.
+  const signedIn = authStatus === "authenticated";
+  const { data: applications, isLoading: applicationsLoading } =
+    trpc.judge.myApplications.useQuery(undefined, { enabled: signedIn });
+  const { data: registrations, isLoading: registrationsLoading } =
+    trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: signedIn });
   const utils = trpc.useUtils();
   const registerMutation = trpc.judge.register.useMutation({
     onSuccess: () => {
@@ -58,12 +68,17 @@ export default function JudgeRegisterPage() {
   // /judge links here with the edition already chosen; starting step 0 empty
   // made the judge pick it again.
   const searchParams = useSearchParams();
-  const [hackathonId, setHackathonId] = useState(
+  const [linkedHackathonId] = useState(
     () => searchParams.get("hackathonId") ?? "",
   );
+  const [hackathonId, setHackathonId] = useState(linkedHackathonId);
   const [preferredTrack, setPreferredTrack] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  // Null until edited, so the session's name and email fill in whenever it
+  // arrives without an effect to copy them over.
+  const [typedName, setName] = useState<string | null>(null);
+  const [typedEmail, setEmail] = useState<string | null>(null);
+  const name = typedName ?? session?.user?.name ?? "";
+  const email = typedEmail ?? session?.user?.email ?? "";
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
   const [title, setTitle] = useState("");
@@ -85,7 +100,9 @@ export default function JudgeRegisterPage() {
     return <LoadingScreen message="Checking your session…" />;
   }
 
-  if (isLoading) return <LoadingScreen message="Loading hackathons…" />;
+  if (isLoading || applicationsLoading || registrationsLoading) {
+    return <LoadingScreen message="Loading hackathons…" />;
+  }
 
   // `closed` belongs here: closing participant registration is the natural step
   // *before* recruiting judges, and leaving it out emptied this page with no
@@ -106,10 +123,21 @@ export default function JudgeRegisterPage() {
     ...(selectedHackathon?.challenges ?? []),
   ];
 
+  // A link from /judge already chose the edition, so a valid one skips the
+  // picker; a stale or unknown id still lands on it.
+  const step =
+    pickedStep ??
+    (activeHackathons.some((h) => h.id === linkedHackathonId) ? 1 : 0);
+
+  const application = applications?.find((a) => a.hackathonId === hackathonId);
+  const isParticipant = !!registrations?.some(
+    (r) => r.hackathonId === hackathonId,
+  );
+
   function validateStep(s: number): boolean {
     setError("");
     if (s === 0) {
-      if (!hackathonId) {
+      if (!selectedHackathon) {
         setError("Pick a hackathon to judge.");
         return false;
       }
@@ -122,26 +150,18 @@ export default function JudgeRegisterPage() {
         setError("Enter a valid email address.");
         return false;
       }
-      if (!company.trim()) {
-        setError("Enter your company or organisation.");
-        return false;
-      }
-      if (!title.trim()) {
-        setError("Enter your title or role.");
-        return false;
-      }
     }
     return true;
   }
 
   function handleNext() {
     if (!validateStep(step)) return;
-    setStep((s) => Math.min(s + 1, JUDGE_REGISTRATION_STEPS.length - 1));
+    setStep(Math.min(step + 1, JUDGE_REGISTRATION_STEPS.length - 1));
   }
 
   function handleBack() {
     setError("");
-    setStep((s) => Math.max(s - 1, 0));
+    setStep(Math.max(step - 1, 0));
   }
 
   function handleSubmit() {
@@ -152,8 +172,8 @@ export default function JudgeRegisterPage() {
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim() || undefined,
-      company: company.trim(),
-      title: title.trim(),
+      company: company.trim() || undefined,
+      title: title.trim() || undefined,
       specialty: specialty.trim() || undefined,
       linkedinUrl: linkedinUrl.trim() || undefined,
       githubUrl: githubUrl.trim() || undefined,
@@ -172,12 +192,58 @@ export default function JudgeRegisterPage() {
           <h1 className={pageTitle}>Application received</h1>
           {/* judge.setActive sends the approval email on the transition. */}
           <p className={pageDek}>
-            An organiser will review it and assign you a track. You&apos;ll get
-            an email once you&apos;re approved.
+            An organiser will review it. You&apos;ll get an email once
+            you&apos;re approved.
           </p>
-          <Link href="/hackathons" className={`mt-8 ${btnSecondary}`}>
-            Back to hackathons
+          <Link href="/judge" className={`mt-8 ${btnPrimary}`}>
+            See your application
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // Shown instead of the form: the edition is already settled one way or the
+  // other, and submitting would be refused.
+  if (selectedHackathon && (application || isParticipant)) {
+    return (
+      <main className={page}>
+        <div className="max-w-xl">
+          <h1 className={pageTitle}>
+            {application
+              ? application.approved
+                ? `You're judging ${selectedHackathon.name}`
+                : "Application received"
+              : `You're registered for ${selectedHackathon.name}`}
+          </h1>
+          <p className={pageDek}>
+            {application
+              ? application.approved
+                ? "An organiser approved your application. Open your edition on judging day."
+                : `An organiser will review your application to judge ${selectedHackathon.name}. You'll get an email once you're approved.`
+              : "People registered as participants can't judge the same event."}
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {application ? (
+              <Link href="/judge" className={btnPrimary}>
+                See your application
+              </Link>
+            ) : (
+              <Link href="/hackathons" className={btnSecondary}>
+                Back to hackathons
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setHackathonId("");
+                setStep(0);
+              }}
+              className={btnSecondary}
+            >
+              Choose another event
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -263,14 +329,12 @@ export default function JudgeRegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FormInput
                 label="Company or organisation"
-                required
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Acme Corp"
               />
               <FormInput
                 label="Title or role"
-                required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Senior Software Engineer"
@@ -343,8 +407,8 @@ export default function JudgeRegisterPage() {
               />
             ) : (
               <p className={fieldHint}>
-                This hackathon has no tracks published yet. An organiser will
-                assign yours.
+                This hackathon has no tracks published yet. You can apply
+                without one.
               </p>
             )}
             <div className="mt-6">

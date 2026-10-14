@@ -89,6 +89,7 @@ import {
   rubricLockReason,
   stateChangeProblem,
 } from "../../services/judging/checklist";
+import { notifyItineraryPosted } from "../../services/judging/notify";
 
 // Organiser setup and live control of room judging: getting projects in,
 // shaping challenges, rooms and the rubric, the switches flipped on judging
@@ -2210,6 +2211,21 @@ export const judgingAdminRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
       await assertHackathonExists(db, input.hackathonId);
       await ensureJudgingConfig(db, input.hackathonId);
+      // Off to on is decided by the row, not a read before it: of two clicks
+      // racing to publish, only one still finds it off, so teams hear once.
+      const switchedOn =
+        input.itineraryPublished === true
+          ? await db
+              .update(judgingConfigs)
+              .set({ itineraryPublished: true })
+              .where(
+                and(
+                  eq(judgingConfigs.hackathonId, input.hackathonId),
+                  eq(judgingConfigs.itineraryPublished, false),
+                ),
+              )
+              .returning({ hackathonId: judgingConfigs.hackathonId })
+          : [];
       const [config] = await db
         .update(judgingConfigs)
         .set({
@@ -2230,6 +2246,14 @@ export const judgingAdminRouter = createTRPCRouter({
           emergencyMode: input.emergencyMode,
         },
       });
+
+      // Teams learn their times the moment they appear, once per switch on.
+      // Not awaited: a few hundred messages must not hold the organiser's
+      // click, and it never rejects.
+      if (switchedOn.length > 0) {
+        void notifyItineraryPosted(db, input.hackathonId);
+      }
+
       return {
         itineraryPublished: config!.itineraryPublished,
         emergencyMode: config!.emergencyMode,
