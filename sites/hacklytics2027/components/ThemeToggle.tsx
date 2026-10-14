@@ -60,7 +60,7 @@ export default function ThemeToggle({
         next === "light" ? "Switch to light mode" : "Switch to dark mode"
       }
       title={next === "light" ? "Light mode" : "Dark mode"}
-      className={`w-11 h-11 rounded-full flex items-center justify-center border border-rule hover:border-ink-3 text-ink transition-colors bg-transparent shrink-0 ${className}`}
+      className={`w-11 h-11 rounded-full flex items-center justify-center border border-line hover:border-ink-3 text-ink transition-colors bg-transparent shrink-0 ${className}`}
     >
       {theme === "dark" ? (
         // Sun, drawn on the pixel grid like the rest of the site.
@@ -84,7 +84,8 @@ export default function ThemeToggle({
           <rect x="11" y="11" width="2" height="2" />
         </svg>
       ) : (
-        // Moon.
+        // Moon: a fat crescent, tips to the upper right, so it does not read
+        // as the letter C.
         <svg
           viewBox="0 0 16 16"
           width="16"
@@ -93,13 +94,13 @@ export default function ThemeToggle({
           aria-hidden="true"
           fill="currentColor"
         >
-          <rect x="6" y="2" width="5" height="2" />
-          <rect x="4" y="4" width="4" height="2" />
-          <rect x="3" y="6" width="4" height="4" />
-          <rect x="4" y="10" width="4" height="2" />
-          <rect x="6" y="12" width="5" height="2" />
-          <rect x="10" y="10" width="3" height="2" />
-          <rect x="11" y="4" width="2" height="2" />
+          <rect x="4" y="0" width="2" height="2" />
+          <rect x="2" y="2" width="4" height="2" />
+          <rect x="0" y="4" width="6" height="4" />
+          <rect x="0" y="8" width="8" height="2" />
+          <rect x="0" y="10" width="16" height="2" />
+          <rect x="2" y="12" width="12" height="2" />
+          <rect x="4" y="14" width="8" height="2" />
         </svg>
       )}
     </button>
