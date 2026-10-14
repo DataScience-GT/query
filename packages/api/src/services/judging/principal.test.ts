@@ -9,12 +9,16 @@ import {
 } from "./principal";
 import type { GuestJudge } from "./principal";
 import type { JudgingDb } from "./config";
+import { signRoomLink } from "./room-link";
 import type { DrizzleDB } from "@query/db";
 
 // Stands in for the query-builder calls the principal makes. Every select and
 // insert resolves to the next result in its queue.
 function fakeDb(results: { select?: unknown[][]; insert?: unknown[][] }) {
-  const calls = { select: 0, insert: 0 };
+  const calls = { select: 0, insert: 0, update: 0 };
+  // Every row handed to insert().values(), and every update().set(), in order.
+  const inserted: Record<string, unknown>[] = [];
+  const updated: Record<string, unknown>[] = [];
   const chain = (kind: keyof typeof calls) => {
     const next = () => {
       calls[kind] += 1;
@@ -26,11 +30,20 @@ function fakeDb(results: { select?: unknown[][]; insert?: unknown[][] }) {
       "where",
       "innerJoin",
       "leftJoin",
-      "values",
       "onConflictDoNothing",
+      "for",
     ]) {
       builder[method] = () => builder;
     }
+    builder.values = (row: Record<string, unknown>) => {
+      inserted.push(row);
+      return builder;
+    };
+    builder.set = (row: Record<string, unknown>) => {
+      calls.update += 1;
+      updated.push(row);
+      return builder;
+    };
     builder.limit = next;
     builder.returning = next;
     return builder;
@@ -38,8 +51,10 @@ function fakeDb(results: { select?: unknown[][]; insert?: unknown[][] }) {
   const db = {
     select: () => chain("select"),
     insert: () => chain("insert"),
+    update: () => chain("update"),
+    transaction: (run: (tx: unknown) => unknown) => run(db),
   };
-  return { db: db as unknown as JudgingDb, calls };
+  return { db: db as unknown as JudgingDb, calls, inserted, updated };
 }
 
 const HACK = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
@@ -74,12 +89,13 @@ describe("guestCookieOptions", () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = original;
   });
 
-  it("is an httpOnly, lax, site-wide, eight-hour cookie", () => {
+  it("is an httpOnly, lax, site-wide cookie that outlives the session", () => {
+    // Eight hours of session, then four in which a scan keeps the same judge.
     expect(guestCookieOptions()).toMatchObject({
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: 8 * 3600,
+      maxAge: 12 * 3600,
     });
   });
 
@@ -282,5 +298,86 @@ describe("activateRoomLink", () => {
       }),
     ).resolves.toEqual({ kind: "invalid" });
     expect(calls.select).toBe(0);
+  });
+
+  describe("a guest who already has a session", () => {
+    const LINK = "3f1c2b8e-9d4a-4c1e-8f2a-5b6c7d8e9f01";
+    const HOUR = 3600 * 1000;
+
+    // The scan finds the link, then the live session for the cookie (one
+    // from another room's link, or none once it lapsed or was revoked), then
+    // the session row itself.
+    async function scan(row: Record<string, unknown> | null) {
+      process.env.AUTH_SECRET = "test-secret";
+      const live =
+        row && !row.revokedAt && (row.expiresAt as Date) > new Date()
+          ? [{ sessionId: "s1", hackathonId: row.hackathonId, linkId: "l1" }]
+          : [];
+      const { db, inserted, updated } = fakeDb({
+        select: [[{ hackathonId: HACK, roomId: "r2" }], live, row ? [row] : []],
+      });
+      const result = await activateRoomLink(db as unknown as DrizzleDB, {
+        linkId: LINK,
+        sig: signRoomLink(LINK),
+        guestToken: "old-token",
+      });
+      return { result, inserted, updated };
+    }
+
+    const named = (overrides: Record<string, unknown> = {}) => ({
+      sessionId: "s1",
+      hackathonId: HACK,
+      judgeId: "j1",
+      expiresAt: new Date(Date.now() + HOUR),
+      revokedAt: null,
+      ...overrides,
+    });
+
+    it("keeps their judge row in the next room and seats them there", async () => {
+      const { result, inserted, updated } = await scan(named());
+      expect(result).toMatchObject({ kind: "guest", roomId: "r2" });
+      expect(inserted).toHaveLength(2);
+      expect(inserted[0]).toMatchObject({
+        linkId: LINK,
+        roomId: "r2",
+        hackathonId: HACK,
+        judgeId: "j1",
+        completedAt: expect.any(Date),
+      });
+      expect(inserted[1]).toMatchObject({
+        judgeId: "j1",
+        roomId: "r2",
+        hackathonId: HACK,
+      });
+      // The session for the room they left ends.
+      expect(updated).toEqual([{ expiresAt: expect.any(Date) }]);
+    });
+
+    it("recognises a session that lapsed a little while ago", async () => {
+      const { inserted } = await scan(
+        named({ expiresAt: new Date(Date.now() - HOUR) }),
+      );
+      expect(inserted[0]).toMatchObject({ judgeId: "j1" });
+      expect(inserted).toHaveLength(2);
+    });
+
+    it.each([
+      ["has not given a name", { judgeId: null }],
+      ["is from another edition", { hackathonId: OTHER_HACK }],
+      ["was revoked by an organiser", { revokedAt: new Date() }],
+      ["lapsed long ago", { expiresAt: new Date(Date.now() - 5 * HOUR) }],
+    ])("starts a nameless session when the old one %s", async (_, row) => {
+      const { result, inserted, updated } = await scan(named(row));
+      expect(result).toMatchObject({ kind: "guest", roomId: "r2" });
+      expect(inserted).toHaveLength(1);
+      expect(inserted[0]).toMatchObject({ judgeId: null, completedAt: null });
+      expect(updated).toHaveLength(0);
+    });
+
+    it("starts a nameless session when the cookie matches nothing", async () => {
+      const { inserted } = await scan(null);
+      expect(inserted).toHaveLength(1);
+      expect(inserted[0]).toMatchObject({ judgeId: null, completedAt: null });
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   nextPresentation,
   roomPlace,
   startsIn,
+  stationGroups,
 } from "./desk";
 
 describe("countdown", () => {
@@ -104,5 +105,49 @@ describe("nextPresentation", () => {
     const finished = { id: "a", presentation: slot(0), myEvaluation: null };
     expect(nextPresentation([finished], now)).toBeNull();
     expect(nextPresentation([], now)).toBeNull();
+  });
+});
+
+describe("stationGroups", () => {
+  const station = (
+    id: string,
+    buildingName: string | null,
+    yourTrack = false,
+  ) => ({
+    id,
+    buildingName,
+    yourTrack,
+  });
+  const ids = (
+    groups: { heading: string | null; stations: { id: string }[] }[],
+  ) => groups.map((g) => [g.heading, g.stations.map((s) => s.id)]);
+
+  it("puts the judge's track first, then groups by building", () => {
+    const groups = stationGroups([
+      station("a", "Klaus"),
+      station("b", "Van Leer"),
+      station("c", "Klaus", true),
+      station("d", "Klaus"),
+    ]);
+    expect(ids(groups)).toEqual([
+      [null, ["c"]],
+      ["Klaus", ["a", "d"]],
+      ["Van Leer", ["b"]],
+    ]);
+  });
+
+  it("puts stations without a building last", () => {
+    const groups = stationGroups([station("a", null), station("b", "Klaus")]);
+    expect(ids(groups)).toEqual([
+      ["Klaus", ["b"]],
+      ["Elsewhere", ["a"]],
+    ]);
+  });
+
+  it("has no headings when there is nothing to tell apart", () => {
+    expect(
+      ids(stationGroups([station("a", null), station("b", null)])),
+    ).toEqual([[null, ["a", "b"]]]);
+    expect(stationGroups([])).toEqual([]);
   });
 });

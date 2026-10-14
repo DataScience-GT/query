@@ -205,6 +205,9 @@ function Sheet({
       <p className={print ? "mt-10 text-[14pt]" : `mt-4 ${meta}`}>
         Judges: scan with your phone camera to join this {room.kind}.
       </p>
+      <p className={print ? "mt-2 text-[12pt]" : `mt-1 ${meta}`}>
+        Club judges: sign in on your phone before scanning.
+      </p>
       <p
         className={`break-all font-[family-name:var(--font-mono)] ${
           print ? "mt-2 text-[9pt]" : "mt-1 text-[12px] text-[var(--text-subtle)]"
