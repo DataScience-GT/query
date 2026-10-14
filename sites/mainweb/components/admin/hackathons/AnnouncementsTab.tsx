@@ -98,6 +98,98 @@ const defaultAudience = (status: HackathonStatus): Audience =>
       ? "checked_in"
       : "registered";
 
+/**
+ * What the message will look like in an inbox, before anything is sent. The
+ * email's own shell (packages/auth/src/email.ts) is not exported, so this
+ * mirrors it: same palette, the body split on blank lines into paragraphs,
+ * single line breaks kept, and the button only when it has a label and a link.
+ * React escapes the text the way the email does, so markup typed into the box
+ * shows as typed.
+ */
+function EmailPreview({
+  subject,
+  heading,
+  body,
+  ctaLabel,
+  ctaUrl,
+}: {
+  subject: string;
+  heading: string;
+  body: string;
+  ctaLabel: string;
+  ctaUrl: string;
+}) {
+  return (
+    <div>
+      <p className={label}>Preview</p>
+      <p className={`mt-1 ${meta}`}>Subject: {subject.trim() || "—"}</p>
+      <div
+        className="mt-2 max-w-[600px] overflow-hidden"
+        style={{ background: "#0f172a", borderRadius: 16 }}
+      >
+        <div
+          style={{
+            height: 4,
+            background: "linear-gradient(90deg, #10b981 0%, #0ea5e9 100%)",
+          }}
+        />
+        <div style={{ padding: "40px 20px", textAlign: "center" }}>
+          <p style={{ color: "#f8fafc", fontSize: 24, fontWeight: 300 }}>
+            DataScience
+            <span style={{ fontWeight: 600, color: "#10b981" }}>GT</span>
+          </p>
+          <p
+            style={{
+              color: "#f8fafc",
+              fontSize: 20,
+              fontWeight: 400,
+              margin: "24px 0 16px",
+            }}
+          >
+            {heading.trim()}
+          </p>
+          <div
+            style={{
+              color: "#94a3b8",
+              fontSize: 15,
+              lineHeight: 1.6,
+              textAlign: "left",
+            }}
+          >
+            {body
+              .trim()
+              .split(/\n{2,}/)
+              .map((paragraph, index) => (
+                <p
+                  key={index}
+                  style={{ margin: "0 0 16px 0", whiteSpace: "pre-line" }}
+                >
+                  {paragraph}
+                </p>
+              ))}
+          </div>
+          {ctaLabel.trim() && ctaUrl.trim() && (
+            <span
+              style={{
+                display: "inline-block",
+                marginTop: 8,
+                padding: "14px 32px",
+                background: "#10b981",
+                color: "#052e21",
+                fontWeight: 700,
+                fontSize: 14,
+                letterSpacing: 0.5,
+              }}
+            >
+              {ctaLabel.trim()}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AnnouncementsTab({
   hackathonId,
   status,
@@ -113,8 +205,10 @@ export function AnnouncementsTab({
   const [body, setBody] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [inAppOnly, setInAppOnly] = useState(false);
 
   const [sending, setSending] = useState(false);
+  const [testNote, setTestNote] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInterest, setShowInterest] = useState(true);
@@ -138,17 +232,26 @@ export function AnnouncementsTab({
 
   const createAnnouncement = trpc.hackathon.createAnnouncement.useMutation();
   const sendBatch = trpc.hackathon.sendBatch.useMutation();
+  const sendTest = trpc.hackathon.sendTestToMe.useMutation();
 
   const recipientCount = counts?.[audience] ?? 0;
 
   const unfinished =
     announcements?.filter((a) => a.pending > 0) ?? [];
-  const canSend =
+  const composed =
     subject.trim().length > 0 &&
     heading.trim().length > 0 &&
-    body.trim().length > 0 &&
-    recipientCount > 0 &&
-    !sending;
+    body.trim().length > 0;
+  const canSend = composed && recipientCount > 0 && !sending;
+
+  // Exactly what createAnnouncement and sendTestToMe both receive.
+  const message = () => ({
+    subject: subject.trim(),
+    heading: heading.trim(),
+    body: body.trim(),
+    ctaLabel: ctaLabel.trim() || undefined,
+    ctaUrl: ctaUrl.trim() || undefined,
+  });
 
   /**
    * Walks an announcement's remaining recipients until the server reports none.
@@ -218,30 +321,56 @@ export function AnnouncementsTab({
     setBody(template?.body ?? "");
   };
 
+  /**
+   * One email to the signed-in organiser, so the real thing can be read in an
+   * inbox first. Writes no announcement and touches no recipient.
+   */
+  const handleTest = async () => {
+    setError(null);
+    setTestNote(null);
+
+    try {
+      const result = await sendTest.mutateAsync(message());
+      setTestNote(`Test sent to ${result.sentTo}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Test email failed");
+    }
+  };
+
   const handleSend = async () => {
     const audienceLabel = AUDIENCES.find((a) => a.id === audience)?.label;
     if (
       !window.confirm(
-        `Send "${subject}" to ${recipientCount} recipient(s) (${audienceLabel})?\n\nThis cannot be unsent.`,
+        inAppOnly
+          ? `Publish "${subject}" on the event page of ${recipientCount} recipient(s) (${audienceLabel})?\n\nNo email is sent. This cannot be unpublished.`
+          : `Send "${subject}" to ${recipientCount} recipient(s) (${audienceLabel})?\n\nThis cannot be unsent.`,
       )
     )
       return;
 
     setSending(true);
     setError(null);
+    setTestNote(null);
 
     try {
       const created = await createAnnouncement.mutateAsync({
         hackathonId,
         audience,
-        subject: subject.trim(),
-        heading: heading.trim(),
-        body: body.trim(),
-        ctaLabel: ctaLabel.trim() || undefined,
-        ctaUrl: ctaUrl.trim() || undefined,
+        inAppOnly,
+        ...message(),
       });
 
       utils.hackathon.listAnnouncements.invalidate({ hackathonId });
+
+      // Nothing to send: the rows are written already delivered.
+      if (created.inAppOnly) {
+        setProgress(
+          `Published on the event page of ${created.totalRecipients}. No email sent.`,
+        );
+        setSending(false);
+        return;
+      }
+
       await drain(created.announcementId, created.totalRecipients);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Announcement failed");
@@ -410,17 +539,66 @@ export function AnnouncementsTab({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={readOnly || !canSend}
-            title={readOnly ? READ_ONLY_TITLE : undefined}
-            className={`${btnPrimary} w-full sm:w-auto`}
-          >
-            {sending
-              ? "Sending…"
-              : `Send to ${recipientCount} recipient(s)`}
-          </button>
+          {composed && (
+            <EmailPreview
+              subject={subject}
+              heading={heading}
+              body={body}
+              ctaLabel={ctaLabel}
+              ctaUrl={ctaUrl}
+            />
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={inAppOnly}
+              onChange={(e) => setInAppOnly(e.target.checked)}
+              // Mid-send it would only relabel a send already under way.
+              disabled={sending}
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)] cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className={bodyText}>
+              In app only. Show it on each recipient&apos;s event page and send
+              no email.
+            </span>
+          </label>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={readOnly || !canSend}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={`${btnPrimary} w-full sm:w-auto`}
+            >
+              {sending
+                ? inAppOnly
+                  ? "Publishing…"
+                  : "Sending…"
+                : inAppOnly
+                  ? `Publish to ${recipientCount} recipient(s)`
+                  : `Send to ${recipientCount} recipient(s)`}
+            </button>
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={readOnly || !composed || sending || sendTest.isPending}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={`${btnSecondary} w-full sm:w-auto`}
+            >
+              {sendTest.isPending ? "Sending test…" : "Send test to me"}
+            </button>
+          </div>
+
+          {testNote && (
+            <p
+              role="status"
+              className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]"
+            >
+              {testNote}
+            </p>
+          )}
 
           {error && (
             <p
