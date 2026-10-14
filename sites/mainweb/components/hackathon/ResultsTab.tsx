@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import {
   body,
@@ -7,8 +8,12 @@ import {
   itemTitle,
   label,
   meta,
+  status,
   textLink,
 } from "@/components/portal/ui";
+
+// While the event runs and nothing is published, look again at this pace.
+const POLL_MS = 30_000;
 
 /**
  * The published placings.
@@ -19,12 +24,46 @@ import {
  * overall first, then each prize, each in placing order.
  */
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
+  const { data: session } = useSession();
+  // The page reads both already, so these are usually served from the cache.
+  const { data: hackathon } = trpc.hackathon.getById.useQuery({
+    id: hackathonId,
+  });
+  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const inProgress = hackathon?.status === "in_progress";
+
   const {
     data: results,
     isLoading,
     isError,
     refetch,
-  } = trpc.hackathon.getResults.useQuery({ hackathonId });
+  } = trpc.hackathon.getResults.useQuery(
+    { hackathonId },
+    {
+      // Organisers can publish while the event is still running; a hacker
+      // already on this tab should not need to reload to see it.
+      refetchInterval: (query) =>
+        inProgress && !query.state.data?.length ? POLL_MS : false,
+    },
+  );
+
+  // Rows carry the team's name and no id. Team names are not unique, so the
+  // tag waits for the event's team list to show no other team uses the
+  // caller's; otherwise a namesake's placing would read as theirs.
+  const myTeam =
+    myRegs?.find((r) => r.hackathonId === hackathonId)?.team ?? null;
+  const { data: teams } = trpc.team.list.useQuery(
+    { hackathonId },
+    { enabled: !!myTeam && !!results?.length },
+  );
+  const myTeamName =
+    myTeam &&
+    teams &&
+    !teams.some((t) => t.name === myTeam.name && t.id !== myTeam.id)
+      ? myTeam.name
+      : null;
 
   if (isLoading) {
     return <p className={`py-16 ${body}`}>Loading results…</p>;
@@ -57,6 +96,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         <p className={`mt-1 ${body}`}>
           They will appear here once judging is finished and the organisers
           release them.
+          {inProgress && " This tab checks every 30 seconds."}
         </p>
       </div>
     );
@@ -94,7 +134,16 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                   {row.placement}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className={`${itemTitle} truncate`}>{row.projectName}</p>
+                  <div className="flex min-w-0 items-baseline gap-3">
+                    <p className={`${itemTitle} min-w-0 truncate`}>
+                      {row.projectName}
+                    </p>
+                    {myTeamName !== null && row.teamName === myTeamName && (
+                      <span className={`shrink-0 ${status("accent")}`}>
+                        Your team
+                      </span>
+                    )}
+                  </div>
                   {row.teamName ? (
                     <p className={`${meta} truncate`}>{row.teamName}</p>
                   ) : null}

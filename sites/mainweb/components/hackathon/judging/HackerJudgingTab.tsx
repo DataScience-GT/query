@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import type { RouterOutputs } from "@query/api";
@@ -46,6 +48,8 @@ function useDebounced<T>(value: T, ms: number): T {
  */
 export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
+  // The event page's own path, so a tab link stays on it.
+  const pathname = usePathname();
   const [lookup, setLookup] = useState<{ id: string; title: string } | null>(
     null,
   );
@@ -143,8 +147,16 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
         <h3 className={itemTitle}>Check in to see your judging</h3>
         <p className={`mt-2 ${body}`}>
           Judging is for hackers checked in at the event. Have your pass scanned
-          at check-in (it is on the Schedule &amp; pass tab), and this tab then
-          shows your project and where and when it presents.
+          at check-in (it is on the{" "}
+          <Link
+            href={`${pathname}?tab=SCHEDULE`}
+            scroll={false}
+            className="font-semibold text-[var(--text-primary)] underline decoration-accent decoration-2 underline-offset-[5px]"
+          >
+            Schedule &amp; pass tab
+          </Link>
+          ), and this tab then shows your project and where and when it
+          presents.
         </p>
       </div>
     );
@@ -208,7 +220,10 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
                 </button>
               </div>
             ) : (
-              <Itinerary data={itineraryData} />
+              <Itinerary
+                data={itineraryData}
+                receivedAt={itinerary.dataUpdatedAt}
+              />
             )}
           </div>
         </section>
@@ -272,8 +287,33 @@ function ClaimPrompt({
     onError: (e) =>
       setError(trpcErrorMessage(e, "That claim did not go through.")),
   });
+  // A project filed on the portal is not in judging until organisers move it,
+  // so with nothing to claim this is what the hacker is waiting on.
+  const submission = trpc.team.mySubmission.useQuery(
+    { hackathonId },
+    { enabled: offers.length === 0 },
+  );
 
   if (offers.length === 0) {
+    // Held back until the answer is in, so the claim copy does not flash first.
+    if (submission.isLoading) {
+      return <p className={body}>Loading your project…</p>;
+    }
+    const submitted = submission.data;
+    // A withdrawn project stays as a draft row, so the row alone is not a
+    // submission.
+    if (submitted && submitted.status !== "draft" && !submitted.inJudging) {
+      return (
+        <section className="max-w-xl">
+          <h3 className={sectionTitle}>Your project</h3>
+          <p className={`mt-3 ${body}`}>
+            {submitted.name} is submitted; it appears here once organisers move
+            submissions into judging.
+          </p>
+        </section>
+      );
+    }
+
     return (
       <section className="max-w-xl">
         <h3 className={sectionTitle}>Claim your project</h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin } from "lucide-react";
+import { Footprints, MapPin } from "lucide-react";
 import type { RouterOutputs } from "@query/api";
 import {
   body,
@@ -11,6 +11,7 @@ import {
   status,
 } from "@/components/portal/ui";
 import type { Tone } from "@/components/portal/ui";
+import { useServerNow } from "@/components/judge/use-server-now";
 import { eventClock, eventDay } from "./event-time";
 
 export type ItineraryData = RouterOutputs["judging"]["hacker"]["itinerary"];
@@ -62,6 +63,30 @@ function rowStatus(
   }
 }
 
+/**
+ * "Starts in 12 min" under the next slot once it is under an hour away. On the
+ * server's clock, not the phone's, like every other time on this tab.
+ */
+function StartsIn({
+  startsAt,
+  serverNow,
+  receivedAt,
+}: {
+  startsAt: Date;
+  serverNow: Date;
+  receivedAt: number;
+}) {
+  const now = useServerNow(serverNow, receivedAt);
+  if (now === null) return null;
+  const untilStart = startsAt.getTime() - now;
+  if (untilStart <= 0 || untilStart >= 60 * 60_000) return null;
+  return (
+    <p className={`mt-1 tabular-nums ${meta}`}>
+      Starts in {Math.ceil(untilStart / 60_000)} min
+    </p>
+  );
+}
+
 export function MissedBanner() {
   return (
     <p
@@ -76,9 +101,16 @@ export function MissedBanner() {
 
 /**
  * Where and when one project presents. Before organisers publish the schedule
- * it lists only the challenges the project is judged in.
+ * it lists only the challenges the project is judged in. `receivedAt` is when
+ * `data` arrived, so the countdown can follow the server's clock.
  */
-export function Itinerary({ data }: { data: ItineraryData }) {
+export function Itinerary({
+  data,
+  receivedAt,
+}: {
+  data: ItineraryData;
+  receivedAt: number;
+}) {
   const now = data.serverNow.getTime();
 
   if (!data.published) {
@@ -131,17 +163,41 @@ export function Itinerary({ data }: { data: ItineraryData }) {
             <div key={group.day}>
               <h4 className={label}>{group.day}</h4>
               <ol className="mt-2 border-t border-[var(--border-subtle)]">
-                {group.rows.map((appointment) => {
+                {group.rows.map((appointment, index) => {
                   const shown = rowStatus(
                     appointment,
                     appointment.id === current?.id,
                   );
                   const where = place(appointment.room, appointment.building);
+                  // A slot still to come in another building than the one
+                  // before it means a walk in between.
+                  const previous = group.rows[index - 1];
+                  const walkTo =
+                    previous?.building &&
+                    appointment.building &&
+                    previous.building !== appointment.building &&
+                    appointment.status === "future"
+                      ? appointment.building
+                      : null;
                   return (
                     <li
                       key={appointment.id}
                       className="grid grid-cols-[4.75rem_1fr] gap-x-4 border-b border-[var(--border-subtle)] py-4"
                     >
+                      {walkTo && previous && (
+                        <p
+                          className={`col-start-2 mb-3 flex items-start gap-1.5 ${meta}`}
+                        >
+                          <Footprints
+                            size={14}
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                            className="mt-[2px] shrink-0"
+                          />
+                          Walk to {walkTo}, leave by{" "}
+                          {eventClock(previous.endsAt)}
+                        </p>
+                      )}
                       <div className="tabular-nums">
                         <time
                           dateTime={appointment.startsAt.toISOString()}
@@ -180,6 +236,13 @@ export function Itinerary({ data }: { data: ItineraryData }) {
                           {where ||
                             "Room or table not posted yet. Ask at the help desk."}
                         </p>
+                        {shown.text === "Next" && (
+                          <StartsIn
+                            startsAt={appointment.startsAt}
+                            serverNow={data.serverNow}
+                            receivedAt={receivedAt}
+                          />
+                        )}
                       </div>
                     </li>
                   );
