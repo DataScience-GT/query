@@ -3,30 +3,64 @@
 import React, { Suspense, useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   btnPrimary,
+  btnSecondary,
   kicker,
+  meta,
   pageDek,
   pageTitle,
   textLink,
 } from "@/components/portal/ui";
 import { safeCallback } from "@/lib/safe-callback";
 
+/**
+ * The server sends one code per address per minute and silently drops a repeat
+ * inside it (packages/auth/src/config.ts), so a resend any sooner would show
+ * "sent" and deliver nothing. The count starts when this page loads, which is
+ * after the first send.
+ */
+const RESEND_COOLDOWN_SECONDS = 60;
+
 function VerifyContent() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+  // Bumped by every resend, which restarts the cooldown.
+  const [sends, setSends] = useState(0);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const email = searchParams?.get("email") || "";
   const callbackUrl = safeCallback(searchParams?.get("callbackUrl"));
+  // Back to sign-in keeps the destination, or a hacker who mistyped the
+  // address would come back to the member copy and land on /dashboard.
+  const loginHref = callbackUrl
+    ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/login";
 
   // Auto-focus first input on mount
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  // Counted against the clock, not by ticks: a phone pauses timers while the
+  // visitor is off in their mail app, and a tick count would still be waiting
+  // when they come back for a new code.
+  useEffect(() => {
+    const until = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
+    const tick = setInterval(() => {
+      const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      setCooldown(left);
+      if (left === 0) clearInterval(tick);
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [sends]);
 
   const handleChange = (index: number, value: string) => {
     // Only allow digits
@@ -122,6 +156,38 @@ function VerifyContent() {
     }
   };
 
+  const handleResend = async () => {
+    if (!email || cooldown > 0 || resending) return;
+    setResending(true);
+    setResent(false);
+    setError("");
+
+    try {
+      // The same call the login page makes, so the address and destination
+      // match the first send. redirect:false resolves with a result instead of
+      // throwing, so a failed send is read off it.
+      const res = await signIn("nodemailer", {
+        email,
+        callbackUrl: callbackUrl ?? "/dashboard",
+        redirect: false,
+      });
+
+      if (!res?.ok || res.error) {
+        setError("We couldn't send a new code. Try again.");
+      } else {
+        // A new code replaces the last one, so the boxes start over.
+        setResent(true);
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        setSends((n) => n + 1);
+        setCode(["", "", "", "", "", ""]);
+        inputRefs.current[0]?.focus();
+      }
+    } catch {
+      setError("We couldn't send a new code. Try again.");
+    }
+    setResending(false);
+  };
+
   return (
     <main className="min-h-screen flex items-center px-5 sm:px-8">
       <div className="mx-auto w-full max-w-lg py-16">
@@ -184,10 +250,25 @@ function VerifyContent() {
           >
             {verifying ? "Verifying…" : "Verify code"}
           </button>
-          <Link href="/login" className={textLink}>
+          {email && (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={verifying || resending || cooldown > 0}
+              className={btnSecondary}
+            >
+              {cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
+            </button>
+          )}
+          <Link href={loginHref} className={textLink}>
             {email ? "Use a different email" : "Back to sign in"}
           </Link>
         </div>
+        {resent && (
+          <p role="status" className={`mt-4 ${meta}`}>
+            New code sent. The last one no longer works.
+          </p>
+        )}
       </div>
     </main>
   );

@@ -37,3 +37,11 @@ export const PORTAL_INTEREST_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeU
   INTEREST_PATH,
 )}`;
 
+/** The Hacklytics page on the portal, where hackers apply and follow along. */
+export const PORTAL_HACKATHON_URL = `${PORTAL_ORIGIN}/hacklytics`;
+
+/** Judge sign-in, landing on the judging dashboard once signed in. */
+export const JUDGE_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponent(
+  "/judge",
+)}`;
+

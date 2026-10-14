@@ -109,8 +109,10 @@ export default function Navbar() {
         {/* The right padding keeps clear of the MLH badge hanging from the top
             right of the hero (owned elsewhere): 20px + 56px wide on phones,
             48px + up to 90px from md. .wrap sits in the components layer, so
-            this right padding wins over its gutter. */}
-        <div className="wrap h-full flex items-center justify-between gap-6 pr-[5.75rem] md:pr-40">
+            this right padding wins over its gutter. What is left on a phone
+            holds the logo, Notify me and the menu button, so the theme switch
+            lives in the menu until sm. */}
+        <div className="wrap h-full flex items-center justify-between gap-2 sm:gap-6 pr-[5.75rem] md:pr-40">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -133,14 +135,18 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <ThemeToggle />
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
+            {/* Compact on phones, where it used to hide in the menu. Below
+                356px there is no room beside the logo; the menu has it. */}
             <a
               href={INTEREST_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Notify me (opens a sign-up form)"
-              className="btn btn-bloom hidden lg:inline-flex px-4 py-2.5 text-sm shrink-0"
+              className="btn btn-bloom px-2.5 py-2.5 text-[12px] max-[356px]:hidden sm:px-4 sm:text-sm shrink-0"
             >
               Notify me
             </a>
@@ -203,10 +209,13 @@ export default function Navbar() {
             Notify me
           </a>
         </div>
-        <div className="wrap mt-auto pb-12">
+        <div className="wrap mt-auto pb-12 flex items-center justify-between gap-4">
           <span className="font-sans text-[13px] text-ink-3">
             Digital Bloom · 2027
           </span>
+          <div className="sm:hidden">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </>
