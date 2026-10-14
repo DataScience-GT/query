@@ -6,14 +6,18 @@ import {
   body,
   btnSecondary,
   itemTitle,
-  label,
   meta,
   status,
-  textLink,
 } from "@/components/portal/ui";
 
 // While the event runs and nothing is published, look again at this pace.
 const POLL_MS = 30_000;
+
+// Quieter than the accent textLink so the names lead. The py-3 makes the tap
+// target 44px; globals.css zeroes min-height on `li a[href]`, so padding is the
+// only lever.
+const resultLink =
+  "py-3 inline-flex items-center text-sm font-semibold text-[var(--text-secondary)] underline decoration-[var(--border-medium)] decoration-2 underline-offset-[5px] hover:text-[var(--text-primary)] hover:decoration-accent transition-colors";
 
 /**
  * The published placings.
@@ -115,73 +119,82 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     <div className="space-y-10">
       {groups.map((group) => (
         <section key={group.scope}>
-          {showLabels && <h3 className={`mb-3 ${label}`}>{group.label}</h3>}
+          {showLabels && (
+            <h3 className="mb-3 text-[15px] font-semibold text-[var(--text-primary)]">
+              {group.label}
+            </h3>
+          )}
           <ol className="border-t border-[var(--border-subtle)]">
-            {group.rows.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
-              >
-                <span
-                  className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
-                    row.placement === 1
-                      ? "text-accent"
-                      : row.placement <= 3
-                        ? "text-[var(--text-primary)]"
-                        : "text-[var(--text-subtle)]"
-                  }`}
+            {group.rows.map((row) => {
+              const mine = myTeamName !== null && row.teamName === myTeamName;
+              return (
+                <li
+                  key={row.id}
+                  className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
                 >
-                  {row.placement}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-baseline gap-3">
-                    <p className={`${itemTitle} min-w-0 truncate`}>
+                  <span
+                    className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
+                      row.placement === 1
+                        ? "text-accent"
+                        : row.placement <= 3
+                          ? "text-[var(--text-primary)]"
+                          : "text-[var(--text-subtle)]"
+                    }`}
+                  >
+                    {row.placement}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`${itemTitle} text-pretty`}>
                       {row.projectName}
                     </p>
-                    {myTeamName !== null && row.teamName === myTeamName && (
-                      <span className={`shrink-0 ${status("accent")}`}>
-                        Your team
-                      </span>
+                    {(row.teamName || mine) && (
+                      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
+                        {row.teamName && (
+                          <span className={meta}>{row.teamName}</span>
+                        )}
+                        {mine && (
+                          <span className={status("accent")}>Your team</span>
+                        )}
+                      </p>
+                    )}
+                    {(row.githubUrl || row.demoUrl || row.submissionUrl) && (
+                      <div className="-mb-3 flex flex-wrap gap-x-5">
+                        {row.githubUrl ? (
+                          <a
+                            href={row.githubUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={resultLink}
+                          >
+                            Code
+                          </a>
+                        ) : null}
+                        {row.demoUrl ? (
+                          <a
+                            href={row.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={resultLink}
+                          >
+                            Demo
+                          </a>
+                        ) : null}
+                        {row.submissionUrl ? (
+                          <a
+                            href={row.submissionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={resultLink}
+                          >
+                            Devpost
+                          </a>
+                        ) : null}
+                      </div>
                     )}
                   </div>
-                  {row.teamName ? (
-                    <p className={`${meta} truncate`}>{row.teamName}</p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  {row.githubUrl ? (
-                    <a
-                      href={row.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={textLink}
-                    >
-                      Code
-                    </a>
-                  ) : null}
-                  {row.demoUrl ? (
-                    <a
-                      href={row.demoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={textLink}
-                    >
-                      Demo
-                    </a>
-                  ) : null}
-                  {row.submissionUrl ? (
-                    <a
-                      href={row.submissionUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={textLink}
-                    >
-                      Devpost
-                    </a>
-                  ) : null}
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ol>
         </section>
       ))}

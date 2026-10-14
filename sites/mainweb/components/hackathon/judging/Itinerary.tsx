@@ -2,14 +2,7 @@
 
 import { Footprints, MapPin } from "lucide-react";
 import type { RouterOutputs } from "@query/api";
-import {
-  body,
-  itemTitle,
-  label,
-  meta,
-  sectionRule,
-  status,
-} from "@/components/portal/ui";
+import { body, itemTitle, label, meta, status } from "@/components/portal/ui";
 import type { Tone } from "@/components/portal/ui";
 import { useServerNow } from "@/components/judge/use-server-now";
 import { eventClock, eventDay } from "./event-time";
@@ -81,7 +74,7 @@ function StartsIn({
   const untilStart = startsAt.getTime() - now;
   if (untilStart <= 0 || untilStart >= 60 * 60_000) return null;
   return (
-    <p className={`mt-1 tabular-nums ${meta}`}>
+    <p className="mt-1.5 text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
       Starts in {Math.ceil(untilStart / 60_000)} min
     </p>
   );
@@ -179,29 +172,24 @@ export function Itinerary({
                     appointment.status === "future"
                       ? appointment.building
                       : null;
+                  // A finished slot steps back so the one that is next wins on
+                  // contrast. A missed slot stays at full ink.
+                  const past =
+                    appointment.id !== current?.id &&
+                    (appointment.status === "complete" ||
+                      appointment.status === "incomplete");
+                  const ink = past
+                    ? "text-[var(--text-muted)]"
+                    : "text-[var(--text-primary)]";
                   return (
                     <li
                       key={appointment.id}
                       className="grid grid-cols-[4.75rem_1fr] gap-x-4 border-b border-[var(--border-subtle)] py-4"
                     >
-                      {walkTo && previous && (
-                        <p
-                          className={`col-start-2 mb-3 flex items-start gap-1.5 ${meta}`}
-                        >
-                          <Footprints
-                            size={14}
-                            strokeWidth={1.75}
-                            aria-hidden="true"
-                            className="mt-[2px] shrink-0"
-                          />
-                          Walk to {walkTo}, leave by{" "}
-                          {eventClock(previous.endsAt)}
-                        </p>
-                      )}
-                      <div className="tabular-nums">
+                      <div>
                         <time
                           dateTime={appointment.startsAt.toISOString()}
-                          className="block text-[15px] font-semibold text-[var(--text-primary)]"
+                          className={`block text-[15px] font-semibold ${ink}`}
                         >
                           {eventClock(appointment.startsAt)}
                         </time>
@@ -213,8 +201,10 @@ export function Itinerary({
                         </time>
                       </div>
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                          <p className="text-[17px] font-semibold leading-snug text-[var(--text-primary)]">
+                        <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-3">
+                          <p
+                            className={`text-[17px] font-semibold leading-snug text-pretty ${ink}`}
+                          >
                             {appointment.challenge}
                           </p>
                           <span className={status(shown.tone)}>
@@ -236,6 +226,23 @@ export function Itinerary({
                           {where ||
                             "Room or table not posted yet. Ask at the help desk."}
                         </p>
+                        {walkTo && previous && (
+                          <p className="mt-1 flex items-start gap-1.5 text-pretty text-[15px] text-[var(--text-secondary)]">
+                            <Footprints
+                              size={16}
+                              strokeWidth={1.75}
+                              aria-hidden="true"
+                              className="mt-[3px] shrink-0 text-[var(--text-subtle)]"
+                            />
+                            Walk from {previous.building},{" "}
+                            {Math.round(
+                              (appointment.startsAt.getTime() -
+                                previous.endsAt.getTime()) /
+                                60_000,
+                            )}{" "}
+                            min between slots
+                          </p>
+                        )}
                         {shown.text === "Next" && (
                           <StartsIn
                             startsAt={appointment.startsAt}
@@ -261,7 +268,7 @@ export function Itinerary({
       )}
 
       {data.unscheduled.length > 0 && (
-        <section className={sectionRule}>
+        <section>
           <h4 className={itemTitle}>Drop-in challenges</h4>
           <p className={`mt-1 ${body}`}>
             No appointment for these.{" "}
@@ -275,8 +282,8 @@ export function Itinerary({
                 key={challenge.challengeId}
                 className="border-b border-[var(--border-subtle)] py-4"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <p className="text-[17px] font-semibold leading-snug text-[var(--text-primary)]">
+                <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-3">
+                  <p className="text-[17px] font-semibold leading-snug text-pretty text-[var(--text-primary)]">
                     {challenge.challenge}
                   </p>
                   <span
@@ -318,9 +325,7 @@ export function Itinerary({
         </section>
       )}
 
-      <p className={meta}>
-        Venue time. This tab checks for changes every 30 seconds.
-      </p>
+      <p className={meta}>Venue time. Updates every 30 seconds.</p>
     </div>
   );
 }

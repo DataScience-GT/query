@@ -162,6 +162,40 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
     );
   }
 
+  // A claimed hacker came for the times, so they lead and the team follows. In
+  // lookup mode the result stays under the search that produced it.
+  const whereAndWhen = itineraryEntryId !== null && (
+    <section className={claim ? undefined : sectionRule}>
+      <h3 className={sectionTitle}>Where and when</h3>
+      <div className="mt-5">
+        {itinerary.isLoading ? (
+          <p className={body}>Loading times and places…</p>
+        ) : itinerary.isError || !itineraryData ? (
+          <div className="flex flex-col items-start gap-4">
+            <p className={body}>
+              {trpcErrorMessage(
+                itinerary.error,
+                "Times and places did not load. Try again in a moment.",
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => void itinerary.refetch()}
+              className={`min-h-11 ${btnSecondary}`}
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <Itinerary
+            data={itineraryData}
+            receivedAt={itinerary.dataUpdatedAt}
+          />
+        )}
+      </div>
+    </section>
+  );
+
   return (
     <div className="space-y-10">
       {state.emergency && (
@@ -175,19 +209,25 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
       {itineraryData?.missed && <MissedBanner />}
 
       {claim ? (
-        <ClaimedProject
-          hackathonId={hackathonId}
-          claim={claim}
-          onChanged={() =>
-            void utils.judging.hacker.myClaim.invalidate({ hackathonId })
-          }
-        />
+        <>
+          {whereAndWhen}
+          <ClaimedProject
+            hackathonId={hackathonId}
+            claim={claim}
+            onChanged={() =>
+              void utils.judging.hacker.myClaim.invalidate({ hackathonId })
+            }
+          />
+        </>
       ) : lookupOpen ? (
-        <ProjectLookup
-          hackathonId={hackathonId}
-          selected={lookup}
-          onSelect={setLookup}
-        />
+        <>
+          <ProjectLookup
+            hackathonId={hackathonId}
+            selected={lookup}
+            onSelect={setLookup}
+          />
+          {whereAndWhen}
+        </>
       ) : (
         <ClaimPrompt
           hackathonId={hackathonId}
@@ -195,38 +235,6 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
           claimsStarted={state.claimsStarted}
           onClaimed={refreshAll}
         />
-      )}
-
-      {itineraryEntryId !== null && (
-        <section className={sectionRule}>
-          <h3 className={sectionTitle}>Where and when</h3>
-          <div className="mt-5">
-            {itinerary.isLoading ? (
-              <p className={body}>Loading times and places…</p>
-            ) : itinerary.isError || !itineraryData ? (
-              <div className="flex flex-col items-start gap-4">
-                <p className={body}>
-                  {trpcErrorMessage(
-                    itinerary.error,
-                    "Times and places did not load. Try again in a moment.",
-                  )}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void itinerary.refetch()}
-                  className={`min-h-11 ${btnSecondary}`}
-                >
-                  Try again
-                </button>
-              </div>
-            ) : (
-              <Itinerary
-                data={itineraryData}
-                receivedAt={itinerary.dataUpdatedAt}
-              />
-            )}
-          </div>
-        </section>
       )}
 
       {claim &&
@@ -428,7 +436,7 @@ function ClaimedProject({
   };
 
   return (
-    <section>
+    <section className={sectionRule}>
       <p className={label}>Your project</p>
       <h3 className={`mt-1 ${sectionTitle}`}>{claim.title}</h3>
 
@@ -471,7 +479,7 @@ function ClaimedProject({
               <label htmlFor="judging-invite-email" className={fieldLabel}>
                 Add a teammate
               </label>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex gap-3">
                 <input
                   id="judging-invite-email"
                   type="email"
@@ -481,7 +489,7 @@ function ClaimedProject({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="teammate@gatech.edu"
-                  className={`min-h-11 ${input}`}
+                  className={`min-h-11 min-w-0 ${input}`}
                 />
                 <button
                   type="submit"
