@@ -11,6 +11,7 @@ import {
 import { eq, and, sql } from "drizzle-orm";
 import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
+import { portalOrigin } from "../../services/judging/claims";
 import type { DrizzleDB } from "@query/db";
 
 // The organiser's side of the judge roster: who applied, who is approved, and
@@ -118,6 +119,35 @@ export const judgeAdminRouter = createTRPCRouter({
       ctx.cache.deletePattern(`${CacheKeys.judge(user.id)}*`);
       invalidatePortalContext(user.id);
 
+      // There was no application, so nothing else tells them they are a judge.
+      // Its own copy rather than the approval's. Best-effort: a mail failure
+      // must not undo a judge already in the database.
+      if (user.email) {
+        try {
+          const hackathon = await (
+            ctx.db as DrizzleDB
+          ).query.hackathons.findFirst({
+            where: eq(hackathons.id, input.hackathonId),
+            columns: { name: true },
+          });
+
+          const { sendJudgeAddedEmail } = await import("@query/auth/email");
+          await sendJudgeAddedEmail({
+            email: user.email,
+            hackathonName: hackathon?.name ?? "the hackathon",
+            host: portalOrigin(),
+          });
+        } catch (error) {
+          // Deliberate operational logging: the judge stands and this is the only
+          // record that the notice did not go out.
+          // eslint-disable-next-line no-console
+          console.error(
+            `[Email Service] Judge added notice failed for user ${user.id}:`,
+            error,
+          );
+        }
+      }
+
       return result[0];
     }),
 
@@ -185,6 +215,7 @@ export const judgeAdminRouter = createTRPCRouter({
           await sendJudgeApprovedEmail({
             email: updated.email,
             hackathonName: hackathon?.name ?? "the hackathon",
+            host: portalOrigin(),
           });
         } catch (error) {
           // Deliberate operational logging: the approval stands and this is the only

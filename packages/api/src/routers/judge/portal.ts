@@ -110,7 +110,7 @@ export const judgePortalRouter = createTRPCRouter({
 
     const myJudges = await db.query.judges.findMany({
       where: eq(judges.userId, ctx.userId as string),
-      columns: { id: true, hackathonId: true, isActive: true },
+      columns: { id: true, hackathonId: true, isActive: true, createdAt: true },
     });
 
     if (myJudges.length === 0) return [];
@@ -124,15 +124,29 @@ export const judgePortalRouter = createTRPCRouter({
     });
 
     const activeById = new Map(myJudges.map((j) => [j.id, j.isActive]));
+    const applied = new Set(rows.map((row) => row.judgeId));
 
-    return rows.map((row) => ({
-      hackathonId: row.hackathonId,
-      track: row.track,
-      appliedAt: row.assignedAt,
-      // The judges row is what every judging gate reads, so it — not the
-      // assignment's own status column — decides this.
-      approved: activeById.get(row.judgeId) === true,
-    }));
+    return [
+      ...rows.map((row) => ({
+        hackathonId: row.hackathonId,
+        track: row.track,
+        appliedAt: row.assignedAt,
+        // The judges row is what every judging gate reads, so it — not the
+        // assignment's own status column — decides this.
+        approved: activeById.get(row.judgeId) === true,
+      })),
+      // An organiser who adds a judge directly writes the judges row and no
+      // assignment. Without these the register page offered that judge the
+      // form again, and submitting it overwrote their row.
+      ...myJudges
+        .filter((judge) => !applied.has(judge.id))
+        .map((judge) => ({
+          hackathonId: judge.hackathonId,
+          track: null,
+          appliedAt: judge.createdAt,
+          approved: judge.isActive,
+        })),
+    ];
   }),
 
   register: notHackathonBanned

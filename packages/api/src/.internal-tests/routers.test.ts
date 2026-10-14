@@ -15,6 +15,18 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 
+// Every send is a no-op here, so a procedure that emails (judge.create, ...)
+// can never reach a real mail server from a test run.
+vi.mock("@query/auth/email", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return Object.fromEntries(
+    Object.entries(actual).map(([name, value]) => [
+      name,
+      typeof value === "function" ? vi.fn() : value,
+    ]),
+  );
+});
+
 vi.mock("@query/db", () => {
   return {
     db: {
