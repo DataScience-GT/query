@@ -17,12 +17,8 @@ import {
   input,
   itemTitle,
   kicker,
-  label,
-  meta,
   page,
-  pageDek,
   pageTitle,
-  sectionTitle,
   textLink,
 } from "@/components/portal/ui";
 
@@ -41,6 +37,15 @@ const formatMoment = (moment: Date) =>
     timeZoneName: "short",
     timeZone: "America/New_York",
   });
+
+/** A deadline that never breaks across lines: "EST." alone on a line is unreadable. */
+const Moment = ({ at }: { at: Date }) => (
+  <span className="whitespace-nowrap font-semibold">{formatMoment(at)}</span>
+);
+
+/** A teammate's view of the form: filed values read as values, not empty fields. */
+const readOnlyField =
+  "read-only:bg-transparent read-only:border-[var(--border-subtle)]";
 
 function SubmitPortalContent() {
   const { data: session, status } = useSession();
@@ -243,22 +248,36 @@ function SubmitPortalContent() {
   }
 
   const activeRegs = myRegs?.filter(isActiveReg) || [];
+  // One live event is already named by the kicker; the picker earns its place
+  // only when there is something to choose.
+  const showEventPicker =
+    activeRegs.length > 1 ||
+    !activeRegs.some((r) => r.hackathonId === selectedHackathonId);
+
+  // A teammate reads what was filed; a row of dimmed buttons says it badly.
+  const filedChips = (picked: string[]) =>
+    picked.length > 0 ? (
+      picked.map((v) => (
+        <span key={v} className={chip(true)}>
+          {v}
+        </span>
+      ))
+    ) : (
+      <p className="text-[13px] text-[var(--text-muted)]">None picked</p>
+    );
 
   return (
     <main className={page}>
       <Link
         href="/dashboard"
-        className="text-[13px] text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors"
+        className="inline-flex min-h-11 items-center text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
       >
         ← Dashboard
       </Link>
 
-      <header className="mt-6">
+      <header className="mt-2">
         {currentReg && <p className={kicker}>{currentReg.hackathon.name}</p>}
         <h1 className={`mt-1 ${pageTitle}`}>Submit your project</h1>
-        <p className={pageDek}>
-          Pick the event, set up your team, then fill in your project.
-        </p>
       </header>
 
       {!myRegs || myRegs.length === 0 ? (
@@ -275,49 +294,55 @@ function SubmitPortalContent() {
         <div className="mt-10 grid grid-cols-1 gap-10 border-t border-[var(--border-subtle)] pt-8 lg:grid-cols-12">
           {/* Context and team */}
           <aside className="space-y-8 lg:col-span-4">
-            <div>
-              <label htmlFor="event-context" className={fieldLabel}>
-                Hackathon
-              </label>
-              <select
-                id="event-context"
-                className={input}
-                value={selectedHackathonId}
-                onChange={(e) => {
-                  setSelectedHackathonId(e.target.value);
-                  setError("");
-                  setSuccessMessage("");
-                  setProjectSubmitted(false);
-                  setConfirmWithdraw(false);
-                }}
-              >
-                <option value="" disabled>
-                  Select a hackathon…
-                </option>
-                {activeRegs.map((r) => (
-                  <option key={r.hackathonId} value={r.hackathonId}>
-                    {r.hackathon.name}
+            {showEventPicker && (
+              <div>
+                <label htmlFor="event-context" className={fieldLabel}>
+                  Hackathon
+                </label>
+                <select
+                  id="event-context"
+                  className={`${input} min-h-11`}
+                  value={selectedHackathonId}
+                  onChange={(e) => {
+                    setSelectedHackathonId(e.target.value);
+                    setError("");
+                    setSuccessMessage("");
+                    setProjectSubmitted(false);
+                    setConfirmWithdraw(false);
+                  }}
+                >
+                  <option value="" disabled>
+                    Select a hackathon…
                   </option>
-                ))}
-              </select>
-            </div>
+                  {activeRegs.map((r) => (
+                    <option key={r.hackathonId} value={r.hackathonId}>
+                      {r.hackathon.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <div className="border-t border-[var(--border-subtle)] pt-6">
-              <h2 className={label}>
+            <div
+              className={
+                showEventPicker
+                  ? "border-t border-[var(--border-subtle)] pt-6"
+                  : undefined
+              }
+            >
+              <h2 className="text-[13px] font-medium text-[var(--text-muted)]">
                 {currentReg?.team ? "Your team" : "Team"}
               </h2>
               {currentReg?.team ? (
                 <>
                   <p className={`mt-1 ${itemTitle}`}>{currentReg.team.name}</p>
-                  <p className={`mt-1 ${meta}`}>
+                  <p className="mt-1 text-[13px] text-[var(--text-muted)]">
                     {currentReg.team.currentMembers} of{" "}
-                    {currentReg.team.maxMembers} members
+                    {currentReg.team.maxMembers} members ·{" "}
+                    {readOnly
+                      ? `${captainName ?? "your captain"} submits for the team`
+                      : "you're the captain"}
                   </p>
-                  {!readOnly && (
-                    <p className={`mt-1 ${meta}`}>
-                      You&apos;re the team captain.
-                    </p>
-                  )}
                 </>
               ) : (
                 <p className={`mt-1 ${body}`}>
@@ -329,7 +354,7 @@ function SubmitPortalContent() {
               {currentReg && (currentReg.team || admitted) && (
                 <Link
                   href={`/hackathons/${selectedHackathonId}?tab=TEAMS`}
-                  className={`mt-4 ${btnSecondary}`}
+                  className={`mt-3 ${textLink}`}
                 >
                   {currentReg.team ? "Manage team" : "Create or join a team"}
                 </Link>
@@ -339,13 +364,7 @@ function SubmitPortalContent() {
 
           {/* Project submission */}
           <section className="border-t border-[var(--border-subtle)] pt-8 lg:col-span-8 lg:border-t-0 lg:pt-0">
-            <h2 className={sectionTitle}>Your project</h2>
-            <p className={`mt-2 ${body}`}>
-              Name and description are required. On a team, only the captain
-              can submit.
-            </p>
-
-            <div className="mt-6 space-y-4 empty:hidden">
+            <div className="mb-8 space-y-4 empty:hidden">
               {/* Once the project is in judging, the team's times and rooms
                   live on the hackathon's Judging tab. */}
               {mySubmission.data?.inJudging && (
@@ -377,13 +396,6 @@ function SubmitPortalContent() {
                 </p>
               )}
 
-              {readOnly && (
-                <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
-                  Only {captainName ?? "your team captain"} can submit or edit.
-                  You can see what the team has filed below.
-                </p>
-              )}
-
               {/* The window this form is gated on, said before it is filled
                   in. Without it an attendee wrote a full description and
                   learned it was refused only on submit. */}
@@ -395,53 +407,46 @@ function SubmitPortalContent() {
                       : "border-[var(--warning)]"
                   }`}
                 >
-                  {submissionWindow.data.cancelled
-                    ? "This hackathon has been cancelled, so nothing can be submitted."
-                    : submissionWindow.data.notYetOpen
-                      ? `Submission opens ${formatMoment(submissionWindow.data.opensAt)}. The form is here early so you can see what it asks for.`
-                      : !submissionWindow.data.isOpen
-                        ? `Submission closed ${formatMoment(submissionWindow.data.closesAt)}.`
-                        : submissionWindow.data.canEditExisting
-                          ? `Open until ${formatMoment(submissionWindow.data.closesAt)}. Edits to an existing submission close ${formatMoment(submissionWindow.data.editsCloseAt)}.`
-                          : `Open until ${formatMoment(submissionWindow.data.closesAt)}. Edits to an existing submission are closed, so this can only file a first entry.`}
-                </p>
-              )}
-
-              {error && (
-                <p
-                  role="alert"
-                  className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-                >
-                  {error}
-                </p>
-              )}
-
-              {successMessage && (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-l-2 border-[var(--success)] pl-3">
-                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
-                    {successMessage}
-                  </p>
-                  {/* A withdrawn project is out of judging, so only a
-                      submit points there. */}
-                  {projectSubmitted ? (
-                    <Link
-                      href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
-                      className={textLink}
-                    >
-                      Go to Judging
-                    </Link>
+                  {submissionWindow.data.cancelled ? (
+                    "This hackathon has been cancelled, so nothing can be submitted."
+                  ) : submissionWindow.data.notYetOpen ? (
+                    <>
+                      Submission opens{" "}
+                      <Moment at={submissionWindow.data.opensAt} />. The form is
+                      here early so you can see what it asks for.
+                    </>
+                  ) : !submissionWindow.data.isOpen ? (
+                    <>
+                      Submission closed{" "}
+                      <Moment at={submissionWindow.data.closesAt} />.
+                    </>
+                  ) : !hasSubmitted ? (
+                    <>
+                      Submissions close{" "}
+                      <Moment at={submissionWindow.data.closesAt} />.
+                    </>
+                  ) : submissionWindow.data.canEditExisting ? (
+                    <>
+                      {readOnly
+                        ? "Your team can edit its entry"
+                        : "You can edit your entry"}{" "}
+                      until <Moment at={submissionWindow.data.editsCloseAt} />.
+                    </>
                   ) : (
-                    <Link href="/dashboard" className={textLink}>
-                      Back to dashboard
-                    </Link>
+                    <>
+                      Edits closed{" "}
+                      <Moment at={submissionWindow.data.editsCloseAt} />, so
+                      your entry stands as filed.
+                    </>
                   )}
-                </div>
+                </p>
               )}
             </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (readOnly) return;
                 submitProject.mutate({
                   hackathonId: selectedHackathonId,
                   teamId: currentReg?.team?.id,
@@ -455,14 +460,14 @@ function SubmitPortalContent() {
                   isCreateX,
                 });
               }}
-              className="mt-8 space-y-10"
+              className="space-y-10"
             >
               {/* Name & Desc */}
               <div className="space-y-5">
                 <div>
                   <label htmlFor="project-name" className={fieldLabel}>
                     Project name{" "}
-                    <span className="font-normal text-[var(--text-subtle)]">
+                    <span className="font-normal text-[var(--text-muted)]">
                       (required)
                     </span>
                   </label>
@@ -470,29 +475,29 @@ function SubmitPortalContent() {
                     id="project-name"
                     type="text"
                     required
-                    disabled={readOnly}
+                    readOnly={readOnly}
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g. Transit delay predictor"
-                    className={input}
+                    className={`${input} ${readOnlyField}`}
                   />
                 </div>
                 <div>
                   <label htmlFor="project-description" className={fieldLabel}>
                     Description{" "}
-                    <span className="font-normal text-[var(--text-subtle)]">
+                    <span className="font-normal text-[var(--text-muted)]">
                       (required)
                     </span>
                   </label>
                   <textarea
                     id="project-description"
                     required
-                    disabled={readOnly}
+                    readOnly={readOnly}
                     value={projectDesc}
                     onChange={(e) => setProjectDesc(e.target.value)}
                     placeholder="Explain the problem you solved and how you built it…"
                     rows={5}
-                    className={`resize-none ${input}`}
+                    className={`resize-none ${input} ${readOnlyField} [field-sizing:content] min-h-[8.5rem]`}
                   />
                 </div>
               </div>
@@ -505,27 +510,30 @@ function SubmitPortalContent() {
                 availableChallenges.length > 0) && (
                 <div className="border-t border-[var(--border-subtle)] pt-6">
                   <h3 className={itemTitle}>Tracks and challenges</h3>
-                  <p className={`mt-1 ${body}`}>
-                    Your project presents to judges for each challenge you
-                    pick, so pick everything you are competing for.
-                  </p>
+                  {!readOnly && (
+                    <p className={`mt-1 ${body}`}>
+                      Your project presents to judges for each challenge you
+                      pick, so pick everything you are competing for.
+                    </p>
+                  )}
 
                   {availableTracks.length > 0 && (
                     <div className="mt-5">
                       <p className={fieldLabel}>Tracks</p>
                       <div className="flex flex-wrap gap-2">
-                        {availableTracks.map((track) => (
-                          <button
-                            key={track}
-                            type="button"
-                            onClick={() => toggle(track, tracks, setTracks)}
-                            aria-pressed={tracks.includes(track)}
-                            disabled={readOnly}
-                            className={`${chip(tracks.includes(track))} disabled:opacity-60`}
-                          >
-                            {track}
-                          </button>
-                        ))}
+                        {readOnly
+                          ? filedChips(tracks)
+                          : availableTracks.map((track) => (
+                              <button
+                                key={track}
+                                type="button"
+                                onClick={() => toggle(track, tracks, setTracks)}
+                                aria-pressed={tracks.includes(track)}
+                                className={chip(tracks.includes(track))}
+                              >
+                                {track}
+                              </button>
+                            ))}
                       </div>
                     </div>
                   )}
@@ -534,38 +542,46 @@ function SubmitPortalContent() {
                     <div className="mt-5">
                       <p className={fieldLabel}>Sponsor challenges</p>
                       <div className="flex flex-wrap gap-2">
-                        {availableChallenges.map((challenge) => (
-                          <button
-                            key={challenge}
-                            type="button"
-                            onClick={() =>
-                              toggle(challenge, challenges, setChallenges)
-                            }
-                            aria-pressed={challenges.includes(challenge)}
-                            disabled={readOnly}
-                            className={`${chip(challenges.includes(challenge))} disabled:opacity-60`}
-                          >
-                            {challenge}
-                          </button>
-                        ))}
+                        {readOnly
+                          ? filedChips(challenges)
+                          : availableChallenges.map((challenge) => (
+                              <button
+                                key={challenge}
+                                type="button"
+                                onClick={() =>
+                                  toggle(challenge, challenges, setChallenges)
+                                }
+                                aria-pressed={challenges.includes(challenge)}
+                                className={chip(challenges.includes(challenge))}
+                              >
+                                {challenge}
+                              </button>
+                            ))}
                       </div>
                     </div>
                   )}
 
-                  <label
-                    htmlFor="is-createx"
-                    className="mt-6 flex cursor-pointer items-start gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <input
-                      id="is-createx"
-                      type="checkbox"
-                      checked={isCreateX}
-                      disabled={readOnly}
-                      onChange={(e) => setIsCreateX(e.target.checked)}
-                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-                    />
-                    We are competing for the CreateX entrepreneurship prize
-                  </label>
+                  {readOnly ? (
+                    isCreateX && (
+                      <p className={`mt-6 ${body}`}>
+                        Entered for the CreateX entrepreneurship prize.
+                      </p>
+                    )
+                  ) : (
+                    <label
+                      htmlFor="is-createx"
+                      className="mt-6 flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <input
+                        id="is-createx"
+                        type="checkbox"
+                        checked={isCreateX}
+                        onChange={(e) => setIsCreateX(e.target.checked)}
+                        className="mt-0.5 h-5 w-5 min-h-0! min-w-0! shrink-0 cursor-pointer accent-[var(--accent)]"
+                      />
+                      We are competing for the CreateX entrepreneurship prize
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -581,11 +597,11 @@ function SubmitPortalContent() {
                     <input
                       id="github-url"
                       type="url"
-                      disabled={readOnly}
+                      readOnly={readOnly}
                       value={githubUrl}
                       onChange={(e) => setGithubUrl(e.target.value)}
                       placeholder="https://github.com/…"
-                      className={input}
+                      className={`${input} ${readOnlyField}`}
                     />
                   </div>
                   <div>
@@ -595,11 +611,11 @@ function SubmitPortalContent() {
                     <input
                       id="video-url"
                       type="url"
-                      disabled={readOnly}
+                      readOnly={readOnly}
                       value={videoUrl}
                       onChange={(e) => setVideoUrl(e.target.value)}
                       placeholder="https://youtube.com/…"
-                      className={input}
+                      className={`${input} ${readOnlyField}`}
                     />
                   </div>
                   <div>
@@ -609,29 +625,79 @@ function SubmitPortalContent() {
                     <input
                       id="demo-url"
                       type="url"
-                      disabled={readOnly}
+                      readOnly={readOnly}
                       value={demoUrl}
                       onChange={(e) => setDemoUrl(e.target.value)}
                       placeholder="https://…"
-                      className={input}
+                      className={`${input} ${readOnlyField}`}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6">
-                <p className={meta}>
-                  {hasSubmitted
-                    ? readOnly
+              <div className="space-y-4 border-t border-[var(--border-subtle)] pt-6 empty:hidden">
+                {/* Feedback lands beside the button that was tapped, not in
+                    the notices above the form. */}
+                {error && (
+                  <p
+                    role="alert"
+                    className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
+                  >
+                    {error}
+                  </p>
+                )}
+
+                {successMessage && (
+                  <div
+                    role="status"
+                    className="space-y-2 border-l-2 border-[var(--success)] pl-3"
+                  >
+                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                      {successMessage}
+                    </p>
+                    {/* A withdrawn project is out of judging, so only a
+                        submit points there. */}
+                    {projectSubmitted ? (
+                      <Link
+                        href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                        className={textLink}
+                      >
+                        Go to Judging
+                      </Link>
+                    ) : (
+                      <Link href="/dashboard" className={textLink}>
+                        Back to dashboard
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {hasSubmitted && !successMessage && (
+                  <p className="text-[13px] text-[var(--text-muted)]">
+                    {readOnly
                       ? "Your team has submitted."
-                      : "You've already submitted. Saving replaces your current entry."
-                    : ""}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  {hasSubmitted && !confirmWithdraw && (
+                      : "You've already submitted. Saving replaces your current entry."}
+                  </p>
+                )}
+
+                {!readOnly && (
+                  <button
+                    type="submit"
+                    disabled={submitProject.isPending}
+                    className={`${btnPrimary} w-full sm:w-auto`}
+                  >
+                    {submitProject.isPending
+                      ? "Submitting…"
+                      : hasSubmitted
+                        ? "Save changes"
+                        : "Submit project"}
+                  </button>
+                )}
+
+                {hasSubmitted && !readOnly && !confirmWithdraw && (
+                  <div className="border-t border-[var(--border-subtle)] pt-4">
                     <button
                       type="button"
-                      disabled={readOnly}
                       onClick={() => {
                         setError("");
                         setSuccessMessage("");
@@ -641,19 +707,9 @@ function SubmitPortalContent() {
                     >
                       Withdraw submission
                     </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={readOnly || submitProject.isPending}
-                    className={btnPrimary}
-                  >
-                    {submitProject.isPending
-                      ? "Submitting…"
-                      : hasSubmitted
-                        ? "Save changes"
-                        : "Submit project"}
-                  </button>
-                </div>
+                  </div>
+                )}
+
                 {confirmWithdraw && (
                   <div className="flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
                     <p className={body}>
