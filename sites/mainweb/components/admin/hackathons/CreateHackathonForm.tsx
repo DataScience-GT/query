@@ -12,6 +12,7 @@ import {
   itemTitle,
   sectionTitle,
 } from "@/components/portal/ui";
+import { localTimeZone } from "@/components/admin/hackathons/constants";
 
 /**
  * Comma-separated text to the array the API stores, or null when empty.
@@ -33,7 +34,8 @@ export function CreateHackathonForm({
   onCreated,
 }: {
   onClose: () => void;
-  onCreated: () => void;
+  /** The new row, so the caller can open its dashboard. */
+  onCreated: (hackathon: { id: string; name: string }) => void;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -54,7 +56,7 @@ export function CreateHackathonForm({
 
   const readOnly = useReadOnly();
   const createMutation = trpc.hackathon.create.useMutation({
-    onSuccess: () => onCreated(),
+    onSuccess: (row) => onCreated(row),
     onError: (e) => setError(e.message),
   });
 
@@ -250,7 +252,10 @@ export function CreateHackathonForm({
         </div>
 
         <div className="mt-4 border-t border-[var(--border-subtle)] pt-6">
-          <h3 className={`mb-4 ${itemTitle}`}>Timing</h3>
+          <h3 className={`mb-1 ${itemTitle}`}>Timing</h3>
+          <p className={`mb-4 ${fieldHint}`}>
+            Times are entered in your local time zone ({localTimeZone()}).
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
             <div>
               <label
@@ -346,13 +351,12 @@ export function CreateHackathonForm({
               placeholder="Leave blank for no cap"
               className={input}
             />
-            {/* This number counts APPLICATIONS, pending ones included — not
-                people you have accepted. Setting it to your venue capacity
-                closes registration before anyone has been reviewed. */}
-            <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--warning)]">
-              Counts applications, including unreviewed ones. Set it to your
-              venue size and registration closes before you have accepted
-              anyone. Leave blank and close registration by deadline instead.
+            {/* The cap counts SEATS: approved and checked-in people only
+                (syncCurrentParticipants). Pending applications do not use one. */}
+            <p className={fieldHint}>
+              Caps accepted people, not applications. Pending applications do
+              not count, so you can take more applications than seats and
+              accept in waves until the cap is reached. Leave blank for no cap.
             </p>
           </div>
           <div>{/* empty cell for layout */}</div>

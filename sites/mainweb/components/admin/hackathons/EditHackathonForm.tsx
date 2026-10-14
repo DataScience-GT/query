@@ -14,7 +14,10 @@ import {
   object,
   sectionTitle,
 } from "@/components/portal/ui";
-import { toInputDate } from "@/components/admin/hackathons/constants";
+import {
+  localTimeZone,
+  toInputDate,
+} from "@/components/admin/hackathons/constants";
 
 const HACKATHON_STATUSES = [
   "draft",
@@ -131,8 +134,10 @@ export function EditHackathonForm({
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       hackingStartTime: hackingStartTime ? new Date(hackingStartTime) : null,
-      registrationDeadline: regDeadline ? new Date(regDeadline) : undefined,
-      maxParticipants: maxParticipants ? parseInt(maxParticipants) : undefined,
+      // null, not undefined, when blank: undefined means "leave unchanged", so
+      // a deadline or cap that was set could otherwise never be cleared.
+      registrationDeadline: regDeadline ? new Date(regDeadline) : null,
+      maxParticipants: maxParticipants ? parseInt(maxParticipants) : null,
       theme: theme.trim() || undefined,
       // null, not undefined, when emptied: undefined means "leave unchanged",
       // so a field that was set could otherwise never be cleared.
@@ -349,7 +354,10 @@ export function EditHackathonForm({
             </div>
 
             <div className="border-t border-[var(--border-subtle)] pt-5">
-              <h4 className={`mb-4 ${itemTitle}`}>Timing</h4>
+              <h4 className={`mb-1 ${itemTitle}`}>Timing</h4>
+              <p className={`mb-4 ${fieldHint}`}>
+                Times are entered in your local time zone ({localTimeZone()}).
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                 <div>
                   <label
@@ -444,11 +452,13 @@ export function EditHackathonForm({
                 placeholder="Leave blank for no cap"
                 className={input}
               />
-              {/* Counts APPLICATIONS, pending included — not acceptances. */}
-              <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--warning)]">
-                Counts applications, including unreviewed ones. Set it to your
-                venue size and registration closes before you have accepted
-                anyone. Leave blank and close registration by deadline instead.
+              {/* The cap counts SEATS: approved and checked-in people only
+                  (syncCurrentParticipants). Pending applications do not use one. */}
+              <p className={fieldHint}>
+                Caps accepted people, not applications. Pending applications do
+                not count, so you can take more applications than seats and
+                accept in waves until the cap is reached. Leave blank for no
+                cap.
               </p>
             </div>
 

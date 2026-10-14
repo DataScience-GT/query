@@ -20,7 +20,10 @@ import {
   sectionTitle,
   textLink,
 } from "@/components/portal/ui";
-import { toInputDate } from "@/components/admin/hackathons/constants";
+import {
+  localTimeZone,
+  toInputDate,
+} from "@/components/admin/hackathons/constants";
 import { EventCheckInControls } from "@/components/admin/hackathons/points/EventCheckInControls";
 
 type EventType =
@@ -291,7 +294,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="start-time" className={fieldLabel}>
-                  Start
+                  Start ({localTimeZone()})
                 </label>
                 <input
                   id="start-time"
@@ -306,7 +309,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               </div>
               <div>
                 <label htmlFor="end-time" className={fieldLabel}>
-                  End
+                  End ({localTimeZone()})
                 </label>
                 <input
                   id="end-time"

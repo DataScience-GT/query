@@ -535,6 +535,10 @@ export const hackathonAnnouncements = pgTable(
         // Rejected and waitlisted applicants, who every other audience deliberately
         // excludes. Chosen on purpose or not at all.
         "not_accepted",
+        // Each half of not_accepted on its own, so a waitlist note never
+        // reaches someone who was turned down.
+        "waitlisted",
+        "rejected",
       ],
     }).notNull(),
     subject: text("subject").notNull(),

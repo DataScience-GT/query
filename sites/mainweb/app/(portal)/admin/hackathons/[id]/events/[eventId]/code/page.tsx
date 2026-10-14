@@ -49,7 +49,8 @@ export default function EventCodeDisplayPage() {
     { enabled: !!hackathon.data, refetchInterval: 10_000 },
   );
 
-  const backHref = `/admin/hackathons/${hackathonParam}`;
+  // Back to the Events tab the code was made on, not the default tab.
+  const backHref = `/admin/hackathons/${hackathonParam}#events`;
 
   if (hackathon.isLoading || (hackathon.data && display.isLoading)) {
     return <LoadingScreen message="Loading the door screen…" />;

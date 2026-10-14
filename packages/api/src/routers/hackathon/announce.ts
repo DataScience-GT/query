@@ -44,16 +44,21 @@ const MAX_RECIPIENTS_PER_CALL = 500;
 // short enough that a request killed by a deploy does not strand rows.
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
-// `not_accepted` is its own audience and deliberately last. Rejected and
-// waitlisted applicants are excluded everywhere else — a "see you this
-// weekend" to somebody turned down is worse than no email — but excluding
-// them everywhere left silence as the only outcome. Chosen on purpose.
+// `not_accepted`, `waitlisted` and `rejected` are their own audiences and
+// deliberately last. Rejected and waitlisted applicants are excluded everywhere
+// else — a "see you this weekend" to somebody turned down is worse than no
+// email — but excluding them everywhere left silence as the only outcome.
+// Chosen on purpose. The two narrow ones exist because the two groups need
+// different messages: "we have no place for you" is wrong for someone still
+// waiting on a seat.
 const AUDIENCES = [
   "interested",
   "registered",
   "approved",
   "checked_in",
   "not_accepted",
+  "waitlisted",
+  "rejected",
 ] as const;
 
 type Audience = (typeof AUDIENCES)[number];
@@ -83,7 +88,8 @@ const resolveAudience = async (
 
   // "registered" is everyone holding a seat, at any stage. Rejected and
   // waitlisted are excluded from it and the two narrower audiences; reaching
-  // them is what "not_accepted" is for, and it has to be picked deliberately.
+  // them is what "not_accepted" (both), "waitlisted" and "rejected" are for,
+  // and one has to be picked deliberately.
   const statuses =
     audience === "registered"
       ? (["pending", "approved", "checked_in"] as const)

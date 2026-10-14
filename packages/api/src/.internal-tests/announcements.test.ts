@@ -273,13 +273,41 @@ describe("Announcements", () => {
       expect(announcementRow.audience).toBe("not_accepted");
     });
 
+    /**
+     * Waitlisted and rejected people need different messages — "no place for
+     * you" is wrong for someone still in line — so each is selectable on its
+     * own, not only through the combined not_accepted audience.
+     */
+    it.each(["waitlisted", "rejected"] as const)(
+      "accepts the %s audience on its own",
+      async (audience) => {
+        asAdmin((table) =>
+          table === "hackathons" ? { id: HACK } : undefined,
+        );
+        mockSelectRows.mockReturnValue([
+          { userId: "u1", email: "applicant@example.com" },
+        ]);
+
+        const res = await callerFor(ADMIN).hackathon.createAnnouncement({
+          ...compose,
+          audience,
+        });
+
+        expect(res.totalRecipients).toBe(1);
+        const announcementRow = mockInsert.mock.calls
+          .map((c) => c[2]?.[0])
+          .find((row) => row && !Array.isArray(row) && "audience" in row);
+        expect(announcementRow.audience).toBe(audience);
+      },
+    );
+
     it("refuses an audience name that does not exist", async () => {
       asAdmin((table) => (table === "hackathons" ? { id: HACK } : undefined));
 
       await expect(
         callerFor(ADMIN).hackathon.createAnnouncement({
           ...compose,
-          // @ts-expect-error deliberately not one of the five audiences
+          // @ts-expect-error deliberately not one of the seven audiences
           audience: "everyone",
         }),
       ).rejects.toBeDefined();

@@ -330,9 +330,17 @@ export const hackathonCrudRouter = createTRPCRouter({
         location: z.string().max(500).optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
-        registrationDeadline: z.date().optional(),
+        // Nullable as well as optional, like hackingStartTime: `null` clears the
+        // deadline or the cap, so an organiser can go back to "no limit".
+        registrationDeadline: z.date().nullable().optional(),
         hackingStartTime: z.date().nullable().optional(),
-        maxParticipants: z.number().int().positive().max(10000).optional(),
+        maxParticipants: z
+          .number()
+          .int()
+          .positive()
+          .max(10000)
+          .nullable()
+          .optional(),
         status: z
           .enum([
             "draft",

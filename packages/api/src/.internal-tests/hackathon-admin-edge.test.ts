@@ -1170,6 +1170,24 @@ describe("Hackathon admin management edge cases", () => {
       expect(written).not.toHaveProperty("theme");
     });
 
+    // The edit form sends null for a blank deadline or cap. Before these were
+    // nullable, blanking either field silently kept the old value.
+    it("clears the registration deadline and the cap when sent null", async () => {
+      const caller = adminCaller({ hackathons: liveHackathon() });
+      mockUpdate.mockReturnValue([{ id: HACK_A }]);
+
+      await caller.hackathon.update({
+        id: HACK_A,
+        registrationDeadline: null,
+        maxParticipants: null,
+      });
+
+      expect(mockUpdate.mock.calls.at(-1)?.[2]?.[0]).toMatchObject({
+        registrationDeadline: null,
+        maxParticipants: null,
+      });
+    });
+
     it("stores the tracks it was given", async () => {
       const caller = adminCaller({ hackathons: liveHackathon() });
       mockUpdate.mockReturnValue([{ id: HACK_A }]);
