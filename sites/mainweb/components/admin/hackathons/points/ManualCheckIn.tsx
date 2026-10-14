@@ -131,12 +131,12 @@ export function ManualCheckIn({
                         {person.email}
                       </span>
                     </span>
-                    <span className="shrink-0">
+                    <span className="max-w-[11rem] shrink-0 text-right">
                       {person.checkedIntoEvent ? (
                         <span className={status("success")}>Checked in</span>
                       ) : !arrived ? (
                         <span className={status("warning")}>
-                          Not at the desk yet
+                          Ask an admin to mark them checked in.
                         </span>
                       ) : (
                         <span className="text-[13px] font-semibold text-[var(--text-primary)]">

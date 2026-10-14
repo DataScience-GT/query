@@ -82,6 +82,14 @@ function EventCodeCheckIn() {
     submitCode({ hackathonId, code });
   }, [hackathonId, code, submitCode]);
 
+  // FORBIDDEN is also an event not taking codes or outside its window, for a
+  // hacker who has arrived. Only one who has not is sent to their pass.
+  const refusedForbidden = checkIn.error?.data?.code === "FORBIDDEN";
+  const arrival = trpc.points.me.summary.useQuery(
+    { hackathonId: hackathonId ?? "" },
+    { enabled: !!hackathonId && refusedForbidden },
+  );
+
   if (authStatus !== "authenticated") {
     return <LoadingScreen message="Loading check-in…" />;
   }
@@ -144,8 +152,15 @@ function EventCodeCheckIn() {
   if (checkIn.error) {
     const refusal = checkIn.error.data?.code;
     // Already in, or locked out for a minute: typing another code here does
-    // not help, so the form is only offered for the other refusals.
-    const offerForm = refusal !== "CONFLICT" && refusal !== "TOO_MANY_REQUESTS";
+    // not help, so the form is only offered for the other refusals. Nor for a
+    // hacker who has not arrived yet, where the way forward is the pass.
+    const notArrived =
+      refusal === "FORBIDDEN" && arrival.data?.checkedIn === false;
+    const offerForm =
+      refusal !== "CONFLICT" &&
+      refusal !== "TOO_MANY_REQUESTS" &&
+      !notArrived &&
+      !(refusal === "FORBIDDEN" && arrival.isLoading);
     return (
       <main className={page}>
         <p className={meta}>{hackathon.data.name}</p>
@@ -157,10 +172,12 @@ function EventCodeCheckIn() {
               : "Not checked in"}
         </h1>
         <p className={pageDek}>
-          {trpcErrorMessage(
-            checkIn.error,
-            "The check-in did not go through. Type the code from the screen below.",
-          )}
+          {notArrived
+            ? "Get your pass scanned at check-in. Event codes work once you have arrived."
+            : trpcErrorMessage(
+                checkIn.error,
+                "The check-in did not go through. Type the code from the screen below.",
+              )}
         </p>
         {offerForm && (
           <section className={`mt-10 max-w-xl ${sectionRule}`}>
@@ -169,6 +186,14 @@ function EventCodeCheckIn() {
               onCheckedIn={setCheckedIn}
             />
           </section>
+        )}
+        {notArrived && (
+          <Link
+            href={`/hackathons/${hackathon.data.id}?tab=SCHEDULE`}
+            className={`mt-8 min-h-11 w-full sm:w-auto ${btnPrimary}`}
+          >
+            Show my pass
+          </Link>
         )}
         <p className="mt-10">
           <Link href={pointsHref} className={textLink}>

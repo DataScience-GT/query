@@ -100,6 +100,16 @@ export const hackathonEventsRouter = createTRPCRouter({
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
 
+      // A self check-in event with no code admits nobody, and the toggle used to
+      // leave that for someone to notice at the door.
+      if (newEvent?.selfCheckIn) {
+        const checkInCode = await assignCheckInCode(
+          ctx.db as DrizzleDB,
+          newEvent,
+        );
+        return { ...newEvent, checkInCode };
+      }
+
       return newEvent;
     }),
 
@@ -157,6 +167,22 @@ export const hackathonEventsRouter = createTRPCRouter({
       // The schedule for this edition, and nothing else. The old blanket pattern
       // also matched every attendee's cached registrations.
       ctx.cache.delete(`hackathon:${existing.hackathonId}:events`);
+
+      // Switching self check-in on issues the first code. Only the off-to-on
+      // change: an existing code is never replaced here (rotating is its own
+      // action), and a code an admin cleared on purpose stays cleared.
+      if (
+        updatedEvent &&
+        input.selfCheckIn &&
+        !existing.selfCheckIn &&
+        !updatedEvent.checkInCode
+      ) {
+        const checkInCode = await assignCheckInCode(
+          ctx.db as DrizzleDB,
+          updatedEvent,
+        );
+        return { ...updatedEvent, checkInCode };
+      }
 
       return updatedEvent;
     }),
