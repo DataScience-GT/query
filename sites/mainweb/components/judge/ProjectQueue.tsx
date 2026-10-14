@@ -12,16 +12,16 @@ import {
   fieldLabel,
   input,
   itemTitle,
-  label,
-  meta,
   object,
-  status,
   textLink,
 } from "@/components/portal/ui";
 import type { Tone } from "@/components/portal/ui";
 import {
   ICON_STROKE,
   clockTime,
+  deskLabel,
+  deskMeta,
+  deskStatus,
   inOrAt,
   nextPresentation,
   roomPlace,
@@ -74,13 +74,15 @@ function progress(
   return null;
 }
 
-function where(project: ListedProject) {
+/** When and who; the place too, unless the list is already that place's. */
+function where(project: ListedProject, showPlace: boolean) {
   const p = project.presentation;
   const team =
     project.participantCount === 1
       ? "Solo"
       : `Team of ${project.participantCount}`;
   if (!p) return team;
+  if (!showPlace) return `${clockTime(p.startsAt)} · ${team}`;
   return `${clockTime(p.startsAt)} · ${roomPlace(p.roomName, p.buildingName)} · ${team}`;
 }
 
@@ -150,21 +152,43 @@ export function ProjectQueue({
       : null;
   const rest = data ? data.projects.filter((p) => p !== next) : [];
 
-  // Above the filters, so it is the first thing on a phone's screen.
+  // Nothing left to judge. With no search to blame, that is the one thing the
+  // judge needs to hear, so it sits above the filters instead of under them.
+  const empty =
+    data && challenge && !next && rest.length === 0 ? (
+      <EmptyQueue
+        search={search}
+        hideJudged={filters.hideJudged}
+        roomOnly={data.roomFilter === "applied"}
+        roomKind={context.room?.kind ?? "room"}
+        challengeLabel={challenge.label}
+        judgedCount={data.judgedCount}
+        onShowSubmitted={onShowSubmitted}
+        onShowAll={() => onFilters({ ...filters, inMyRoomOnly: false })}
+      />
+    ) : null;
+  const emptyFirst = !!empty && !search;
+
+  // With judged projects shown, a count of all of them hides how many are left.
+  const judged = rest.filter((p) => p.myEvaluation?.isComplete).length;
+  const mixed = !filters.hideJudged && judged > 0;
+
+  // Above the filters, so it is the first thing on a phone's screen. It only
+  // exists in the judge's own room, which the heading already names.
   const upNext =
     data && challenge && next?.presentation ? (
       <div className={`mb-6 ${object} p-5`}>
         {now !== null && next.presentation.startsAt.getTime() <= now ? (
-          <p className={status("accent")}>Presenting now</p>
+          <p className={deskStatus("accent")}>Presenting now</p>
         ) : (
-          <p className={status("neutral")}>
+          <p className={deskStatus("neutral")}>
             Up next
             {now !== null &&
               `, ${startsIn(next.presentation.startsAt.getTime() - now)}`}
           </p>
         )}
         <h2 className={`mt-2 ${itemTitle}`}>{next.title}</h2>
-        <p className={`mt-1 ${meta}`}>{where(next)}</p>
+        <p className={`mt-1 ${deskMeta}`}>{where(next, false)}</p>
         <button
           type="button"
           className={`${btnPrimary} mt-5 min-h-11 w-full sm:w-auto`}
@@ -178,6 +202,8 @@ export function ProjectQueue({
   return (
     <div className="mt-6">
       {upNext}
+
+      {emptyFirst && <div className="mb-8">{empty}</div>}
 
       <div className="space-y-3">
         {context.challenges.length > 1 && (
@@ -237,7 +263,7 @@ export function ProjectQueue({
           <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] text-[var(--text-muted)]">
             <input
               type="checkbox"
-              className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+              className="h-5 w-5 min-h-0! min-w-0! shrink-0 cursor-pointer accent-[var(--accent)]"
               checked={filters.hideJudged}
               onChange={(e) =>
                 onFilters({ ...filters, hideJudged: e.target.checked })
@@ -248,7 +274,7 @@ export function ProjectQueue({
           <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] text-[var(--text-muted)]">
             <input
               type="checkbox"
-              className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+              className="h-5 w-5 min-h-0! min-w-0! shrink-0 cursor-pointer accent-[var(--accent)]"
               checked={filters.inMyRoomOnly}
               onChange={(e) =>
                 onFilters({ ...filters, inMyRoomOnly: e.target.checked })
@@ -272,7 +298,7 @@ export function ProjectQueue({
       </div>
 
       {list.isPending ? (
-        <p role="status" className={`mt-8 ${meta}`}>
+        <p role="status" className={`mt-8 ${deskMeta}`}>
           Loading projects…
         </p>
       ) : list.error && !data ? (
@@ -295,10 +321,16 @@ export function ProjectQueue({
               className="mt-8"
               aria-label={`Projects in ${challenge.label}`}
             >
-              <h2 className={label}>
-                {rest.length} {next ? "more " : ""}
-                {rest.length === 1 ? "project" : "projects"}
-                {filters.hideJudged ? " to judge" : ""}
+              <h2 className={deskLabel}>
+                {mixed ? (
+                  `${rest.length - judged} ${next ? "more " : ""}to judge · ${judged} judged`
+                ) : (
+                  <>
+                    {rest.length} {next ? "more " : ""}
+                    {rest.length === 1 ? "project" : "projects"}
+                    {filters.hideJudged ? " to judge" : ""}
+                  </>
+                )}
               </h2>
               <ul className="mt-3 border-t border-[var(--border-subtle)]">
                 {rest.map((project) => {
@@ -314,13 +346,17 @@ export function ProjectQueue({
                         className="flex w-full min-h-11 items-center gap-4 py-4 text-left transition-colors hover:bg-[var(--bg-secondary)]"
                       >
                         <span className="min-w-0 flex-1">
-                          <span className={`block truncate ${itemTitle}`}>
+                          <span
+                            className={`line-clamp-2 break-words ${itemTitle}`}
+                          >
                             {project.title}
                           </span>
                           <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span className={meta}>{where(project)}</span>
+                            <span className={deskMeta}>
+                              {where(project, data.roomFilter !== "applied")}
+                            </span>
                             {state && (
-                              <span className={status(state.tone)}>
+                              <span className={deskStatus(state.tone)}>
                                 {state.text}
                               </span>
                             )}
@@ -338,18 +374,7 @@ export function ProjectQueue({
               </ul>
             </section>
           ) : (
-            !next && (
-              <EmptyQueue
-                search={search}
-                hideJudged={filters.hideJudged}
-                roomOnly={data.roomFilter === "applied"}
-                roomKind={context.room?.kind ?? "room"}
-                challengeLabel={challenge.label}
-                judgedCount={data.judgedCount}
-                onShowSubmitted={onShowSubmitted}
-                onShowAll={() => onFilters({ ...filters, inMyRoomOnly: false })}
-              />
-            )
+            empty && !emptyFirst && <div className="mt-8">{empty}</div>
           )}
         </>
       ) : null}
@@ -373,7 +398,7 @@ function RoomFilterNote({
   if (filter === "off") return null;
   if (filter === "applied") {
     return (
-      <p className={meta}>
+      <p className={deskMeta}>
         Showing presentations {inOrAt(roomKind)}{" "}
         {roomName ?? `your ${roomKind}`}, in presentation order.
       </p>
@@ -381,14 +406,14 @@ function RoomFilterNote({
   }
   if (filter === "untimed") {
     return (
-      <p className={meta}>
+      <p className={deskMeta}>
         {challengeLabel} has no presentation times, so every project is listed.
         Judge them in any order.
       </p>
     );
   }
   return (
-    <p className={meta}>
+    <p className={deskMeta}>
       You are not seated where {challengeLabel} is judged, so every project is
       listed.{" "}
       {onPickRoom && (
@@ -425,7 +450,7 @@ function EmptyQueue({
 }) {
   if (search) {
     return (
-      <p className={`mt-8 ${body}`}>
+      <p className={body}>
         No project in {challengeLabel} matches &ldquo;{search}&rdquo;. Check the
         spelling, or clear the search.
       </p>
@@ -433,8 +458,10 @@ function EmptyQueue({
   }
   if (hideJudged && judgedCount > 0) {
     return (
-      <div className="mt-8">
-        <p className={itemTitle}>You&rsquo;ve judged every presentation here</p>
+      <div>
+        <p className={`text-balance ${itemTitle}`}>
+          You&rsquo;ve judged every presentation here
+        </p>
         <p className={`mt-1 ${body}`}>
           {judgedCount} {judgedCount === 1 ? "evaluation" : "evaluations"}{" "}
           submitted for {challengeLabel}. Organisers post what comes next as
@@ -452,7 +479,7 @@ function EmptyQueue({
   }
   if (roomOnly) {
     return (
-      <div className="mt-8">
+      <div>
         <p className={body}>
           Nothing in {challengeLabel} presents {inOrAt(roomKind)} your{" "}
           {roomKind}.
@@ -468,7 +495,7 @@ function EmptyQueue({
     );
   }
   return (
-    <p className={`mt-8 ${body}`}>
+    <p className={body}>
       No projects are entered in {challengeLabel} yet. Organisers add them
       before judging starts; this list refreshes on its own.
     </p>

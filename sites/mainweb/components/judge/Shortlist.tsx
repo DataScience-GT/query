@@ -11,13 +11,16 @@ import {
   fieldLabel,
   input,
   itemTitle,
-  label,
-  meta,
   sectionRule,
-  status,
   textLink,
 } from "@/components/portal/ui";
-import { ICON_STROKE, iconButton } from "./desk";
+import {
+  ICON_STROKE,
+  deskLabel,
+  deskMeta,
+  deskStatus,
+  iconButton,
+} from "./desk";
 import type { ShortlistSection } from "./desk";
 
 type Row = ShortlistSection["entries"][number];
@@ -151,14 +154,14 @@ export function Shortlist({
         them in order, and keep a note on each for deliberation.
       </p>
       {!writable && (
-        <p className={`mt-3 ${status("warning")}`}>
+        <p className={`mt-3 ${deskStatus("warning")}`}>
           {judgingState === "closed"
             ? "Judging is closed, so your shortlist is read-only."
             : "You can change your shortlist once judging opens."}
         </p>
       )}
       {finished.size === 0 && mine.data && (
-        <p className={`mt-3 ${meta}`}>
+        <p className={`mt-3 ${deskMeta}`}>
           Submit a complete evaluation and that project can go on your
           shortlist.
         </p>
@@ -170,7 +173,7 @@ export function Shortlist({
       )}
 
       {list.isPending ? (
-        <p role="status" className={`mt-8 ${meta}`}>
+        <p role="status" className={`mt-8 ${deskMeta}`}>
           Loading your shortlist…
         </p>
       ) : list.error ? (
@@ -406,7 +409,7 @@ function SectionBlock({
       )}
 
       {size === 0 ? (
-        <p className={`mt-3 ${meta}`}>No projects in this section yet.</p>
+        <p className={`mt-3 ${deskMeta}`}>No projects in this section yet.</p>
       ) : (
         <ol className="mt-3 border-t border-[var(--border-subtle)]">
           {section.entries.map((row, index) => (
@@ -425,7 +428,7 @@ function SectionBlock({
 
       {addable.length > 0 && !disabled && (
         <div className="mt-4">
-          <label htmlFor={`add-${section.id}`} className={label}>
+          <label htmlFor={`add-${section.id}`} className={deskLabel}>
             Add a project you judged
           </label>
           <select
@@ -470,7 +473,7 @@ function ShortlistRow({
   return (
     <li className="border-b border-[var(--border-subtle)] py-3">
       <div className="flex items-start gap-3">
-        <span className="w-6 shrink-0 pt-0.5 text-[15px] font-semibold tabular-nums text-[var(--text-subtle)]">
+        <span className="w-6 shrink-0 pt-0.5 text-[15px] font-semibold tabular-nums text-[var(--text-muted)]">
           {position + 1}
         </span>
         <div className="min-w-0 flex-1">
@@ -478,7 +481,7 @@ function ShortlistRow({
             {row.title}
           </p>
           {row.withdrawn && (
-            <p className={`mt-1 ${status("neutral")}`}>
+            <p className={`mt-1 ${deskStatus("neutral")}`}>
               Withdrawn by organisers
             </p>
           )}

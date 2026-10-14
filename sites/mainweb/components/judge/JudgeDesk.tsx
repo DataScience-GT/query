@@ -13,10 +13,8 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   body,
   btnSecondary,
-  meta,
   pageDek,
   pageTitle,
-  status,
   tab,
   tabList,
   textLink,
@@ -29,7 +27,7 @@ import { DEFAULT_FILTERS, ProjectQueue } from "./ProjectQueue";
 import type { QueueFilters } from "./ProjectQueue";
 import { RoomSwitcher } from "./RoomSwitcher";
 import { Shortlist } from "./Shortlist";
-import { ICON_STROKE, deskPage, roomPlace } from "./desk";
+import { ICON_STROKE, deskMeta, deskPage, deskStatus } from "./desk";
 import type { DeskContext } from "./desk";
 
 type Opened = "member" | "guest";
@@ -182,7 +180,7 @@ function BackToJudging() {
   return (
     <Link
       href="/judge"
-      className="-ml-2 inline-flex min-h-11 items-center gap-1.5 px-2 text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]"
+      className="-ml-2 inline-flex min-h-11 items-center gap-1.5 px-2 text-[13px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
     >
       <ArrowLeft
         className="h-4 w-4"
@@ -289,25 +287,27 @@ function Desk({
 
   return (
     <main className={deskPage}>
+      {/* While picking, only urgent ones show, on top as on the sheet. */}
+      {pickingRoom && (
+        <DeskAnnouncements hackathonId={hackathonId} urgentOnly />
+      )}
       {isMember && <BackToJudging />}
 
       <header className={isMember ? "mt-4" : ""}>
-        <p className={meta}>
+        <p className={deskMeta}>
           {context.hackathon.name}
           {context.judge ? ` · Judging as ${context.judge.displayName}` : ""}
         </p>
         <h1 className={`mt-2 ${pageTitle}`}>
-          {room
-            ? roomPlace(room.name, room.buildingName)
-            : "No room or table yet"}
+          {room ? room.name : "No room or table yet"}
         </h1>
         <p className={pageDek}>
           {room
-            ? `This ${room.kind} judges ${room.challengeLabel}.`
+            ? `${room.buildingName ? `${room.buildingName}. ` : ""}This ${room.kind} judges ${room.challengeLabel}.`
             : "Pick the room or table you are at, and its presentations come first."}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1">
-          <p className={status(state.tone)}>{state.text}</p>
+          <p className={deskStatus(state.tone)}>{state.text}</p>
           {isMember && !pickingRoom && (
             <button
               type="button"
@@ -331,40 +331,42 @@ function Desk({
         />
       )}
 
-      <DeskAnnouncements hackathonId={hackathonId} />
+      {!pickingRoom && <DeskAnnouncements hackathonId={hackathonId} />}
 
-      {context.challenges.length === 0 ? (
-        <p className={`mt-10 ${body}`}>
-          No projects are set up for judging in this edition yet. This page
-          refreshes on its own once organisers add them.
-        </p>
-      ) : (
-        <DeskViews
-          views={views}
-          view={view}
-          onView={setView}
-          panel={
-            view === "projects" ? (
-              <ProjectQueue
-                hackathonId={hackathonId}
-                context={context}
-                filters={filters}
-                onFilters={setFilters}
-                onOpen={open}
-                onShowSubmitted={() => setView("submitted")}
-                onPickRoom={isMember ? () => setPickingRoom(true) : undefined}
-              />
-            ) : view === "submitted" ? (
-              <MySubmissions hackathonId={hackathonId} onOpen={open} />
-            ) : (
-              <Shortlist
-                hackathonId={hackathonId}
-                judgingState={context.state}
-              />
-            )
-          }
-        />
-      )}
+      {/* Picking a room is a mode: the list waits until the judge is done. */}
+      {!pickingRoom &&
+        (context.challenges.length === 0 ? (
+          <p className={`mt-10 ${body}`}>
+            No projects are set up for judging in this edition yet. This page
+            refreshes on its own once organisers add them.
+          </p>
+        ) : (
+          <DeskViews
+            views={views}
+            view={view}
+            onView={setView}
+            panel={
+              view === "projects" ? (
+                <ProjectQueue
+                  hackathonId={hackathonId}
+                  context={context}
+                  filters={filters}
+                  onFilters={setFilters}
+                  onOpen={open}
+                  onShowSubmitted={() => setView("submitted")}
+                  onPickRoom={isMember ? () => setPickingRoom(true) : undefined}
+                />
+              ) : view === "submitted" ? (
+                <MySubmissions hackathonId={hackathonId} onOpen={open} />
+              ) : (
+                <Shortlist
+                  hackathonId={hackathonId}
+                  judgingState={context.state}
+                />
+              )
+            }
+          />
+        ))}
     </main>
   );
 }
@@ -382,7 +384,7 @@ function DeskViews({
 }) {
   return (
     <>
-      <div role="tablist" aria-label="Desk" className={`mt-10 ${tabList}`}>
+      <div role="tablist" aria-label="Desk" className={`mt-8 ${tabList}`}>
         {views.map((v) => (
           <button
             key={v.id}

@@ -9,11 +9,9 @@ import {
   btnPrimary,
   btnSecondary,
   input,
-  label,
-  meta,
+  itemTitle,
   sectionRule,
   sectionTitle,
-  status,
   textLink,
 } from "@/components/portal/ui";
 import {
@@ -21,6 +19,8 @@ import {
   clockTime,
   countdown,
   countdownTone,
+  deskMeta,
+  deskStatus,
   formatScore,
   linkHost,
   roomPlace,
@@ -43,7 +43,7 @@ function BackButton({ onClose }: { onClose: () => void }) {
     <button
       type="button"
       onClick={onClose}
-      className="-ml-2 inline-flex min-h-11 items-center gap-1.5 px-2 text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]"
+      className="-ml-2 inline-flex min-h-11 items-center gap-1.5 px-2 text-[13px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
     >
       <ArrowLeft
         className="h-4 w-4"
@@ -90,7 +90,7 @@ export function EvaluationSheet({
     return (
       <>
         <BackButton onClose={onClose} />
-        <p role="status" className={`mt-8 ${meta}`}>
+        <p role="status" className={`mt-8 ${deskMeta}`}>
           Opening the project…
         </p>
       </>
@@ -228,6 +228,8 @@ function EvaluationForm({
     deadlineAt && now !== null
       ? Math.ceil((deadlineAt.getTime() - now) / 1000)
       : null;
+  // Split so the colon can sit at its natural width between the tabular digits.
+  const [minutesLeft, secondsPart] = countdown(secondsLeft ?? 0).split(":");
   const timeUp = secondsLeft !== null && secondsLeft <= 0;
   const opensIn =
     access.opensAt && now !== null ? access.opensAt.getTime() - now : null;
@@ -330,26 +332,34 @@ function EvaluationForm({
       ),
     ),
   ];
+  const alsoEntered = entry.challenges.filter((c) => c.id !== challenge.id);
 
   return (
     <>
       <header className="mt-2">
-        <p className={meta}>
-          {challenge.label}
-          {presentation &&
-            ` · ${clockTime(presentation.startsAt)} · ${roomPlace(presentation.roomName, presentation.buildingName)}`}
+        <p className={`flex flex-wrap gap-x-1.5 ${deskMeta}`}>
+          <span>
+            {challenge.label}
+            {presentation && " ·"}
+          </span>
+          {presentation && (
+            <span className="whitespace-nowrap">
+              {clockTime(presentation.startsAt)} ·{" "}
+              {roomPlace(presentation.roomName, presentation.buildingName)}
+            </span>
+          )}
         </p>
         <h1 className={`mt-1 ${sectionTitle} break-words`}>{entry.title}</h1>
-        <p className={`mt-2 ${body}`}>
+        <p className={`mt-2 text-pretty ${body}`}>
           {entry.members.length > 0
             ? entry.members.join(", ")
             : entry.participantCount === 1
               ? "Solo project"
               : `Team of ${entry.participantCount}`}
         </p>
-        {entry.challenges.length > 0 && (
-          <p className={`mt-1 ${meta}`}>
-            Entered in {entry.challenges.map((c) => c.label).join(", ")}
+        {alsoEntered.length > 0 && (
+          <p className={`mt-1 ${deskMeta}`}>
+            Also entered in {alsoEntered.map((c) => c.label).join(", ")}
           </p>
         )}
 
@@ -361,7 +371,7 @@ function EvaluationForm({
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${textLink} min-h-11`}
+                  className={`${textLink} min-h-11!`}
                 >
                   {linkHost(href)}
                   <ExternalLink
@@ -378,7 +388,7 @@ function EvaluationForm({
                   href={entry.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${textLink} min-h-11`}
+                  className={`${textLink} min-h-11!`}
                 >
                   Demo video
                   <ExternalLink
@@ -412,7 +422,7 @@ function EvaluationForm({
           </div>
         )}
         {entry.technologies.length > 0 && (
-          <p className={`mt-2 ${meta}`}>
+          <p className={`mt-2 ${deskMeta}`}>
             Built with {entry.technologies.join(", ")}
           </p>
         )}
@@ -429,9 +439,8 @@ function EvaluationForm({
       >
         {ratingItems.length > 0 && (
           <section className={sectionRule} aria-label="Ratings">
-            <h2 className={label}>
-              Rate each from 1 (weak) to 5 (outstanding)
-            </h2>
+            <h2 className={itemTitle}>Ratings</h2>
+            <p className={`mt-1 ${deskMeta}`}>1 is weak, 5 is outstanding.</p>
             <div className="mt-4 space-y-7">
               {ratingItems.map((item) => (
                 <fieldset key={item.id} disabled={!editable}>
@@ -439,10 +448,12 @@ function EvaluationForm({
                     {item.label}
                   </legend>
                   {item.description && (
-                    <p className={`mt-1 ${meta}`}>{item.description}</p>
+                    <p className={`mt-1 ${deskMeta}`}>{item.description}</p>
                   )}
                   {missingIds.has(item.id) && (
-                    <p className={`mt-1 ${status("danger")}`}>Pick a rating</p>
+                    <p className={`mt-1 ${deskStatus("danger")}`}>
+                      Pick a rating
+                    </p>
                   )}
                   <div className="mt-3 grid grid-cols-5 gap-2">
                     {[1, 2, 3, 4, 5].map((value) => {
@@ -453,7 +464,7 @@ function EvaluationForm({
                           className={`flex h-12 items-center justify-center rounded-[var(--radius-sm)] border text-[17px] font-semibold tabular-nums transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
                             picked
                               ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]"
-                              : "border-[var(--border-medium)] text-[var(--text-primary)]"
+                              : "border-[var(--border-medium)] bg-[var(--bg-input)] text-[var(--text-primary)]"
                           } ${editable ? "cursor-pointer hover:border-[var(--border-hover)]" : "cursor-not-allowed opacity-60"}`}
                         >
                           <input
@@ -474,6 +485,13 @@ function EvaluationForm({
                       );
                     })}
                   </div>
+                  <div
+                    aria-hidden="true"
+                    className={`mt-1.5 flex justify-between ${deskMeta}`}
+                  >
+                    <span>Weak</span>
+                    <span>Outstanding</span>
+                  </div>
                 </fieldset>
               ))}
             </div>
@@ -485,7 +503,7 @@ function EvaluationForm({
             className={`mt-10 ${sectionRule}`}
             aria-label="Written feedback"
           >
-            <h2 className={label}>Written feedback</h2>
+            <h2 className={itemTitle}>Written feedback</h2>
             <div className="mt-4 space-y-7">
               {responseItems.map((item) => {
                 const answer = responses[item.id];
@@ -500,17 +518,17 @@ function EvaluationForm({
                     >
                       {item.label}
                       {!item.required && (
-                        <span className="font-normal text-[var(--text-subtle)]">
+                        <span className="font-normal text-[var(--text-muted)]">
                           {" "}
                           (optional)
                         </span>
                       )}
                     </label>
                     {item.description && (
-                      <p className={`mt-1 ${meta}`}>{item.description}</p>
+                      <p className={`mt-1 ${deskMeta}`}>{item.description}</p>
                     )}
                     {missingIds.has(item.id) && (
-                      <p className={`mt-1 ${status("danger")}`}>
+                      <p className={`mt-1 ${deskStatus("danger")}`}>
                         Write an answer
                       </p>
                     )}
@@ -535,7 +553,7 @@ function EvaluationForm({
                       <label className="mt-1 flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] text-[var(--text-muted)]">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+                          className="h-5 w-5 min-h-0! min-w-0! shrink-0 cursor-pointer accent-[var(--accent)]"
                           disabled={!editable}
                           checked={answer?.isPublic === true}
                           onChange={(e) => {
@@ -552,7 +570,7 @@ function EvaluationForm({
                         Share this answer with the team
                       </label>
                     ) : null}
-                    <p className={`mt-1 flex items-center gap-1.5 ${meta}`}>
+                    <p className={`mt-1 flex items-center gap-1.5 ${deskMeta}`}>
                       {shared ? (
                         <Eye
                           className="h-3.5 w-3.5 shrink-0"
@@ -582,28 +600,43 @@ function EvaluationForm({
         <div className="sticky bottom-0 z-10 -mx-5 mt-10 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
-              {secondsLeft !== null && (
+              {/* A finished task gets no ticking clock. */}
+              {secondsLeft !== null && !submitted && (
                 <p
                   role="timer"
                   aria-label="Time left to judge"
                   className={`text-[22px] font-semibold leading-tight tabular-nums ${toneText[countdownTone(secondsLeft)]}`}
                 >
-                  {countdown(secondsLeft)}
-                  <span className="ml-1.5 text-[13px] font-normal text-[var(--text-subtle)]">
+                  {minutesLeft}
+                  <span className="normal-nums">:</span>
+                  {secondsPart}
+                  <span className="ml-1.5 text-[13px] font-normal text-[var(--text-muted)]">
                     left
                   </span>
                 </p>
               )}
-              <p className={meta} aria-live="polite">
-                {timeUp
-                  ? "Time is up. Checking what was saved…"
-                  : saveLine(
-                      autosave.status,
-                      writable,
-                      draft?.updatedAt ?? null,
-                      submitted,
-                    )}
-              </p>
+              <div aria-live="polite">
+                {submitted && evaluation && (
+                  <p className={deskStatus("success")}>
+                    Submitted {clockTime(evaluation.submittedAt)}
+                  </p>
+                )}
+                <p className={deskMeta}>
+                  {timeUp
+                    ? "Time is up. Checking what was saved…"
+                    : saveLine(
+                        autosave.status,
+                        writable,
+                        draft?.updatedAt ?? null,
+                        submitted,
+                      )}
+                </p>
+              </div>
+              {submitted && writable && secondsLeft !== null && (
+                <p className={`mt-0.5 ${deskMeta}`}>
+                  {countdown(secondsLeft)} left to edit answers
+                </p>
+              )}
               {autosave.status.kind === "stopped" && (
                 <span className="flex flex-wrap gap-x-4">
                   <button
@@ -639,7 +672,7 @@ function EvaluationForm({
                 className={`${btnPrimary} min-h-11 shrink-0`}
                 onClick={onNext}
               >
-                Next project
+                Back to projects
               </button>
             ) : (
               <button
@@ -684,8 +717,7 @@ function saveLine(
     case "stopped":
       return `Saving stopped. ${saving.message}`;
     case "idle":
-      if (submitted) return "Submitted";
-      if (!writable) return "";
+      if (submitted || !writable) return "";
       return restoredAt
         ? `Draft from ${clockTime(restoredAt)} restored`
         : "Answers save as you go";
@@ -712,7 +744,7 @@ function AccessNotice({
         : "Not open to you yet";
     return (
       <div className="mt-6">
-        <p className={status("warning")}>{heading}</p>
+        <p className={deskStatus("warning")}>{heading}</p>
         <p className={`mt-1 ${body}`}>{access.reason}</p>
         {access.needsRoom && onPickRoom && (
           <button
@@ -732,7 +764,7 @@ function AccessNotice({
   if (evaluation.autoSubmittedAt) {
     return (
       <div className="mt-6">
-        <p className={status("warning")}>
+        <p className={deskStatus("warning")}>
           Submitted for you at {clockTime(evaluation.autoSubmittedAt)}
         </p>
         <p className={`mt-1 ${body}`}>
@@ -747,7 +779,7 @@ function AccessNotice({
   const edited =
     evaluation.updatedAt.getTime() > evaluation.submittedAt.getTime();
   return (
-    <p className={`mt-6 ${status("success")}`}>
+    <p className={`mt-6 ${deskStatus("success")}`}>
       Submitted {clockTime(evaluation.submittedAt)}
       {edited ? `, last changed ${clockTime(evaluation.updatedAt)}` : ""}
     </p>
@@ -758,36 +790,32 @@ function Scores({ data }: { data: ProjectSheet }) {
   const { scores, evaluation, challenge } = data;
   if (!scores) return null;
   const count = (n: number) => `${n} ${n === 1 ? "evaluation" : "evaluations"}`;
+  // One number leads: the judge's own, or the challenge's before they have one.
+  const own = evaluation?.score ?? null;
+  const line = (name: string, s: { score: number | null; count: number }) => (
+    <p className={`mt-3 ${deskMeta}`}>
+      {name}:{" "}
+      <span className="text-[var(--text-primary)]">{formatScore(s.score)}</span>
+      {s.count > 0 && ` from ${count(s.count)}`}
+    </p>
+  );
 
   return (
     <section className={`mt-10 ${sectionRule}`} aria-label="Scores">
-      <h2 className={label}>Scores so far</h2>
-      <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
-        {evaluation?.score != null && (
-          <div>
-            <dt className={meta}>Your score</dt>
-            <dd className="mt-0.5 font-[family-name:var(--font-display)] text-[28px] font-semibold tabular-nums text-[var(--text-primary)]">
-              {formatScore(evaluation.score)}
-            </dd>
-          </div>
-        )}
-        <div>
-          <dt className={meta}>{challenge.label}</dt>
-          <dd className="mt-0.5 font-[family-name:var(--font-display)] text-[28px] font-semibold tabular-nums text-[var(--text-primary)]">
-            {formatScore(scores.challenge.score)}
-          </dd>
-          <dd className={meta}>{count(scores.challenge.count)}</dd>
-        </div>
-        {scores.overall && (
-          <div>
-            <dt className={meta}>Every challenge</dt>
-            <dd className="mt-0.5 font-[family-name:var(--font-display)] text-[28px] font-semibold tabular-nums text-[var(--text-primary)]">
-              {formatScore(scores.overall.score)}
-            </dd>
-            <dd className={meta}>{count(scores.overall.count)}</dd>
-          </div>
+      <h2 className={itemTitle}>Scores so far</h2>
+      <dl className="mt-3">
+        <dt className={deskMeta}>
+          {own !== null ? "Your score" : challenge.label}
+        </dt>
+        <dd className="mt-0.5 font-[family-name:var(--font-display)] text-[28px] font-semibold tabular-nums text-[var(--text-primary)]">
+          {formatScore(own ?? scores.challenge.score)}
+        </dd>
+        {own === null && (
+          <dd className={deskMeta}>{count(scores.challenge.count)}</dd>
         )}
       </dl>
+      {own !== null && line(challenge.label, scores.challenge)}
+      {scores.overall && line("Every challenge", scores.overall)}
     </section>
   );
 }
