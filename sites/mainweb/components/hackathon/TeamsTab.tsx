@@ -5,18 +5,20 @@ import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
-import { AlertCircle, Copy } from "lucide-react";
+import { AlertCircle, Copy, Share } from "lucide-react";
 import {
   body,
   btnDanger,
   btnPrimary,
   btnSecondary,
+  chip,
   fieldLabel,
   input,
   itemTitle,
   label,
   meta,
   object,
+  sectionRule,
   sectionTitle,
   status,
 } from "@/components/portal/ui";
@@ -24,6 +26,15 @@ import {
 type TeamMember = {
   userId: string;
   user: { name?: string | null; image?: string | null };
+};
+
+// First and last initial: a lone letter reads as a word once the avatars overlap.
+const initials = (name?: string | null) => {
+  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  return (
+    (words[0]?.[0] ?? "?") +
+    (words.length > 1 ? words[words.length - 1][0] : "")
+  ).toUpperCase();
 };
 
 export function TeamsTab({
@@ -156,11 +167,21 @@ export function TeamsTab({
   const myTeam = teams?.find((t) => t.id === myTeamId);
   const otherTeams = teams?.filter((t) => t.id !== myTeamId) ?? [];
   const isCaptain = !!myTeam && myTeam.captainId === session?.user?.id;
+  // Where the browser has a share sheet (most phones) the invite goes there;
+  // elsewhere it goes to the clipboard.
+  const canShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  // Someone already on a team cannot join any of these, so the filter is
+  // offered only when it can change what they see.
+  const showHideFull =
+    !myTeamId && otherTeams.some((t) => t.currentMembers >= t.maxMembers);
 
   // Matches the team name or any member's name; both are already in the list.
   const needle = search.trim().toLowerCase();
   const visibleTeams = otherTeams.filter((t) => {
-    if (hideFull && t.currentMembers >= t.maxMembers) return false;
+    if (hideFull && showHideFull && t.currentMembers >= t.maxMembers)
+      return false;
     if (!needle) return true;
     return (
       t.name.toLowerCase().includes(needle) ||
@@ -192,7 +213,7 @@ export function TeamsTab({
         : null;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {!isAdmitted && (
         <p className={body}>
           {isRegistered
@@ -220,14 +241,14 @@ export function TeamsTab({
       )}
 
       {myTeam && (
-        <section className={`${object} p-6`}>
+        <section className={`${object} p-5`}>
           <p className={label}>Your team</p>
           <h2 className={`mt-1 ${sectionTitle}`}>{myTeam.name}</h2>
           {myTeam.description && (
             <p className={`mt-2 max-w-2xl ${body}`}>{myTeam.description}</p>
           )}
 
-          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-3">
+          <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {(myTeam.participants || []).map(
               (p: {
                 userId: string;
@@ -243,8 +264,8 @@ export function TeamsTab({
                       className="rounded-full"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-muted)]">
-                      {(p.user.name?.[0] ?? "?").toUpperCase()}
+                    <div className="w-7 h-7 rounded-full bg-[var(--border-subtle)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)]">
+                      {initials(p.user.name)}
                     </div>
                   )}
                   <span className="text-[15px] text-[var(--text-primary)]">
@@ -258,88 +279,117 @@ export function TeamsTab({
             )}
           </ul>
 
-          {isCaptain && (
-            <label
-              htmlFor="team-closed"
-              className="mt-5 flex cursor-pointer items-start gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <input
-                id="team-closed"
-                type="checkbox"
-                checked={!myTeam.isOpen}
-                disabled={setOpen.isPending || !teamWindow?.isOpen}
-                onChange={(e) => {
-                  setError("");
-                  setOpen.mutate({
-                    hackathonId,
-                    teamId: myTeam.id,
-                    isOpen: !e.target.checked,
-                  });
-                }}
-                className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-              />
-              Closed to new members
-            </label>
-          )}
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-4">
-            <span className={meta}>
-              {myTeam.currentMembers} of {myTeam.maxMembers} members
-            </span>
-            <div className="flex flex-wrap items-center gap-3">
-              {isCaptain && (
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+            {isCaptain &&
+              windowAllowsJoin &&
+              myTeam.isOpen &&
+              myTeam.currentMembers < myTeam.maxMembers && (
                 <button
                   type="button"
                   onClick={() => {
-                    void navigator.clipboard
-                      ?.writeText(
-                        `${window.location.origin}/hackathons/${hackathonId}?tab=TEAMS&join=${myTeam.id}`,
-                      )
-                      .then(() => {
-                        setLinkCopied(true);
-                        setTimeout(() => setLinkCopied(false), 2000);
-                      });
+                    const url = `${window.location.origin}/hackathons/${hackathonId}?tab=TEAMS&join=${myTeam.id}`;
+                    setError("");
+                    const fail = () =>
+                      setError(
+                        `Couldn't ${canShare ? "share" : "copy"}. The link is ${url}`,
+                      );
+                    if (canShare) {
+                      // A dismissed share sheet rejects too; that is not a failure.
+                      void navigator
+                        .share({ title: myTeam.name, url })
+                        .catch((e: unknown) => {
+                          if (!(e instanceof Error && e.name === "AbortError"))
+                            fail();
+                        });
+                      return;
+                    }
+                    if (!navigator.clipboard) return fail();
+                    void navigator.clipboard.writeText(url).then(() => {
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    }, fail);
                   }}
-                  className={btnSecondary}
+                  className={btnPrimary}
                 >
-                  <Copy size={16} strokeWidth={1.75} aria-hidden="true" />
-                  {linkCopied ? "Copied" : "Copy invite link"}
+                  {canShare ? (
+                    <Share size={16} strokeWidth={1.75} aria-hidden="true" />
+                  ) : (
+                    <Copy size={16} strokeWidth={1.75} aria-hidden="true" />
+                  )}
+                  {canShare
+                    ? "Share invite link"
+                    : linkCopied
+                      ? "Copied"
+                      : "Copy invite link"}
                 </button>
               )}
-              {isCaptain && myTeam.currentMembers > 1 ? (
-                !confirmDisband && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setError("");
-                      setConfirmDisband(true);
-                    }}
-                    disabled={!canLeave}
-                    title={canLeave ? undefined : (windowNotice ?? undefined)}
-                    className={btnDanger}
-                  >
-                    {canLeave ? "Disband team" : "Roster locked"}
-                  </button>
-                )
-              ) : (
+            <span className={`${meta} tabular-nums`}>
+              {myTeam.currentMembers} of {myTeam.maxMembers} members
+            </span>
+          </div>
+
+          <div className="mt-6 flex flex-col items-start gap-3 border-t border-[var(--border-subtle)] pt-4">
+            {isCaptain && (
+              <label
+                htmlFor="team-closed"
+                className="flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <input
+                  id="team-closed"
+                  type="checkbox"
+                  checked={!myTeam.isOpen}
+                  disabled={setOpen.isPending || !teamWindow?.isOpen}
+                  onChange={(e) => {
+                    setError("");
+                    setOpen.mutate({
+                      hackathonId,
+                      teamId: myTeam.id,
+                      isOpen: !e.target.checked,
+                    });
+                  }}
+                  className="mt-0.5 h-5 w-5 min-h-0! min-w-0! shrink-0 cursor-pointer accent-[var(--accent)]"
+                />
+                <span>
+                  Closed to new members
+                  <span className={`block ${meta}`}>
+                    Nobody can join, even with your invite link.
+                  </span>
+                </span>
+              </label>
+            )}
+            {isCaptain && myTeam.currentMembers > 1 ? (
+              !confirmDisband && (
                 <button
                   type="button"
                   onClick={() => {
                     setError("");
-                    leaveTeam.mutate({ hackathonId });
+                    setConfirmDisband(true);
                   }}
-                  disabled={leaveTeam.isPending || !canLeave}
+                  disabled={!canLeave}
                   title={canLeave ? undefined : (windowNotice ?? undefined)}
                   className={btnDanger}
                 >
-                  {leaveTeam.isPending
-                    ? "Leaving…"
-                    : canLeave
-                      ? "Leave team"
-                      : "Roster locked"}
+                  {canLeave ? "Disband team" : "Roster locked"}
                 </button>
-              )}
-            </div>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  leaveTeam.mutate({ hackathonId });
+                }}
+                disabled={leaveTeam.isPending || !canLeave}
+                title={canLeave ? undefined : (windowNotice ?? undefined)}
+                className={btnDanger}
+              >
+                {leaveTeam.isPending
+                  ? "Leaving…"
+                  : canLeave
+                    ? "Leave team"
+                    : "Roster locked"}
+              </button>
+            )}
           </div>
 
           {isCaptain && confirmDisband && (
@@ -486,13 +536,15 @@ export function TeamsTab({
         </section>
       )}
 
-      <section className="border-t border-[var(--border-subtle)] pt-8">
-        <div className="flex items-baseline justify-between gap-4 mb-5">
-          <h3 className={sectionTitle}>Open teams</h3>
-          <span className={meta}>
+      <section className={sectionRule}>
+        <div className="flex items-baseline justify-between gap-4 mb-4">
+          <h3 className={sectionTitle}>
+            {myTeam ? "Other teams" : "All teams"}
+          </h3>
+          <span className="text-[13px] tabular-nums text-[var(--text-muted)]">
             {visibleTeams.length === otherTeams.length
-              ? otherTeams.length
-              : `${visibleTeams.length} of ${otherTeams.length}`}
+              ? `${otherTeams.length} ${otherTeams.length === 1 ? "team" : "teams"}`
+              : `${visibleTeams.length} of ${otherTeams.length} teams`}
           </span>
         </div>
 
@@ -503,28 +555,25 @@ export function TeamsTab({
         )}
 
         {otherTeams.length > 0 && (
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-5 flex items-center gap-3">
             <input
               type="search"
               aria-label="Search teams"
-              placeholder="Search by team or member name"
+              placeholder="Search teams or people"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={`${input} sm:max-w-sm`}
+              className={`${input} min-w-0 flex-1 sm:max-w-sm`}
             />
-            <label
-              htmlFor="hide-full-teams"
-              className="flex cursor-pointer items-center gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <input
-                id="hide-full-teams"
-                type="checkbox"
-                checked={hideFull}
-                onChange={(e) => setHideFull(e.target.checked)}
-                className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-              />
-              Hide full teams
-            </label>
+            {showHideFull && (
+              <button
+                type="button"
+                aria-pressed={hideFull}
+                onClick={() => setHideFull((v) => !v)}
+                className={`${chip(hideFull)} shrink-0`}
+              >
+                Hide full
+              </button>
+            )}
           </div>
         )}
 
@@ -555,14 +604,16 @@ export function TeamsTab({
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h4 className={`${itemTitle} truncate`}>{team.name}</h4>
+                    <h4 className={`${itemTitle} min-w-0 break-words`}>
+                      {team.name}
+                    </h4>
                     {!team.isOpen && (
                       <span className={status("neutral")}>Closed</span>
                     )}
-                    {isFull && <span className={status("warning")}>Full</span>}
+                    {isFull && <span className={status("neutral")}>Full</span>}
                   </div>
                   {team.description && (
-                    <p className={`mt-1.5 line-clamp-2 ${body}`}>
+                    <p className={`mt-1.5 line-clamp-4 ${body}`}>
                       {team.description}
                     </p>
                   )}
@@ -575,7 +626,7 @@ export function TeamsTab({
 
                 <div className="mt-auto flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex -space-x-2">
+                    <div className="flex -space-x-1">
                       {(team.participants || []).slice(0, 5).map(
                         (p: {
                           userId: string;
@@ -596,14 +647,14 @@ export function TeamsTab({
                           ) : (
                             <div
                               key={p.userId}
-                              className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-muted)] relative z-10"
+                              className="w-7 h-7 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)] relative z-10"
                             >
-                              {(p.user.name?.[0] ?? "?").toUpperCase()}
+                              {initials(p.user.name)}
                             </div>
                           ),
                       )}
                       {team.currentMembers > 5 && (
-                        <div className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-muted)] relative z-10">
+                        <div className="w-7 h-7 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)] relative z-10">
                           +{team.currentMembers - 5}
                         </div>
                       )}
