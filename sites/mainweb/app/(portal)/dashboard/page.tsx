@@ -8,6 +8,12 @@ import {
   usePortalContext,
 } from "@/lib/use-portal-context";
 import { hackathonSlug } from "@/lib/hackathon-slug";
+import {
+  hackathonNextStep,
+  isWithinEditionDates,
+  nextStepQueries,
+  projectSubmitted,
+} from "@/lib/hackathon-next-step";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -81,10 +87,21 @@ export default function Dashboard() {
   const [chosenView, setChosenView] = useState<"club" | "hackathon" | null>(
     null,
   );
-  const view = chosenView ?? (memberStatus?.isMember ? "club" : "hackathon");
+  const now = new Date();
+  // Somebody accepted to an event that is on today lands on the hackathon
+  // half, member or not: that is the half with their next step.
+  const eventReg = myRegs?.find(
+    (r) =>
+      (r.registrationStatus === "approved" ||
+        r.registrationStatus === "checked_in") &&
+      r.hackathon.status !== "cancelled" &&
+      isWithinEditionDates(r.hackathon, now),
+  );
+  const view =
+    chosenView ??
+    (eventReg ? "hackathon" : memberStatus?.isMember ? "club" : "hackathon");
   const setView = setChosenView;
 
-  const now = new Date();
   const activeRegs =
     myRegs?.filter((r) =>
       r.hackathon.endDate ? new Date(r.hackathon.endDate) >= now : true,
@@ -93,6 +110,56 @@ export default function Dashboard() {
     myRegs?.filter((r) =>
       r.hackathon.endDate ? new Date(r.hackathon.endDate) < now : false,
     ) ?? [];
+
+  // The event they are at, else the latest registration still on the
+  // calendar. Its next step reads up to four more queries, each held back
+  // until the step can use it, so a guest, or a hacker whose event has not
+  // begun, pays for none of them.
+  const latestReg = eventReg ?? activeRegs[0];
+  const stepHackathonId = latestReg?.hackathonId ?? "";
+  const stepOn = view === "hackathon" && !!latestReg;
+  const needs = latestReg
+    ? nextStepQueries({
+        now,
+        hackathon: latestReg.hackathon,
+        registrationStatus: latestReg.registrationStatus,
+      })
+    : { submission: false, judging: false, results: false };
+  const submissionWindow = trpc.team.submissionWindow.useQuery(
+    { hackathonId: stepHackathonId },
+    { enabled: stepOn && needs.submission },
+  );
+  const mySubmission = trpc.team.mySubmission.useQuery(
+    { hackathonId: stepHackathonId },
+    { enabled: stepOn && needs.submission },
+  );
+  const itinerary = trpc.judging.hacker.itinerary.useQuery(
+    { hackathonId: stepHackathonId },
+    { enabled: stepOn && needs.judging },
+  );
+  const results = trpc.hackathon.getResults.useQuery(
+    { hackathonId: stepHackathonId },
+    { enabled: stepOn && needs.results },
+  );
+  // Held back until they answer, so the strip never shows a step it is about
+  // to take back ("Submit" to somebody who already has).
+  const stepLoading =
+    submissionWindow.isLoading ||
+    mySubmission.isLoading ||
+    itinerary.isLoading ||
+    results.isLoading;
+  const nextStep = latestReg
+    ? hackathonNextStep({
+        now,
+        hackathon: latestReg.hackathon,
+        registrationStatus: latestReg.registrationStatus,
+        hasTeam: !!latestReg.teamId,
+        submissionWindow: submissionWindow.data,
+        submitted: projectSubmitted(mySubmission.data),
+        itinerary: itinerary.data,
+        resultsPublished: (results.data?.length ?? 0) > 0,
+      })
+    : null;
 
   // A link made here changes membership, so the page has to re-read it — or it
   // keeps showing the pay button to somebody who has already paid.
@@ -148,7 +215,6 @@ export default function Dashboard() {
 
   // The headline is the one thing that matters on this half right now, worked
   // out from what the page already loaded.
-  const latestReg = activeRegs[0];
   let headline: string;
   let dek: string;
   if (view === "hackathon") {
@@ -223,14 +289,40 @@ export default function Dashboard() {
       <div className="mt-10 md:mt-12">
         <h1 className={pageTitle}>{headline}</h1>
         <p className={pageDek}>{dek}</p>
-        {view === "hackathon" && !loadingRegs && latestReg && (
+        {view === "hackathon" && !loadingRegs && !stepLoading && latestReg && (
           <div className="mt-6">
-            <Link
-              href={`/hackathons/${hackathonSlug(latestReg.hackathon.name)}?tab=SCHEDULE`}
-              className={btnPrimary}
-            >
-              Open {latestReg.hackathon.name}
-            </Link>
+            {nextStep ? (
+              <Link
+                href={nextStep.href}
+                className="group flex max-w-xl items-center justify-between gap-4 border-l-2 border-accent pl-4"
+              >
+                <span className="min-w-0">
+                  <span className={`block ${label}`}>
+                    {nextStep.step === "status" ? "Your status" : "Next step"}
+                  </span>
+                  <span className="mt-0.5 block text-[15px] font-semibold text-[var(--text-primary)] group-hover:underline decoration-accent decoration-2 underline-offset-4">
+                    {nextStep.label}
+                  </span>
+                  {nextStep.detail && (
+                    <span className={`mt-0.5 block ${meta}`}>
+                      {nextStep.detail}
+                    </span>
+                  )}
+                </span>
+                <ArrowRight
+                  className="h-4 w-4 flex-shrink-0 text-[var(--text-subtle)] group-hover:text-[var(--text-primary)] transition-colors"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              </Link>
+            ) : (
+              <Link
+                href={`/hackathons/${hackathonSlug(latestReg.hackathon.name)}?tab=SCHEDULE`}
+                className={btnPrimary}
+              >
+                Open {latestReg.hackathon.name}
+              </Link>
+            )}
           </div>
         )}
       </div>

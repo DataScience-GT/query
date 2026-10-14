@@ -12,8 +12,10 @@ import { trpc } from "@/lib/trpc";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import {
   kicker,
+  label,
   meta,
   page,
   pageTitle,
@@ -33,7 +35,13 @@ import { HackerJudgingTab } from "@/components/hackathon/judging/HackerJudgingTa
 import { PointsTab } from "@/components/hackathon/points/PointsTab";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
+import { HackerAnnouncements } from "@/components/hackathon/HackerAnnouncements";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
+import {
+  hackathonNextStep,
+  nextStepQueries,
+  projectSubmitted,
+} from "@/lib/hackathon-next-step";
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
@@ -138,11 +146,11 @@ export default function HackathonDetailPage() {
     },
   });
 
+  const myReg = myRegs?.find((r) => r.hackathonId === hackathon?.id);
+
   // Only a flip seen while the page is open counts; the status it first
   // loaded with never announces itself.
-  const regStatus = myRegs?.find(
-    (r) => r.hackathonId === hackathon?.id,
-  )?.registrationStatus;
+  const regStatus = myReg?.registrationStatus;
   const [seenStatus, setSeenStatus] = useState(regStatus);
   const [justCheckedIn, setJustCheckedIn] = useState(false);
   if (regStatus !== seenStatus) {
@@ -154,6 +162,38 @@ export default function HackathonDetailPage() {
     const timer = setTimeout(() => setJustCheckedIn(false), 10_000);
     return () => clearTimeout(timer);
   }, [justCheckedIn]);
+
+  // The next-step strip reads up to four more queries, each held back until
+  // the step can use it, so only a registered hacker at the right point pays.
+  const now = new Date();
+  const needs =
+    hackathon && regStatus
+      ? nextStepQueries({ now, hackathon, registrationStatus: regStatus })
+      : { submission: false, judging: false, results: false };
+  const stepId = hackathon?.id ?? "";
+  const submissionWindow = trpc.team.submissionWindow.useQuery(
+    { hackathonId: stepId },
+    { enabled: needs.submission },
+  );
+  const mySubmission = trpc.team.mySubmission.useQuery(
+    { hackathonId: stepId },
+    { enabled: needs.submission },
+  );
+  const itinerary = trpc.judging.hacker.itinerary.useQuery(
+    { hackathonId: stepId },
+    { enabled: needs.judging },
+  );
+  const results = trpc.hackathon.getResults.useQuery(
+    { hackathonId: stepId },
+    { enabled: needs.results },
+  );
+  // Held back until they answer, so the strip never shows a step it is about
+  // to take back ("Submit" to somebody who already has).
+  const stepLoading =
+    submissionWindow.isLoading ||
+    mySubmission.isLoading ||
+    itinerary.isLoading ||
+    results.isLoading;
 
   useEffect(() => {
     if (authStatus === "unauthenticated") router.push(loginHref());
@@ -167,8 +207,20 @@ export default function HackathonDetailPage() {
   // forever with nothing to click.
   if (error || !hackathon) return <HackathonUnavailable message={error?.message} />;
 
-  const myReg = myRegs?.find((r) => r.hackathonId === hackathon.id);
   const isRegistered = !!myReg;
+  const nextStep =
+    myReg && !stepLoading
+      ? hackathonNextStep({
+          now,
+          hackathon,
+          registrationStatus: myReg.registrationStatus,
+          hasTeam: !!myReg.teamId,
+          submissionWindow: submissionWindow.data,
+          submitted: projectSubmitted(mySubmission.data),
+          itinerary: itinerary.data,
+          resultsPublished: (results.data?.length ?? 0) > 0,
+        })
+      : null;
   // The status is moved by hand, so the start date counts too: an edition
   // still marked closed on the weekend itself must not hide Judging.
   const eventLive =
@@ -206,6 +258,31 @@ export default function HackathonDetailPage() {
         )}
         <h1 className={`mt-1 ${pageTitle}`}>{hackathon.name}</h1>
         <p className={`mt-3 ${meta}`}>{metaParts.join(" · ")}</p>
+        {nextStep && (
+          <Link
+            href={nextStep.href}
+            className="group mt-6 flex max-w-xl items-center justify-between gap-4 border-l-2 border-accent pl-4"
+          >
+            <span className="min-w-0">
+              <span className={`block ${label}`}>
+                {nextStep.step === "status" ? "Your status" : "Next step"}
+              </span>
+              <span className="mt-0.5 block text-[15px] font-semibold text-[var(--text-primary)] group-hover:underline decoration-accent decoration-2 underline-offset-4">
+                {nextStep.label}
+              </span>
+              {nextStep.detail && (
+                <span className={`mt-0.5 block ${meta}`}>
+                  {nextStep.detail}
+                </span>
+              )}
+            </span>
+            <ArrowRight
+              className="h-4 w-4 flex-shrink-0 text-[var(--text-subtle)] group-hover:text-[var(--text-primary)] transition-colors"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </Link>
+        )}
       </header>
 
       {/* Mounted empty so screen readers announce the line when it lands. */}
@@ -216,6 +293,10 @@ export default function HackathonDetailPage() {
           </p>
         )}
       </div>
+
+      {/* What organisers announced to this hacker, emailed or in app only.
+          The uuid, not the route param: that may be a slug. */}
+      {regStatus && <HackerAnnouncements hackathonId={hackathon.id} />}
 
       {/* Tabs */}
       <div
