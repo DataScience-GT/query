@@ -40,6 +40,12 @@ import {
   cpsatProblem,
   readCpsatSolution,
 } from "../../services/judging/schedule/cpsat-bridge";
+import {
+  CPSAT_SECONDS,
+  CPSAT_UNAVAILABLE,
+  cpsatAvailable,
+  runCpsat,
+} from "../../services/judging/schedule/cpsat-runner";
 import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import { moveChoices } from "../../services/judging/schedule/moves";
 import {
@@ -820,6 +826,69 @@ export const judgingScheduleRouter = createTRPCRouter({
       });
 
       return saved;
+    }),
+
+  /**
+   * Whether this server can run CP-SAT itself (JUDGING_CPSAT_PYTHON set and
+   * cpsat.py present). Without it, CP-SAT is download, run, upload.
+   */
+  cpsatAvailability: isAdmin
+    .input(z.object({ hackathonId: uuid }))
+    .query(() => ({ available: cpsatAvailable() })),
+
+  /**
+   * Runs CP-SAT here on the problem cpsatProblem would download, starting
+   * from aamoghCPSolver's schedule, and shows the result the way previewCpsat
+   * does. `solution` is what the script printed: saveCpsat takes it back and
+   * checks it again, exactly as it does an upload.
+   */
+  solveCpsat: isAdmin
+    .input(
+      z.object({
+        hackathonId: uuid,
+        timing: timingInput,
+        seconds: z
+          .number()
+          .int()
+          .min(CPSAT_SECONDS.min)
+          .max(CPSAT_SECONDS.max)
+          .default(CPSAT_SECONDS.default),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertHackathonExists(db, input.hackathonId);
+      assertWindowAhead(input.timing);
+      if (await findSchedule(db, input.hackathonId)) throw scheduleExists();
+      if (!cpsatAvailable()) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: CPSAT_UNAVAILABLE });
+      }
+
+      const inventory = await readInventory(db, input.hackathonId);
+      const { inputs, result, fingerprint } = solveInventory(inventory, input.timing);
+      const run = await runCpsat(
+        cpsatProblem(inputs, fingerprint, result.ok ? result.placements : undefined),
+        { seconds: input.seconds },
+      );
+      if (run.status === "failed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: run.reason });
+      }
+      if (run.status === "timedOut") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "CP-SAT ran out of time before finding a schedule. Give it more seconds, or download the problem and run the script with a larger --time-limit.",
+        });
+      }
+      // A proof of infeasibility is refused here with its reasons; a schedule
+      // has to pass the same checks as an upload.
+      const { read, key } = readUpload(inventory, input.timing, run.solution);
+      return {
+        ...describePlan(read, inputs, namesOf(inventory), input.timing),
+        candidateKey: key,
+        solverStatus: read.status,
+        solution: run.solution,
+      };
     }),
 
   /**
