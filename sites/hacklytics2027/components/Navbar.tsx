@@ -116,19 +116,19 @@ export default function Navbar() {
           <Link
             href="/"
             onClick={() => setOpen(false)}
-            className="font-display font-bold text-[15px] text-ink shrink-0"
+            className="font-display text-[15px] text-ink shrink-0 inline-flex h-11 items-center"
           >
             Hacklytics
           </Link>
 
           {/* Six links, the logo and the button do not fit below 1024px. */}
-          <nav className="hidden lg:flex items-center gap-7">
+          <nav className="hidden lg:flex items-center gap-3">
             {navItems.map(({ name, href }) => (
               <a
                 key={name}
                 href={href}
                 onClick={(e) => handleNavClick(e, href)}
-                className="font-sans text-sm text-ink-2 hover:text-ink transition-colors py-2"
+                className="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors py-3 px-2 min-w-11 text-center"
               >
                 {name}
               </a>
@@ -146,7 +146,7 @@ export default function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Notify me (opens a sign-up form)"
-              className="btn btn-bloom px-2.5 py-2.5 text-[12px] max-[356px]:hidden sm:px-4 sm:text-sm shrink-0"
+              className={`btn btn-bloom h-11 py-0 px-2.5 text-[12px] max-[356px]:hidden sm:px-4 sm:text-[15px] shrink-0 ${open ? "invisible" : ""}`}
             >
               Notify me
             </a>
@@ -156,16 +156,16 @@ export default function Navbar() {
               aria-expanded={open}
               aria-controls="mobile-menu"
               onClick={() => setOpen((s) => !s)}
-              className="lg:hidden w-11 h-11 rounded-full flex flex-col justify-center items-center gap-[6px] border border-rule hover:border-ink-3 transition-colors bg-transparent"
+              className="lg:hidden w-11 h-11 rounded-full flex flex-col justify-center items-center gap-[5px] border border-line hover:border-ink-3 transition-colors bg-transparent"
             >
               <span
-                className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
+                className={`block w-[18px] h-[2px] bg-ink transition-all duration-300 ${open ? "rotate-45 translate-y-[7px]" : ""}`}
               />
               <span
-                className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "opacity-0 scale-x-0" : ""}`}
+                className={`block w-[18px] h-[2px] bg-ink transition-all duration-300 ${open ? "opacity-0 scale-x-0" : ""}`}
               />
               <span
-                className={`block w-4 h-[1px] bg-ink transition-all duration-300 ${open ? "-rotate-45 -translate-y-[7px]" : ""}`}
+                className={`block w-[18px] h-[2px] bg-ink transition-all duration-300 ${open ? "-rotate-45 -translate-y-[7px]" : ""}`}
               />
             </button>
           </div>
@@ -181,7 +181,7 @@ export default function Navbar() {
           fixed inset-0 z-40 flex flex-col
           bg-ground
           transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
+          ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none invisible"}
         `}
         style={{ paddingTop: "var(--navbar-height)" }}
       >
@@ -191,7 +191,7 @@ export default function Navbar() {
               key={name}
               href={href}
               onClick={(e) => handleNavClick(e, href)}
-              className="font-display font-bold text-[1.5rem] leading-none text-ink hover:text-ink-2 py-4 border-b border-rule transition-colors"
+              className="font-display text-[1.5rem] leading-none text-ink hover:text-ink-2 py-4 border-b border-rule transition-colors"
             >
               {name}
             </a>

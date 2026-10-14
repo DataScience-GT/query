@@ -11,7 +11,7 @@ const prizes = [
 export default function PrizeAndSpeakerSection() {
   return (
     <section id="prizes" className="section-anchor relative border-t border-rule">
-      <div className="wrap py-24 md:py-32">
+      <div className="wrap py-16 md:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
           <div className="lg:col-span-5">
             <h2 className="section-title">Prizes</h2>

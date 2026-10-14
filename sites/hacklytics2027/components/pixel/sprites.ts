@@ -53,19 +53,26 @@ export const TULIP: SpriteMap = [
   "...ggg...",
 ];
 
-/** Radial bloom — the "digital lotus", but made of pixels. */
+/** Round bloom on a stem — the "digital lotus", but made of pixels. The head
+ *  is one solid disc with no detached pixels, so the neon halo (a copy of the
+ *  head pixels only) frames a flower instead of drawing a star. 15 rows, 90px
+ *  at scale 6. */
 export const BLOOM: SpriteMap = [
-  ".....p.....",
-  "..p..P..p..",
-  "...pPPPp...",
-  "..pPPcPPp..",
-  ".pPPcYcPPp.",
-  "pPPcYWYcPPp",
-  ".pPPcYcPPp.",
-  "..pPPcPPp..",
-  "...pPPPp...",
-  "..p..P..p..",
-  ".....p.....",
+  "....ppp....",
+  "..ppPPPpp..",
+  ".pPPPPPPPp.",
+  ".pPPcccPPp.",
+  "pPPcYYYcPPp",
+  ".pPPcccPPp.",
+  ".pPPPPPPPp.",
+  "..ppPPPpp..",
+  "....ppp....",
+  ".....g.....",
+  "..GG.g.....",
+  ".G..Gg.GG..",
+  ".....gG..G.",
+  ".....g.....",
+  "....ggg....",
 ];
 
 /** Small tintable bud — used inline next to text. */

@@ -6,15 +6,15 @@ import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import Footer from "../components/Footer";
 import { INTEREST_URL } from "../lib/links";
 
-// Display face: hero and section titles, set at 800. Variable, with the
-// optical-size axis so the big sizes get the display cut.
 // Text and UI.
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   variable: "--font-instrument",
 });
 
-// Pixel face, for the small kickers only.
+// Pixel face: the display type (hero, section titles, track names, countdown)
+// and the kickers. Loaded at 400 only, so nothing sets it bold: a synthesized
+// bold smears the pixel cells.
 const silkscreen = Silkscreen({
   subsets: ["latin"],
   weight: "400",
