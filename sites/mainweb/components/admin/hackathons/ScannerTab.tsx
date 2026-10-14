@@ -14,7 +14,6 @@ import {
   itemTitle,
   meta,
   sectionRule,
-  sectionTitle,
   status,
   tab,
   tabList,
@@ -33,7 +32,7 @@ const METHOD_LABEL: Record<string, string> = {
 
 // How long the strip for a good scan stays up, and how long the same badge is
 // ignored after a read so one held in front of the camera is not read twice.
-const STRIP_MS = 1500;
+const STRIP_MS = 2500;
 const REPEAT_MS = 3000;
 
 export function ScannerTab({ hackathonId }: { hackathonId: string }) {
@@ -217,26 +216,26 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
       {lastCheckIn && (
         <div
           role="status"
-          className="fixed inset-x-4 bottom-6 z-[110] mx-auto flex max-w-md items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 shadow-[var(--shadow-xl)]"
+          className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[110] mx-auto flex max-w-md items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] border-l-4 border-l-[var(--success)] bg-[var(--bg-card)] px-4 py-3.5 shadow-[var(--shadow-xl)]"
         >
           <Check
             aria-hidden="true"
-            strokeWidth={1.75}
-            className="h-5 w-5 shrink-0 text-[var(--success)]"
+            strokeWidth={2}
+            className="mt-0.5 h-6 w-6 shrink-0 text-[var(--success)]"
           />
-          <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--text-primary)]">
-            {lastCheckIn.name}
-          </p>
-          {lastCheckIn.firstArrival && (
-            <span className={`shrink-0 ${status("success")}`}>
-              First arrival
-            </span>
-          )}
-          {lastCheckIn.points > 0 && (
-            <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
-              +{lastCheckIn.points} pts
-            </span>
-          )}
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 break-words text-[17px] font-semibold leading-snug text-[var(--text-primary)]">
+              {lastCheckIn.name}
+            </p>
+            {(lastCheckIn.firstArrival || lastCheckIn.points > 0) && (
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[15px] tabular-nums text-[var(--text-secondary)]">
+                {lastCheckIn.firstArrival && (
+                  <span className={status("success")}>First arrival</span>
+                )}
+                {lastCheckIn.points > 0 && <span>+{lastCheckIn.points} pts</span>}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -245,24 +244,15 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           success={false}
           message={scanError}
           onClose={() => setScanError(null)}
+          onScanAgain={() => {
+            setScanError(null);
+            setShowScanner(true);
+          }}
         />
       )}
 
       <section>
-        <h2 className={sectionTitle}>Check-in scanner</h2>
-        <p className={`mt-1 ${body}`}>
-          Pick an event, then scan passes or find people by name.
-        </p>
-        {isAdmin && (
-          <p className={fieldHint}>
-            More hands at the door?{" "}
-            <Link href="/admin/staff" className={textLink}>
-              Add check-in volunteers
-            </Link>
-          </p>
-        )}
-
-        <div className="mt-6">
+        <div>
           <label htmlFor="target-event" className={fieldLabel}>
             Event
           </label>
@@ -271,7 +261,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           ) : (
             <select
               id="target-event"
-              className={input}
+              className={`min-h-11 ${input}`}
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
             >
@@ -315,7 +305,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         <div
           role="tablist"
           aria-label="Check-in method"
-          className={`mt-6 ${tabList}`}
+          className={`mt-5 ${tabList}`}
         >
           <button
             type="button"
@@ -343,13 +333,13 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
             onClick={() => setShowScanner(true)}
             disabled={readOnly || !selectedEventId || showScanner}
             title={readOnly ? READ_ONLY_TITLE : undefined}
-            className={`mt-6 w-full py-4 ${btnPrimary}`}
+            className={`mt-4 w-full py-4 ${btnPrimary}`}
           >
             <QrCode className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
             <span>Scan badge</span>
           </button>
         ) : selectedEventId ? (
-          <div className="mt-6">
+          <div className="mt-4">
             <ManualCheckIn
               // A different event is a different list of who is already in.
               key={selectedEventId}
@@ -365,7 +355,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
             />
           </div>
         ) : (
-          <p className={`mt-6 ${body}`}>Pick an event first.</p>
+          <p className={`mt-4 ${body}`}>Pick an event first.</p>
         )}
       </section>
 
@@ -377,7 +367,9 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           <div className="flex items-baseline justify-between mb-2">
             <h3 className={itemTitle}>Checked in</h3>
             <span className={`tabular-nums ${meta}`}>
-              {roster.data?.matching ?? 0} total
+              {(roster.data?.attendees.length ?? 0) < (roster.data?.matching ?? 0)
+                ? `Latest ${roster.data?.attendees.length} of ${roster.data?.matching}`
+                : `${roster.data?.matching ?? 0} total`}
             </span>
           </div>
 
@@ -386,7 +378,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           ) : (roster.data?.attendees.length ?? 0) === 0 ? (
             <p className={body}>Nobody has scanned into this event yet.</p>
           ) : (
-            <ul className="max-h-80 overflow-y-auto">
+            <ul>
               {roster.data?.attendees.map((row) => {
                 const name =
                   row.participant?.user?.name ||
@@ -405,7 +397,10 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                         {name}
                       </p>
                       <p className={`tabular-nums ${meta}`}>
-                        {new Date(row.checkedInAt).toLocaleTimeString()}
+                        {new Date(row.checkedInAt).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
                         {row.method && METHOD_LABEL[row.method]
                           ? ` · ${METHOD_LABEL[row.method]}`
                           : ""}
@@ -429,7 +424,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                           participantId: row.participant.id,
                         });
                       }}
-                      className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--danger)]/40 px-2.5 py-1 text-[13px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-glow)] disabled:opacity-50"
+                      className="-mr-2 min-h-11 shrink-0 px-2 text-[13px] font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--danger)] disabled:opacity-50"
                     >
                       Undo
                     </button>
@@ -439,6 +434,15 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
             </ul>
           )}
         </section>
+      )}
+
+      {isAdmin && (
+        <p className={`mt-8 ${fieldHint}`}>
+          More hands at the door?{" "}
+          <Link href="/admin/staff" className={textLink}>
+            Add check-in volunteers
+          </Link>
+        </p>
       )}
     </div>
   );
