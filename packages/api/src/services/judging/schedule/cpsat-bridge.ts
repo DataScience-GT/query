@@ -8,7 +8,8 @@ import type { PlanScore, ReducedBreak } from "./rules";
 // (packages/api/scripts/judging-schedule/cpsat.py), and uploads what it
 // writes. Nothing in the upload is trusted: it must answer the problem as it
 // stands now (same fingerprint) and pass validateSchedule like any schedule
-// the server builds.
+// the server builds. A server with Python and OR-Tools can run the script
+// itself (cpsat-runner.ts); what it prints is read here the same way.
 
 export const CPSAT_PROBLEM_FORMAT = "query-judging-schedule-problem";
 export const CPSAT_SOLUTION_FORMAT = "query-judging-schedule-solution";
