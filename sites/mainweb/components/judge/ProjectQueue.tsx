@@ -22,11 +22,12 @@ import type { Tone } from "@/components/portal/ui";
 import {
   ICON_STROKE,
   clockTime,
+  inOrAt,
   nextPresentation,
   roomPlace,
   startsIn,
 } from "./desk";
-import type { DeskContext, ListedProject } from "./desk";
+import type { DeskContext, ListedProject, StationKind } from "./desk";
 import { useServerNow } from "./use-server-now";
 
 export type QueueFilters = {
@@ -223,7 +224,9 @@ export function ProjectQueue({
                 onFilters({ ...filters, inMyRoomOnly: e.target.checked })
               }
             />
-            Only my room&apos;s presentations
+            {context.room
+              ? `Only my ${context.room.kind}'s presentations`
+              : "Only presentations where I sit"}
           </label>
         </div>
 
@@ -232,6 +235,7 @@ export function ProjectQueue({
             filter={data.roomFilter}
             challengeLabel={challenge.label}
             roomName={context.room?.name ?? null}
+            roomKind={context.room?.kind ?? "room"}
             onPickRoom={onPickRoom}
           />
         )}
@@ -332,6 +336,7 @@ export function ProjectQueue({
                 search={search}
                 hideJudged={filters.hideJudged}
                 roomOnly={data.roomFilter === "applied"}
+                roomKind={context.room?.kind ?? "room"}
                 challengeLabel={challenge.label}
                 onShowJudged={() =>
                   onFilters({ ...filters, hideJudged: false })
@@ -350,19 +355,21 @@ function RoomFilterNote({
   filter,
   challengeLabel,
   roomName,
+  roomKind,
   onPickRoom,
 }: {
   filter: "off" | "untimed" | "no-room" | "applied";
   challengeLabel: string;
   roomName: string | null;
+  roomKind: StationKind;
   onPickRoom?: () => void;
 }) {
   if (filter === "off") return null;
   if (filter === "applied") {
     return (
       <p className={meta}>
-        Showing presentations in {roomName ?? "your room"}, in presentation
-        order.
+        Showing presentations {inOrAt(roomKind)}{" "}
+        {roomName ?? `your ${roomKind}`}, in presentation order.
       </p>
     );
   }
@@ -376,7 +383,7 @@ function RoomFilterNote({
   }
   return (
     <p className={meta}>
-      You are not in a room that judges {challengeLabel}, so every project is
+      You are not seated where {challengeLabel} is judged, so every project is
       listed.{" "}
       {onPickRoom && (
         <button
@@ -384,7 +391,7 @@ function RoomFilterNote({
           className={`${textLink} min-h-11`}
           onClick={onPickRoom}
         >
-          Pick your room
+          Pick your room or table
         </button>
       )}
     </p>
@@ -395,6 +402,7 @@ function EmptyQueue({
   search,
   hideJudged,
   roomOnly,
+  roomKind,
   challengeLabel,
   onShowJudged,
   onShowAll,
@@ -402,6 +410,7 @@ function EmptyQueue({
   search: string;
   hideJudged: boolean;
   roomOnly: boolean;
+  roomKind: StationKind;
   challengeLabel: string;
   onShowJudged: () => void;
   onShowAll: () => void;
@@ -434,7 +443,8 @@ function EmptyQueue({
     return (
       <div className="mt-8">
         <p className={body}>
-          Nothing in {challengeLabel} presents in your room.
+          Nothing in {challengeLabel} presents {inOrAt(roomKind)} your{" "}
+          {roomKind}.
         </p>
         <button
           type="button"

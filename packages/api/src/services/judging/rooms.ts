@@ -144,6 +144,92 @@ export async function emptyRoom(tx: JudgingDb, roomId: string) {
   return rows.length;
 }
 
+/** A judging table's name: "Table 7". */
+export const tableName = (number: number) => `Table ${number}`;
+
+/** The highest table number createTables hands out. */
+export const MAX_TABLE_NUMBER = 9999;
+
+/**
+ * The number in a "Table 7" name, or null for any other name. A number past
+ * MAX_TABLE_NUMBER reads as a plain name, so a hand-typed "Table 20000"
+ * cannot push the next blank-start batch out of range.
+ */
+export function tableNumber(name: string): number | null {
+  const match = /^table\s+(\d+)$/i.exec(name.trim());
+  const number = match ? Number(match[1]) : null;
+  return number !== null && number <= MAX_TABLE_NUMBER ? number : null;
+}
+
+type HallStation = { name: string; archived: boolean };
+
+/**
+ * Where a hall's numbering goes on: one past its highest "Table N", archived
+ * tables included so a new table never shares a number with one that could
+ * come back.
+ */
+export function nextTableNumber(stations: readonly HallStation[]): number {
+  let highest = 0;
+  for (const station of stations) {
+    highest = Math.max(highest, tableNumber(station.name) ?? 0);
+  }
+  return highest + 1;
+}
+
+/**
+ * The numbers to create for `count` tables starting at `first`, less those an
+ * active station in the hall already goes by. A skipped number is not made
+ * up at the end: the run matches the numbers on the tables in the hall.
+ */
+export function newTableNumbers(
+  stations: readonly HallStation[],
+  count: number,
+  first = nextTableNumber(stations),
+): number[] {
+  const taken = new Set(
+    stations
+      .filter((station) => !station.archived)
+      .map((station) => tableNumber(station.name)),
+  );
+  const numbers: number[] = [];
+  for (let number = first; number < first + count; number++) {
+    if (!taken.has(number)) numbers.push(number);
+  }
+  return numbers;
+}
+
+/**
+ * The edition's station list with new tables slotted in by number. `number`
+ * is set only on the hall's tables. Each new table goes after the hall's
+ * highest-numbered table below it, else before its lowest above it, else at
+ * the end, so a Table 12 added later lists between 11 and 13, not after 30.
+ */
+export function slotTables<T extends { number: number | null }>(
+  order: readonly T[],
+  added: readonly (T & { number: number })[],
+): T[] {
+  const list = [...order];
+  for (const table of added) {
+    let after = -1;
+    let afterNumber = -Infinity;
+    let before = list.length;
+    let beforeNumber = Infinity;
+    list.forEach(({ number }, index) => {
+      if (number === null) return;
+      if (number < table.number && number > afterNumber) {
+        after = index;
+        afterNumber = number;
+      }
+      if (number > table.number && number < beforeNumber) {
+        before = index;
+        beforeNumber = number;
+      }
+    });
+    list.splice(after >= 0 ? after + 1 : before, 0, table);
+  }
+  return list;
+}
+
 /** How many scheduled presentations a room hosts. */
 export async function roomAppointmentCount(tx: JudgingDb, roomId: string) {
   const [row] = await tx

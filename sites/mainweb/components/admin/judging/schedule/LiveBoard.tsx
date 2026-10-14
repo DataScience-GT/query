@@ -207,7 +207,7 @@ export function LiveBoard({
             </h3>
             <p className={`mt-1 ${meta}`}>
               Entered after the schedule was saved. Book each into an open slot
-              in a staffed room.
+              at a staffed room or table.
             </p>
           </div>
           <ul className="max-w-3xl border-t border-[var(--border-subtle)]">
@@ -285,7 +285,7 @@ export function LiveBoard({
         {missed > 0 && filter !== "missed" && (
           <p className={meta}>
             {plural(missed, "presentation was", "presentations were")} missed.
-            Move each to an open slot in a staffed room.{" "}
+            Move each to an open slot at a staffed room or table.{" "}
             <button
               type="button"
               onClick={() => setFilter("missed")}
@@ -307,7 +307,7 @@ export function LiveBoard({
           </p>
         ) : (
           <>
-            <h3 className="sr-only">Appointments by room</h3>
+            <h3 className="sr-only">Appointments by room or table</h3>
             <RoomBoard
               rooms={rooms}
               rows={shown.map((a) => ({ ...a, key: a.id }))}
@@ -316,13 +316,13 @@ export function LiveBoard({
               roomDetail={(room) => {
                 const staffed = staffedById.get(room.id);
                 if (staffed === null || staffed === undefined) {
-                  return <p className={`mt-1 ${meta}`}>Archived room</p>;
+                  return <p className={`mt-1 ${meta}`}>Archived</p>;
                 }
                 return (
                   <p
                     className={`mt-1 ${status(staffed ? "success" : "neutral")}`}
                   >
-                    {staffed ? "Judge in room" : "No judge seen in 15 min"}
+                    {staffed ? "Judge seated" : "No judge seen in 15 min"}
                   </p>
                 );
               }}

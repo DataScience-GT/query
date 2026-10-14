@@ -26,7 +26,10 @@ import {
 
 const MAX_LENGTH = 1000;
 
-/** The message at the top of judges' screens: one for everyone, one per room. */
+/**
+ * The message at the top of judges' screens: one for everyone, one per room
+ * or table.
+ */
 export function AnnouncementsSection({ hackathonId }: { hackathonId: string }) {
   const readOnly = useReadOnly();
   const refresh = useRefreshJudging();
@@ -65,8 +68,8 @@ export function AnnouncementsSection({ hackathonId }: { hackathonId: string }) {
         <h2 className={sectionTitle}>Announcements</h2>
         <p className={`mt-1 max-w-2xl ${meta}`}>
           Shown at the top of judges&apos; screens, in the app only. There is
-          one message for everyone and one per room; posting replaces the one
-          already there.
+          one message for everyone and one per room or table; posting replaces
+          the one already there.
         </p>
       </div>
 

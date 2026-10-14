@@ -3,6 +3,7 @@ import type { Tone } from "@/components/portal/ui";
 
 type Desk = RouterOutputs["judging"]["desk"];
 export type DeskContext = Desk["context"];
+export type StationKind = NonNullable<DeskContext["room"]>["kind"];
 export type ProjectList = Desk["projects"];
 export type ListedProject = ProjectList["projects"][number];
 export type ProjectSheet = Desk["project"];
@@ -91,6 +92,11 @@ export function nextPresentation<
 /** Room, then building: "1116 · Klaus". */
 export function roomPlace(room: string, building: string | null) {
   return building ? `${room} · ${building}` : room;
+}
+
+/** Judges sit in a room but at a table: "in your room", "at your table". */
+export function inOrAt(kind: StationKind) {
+  return kind === "table" ? "at" : "in";
 }
 
 /** A link's host, for a label: "github.com". */

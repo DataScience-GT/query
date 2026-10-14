@@ -121,8 +121,8 @@ function ClaimContent() {
         <h1 className={`mt-1 ${pageTitle}`}>Claim your place</h1>
         <p className={pageDek}>
           This link holds the place listed as {data.place.name}. Once it is
-          yours, the project&apos;s rooms, times and feedback show on your
-          Judging tab.
+          yours, where and when the project presents, and its feedback, show
+          on your Judging tab.
         </p>
 
         <section className={`mt-8 ${object} p-5 sm:p-6`}>

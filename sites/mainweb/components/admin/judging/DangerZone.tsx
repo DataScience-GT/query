@@ -70,7 +70,7 @@ export function DangerZone({
       onSuccess: (r) =>
         finish(
           "dropRooms",
-          `Deleted ${plural(r.rooms, "room")} and ${plural(r.announcements, "announcement")}.`,
+          `Deleted ${plural(r.rooms, "room or table", "rooms and tables")} and ${plural(r.announcements, "announcement")}.`,
         ),
     }),
     resetProjects: trpc.judging.admin.resetProjects.useMutation({
@@ -91,7 +91,7 @@ export function DangerZone({
       onSuccess: (r) =>
         finish(
           "resetAll",
-          `Deleted ${plural(r.entries, "project")}, ${plural(r.challenges, "challenge")}, ${plural(r.rooms, "room")}, ${plural(r.judges, "judge record")} and ${plural(r.evaluations, "evaluation")}${r.scheduleDropped ? ", and dropped the schedule" : ""}. Starter groups are back.`,
+          `Deleted ${plural(r.entries, "project")}, ${plural(r.challenges, "challenge")}, ${plural(r.rooms, "room or table", "rooms and tables")}, ${plural(r.judges, "judge record")} and ${plural(r.evaluations, "evaluation")}${r.scheduleDropped ? ", and dropped the schedule" : ""}. Starter groups are back.`,
         ),
     }),
   };
@@ -130,7 +130,7 @@ export function DangerZone({
     {
       id: "dropRooms",
       title: "Drop rooms",
-      what: "Deletes every room, its QR link and every announcement. Buildings stay.",
+      what: "Deletes every room and table, their QR links and every announcement. Buildings stay.",
       blocked: schedule ? "Drop the saved schedule first." : null,
     },
     {
@@ -148,7 +148,7 @@ export function DangerZone({
     {
       id: "resetAll",
       title: "Reset everything",
-      what: "Deletes everything judging holds for this edition: projects, challenges, rooms, buildings, the schedule, evaluations, the rubric and judges' judging records. Judge accounts and the edition stay.",
+      what: "Deletes everything judging holds for this edition: projects, challenges, rooms, tables, buildings, the schedule, evaluations, the rubric and judges' judging records. Judge accounts and the edition stay.",
       blocked: null,
     },
   ];

@@ -98,7 +98,7 @@ export default function JudgePage() {
         <h1 className={pageTitle}>Judging</h1>
         <p className={pageDek}>
           {judging.length > 0
-            ? "Open your edition on judging day, then scan the QR code on your room's door to take your seat."
+            ? "Open your edition on judging day, then scan the QR code at your room or table to take your seat."
             : "Apply to judge an edition. An organiser approves you before judging day."}
         </p>
       </header>

@@ -73,7 +73,7 @@ export function evaluationTiming(
     return {
       canEdit: false,
       reason:
-        "Join a room that judges this challenge to evaluate this project.",
+        "Join the room or table that judges this challenge to evaluate this project.",
       opensAt: null,
     };
   }

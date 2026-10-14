@@ -8,12 +8,13 @@ import {
   judgingRubricItems,
   judgingSchedules,
 } from "@query/db";
+import type { JudgingRoomKind } from "@query/db";
 import { ensureJudgingConfig } from "./config";
 import type { JudgingDb } from "./config";
 
-// The organiser's launch checklist: what has to be true before judges walk
-// into rooms and hackers look up their times. Reads every area's tables
-// directly; nothing here writes.
+// The organiser's launch checklist: what has to be true before judges take
+// their rooms and tables and hackers look up their times. Reads every area's
+// tables directly; nothing here writes.
 
 export type ChecklistFacts = {
   entries: { devpost: number; portal: number };
@@ -22,7 +23,12 @@ export type ChecklistFacts = {
   /** Top-level scheduled challenges that have projects in them. */
   scheduledRoots: {
     label: string;
-    rooms: { name: string; hasBuilding: boolean; hasLink: boolean }[];
+    rooms: {
+      name: string;
+      kind: JudgingRoomKind;
+      hasBuilding: boolean;
+      hasLink: boolean;
+    }[];
   }[];
   scheduleSaved: boolean;
   state: "draft" | "open" | "closed";
@@ -102,12 +108,15 @@ function roomsItem(facts: ChecklistFacts): Pick<ChecklistItem, "done" | "hint"> 
   if (facts.scheduledRoots.length === 0) {
     return {
       done: true,
-      hint: "No scheduled challenge has projects yet, so no room is needed.",
+      hint: "No scheduled challenge has projects yet, so no room or table is needed.",
     };
   }
   for (const root of facts.scheduledRoots) {
     if (root.rooms.length === 0) {
-      return { done: false, hint: `${root.label} has no room. Add one on the Rooms tab.` };
+      return {
+        done: false,
+        hint: `${root.label} has no room or table. Add one on the Rooms tab.`,
+      };
     }
     const room =
       root.rooms.find((r) => !r.hasBuilding) ??
@@ -117,14 +126,22 @@ function roomsItem(facts: ChecklistFacts): Pick<ChecklistItem, "done" | "hint"> 
         done: false,
         hint: room.hasBuilding
           ? `${room.name} has no QR link. Generate one on the Rooms tab.`
-          : `${room.name} has no building. The schedule needs it to plan walks between rooms.`,
+          : `${room.name} has no building. The schedule needs it to plan the walk between presentations.`,
       };
     }
   }
-  const rooms = facts.scheduledRoots.reduce((n, r) => n + r.rooms.length, 0);
+  const stations = facts.scheduledRoots.flatMap((r) => r.rooms);
+  const tables = stations.filter((s) => s.kind === "table").length;
+  const rooms = stations.length - tables;
+  const counted = [
+    rooms > 0 ? plural(rooms, "room") : null,
+    tables > 0 ? plural(tables, "table") : null,
+  ]
+    .filter(Boolean)
+    .join(" and ");
   return {
     done: true,
-    hint: `${plural(rooms, "room")} across ${plural(facts.scheduledRoots.length, "scheduled challenge")}, each with a building and a QR link.`,
+    hint: `${counted} across ${plural(facts.scheduledRoots.length, "scheduled challenge")}, each with a building and a QR link.`,
   };
 }
 
@@ -154,7 +171,11 @@ export function buildChecklist(facts: ChecklistFacts): ChecklistItem[] {
           ? "Add at least one rating question to the rubric."
           : `${plural(facts.ratingItems, "rating question")}; starter groups are in place.`,
     },
-    { key: "rooms", label: "Rooms set up for scheduled challenges", ...rooms },
+    {
+      key: "rooms",
+      label: "Rooms or tables set up for scheduled challenges",
+      ...rooms,
+    },
     {
       key: "schedule",
       label: "Schedule saved",
@@ -189,7 +210,7 @@ export function buildChecklist(facts: ChecklistFacts): ChecklistItem[] {
       label: "Itinerary published",
       done: facts.itineraryPublished,
       hint: facts.itineraryPublished
-        ? "Hackers can see their presentation times and rooms."
+        ? "Hackers can see where and when they present."
         : "Publish the itinerary once the schedule is final.",
     },
   ];
@@ -258,6 +279,7 @@ export async function readChecklistFacts(
     db
       .select({
         name: judgingRooms.name,
+        kind: judgingRooms.kind,
         challengeId: judgingRooms.challengeId,
         hasBuilding: sql<boolean>`${judgingRooms.buildingId} is not null`,
         hasLink: sql<boolean>`exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${judgingRooms.id} and ${judgingRoomLinks.revokedAt} is null)`,
@@ -285,8 +307,9 @@ export async function readChecklistFacts(
         label: root.label,
         rooms: rooms
           .filter((room) => room.challengeId === root.id)
-          .map(({ name, hasBuilding, hasLink }) => ({
+          .map(({ name, kind, hasBuilding, hasLink }) => ({
             name,
+            kind,
             hasBuilding,
             hasLink,
           })),

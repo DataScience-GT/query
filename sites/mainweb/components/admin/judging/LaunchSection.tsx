@@ -28,7 +28,7 @@ const STATE: Record<State, { label: string; tone: Tone; line: string }> = {
   draft: {
     label: "Draft",
     tone: "neutral",
-    line: "Judges can see their rooms and projects but cannot submit evaluations.",
+    line: "Judges can take their seats and see projects but cannot submit evaluations.",
   },
   open: {
     label: "Open",
@@ -199,8 +199,8 @@ export function LaunchSection({
             label="Publish the itinerary"
             hint={
               !schedule && !config.itineraryPublished
-                ? "Shows each team its presentation times and rooms. No schedule is saved yet, so teams would see rooms without times."
-                : "Shows each team its presentation times and rooms."
+                ? "Shows each team where and when it presents. No schedule is saved yet, so teams would see where but not when."
+                : "Shows each team where and when it presents."
             }
             checked={config.itineraryPublished}
             disabled={readOnly || setLaunch.isPending}

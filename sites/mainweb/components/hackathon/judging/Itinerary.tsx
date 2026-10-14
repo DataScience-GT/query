@@ -22,6 +22,19 @@ function place(room: string | null, building: string | null) {
 }
 
 /**
+ * "rooms", "tables" or "rooms and tables": whatever the drop-in list holds.
+ * Null while none is posted.
+ */
+function dropInPlaces(challenges: ItineraryData["unscheduled"]) {
+  const kinds = new Set(
+    challenges.flatMap((challenge) => challenge.rooms.map((r) => r.kind)),
+  );
+  if (kinds.size === 0) return null;
+  if (kinds.size === 1) return kinds.has("table") ? "tables" : "rooms";
+  return "rooms and tables";
+}
+
+/**
  * What a row's dot says. The accent marks the one slot that matters right now:
  * the one running, or failing that the next one; later slots stay quiet.
  */
@@ -72,7 +85,7 @@ export function Itinerary({ data }: { data: ItineraryData }) {
     return (
       <div className="space-y-6">
         <p className={body}>
-          Rooms and times are not out yet. They appear here when organisers
+          Times and places are not out yet. They appear here when organisers
           publish the judging schedule; this tab checks every 30 seconds.
         </p>
         <ChallengeList challenges={data.challenges} />
@@ -165,7 +178,7 @@ export function Itinerary({ data }: { data: ItineraryData }) {
                             className="mt-[3px] shrink-0 text-[var(--text-subtle)]"
                           />
                           {where ||
-                            "Room not posted yet. Ask at the help desk."}
+                            "Room or table not posted yet. Ask at the help desk."}
                         </p>
                       </div>
                     </li>
@@ -188,8 +201,10 @@ export function Itinerary({ data }: { data: ItineraryData }) {
         <section className={sectionRule}>
           <h4 className={itemTitle}>Drop-in challenges</h4>
           <p className={`mt-1 ${body}`}>
-            No appointment for these. Take your project to one of the rooms
-            while judging is open.
+            No appointment for these.{" "}
+            {dropInPlaces(data.unscheduled)
+              ? `Take your project to one of the ${dropInPlaces(data.unscheduled)} listed while judging is open.`
+              : "Where to take your project is posted here before judging opens."}
           </p>
           <ul className="mt-4 border-t border-[var(--border-subtle)]">
             {data.unscheduled.map((challenge) => (
@@ -231,7 +246,7 @@ export function Itinerary({ data }: { data: ItineraryData }) {
                   </ul>
                 ) : (
                   <p className={`mt-1.5 ${meta}`}>
-                    Room not posted yet. Ask at the help desk.
+                    Room or table not posted yet. Ask at the help desk.
                   </p>
                 )}
               </li>

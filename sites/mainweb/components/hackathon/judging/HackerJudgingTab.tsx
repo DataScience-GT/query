@@ -144,7 +144,7 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
         <p className={`mt-2 ${body}`}>
           Judging is for hackers checked in at the event. Have your pass scanned
           at check-in (it is on the Schedule &amp; pass tab), and this tab then
-          shows your project, its rooms and its times.
+          shows your project and where and when it presents.
         </p>
       </div>
     );
@@ -155,8 +155,8 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
       {state.emergency && (
         <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
           Organisers have switched judging to emergency mode. Team lists,
-          invites and feedback are off until it ends; the rooms and times here
-          still apply.
+          invites and feedback are off until it ends; the times and places
+          here still apply.
         </p>
       )}
 
@@ -190,13 +190,13 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
           <h3 className={sectionTitle}>Where and when</h3>
           <div className="mt-5">
             {itinerary.isLoading ? (
-              <p className={body}>Loading rooms and times…</p>
+              <p className={body}>Loading times and places…</p>
             ) : itinerary.isError || !itineraryData ? (
               <div className="flex flex-col items-start gap-4">
                 <p className={body}>
                   {trpcErrorMessage(
                     itinerary.error,
-                    "Rooms and times did not load. Try again in a moment.",
+                    "Times and places did not load. Try again in a moment.",
                   )}
                 </p>
                 <button

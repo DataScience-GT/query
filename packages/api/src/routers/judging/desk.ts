@@ -69,7 +69,7 @@ import {
 // drafts whose time ran out.
 
 const NOT_A_JUDGE =
-  "Judge access needed. Sign in with the account an organiser approved as a judge, or scan the QR code on your judging room's door.";
+  "Judge access needed. Sign in with the account an organiser approved as a judge, or scan the QR code at your judging room or table.";
 
 // Every desk call names its edition. A member's judge access is per edition;
 // a guest's cookie only opens the edition its room belongs to.
@@ -226,7 +226,7 @@ async function tagsOf(
   return tags;
 }
 
-/** The room a guest was let into, or the member's current seat. */
+/** The room or table a guest was let into, or the member's current seat. */
 async function roomSummary(
   db: DrizzleDB,
   roomId: string,
@@ -236,6 +236,7 @@ async function roomSummary(
     .select({
       id: judgingRooms.id,
       name: judgingRooms.name,
+      kind: judgingRooms.kind,
       buildingName: judgingBuildings.name,
       challengeId: judgingRooms.challengeId,
     })
@@ -726,7 +727,7 @@ export const judgingDeskRouter = createTRPCRouter({
       );
     }),
 
-  // Open rooms to sit in. A guest sees only their own.
+  // Open rooms and tables to sit at. A guest sees only their own.
   rooms: judgeProcedure.query(async ({ ctx, input }) => {
     const db = ctx.db;
     const challenges = await loadChallenges(db, input.hackathonId);
@@ -735,6 +736,7 @@ export const judgingDeskRouter = createTRPCRouter({
       .select({
         id: judgingRooms.id,
         name: judgingRooms.name,
+        kind: judgingRooms.kind,
         buildingName: judgingBuildings.name,
         challengeId: judgingRooms.challengeId,
       })
@@ -771,7 +773,7 @@ export const judgingDeskRouter = createTRPCRouter({
       if (ctx.judge.kind !== "member") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Guest judges stay in the room their QR code opened.",
+          message: "Guest judges stay at the room or table their QR code opened.",
         });
       }
       const [room] = await ctx.db
@@ -789,7 +791,7 @@ export const judgingDeskRouter = createTRPCRouter({
         throw new TRPCError({
           code: "NOT_FOUND",
           message:
-            "That room is not open for judging. Pick another from the list.",
+            "That room or table is not open for judging. Pick another from the list.",
         });
       }
       const judgeId = ctx.judge.judgeId;
@@ -807,7 +809,7 @@ export const judgingDeskRouter = createTRPCRouter({
     if (ctx.judge.kind !== "member") {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Guest judges stay in the room their QR code opened.",
+        message: "Guest judges stay at the room or table their QR code opened.",
       });
     }
     const closed = await ctx.db

@@ -6,6 +6,7 @@
 // Remote challenges are judged without the team in the room, so they never
 // appear here.
 
+import type { JudgingRoomKind } from "@query/db";
 import { appointmentStatus } from "./appointment-status";
 import type { AppointmentStatus } from "./appointment-status";
 import { rootOf } from "./scope";
@@ -20,6 +21,7 @@ export type ItineraryRoom = {
   id: string;
   challengeId: string;
   name: string;
+  kind: JudgingRoomKind;
   building: string | null;
   displayOrder: number;
   archived: boolean;
@@ -156,7 +158,7 @@ export type UnscheduledChallengeView = {
   challengeId: string;
   challenge: string;
   children: string[];
-  rooms: { name: string; building: string | null }[];
+  rooms: { name: string; kind: JudgingRoomKind; building: string | null }[];
   /** A judge has finished an evaluation of the project in this challenge. */
   judged: boolean;
 };
@@ -234,7 +236,11 @@ export function buildItinerary(input: {
           (room) => !room.archived && rootId(room.challengeId) === challenge.id,
         )
         .sort(byDisplayName)
-        .map((room) => ({ name: room.name, building: room.building })),
+        .map((room) => ({
+          name: room.name,
+          kind: room.kind,
+          building: room.building,
+        })),
       judged: evaluations.some(
         (evaluation) =>
           evaluation.isComplete &&
