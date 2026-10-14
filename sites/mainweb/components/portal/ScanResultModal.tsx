@@ -41,6 +41,11 @@ export function ScanResultModal({
           </h3>
         </div>
 
+        {/* The message names who was checked in; it used to show only on failure. */}
+        {success && message && (
+          <p className="text-[15px] text-[var(--text-secondary)]">{message}</p>
+        )}
+
         {/* Success Event Details */}
         {success && eventTitle && (
           <div className="border-t border-[var(--border-subtle)] pt-4">

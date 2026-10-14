@@ -24,12 +24,19 @@ import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
  */
 export default function ScanPage() {
   const { data: portalContext } = usePortalContext();
-  const [hackathonId, setHackathonId] = useState("");
+  // null until the volunteer picks one, so a single live edition can stand in.
+  const [pickedId, setPickedId] = useState<string | null>(null);
 
   const { data: hackathons } = trpc.hackathon.list.useQuery(
     {},
     { enabled: !!portalContext?.isScanner },
   );
+
+  // The desk is for the edition running now. With exactly one, there is
+  // nothing to choose.
+  const live = hackathons?.filter((h) => h.status === "in_progress") ?? [];
+  const onlyLive = live.length === 1 ? live[0] : undefined;
+  const hackathonId = pickedId ?? onlyLive?.id ?? "";
 
   return (
     <ScanAccess>
@@ -50,7 +57,7 @@ export default function ScanPage() {
           <select
             id="scan-hackathon"
             value={hackathonId}
-            onChange={(e) => setHackathonId(e.target.value)}
+            onChange={(e) => setPickedId(e.target.value)}
             className={`min-h-11 ${input}`}
           >
             <option value="">Select a hackathon…</option>
@@ -64,7 +71,8 @@ export default function ScanPage() {
 
         <div className="mt-8 border-t border-[var(--border-subtle)] pt-8">
           {hackathonId ? (
-            <ScannerTab hackathonId={hackathonId} />
+            // An event picked for one edition means nothing in another.
+            <ScannerTab key={hackathonId} hackathonId={hackathonId} />
           ) : (
             <p className={body}>
               Choose a hackathon above to start scanning.

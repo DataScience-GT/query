@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { QrCode } from "lucide-react";
+import { Check, QrCode } from "lucide-react";
 import {
   body,
   btnPrimary,
@@ -14,6 +14,7 @@ import {
   meta,
   sectionRule,
   sectionTitle,
+  status,
   tab,
   tabList,
 } from "@/components/portal/ui";
@@ -28,18 +29,41 @@ const METHOD_LABEL: Record<string, string> = {
   manual: "By name",
 };
 
+// How long the strip for a good scan stays up, and how long the same badge is
+// ignored after a read so one held in front of the camera is not read twice.
+const STRIP_MS = 1500;
+const REPEAT_MS = 3000;
+
 export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
+  // Whether the event the desk opens on has been chosen yet.
+  const [eventPreselected, setEventPreselected] = useState(false);
+  // The clock for "has this event ended", so a desk left open all day follows it.
+  const [now, setNow] = useState(() => Date.now());
   // Search is for people without their pass on them.
   const [mode, setMode] = useState<"scan" | "search">("scan");
   const [showScanner, setShowScanner] = useState(false);
-  const [scanResult, setScanResult] = useState<{
-    success: boolean;
-    message: string;
-    eventTitle?: string;
+  // Only a scan that failed needs a tap; a good one shows as a strip.
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [lastCheckIn, setLastCheckIn] = useState<{
+    name: string;
+    firstArrival: boolean;
+    points: number;
   } | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const lastRead = useRef({ value: "", at: 0 });
+  const stripTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    const clock = setInterval(() => setNow(Date.now()), 60_000);
+    return () => {
+      clearInterval(clock);
+      clearTimeout(stripTimer.current);
+    };
+  }, []);
 
   const {
     data: events,
@@ -51,6 +75,23 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   });
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
+
+  // An ended event refuses every scan, so it is not offered, unless it is the
+  // one already selected. The schedule arrives in start order.
+  const notEnded = events?.filter((e) => e.endTime.getTime() > now);
+  const selectableEvents = events?.filter(
+    (e) => e.endTime.getTime() > now || e.id === selectedEventId,
+  );
+
+  // The desk opens on the event running now, else the next one. Chosen once:
+  // moving on to the next event while someone is scanning would file their
+  // badges under the wrong one.
+  if (!eventPreselected && notEnded) {
+    setEventPreselected(true);
+    const opening =
+      notEnded.find((e) => e.startTime.getTime() <= now) ?? notEnded[0];
+    if (opening) setSelectedEventId(opening.id);
+  }
 
   // Polled: hackers typing the event code land here without this station
   // doing anything.
@@ -86,6 +127,16 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
     const scannedData = detectedCodes[0]?.rawValue;
     if (!scannedData) return;
 
+    // The camera keeps reading a badge that is still in front of it, and the
+    // second read would only come back as "already checked in". Reads of the
+    // same badge keep the window open for as long as it is held there.
+    const readAt = Date.now();
+    const repeat =
+      lastRead.current.value === scannedData &&
+      readAt - lastRead.current.at < REPEAT_MS;
+    lastRead.current = { value: scannedData, at: readAt };
+    if (repeat) return;
+
     setIsPaused(true);
     setIsProcessing(true);
 
@@ -115,27 +166,30 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         participantId: payload.participantId,
       });
 
-      setScanResult({
-        success: true,
-        message: res.message,
-        eventTitle:
-          events?.find(
-            (e: NonNullable<typeof events>[number]) => e.id === selectedEventId,
-          )?.name || "Hackathon event",
+      // The scanner stays open for the next badge.
+      setLastCheckIn({
+        name: res.name,
+        firstArrival: res.checkedIn,
+        points: res.pointsAwarded,
       });
-      setShowScanner(false);
+      clearTimeout(stripTimer.current);
+      stripTimer.current = setTimeout(() => setLastCheckIn(null), STRIP_MS);
     } catch (error: unknown) {
       console.error("Check-in error:", error);
-      setScanResult({
-        success: false,
-        message: error instanceof Error ? error.message : "Check-in failed",
-      });
+      // A retry of this badge should not be swallowed as a repeat.
+      lastRead.current = { value: "", at: 0 };
+      // The strip would sit over the modal with the previous badge's name.
+      clearTimeout(stripTimer.current);
+      setLastCheckIn(null);
+      setScanError(error instanceof Error ? error.message : "Check-in failed");
       setShowScanner(false);
     } finally {
       // Re-arm on every exit path. Clearing this only in the modal's onClose
       // meant the scanner took one badge per page load.
       setIsProcessing(false);
       setIsPaused(false);
+      // The wait for the server should not eat into the repeat window.
+      if (lastRead.current.value) lastRead.current.at = Date.now();
     }
   };
 
@@ -154,12 +208,39 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         />
       )}
 
-      {scanResult && (
+      {/* Over the camera, which is a full-screen dialog: a good scan shows here
+          and the next badge can follow without a tap. */}
+      {lastCheckIn && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-6 z-[110] mx-auto flex max-w-md items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 shadow-[var(--shadow-xl)]"
+        >
+          <Check
+            aria-hidden="true"
+            strokeWidth={1.75}
+            className="h-5 w-5 shrink-0 text-[var(--success)]"
+          />
+          <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--text-primary)]">
+            {lastCheckIn.name}
+          </p>
+          {lastCheckIn.firstArrival && (
+            <span className={`shrink-0 ${status("success")}`}>
+              First arrival
+            </span>
+          )}
+          {lastCheckIn.points > 0 && (
+            <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
+              +{lastCheckIn.points} pts
+            </span>
+          )}
+        </div>
+      )}
+
+      {scanError && (
         <ScanResultModal
-          success={scanResult.success}
-          message={scanResult.message}
-          eventTitle={scanResult.eventTitle}
-          onClose={() => setScanResult(null)}
+          success={false}
+          message={scanError}
+          onClose={() => setScanError(null)}
         />
       )}
 
@@ -185,7 +266,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
               <option value="" disabled>
                 Select an event…
               </option>
-              {events?.map((e: NonNullable<typeof events>[number]) => (
+              {selectableEvents?.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.name}
                 </option>
@@ -210,6 +291,11 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
             <p className={fieldHint}>
               Create a check-in event under Events first; scans are recorded
               against an event.
+            </p>
+          )}
+          {!isLoading && (events?.length ?? 0) > 0 && !selectableEvents?.length && (
+            <p className={fieldHint}>
+              Every event has ended, so there is nothing left to scan into.
             </p>
           )}
         </div>

@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import {
   body,
+  btnPrimary,
   btnSecondary,
   itemTitle,
   label,
@@ -148,9 +150,18 @@ export function PointsTab({ hackathonId }: { hackathonId: string }) {
           <p className={`mt-1 mb-5 ${body}`}>
             {checkedIn
               ? "No pass needed: type the code shown at the event."
-              : "Event codes work once you have checked in at the registration desk."}
+              : "Get your pass scanned at check-in. Event codes work once you have arrived."}
           </p>
-          <CheckInCodeForm hackathonId={hackathonId} />
+          {checkedIn ? (
+            <CheckInCodeForm hackathonId={hackathonId} />
+          ) : (
+            <Link
+              href={`/hackathons/${hackathonId}?tab=SCHEDULE`}
+              className={`min-h-11 ${btnPrimary}`}
+            >
+              Show my pass
+            </Link>
+          )}
         </section>
 
         <section className={sectionRule}>
