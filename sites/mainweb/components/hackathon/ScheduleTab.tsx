@@ -9,13 +9,15 @@ import {
   body,
   btnSecondary,
   itemTitle,
-  label,
   meta,
   object,
   sectionTitle,
   textLink,
 } from "@/components/portal/ui";
-import { StatusBadge } from "@/components/hackathon/StatusBadge";
+import {
+  pointsLabel,
+  venueDayTime,
+} from "@/components/hackathon/points/format";
 
 // The event runs in Atlanta; pinning the zone keeps every viewer, and the
 // server render, on the venue's clock rather than the browser's.
@@ -33,18 +35,30 @@ const timeFmt = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 
-/** Day heading plus "2:00 PM – 4:00 PM"; the end repeats the day only when
- *  it falls on a different one (overnight hacking blocks). */
+// Types whose name does not already say what they are.
+const TAGGED = new Set(["workshop", "sponsor_session"]);
+
+/** Day heading plus a start and an end time ("2:00 PM", "4:00 PM"); the end
+ *  carries its weekday only when it falls on a different day (overnight
+ *  hacking blocks: "Sun 9:00 AM"). */
 function formatEventTime(start: Date | string, end: Date | string) {
   const s = new Date(start);
   const e = new Date(end);
   const startDay = dayFmt.format(s);
   const endDay = dayFmt.format(e);
-  const endText =
-    endDay === startDay
-      ? timeFmt.format(e)
-      : `${endDay} · ${timeFmt.format(e)}`;
-  return { day: startDay, range: `${timeFmt.format(s)} – ${endText}` };
+  return {
+    day: startDay,
+    start: timeFmt.format(s),
+    end: endDay === startDay ? timeFmt.format(e) : venueDayTime(e),
+  };
+}
+
+// The clock to the minute. React reads the snapshot more than once per render
+// and needs the same answer each time, so it is not Date.now() itself.
+const currentMinute = () => Math.floor(Date.now() / 60_000) * 60_000;
+function subscribeMinute(onChange: () => void) {
+  const id = setInterval(onChange, 60_000);
+  return () => clearInterval(id);
 }
 
 // Day granularity, on the viewer's clock: the last day counts all day.
@@ -88,6 +102,14 @@ export function ScheduleTab({
       },
     );
 
+  // Null on the server and while hydrating, so the first client render agrees
+  // with the server's; past and live rows only show once the clock is known.
+  const now = React.useSyncExternalStore<number | null>(
+    subscribeMinute,
+    currentMinute,
+    () => null,
+  );
+
   // Only accepted participants get a pass. Pending and waitlisted registrations
   // are not admitted yet, so the scanner would reject their code anyway.
   const isAccepted =
@@ -114,12 +136,15 @@ export function ScheduleTab({
   // Rows grouped under the venue-clock day they start on. The query returns
   // them in start order, so a day change means a new group.
   type Event = NonNullable<typeof events>[number];
-  const days: { day: string; rows: { range: string; event: Event }[] }[] = [];
+  const days: {
+    day: string;
+    rows: { start: string; end: string; event: Event }[];
+  }[] = [];
   for (const event of events ?? []) {
-    const { day, range } = formatEventTime(event.startTime, event.endTime);
+    const { day, start, end } = formatEventTime(event.startTime, event.endTime);
     const last = days[days.length - 1];
-    if (last && last.day === day) last.rows.push({ range, event });
-    else days.push({ day, rows: [{ range, event }] });
+    if (last && last.day === day) last.rows.push({ start, end, event });
+    else days.push({ day, rows: [{ start, end, event }] });
   }
 
   return (
@@ -128,7 +153,9 @@ export function ScheduleTab({
         <section className={`${object} p-6`}>
           <h3 className={itemTitle}>Your check-in pass</h3>
           <p className={`mt-1 ${meta}`}>
-            Show this at check-in, meals, and workshops.
+            {myRecord?.registrationStatus === "checked_in"
+              ? "You're checked in. Show it at meals and workshops."
+              : "Show this at check-in, meals, and workshops."}
           </p>
 
           {isRegistered && recordLoading ? (
@@ -136,17 +163,18 @@ export function ScheduleTab({
             // review" before the record arrives.
             <div
               aria-hidden="true"
-              className="mt-5 h-[212px] w-[212px] rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] animate-pulse"
+              className="mx-auto mt-5 aspect-square w-full max-w-[272px] rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] animate-pulse"
             />
           ) : isRegistered && qrData ? (
             /* literal white: must match the QR bgColor below in both themes */
-            <div className="mt-5 w-fit p-4 bg-[#ffffff] rounded-[var(--radius-sm)]">
+            <div className="mx-auto mt-5 w-full max-w-[272px] p-4 bg-[#ffffff] rounded-[var(--radius-sm)]">
               <QRCodeSVG
                 value={qrData}
-                size={180}
-                level="H"
+                size={240}
+                level="M"
                 fgColor="#000000"
                 bgColor="#ffffff"
+                className="block h-auto w-full"
               />
             </div>
           ) : (
@@ -163,41 +191,28 @@ export function ScheduleTab({
 
           {isRegistered && qrData && (
             <p className={`mt-5 ${meta}`}>
-              It never changes, so a screenshot works. Events that show a
-              check-in code also take it typed into the{" "}
+              It never changes, so a screenshot works.
               {/* The tab is hidden until the event runs; a link before then
                   would land on the overview. */}
-              {pointsTabShown ? (
-                <Link href="?tab=POINTS" className={textLink}>
-                  Points tab
-                </Link>
-              ) : (
-                "Points tab once the event starts"
+              {pointsTabShown && (
+                <>
+                  {" "}
+                  Codes shown at events go in the{" "}
+                  <Link href="?tab=POINTS" className={textLink}>
+                    Points tab
+                  </Link>
+                  .
+                </>
               )}
-              , no pass needed.
+            </p>
+          )}
+
+          {isRegistered && myRecord && (
+            <p className={`mt-3 ${meta}`}>
+              Shirt size {myRecord.shirtSize || "not set"}
             </p>
           )}
         </section>
-
-        {isRegistered && myRecord && (
-          <section>
-            <h4 className={label}>Registration</h4>
-            <dl className="mt-2 text-[15px]">
-              <div className="flex items-center justify-between gap-4 border-t border-[var(--border-subtle)] py-2.5">
-                <dt className="text-[var(--text-muted)]">Status</dt>
-                <dd>
-                  <StatusBadge status={myRecord.registrationStatus} />
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-y border-[var(--border-subtle)] py-2.5">
-                <dt className="text-[var(--text-muted)]">Shirt size</dt>
-                <dd className="text-[var(--text-primary)]">
-                  {myRecord.shirtSize || "Not set"}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        )}
       </div>
 
       <section className="lg:col-span-2">
@@ -238,32 +253,67 @@ export function ScheduleTab({
                   {day}
                 </h4>
                 <ul>
-                  {rows.map(({ range, event }) => (
-                    <li
-                      key={event.id}
-                      className="grid grid-cols-[6.5rem_minmax(0,1fr)] sm:grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,11rem)] gap-x-4 gap-y-0.5 border-b border-[var(--border-subtle)] py-2.5 text-[15px]"
-                    >
-                      <span className="text-[13px] leading-6 tabular-nums text-[var(--text-secondary)]">
-                        {range}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="leading-6 text-[var(--text-primary)]">
-                          <span className="font-semibold">{event.name}</span>
-                          <span className={`ml-2 ${meta}`}>
-                            {event.type.replace(/_/g, " ")}
+                  {rows.map(({ start, end, event }) => {
+                    const past =
+                      now !== null && new Date(event.endTime).getTime() <= now;
+                    const live =
+                      now !== null &&
+                      !past &&
+                      new Date(event.startTime).getTime() <= now;
+                    return (
+                      <li
+                        key={event.id}
+                        aria-current={live ? "time" : undefined}
+                        className="grid grid-cols-[5.5rem_minmax(0,1fr)] sm:grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,11rem)] gap-x-4 gap-y-0.5 border-b border-[var(--border-subtle)] py-2.5 text-[15px]"
+                      >
+                        <span className="row-span-2 text-[13px] leading-6">
+                          {live ? (
+                            <>
+                              <span className="block font-semibold text-accent">
+                                Now
+                              </span>
+                              <span className="sr-only">{start}</span>
+                            </>
+                          ) : (
+                            <span
+                              className={`block ${past ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}
+                            >
+                              {start}
+                            </span>
+                          )}
+                          <span className="sr-only"> to </span>
+                          <span className="block text-[var(--text-muted)]">
+                            {end}
                           </span>
-                        </p>
-                        {event.description && (
-                          <p className="mt-0.5 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                            {event.description}
+                        </span>
+                        <div className="min-w-0">
+                          <p
+                            className={`leading-6 font-semibold ${past ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`}
+                          >
+                            {event.name}
                           </p>
-                        )}
-                      </div>
-                      <span className="col-start-2 sm:col-start-auto text-[13px] leading-6 text-[var(--text-muted)]">
-                        {event.location}
-                      </span>
-                    </li>
-                  ))}
+                          {event.description && (
+                            <p className="mt-0.5 text-[13px] leading-relaxed text-[var(--text-muted)]">
+                              {event.description}
+                            </p>
+                          )}
+                        </div>
+                        <span className="col-start-2 sm:col-start-auto text-[13px] leading-6 text-[var(--text-muted)]">
+                          {event.location}
+                          {TAGGED.has(event.type) &&
+                            ` · ${event.type.replace(/_/g, " ")}`}
+                          {event.points > 0 && (
+                            <>
+                              {" · "}
+                              <span className="whitespace-nowrap">
+                                {pointsLabel(event.points)}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

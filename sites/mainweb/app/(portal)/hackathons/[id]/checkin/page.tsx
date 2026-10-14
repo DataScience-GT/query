@@ -118,11 +118,11 @@ function EventCodeCheckIn() {
             onCheckedIn={setCheckedIn}
           />
         </div>
-        <p className="mt-10">
-          <Link href={pointsHref} className={textLink}>
+        <div className="mt-6">
+          <Link href={pointsHref} className={`min-h-11 ${textLink}`}>
             Your points
           </Link>
-        </p>
+        </div>
       </main>
     );
   }
@@ -169,11 +169,13 @@ function EventCodeCheckIn() {
             ? "Already checked in"
             : refusal === "TOO_MANY_REQUESTS"
               ? "Too many tries"
-              : "Not checked in"}
+              : notArrived
+                ? "Check in at the door first"
+                : "Not checked in"}
         </h1>
         <p className={pageDek}>
           {notArrived
-            ? "Get your pass scanned at check-in. Event codes work once you have arrived."
+            ? "Event codes work once your pass has been scanned at check-in."
             : trpcErrorMessage(
                 checkIn.error,
                 "The check-in did not go through. Type the code from the screen below.",
@@ -195,11 +197,13 @@ function EventCodeCheckIn() {
             Show my pass
           </Link>
         )}
-        <p className="mt-10">
-          <Link href={pointsHref} className={textLink}>
-            Your points
-          </Link>
-        </p>
+        {!notArrived && (
+          <div className="mt-6">
+            <Link href={pointsHref} className={`min-h-11 ${textLink}`}>
+              Your points
+            </Link>
+          </div>
+        )}
       </main>
     );
   }
