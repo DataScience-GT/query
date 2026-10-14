@@ -416,81 +416,112 @@ def solve(problem: Problem, cross_gap: int, seconds: float, workers: int, log):
             for room, lit in choices[i]:
                 model.add_hint(lit, room == r)
 
+    hinted: Placement = {}
     if problem.hint:
-        hinted = {}
         for i, task in enumerate(tasks):
             got = problem.hint.get((task.entry_id, task.challenge_id))
             if got and got[0] in room_index_by_id:
                 hinted[i] = (room_index_by_id[got[0]], got[1])
         hint_placement(hinted)
 
-    deadline = time.monotonic() + seconds
-    best: Placement | None = None
-    all_optimal = True
-    for position, goal in enumerate(stages):
-        remaining = deadline - time.monotonic()
-        # The first stage has to find any schedule at all, so it gets at least
-        # half; later stages split what is left evenly.
-        share = remaining / (len(stages) - position)
-        if position == 0:
-            share = max(share, remaining / 2)
+    def new_solver(limit: float):
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = max(1.0, share)
+        solver.parameters.max_time_in_seconds = max(1.0, limit)
         solver.parameters.num_workers = workers
         solver.parameters.random_seed = 7
-        if best is not None:
-            # Presolve costs seconds on a big event and every stage after the
-            # first already starts from a complete schedule, so skip it there.
-            solver.parameters.cp_model_presolve = False
-        model.minimize(goals[goal])
-        status = solver.solve(model)
+        return solver
 
-        if status == cp_model.INFEASIBLE and best is None:
-            return ("infeasible", None)
-        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-            if best is None:
-                return ("unknown", None)
-            # Keep the previous schedule and hold this goal where it already
-            # is, so later goals cannot trade it away.
-            all_optimal = False
-            value = score(problem, best)[goal] * (-1 if goal == "breakSlots" else 1)
-            log(f"  {goal}: {abs(value)} (no improvement within its time share, {solver.status_name(status)})")
-            model.add(goals[goal] <= value)
-            continue
-
-        all_optimal = all_optimal and status == cp_model.OPTIMAL
-        best = {}
-        for i in range(len(tasks)):
-            r = next(room for room, lit in choices[i] if solver.boolean_value(lit))
-            best[i] = (r, solver.value(start[i]))
-        value = int(solver.objective_value)
-        log(f"  {goal}: {abs(value)}{'' if status == cp_model.OPTIMAL else ' (time limit)'}")
-        model.add(goals[goal] <= value)
+    def take(solver) -> Placement:
+        """The solver's schedule, also hinted in full for the next stage."""
         model.clear_hints()
         for v in tracked:
             model.add_hint(v, solver.value(v))
+        return {
+            i: (next(room for room, lit in choices[i] if solver.boolean_value(lit)),
+                solver.value(start[i]))
+            for i in range(len(tasks))
+        }
+
+    def model_value(goal: str, placement: Placement) -> int:
+        return score(problem, placement)[goal] * (-1 if goal == "breakSlots" else 1)
+
+    deadline = time.monotonic() + seconds
+    # A complete hint that keeps every rule is already a schedule. Start from
+    # it, so running out of time can only fail to improve it.
+    best: Placement | None = None
+    if hinted and not violations(problem, hinted, cross_gap):
+        best = hinted
+    else:
+        # Nothing to start from: look for any schedule first, with the whole
+        # attempt if it takes that, and let the goals share what is left.
+        solver = new_solver(deadline - time.monotonic())
+        solver.parameters.stop_after_first_solution = True
+        model.minimize(goals[stages[0]])
+        status = solver.solve(model)
+        if status == cp_model.INFEASIBLE:
+            return ("infeasible", None)
+        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return ("unknown", None)
+        best = take(solver)
+
+    all_optimal = True
+    for position, goal in enumerate(stages):
+        # Hold this goal where the schedule in hand has it, so this stage can
+        # only improve on it and later goals cannot trade it away.
+        model.add(goals[goal] <= model_value(goal, best))
+        remaining = deadline - time.monotonic()
+        # The first goal outranks all the others, so it gets at least half;
+        # later stages split what is left evenly.
+        share = remaining / (len(stages) - position)
+        if position == 0:
+            share = max(share, remaining / 2)
+        solver = new_solver(share)
+        # Presolve costs seconds on a big event and every stage already starts
+        # from a complete schedule, so skip it.
+        solver.parameters.cp_model_presolve = False
+        model.minimize(goals[goal])
+        status = solver.solve(model)
+
+        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            all_optimal = False
+            log(f"  {goal}: {abs(model_value(goal, best))} "
+                f"(no improvement within its time share, {solver.status_name(status)})")
+            continue
+
+        all_optimal = all_optimal and status == cp_model.OPTIMAL
+        best = take(solver)
+        value = int(solver.objective_value)
+        log(f"  {goal}: {abs(value)}{'' if status == cp_model.OPTIMAL else ' (time limit)'}")
+        model.add(goals[goal] <= value)
 
     return ("optimal" if all_optimal else "feasible", best)
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("problem", help="problem.json exported from the judging console")
+    parser.add_argument("problem", help="problem.json exported from the judging console, "
+                                        "or - to read it from stdin")
     parser.add_argument("-o", "--output", help="where to write solution.json (default: stdout)")
     parser.add_argument("--time-limit", type=float, default=120.0,
                         help="seconds for each attempt (strict, then relaxed); default 120")
     parser.add_argument("--workers", type=int, default=8,
-                        help="search threads; 1 makes runs repeatable; default 8")
+                        help="search threads; default 8. With 1, a run repeats exactly only if "
+                             "no goal is cut short by the time limit")
     args = parser.parse_args(argv)
 
     def log(message: str):
         print(message, file=sys.stderr)
 
+    from_stdin = args.problem == "-"
     try:
-        with open(args.problem, encoding="utf-8-sig") as handle:
-            problem = load_problem(json.load(handle))
+        if from_stdin:
+            text = sys.stdin.buffer.read().decode("utf-8-sig")
+        else:
+            with open(args.problem, encoding="utf-8-sig") as handle:
+                text = handle.read()
+        problem = load_problem(json.loads(text))
     except (OSError, ValueError, KeyError, TypeError, InputError) as error:
-        log(f"cannot read {args.problem}: {error}")
+        log(f"cannot read {'stdin' if from_stdin else args.problem}: {error}")
         return 1
 
     try:
@@ -507,13 +538,12 @@ def main(argv: list[str]) -> int:
     if problem.cross_gap > problem.same_gap:
         attempts.append((True, problem.same_gap))
 
-    status, placement, relaxed, timed_out = "infeasible", None, False, False
+    status, placement, relaxed = "infeasible", None, False
     reasons = capacity_problems(problem, problem.same_gap)
     for relaxed, cross_gap in [] if reasons else attempts:
         log("relaxed: cross-building walks get the same-building break" if relaxed
             else "strict: full cross-building breaks")
         status, placement = solve(problem, cross_gap, args.time_limit, args.workers, log)
-        timed_out = timed_out or status == "unknown"
         if placement is not None:
             broken = violations(problem, placement, cross_gap)
             if broken:
@@ -521,9 +551,10 @@ def main(argv: list[str]) -> int:
                 log("internal check failed: " + "; ".join(broken[:5]))
                 return 1
             break
-    if placement is None and timed_out:
-        # One attempt ran out of time rather than proving there is no schedule.
-        status = "unknown"
+        if status == "unknown":
+            # Running out of time proves nothing, so the breaks are only
+            # shortened once the full ones are shown to be impossible.
+            break
 
     solution = {
         "format": SOLUTION_FORMAT,
