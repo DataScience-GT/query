@@ -22,11 +22,12 @@ import {
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import { clock, sameTiming, timingFromFields, windowLabel } from "./format";
 import type {
+  PlanPreview,
   ScheduleBoard,
-  SolvedPreview,
   Timing,
   TimingFields,
 } from "./format";
+import { CpsatPanel } from "./CpsatPanel";
 import { RoomBoard } from "./RoomBoard";
 import type { BoardRoom } from "./RoomBoard";
 
@@ -42,7 +43,7 @@ type MinuteField = keyof typeof minuteFields;
 
 /**
  * Before a schedule exists: the timing form, what the solver makes of it,
- * and saving that exact preview.
+ * and saving that exact preview or one CP-SAT found instead.
  */
 export function SchedulePlanner({
   hackathonId,
@@ -255,44 +256,14 @@ export function SchedulePlanner({
               <PreviewFigures result={result} timing={submitted} />
 
               {result.relaxed && (
-                <div className="max-w-3xl space-y-3 border-l-2 border-[var(--warning)] pl-4">
-                  <p className="text-[15px] leading-relaxed text-[var(--text-primary)]">
-                    No schedule in this window gives every team the full{" "}
-                    {submitted.crossBuildingBreakMinutes} minutes to change
-                    buildings, so{" "}
-                    {plural(
-                      result.reducedBreaks.length,
-                      "building change gets",
-                      "building changes get",
-                    )}{" "}
-                    the {submitted.sameBuildingBreakMinutes}-minute break
-                    instead.
-                  </p>
-                  <ul className={`space-y-1 ${meta}`}>
-                    {result.reducedBreaks.slice(0, 8).map((r, i) => (
-                      <li key={`${r.entryId}:${i}`} className="truncate">
-                        {r.entryTitle}: {r.fromRoomName} to {r.toRoomName},{" "}
-                        {r.breakMinutes} min
-                      </li>
-                    ))}
-                    {result.reducedBreaks.length > 8 && (
-                      <li>and {result.reducedBreaks.length - 8} more</li>
-                    )}
-                  </ul>
-                  <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-[var(--text-primary)]">
-                    <input
-                      type="checkbox"
-                      checked={acknowledged}
-                      onChange={(e) =>
-                        setAcknowledgedKey(
-                          e.target.checked ? result.candidateKey : null,
-                        )
-                      }
-                      className="h-4 w-4 accent-[var(--accent)]"
-                    />
-                    Save with these shorter breaks
-                  </label>
-                </div>
+                <ReducedBreaks
+                  result={result}
+                  timing={submitted}
+                  acknowledged={acknowledged}
+                  onAcknowledge={(yes) =>
+                    setAcknowledgedKey(yes ? result.candidateKey : null)
+                  }
+                />
               )}
 
               <div className="space-y-3">
@@ -339,32 +310,39 @@ export function SchedulePlanner({
                 )}
               </div>
 
-              <div className="space-y-4">
-                <h3 className={label}>Timetable by room</h3>
-                <RoomBoard
-                  rooms={previewRooms(rooms, result)}
-                  rows={result.appointments.map((a) => ({
-                    ...a,
-                    key: `${a.entryId}:${a.challengeId}`,
-                  }))}
-                  windowStart={submitted.windowStart}
-                  hideEmpty
-                />
-              </div>
+              <PreviewTimetable
+                rooms={rooms}
+                result={result}
+                windowStart={submitted.windowStart}
+              />
             </>
           )}
         </section>
+      )}
+
+      {/* Keyed by the timing so a new one starts CP-SAT over. A refetch of
+          the same timing keeps its result: the server checks it again on
+          save. */}
+      {submitted && preview.data && (
+        <CpsatPanel
+          key={JSON.stringify(submitted)}
+          hackathonId={hackathonId}
+          rooms={rooms}
+          timing={submitted}
+          found={preview.data.ok}
+          stale={stale}
+        />
       )}
     </div>
   );
 }
 
 /** Headline numbers an organiser judges a preview by. */
-function PreviewFigures({
+export function PreviewFigures({
   result,
   timing,
 }: {
-  result: SolvedPreview;
+  result: PlanPreview;
   timing: Required<Timing>;
 }) {
   const { summary } = result;
@@ -432,10 +410,87 @@ function PreviewFigures({
   );
 }
 
+/**
+ * The building changes a relaxed schedule gives only the same-building
+ * break, and the yes that saving it needs.
+ */
+export function ReducedBreaks({
+  result,
+  timing,
+  acknowledged,
+  onAcknowledge,
+}: {
+  result: PlanPreview;
+  timing: Required<Timing>;
+  acknowledged: boolean;
+  onAcknowledge: (yes: boolean) => void;
+}) {
+  return (
+    <div className="max-w-3xl space-y-3 border-l-2 border-[var(--warning)] pl-4">
+      <p className="text-[15px] leading-relaxed text-[var(--text-primary)]">
+        No schedule in this window gives every team the full{" "}
+        {timing.crossBuildingBreakMinutes} minutes to change buildings, so{" "}
+        {plural(
+          result.reducedBreaks.length,
+          "building change gets",
+          "building changes get",
+        )}{" "}
+        the {timing.sameBuildingBreakMinutes}-minute break instead.
+      </p>
+      <ul className={`space-y-1 ${meta}`}>
+        {result.reducedBreaks.slice(0, 8).map((r, i) => (
+          <li key={`${r.entryId}:${i}`} className="truncate">
+            {r.entryTitle}: {r.fromRoomName} to {r.toRoomName}, {r.breakMinutes}{" "}
+            min
+          </li>
+        ))}
+        {result.reducedBreaks.length > 8 && (
+          <li>and {result.reducedBreaks.length - 8} more</li>
+        )}
+      </ul>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-[var(--text-primary)]">
+        <input
+          type="checkbox"
+          checked={acknowledged}
+          onChange={(e) => onAcknowledge(e.target.checked)}
+          className="h-4 w-4 accent-[var(--accent)]"
+        />
+        Save with these shorter breaks
+      </label>
+    </div>
+  );
+}
+
+/** A preview's appointments, room by room. */
+export function PreviewTimetable({
+  rooms,
+  result,
+  windowStart,
+}: {
+  rooms: ScheduleBoard["rooms"];
+  result: PlanPreview;
+  windowStart: Date;
+}) {
+  return (
+    <div className="space-y-4">
+      <h3 className={label}>Timetable by room</h3>
+      <RoomBoard
+        rooms={previewRooms(rooms, result)}
+        rows={result.appointments.map((a) => ({
+          ...a,
+          key: `${a.entryId}:${a.challengeId}`,
+        }))}
+        windowStart={windowStart}
+        hideEmpty
+      />
+    </div>
+  );
+}
+
 /** Scheduled rooms in console order, then any the preview used that the room list lacks. */
 function previewRooms(
   rooms: ScheduleBoard["rooms"],
-  result: SolvedPreview,
+  result: PlanPreview,
 ): BoardRoom[] {
   const ordered: BoardRoom[] = rooms
     .filter((r) => r.scheduled)

@@ -8,6 +8,10 @@ export type SolvedPreview = Extract<
   RouterOutputs["judging"]["schedule"]["preview"],
   { ok: true }
 >;
+/** A CP-SAT schedule the server checked, from its own run or an upload. */
+export type CpsatPreview = RouterOutputs["judging"]["schedule"]["previewCpsat"];
+/** What the in-app preview and a CP-SAT result both show. */
+export type PlanPreview = Omit<SolvedPreview, "proven">;
 export type AppointmentStatus = ScheduleBoard["appointments"][number]["status"];
 
 /** The timing form as typed: datetime-local strings and minute counts. */
