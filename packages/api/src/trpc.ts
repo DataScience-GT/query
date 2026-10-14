@@ -390,6 +390,13 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // resolver evicts that key by id. Empty rather than absent, so the namespace
   // fallback cannot wipe every attendee's registrations at every door.
   "hackathon.scanParticipantPass": [],
+  // The desk admit is the same write as a scan, so it evicts the same way.
+  "hackathon.admit": [],
+  // Both change only the caller's own registration, which the resolver evicts
+  // by user id. Empty rather than absent, so the namespace fallback cannot wipe
+  // every attendee's cached registrations.
+  "hackathon.updateMyRegistration": [],
+  "hackathon.confirmAttendance": [],
   // `hackathons:list*`, not `hackathons:list`: deletePattern anchors with `$`,
   // and every real key carries a viewer/status/limit suffix. With an entry
   // present the namespace fallback is skipped, so nothing was evicted at all.
@@ -407,6 +414,8 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // absent, so this cannot sweep the whole hackathon namespace.
   "hackathon.createAnnouncement": [],
   "hackathon.sendBatch": [],
+  // A test goes to the caller's own inbox and writes nothing at all.
+  "hackathon.sendTestToMe": [],
   // Same: the marker lives on hackathon_interest, which is not cached, and the
   // admin list is read fresh.
   "hackathon.notifyRegistrationOpen": [],

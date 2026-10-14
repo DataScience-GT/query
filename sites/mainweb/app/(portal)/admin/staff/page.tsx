@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { usePortalContext } from "@/lib/use-portal-context";
+import { isStaffRole } from "@query/api/portal-context";
 import {
   body,
   btnDanger,
@@ -79,10 +80,17 @@ export default function StaffPage() {
   const { data: staff, isLoading: staffLoading } = trpc.admin.list.useQuery();
 
   const isSuperAdmin = portalContext?.role === "super_admin";
+  // Any full staff member may add and remove volunteers, so check-in desks can
+  // be staffed without a super admin; every other role stays theirs alone.
+  const canManage = isStaffRole(portalContext?.role);
+  const roleOptions = isSuperAdmin
+    ? ROLES
+    : ROLES.filter((option) => option.id === "volunteer");
+  const mayChange = (held: string) => isSuperAdmin || held === "volunteer";
 
   const lookup = trpc.admin.findUserByEmail.useQuery(
     { email: searchedEmail },
-    { enabled: isSuperAdmin && searchedEmail.length > 0, retry: false },
+    { enabled: canManage && searchedEmail.length > 0, retry: false },
   );
 
   const done = (message: string) => {
@@ -104,25 +112,30 @@ export default function StaffPage() {
 
   if (contextLoading) return <LoadingScreen message="Loading…" />;
 
-  // Granting a role is super-admin only server-side; saying so beats rendering
-  // a form whose every button is refused.
-  if (!isSuperAdmin) {
+  // Granting a role is staff-only server-side; saying so beats rendering a
+  // form whose every button is refused.
+  if (!canManage) {
     return (
       <div className={page}>
         <h1 className={adminTitle}>Staff &amp; roles</h1>
         <p className={pageDek}>
-          Only a super admin can grant or change staff roles. Ask one of them
-          to add you or the person you are trying to add.
+          Only staff can grant roles. Ask an admin to add you or the person
+          you are trying to add.
         </p>
       </div>
     );
   }
+
+  const heldRole = lookup.data?.existingRole?.role;
+  const locked = !!heldRole && !mayChange(heldRole);
 
   return (
     <div className={page}>
       <h1 className={adminTitle}>Staff &amp; roles</h1>
       <p className={pageDek}>
         Grant the volunteer role before the event, not at the door.
+        {!isSuperAdmin &&
+          " You can add and remove volunteers; other roles need a super admin."}
       </p>
 
       <section className="mt-10 space-y-6">
@@ -188,7 +201,7 @@ export default function StaffPage() {
             <fieldset>
               <legend className={fieldLabel}>Role</legend>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {ROLES.map((option) => (
+                {roleOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
@@ -224,11 +237,21 @@ export default function StaffPage() {
                   createStaff.mutate({ userId: target.id, role });
                 }
               }}
-              disabled={createStaff.isPending || updateStaff.isPending}
+              disabled={
+                locked || createStaff.isPending || updateStaff.isPending
+              }
+              title={
+                locked ? "Only a super admin can change this role." : undefined
+              }
               className={btnPrimary}
             >
               {lookup.data.existingRole ? "Change role" : "Grant role"}
             </button>
+            {locked && (
+              <p className={fieldHint}>
+                Only a super admin can change a {heldRole} role.
+              </p>
+            )}
           </div>
         )}
 
@@ -273,21 +296,23 @@ export default function StaffPage() {
                       : ""}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNotice(null);
-                    setError(null);
-                    updateStaff.mutate({
-                      adminId: row.id,
-                      isActive: !row.isActive,
-                    });
-                  }}
-                  disabled={updateStaff.isPending}
-                  className={`${row.isActive ? btnDanger : btnSecondary} shrink-0 self-start sm:self-auto`}
-                >
-                  {row.isActive ? "Deactivate" : "Reactivate"}
-                </button>
+                {mayChange(row.role) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotice(null);
+                      setError(null);
+                      updateStaff.mutate({
+                        adminId: row.id,
+                        isActive: !row.isActive,
+                      });
+                    }}
+                    disabled={updateStaff.isPending}
+                    className={`${row.isActive ? btnDanger : btnSecondary} shrink-0 self-start sm:self-auto`}
+                  >
+                    {row.isActive ? "Deactivate" : "Reactivate"}
+                  </button>
+                )}
               </div>
             ))}
           </div>

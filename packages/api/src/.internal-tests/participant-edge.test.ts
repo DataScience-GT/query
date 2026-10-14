@@ -142,6 +142,7 @@ vi.mock("@query/db", async () => {
       userId: "user_id",
       teamId: "team_id",
       registrationStatus: "registration_status",
+      attendanceConfirmedAt: "attendance_confirmed_at",
       hasSubmittedProject: "has_submitted_project",
       registeredAt: "registered_at",
     },
@@ -951,6 +952,289 @@ describe("Participant edge cases", () => {
         }),
       ).rejects.toThrow(message);
       expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  // An acceptance email holds a seat until the day. Saying "I'm coming" is how
+  // organisers tell the people who are from the people who have gone quiet.
+  describe("Confirming attendance", () => {
+    const wire = (participant: Record<string, unknown> | undefined) =>
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathonParticipants" ? participant : undefined,
+      );
+    const writes = () =>
+      mockUpdate.mock.calls.filter((c) => c[1]?.[0] === hackathonParticipants);
+
+    it("stamps an accepted hacker's registration", async () => {
+      wire({
+        id: PARTICIPANT_A,
+        registrationStatus: "approved",
+        attendanceConfirmedAt: null,
+      });
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+
+      const res = await callerFor("user_a").hackathon.confirmAttendance({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.confirmedAt).toBeInstanceOf(Date);
+      expect(writes()).toHaveLength(1);
+      expect(writes()[0]?.[2][0]).toMatchObject({
+        attendanceConfirmedAt: res.confirmedAt,
+      });
+      // Only an accepted, still-silent row may take the stamp.
+      expect(JSON.stringify(writes()[0]?.[3])).toContain("approved");
+    });
+
+    it("keeps the first answer and writes nothing the second time", async () => {
+      const first = new Date(Date.now() - DAY);
+      wire({
+        id: PARTICIPANT_A,
+        registrationStatus: "approved",
+        attendanceConfirmedAt: first,
+      });
+
+      const res = await callerFor("user_a").hackathon.confirmAttendance({
+        hackathonId: HACK_A,
+      });
+
+      expect(res.confirmedAt).toBe(first);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("evicts only this person's registration list", async () => {
+      wire({
+        id: PARTICIPANT_A,
+        registrationStatus: "approved",
+        attendanceConfirmedAt: null,
+      });
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+      cache.set("hackathon:registrations:user_a", ["cached"], 60);
+      cache.set("hackathon:registrations:other_user", ["cached"], 60);
+      cache.set(`hackathon:${HACK_A}:participants`, ["cached"], 60);
+
+      await callerFor("user_a").hackathon.confirmAttendance({
+        hackathonId: HACK_A,
+      });
+
+      expect(cache.get("hackathon:registrations:user_a")).toBeNull();
+      expect(cache.get("hackathon:registrations:other_user")).not.toBeNull();
+      expect(cache.get(`hackathon:${HACK_A}:participants`)).not.toBeNull();
+    });
+
+    it.each(["pending", "waitlisted", "rejected"])(
+      "refuses somebody who is %s",
+      async (registrationStatus) => {
+        wire({
+          id: PARTICIPANT_A,
+          registrationStatus,
+          attendanceConfirmedAt: null,
+        });
+
+        await expect(
+          callerFor("user_a").hackathon.confirmAttendance({
+            hackathonId: HACK_A,
+          }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        expect(mockUpdate).not.toHaveBeenCalled();
+      },
+    );
+
+    it("refuses somebody who never registered", async () => {
+      wire(undefined);
+
+      await expect(
+        callerFor("user_a").hackathon.confirmAttendance({ hackathonId: HACK_A }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    // Rejected between the read and the write: the WHERE matches nothing, and
+    // the stamp must not be reported as taken.
+    it("refuses when the registration changed after it was read", async () => {
+      wire({
+        id: PARTICIPANT_A,
+        registrationStatus: "approved",
+        attendanceConfirmedAt: null,
+      });
+      mockUpdate.mockReturnValueOnce([]);
+
+      await expect(
+        callerFor("user_a").hackathon.confirmAttendance({ hackathonId: HACK_A }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+    });
+
+    it("needs a signed-in user", async () => {
+      await expect(
+        callerFor().hackathon.confirmAttendance({ hackathonId: HACK_A }),
+      ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    });
+  });
+
+  // Typos get caught after the form is sent. Until an organiser has looked, the
+  // applicant can fix them; after that the answers are what was decided on.
+  describe("Editing a pending application", () => {
+    const wire = (
+      participant: Record<string, unknown> | undefined,
+      hackathon: Record<string, unknown> | null = runningHackathon(-24),
+    ) =>
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "hackathons") return hackathon;
+        if (table === "hackathonParticipants") return participant;
+        return undefined;
+      });
+    const pending = { id: PARTICIPANT_A, registrationStatus: "pending" };
+    const editInput = (overrides: Record<string, any> = {}) => {
+      const {
+        agreeToCodeOfConduct: _a,
+        mlhCodeOfConduct: _b,
+        mlhDataSharing: _c,
+        ...answers
+      } = registrationInput();
+      return { ...answers, ...overrides };
+    };
+    const writes = () =>
+      mockUpdate.mock.calls.filter((c) => c[1]?.[0] === hackathonParticipants);
+
+    it("replaces the answers of a pending application", async () => {
+      wire(pending);
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(
+          editInput({ phone: "555-0199", major: "Mathematics" }),
+        ),
+      ).resolves.toEqual({ success: true });
+
+      expect(writes()[0]?.[2][0]).toMatchObject({
+        phone: "555-0199",
+        major: "Mathematics",
+      });
+      // Held to the row and to the status it was read at.
+      expect(JSON.stringify(writes()[0]?.[3])).toContain(PARTICIPANT_A);
+      expect(JSON.stringify(writes()[0]?.[3])).toContain("pending");
+    });
+
+    it("clears an optional answer that was left blank", async () => {
+      wire(pending);
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+
+      await callerFor("user_a").hackathon.updateMyRegistration(
+        editInput({ pronouns: undefined, resumeUrl: "", shirtSize: undefined }),
+      );
+
+      expect(writes()[0]?.[2][0]).toMatchObject({
+        pronouns: null,
+        resumeUrl: null,
+        shirtSize: null,
+      });
+    });
+
+    it("leaves the consents and the status alone", async () => {
+      wire(pending);
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+
+      await callerFor("user_a").hackathon.updateMyRegistration(editInput());
+
+      const set = writes()[0]?.[2][0];
+      expect(set).not.toHaveProperty("registrationStatus");
+      expect(set).not.toHaveProperty("agreeToCodeOfConduct");
+      expect(set).not.toHaveProperty("mlhCodeOfConduct");
+      expect(set).not.toHaveProperty("mlhDataSharing");
+      expect(set).not.toHaveProperty("hackathonId");
+      expect(set).not.toHaveProperty("userId");
+    });
+
+    it("evicts only this person's registration list", async () => {
+      wire(pending);
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+      cache.set("hackathon:registrations:user_a", ["cached"], 60);
+      cache.set("hackathon:registrations:other_user", ["cached"], 60);
+
+      await callerFor("user_a").hackathon.updateMyRegistration(editInput());
+
+      expect(cache.get("hackathon:registrations:user_a")).toBeNull();
+      expect(cache.get("hackathon:registrations:other_user")).not.toBeNull();
+    });
+
+    it("holds the new answers to the rules the form had", async () => {
+      wire(pending);
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(
+          editInput({ whyAttend: "   " }),
+        ),
+      ).rejects.toThrow(/Tell us why you want to attend/);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it.each(["approved", "waitlisted", "rejected", "checked_in"])(
+      "refuses once the application is %s",
+      async (registrationStatus) => {
+        wire({ id: PARTICIPANT_A, registrationStatus });
+
+        await expect(
+          callerFor("user_a").hackathon.updateMyRegistration(editInput()),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        expect(mockUpdate).not.toHaveBeenCalled();
+      },
+    );
+
+    it("refuses once registration has closed", async () => {
+      wire(pending, runningHackathon(-24, { status: "in_progress" }));
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(editInput()),
+      ).rejects.toThrow(/Registration has closed/);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses after the deadline", async () => {
+      wire(
+        pending,
+        runningHackathon(-24, {
+          registrationDeadline: new Date(Date.now() - HOUR),
+        }),
+      );
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(editInput()),
+      ).rejects.toThrow(/Registration has closed/);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    // The registration is looked up by the caller's own user id, so somebody
+    // else's application is simply not found.
+    it("only ever looks at the caller's own registration", async () => {
+      wire(undefined);
+
+      await expect(
+        callerFor("user_b").hackathon.updateMyRegistration(editInput()),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+      const lookup = mockFindFirst.mock.calls.find(
+        (c) => c[0] === "hackathonParticipants",
+      );
+      expect(JSON.stringify(lookup?.[1]?.where)).toContain("user_b");
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses an unknown hackathon", async () => {
+      wire(pending, null);
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(editInput()),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    // An organiser decided between the read and the write: the WHERE carries
+    // the status, matches nothing, and the decision stands.
+    it("refuses when it was reviewed after being read", async () => {
+      wire(pending);
+      mockUpdate.mockReturnValueOnce([]);
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(editInput()),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
   });
 

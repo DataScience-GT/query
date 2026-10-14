@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
-import { db, hackathons, hackathonParticipants } from "@query/db";
+import {
+  db,
+  hackathons,
+  hackathonParticipants,
+  hackathonEventAttendees,
+} from "@query/db";
 
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
 // file-scoped, so this mirrors the shape used by hackathon-flow.test.ts.
@@ -151,6 +156,7 @@ vi.mock("@query/db", () => {
       userId: "user_id",
       registrationStatus: "registration_status",
       checkedInAt: "checked_in_at",
+      attendanceConfirmedAt: "attendance_confirmed_at",
     },
     hackathonTeams: {
       _t: "hackathonTeams",
@@ -498,12 +504,12 @@ describe("Hackathon admin management edge cases", () => {
       expect(mockUpdate).not.toHaveBeenCalled();
     });
 
-    it("keeps super-admin queries closed to a bug tester", async () => {
+    it("keeps the staff account lookup closed to a bug tester", async () => {
       const caller = testerCaller();
 
       await expect(
         caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
-      ).rejects.toThrow(/Super admin access required/);
+      ).rejects.toThrow(/Admin access required/);
     });
   });
 
@@ -534,6 +540,9 @@ describe("Hackathon admin management edge cases", () => {
       ).rejects.toThrow(refused);
       await expect(
         caller.team.createTeam({ hackathonId: HACK_A, name: "Team" } as never),
+      ).rejects.toThrow(refused);
+      await expect(
+        caller.hackathon.confirmAttendance({ hackathonId: HACK_A }),
       ).rejects.toThrow(refused);
     });
 
@@ -1115,6 +1124,191 @@ describe("Hackathon admin management edge cases", () => {
         }),
       ).rejects.toThrow(/already checked into/);
     });
+
+    it("records a pass scan as a scan", async () => {
+      const caller = scanCtx();
+
+      await caller.hackathon.scanParticipantPass({
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      });
+
+      const attendance = mockInsert.mock.calls.find(
+        (c) => c[1][0] === hackathonEventAttendees,
+      );
+      expect(attendance?.[2][0]).toMatchObject({ method: "scan" });
+    });
+
+    // The desk for a hacker with no phone. It is the scan's check-in, made by
+    // hand: same attendance row, same promotion, but recorded as manual and
+    // audited, since no pass was read to vouch for the person.
+    describe("Desk admit for a hacker without a phone", () => {
+      const admitInput = {
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      };
+
+      const accepted = {
+        id: PART_A1,
+        hackathonId: HACK_A,
+        registrationStatus: "approved",
+        user: { name: "Ada Lovelace", email: "ada@example.com" },
+      };
+      const lunch = {
+        id: EVENT_A,
+        hackathonId: HACK_A,
+        name: "Lunch",
+        startTime: new Date(Date.now() - HOUR),
+        endTime: new Date(Date.now() + HOUR),
+      };
+
+      it("checks an approved hacker in by id, as a manual check-in", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: lunch,
+          hackathonEventAttendees: undefined,
+        });
+
+        const res = await caller.hackathon.admit(admitInput);
+
+        expect(res).toMatchObject({
+          checkedIn: true,
+          name: "Ada Lovelace",
+          eventName: "Lunch",
+        });
+        const attendance = mockInsert.mock.calls.find(
+          (c) => c[1][0] === hackathonEventAttendees,
+        );
+        expect(attendance?.[2][0]).toMatchObject({
+          participantId: PART_A1,
+          method: "manual",
+          checkedInById: ADMIN_USER,
+        });
+        const rosterWrite = mockUpdate.mock.calls.find(
+          (c) => c[1][0] === hackathonParticipants,
+        );
+        expect(rosterWrite?.[2][0]).toMatchObject({
+          registrationStatus: "checked_in",
+        });
+        expect(rosterWrite?.[2][0].checkedInAt).toBeInstanceOf(Date);
+      });
+
+      it("leaves a trail of who admitted whom", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: lunch,
+          hackathonEventAttendees: undefined,
+        });
+
+        await caller.hackathon.admit(admitInput);
+
+        const values = mockInsert.mock.calls.map((c) => c[2]?.[0]);
+        expect(values).toContainEqual(
+          expect.objectContaining({
+            userId: ADMIN_USER,
+            action: "hackathon.admit",
+            resourceId: PART_A1,
+          }),
+        );
+      });
+
+      it("is open to a volunteer, who works the desk", async () => {
+        const caller = adminCaller(
+          {
+            hackathonParticipants: accepted,
+            hackathonEvents: lunch,
+            hackathonEventAttendees: undefined,
+          },
+          "volunteer",
+        );
+
+        await expect(caller.hackathon.admit(admitInput)).resolves.toMatchObject({
+          checkedIn: true,
+        });
+      });
+
+      it("refuses somebody who has not been accepted", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: { ...accepted, registrationStatus: "pending" },
+        });
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /not accepted/,
+        );
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      it("refuses an event that has already ended", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: { ...lunch, endTime: new Date(Date.now() - HOUR) },
+        });
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /already ended/,
+        );
+      });
+
+      it("will not admit the same person into the event twice", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: lunch,
+          hackathonEventAttendees: { id: "already" },
+        });
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /already checked into/,
+        );
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      it("refuses a bug tester", async () => {
+        const caller = adminCaller({}, "bug_tester");
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /read-only/,
+        );
+      });
+    });
+  });
+
+  // =====================================================================
+  describe("Chasing unconfirmed seats", () => {
+    const whereOf = () =>
+      JSON.stringify(mockFindMany.mock.calls[0]?.[1]?.where);
+
+    it("narrows the roster to accepted hackers who have not said they are coming", async () => {
+      const caller = adminCaller();
+
+      await caller.hackathon.adminGetAttendees({
+        hackathonId: HACK_A,
+        unconfirmedOnly: true,
+      });
+
+      expect(whereOf()).toContain("attendance_confirmed_at");
+      expect(whereOf()).toContain("approved");
+    });
+
+    it("does not filter on confirmation unless asked", async () => {
+      const caller = adminCaller();
+
+      await caller.hackathon.adminGetAttendees({ hackathonId: HACK_A });
+
+      expect(whereOf()).not.toContain("attendance_confirmed_at");
+    });
+
+    it("applies the same filter to the export, so the file matches the list", async () => {
+      const caller = adminCaller();
+
+      await caller.hackathon.exportAttendees({
+        hackathonId: HACK_A,
+        unconfirmedOnly: true,
+      });
+
+      expect(whereOf()).toContain("attendance_confirmed_at");
+    });
   });
 
   // =====================================================================
@@ -1430,6 +1624,176 @@ describe("Hackathon admin management edge cases", () => {
           expiresAt: new Date("2020-06-01"),
         }),
       ).rejects.toThrow(/last super admin/i);
+    });
+
+    // The check-in desk is staffed by volunteers, and a plain admin can get
+    // one a scanner login without waiting on a super admin. Every other role
+    // is still a super admin's to give.
+    describe("Staffing the check-in desk", () => {
+      const VOLUNTEER_USER = "volunteer_user";
+      const TARGET_ROW = "77777777-7777-4777-8777-777777777772";
+
+      /**
+       * The caller's own admins row first, then the row being changed — or
+       * nobody, for a first grant. The gate reads the caller before anything.
+       */
+      const asRole = (role: string, target?: Record<string, unknown> | null) => {
+        let reads = 0;
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "users") return { id: VOLUNTEER_USER };
+          if (table !== "admins") return undefined;
+          reads += 1;
+          if (reads === 1) return adminRow(role);
+          if (target === null) return undefined;
+          return {
+            id: TARGET_ROW,
+            userId: VOLUNTEER_USER,
+            role: "volunteer",
+            isActive: true,
+            ...target,
+          };
+        });
+        return appRouter.createCaller(createMockCtx(ADMIN_USER));
+      };
+
+      const written = () => mockInsert.mock.calls.map((c) => c[2]?.[0]);
+
+      it("lets a plain admin grant the volunteer role", async () => {
+        const caller = asRole("admin", null);
+        mockInsert.mockReturnValue([{ id: TARGET_ROW, role: "volunteer" }]);
+
+        await expect(
+          caller.admin.create({ userId: VOLUNTEER_USER, role: "volunteer" }),
+        ).resolves.toMatchObject({ role: "volunteer" });
+        expect(written()).toContainEqual(
+          expect.objectContaining({ userId: VOLUNTEER_USER, role: "volunteer" }),
+        );
+      });
+
+      it("records who granted the role", async () => {
+        const caller = asRole("admin", null);
+        mockInsert.mockReturnValue([{ id: TARGET_ROW, role: "volunteer" }]);
+
+        await caller.admin.create({ userId: VOLUNTEER_USER, role: "volunteer" });
+
+        expect(written()).toContainEqual(
+          expect.objectContaining({
+            userId: ADMIN_USER,
+            action: "admin.create",
+            resourceId: VOLUNTEER_USER,
+          }),
+        );
+      });
+
+      it.each(["admin", "moderator", "super_admin", "bug_tester"] as const)(
+        "refuses a plain admin granting %s",
+        async (role) => {
+          const caller = asRole("admin", null);
+
+          await expect(
+            caller.admin.create({ userId: VOLUNTEER_USER, role }),
+          ).rejects.toThrow(/Super admin access required/);
+          expect(mockInsert).not.toHaveBeenCalled();
+        },
+      );
+
+      it("still lets a super admin grant any role", async () => {
+        const caller = asRole("super_admin", null);
+        mockInsert.mockReturnValue([{ id: TARGET_ROW, role: "admin" }]);
+
+        await expect(
+          caller.admin.create({ userId: VOLUNTEER_USER, role: "admin" }),
+        ).resolves.toBeDefined();
+      });
+
+      it("refuses a plain admin handing a volunteer permissions", async () => {
+        const caller = asRole("admin", null);
+
+        await expect(
+          caller.admin.create({
+            userId: VOLUNTEER_USER,
+            role: "volunteer",
+            permissions: ["everything"],
+          }),
+        ).rejects.toThrow(/Super admin access required/);
+        expect(mockInsert).not.toHaveBeenCalled();
+      });
+
+      it("refuses a bug tester granting anything", async () => {
+        const caller = asRole("bug_tester", null);
+
+        await expect(
+          caller.admin.create({ userId: VOLUNTEER_USER, role: "volunteer" }),
+        ).rejects.toThrow(/read-only/);
+      });
+
+      it("lets a plain admin revoke a volunteer", async () => {
+        const caller = asRole("admin");
+        mockUpdate.mockReturnValue([
+          { id: TARGET_ROW, role: "volunteer", isActive: false },
+        ]);
+
+        await expect(
+          caller.admin.update({ adminId: TARGET_ROW, isActive: false }),
+        ).resolves.toMatchObject({ isActive: false });
+        expect(written()).toContainEqual(
+          expect.objectContaining({
+            userId: ADMIN_USER,
+            action: "admin.update",
+            resourceId: VOLUNTEER_USER,
+          }),
+        );
+      });
+
+      it("lets a plain admin delete a volunteer", async () => {
+        const caller = asRole("admin");
+
+        await expect(
+          caller.admin.remove({ adminId: TARGET_ROW }),
+        ).resolves.toEqual({ success: true });
+        expect(mockDelete).toHaveBeenCalled();
+        expect(written()).toContainEqual(
+          expect.objectContaining({ action: "admin.remove" }),
+        );
+      });
+
+      it("refuses a plain admin promoting a volunteer", async () => {
+        const caller = asRole("admin");
+
+        await expect(
+          caller.admin.update({ adminId: TARGET_ROW, role: "admin" }),
+        ).rejects.toThrow(/Super admin access required/);
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      // Granting "volunteer" over a row that holds another role is a demotion.
+      // It must not be a way past the rule for revoking one.
+      it.each(["admin", "moderator", "super_admin"])(
+        "refuses a plain admin demoting, deactivating or deleting a %s",
+        async (held) => {
+          const caller = asRole("admin", { role: held });
+
+          await expect(
+            caller.admin.update({ adminId: TARGET_ROW, role: "volunteer" }),
+          ).rejects.toThrow(/Super admin access required/);
+          await expect(
+            caller.admin.update({ adminId: TARGET_ROW, isActive: false }),
+          ).rejects.toThrow(/Super admin access required/);
+          await expect(
+            caller.admin.remove({ adminId: TARGET_ROW }),
+          ).rejects.toThrow(/Super admin access required/);
+          expect(mockUpdate).not.toHaveBeenCalled();
+          expect(mockDelete).not.toHaveBeenCalled();
+        },
+      );
+
+      it("lets a plain admin look up who they are about to add", async () => {
+        const caller = asRole("admin");
+
+        await expect(
+          caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
+        ).resolves.toBeDefined();
+      });
     });
   });
 

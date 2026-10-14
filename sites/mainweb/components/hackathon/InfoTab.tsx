@@ -13,6 +13,7 @@ import {
   label,
   meta,
   sectionTitle,
+  status,
   textLink,
 } from "@/components/portal/ui";
 import {
@@ -99,6 +100,13 @@ function useSeededField(seed: string) {
   return [edited ?? seed, setEdited] as const;
 }
 
+/** A stored E.164 number as the form shows it. Only a US number loses its +1
+ *  to be formatted; any other keeps its +, or it would be read back as a US
+ *  number and saved with the wrong country code. */
+function savedPhone(stored: string | null | undefined): string {
+  return formatPhoneAsTyped((stored ?? "").replace(/^\+1(?=\d{10}$)/, ""));
+}
+
 /** The saved answers, or nothing: a draft that is missing, unreadable or not
  *  an object is the same as no draft. */
 function readDraft(key: string): Record<string, unknown> {
@@ -131,9 +139,18 @@ export function InfoTab({
     theme?: string | null;
   };
   isRegistered: boolean;
-  myReg?: { registrationStatus: string; teamId?: string | null } | null;
+  myReg?: {
+    registrationStatus: string;
+    teamId?: string | null;
+    attendanceConfirmedAt?: string | Date | null;
+  } | null;
 }) {
   const [showForm, setShowForm] = useState(false);
+  // The form is open on an existing, pending application rather than a new one.
+  const [editing, setEditing] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [updated, setUpdated] = useState(false);
   const [step, setStep] = useState<RegistrationStep>(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -261,13 +278,15 @@ export function InfoTab({
     needsHardware,
   });
   useEffect(() => {
-    if (!showForm) return;
+    // An edit starts from the saved application, so it must not overwrite the
+    // draft kept for a first submission.
+    if (!showForm || editing) return;
     try {
       localStorage.setItem(draftKey, draft);
     } catch {
       // Storage full or blocked: the form still works, it just is not kept.
     }
-  }, [showForm, draftKey, draft]);
+  }, [showForm, editing, draftKey, draft]);
 
   // Read once, as the form opens. A saved answer beats a seed; a blank one
   // leaves the seed showing.
@@ -340,6 +359,7 @@ export function InfoTab({
       // success would otherwise keep the registered view up after this
       // session's own registration is withdrawn.
       setSuccess(false);
+      setUpdated(false);
       utils.hackathon.myRegistrations.invalidate();
       utils.hackathon.myParticipantRecord.invalidate({
         hackathonId: hackathon.id,
@@ -349,6 +369,89 @@ export function InfoTab({
     },
     onError: (e) => setWithdrawError(e.message),
   });
+
+  const updateMutation = trpc.hackathon.updateMyRegistration.useMutation({
+    onSuccess: () => {
+      setUpdated(true);
+      setEditing(false);
+      setShowForm(false);
+      setStep(0);
+      utils.hackathon.myRegistrations.invalidate();
+      utils.hackathon.myParticipantRecord.invalidate({
+        hackathonId: hackathon.id,
+      });
+    },
+    onError: (e) => setError(e.message),
+  });
+
+  const confirmMutation = trpc.hackathon.confirmAttendance.useMutation({
+    onSuccess: () => {
+      utils.hackathon.myRegistrations.invalidate();
+      utils.hackathon.myParticipantRecord.invalidate({
+        hackathonId: hackathon.id,
+      });
+    },
+  });
+
+  // Opens the form on what was submitted. Read fresh rather than from cache:
+  // the answers being edited must be the saved ones, not an older copy.
+  async function openEdit() {
+    setEditError("");
+    setLoadingEdit(true);
+    try {
+      const record = await utils.hackathon.myParticipantRecord.fetch(
+        { hackathonId: hackathon.id },
+        { staleTime: 0 },
+      );
+      if (!record) {
+        setEditError("Couldn't find your application. Refresh the page.");
+        return;
+      }
+      setFirstName(record.firstName ?? "");
+      setLastName(record.lastName ?? "");
+      setPhone(savedPhone(record.phone));
+      setAge(record.age != null ? String(record.age) : "");
+      setGender(record.gender ?? "");
+      setPronouns(record.pronouns ?? "");
+      setRace(record.race ?? "");
+      setUnderrepresented(!!record.underrepresented);
+      setSchool(record.school ?? "");
+      setMajor(record.major ?? "");
+      setGraduationYear(
+        record.graduationYear != null ? String(record.graduationYear) : "",
+      );
+      setLevelOfStudy(record.levelOfStudy ?? "");
+      setCountry(record.country ?? "");
+      setFirstGeneration(!!record.firstGeneration);
+      setHackathonsAttended(
+        record.hackathonsAttended != null
+          ? String(record.hackathonsAttended)
+          : "",
+      );
+      setResumeUrl(record.resumeUrl ?? "");
+      setLinkedinUrl(record.linkedinUrl ?? "");
+      setGithubUrl(record.githubUrl ?? "");
+      setWhyAttend(record.whyAttend ?? "");
+      setShirtSize(record.shirtSize ?? "");
+      setDietary(record.dietaryRestrictions ?? []);
+      setEmergencyContact(record.emergencyContact ?? "");
+      setEmergencyPhone(savedPhone(record.emergencyPhone));
+      setNeedsHardware(!!record.needsHardware);
+      setMlhInformationalEmails(!!record.mlhInformationalEmails);
+      setUpdated(false);
+      setError("");
+      setAttempted(false);
+      setStep(0);
+      setEditing(true);
+      setShowForm(true);
+    } catch (e) {
+      setEditError(
+        e instanceof Error ? e.message : "Couldn't load your application.",
+      );
+    } finally {
+      setLoadingEdit(false);
+    }
+  }
 
   const isFull = !!(
     hackathon.maxParticipants &&
@@ -364,6 +467,16 @@ export function InfoTab({
     hackathon.status === "open" && !isRegistered && !deadlinePassed;
   // A fresh registration starts pending; myReg lags a refetch behind success.
   const regStatus = myReg?.registrationStatus ?? "pending";
+  // The server refuses an edit once an organiser has decided or registration
+  // has closed; offering it only while it can work saves a dead end.
+  const canEdit =
+    isRegistered &&
+    regStatus === "pending" &&
+    hackathon.status === "open" &&
+    !deadlinePassed;
+  // confirmMutation covers the refetch that follows the click.
+  const attendanceConfirmed =
+    !!myReg?.attendanceConfirmedAt || confirmMutation.isSuccess;
 
   // Every field that fails on a step, in form order, as [field, message].
   function stepProblems(s: RegistrationStep): [string, string][] {
@@ -404,7 +517,8 @@ export function InfoTab({
         !whyAttend.trim(),
         "Please tell us why you want to attend.",
       );
-    } else if (s === 3) {
+    } else if (s === 3 && !editing) {
+      // Already agreed to when the application was sent, so not asked again.
       need("agreeToCoC", !agreeToCoC, "You must agree to the Code of Conduct.");
       need(
         "mlhCodeOfConduct",
@@ -445,7 +559,7 @@ export function InfoTab({
     // Step 2 too — the last step is reachable by Back-then-Next.
     if (!validateStep(2) || !validateStep(3)) return;
     setError("");
-    registerMutation.mutate({
+    const answers = {
       hackathonId: hackathon.id,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -469,14 +583,21 @@ export function InfoTab({
       emergencyContact: emergencyContact.trim() || undefined,
       emergencyPhone: normalizePhone(emergencyPhone) || undefined,
       needsHardware,
-      agreeToCodeOfConduct: agreeToCoC,
-      mlhCodeOfConduct,
-      mlhDataSharing,
       mlhInformationalEmails,
       pronouns: pronouns.trim() || undefined,
       race: race.trim() || undefined,
       underrepresented,
       firstGeneration,
+    };
+    if (editing) {
+      updateMutation.mutate(answers);
+      return;
+    }
+    registerMutation.mutate({
+      ...answers,
+      agreeToCodeOfConduct: agreeToCoC,
+      mlhCodeOfConduct,
+      mlhDataSharing,
     });
   }
 
@@ -491,10 +612,64 @@ export function InfoTab({
             </p>
           )}
 
+          {updated && (
+            <p className="mb-6 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
+              Application updated.
+            </p>
+          )}
+
           {isRegistered || success ? (
             <div className="flex flex-col items-start gap-2">
               <StatusBadge status={regStatus} />
               <p className={body}>{STATUS_LINE[regStatus] ?? ""}</p>
+              {regStatus === "approved" &&
+                (attendanceConfirmed ? (
+                  <p className="mt-3 flex flex-wrap items-center gap-x-3">
+                    <span className={status("success")}>Confirmed</span>
+                    <span className={meta}>
+                      Organisers know you&apos;re coming.
+                    </span>
+                  </p>
+                ) : (
+                  <div className="mt-3 flex flex-col items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        confirmMutation.mutate({ hackathonId: hackathon.id })
+                      }
+                      disabled={confirmMutation.isPending}
+                      className={btnPrimary}
+                    >
+                      {confirmMutation.isPending ? "Confirming…" : "I'm coming"}
+                    </button>
+                    <p className={meta}>Let organisers know you&apos;ll be there.</p>
+                    {confirmMutation.isError && (
+                      <p role="alert" className="text-[15px] text-[var(--danger)]">
+                        {confirmMutation.error.message}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              {canEdit && (
+                <div className="mt-3 flex flex-col items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={openEdit}
+                    disabled={loadingEdit}
+                    className={btnSecondary}
+                  >
+                    {loadingEdit ? "Loading…" : "Edit application"}
+                  </button>
+                  <p className={meta}>
+                    Fix a typo or add a link until an organiser reviews it.
+                  </p>
+                  {editError && (
+                    <p role="alert" className="text-[15px] text-[var(--danger)]">
+                      {editError}
+                    </p>
+                  )}
+                </div>
+              )}
               {regStatus === "checked_in" && (
                 <Link
                   href={`/submit?id=${hackathon.id}`}
@@ -676,7 +851,9 @@ export function InfoTab({
         <section className="border-t border-[var(--border-subtle)] pt-8">
           {/* Clears the fixed 64px top bar on mobile. */}
           <div ref={formTop} className="scroll-mt-24 md:scroll-mt-6">
-            <h2 className={`mb-6 ${sectionTitle}`}>Register</h2>
+            <h2 className={`mb-6 ${sectionTitle}`}>
+              {editing ? "Edit application" : "Register"}
+            </h2>
             <StepProgress steps={REGISTRATION_STEPS} current={step} />
 
             {/* Step 1: Personal Info */}
@@ -925,89 +1102,94 @@ export function InfoTab({
                     </span>
                   </label>
                 </div>
-                <div className="pt-4">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={agreeToCoC}
-                      onChange={(e) => setAgreeToCoC(e.target.checked)}
-                      className={checkboxClass}
-                    />
-                    <span className={checkboxText}>
-                      I agree to the{" "}
-                      <span className="font-semibold text-[var(--text-primary)]">
-                        Code of Conduct
-                      </span>{" "}
-                      and acknowledge that my information will be used for event
-                      organization purposes. *
-                    </span>
-                  </label>
-                </div>
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={mlhCodeOfConduct}
-                      onChange={(e) => setMlhCodeOfConduct(e.target.checked)}
-                      className={checkboxClass}
-                    />
-                    <span className={checkboxText}>
-                      I have read and agree to the{" "}
-                      <a
-                        href={MLH_CODE_OF_CONDUCT_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={textLink}
-                      >
-                        MLH Code of Conduct
-                      </a>
-                      . *
-                    </span>
-                  </label>
-                </div>
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={mlhDataSharing}
-                      onChange={(e) => setMlhDataSharing(e.target.checked)}
-                      className={checkboxClass}
-                    />
-                    <span className={checkboxText}>
-                      I authorize you to share my application/registration
-                      information with Major League Hacking for event
-                      administration, ranking, and MLH administration in-line
-                      with the{" "}
-                      <a
-                        href={MLH_PRIVACY_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={textLink}
-                      >
-                        MLH Privacy Policy
-                      </a>
-                      . I further agree to the terms of both the{" "}
-                      <a
-                        href={MLH_CONTEST_TERMS_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={textLink}
-                      >
-                        MLH Contest Terms and Conditions
-                      </a>{" "}
-                      and the{" "}
-                      <a
-                        href={MLH_PRIVACY_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={textLink}
-                      >
-                        MLH Privacy Policy
-                      </a>
-                      . *
-                    </span>
-                  </label>
-                </div>
+                {/* Agreed to when the application was sent; not asked again. */}
+                {!editing && (
+                  <>
+                    <div className="pt-4">
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={agreeToCoC}
+                          onChange={(e) => setAgreeToCoC(e.target.checked)}
+                          className={checkboxClass}
+                        />
+                        <span className={checkboxText}>
+                          I agree to the{" "}
+                          <span className="font-semibold text-[var(--text-primary)]">
+                            Code of Conduct
+                          </span>{" "}
+                          and acknowledge that my information will be used for event
+                          organization purposes. *
+                        </span>
+                      </label>
+                    </div>
+                    <div className="pt-2">
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={mlhCodeOfConduct}
+                          onChange={(e) => setMlhCodeOfConduct(e.target.checked)}
+                          className={checkboxClass}
+                        />
+                        <span className={checkboxText}>
+                          I have read and agree to the{" "}
+                          <a
+                            href={MLH_CODE_OF_CONDUCT_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={textLink}
+                          >
+                            MLH Code of Conduct
+                          </a>
+                          . *
+                        </span>
+                      </label>
+                    </div>
+                    <div className="pt-2">
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={mlhDataSharing}
+                          onChange={(e) => setMlhDataSharing(e.target.checked)}
+                          className={checkboxClass}
+                        />
+                        <span className={checkboxText}>
+                          I authorize you to share my application/registration
+                          information with Major League Hacking for event
+                          administration, ranking, and MLH administration in-line
+                          with the{" "}
+                          <a
+                            href={MLH_PRIVACY_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={textLink}
+                          >
+                            MLH Privacy Policy
+                          </a>
+                          . I further agree to the terms of both the{" "}
+                          <a
+                            href={MLH_CONTEST_TERMS_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={textLink}
+                          >
+                            MLH Contest Terms and Conditions
+                          </a>{" "}
+                          and the{" "}
+                          <a
+                            href={MLH_PRIVACY_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={textLink}
+                          >
+                            MLH Privacy Policy
+                          </a>
+                          . *
+                        </span>
+                      </label>
+                    </div>
+                  </>
+                )}
                 <div className="pt-2">
                   <label className="flex items-start gap-3 cursor-pointer group">
                     <input
@@ -1037,11 +1219,13 @@ export function InfoTab({
               onSubmit={handleSubmit}
               onCancel={() => {
                 setShowForm(false);
+                setEditing(false);
                 setError("");
                 setAttempted(false);
                 setStep(0);
               }}
-              isSubmitting={registerMutation.isPending}
+              isSubmitting={registerMutation.isPending || updateMutation.isPending}
+              submitLabel={editing ? "Save changes" : undefined}
             />
           </div>
         </section>
