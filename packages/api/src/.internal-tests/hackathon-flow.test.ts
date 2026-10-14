@@ -243,6 +243,8 @@ describe("Hackathon end-to-end flow", () => {
     country: "United States",
     whyAttend: "I want to build with data.",
     agreeToCodeOfConduct: true as const,
+    mlhCodeOfConduct: true as const,
+    mlhDataSharing: true as const,
   });
 
   // ---------------------------------------------------------------------

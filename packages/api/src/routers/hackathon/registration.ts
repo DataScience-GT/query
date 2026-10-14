@@ -94,8 +94,12 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           .refine((v) => v === true, {
             message: "You must agree to the Code of Conduct",
           }),
-        mlhCodeOfConduct: z.boolean().optional(),
-        mlhDataSharing: z.boolean().optional(),
+        mlhCodeOfConduct: z.boolean().refine((v) => v === true, {
+          message: "You must agree to the MLH Code of Conduct",
+        }),
+        mlhDataSharing: z.boolean().refine((v) => v === true, {
+          message: "You must agree to share your registration with MLH",
+        }),
         mlhInformationalEmails: z.boolean().optional(),
       }),
     )

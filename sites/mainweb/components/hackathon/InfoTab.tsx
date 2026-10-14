@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
 import {
@@ -36,20 +37,36 @@ import {
 } from "@/components/hackathon/constants";
 import type { ShirtSize, LevelOfStudy } from "@/components/hackathon/constants";
 import { InterestForm } from "@/components/hackathon/InterestForm";
+import { ResumeSection } from "@/components/portal/ResumeSection";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import Link from "next/link";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
 
-const STATUS_LINE: Record<string, string> = {
+const STATUS_LINE: Record<string, React.ReactNode> = {
   pending: "Waiting on review.",
-  approved:
-    "You're accepted. Your check-in pass is on the Schedule & pass tab.",
-  waitlisted: "Waitlisted. You'll get a pass if a spot opens.",
+  approved: (
+    <>
+      You&apos;re accepted. Your check-in pass is on the{" "}
+      <Link href="?tab=SCHEDULE" className={textLink}>
+        Schedule &amp; pass tab
+      </Link>
+      . If you can&apos;t come, withdraw on this page so a waitlisted hacker
+      can have your seat.
+    </>
+  ),
+  waitlisted:
+    "Waitlisted. Organisers may offer you a spot if one opens. Watch your email.",
   checked_in: "You're checked in.",
   rejected: "Your registration wasn't accepted this time.",
 };
+
+const MLH_CODE_OF_CONDUCT_URL =
+  "https://static.mlh.io/docs/mlh-code-of-conduct.pdf";
+const MLH_PRIVACY_URL = "https://mlh.io/privacy";
+const MLH_CONTEST_TERMS_URL =
+  "https://github.com/MLH/mlh-policies/blob/main/contest-terms.md";
 
 // Statuses that can still back out. checked_in is on site and rejected has
 // nothing to withdraw; the server refuses both anyway.
@@ -73,6 +90,26 @@ function formatDate(d: Date | string) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+/** A field that shows `seed` until the person edits it, so a seed that arrives
+ *  late still lands and one they have typed over never comes back. */
+function useSeededField(seed: string) {
+  const [edited, setEdited] = useState<string | null>(null);
+  return [edited ?? seed, setEdited] as const;
+}
+
+/** The saved answers, or nothing: a draft that is missing, unreadable or not
+ *  an object is the same as no draft. */
+function readDraft(key: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
 }
 
 export function InfoTab({
@@ -102,10 +139,23 @@ export function InfoTab({
   const [success, setSuccess] = useState(false);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
+  // Field errors show only after a failed Continue, then follow the values.
+  const [attempted, setAttempted] = useState(false);
+  const formTop = useRef<HTMLDivElement>(null);
+
+  const { data: session } = useSession();
+  // Per account too, so someone else signing in on this browser never gets
+  // these answers back.
+  const draftKey = `reg-draft:${hackathon.id}:${session?.user?.id ?? ""}`;
+
+  // The account's name stands in until they type their own.
+  const [accountFirst = "", ...accountRest] = (session?.user?.name ?? "")
+    .trim()
+    .split(/\s+/);
 
   // Step 1: Personal Info
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useSeededField(accountFirst);
+  const [lastName, setLastName] = useSeededField(accountRest.join(" "));
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -118,11 +168,34 @@ export function InfoTab({
   // bundle. A failed fetch leaves the short list, which still works.
   const [schoolOptions, setSchoolOptions] =
     useState<readonly string[]>(SCHOOLS);
-  const [school, setSchool] = useState("");
+  // What they told the interest list, offered only where it fits this form:
+  // a school that is in the list, a graduation year that is in range.
+  const interest = trpc.hackathon.myInterest.useQuery(
+    { hackathonId: hackathon.id },
+    { enabled: hackathon.status === "open" && !isRegistered },
+  );
+  const interestSchool = interest.data?.school?.trim().toLowerCase();
+  const seedSchool = useMemo(
+    () =>
+      interestSchool
+        ? (schoolOptions.find((s) => s.toLowerCase() === interestSchool) ?? "")
+        : "",
+    [interestSchool, schoolOptions],
+  );
+  const interestYear = interest.data?.graduationYear;
+  const seedYear =
+    interestYear &&
+    interestYear >= MIN_GRAD_YEAR &&
+    interestYear <= MAX_GRAD_YEAR
+      ? String(interestYear)
+      : "";
+  const [school, setSchool] = useSeededField(seedSchool);
   const [major, setMajor] = useState("");
-  const [graduationYear, setGraduationYear] = useState("");
+  const [graduationYear, setGraduationYear] = useSeededField(seedYear);
   const [levelOfStudy, setLevelOfStudy] = useState("");
-  const [country, setCountry] = useState("United States");
+  const [country, setCountry] = useSeededField(
+    interest.data?.country?.trim() || "United States",
+  );
   const [firstGeneration, setFirstGeneration] = useState(false);
 
   // Step 3: Experience
@@ -159,9 +232,98 @@ export function InfoTab({
     };
   }, [step, schoolOptions]);
 
+  // Switching tabs unmounts this one, so the answers are kept as they change.
+  // The consents are left out on purpose: they are ticked fresh at submit.
+  const draft = JSON.stringify({
+    firstName,
+    lastName,
+    phone,
+    age,
+    gender,
+    pronouns,
+    race,
+    underrepresented,
+    school,
+    major,
+    graduationYear,
+    levelOfStudy,
+    country,
+    firstGeneration,
+    hackathonsAttended,
+    resumeUrl,
+    linkedinUrl,
+    githubUrl,
+    whyAttend,
+    shirtSize,
+    dietary,
+    emergencyContact,
+    emergencyPhone,
+    needsHardware,
+  });
+  useEffect(() => {
+    if (!showForm) return;
+    try {
+      localStorage.setItem(draftKey, draft);
+    } catch {
+      // Storage full or blocked: the form still works, it just is not kept.
+    }
+  }, [showForm, draftKey, draft]);
+
+  // Read once, as the form opens. A saved answer beats a seed; a blank one
+  // leaves the seed showing.
+  function openForm() {
+    const saved = readDraft(draftKey);
+    const text: Record<string, (v: string) => void> = {
+      firstName: setFirstName,
+      lastName: setLastName,
+      phone: setPhone,
+      age: setAge,
+      gender: setGender,
+      pronouns: setPronouns,
+      race: setRace,
+      school: setSchool,
+      major: setMajor,
+      graduationYear: setGraduationYear,
+      country: setCountry,
+      hackathonsAttended: setHackathonsAttended,
+      resumeUrl: setResumeUrl,
+      linkedinUrl: setLinkedinUrl,
+      githubUrl: setGithubUrl,
+      whyAttend: setWhyAttend,
+      emergencyContact: setEmergencyContact,
+      emergencyPhone: setEmergencyPhone,
+    };
+    for (const [key, set] of Object.entries(text)) {
+      const value = saved[key];
+      if (typeof value === "string" && value) set(value);
+    }
+    const level = LEVELS_OF_STUDY.find((l) => l === saved.levelOfStudy);
+    if (level) setLevelOfStudy(level);
+    const size = SHIRT_SIZES.find((s) => s === saved.shirtSize);
+    if (size) setShirtSize(size);
+    if (Array.isArray(saved.dietary)) {
+      setDietary(saved.dietary.filter((d): d is string => typeof d === "string"));
+    }
+    if (saved.underrepresented === true) setUnderrepresented(true);
+    if (saved.firstGeneration === true) setFirstGeneration(true);
+    if (saved.needsHardware === true) setNeedsHardware(true);
+    setShowForm(true);
+  }
+
+  // The form sits below the page's content, so bring it into view on open
+  // and the new step's heading on every step change.
+  useEffect(() => {
+    if (showForm) formTop.current?.scrollIntoView({ block: "start" });
+  }, [showForm, step]);
+
   const utils = trpc.useUtils();
   const registerMutation = trpc.hackathon.register.useMutation({
     onSuccess: () => {
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        // Nothing to clear if storage is blocked.
+      }
       setSuccess(true);
       setShowForm(false);
       utils.hackathon.myRegistrations.invalidate();
@@ -203,70 +365,69 @@ export function InfoTab({
   // A fresh registration starts pending; myReg lags a refetch behind success.
   const regStatus = myReg?.registrationStatus ?? "pending";
 
-  function validateStep(s: RegistrationStep): boolean {
-    setError("");
+  // Every field that fails on a step, in form order, as [field, message].
+  function stepProblems(s: RegistrationStep): [string, string][] {
+    const problems: [string, string][] = [];
+    const need = (field: string, failed: boolean, message: string) => {
+      if (failed) problems.push([field, message]);
+    };
     if (s === 0) {
-      if (!firstName.trim() || !lastName.trim()) {
-        setError("First and last name are required.");
-        return false;
-      }
-      if (!phone.trim()) {
-        setError("Phone number is required.");
-        return false;
-      }
-      if (phoneDigits(phone).length < 10) {
-        setError("Please enter a complete phone number.");
-        return false;
-      }
-      if (!age || parseInt(age) < 13 || parseInt(age) > 120) {
-        setError("Please enter a valid age (13-120).");
-        return false;
-      }
+      need("firstName", !firstName.trim(), "First name is required.");
+      need("lastName", !lastName.trim(), "Last name is required.");
+      need(
+        "phone",
+        phoneDigits(phone).length < 10,
+        phone.trim()
+          ? "Please enter a complete phone number."
+          : "Phone number is required.",
+      );
+      need(
+        "age",
+        !age || parseInt(age) < 13 || parseInt(age) > 120,
+        "Please enter a valid age (13-120).",
+      );
     } else if (s === 1) {
-      if (!school.trim()) {
-        setError("School / university is required.");
-        return false;
-      }
-      if (!major.trim()) {
-        setError("Major / field of study is required.");
-        return false;
-      }
-      if (
+      need("school", !school.trim(), "School / university is required.");
+      need("major", !major.trim(), "Major / field of study is required.");
+      need(
+        "graduationYear",
         !graduationYear ||
-        parseInt(graduationYear) < MIN_GRAD_YEAR ||
-        parseInt(graduationYear) > MAX_GRAD_YEAR
-      ) {
-        setError("Please enter a valid graduation year.");
-        return false;
-      }
-      if (!levelOfStudy) {
-        setError("Level of study is required.");
-        return false;
-      }
-      if (!country.trim()) {
-        setError("Country is required.");
-        return false;
-      }
+          parseInt(graduationYear) < MIN_GRAD_YEAR ||
+          parseInt(graduationYear) > MAX_GRAD_YEAR,
+        "Please enter a valid graduation year.",
+      );
+      need("levelOfStudy", !levelOfStudy, "Level of study is required.");
+      need("country", !country.trim(), "Country is required.");
     } else if (s === 2) {
-      if (!whyAttend.trim()) {
-        setError("Please tell us why you want to attend.");
-        return false;
-      }
+      need(
+        "whyAttend",
+        !whyAttend.trim(),
+        "Please tell us why you want to attend.",
+      );
     } else if (s === 3) {
-      if (!agreeToCoC) {
-        setError("You must agree to the Code of Conduct.");
-        return false;
-      }
-      if (!mlhCodeOfConduct) {
-        setError("You must agree to the MLH Code of Conduct.");
-        return false;
-      }
-      if (!mlhDataSharing) {
-        setError("You must agree to the MLH Data Sharing provision.");
-        return false;
-      }
+      need("agreeToCoC", !agreeToCoC, "You must agree to the Code of Conduct.");
+      need(
+        "mlhCodeOfConduct",
+        !mlhCodeOfConduct,
+        "You must agree to the MLH Code of Conduct.",
+      );
+      need(
+        "mlhDataSharing",
+        !mlhDataSharing,
+        "You must agree to the MLH Data Sharing provision.",
+      );
     }
-    return true;
+    return problems;
+  }
+  const fieldErrors: Record<string, string> = attempted
+    ? Object.fromEntries(stepProblems(step))
+    : {};
+
+  function validateStep(s: RegistrationStep): boolean {
+    const problems = stepProblems(s);
+    setError(problems[0]?.[1] ?? "");
+    setAttempted(problems.length > 0);
+    return problems.length === 0;
   }
 
   function handleNext() {
@@ -276,6 +437,7 @@ export function InfoTab({
 
   function handleBack() {
     setError("");
+    setAttempted(false);
     setStep((s) => Math.max(s - 1, 0) as RegistrationStep);
   }
 
@@ -320,8 +482,119 @@ export function InfoTab({
 
   return (
     <div className="space-y-10">
-      {hackathon.description && (
+      {!showForm && (
         <section>
+          {success && (
+            <p className="mb-6 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
+              Registration received. An organiser will review it; your status
+              updates here.
+            </p>
+          )}
+
+          {isRegistered || success ? (
+            <div className="flex flex-col items-start gap-2">
+              <StatusBadge status={regStatus} />
+              <p className={body}>{STATUS_LINE[regStatus] ?? ""}</p>
+              {regStatus === "checked_in" && (
+                <Link
+                  href={`/submit?id=${hackathon.id}`}
+                  className={`mt-3 ${btnPrimary}`}
+                >
+                  Submit your project
+                </Link>
+              )}
+              {/* On a team the server refuses until you leave it, so say that
+                  up front rather than after two clicks. */}
+              {WITHDRAWABLE.has(regStatus) && myReg?.teamId ? (
+                <p className={`mt-6 ${meta}`}>
+                  To withdraw, leave your team first.
+                </p>
+              ) : null}
+              {WITHDRAWABLE.has(regStatus) &&
+                !myReg?.teamId &&
+                (confirmWithdraw ? (
+                  <div className="mt-6 flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
+                    <p className={body}>
+                      Withdraw your registration? You can apply again while
+                      registration is open.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          withdrawMutation.mutate({ hackathonId: hackathon.id })
+                        }
+                        disabled={withdrawMutation.isPending}
+                        className={btnDanger}
+                      >
+                        {withdrawMutation.isPending ? "Withdrawing…" : "Withdraw"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmWithdraw(false);
+                          setWithdrawError("");
+                        }}
+                        disabled={withdrawMutation.isPending}
+                        className={btnSecondary}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 w-full border-t border-[var(--border-subtle)] pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmWithdraw(true)}
+                      className={btnDanger}
+                    >
+                      Withdraw registration
+                    </button>
+                  </div>
+                ))}
+              {withdrawError && (
+                <p role="alert" className="text-[15px] text-[var(--danger)]">
+                  {withdrawError}
+                </p>
+              )}
+            </div>
+          ) : canRegister && !deadlinePassed ? (
+            <div>
+              <h2 className={sectionTitle}>Register</h2>
+              <p className={`mt-2 ${body}`}>
+                Four steps: personal info, school, experience, and logistics.
+              </p>
+              {isFull && (
+                <p className={`mt-2 ${body}`}>
+                  All seats are taken. You can still apply; new applicants are
+                  waitlisted until a seat opens.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={openForm}
+                className={`mt-6 w-full sm:w-auto ${btnPrimary}`}
+              >
+                Start registration
+              </button>
+            </div>
+          ) : hackathon.status === "announced" ? (
+            /* Announced is not closed — the closed message below reads as "you
+               missed it". Join against THIS edition's id, not a bounce to
+               /hacklytics which follows whichever event getUpcoming picks. */
+            <InterestForm
+              hackathonId={hackathon.id}
+              callbackPath={`/hackathons/${hackathonSlug(hackathon.name)}`}
+            />
+          ) : (
+            <p className={body}>Registration is closed.</p>
+          )}
+        </section>
+      )}
+
+      {hackathon.description && (
+        <section className="border-t border-[var(--border-subtle)] pt-6">
           <h3 className={itemTitle}>About</h3>
           <p className={`mt-2 max-w-2xl whitespace-pre-wrap ${body}`}>
             {hackathon.description}
@@ -399,120 +672,10 @@ export function InfoTab({
         </dl>
       )}
 
-      <section className="border-t border-[var(--border-subtle)] pt-8">
-        {success && (
-          <p className="mb-6 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
-            Registration received. An organiser will review it; your status
-            updates here.
-          </p>
-        )}
-
-        {isRegistered || success ? (
-          <div className="flex flex-col items-start gap-2">
-            <StatusBadge status={regStatus} />
-            <p className={body}>{STATUS_LINE[regStatus] ?? ""}</p>
-            {regStatus === "checked_in" && (
-              <Link
-                href={`/submit?id=${hackathon.id}`}
-                className={`mt-3 ${btnPrimary}`}
-              >
-                Submit your project
-              </Link>
-            )}
-            {/* On a team the server refuses until you leave it, so say that
-                up front rather than after two clicks. */}
-            {WITHDRAWABLE.has(regStatus) && myReg?.teamId ? (
-              <p className={`mt-6 ${meta}`}>
-                To withdraw, leave your team first.
-              </p>
-            ) : null}
-            {WITHDRAWABLE.has(regStatus) &&
-              !myReg?.teamId &&
-              (confirmWithdraw ? (
-                <div className="mt-6 flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
-                  <p className={body}>
-                    Withdraw your registration? You can apply again while
-                    registration is open.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        withdrawMutation.mutate({ hackathonId: hackathon.id })
-                      }
-                      disabled={withdrawMutation.isPending}
-                      className={btnDanger}
-                    >
-                      {withdrawMutation.isPending ? "Withdrawing…" : "Withdraw"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfirmWithdraw(false);
-                        setWithdrawError("");
-                      }}
-                      disabled={withdrawMutation.isPending}
-                      className={btnSecondary}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-6 w-full border-t border-[var(--border-subtle)] pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmWithdraw(true)}
-                    className={btnDanger}
-                  >
-                    Withdraw registration
-                  </button>
-                </div>
-              ))}
-            {withdrawError && (
-              <p role="alert" className="text-[15px] text-[var(--danger)]">
-                {withdrawError}
-              </p>
-            )}
-          </div>
-        ) : canRegister && !deadlinePassed ? (
-          // Once the form is open it renders below; this branch must not fall
-          // through to "Registration is closed" above an open form.
-          showForm ? null : (
-            <div>
-              <h2 className={sectionTitle}>Register</h2>
-              <p className={`mt-2 ${body}`}>
-                Four steps: personal info, school, experience, and logistics.
-              </p>
-              {isFull && (
-                <p className={`mt-2 ${body}`}>
-                  All seats are taken. You can still apply; new applicants are
-                  waitlisted until a seat opens.
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowForm(true)}
-                className={`mt-6 w-full sm:w-auto ${btnPrimary}`}
-              >
-                Start registration
-              </button>
-            </div>
-          )
-        ) : hackathon.status === "announced" ? (
-          /* Announced is not closed — the closed message below reads as "you
-             missed it". Join against THIS edition's id, not a bounce to
-             /hacklytics which follows whichever event getUpcoming picks. */
-          <InterestForm
-            hackathonId={hackathon.id}
-            callbackPath={`/hackathons/${hackathonSlug(hackathon.name)}`}
-          />
-        ) : (
-          <p className={body}>Registration is closed.</p>
-        )}
-
-        {showForm && (
-          <div>
+      {showForm && (
+        <section className="border-t border-[var(--border-subtle)] pt-8">
+          {/* Clears the fixed 64px top bar on mobile. */}
+          <div ref={formTop} className="scroll-mt-24 md:scroll-mt-6">
             <h2 className={`mb-6 ${sectionTitle}`}>Register</h2>
             <StepProgress steps={REGISTRATION_STEPS} current={step} />
 
@@ -525,6 +688,7 @@ export function InfoTab({
                     required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
+                    error={fieldErrors.firstName}
                     placeholder="John"
                   />
                   <FormInput
@@ -532,6 +696,7 @@ export function InfoTab({
                     required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                    error={fieldErrors.lastName}
                     placeholder="Doe"
                   />
                 </div>
@@ -545,6 +710,7 @@ export function InfoTab({
                     onChange={(e) =>
                       setPhone(formatPhoneAsTyped(e.target.value))
                     }
+                    error={fieldErrors.phone}
                     placeholder="(555) 123-4567"
                   />
                   <FormInput
@@ -553,6 +719,7 @@ export function InfoTab({
                     type="number"
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
+                    error={fieldErrors.age}
                     placeholder="21"
                     min={13}
                     max={120}
@@ -624,6 +791,7 @@ export function InfoTab({
                     type="number"
                     value={graduationYear}
                     onChange={(e) => setGraduationYear(e.target.value)}
+                    error={fieldErrors.graduationYear}
                     placeholder={String(CURRENT_YEAR)}
                     min={MIN_GRAD_YEAR}
                     max={MAX_GRAD_YEAR}
@@ -641,6 +809,7 @@ export function InfoTab({
                   required
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
+                  error={fieldErrors.country}
                   placeholder="United States"
                 />
                 <div className="pt-4">
@@ -676,18 +845,20 @@ export function InfoTab({
                   required
                   value={whyAttend}
                   onChange={(e) => setWhyAttend(e.target.value)}
+                  error={fieldErrors.whyAttend}
                   placeholder="Tell us what excites you about this hackathon…"
                   maxLength={2000}
                   rows={4}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <FormInput
-                    label="Resume URL"
-                    type="url"
-                    value={resumeUrl}
-                    onChange={(e) => setResumeUrl(e.target.value)}
-                    placeholder="https://…"
-                  />
+                <ResumeSection />
+                <FormInput
+                  label="Or paste a link to your resume"
+                  type="url"
+                  value={resumeUrl}
+                  onChange={(e) => setResumeUrl(e.target.value)}
+                  placeholder="https://…"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <FormInput
                     label="LinkedIn"
                     type="url"
@@ -782,9 +953,14 @@ export function InfoTab({
                     />
                     <span className={checkboxText}>
                       I have read and agree to the{" "}
-                      <span className="font-semibold text-[var(--text-primary)]">
+                      <a
+                        href={MLH_CODE_OF_CONDUCT_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={textLink}
+                      >
                         MLH Code of Conduct
-                      </span>
+                      </a>
                       . *
                     </span>
                   </label>
@@ -800,7 +976,35 @@ export function InfoTab({
                     <span className={checkboxText}>
                       I authorize you to share my application/registration
                       information with Major League Hacking for event
-                      administration, ranking, and MLH administration. *
+                      administration, ranking, and MLH administration in-line
+                      with the{" "}
+                      <a
+                        href={MLH_PRIVACY_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={textLink}
+                      >
+                        MLH Privacy Policy
+                      </a>
+                      . I further agree to the terms of both the{" "}
+                      <a
+                        href={MLH_CONTEST_TERMS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={textLink}
+                      >
+                        MLH Contest Terms and Conditions
+                      </a>{" "}
+                      and the{" "}
+                      <a
+                        href={MLH_PRIVACY_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={textLink}
+                      >
+                        MLH Privacy Policy
+                      </a>
+                      . *
                     </span>
                   </label>
                 </div>
@@ -834,13 +1038,14 @@ export function InfoTab({
               onCancel={() => {
                 setShowForm(false);
                 setError("");
+                setAttempted(false);
                 setStep(0);
               }}
               isSubmitting={registerMutation.isPending}
             />
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

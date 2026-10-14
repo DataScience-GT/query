@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { QRCodeSVG } from "qrcode.react";
 import { Lock } from "lucide-react";
@@ -12,6 +13,7 @@ import {
   meta,
   object,
   sectionTitle,
+  textLink,
 } from "@/components/portal/ui";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 
@@ -45,12 +47,21 @@ function formatEventTime(start: Date | string, end: Date | string) {
   return { day: startDay, range: `${timeFmt.format(s)} – ${endText}` };
 }
 
+// Day granularity, on the viewer's clock: the last day counts all day.
+const startOfDay = (d: Date | string) => new Date(d).setHours(0, 0, 0, 0);
+
 export function ScheduleTab({
   hackathonId,
   isRegistered,
+  startDate,
+  endDate,
+  pointsTabShown,
 }: {
   hackathonId: string;
   isRegistered: boolean;
+  startDate: Date | string;
+  endDate: Date | string;
+  pointsTabShown: boolean;
 }) {
   const {
     data: events,
@@ -59,13 +70,23 @@ export function ScheduleTab({
     error,
     refetch,
   } = trpc.hackathon.getEvents.useQuery({ hackathonId });
-  const { data: myRecord } = trpc.hackathon.myParticipantRecord.useQuery(
-    { hackathonId },
-    { enabled: isRegistered },
-  );
-
-  if (eventsLoading)
-    return <p className={`py-16 ${body}`}>Loading schedule…</p>;
+  const { data: myRecord, isLoading: recordLoading } =
+    trpc.hackathon.myParticipantRecord.useQuery(
+      { hackathonId },
+      {
+        enabled: isRegistered,
+        // An accepted hacker is waiting on the door scan. While the event
+        // runs, re-read so the pass flips to checked in without a reload.
+        refetchInterval: (query) => {
+          const today = startOfDay(new Date());
+          return query.state.data?.registrationStatus === "approved" &&
+            startOfDay(startDate) <= today &&
+            today <= startOfDay(endDate)
+            ? 30_000
+            : false;
+        },
+      },
+    );
 
   // Only accepted participants get a pass. Pending and waitlisted registrations
   // are not admitted yet, so the scanner would reject their code anyway.
@@ -85,7 +106,7 @@ export function ScheduleTab({
   const passPlaceholder = !isRegistered
     ? "Register to get a pass"
     : myRecord?.registrationStatus === "waitlisted"
-      ? "Waitlisted. You'll get a pass if a spot opens."
+      ? "Waitlisted. Organisers may offer you a spot if one opens."
       : myRecord?.registrationStatus === "rejected"
         ? "Registration not accepted"
         : "Waiting on review. Your pass appears once you're accepted.";
@@ -110,7 +131,14 @@ export function ScheduleTab({
             Show this at check-in, meals, and workshops.
           </p>
 
-          {isRegistered && qrData ? (
+          {isRegistered && recordLoading ? (
+            // Same box as the QR, so the pass does not flash "Waiting on
+            // review" before the record arrives.
+            <div
+              aria-hidden="true"
+              className="mt-5 h-[212px] w-[212px] rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] animate-pulse"
+            />
+          ) : isRegistered && qrData ? (
             /* literal white: must match the QR bgColor below in both themes */
             <div className="mt-5 w-fit p-4 bg-[#ffffff] rounded-[var(--radius-sm)]">
               <QRCodeSVG
@@ -136,8 +164,17 @@ export function ScheduleTab({
           {isRegistered && qrData && (
             <p className={`mt-5 ${meta}`}>
               It never changes, so a screenshot works. Events that show a
-              check-in code also take it typed into the Points tab, no pass
-              needed.
+              check-in code also take it typed into the{" "}
+              {/* The tab is hidden until the event runs; a link before then
+                  would land on the overview. */}
+              {pointsTabShown ? (
+                <Link href="?tab=POINTS" className={textLink}>
+                  Points tab
+                </Link>
+              ) : (
+                "Points tab once the event starts"
+              )}
+              , no pass needed.
             </p>
           )}
         </section>
@@ -166,10 +203,16 @@ export function ScheduleTab({
       <section className="lg:col-span-2">
         <div className="flex items-baseline justify-between gap-4 pb-3">
           <h3 className={sectionTitle}>Schedule</h3>
-          <span className={meta}>{events?.length || 0} events</span>
+          {!eventsLoading && (
+            <span className={meta}>{events?.length || 0} events</span>
+          )}
         </div>
 
-        {eventsError ? (
+        {eventsLoading ? (
+          <p className={`border-t border-[var(--border-subtle)] pt-5 ${body}`}>
+            Loading schedule…
+          </p>
+        ) : eventsError ? (
           <div className="flex flex-col items-start gap-4 border-t border-[var(--border-subtle)] pt-5">
             <p className="text-[15px] text-[var(--danger)]">
               Couldn&apos;t load the schedule. {error.message}

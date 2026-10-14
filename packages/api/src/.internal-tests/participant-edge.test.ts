@@ -287,6 +287,8 @@ const registrationInput = (overrides: Record<string, any> = {}) => ({
   country: "United States",
   whyAttend: "I want to build with data.",
   agreeToCodeOfConduct: true as const,
+  mlhCodeOfConduct: true as const,
+  mlhDataSharing: true as const,
   ...overrides,
 });
 
