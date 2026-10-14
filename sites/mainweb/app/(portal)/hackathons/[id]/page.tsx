@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useOptimistic,
+  useRef,
   startTransition,
 } from "react";
 import { loginHref } from "@/lib/safe-callback";
@@ -12,12 +13,10 @@ import { trpc } from "@/lib/trpc";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import {
-  kicker,
-  label,
   meta,
   page,
+  pageDek,
   pageTitle,
   status,
   tab as tabClass,
@@ -36,6 +35,7 @@ import { PointsTab } from "@/components/hackathon/points/PointsTab";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 import { HackerAnnouncements } from "@/components/hackathon/HackerAnnouncements";
+import { NextStepStrip } from "@/components/hackathon/NextStepStrip";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import {
   hackathonNextStep,
@@ -199,6 +199,23 @@ export default function HackathonDetailPage() {
     if (authStatus === "unauthenticated") router.push(loginHref());
   }, [authStatus, router]);
 
+  // The strip scrolls sideways on a phone, so a ?tab= link to a later tab
+  // would land with it and its accent rule past the right edge. Scroll the
+  // strip itself: scrollIntoView would move the page too. `tabsMounted` is the
+  // render the strip first exists in; the tab alone does not change then.
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabsMounted =
+    authStatus !== "loading" && !isLoading && !!session && !error && !!hackathon;
+  useEffect(() => {
+    const list = tabsRef.current;
+    const el = list?.querySelector<HTMLElement>(`#tab-${shownTab}`);
+    if (!list || !el) return;
+    const clipped =
+      el.offsetLeft < list.scrollLeft ||
+      el.offsetLeft + el.offsetWidth > list.scrollLeft + list.clientWidth - 24;
+    if (clipped) list.scrollLeft = Math.max(0, el.offsetLeft - 24);
+  }, [shownTab, tabsMounted]);
+
   if (authStatus === "loading" || isLoading)
     return <LoadingScreen message="Loading hackathon…" />;
   if (!session) return null;
@@ -231,13 +248,6 @@ export default function HackathonDetailPage() {
   // A ?tab= for a tab that is not shown yet falls back to the overview.
   const tab = tabs.some((t) => t.id === shownTab) ? shownTab : "INFO";
   const conf = hackathonStatus(hackathon.status);
-  const metaParts = [
-    formatDateRange(hackathon.startDate, hackathon.endDate),
-    hackathon.location,
-    hackathon.maxParticipants
-      ? `${hackathon.currentParticipants} of ${hackathon.maxParticipants} spots taken`
-      : null,
-  ].filter(Boolean);
 
   return (
     <main className={page}>
@@ -253,36 +263,22 @@ export default function HackathonDetailPage() {
           <span className={status(conf.tone)}>{conf.label}</span>
           {myReg && <StatusBadge status={myReg.registrationStatus} />}
         </div>
-        {hackathon.theme && (
-          <p className={`mt-4 ${kicker}`}>{hackathon.theme}</p>
-        )}
-        <h1 className={`mt-1 ${pageTitle}`}>{hackathon.name}</h1>
-        <p className={`mt-3 ${meta}`}>{metaParts.join(" · ")}</p>
-        {nextStep && (
-          <Link
-            href={nextStep.href}
-            className="group mt-6 flex max-w-xl items-center justify-between gap-4 border-l-2 border-accent pl-4"
-          >
-            <span className="min-w-0">
-              <span className={`block ${label}`}>
-                {nextStep.step === "status" ? "Your status" : "Next step"}
-              </span>
-              <span className="mt-0.5 block text-[15px] font-semibold text-[var(--text-primary)] group-hover:underline decoration-accent decoration-2 underline-offset-4">
-                {nextStep.label}
-              </span>
-              {nextStep.detail && (
-                <span className={`mt-0.5 block ${meta}`}>
-                  {nextStep.detail}
-                </span>
-              )}
-            </span>
-            <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-[var(--text-subtle)] group-hover:text-[var(--text-primary)] transition-colors"
-              strokeWidth={1.75}
-              aria-hidden="true"
-            />
-          </Link>
-        )}
+        <h1 className={`mt-3 ${pageTitle}`}>{hackathon.name}</h1>
+        {hackathon.theme && <p className={pageDek}>{hackathon.theme}</p>}
+        <p className={`mt-3 ${meta}`}>
+          {[
+            formatDateRange(hackathon.startDate, hackathon.endDate),
+            hackathon.location,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {hackathon.maxParticipants ? (
+          <p className={meta}>
+            {`${hackathon.currentParticipants} of ${hackathon.maxParticipants} spots taken`}
+          </p>
+        ) : null}
+        {nextStep && <NextStepStrip step={nextStep} className="mt-6" />}
       </header>
 
       {/* Mounted empty so screen readers announce the line when it lands. */}
@@ -298,11 +294,12 @@ export default function HackathonDetailPage() {
           The uuid, not the route param: that may be a slug. */}
       {regStatus && <HackerAnnouncements hackathonId={hackathon.id} />}
 
-      {/* Tabs */}
+      {/* Tabs. The end padding lets the last tab scroll clear of the fade. */}
       <div
         role="tablist"
         aria-label="Hackathon sections"
-        className={`mt-8 scrollbar-none ${tabList} ${tabFade}`}
+        ref={tabsRef}
+        className={`relative mt-8 pr-6 scrollbar-none ${tabList} ${tabFade}`}
       >
         {tabs.map((t) => (
           <button
@@ -313,7 +310,7 @@ export default function HackathonDetailPage() {
             aria-selected={tab === t.id}
             aria-controls={`panel-${t.id}`}
             onClick={() => selectTab(t.id)}
-            className={`focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${tabClass(tab === t.id)}`}
+            className={`shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${tabClass(tab === t.id)}`}
           >
             {t.label}
           </button>
