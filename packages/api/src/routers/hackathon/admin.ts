@@ -21,6 +21,7 @@ import {
   hackathonParticipants,
   hackathonEvents,
   hackathonEventAttendees,
+  memberResumes,
   users,
 } from "@query/db";
 import { eq, and, inArray, ne, notInArray, sql } from "drizzle-orm";
@@ -210,8 +211,25 @@ export const hackathonAdminRouter = createTRPCRouter({
           .where(where),
       ]);
 
+      // A resume uploaded to the portal lives in member_resume, not on the
+      // application row, so the row's own resumeUrl is empty for those people.
+      // Flagged here so the roster can link /api/resume/<userId> without
+      // guessing; only this page's users, never the whole table.
+      const userIds = rows.map((row) => row.userId);
+      const stored =
+        userIds.length === 0
+          ? []
+          : await db
+              .select({ userId: memberResumes.userId })
+              .from(memberResumes)
+              .where(inArray(memberResumes.userId, userIds));
+      const hasResume = new Set(stored.map((row) => row.userId));
+
       return {
-        attendees: rows,
+        attendees: rows.map((row) => ({
+          ...row,
+          hasStoredResume: hasResume.has(row.userId),
+        })),
         // How many match the current filter, so the pager knows where it ends. Not
         // the unfiltered total — conflating them makes the last page unreachable.
         matching: totals?.count ?? 0,
@@ -1140,6 +1158,7 @@ export const hackathonAdminRouter = createTRPCRouter({
         success: true,
         checkedIn: promotedToCheckedIn,
         pointsAwarded: event.points,
+        name: participant.user.name || participant.user.email,
         message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
       };
     }),

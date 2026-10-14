@@ -78,7 +78,18 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     onSuccess: refresh,
     onError,
   });
-  const busy = compute.isPending || publish.isPending || unpublish.isPending;
+  // Once placings are out the edition is over; offer to close it here rather
+  // than send organisers back to the hackathon dashboard for one click.
+  const edition = trpc.hackathon.getById.useQuery({ id: hackathonId });
+  const complete = trpc.hackathon.update.useMutation({
+    onSuccess: () => void utils.hackathon.getById.invalidate(),
+    onError,
+  });
+  const busy =
+    compute.isPending ||
+    publish.isPending ||
+    unpublish.isPending ||
+    complete.isPending;
 
   if (list.isLoading) {
     return <p className={`py-16 ${body}`}>Loading results…</p>;
@@ -191,6 +202,28 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
               </button>
             )
           )}
+          {published &&
+            edition.data &&
+            edition.data.status !== "completed" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "Mark this edition completed?",
+                    )
+                  )
+                    return;
+                  setError(null);
+                  complete.mutate({ id: hackathonId, status: "completed" });
+                }}
+                disabled={readOnly || busy}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={btnSecondary}
+              >
+                {complete.isPending ? "Saving…" : "Mark edition completed"}
+              </button>
+            )}
         </div>
       </section>
 

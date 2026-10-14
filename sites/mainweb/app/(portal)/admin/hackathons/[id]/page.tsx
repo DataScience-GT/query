@@ -2,12 +2,18 @@
 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import {
+  READ_ONLY_TITLE,
+  canViewAdmin,
+  usePortalContext,
+  useReadOnly,
+} from "@/lib/use-portal-context";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { decodeHackathonParam } from "@/lib/hackathon-slug";
+import { adminHackathonPath, decodeHackathonParam } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { EditHackathonForm } from "@/components/admin/hackathons/EditHackathonForm";
 import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
 import { AttendeesTab } from "@/components/admin/hackathons/AttendeesTab";
 import { AnalyticsTab } from "@/components/admin/hackathons/AnalyticsTab";
@@ -35,24 +41,48 @@ import {
   Users,
 } from "lucide-react";
 
-type Tab =
-  | "events"
-  | "scanner"
-  | "attendees"
-  | "analytics"
-  | "judges"
-  | "points"
-  | "store"
-  | "announcements";
+const TABS = [
+  "events",
+  "scanner",
+  "attendees",
+  "analytics",
+  "judges",
+  "points",
+  "store",
+  "announcements",
+] as const;
+
+type Tab = (typeof TABS)[number];
+
+// The tab lives in the URL hash, like the judging console: a reload, a pasted
+// link and the schedule links on the hackathons list (#events) land on the
+// tab the organiser meant instead of Applications.
+const subscribeHash = (onChange: () => void) => {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+};
+
+function useTab(): Tab {
+  const hash = useSyncExternalStore(
+    subscribeHash,
+    () => window.location.hash.slice(1),
+    () => "",
+  );
+  return TABS.find((t) => t === hash) ?? "attendees";
+}
 
 export default function AdminHackathonDashboard() {
   const { status } = useSession();
   const params = useParams();
+  const router = useRouter();
+  const utils = trpc.useUtils();
+  const readOnly = useReadOnly();
   const rawId = params?.id;
   const hackathonId = decodeHackathonParam(
     Array.isArray(rawId) ? (rawId[0] ?? "") : ((rawId as string | undefined) ?? ""),
   );
-  const [activeTab, setActiveTab] = useState<Tab>("attendees");
+  const activeTab = useTab();
+  const [editing, setEditing] = useState(false);
 
   const { data: portalContext, isLoading: portalLoading } = usePortalContext();
   const {
@@ -94,6 +124,28 @@ export default function AdminHackathonDashboard() {
       />
     );
   }
+
+  // A rename moves the dashboard to a new slug and the old one stops
+  // resolving, so follow the row to its new path instead of landing on
+  // "Hackathon not found" the moment the save succeeds.
+  const finishEdit = async () => {
+    setEditing(false);
+    utils.hackathon.listAll.invalidate();
+    try {
+      const fresh = await utils.hackathon.getById.fetch(
+        { id: hackathon.id },
+        { staleTime: 0 },
+      );
+      const next = adminHackathonPath(fresh.name, fresh.id);
+      if (next !== window.location.pathname) {
+        router.replace(`${next}${window.location.hash}`);
+        return;
+      }
+    } catch {
+      // Fall through: the invalidation below surfaces the failure on the page.
+    }
+    utils.hackathon.getById.invalidate();
+  };
 
   const icon = { className: "w-4 h-4", strokeWidth: 1.75, "aria-hidden": true } as const;
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -144,29 +196,41 @@ export default function AdminHackathonDashboard() {
               {["scanner", "attendees"].includes(activeTab) && (
                 // ScannerTab is rendered on this page; there is no
                 // /admin/hackathons/[id]/scanner route to link to.
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("scanner")}
-                  className={btnSecondary}
-                >
+                <a href="#scanner" className={btnSecondary}>
                   <ScanLine className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
                   Scan
-                </button>
+                </a>
               )}
+              <Link
+                href={`/admin/judging/${hackathon.id}`}
+                className={btnSecondary}
+              >
+                <Gavel className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                Judging
+              </Link>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                disabled={readOnly}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={btnSecondary}
+              >
+                Edit
+              </button>
             </div>
           </div>
 
           {/* DESKTOP TABS - Hidden on mobile */}
           <div className={`hidden md:flex mt-6 ${tabList}`}>
             {tabs.map((tab) => (
-              <button
+              <a
                 key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
+                href={`#${tab.id}`}
+                aria-current={activeTab === tab.id ? "page" : undefined}
                 className={`focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${tabClass(activeTab === tab.id)}`}
               >
                 {tab.label}
-              </button>
+              </a>
             ))}
           </div>
         </div>
@@ -193,7 +257,10 @@ export default function AdminHackathonDashboard() {
           )}
           {activeTab === "store" && <StoreTab hackathonId={hackathon.id} />}
           {activeTab === "announcements" && (
-            <AnnouncementsTab hackathonId={hackathon.id} />
+            <AnnouncementsTab
+              hackathonId={hackathon.id}
+              status={hackathon.status}
+            />
           )}
         </div>
       </main>
@@ -205,10 +272,10 @@ export default function AdminHackathonDashboard() {
           to suggest they existed. */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (
-          <button
+          <a
             key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
+            href={`#${tab.id}`}
+            aria-current={activeTab === tab.id ? "page" : undefined}
             className={`shrink-0 basis-1/5 flex flex-col items-center justify-center gap-1 border-t-2 -mt-px py-3 transition-colors ${
               activeTab === tab.id
                 ? "border-accent text-[var(--text-primary)] font-semibold"
@@ -217,9 +284,17 @@ export default function AdminHackathonDashboard() {
           >
             {tab.icon}
             <span className="text-[12px]">{tab.label}</span>
-          </button>
+          </a>
         ))}
       </div>
+
+      {editing && (
+        <EditHackathonForm
+          hackathonId={hackathon.id}
+          onClose={() => setEditing(false)}
+          onSaved={finishEdit}
+        />
+      )}
     </div>
   );
 }
