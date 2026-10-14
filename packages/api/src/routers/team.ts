@@ -664,6 +664,48 @@ export const teamRouter = createTRPCRouter({
       }
     }),
 
+  // Lets the captain stop new joins without disbanding. joinTeam already
+  // refuses a closed team; this is the only writer of the flag.
+  setOpen: protectedProcedure
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        teamId: z.string().uuid("Invalid team ID"),
+        isOpen: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+
+      const db = ctx.db as NonNullable<typeof ctx.db>;
+      const team = await db.query.hackathonTeams.findFirst({
+        where: and(
+          eq(hackathonTeams.id, input.teamId),
+          eq(hackathonTeams.hackathonId, input.hackathonId),
+        ),
+      });
+
+      if (!team)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+      if (team.captainId !== (ctx.userId as string)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the captain can open or close the team.",
+        });
+      }
+
+      await db
+        .update(hackathonTeams)
+        .set({ isOpen: input.isOpen, updatedAt: new Date() })
+        .where(eq(hackathonTeams.id, team.id));
+
+      // Not in CACHE_INVALIDATION_MAP, so the namespace fallback would sweep
+      // `team:*` and leave the cached roster list showing the old flag.
+      ctx.cache.delete(`hackathon:${input.hackathonId}:teams`);
+
+      return { success: true };
+    }),
+
   submitProject: notHackathonBanned
     .input(
       z.object({
@@ -798,7 +840,7 @@ export const teamRouter = createTRPCRouter({
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message:
-                  "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+                  "Project edits are closed. Submissions must be final 34 hours after the hacking starts.",
               });
             }
 

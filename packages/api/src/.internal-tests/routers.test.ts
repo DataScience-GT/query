@@ -856,7 +856,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           description: "This is a long description of the awesome project.",
         }),
       ).rejects.toThrowError(
-        "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+        "Project edits are closed. Submissions must be final 34 hours after the hacking starts.",
       );
     });
 
@@ -959,6 +959,54 @@ describe("Router Integration and Access Control Verification Suite", () => {
       ).rejects.toThrowError(
         "Project submission closed. The submission window ended 36 hours after the hacking started.",
       );
+    });
+
+    // joinTeam refuses a closed team, so the flag decides who can get in.
+    describe("team.setOpen", () => {
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
+      const teamId = "00000000-0000-4000-8000-000000000002";
+      const closedFlag = [
+        "update",
+        expect.anything(),
+        [expect.objectContaining({ isOpen: false })],
+        expect.anything(),
+      ];
+
+      beforeEach(() => {
+        mockFindFirst.mockImplementation((table) => {
+          if (table === "hackathons") {
+            return {
+              id: hackathonId,
+              startDate: new Date(),
+              hackingStartTime: null,
+            };
+          }
+          if (table === "hackathonTeams") {
+            return { id: teamId, captainId: "captain_user_id", hackathonId };
+          }
+          return null;
+        });
+      });
+
+      it("refuses anyone but the captain", async () => {
+        const caller = appRouter.createCaller(createMockCtx("member_user_id"));
+        await expect(
+          caller.team.setOpen({ hackathonId, teamId, isOpen: false }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        expect(mockUpdate).not.toHaveBeenCalledWith(...closedFlag);
+      });
+
+      it("lets the captain close the team and drops the cached roster", async () => {
+        const cacheKey = `hackathon:${hackathonId}:teams`;
+        cache.set(cacheKey, [], 60);
+
+        const caller = appRouter.createCaller(createMockCtx("captain_user_id"));
+        await expect(
+          caller.team.setOpen({ hackathonId, teamId, isOpen: false }),
+        ).resolves.toEqual({ success: true });
+        expect(mockUpdate).toHaveBeenCalledWith(...closedFlag);
+        expect(cache.get(cacheKey)).toBeNull();
+      });
     });
   });
 

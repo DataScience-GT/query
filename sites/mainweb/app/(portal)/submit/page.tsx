@@ -13,7 +13,6 @@ import {
   btnPrimary,
   btnSecondary,
   chip,
-  fieldHint,
   fieldLabel,
   input,
   itemTitle,
@@ -55,8 +54,7 @@ function SubmitPortalContent() {
   const [selectedHackathonId, setSelectedHackathonId] = useState<string>(
     urlHackathonId || "",
   );
-  const [teamName, setTeamName] = useState("");
-  const [joinTeamId, setJoinTeamId] = useState("");
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
 
   const [projectName, setProjectName] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
@@ -79,7 +77,27 @@ function SubmitPortalContent() {
 
   // Queries
   const { data: myRegs, isLoading: loadingRegs } =
-    trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+    trpc.hackathon.myRegistrations.useQuery(undefined, {
+      enabled: !!session,
+      // An accepted attendee gets checked in at the venue, which is what
+      // unlocks the form. Poll for it only on the event's days, so the page
+      // updates without a reload and idle tabs stay quiet. Day granularity on
+      // the viewer's clock, as the event page does: a badge scanned before
+      // doors open still counts.
+      refetchInterval: (query) => {
+        const reg = query.state.data?.find(
+          (r) => r.hackathonId === selectedHackathonId,
+        );
+        if (reg?.registrationStatus !== "approved") return false;
+        const startOfDay = (d: Date | string) =>
+          new Date(d).setHours(0, 0, 0, 0);
+        const today = startOfDay(new Date());
+        const started = startOfDay(reg.hackathon.startDate) <= today;
+        const ended =
+          !!reg.hackathon.endDate && today > startOfDay(reg.hackathon.endDate);
+        return started && !ended ? 30_000 : false;
+      },
+    });
 
   // The project a submit would overwrite — the team's entry, or the solo one
   // this participant filed. Reading it from the team alone leaves every solo
@@ -104,24 +122,8 @@ function SubmitPortalContent() {
     { enabled: !!session && !!selectedHackathonId },
   );
 
-  // Team create/join/leave gate on a different window to submitting: it opens
-  // at +12h, shuts at +34h, and leaving locks at +24h. The panel queried none
-  // of it, so every button outside those hours failed on click.
-  const teamWindow = trpc.team.window.useQuery(
-    { hackathonId: selectedHackathonId },
-    { enabled: !!session && !!selectedHackathonId },
-  );
-
   const availableTracks = hackathonDetail?.tracks ?? [];
   const availableChallenges = hackathonDetail?.challenges ?? [];
-
-  const teamsOpen = teamWindow.data?.isOpen ?? false;
-  const canLeaveTeam = teamWindow.data?.canLeave ?? false;
-  const teamWindowNotice = !teamWindow.data
-    ? null
-    : teamsOpen
-      ? null
-      : "Team formation has closed for this event.";
 
   const toggle = (
     value: string,
@@ -147,55 +149,27 @@ function SubmitPortalContent() {
     (!!mySubmission.data && mySubmission.data.status !== "draft") ||
     currentReg?.hasSubmittedProject ||
     projectSubmitted;
+  // submitProject and withdrawProject refuse everyone but the captain, so
+  // teammates see the entry but cannot change it.
+  const readOnly =
+    !!currentReg?.team && currentReg.team.captainId !== session?.user?.id;
+  // The team list already carries the captain; it is read only to name them.
+  const teamRoster = trpc.team.list.useQuery(
+    { hackathonId: selectedHackathonId },
+    { enabled: readOnly && !!selectedHackathonId },
+  );
+  const captainName = teamRoster.data?.find(
+    (t) => t.id === currentReg?.team?.id,
+  )?.captain?.name;
 
   // Mutations
-  // Joining, creating or leaving a team changes which project this participant
-  // owns, so the form has to be refilled from the new one rather than keeping
-  // the old team's answers.
-  const teamChanged = () => {
-    utils.hackathon.myRegistrations.invalidate();
-    utils.team.mySubmission.invalidate();
-    setPrefilledFor("");
-    setError("");
-  };
-
-  const createTeam = trpc.team.createTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-      setTeamName("");
-    },
-    onError: (err) => setError(err.message),
-  });
-
-  const joinTeam = trpc.team.joinTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-      setJoinTeamId("");
-    },
-    onError: (err) => setError(err.message),
-  });
-
-  const leaveTeam = trpc.team.leaveTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-    },
-    onError: (err) => setError(err.message),
-  });
-
-  const disbandTeam = trpc.team.disbandTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-    },
-    onError: (err) => setError(err.message),
-  });
-
   const submitProject = trpc.team.submitProject.useMutation({
     onSuccess: () => {
       utils.hackathon.myRegistrations.invalidate();
       utils.team.mySubmission.invalidate();
       setError("");
       setSuccessMessage(
-        "Project submitted. Judging is in person: your team presents in a room for each challenge, and the event's Judging tab shows where and when.",
+        "Project submitted. Judging is in person: your team presents to judges for each challenge, and the event's Judging tab shows where and when.",
       );
       setProjectSubmitted(true);
     },
@@ -210,11 +184,15 @@ function SubmitPortalContent() {
       utils.team.mySubmission.invalidate();
       setError("");
       setProjectSubmitted(false);
+      setConfirmWithdraw(false);
       setSuccessMessage(
         "Submission withdrawn. It is back to draft and no longer entered for judging.",
       );
     },
-    onError: (err) => setError(err.message),
+    onError: (err) => {
+      setConfirmWithdraw(false);
+      setError(err.message);
+    },
   });
 
   // Still submittable: until 12 hours after the event ends. The default pick
@@ -310,6 +288,7 @@ function SubmitPortalContent() {
                   setError("");
                   setSuccessMessage("");
                   setProjectSubmitted(false);
+                  setConfirmWithdraw(false);
                 }}
               >
                 <option value="" disabled>
@@ -323,151 +302,39 @@ function SubmitPortalContent() {
               </select>
             </div>
 
-            {currentReg?.team ? (
-              <div className="border-t border-[var(--border-subtle)] pt-6">
-                <h2 className={label}>Your team</h2>
-                <p className={`mt-1 ${itemTitle}`}>{currentReg.team.name}</p>
-                <p className={`mt-1 ${meta}`}>
-                  {currentReg.team.currentMembers} of{" "}
-                  {currentReg.team.maxMembers} members
-                </p>
-
-                <div className="mt-5">
-                  <p className={fieldLabel}>Invite code</p>
-                  <div className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] bg-[var(--bg-input)] px-3 py-2 text-center font-mono text-[13px] text-[var(--text-primary)] select-all break-all">
-                    {currentReg.team.id}
-                  </div>
-                  <p className={fieldHint}>Share this so teammates can join.</p>
-                </div>
-
-                {currentReg.team.captainId === session?.user?.id ? (
-                  <div className="mt-6 space-y-3">
-                    <p className={meta}>You&apos;re the team captain.</p>
-                    {/* leaveTeam refuses for a captain and points here;
-                        without this the captain has no way out. */}
-                    <button
-                      onClick={() => {
-                        const teamId = currentReg.team?.id;
-                        if (!teamId) return;
-                        disbandTeam.mutate({
-                          hackathonId: selectedHackathonId,
-                          teamId,
-                        });
-                      }}
-                      disabled={disbandTeam.isPending || !canLeaveTeam}
-                      className={`w-full ${btnDanger}`}
-                    >
-                      {disbandTeam.isPending ? "Disbanding…" : "Disband team"}
-                    </button>
-                    {!canLeaveTeam && (
-                      <p className={meta}>
-                        Rosters are locked for the final 12 hours before the
-                        deadline.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-6 space-y-3">
-                    <button
-                      onClick={() =>
-                        leaveTeam.mutate({
-                          hackathonId: selectedHackathonId,
-                        })
-                      }
-                      disabled={leaveTeam.isPending || !canLeaveTeam}
-                      className={`w-full ${btnDanger}`}
-                    >
-                      {leaveTeam.isPending ? "Leaving…" : "Leave team"}
-                    </button>
-                    {!canLeaveTeam && (
-                      <p className={meta}>
-                        Rosters are locked for the final 12 hours before the
-                        deadline.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4 border-t border-[var(--border-subtle)] pt-6">
-                <h2 className={label}>Team</h2>
-                <p className={body}>
+            <div className="border-t border-[var(--border-subtle)] pt-6">
+              <h2 className={label}>
+                {currentReg?.team ? "Your team" : "Team"}
+              </h2>
+              {currentReg?.team ? (
+                <>
+                  <p className={`mt-1 ${itemTitle}`}>{currentReg.team.name}</p>
+                  <p className={`mt-1 ${meta}`}>
+                    {currentReg.team.currentMembers} of{" "}
+                    {currentReg.team.maxMembers} members
+                  </p>
+                  {!readOnly && (
+                    <p className={`mt-1 ${meta}`}>
+                      You&apos;re the team captain.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className={`mt-1 ${body}`}>
                   {admitted
-                    ? "You're submitting solo. Create a team or join one with an invite code."
+                    ? "You're submitting solo. Create a team or join one from the event's Teams tab."
                     : "You can create or join a team once you have been accepted."}
                 </p>
-
-                {teamWindowNotice && (
-                  <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
-                    {teamWindowNotice}
-                  </p>
-                )}
-
-                {admitted && (
-                  <>
-                    <div className="space-y-3 pt-2">
-                      <input
-                        type="text"
-                        aria-label="Team name"
-                        placeholder="Team name"
-                        value={teamName}
-                        onChange={(e) => setTeamName(e.target.value)}
-                        className={input}
-                      />
-                      <button
-                        onClick={() => {
-                          if (teamName.trim().length === 0) {
-                            setError("Team name is required.");
-                            return;
-                          }
-                          createTeam.mutate({
-                            hackathonId: selectedHackathonId,
-                            name: teamName,
-                          });
-                        }}
-                        disabled={createTeam.isPending || !teamsOpen}
-                        className={`w-full ${btnSecondary}`}
-                      >
-                        {createTeam.isPending ? "Creating…" : "Create team"}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-4 py-1">
-                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                      <span className={meta}>or</span>
-                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        aria-label="Invite code"
-                        placeholder="Paste invite code"
-                        value={joinTeamId}
-                        onChange={(e) => setJoinTeamId(e.target.value)}
-                        className={`font-mono ${input}`}
-                      />
-                      <button
-                        onClick={() =>
-                          joinTeam.mutate({
-                            hackathonId: selectedHackathonId,
-                            teamId: joinTeamId,
-                          })
-                        }
-                        disabled={
-                          joinTeam.isPending ||
-                          joinTeamId.trim().length === 0 ||
-                          !teamsOpen
-                        }
-                        className={`w-full ${btnSecondary}`}
-                      >
-                        {joinTeam.isPending ? "Joining…" : "Join team"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+              )}
+              {currentReg && (currentReg.team || admitted) && (
+                <Link
+                  href={`/hackathons/${selectedHackathonId}?tab=TEAMS`}
+                  className={`mt-4 ${btnSecondary}`}
+                >
+                  {currentReg.team ? "Manage team" : "Create or join a team"}
+                </Link>
+              )}
+            </div>
           </aside>
 
           {/* Project submission */}
@@ -483,8 +350,8 @@ function SubmitPortalContent() {
                   live on the hackathon's Judging tab. */}
               {mySubmission.data?.inJudging && (
                 <p className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
-                  Your project is in judging. Your team presents to judges in
-                  a room for each challenge it entered, and the{" "}
+                  Your project is in judging. Your team presents to judges for
+                  each challenge it entered, and the{" "}
                   <Link
                     href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
                     className="font-semibold underline decoration-accent decoration-2 underline-offset-[5px]"
@@ -507,6 +374,13 @@ function SubmitPortalContent() {
                       : currentReg.registrationStatus === "waitlisted"
                         ? "You're on the waitlist. If a seat opens, you'll be accepted and can submit."
                         : "Your registration wasn't accepted, so you can't submit to this hackathon."}
+                </p>
+              )}
+
+              {readOnly && (
+                <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
+                  Only {captainName ?? "your team captain"} can submit or edit.
+                  You can see what the team has filed below.
                 </p>
               )}
 
@@ -547,9 +421,20 @@ function SubmitPortalContent() {
                   <p className="text-[15px] font-semibold text-[var(--text-primary)]">
                     {successMessage}
                   </p>
-                  <Link href="/dashboard" className={textLink}>
-                    Back to dashboard
-                  </Link>
+                  {/* A withdrawn project is out of judging, so only a
+                      submit points there. */}
+                  {projectSubmitted ? (
+                    <Link
+                      href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                      className={textLink}
+                    >
+                      Go to Judging
+                    </Link>
+                  ) : (
+                    <Link href="/dashboard" className={textLink}>
+                      Back to dashboard
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -585,6 +470,7 @@ function SubmitPortalContent() {
                     id="project-name"
                     type="text"
                     required
+                    disabled={readOnly}
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g. Transit delay predictor"
@@ -601,6 +487,7 @@ function SubmitPortalContent() {
                   <textarea
                     id="project-description"
                     required
+                    disabled={readOnly}
                     value={projectDesc}
                     onChange={(e) => setProjectDesc(e.target.value)}
                     placeholder="Explain the problem you solved and how you built it…"
@@ -619,9 +506,8 @@ function SubmitPortalContent() {
                 <div className="border-t border-[var(--border-subtle)] pt-6">
                   <h3 className={itemTitle}>Tracks and challenges</h3>
                   <p className={`mt-1 ${body}`}>
-                    Your project presents to judges in a room for each
-                    challenge you pick, so pick everything you are competing
-                    for.
+                    Your project presents to judges for each challenge you
+                    pick, so pick everything you are competing for.
                   </p>
 
                   {availableTracks.length > 0 && (
@@ -634,7 +520,8 @@ function SubmitPortalContent() {
                             type="button"
                             onClick={() => toggle(track, tracks, setTracks)}
                             aria-pressed={tracks.includes(track)}
-                            className={chip(tracks.includes(track))}
+                            disabled={readOnly}
+                            className={`${chip(tracks.includes(track))} disabled:opacity-60`}
                           >
                             {track}
                           </button>
@@ -655,7 +542,8 @@ function SubmitPortalContent() {
                               toggle(challenge, challenges, setChallenges)
                             }
                             aria-pressed={challenges.includes(challenge)}
-                            className={chip(challenges.includes(challenge))}
+                            disabled={readOnly}
+                            className={`${chip(challenges.includes(challenge))} disabled:opacity-60`}
                           >
                             {challenge}
                           </button>
@@ -672,6 +560,7 @@ function SubmitPortalContent() {
                       id="is-createx"
                       type="checkbox"
                       checked={isCreateX}
+                      disabled={readOnly}
                       onChange={(e) => setIsCreateX(e.target.checked)}
                       className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
                     />
@@ -692,6 +581,7 @@ function SubmitPortalContent() {
                     <input
                       id="github-url"
                       type="url"
+                      disabled={readOnly}
                       value={githubUrl}
                       onChange={(e) => setGithubUrl(e.target.value)}
                       placeholder="https://github.com/…"
@@ -705,6 +595,7 @@ function SubmitPortalContent() {
                     <input
                       id="video-url"
                       type="url"
+                      disabled={readOnly}
                       value={videoUrl}
                       onChange={(e) => setVideoUrl(e.target.value)}
                       placeholder="https://youtube.com/…"
@@ -718,6 +609,7 @@ function SubmitPortalContent() {
                     <input
                       id="demo-url"
                       type="url"
+                      disabled={readOnly}
                       value={demoUrl}
                       onChange={(e) => setDemoUrl(e.target.value)}
                       placeholder="https://…"
@@ -730,31 +622,29 @@ function SubmitPortalContent() {
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6">
                 <p className={meta}>
                   {hasSubmitted
-                    ? "You've already submitted. Saving replaces your current entry."
+                    ? readOnly
+                      ? "Your team has submitted."
+                      : "You've already submitted. Saving replaces your current entry."
                     : ""}
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
-                  {hasSubmitted && (
+                  {hasSubmitted && !confirmWithdraw && (
                     <button
                       type="button"
-                      disabled={withdrawProject.isPending}
+                      disabled={readOnly}
                       onClick={() => {
                         setError("");
                         setSuccessMessage("");
-                        withdrawProject.mutate({
-                          hackathonId: selectedHackathonId,
-                        });
+                        setConfirmWithdraw(true);
                       }}
                       className={btnDanger}
                     >
-                      {withdrawProject.isPending
-                        ? "Withdrawing…"
-                        : "Withdraw submission"}
+                      Withdraw submission
                     </button>
                   )}
                   <button
                     type="submit"
-                    disabled={submitProject.isPending}
+                    disabled={readOnly || submitProject.isPending}
                     className={btnPrimary}
                   >
                     {submitProject.isPending
@@ -764,6 +654,38 @@ function SubmitPortalContent() {
                         : "Submit project"}
                   </button>
                 </div>
+                {confirmWithdraw && (
+                  <div className="flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
+                    <p className={body}>
+                      Withdraw your submission? It goes back to draft and is no
+                      longer entered for judging.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          withdrawProject.mutate({
+                            hackathonId: selectedHackathonId,
+                          })
+                        }
+                        disabled={withdrawProject.isPending}
+                        className={btnDanger}
+                      >
+                        {withdrawProject.isPending
+                          ? "Withdrawing…"
+                          : "Withdraw"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmWithdraw(false)}
+                        disabled={withdrawProject.isPending}
+                        className={btnSecondary}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
           </section>

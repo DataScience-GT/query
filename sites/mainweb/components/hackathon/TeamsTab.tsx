@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Copy } from "lucide-react";
 import {
   body,
   btnDanger,
@@ -18,6 +20,11 @@ import {
   sectionTitle,
   status,
 } from "@/components/portal/ui";
+
+type TeamMember = {
+  userId: string;
+  user: { name?: string | null; image?: string | null };
+};
 
 export function TeamsTab({
   hackathonId,
@@ -46,6 +53,24 @@ export function TeamsTab({
   const [teamDesc, setTeamDesc] = useState("");
   const [maxMembers, setMaxMembers] = useState(4);
   const [error, setError] = useState("");
+  const [confirmDisband, setConfirmDisband] = useState(false);
+  const [confirmJoinId, setConfirmJoinId] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [search, setSearch] = useState("");
+  const [hideFull, setHideFull] = useState(false);
+
+  const { data: session } = useSession();
+  // An invite link (?join=<teamId>) lands on that team's card.
+  const joinTarget = useSearchParams().get("join");
+  const scrolledTo = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!joinTarget || !teams || scrolledTo.current === joinTarget) return;
+    const card = document.getElementById(`team-${joinTarget}`);
+    if (!card) return;
+    scrolledTo.current = joinTarget;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [joinTarget, teams]);
 
   const utils = trpc.useUtils();
 
@@ -57,23 +82,51 @@ export function TeamsTab({
       setError("");
       utils.team.list.invalidate({ hackathonId });
       utils.hackathon.myRegistrations.invalidate();
+      // /submit prefills its form from this once per visit, so a team change
+      // has to drop the old copy rather than just mark it stale.
+      utils.team.mySubmission.reset();
     },
     onError: (e) => setError(e.message),
   });
 
   const joinTeam = trpc.team.joinTeam.useMutation({
     onSuccess: () => {
+      setConfirmJoinId(null);
       utils.team.list.invalidate({ hackathonId });
       utils.hackathon.myRegistrations.invalidate();
+      utils.team.mySubmission.reset();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) => {
+      setConfirmJoinId(null);
+      setError(e.message);
+    },
   });
 
   const leaveTeam = trpc.team.leaveTeam.useMutation({
     onSuccess: () => {
       utils.team.list.invalidate({ hackathonId });
       utils.hackathon.myRegistrations.invalidate();
+      utils.team.mySubmission.reset();
     },
+    onError: (e) => setError(e.message),
+  });
+
+  // A captain with other members cannot leave; the server points them here.
+  const disbandTeam = trpc.team.disbandTeam.useMutation({
+    onSuccess: () => {
+      setConfirmDisband(false);
+      utils.team.list.invalidate({ hackathonId });
+      utils.hackathon.myRegistrations.invalidate();
+      utils.team.mySubmission.reset();
+    },
+    onError: (e) => {
+      setConfirmDisband(false);
+      setError(e.message);
+    },
+  });
+
+  const setOpen = trpc.team.setOpen.useMutation({
+    onSuccess: () => utils.team.list.invalidate({ hackathonId }),
     onError: (e) => setError(e.message),
   });
 
@@ -102,6 +155,20 @@ export function TeamsTab({
 
   const myTeam = teams?.find((t) => t.id === myTeamId);
   const otherTeams = teams?.filter((t) => t.id !== myTeamId) ?? [];
+  const isCaptain = !!myTeam && myTeam.captainId === session?.user?.id;
+
+  // Matches the team name or any member's name; both are already in the list.
+  const needle = search.trim().toLowerCase();
+  const visibleTeams = otherTeams.filter((t) => {
+    if (hideFull && t.currentMembers >= t.maxMembers) return false;
+    if (!needle) return true;
+    return (
+      t.name.toLowerCase().includes(needle) ||
+      (t.participants || []).some((p: TeamMember) =>
+        (p.user.name ?? "").toLowerCase().includes(needle),
+      )
+    );
+  });
 
   // Until the teamWindow loads, assume closed so nothing is offered that would fail.
   const canCreate = teamWindow?.canCreate ?? false;
@@ -191,27 +258,122 @@ export function TeamsTab({
             )}
           </ul>
 
+          {isCaptain && (
+            <label
+              htmlFor="team-closed"
+              className="mt-5 flex cursor-pointer items-start gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <input
+                id="team-closed"
+                type="checkbox"
+                checked={!myTeam.isOpen}
+                disabled={setOpen.isPending || !teamWindow?.isOpen}
+                onChange={(e) => {
+                  setError("");
+                  setOpen.mutate({
+                    hackathonId,
+                    teamId: myTeam.id,
+                    isOpen: !e.target.checked,
+                  });
+                }}
+                className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+              />
+              Closed to new members
+            </label>
+          )}
+
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-4">
             <span className={meta}>
               {myTeam.currentMembers} of {myTeam.maxMembers} members
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                setError("");
-                leaveTeam.mutate({ hackathonId });
-              }}
-              disabled={leaveTeam.isPending || !canLeave}
-              title={canLeave ? undefined : (windowNotice ?? undefined)}
-              className={btnDanger}
-            >
-              {leaveTeam.isPending
-                ? "Leaving…"
-                : canLeave
-                  ? "Leave team"
-                  : "Roster locked"}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {isCaptain && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard
+                      ?.writeText(
+                        `${window.location.origin}/hackathons/${hackathonId}?tab=TEAMS&join=${myTeam.id}`,
+                      )
+                      .then(() => {
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      });
+                  }}
+                  className={btnSecondary}
+                >
+                  <Copy size={16} strokeWidth={1.75} aria-hidden="true" />
+                  {linkCopied ? "Copied" : "Copy invite link"}
+                </button>
+              )}
+              {isCaptain && myTeam.currentMembers > 1 ? (
+                !confirmDisband && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setConfirmDisband(true);
+                    }}
+                    disabled={!canLeave}
+                    title={canLeave ? undefined : (windowNotice ?? undefined)}
+                    className={btnDanger}
+                  >
+                    {canLeave ? "Disband team" : "Roster locked"}
+                  </button>
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    leaveTeam.mutate({ hackathonId });
+                  }}
+                  disabled={leaveTeam.isPending || !canLeave}
+                  title={canLeave ? undefined : (windowNotice ?? undefined)}
+                  className={btnDanger}
+                >
+                  {leaveTeam.isPending
+                    ? "Leaving…"
+                    : canLeave
+                      ? "Leave team"
+                      : "Roster locked"}
+                </button>
+              )}
+            </div>
           </div>
+
+          {isCaptain && confirmDisband && (
+            <div className="mt-4 flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
+              <p className={body}>
+                Disband {myTeam.name}? Every member is removed and the team is
+                deleted. This cannot be undone.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    disbandTeam.mutate({ hackathonId, teamId: myTeam.id });
+                  }}
+                  disabled={disbandTeam.isPending}
+                  className={btnDanger}
+                >
+                  {disbandTeam.isPending ? "Disbanding…" : "Disband"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmDisband(false);
+                    setError("");
+                  }}
+                  disabled={disbandTeam.isPending}
+                  className={btnSecondary}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -327,7 +489,11 @@ export function TeamsTab({
       <section className="border-t border-[var(--border-subtle)] pt-8">
         <div className="flex items-baseline justify-between gap-4 mb-5">
           <h3 className={sectionTitle}>Open teams</h3>
-          <span className={meta}>{otherTeams.length}</span>
+          <span className={meta}>
+            {visibleTeams.length === otherTeams.length
+              ? otherTeams.length
+              : `${visibleTeams.length} of ${otherTeams.length}`}
+          </span>
         </div>
 
         {otherTeams.length === 0 && !myTeam && (
@@ -336,8 +502,38 @@ export function TeamsTab({
           </p>
         )}
 
+        {otherTeams.length > 0 && (
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <input
+              type="search"
+              aria-label="Search teams"
+              placeholder="Search by team or member name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`${input} sm:max-w-sm`}
+            />
+            <label
+              htmlFor="hide-full-teams"
+              className="flex cursor-pointer items-center gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <input
+                id="hide-full-teams"
+                type="checkbox"
+                checked={hideFull}
+                onChange={(e) => setHideFull(e.target.checked)}
+                className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+              />
+              Hide full teams
+            </label>
+          </div>
+        )}
+
+        {otherTeams.length > 0 && visibleTeams.length === 0 && (
+          <p className={body}>No teams match.</p>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {otherTeams.map((team) => {
+          {visibleTeams.map((team) => {
             const isFull = team.currentMembers >= team.maxMembers;
             const canJoin =
               isAdmitted &&
@@ -345,11 +541,17 @@ export function TeamsTab({
               team.isOpen &&
               !isFull &&
               windowAllowsJoin;
+            const memberNames = (team.participants || [])
+              .map((p: TeamMember) => p.user.name ?? "Unknown")
+              .join(", ");
 
             return (
               <article
                 key={team.id}
-                className={`${object} p-5 flex flex-col gap-4`}
+                id={`team-${team.id}`}
+                className={`${object} p-5 flex flex-col gap-4 ${
+                  team.id === joinTarget ? "ring-2 ring-accent" : ""
+                }`}
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -362,6 +564,11 @@ export function TeamsTab({
                   {team.description && (
                     <p className={`mt-1.5 line-clamp-2 ${body}`}>
                       {team.description}
+                    </p>
+                  )}
+                  {memberNames && (
+                    <p className={`mt-1.5 line-clamp-2 ${meta}`}>
+                      {memberNames}
                     </p>
                   )}
                 </div>
@@ -406,20 +613,52 @@ export function TeamsTab({
                     </span>
                   </div>
 
-                  {canJoin && (
+                  {canJoin && confirmJoinId !== team.id && (
                     <button
                       type="button"
                       onClick={() => {
                         setError("");
-                        joinTeam.mutate({ hackathonId, teamId: team.id });
+                        setConfirmJoinId(team.id);
                       }}
-                      disabled={joinTeam.isPending}
                       className={`${btnSecondary} shrink-0`}
                     >
-                      {joinTeam.isPending ? "Joining…" : "Join team"}
+                      Join team
                     </button>
                   )}
                 </div>
+
+                {canJoin && confirmJoinId === team.id && (
+                  <div className="flex flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
+                    <p className={body}>
+                      Join {team.name}?
+                      {teamWindow &&
+                        (teamWindow.canLeave
+                          ? ` You can leave until ${fmt(teamWindow.leaveLocksAt)}.`
+                          : " Rosters are locked, so you will not be able to leave.")}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError("");
+                          joinTeam.mutate({ hackathonId, teamId: team.id });
+                        }}
+                        disabled={joinTeam.isPending}
+                        className={btnPrimary}
+                      >
+                        {joinTeam.isPending ? "Joining…" : "Join"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmJoinId(null)}
+                        disabled={joinTeam.isPending}
+                        className={btnSecondary}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </article>
             );
           })}
