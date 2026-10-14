@@ -130,7 +130,7 @@ describe("stationGroups", () => {
       station("d", "Klaus"),
     ]);
     expect(ids(groups)).toEqual([
-      [null, ["c"]],
+      ["Your track", ["c"]],
       ["Klaus", ["a", "d"]],
       ["Van Leer", ["b"]],
     ]);
@@ -147,6 +147,11 @@ describe("stationGroups", () => {
   it("has no headings when there is nothing to tell apart", () => {
     expect(
       ids(stationGroups([station("a", null), station("b", null)])),
+    ).toEqual([[null, ["a", "b"]]]);
+    expect(
+      ids(
+        stationGroups([station("a", "Klaus", true), station("b", null, true)]),
+      ),
     ).toEqual([[null, ["a", "b"]]]);
     expect(stationGroups([])).toEqual([]);
   });

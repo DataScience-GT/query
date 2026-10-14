@@ -3,15 +3,15 @@
 import { ChevronRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { body, btnSecondary, itemTitle } from "@/components/portal/ui";
 import {
-  body,
-  btnSecondary,
-  itemTitle,
-  label,
-  meta,
-  status,
-} from "@/components/portal/ui";
-import { ICON_STROKE, clockTime, formatScore } from "./desk";
+  ICON_STROKE,
+  clockTime,
+  deskLabel,
+  deskMeta,
+  deskStatus,
+  formatScore,
+} from "./desk";
 import type { Submission } from "./desk";
 
 function standing(row: Submission) {
@@ -35,7 +35,7 @@ export function MySubmissions({
 
   if (mine.isPending) {
     return (
-      <p role="status" className={`mt-8 ${meta}`}>
+      <p role="status" className={`mt-8 ${deskMeta}`}>
         Loading your evaluations…
       </p>
     );
@@ -67,7 +67,7 @@ export function MySubmissions({
 
   return (
     <section className="mt-8" aria-label="Your evaluations">
-      <h2 className={label}>
+      <h2 className={deskLabel}>
         {mine.data.length} submitted{" "}
         {mine.data.length === 1 ? "evaluation" : "evaluations"}
       </h2>
@@ -84,10 +84,10 @@ export function MySubmissions({
                   {row.title}
                 </span>
                 <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className={meta}>
+                  <span className={deskMeta}>
                     {row.challengeLabel} · {when}
                   </span>
-                  <span className={status(state.tone)}>{state.text}</span>
+                  <span className={deskStatus(state.tone)}>{state.text}</span>
                 </span>
               </span>
               {!row.withdrawn && (

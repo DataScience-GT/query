@@ -6,16 +6,14 @@ import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import {
   btnPrimary,
-  fieldHint,
   fieldLabel,
   input,
-  meta,
   pageDek,
   pageTitle,
   sectionRule,
   textLink,
 } from "@/components/portal/ui";
-import { deskPage, inOrAt, roomPlace } from "./desk";
+import { deskMeta, deskPage, inOrAt } from "./desk";
 import type { DeskContext } from "./desk";
 
 /** A guest's first screen after scanning: their name, then the desk. */
@@ -35,13 +33,13 @@ export function GuestNameGate({
 
   return (
     <main className={deskPage}>
-      <p className={meta}>{context.hackathon.name} · Guest judge</p>
+      <p className={deskMeta}>{context.hackathon.name} · Guest judge</p>
       <h1 className={`mt-2 ${pageTitle}`}>
-        {room ? roomPlace(room.name, room.buildingName) : "Guest judging"}
+        {room ? room.name : "Guest judging"}
       </h1>
       <p className={pageDek}>
         {room
-          ? `You are judging ${room.challengeLabel} ${inOrAt(room.kind)} this ${room.kind}. `
+          ? `You are judging ${room.challengeLabel} ${inOrAt(room.kind)} this ${room.kind}${room.buildingName ? ` in ${room.buildingName}` : ""}. `
           : ""}
         Enter your name so organisers can match your scores to you.
       </p>
@@ -67,7 +65,7 @@ export function GuestNameGate({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <p className={fieldHint}>
+        <p className={`mt-1.5 ${deskMeta}`}>
           Organisers see it beside your scores. Teams never see judge names.
         </p>
         {setGuestName.error && (
@@ -88,19 +86,16 @@ export function GuestNameGate({
       </form>
 
       <div className={`mt-10 max-w-md ${sectionRule}`}>
-        <p className={meta}>
-          Approved judge?{" "}
-          <Link
-            href={`/login?callbackUrl=${encodeURIComponent(`/judge/${hackathonId}`)}`}
-            className={textLink}
-          >
-            Sign in instead
-          </Link>
+        <p className={deskMeta}>
+          Approved judge? After you sign in, scan the code again. It seats you
+          as a member instead of a guest.
         </p>
-        <p className={`mt-1 ${meta}`}>
-          After you sign in, scan the code again. It seats you as a member
-          instead of a guest.
-        </p>
+        <Link
+          href={`/login?callbackUrl=${encodeURIComponent(`/judge/${hackathonId}`)}`}
+          className={`${textLink} mt-1 min-h-11`}
+        >
+          Sign in instead
+        </Link>
       </div>
     </main>
   );

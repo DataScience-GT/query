@@ -1,8 +1,8 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { body, meta, status } from "@/components/portal/ui";
-import { clockTime } from "./desk";
+import { body } from "@/components/portal/ui";
+import { clockTime, deskMeta, deskStatus } from "./desk";
 
 /**
  * Messages from organisers: the edition-wide one and the judge's room's.
@@ -30,20 +30,20 @@ export function DeskAnnouncements({
     <section
       aria-label="Announcements from organisers"
       aria-live="polite"
-      className={urgentOnly ? "mb-6 space-y-4" : "mt-8 space-y-5"}
+      className={urgentOnly ? "mb-6 space-y-4" : "mt-6 space-y-5"}
     >
       {shown.map((a) => (
         <div
           key={a.id}
-          className={`border-l-2 pl-4 ${a.isUrgent ? "border-[var(--danger)]" : "border-[var(--border-medium)]"}`}
+          className={`border-l-2 pl-5 ${a.isUrgent ? "border-[var(--danger)]" : "border-[var(--border-medium)]"}`}
         >
-          {a.isUrgent && <p className={status("danger")}>Urgent</p>}
+          {a.isUrgent && <p className={deskStatus("danger")}>Urgent</p>}
           <p
             className={`whitespace-pre-line break-words ${a.isUrgent ? "mt-1 text-[17px] font-semibold leading-snug text-[var(--text-primary)]" : body}`}
           >
             {a.message}
           </p>
-          <p className={`mt-1 ${meta}`}>
+          <p className={`mt-1 ${deskMeta}`}>
             {a.roomName ? `For ${a.roomName}` : "For every judge"} ·{" "}
             {clockTime(a.createdAt)}
           </p>

@@ -54,6 +54,16 @@ export const toneText: Record<Tone, string> = {
   neutral: "text-[var(--text-primary)]",
 };
 
+// The shared `meta`, `label` and `status` set 13px text in --text-subtle, which
+// is 4.46:1 on the portal's paper. The desk is read in a bright hall, so its
+// small text uses --text-muted (6.7:1) and a neutral status reads in ink.
+export const deskMeta = "text-[13px] text-[var(--text-muted)]";
+
+export const deskLabel = "text-[13px] font-medium text-[var(--text-muted)]";
+
+export const deskStatus = (tone: Tone) =>
+  `inline-flex items-center gap-1.5 text-[13px] font-semibold ${toneText[tone]} before:content-[''] before:h-1.5 before:w-1.5 before:rounded-full before:bg-current`;
+
 /** How long until something starts: "in 4 min", "in 1 h 5 min". */
 export function startsIn(ms: number) {
   const minutes = Math.max(1, Math.ceil(ms / 60_000));
@@ -141,6 +151,11 @@ export function stationGroups<
       heading: groups.length > 0 ? "Elsewhere" : null,
       stations: loose,
     });
+  }
+  // The judge's track is a group like the rest once there is something to tell
+  // it apart from.
+  if (groups.length > 1 && groups[0].stations.every((s) => s.yourTrack)) {
+    groups[0].heading = "Your track";
   }
   return groups;
 }
