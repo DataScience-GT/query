@@ -86,6 +86,8 @@ export function PointsTab({ hackathonId }: { hackathonId: string }) {
     POLL,
   );
   const store = trpc.points.me.store.useQuery({ hackathonId }, POLL);
+  // The newest rows first; the rest on request. The list grows all weekend.
+  const [showAllHistory, setShowAllHistory] = React.useState(false);
 
   if (!summary.data) {
     if (summary.isError) {
@@ -116,41 +118,49 @@ export function PointsTab({ hackathonId }: { hackathonId: string }) {
 
   const { balance, checkedIn } = summary.data;
   const history = historyRows(summary.data);
+  const shownHistory = showAllHistory ? history : history.slice(0, 6);
+  // Nothing earned, nothing spent, not through the door: a row of zeros would
+  // lead the screen, so the way in leads instead.
+  const fresh = !checkedIn && balance.earned === 0 && balance.spent === 0;
 
   return (
     <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16">
       <div className="min-w-0 space-y-10">
-        <section aria-labelledby="points-available">
-          <p id="points-available" className={label}>
-            Points to spend
-          </p>
-          <div className="mt-1 flex flex-wrap items-end gap-x-6 gap-y-2">
-            <p className="font-[family-name:var(--font-display)] text-[72px] md:text-[88px] font-semibold leading-[0.9] tracking-[-0.03em] tabular-nums text-[var(--text-primary)]">
-              {balance.available.toLocaleString("en-US")}
+        {!fresh && (
+          <section aria-labelledby="points-available">
+            <p id="points-available" className={label}>
+              Points to spend
             </p>
-            <dl className={`pb-1.5 tabular-nums ${meta}`}>
-              <div className="flex gap-1.5">
-                <dt>Earned</dt>
-                <dd className="text-[var(--text-secondary)]">
-                  {balance.earned.toLocaleString("en-US")}
-                </dd>
-              </div>
-              <div className="flex gap-1.5">
-                <dt>Spent</dt>
-                <dd className="text-[var(--text-secondary)]">
-                  {balance.spent.toLocaleString("en-US")}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </section>
+            <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-2">
+              <p className="font-[family-name:var(--font-display)] text-[72px] md:text-[88px] font-semibold leading-[0.9] tracking-[-0.03em] tabular-nums text-[var(--text-primary)]">
+                {balance.available.toLocaleString("en-US")}
+              </p>
+              <dl className={`pb-1.5 tabular-nums ${meta}`}>
+                <div className="flex gap-1.5">
+                  <dt>Earned</dt>
+                  <dd className="text-[var(--text-secondary)]">
+                    {balance.earned.toLocaleString("en-US")}
+                  </dd>
+                </div>
+                <div className="flex gap-1.5">
+                  <dt>Spent</dt>
+                  <dd className="text-[var(--text-secondary)]">
+                    {balance.spent.toLocaleString("en-US")}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+        )}
 
-        <section className={sectionRule}>
-          <h3 className={itemTitle}>Check in to an event</h3>
+        <section className={fresh ? "" : sectionRule}>
+          <h3 className={itemTitle}>
+            {checkedIn ? "Check in to an event" : "Get your pass scanned"}
+          </h3>
           <p className={`mt-1 mb-5 ${body}`}>
             {checkedIn
               ? "No pass needed: type the code shown at the event."
-              : "Get your pass scanned at check-in. Event codes work once you have arrived."}
+              : "Points, event codes and the store start once you're checked in at the door."}
           </p>
           {checkedIn ? (
             <CheckInCodeForm hackathonId={hackathonId} />
@@ -164,44 +174,73 @@ export function PointsTab({ hackathonId }: { hackathonId: string }) {
           )}
         </section>
 
-        <section className={sectionRule}>
-          <h3 className={itemTitle}>History</h3>
-          {history.length === 0 ? (
-            <p className={`mt-2 ${body}`}>
-              Nothing yet. Check in to workshops, meals and talks to collect
-              points.
-            </p>
-          ) : (
-            <ul className="mt-3 border-t border-[var(--border-subtle)]">
-              {history.map((row) => (
-                <li
-                  key={row.key}
-                  className="flex items-baseline justify-between gap-4 border-b border-[var(--border-subtle)] py-3"
-                >
-                  <div className="min-w-0">
-                    <p
-                      className={`text-[15px] text-[var(--text-primary)] break-words ${row.voided ? "line-through decoration-[var(--text-subtle)]" : ""}`}
+        {checkedIn && (
+          <section className={sectionRule}>
+            <h3 className={itemTitle}>Store</h3>
+            {store.data ? (
+              <StoreView store={store.data} />
+            ) : store.isError ? (
+              <p className={`mt-2 ${body}`}>
+                {trpcErrorMessage(store.error, "Couldn't load the store.")} It
+                refreshes on its own.
+              </p>
+            ) : (
+              <p className={`mt-2 ${meta}`}>Loading the store…</p>
+            )}
+          </section>
+        )}
+
+        {(checkedIn || history.length > 0) && (
+          <section className={sectionRule}>
+            <h3 className={itemTitle}>History</h3>
+            {history.length === 0 ? (
+              <p className={`mt-2 ${body}`}>
+                Nothing yet. Check in to workshops, meals and talks to collect
+                points.
+              </p>
+            ) : (
+              <>
+                <ul className="mt-3 border-t border-[var(--border-subtle)]">
+                  {shownHistory.map((row) => (
+                    <li
+                      key={row.key}
+                      className="flex items-baseline justify-between gap-4 border-b border-[var(--border-subtle)] py-3 last:border-b-0"
                     >
-                      {row.title}
-                    </p>
-                    <p className={`mt-0.5 ${meta}`}>{row.detail}</p>
-                  </div>
-                  <span
-                    className={`shrink-0 text-[15px] font-semibold tabular-nums ${
-                      row.voided
-                        ? "text-[var(--text-subtle)] line-through"
-                        : row.amount < 0
-                          ? "text-[var(--text-muted)]"
-                          : "text-[var(--text-primary)]"
-                    }`}
+                      <div className="min-w-0">
+                        <p
+                          className={`text-[15px] text-[var(--text-primary)] break-words ${row.voided ? "line-through decoration-[var(--text-subtle)]" : ""}`}
+                        >
+                          {row.title}
+                        </p>
+                        <p className={`mt-0.5 ${meta}`}>{row.detail}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 text-[15px] font-semibold tabular-nums ${
+                          row.voided
+                            ? "text-[var(--text-subtle)] line-through"
+                            : row.amount < 0
+                              ? "text-[var(--text-muted)]"
+                              : "text-[var(--text-primary)]"
+                        }`}
+                      >
+                        {signedPoints(row.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {history.length > shownHistory.length && (
+                  <button
+                    type="button"
+                    className={`mt-3 min-h-11 ${btnSecondary}`}
+                    onClick={() => setShowAllHistory(true)}
                   >
-                    {signedPoints(row.amount)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                    Show all {history.length}
+                  </button>
+                )}
+              </>
+            )}
+          </section>
+        )}
       </div>
 
       <aside className="min-w-0 space-y-10">
@@ -216,20 +255,6 @@ export function PointsTab({ hackathonId }: { hackathonId: string }) {
             </p>
           ) : (
             <p className={`mt-2 ${meta}`}>Loading the leaderboard…</p>
-          )}
-        </section>
-
-        <section className={sectionRule}>
-          <h3 className={itemTitle}>Store</h3>
-          {store.data ? (
-            <StoreView store={store.data} />
-          ) : store.isError ? (
-            <p className={`mt-2 ${body}`}>
-              {trpcErrorMessage(store.error, "Couldn't load the store.")} It
-              refreshes on its own.
-            </p>
-          ) : (
-            <p className={`mt-2 ${meta}`}>Loading the store…</p>
           )}
         </section>
       </aside>
@@ -252,7 +277,7 @@ function Leaderboard({
       <p className={`mt-1 ${meta}`}>
         {board.me
           ? `You are ${ordinal(board.me.rank)} of ${board.ranked.toLocaleString("en-US")}.`
-          : "You join the board once you check in at the registration desk."}
+          : "You join the board once you're checked in at the door."}
       </p>
       {board.entries.length === 0 ? (
         <p className={`mt-3 ${body}`}>
@@ -274,8 +299,8 @@ function Leaderboard({
           {meBelow && last && (
             <>
               {meBelow.rank > last.rank + 1 && (
-                <li aria-hidden="true" className={`py-1 pl-9 ${meta}`}>
-                  ⋯
+                <li aria-hidden="true" className={`flex py-1 ${meta}`}>
+                  <span className="w-6 text-right">⋯</span>
                 </li>
               )}
               <LeaderboardRow
@@ -306,8 +331,10 @@ function LeaderboardRow({
   return (
     <li
       aria-current={isMe ? "true" : undefined}
-      className={`flex items-baseline gap-3 border-b border-[var(--border-subtle)] py-2.5 text-[15px] ${
-        isMe ? "border-l-2 border-l-accent pl-2.5" : ""
+      className={`flex items-baseline gap-3 border-b border-[var(--border-subtle)] py-2.5 text-[15px] last:border-b-0 ${
+        isMe
+          ? "relative before:absolute before:-left-3 before:inset-y-2 before:w-0.5 before:bg-accent before:content-['']"
+          : ""
       }`}
     >
       <span className="w-6 shrink-0 text-right text-[13px] tabular-nums text-[var(--text-subtle)]">
@@ -346,7 +373,7 @@ function StoreView({ store }: { store: RouterOutputs["points"]["me"]["store"] })
         </p>
       ) : !store.checkedIn ? (
         <p className={`mt-3 ${body}`}>
-          Check in at the registration desk to see what is on the table.
+          Check in at the door to see what is on the table.
         </p>
       ) : store.items.length === 0 ? (
         <p className={`mt-3 ${body}`}>
@@ -357,7 +384,7 @@ function StoreView({ store }: { store: RouterOutputs["points"]["me"]["store"] })
           {store.items.map((item) => (
             <li
               key={item.id}
-              className="border-b border-[var(--border-subtle)] py-3"
+              className="border-b border-[var(--border-subtle)] py-3 last:border-b-0"
             >
               <div className="flex items-baseline justify-between gap-3">
                 <p
