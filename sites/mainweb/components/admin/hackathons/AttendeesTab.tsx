@@ -67,6 +67,8 @@ export function AttendeesTab({
   const [statusFilter, setStatusFilter] = useState<"all" | RegistrationStatus>(
     "all",
   );
+  // Accepted and silent: the seats worth chasing before the event.
+  const [unconfirmedOnly, setUnconfirmedOnly] = useState(false);
 
   // Typing straight into the query would fire a request per keystroke against
   // a table this size. 300ms is below the point where the list feels detached
@@ -79,6 +81,7 @@ export function AttendeesTab({
     offset: page * PAGE_SIZE,
     search: debouncedSearch.trim() || undefined,
     status: statusFilter === "all" ? undefined : statusFilter,
+    unconfirmedOnly: unconfirmedOnly || undefined,
   };
 
   const { data, isLoading, isFetching, isError, error, refetch } =
@@ -214,6 +217,7 @@ export function AttendeesTab({
         hackathonId,
         search: debouncedSearch.trim() || undefined,
         status: statusFilter === "all" ? undefined : statusFilter,
+        unconfirmedOnly: unconfirmedOnly || undefined,
       });
     } catch (error) {
       setBulkError(error instanceof Error ? error.message : "Export failed");
@@ -424,6 +428,7 @@ export function AttendeesTab({
         hackathonId,
         search: debouncedSearch.trim() || undefined,
         status: statusFilter === "all" ? undefined : statusFilter,
+        unconfirmedOnly: unconfirmedOnly || undefined,
       });
       setSelectedIds(new Set(ids));
       setSelectedAllMatching(true);
@@ -438,6 +443,17 @@ export function AttendeesTab({
   // meaning anything — landing on page 8 of a 2-page result shows nothing.
   const changeFilter = (next: "all" | RegistrationStatus) => {
     setStatusFilter(next);
+    setUnconfirmedOnly(false);
+    setPage(0);
+    setSelectedIds(new Set());
+    setSelectedAllMatching(false);
+  };
+
+  // Implies approved, so it replaces the status tile filter rather than
+  // stacking on it: "pending" and "unconfirmed" together can only be empty.
+  const toggleUnconfirmed = () => {
+    setUnconfirmedOnly(!unconfirmedOnly);
+    setStatusFilter("all");
     setPage(0);
     setSelectedIds(new Set());
     setSelectedAllMatching(false);
@@ -671,15 +687,26 @@ export function AttendeesTab({
       )}
 
       {/* Search */}
-      <div className="max-w-xl">
-        <input
-          type="search"
-          aria-label="Search attendees"
-          placeholder="Search by name, email, school, major or response"
-          value={searchQuery}
-          onChange={(e) => changeSearch(e.target.value)}
-          className={input}
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-[16rem] max-w-xl flex-1">
+          <input
+            type="search"
+            aria-label="Search attendees"
+            placeholder="Search by name, email, school, major or response"
+            value={searchQuery}
+            onChange={(e) => changeSearch(e.target.value)}
+            className={input}
+          />
+        </div>
+        <button
+          type="button"
+          aria-pressed={unconfirmedOnly}
+          onClick={toggleUnconfirmed}
+          title="Accepted hackers who have not said they are coming"
+          className={unconfirmedOnly ? btnPrimary : btnSecondary}
+        >
+          Approved, not confirmed
+        </button>
       </div>
 
       {/* placeholderData keeps the previous rows as `data`, so a failed
@@ -822,6 +849,23 @@ export function AttendeesTab({
                       }
                     >
                       <StatusBadge status={attendee.registrationStatus} />
+                      {/* Only an accepted hacker has anything to confirm. */}
+                      {attendee.registrationStatus === "approved" && (
+                        <p className="mt-1">
+                          {attendee.attendanceConfirmedAt ? (
+                            <span
+                              className={statusPill("success")}
+                              title={new Date(
+                                attendee.attendanceConfirmedAt,
+                              ).toLocaleString()}
+                            >
+                              Confirmed
+                            </span>
+                          ) : (
+                            <span className={meta}>Not confirmed</span>
+                          )}
+                        </p>
+                      )}
                     </td>
                     <td
                       className="px-3 py-3"

@@ -24,7 +24,7 @@ import {
   memberResumes,
   users,
 } from "@query/db";
-import { eq, and, inArray, ne, notInArray, sql } from "drizzle-orm";
+import { eq, and, inArray, isNull, ne, notInArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
 // A seat belongs to somebody accepted. maxParticipants caps acceptances, not
@@ -139,11 +139,21 @@ const buildAttendeeWhere = (input: {
   hackathonId: string;
   search?: string;
   status?: z.infer<typeof PARTICIPANT_STATUSES>;
+  unconfirmedOnly?: boolean;
 }) => {
   const clauses = [eq(hackathonParticipants.hackathonId, input.hackathonId)];
 
   if (input.status) {
     clauses.push(eq(hackathonParticipants.registrationStatus, input.status));
+  }
+
+  // Accepted and silent: the people whose seats are worth chasing before the
+  // event. Checked-in people are not "unconfirmed", they are here.
+  if (input.unconfirmedOnly) {
+    clauses.push(
+      eq(hackathonParticipants.registrationStatus, "approved"),
+      isNull(hackathonParticipants.attendanceConfirmedAt),
+    );
   }
 
   const term = input.search?.trim();
@@ -170,6 +180,151 @@ const buildAttendeeWhere = (input: {
   return and(...clauses);
 };
 
+/**
+ * Checks one accepted participant into one event and, on their first arrival,
+ * into the hackathon. A pass scan and the desk's manual admit are this same
+ * write; they differ only in how the staffer knew who was in front of them,
+ * which is what the attendance row records as its method.
+ */
+async function checkInParticipant(
+  ctx: {
+    db: DrizzleDB;
+    cache: { delete: (key: string) => boolean };
+    userId: string;
+  },
+  input: { hackathonId: string; eventId: string; participantId: string },
+  method: "scan" | "manual",
+) {
+  // 1. Verify participant exists and belongs to this hackathon
+  const participant = await ctx.db.query.hackathonParticipants.findFirst({
+    where: and(
+      eq(hackathonParticipants.id, input.participantId),
+      eq(hackathonParticipants.hackathonId, input.hackathonId),
+    ),
+    with: { user: true },
+  });
+
+  if (!participant) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Participant not found or not registered for this hackathon.",
+    });
+  }
+
+  // 1b. Only accepted participants may check in. Pending and waitlisted are not
+  // yet admitted; rejected never are.
+  if (
+    participant.registrationStatus !== "approved" &&
+    participant.registrationStatus !== "checked_in"
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `${participant.user.name || participant.user.email} is not accepted for this hackathon (status: ${participant.registrationStatus}).`,
+    });
+  }
+
+  // 2. Verify event exists and belongs to this hackathon
+  const event = await ctx.db.query.hackathonEvents.findFirst({
+    where: and(
+      eq(hackathonEvents.id, input.eventId),
+      eq(hackathonEvents.hackathonId, input.hackathonId),
+    ),
+  });
+
+  if (!event) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+  }
+
+  // 2b. A pass is only good for the window the event runs in. Nothing else
+  // bounds a scan, so a scanner left on the wrong event would keep admitting
+  // people to a meal that finished hours ago.
+  if (event.endTime < new Date()) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `${event.name} has already ended.`,
+    });
+  }
+
+  // 3. Check for existing check-in to prevent duplicates
+  const existingScan = await ctx.db.query.hackathonEventAttendees.findFirst({
+    where: and(
+      eq(hackathonEventAttendees.eventId, input.eventId),
+      eq(hackathonEventAttendees.participantId, input.participantId),
+    ),
+  });
+
+  const attendance = {
+    event,
+    participant: {
+      id: participant.id,
+      name: participant.user.name || participant.user.email,
+    },
+    method,
+    actorId: ctx.userId,
+  };
+
+  if (existingScan) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: alreadyCheckedInMessage(attendance),
+    });
+  }
+
+  // 4. Record attendance. The unique index is the real guard, and
+  // recordEventAttendance turns a racing scanner's 23505 into the same
+  // conflict as the read above.
+  // Attendance and the roster promotion are one transaction. Split, a promotion
+  // failing after the attendance row committed left the scan half-done — and
+  // the retry hits the duplicate guard, so that attendee could never submit.
+  // Rolling the attendance back makes a rescan the fix.
+  let promotedToCheckedIn = false;
+
+  await ctx.db.transaction(async (tx) => {
+    await recordEventAttendance(tx, attendance);
+
+    // The first scan is the check-in. `checked_in` previously had no writer
+    // anywhere, which was harmless while it was only a label — but submitting now
+    // requires it, so nobody could submit and the error told them to do what they
+    // had just done. `registrationStatus = 'approved'` is in the WHERE, not only
+    // the read: a rejection landing between read and write would otherwise be
+    // overwritten. `checkedInAt` is stamped once, so it points at arrival.
+    const [promoted] = await tx
+      .update(hackathonParticipants)
+      .set({
+        registrationStatus: "checked_in",
+        ...(participant.checkedInAt ? {} : { checkedInAt: new Date() }),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(hackathonParticipants.id, input.participantId),
+          eq(hackathonParticipants.registrationStatus, "approved"),
+        ),
+      )
+      .returning({ id: hackathonParticipants.id });
+
+    promotedToCheckedIn = !!promoted;
+  });
+
+  // A scan changes one event's attendee count and, on the first one, this
+  // attendee's roster row. This runs at every door all weekend, so eviction
+  // stays narrow — the old blanket pattern wiped every cached registration.
+  ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
+
+  if (promotedToCheckedIn) {
+    evictParticipantCaches(ctx.cache, input.hackathonId, [participant.userId]);
+  }
+
+  return {
+    success: true,
+    checkedIn: promotedToCheckedIn,
+    pointsAwarded: event.points,
+    eventName: event.name,
+    name: participant.user.name || participant.user.email,
+    message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
+  };
+}
+
 export const hackathonAdminRouter = createTRPCRouter({
   adminGetAttendees: isAdmin
     .input(
@@ -179,6 +334,7 @@ export const hackathonAdminRouter = createTRPCRouter({
         offset: z.number().int().min(0).default(0),
         search: z.string().trim().max(200).optional(),
         status: PARTICIPANT_STATUSES.optional(),
+        unconfirmedOnly: z.boolean().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -249,6 +405,7 @@ export const hackathonAdminRouter = createTRPCRouter({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
         search: z.string().trim().max(200).optional(),
         status: PARTICIPANT_STATUSES.optional(),
+        unconfirmedOnly: z.boolean().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -272,6 +429,7 @@ export const hackathonAdminRouter = createTRPCRouter({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
         search: z.string().trim().max(200).optional(),
         status: PARTICIPANT_STATUSES.optional(),
+        unconfirmedOnly: z.boolean().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -1024,143 +1182,47 @@ export const hackathonAdminRouter = createTRPCRouter({
         participantId: z.string().uuid("Invalid participant ID"),
       }),
     )
+    .mutation(({ ctx, input }) =>
+      checkInParticipant(
+        { db: ctx.db as DrizzleDB, cache: ctx.cache, userId: ctx.userId },
+        input,
+        "scan",
+      ),
+    ),
+
+  // The desk for a hacker with no phone: staff look at a photo ID, find the
+  // person by name and admit them. The same check-in as a pass scan, recorded
+  // as a manual one, with a trail of who vouched for whom since no pass was
+  // read.
+  admit: isScanner
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        eventId: z.string().uuid("Invalid event ID"),
+        participantId: z.string().uuid("Invalid participant ID"),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      // 1. Verify participant exists and belongs to this hackathon
-      const participant = await (
-        ctx.db as DrizzleDB
-      ).query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.id, input.participantId),
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-        ),
-        with: { user: true },
-      });
+      const db = ctx.db as DrizzleDB;
 
-      if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "Participant not found or not registered for this hackathon.",
-        });
-      }
-
-      // 1b. Only accepted participants may check in. Pending and waitlisted are not
-      // yet admitted; rejected never are.
-      if (
-        participant.registrationStatus !== "approved" &&
-        participant.registrationStatus !== "checked_in"
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${participant.user.name || participant.user.email} is not accepted for this hackathon (status: ${participant.registrationStatus}).`,
-        });
-      }
-
-      // 2. Verify event exists and belongs to this hackathon
-      const event = await (ctx.db as DrizzleDB).query.hackathonEvents.findFirst(
-        {
-          where: and(
-            eq(hackathonEvents.id, input.eventId),
-            eq(hackathonEvents.hackathonId, input.hackathonId),
-          ),
-        },
+      const result = await checkInParticipant(
+        { db, cache: ctx.cache, userId: ctx.userId },
+        input,
+        "manual",
       );
 
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
-      }
-
-      // 2b. A pass is only good for the window the event runs in. Nothing else
-      // bounds a scan, so a scanner left on the wrong event would keep admitting
-      // people to a meal that finished hours ago.
-      if (event.endTime < new Date()) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} has already ended.`,
-        });
-      }
-
-      // 3. Check for existing check-in to prevent duplicates
-      const existingScan = await (
-        ctx.db as DrizzleDB
-      ).query.hackathonEventAttendees.findFirst({
-        where: and(
-          eq(hackathonEventAttendees.eventId, input.eventId),
-          eq(hackathonEventAttendees.participantId, input.participantId),
-        ),
-      });
-
-      const attendance = {
-        event,
-        participant: {
-          id: participant.id,
-          name: participant.user.name || participant.user.email,
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "hackathon.admit",
+        resourceId: input.participantId,
+        metadata: {
+          eventId: input.eventId,
+          hackathonId: input.hackathonId,
+          checkedIn: result.checkedIn,
         },
-        method: "scan" as const,
-        actorId: ctx.userId,
-      };
-
-      if (existingScan) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: alreadyCheckedInMessage(attendance),
-        });
-      }
-
-      // 4. Record attendance. The unique index is the real guard, and
-      // recordEventAttendance turns a racing scanner's 23505 into the same
-      // conflict as the read above.
-      // Attendance and the roster promotion are one transaction. Split, a promotion
-      // failing after the attendance row committed left the scan half-done — and
-      // the retry hits the duplicate guard, so that attendee could never submit.
-      // Rolling the attendance back makes a rescan the fix.
-      let promotedToCheckedIn = false;
-
-      await (ctx.db as DrizzleDB).transaction(async (tx) => {
-        await recordEventAttendance(tx, attendance);
-
-        // The first scan is the check-in. `checked_in` previously had no writer
-        // anywhere, which was harmless while it was only a label — but submitting now
-        // requires it, so nobody could submit and the error told them to do what they
-        // had just done. `registrationStatus = 'approved'` is in the WHERE, not only
-        // the read: a rejection landing between read and write would otherwise be
-        // overwritten. `checkedInAt` is stamped once, so it points at arrival.
-        const [promoted] = await tx
-          .update(hackathonParticipants)
-          .set({
-            registrationStatus: "checked_in",
-            ...(participant.checkedInAt ? {} : { checkedInAt: new Date() }),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(hackathonParticipants.id, input.participantId),
-              eq(hackathonParticipants.registrationStatus, "approved"),
-            ),
-          )
-          .returning({ id: hackathonParticipants.id });
-
-        promotedToCheckedIn = !!promoted;
       });
 
-      // A scan changes one event's attendee count and, on the first one, this
-      // attendee's roster row. This runs at every door all weekend, so eviction
-      // stays narrow — the old blanket pattern wiped every cached registration.
-      ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
-
-      if (promotedToCheckedIn) {
-        evictParticipantCaches(ctx.cache, input.hackathonId, [
-          participant.userId,
-        ]);
-      }
-
-      return {
-        success: true,
-        checkedIn: promotedToCheckedIn,
-        pointsAwarded: event.points,
-        name: participant.user.name || participant.user.email,
-        message: `Successfully checked in ${participant.user.name || participant.user.email}!`,
-      };
+      return result;
     }),
 
   // The station without a camera: staff type part of a name or email. Each

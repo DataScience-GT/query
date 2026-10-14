@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { READ_ONLY_TITLE, useIsAdmin, useReadOnly } from "@/lib/use-portal-context";
 import { Check, QrCode } from "lucide-react";
 import {
   body,
@@ -17,6 +18,7 @@ import {
   status,
   tab,
   tabList,
+  textLink,
 } from "@/components/portal/ui";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
@@ -75,6 +77,8 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
   });
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
+  // Volunteers work this same desk at /scan, and the staff page refuses them.
+  const isAdmin = useIsAdmin();
 
   // An ended event refuses every scan, so it is not offered, unless it is the
   // one already selected. The schedule arrives in start order.
@@ -249,6 +253,14 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
         <p className={`mt-1 ${body}`}>
           Pick an event, then scan passes or find people by name.
         </p>
+        {isAdmin && (
+          <p className={fieldHint}>
+            More hands at the door?{" "}
+            <Link href="/admin/staff" className={textLink}>
+              Add check-in volunteers
+            </Link>
+          </p>
+        )}
 
         <div className="mt-6">
           <label htmlFor="target-event" className={fieldLabel}>

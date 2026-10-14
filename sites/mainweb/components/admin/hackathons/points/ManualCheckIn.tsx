@@ -4,14 +4,38 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE } from "@/lib/use-portal-context";
-import { body, fieldHint, fieldLabel, input, meta, status } from "@/components/portal/ui";
+import {
+  body,
+  btnSecondary,
+  fieldHint,
+  fieldLabel,
+  input,
+  meta,
+  status,
+} from "@/components/portal/ui";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { useDebounced } from "./use-debounced";
 
+const rowClass =
+  "flex min-h-11 w-full items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-1 py-2.5";
+
+function PersonLabel({ name, email }: { name: string; email: string }) {
+  return (
+    <span className="min-w-0">
+      <span className="block truncate text-[15px] text-[var(--text-primary)]">
+        {name}
+      </span>
+      <span className={`block truncate ${meta}`}>{email}</span>
+    </span>
+  );
+}
+
 /**
  * The station for people without a phone: find them by name or email and
- * tap. It never admits anyone to the hackathon; arrival is the registration
- * desk, so people who have not been there show as not ready.
+ * tap. Tapping a name checks them into the event only once they have arrived.
+ * Admitting somebody to the hackathon is its own button, pressed after their
+ * photo ID has been looked at, because a name in a search box is not proof
+ * they are who they say.
  */
 export function ManualCheckIn({
   hackathonId,
@@ -36,6 +60,25 @@ export function ManualCheckIn({
     { hackathonId, eventId, query: term },
     { enabled: searching },
   );
+
+  const admit = trpc.hackathon.admit.useMutation({
+    onSuccess: (result) => {
+      setOutcome({
+        ok: true,
+        text:
+          result.pointsAwarded > 0
+            ? `${result.name} is admitted and checked into ${result.eventName}, ${pointsLabel(result.pointsAwarded)}.`
+            : `${result.name} is admitted and checked into ${result.eventName}.`,
+      });
+      void utils.hackathon.searchEventCheckIn.invalidate({ hackathonId, eventId });
+      onCheckedIn();
+    },
+    onError: (error) =>
+      setOutcome({
+        ok: false,
+        text: trpcErrorMessage(error, "That admission did not go through."),
+      }),
+  });
 
   const checkIn = trpc.hackathon.manualEventCheckIn.useMutation({
     onSuccess: (result) => {
@@ -72,7 +115,10 @@ export function ManualCheckIn({
           placeholder="Ada or ada@gatech.edu"
           className={`min-h-11 ${input}`}
         />
-        <p className={fieldHint}>Tap a name to check them in.</p>
+        <p className={fieldHint}>
+          Tap a name to check them in. Someone not admitted to the hackathon yet
+          needs Admit (ID checked) first.
+        </p>
       </div>
 
       {outcome && (
@@ -102,49 +148,66 @@ export function ManualCheckIn({
               const arrived = person.registrationStatus === "checked_in";
               const busy =
                 checkIn.isPending && checkIn.variables?.participantId === person.id;
+              const admitting =
+                admit.isPending && admit.variables?.participantId === person.id;
               return (
                 <li key={person.id}>
-                  <button
-                    type="button"
-                    disabled={
-                      readOnly ||
-                      person.checkedIntoEvent ||
-                      !arrived ||
-                      checkIn.isPending
-                    }
-                    title={readOnly ? READ_ONLY_TITLE : undefined}
-                    onClick={() => {
-                      setOutcome(null);
-                      checkIn.mutate({
-                        hackathonId,
-                        eventId,
-                        participantId: person.id,
-                      });
-                    }}
-                    className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-1 py-2.5 text-left transition-colors enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[15px] text-[var(--text-primary)]">
-                        {person.name}
+                  {arrived ? (
+                    <button
+                      type="button"
+                      disabled={
+                        readOnly || person.checkedIntoEvent || checkIn.isPending
+                      }
+                      title={readOnly ? READ_ONLY_TITLE : undefined}
+                      onClick={() => {
+                        setOutcome(null);
+                        checkIn.mutate({
+                          hackathonId,
+                          eventId,
+                          participantId: person.id,
+                        });
+                      }}
+                      className={`${rowClass} text-left transition-colors enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent`}
+                    >
+                      <PersonLabel name={person.name} email={person.email} />
+                      <span className="max-w-[11rem] shrink-0 text-right">
+                        {person.checkedIntoEvent ? (
+                          <span className={status("success")}>Checked in</span>
+                        ) : (
+                          <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                            {busy ? "Checking in…" : "Check in"}
+                          </span>
+                        )}
                       </span>
-                      <span className={`block truncate ${meta}`}>
-                        {person.email}
-                      </span>
-                    </span>
-                    <span className="max-w-[11rem] shrink-0 text-right">
-                      {person.checkedIntoEvent ? (
-                        <span className={status("success")}>Checked in</span>
-                      ) : !arrived ? (
-                        <span className={status("warning")}>
-                          Ask an admin to mark them checked in.
-                        </span>
-                      ) : (
-                        <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-                          {busy ? "Checking in…" : "Check in"}
-                        </span>
-                      )}
-                    </span>
-                  </button>
+                    </button>
+                  ) : (
+                    // The row is not a button: the admit control sits inside it.
+                    <div className={rowClass}>
+                      <PersonLabel name={person.name} email={person.email} />
+                      <button
+                        type="button"
+                        disabled={readOnly || admit.isPending}
+                        title={readOnly ? READ_ONLY_TITLE : undefined}
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `Admit ${person.name}?\n\nOnly do this after checking their photo ID. It checks them into the hackathon and into this event.`,
+                            )
+                          )
+                            return;
+                          setOutcome(null);
+                          admit.mutate({
+                            hackathonId,
+                            eventId,
+                            participantId: person.id,
+                          });
+                        }}
+                        className={`shrink-0 ${btnSecondary}`}
+                      >
+                        {admitting ? "Admitting…" : "Admit (ID checked)"}
+                      </button>
+                    </div>
+                  )}
                 </li>
               );
             })}

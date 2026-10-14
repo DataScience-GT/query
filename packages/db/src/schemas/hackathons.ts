@@ -183,6 +183,9 @@ export const hackathonParticipants = pgTable(
 
     // Participation tracking
     checkedInAt: timestamp("checked_in_at"),
+    // Set when an accepted hacker says they are coming. Null means no answer,
+    // which is what organisers chase to free seats before the event.
+    attendanceConfirmedAt: timestamp("attendance_confirmed_at"),
     hasSubmittedProject: boolean("has_submitted_project")
       .notNull()
       .default(false),
