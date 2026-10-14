@@ -16,16 +16,22 @@ const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 
 // Every send is a no-op here, so a procedure that emails (judge.create, ...)
-// can never reach a real mail server from a test run.
-vi.mock("@query/auth/email", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return Object.fromEntries(
-    Object.entries(actual).map(([name, value]) => [
-      name,
-      typeof value === "function" ? vi.fn() : value,
-    ]),
-  );
-});
+// can never reach a real mail server from a test run. Listed rather than
+// built from the real module: loading that pulls in the mail transport, which
+// alone could push the first test that emails past its timeout.
+vi.mock("@query/auth/email", () => ({
+  sendTransactionalEmail: vi.fn(),
+  sendAnnouncementEmail: vi.fn(),
+  sendRegistrationOpenEmail: vi.fn(),
+  sendJudgeApprovedEmail: vi.fn(),
+  sendJudgeAddedEmail: vi.fn(),
+  sendJudgingTimesPostedEmail: vi.fn(),
+  sendInitiativeDecisionEmail: vi.fn(),
+  sendSubteamApplicationEmail: vi.fn(),
+  sendResultsPublishedEmail: vi.fn(),
+  sendJudgingClaimEmail: vi.fn(),
+  sendAcceptanceEmail: vi.fn(),
+}));
 
 vi.mock("@query/db", () => {
   return {
