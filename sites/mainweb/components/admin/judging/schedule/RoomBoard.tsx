@@ -20,7 +20,7 @@ export type BoardRow = {
 };
 
 /**
- * Appointments grouped by room, each room in time order. Two columns on a
+ * Appointments grouped by room or table, each in time order. Two columns on a
  * wide screen, one list on a phone. Used for the preview and the live board.
  */
 export function RoomBoard<R extends BoardRow>({
@@ -67,7 +67,7 @@ export function RoomBoard<R extends BoardRow>({
               {roomDetail?.(room)}
             </div>
             {booked.length === 0 ? (
-              <p className={`py-3 ${meta}`}>Nothing booked in this room.</p>
+              <p className={`py-3 ${meta}`}>Nothing booked here.</p>
             ) : (
               <ul>
                 {booked.map((row) => (

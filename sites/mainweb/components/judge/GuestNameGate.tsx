@@ -12,7 +12,7 @@ import {
   pageDek,
   pageTitle,
 } from "@/components/portal/ui";
-import { deskPage, roomPlace } from "./desk";
+import { deskPage, inOrAt, roomPlace } from "./desk";
 import type { DeskContext } from "./desk";
 
 /** A guest's first screen after scanning: their name, then the desk. */
@@ -37,7 +37,9 @@ export function GuestNameGate({
         {room ? roomPlace(room.name, room.buildingName) : "Guest judging"}
       </h1>
       <p className={pageDek}>
-        {room ? `You are judging ${room.challengeLabel} in this room. ` : ""}
+        {room
+          ? `You are judging ${room.challengeLabel} ${inOrAt(room.kind)} this ${room.kind}. `
+          : ""}
         Enter your name so organisers can match your scores to you.
       </p>
 

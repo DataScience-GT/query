@@ -27,6 +27,7 @@ import {
   MODE_HINT,
   MODE_LABEL,
   plural,
+  stationCount,
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 import type { Challenge, Overview } from "@/components/admin/judging/shared";
@@ -131,7 +132,7 @@ export function ChallengesSection({
         ? plural(c.entries, "project")
         : `${c.optIns} opted in`,
       c.children > 0 ? plural(c.children, "challenge") : null,
-      !c.parentId ? plural(c.rooms, "room") : null,
+      !c.parentId ? stationCount(c.rooms, c.tables) : null,
     ]
       .filter(Boolean)
       .join(" · ");
@@ -175,7 +176,7 @@ export function ChallengesSection({
                 readOnly
                   ? READ_ONLY_TITLE
                   : inUse
-                    ? "Still in use by projects, challenges or rooms."
+                    ? "Still in use by projects, challenges, rooms or tables."
                     : undefined
               }
               className={btnDanger}
@@ -231,8 +232,8 @@ export function ChallengesSection({
           <h2 className={sectionTitle}>Challenges</h2>
           <p className={`mt-1 max-w-2xl ${meta}`}>
             Projects opt into challenges. A group holds challenges one level
-            deep and lends them its mode; a room judges a top-level challenge
-            or group.
+            deep and lends them its mode; a room or table judges a top-level
+            challenge or group.
           </p>
         </div>
         <button
@@ -256,7 +257,7 @@ export function ChallengesSection({
         <section className="border-l-2 border-accent pl-4">
           <h3 className={itemTitle}>Starter groups</h3>
           <p className={`mt-1 max-w-2xl ${body}`}>
-            General (every project, scheduled in rooms) and MLH Challenges
+            General (every project, scheduled) and MLH Challenges
             (collects imported labels containing “MLH”, unscheduled). Importing
             or promoting projects creates them too.
           </p>

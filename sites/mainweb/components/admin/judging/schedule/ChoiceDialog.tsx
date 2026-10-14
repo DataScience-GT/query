@@ -172,9 +172,9 @@ export function ChoiceDialog({
           </ErrorLine>
         ) : choices.length === 0 ? (
           <p className={body}>
-            No open slot in a staffed room. Only rooms with a judge seen in the
-            last 15 minutes are offered; seat a judge in a {challengeLabel}{" "}
-            room, then try again.
+            No open slot at a staffed room or table. Only those with a judge
+            seen in the last 15 minutes are offered; seat a judge at a{" "}
+            {challengeLabel} room or table, then try again.
           </p>
         ) : (
           <fieldset>

@@ -611,6 +611,7 @@ export const judgingHackerRouter = createTRPCRouter({
             id: judgingRooms.id,
             challengeId: judgingRooms.challengeId,
             name: judgingRooms.name,
+            kind: judgingRooms.kind,
             building: judgingBuildings.name,
             displayOrder: judgingRooms.displayOrder,
             archivedAt: judgingRooms.archivedAt,

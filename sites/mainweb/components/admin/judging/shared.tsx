@@ -32,6 +32,17 @@ export const OFFICER_POLL_MS = 10_000;
 export const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
 
+/**
+ * Judging stations counted by kind: "3 rooms", "30 tables", "2 rooms · 30
+ * tables". `stations` is rooms and tables together.
+ */
+export const stationCount = (stations: number, tables: number) => {
+  const rooms = stations - tables;
+  if (tables === 0) return plural(rooms, "room");
+  if (rooms === 0) return plural(tables, "table");
+  return `${plural(rooms, "room")} · ${plural(tables, "table")}`;
+};
+
 export const MODE_LABEL = {
   scheduled: "Scheduled",
   unscheduled: "Unscheduled",
@@ -39,9 +50,9 @@ export const MODE_LABEL = {
 } as const;
 
 export const MODE_HINT = {
-  scheduled: "Timed presentations in rooms",
-  unscheduled: "Rooms, no set times",
-  remote: "Judged without rooms",
+  scheduled: "Timed presentations at rooms or tables",
+  unscheduled: "Drop-in, no set times",
+  remote: "Judged without the team present",
 } as const;
 
 export const shortTime = (value: Date | string) =>

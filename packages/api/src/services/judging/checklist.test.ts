@@ -14,8 +14,8 @@ const ready: ChecklistFacts = {
     {
       label: "General",
       rooms: [
-        { name: "Klaus 1116", hasBuilding: true, hasLink: true },
-        { name: "Klaus 1447", hasBuilding: true, hasLink: true },
+        { name: "Klaus 1116", kind: "room", hasBuilding: true, hasLink: true },
+        { name: "Klaus 1447", kind: "room", hasBuilding: true, hasLink: true },
       ],
     },
   ],
@@ -46,6 +46,27 @@ describe("buildChecklist", () => {
     );
     expect(item(ready, "rooms").hint).toBe(
       "2 rooms across 1 scheduled challenge, each with a building and a QR link.",
+    );
+  });
+
+  it("counts tables apart from rooms", () => {
+    const withTables: ChecklistFacts = {
+      ...ready,
+      scheduledRoots: [
+        {
+          label: "General",
+          rooms: [1, 2, 3].map((n) => ({
+            name: `Table ${n}`,
+            kind: "table" as const,
+            hasBuilding: true,
+            hasLink: true,
+          })),
+        },
+        ...ready.scheduledRoots.map((root) => ({ ...root, label: "Sponsor" })),
+      ],
+    };
+    expect(item(withTables, "rooms").hint).toBe(
+      "2 rooms and 3 tables across 2 scheduled challenges, each with a building and a QR link.",
     );
   });
 
@@ -84,7 +105,7 @@ describe("buildChecklist", () => {
     };
     expect(item(noRoom, "rooms")).toMatchObject({
       done: false,
-      hint: "Best Use of Snowflake has no room. Add one on the Rooms tab.",
+      hint: "Best Use of Snowflake has no room or table. Add one on the Rooms tab.",
     });
 
     const noBuilding = {
@@ -93,8 +114,18 @@ describe("buildChecklist", () => {
         {
           label: "General",
           rooms: [
-            { name: "Klaus 1116", hasBuilding: true, hasLink: false },
-            { name: "Annex", hasBuilding: false, hasLink: true },
+            {
+              name: "Klaus 1116",
+              kind: "room" as const,
+              hasBuilding: true,
+              hasLink: false,
+            },
+            {
+              name: "Annex",
+              kind: "room" as const,
+              hasBuilding: false,
+              hasLink: true,
+            },
           ],
         },
       ],
@@ -107,7 +138,14 @@ describe("buildChecklist", () => {
       scheduledRoots: [
         {
           label: "General",
-          rooms: [{ name: "Klaus 1116", hasBuilding: true, hasLink: false }],
+          rooms: [
+            {
+              name: "Klaus 1116",
+              kind: "room" as const,
+              hasBuilding: true,
+              hasLink: false,
+            },
+          ],
         },
       ],
     };

@@ -52,24 +52,29 @@ export function RoomSwitcher({
   });
   const busy = join.isPending || leave.isPending;
   const current = rooms.data?.currentRoomId ?? null;
+  const currentKind =
+    rooms.data?.rooms.find((room) => room.id === current)?.kind ?? "room";
 
   return (
-    <section className={`mt-6 ${sectionRule}`} aria-label="Pick your room">
-      <h2 className={label}>Pick the room you are sitting in</h2>
+    <section
+      className={`mt-6 ${sectionRule}`}
+      aria-label="Pick your room or table"
+    >
+      <h2 className={label}>Pick the room or table you are at</h2>
 
       {rooms.isPending ? (
         <p role="status" className={`mt-3 ${meta}`}>
-          Loading rooms…
+          Loading rooms and tables…
         </p>
       ) : rooms.error ? (
         <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
-          {trpcErrorMessage(rooms.error, "Rooms did not load.")} Close this and
-          try again.
+          {trpcErrorMessage(rooms.error, "Rooms and tables did not load.")}{" "}
+          Close this and try again.
         </p>
       ) : rooms.data.rooms.length === 0 ? (
         <p className={`mt-3 ${meta}`}>
-          Organisers have not opened any rooms yet. You can still judge projects
-          without one.
+          Organisers have not opened any rooms or tables yet. You can still
+          judge projects without one.
         </p>
       ) : (
         <ul className="mt-3 border-t border-[var(--border-subtle)]">
@@ -124,7 +129,7 @@ export function RoomSwitcher({
               leave.mutate({ hackathonId });
             }}
           >
-            {leave.isPending ? "Leaving…" : "Leave this room"}
+            {leave.isPending ? "Leaving…" : `Leave this ${currentKind}`}
           </button>
         )}
         <button

@@ -142,7 +142,7 @@ export function evaluatedChallenge(
       code: judge.kind === "guest" ? "FORBIDDEN" : "NOT_FOUND",
       message:
         judge.kind === "guest"
-          ? "That challenge is not judged in your room."
+          ? "That challenge is not judged at your room or table."
           : "That challenge is not part of this hackathon.",
     });
   }

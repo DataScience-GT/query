@@ -12,6 +12,7 @@ import {
   isNotNull,
   isNull,
   max,
+  notExists,
   or,
   sql,
 } from "drizzle-orm";
@@ -63,10 +64,16 @@ import {
 import {
   emptyRoom,
   issueRoomLink,
+  MAX_TABLE_NUMBER,
+  newTableNumbers,
+  nextTableNumber,
   portalOrigin,
   revokeRoomAccess,
   roomAppointmentCount,
   roomLinkUrl,
+  slotTables,
+  tableName,
+  tableNumber,
 } from "../../services/judging/rooms";
 import {
   dropEvaluations,
@@ -96,6 +103,7 @@ const resetInput = hackathonInput.extend({
 });
 const label = z.string().trim().min(1).max(255);
 const roomName = z.string().trim().min(1).max(120);
+const roomKind = z.enum(["room", "table"]);
 const challengeMode = z.enum(["scheduled", "unscheduled", "remote"]);
 
 // Line breaks are allowed in an announcement; other control characters are
@@ -250,7 +258,7 @@ async function assertBuilding(
 const roomNameTaken = (name: string) =>
   new TRPCError({
     code: "CONFLICT",
-    message: `An active room called ${name} is already in that building. Pick another name.`,
+    message: `An active room or table called ${name} is already in that building. Pick another name.`,
   });
 
 export const judgingAdminRouter = createTRPCRouter({
@@ -311,6 +319,7 @@ export const judgingAdminRouter = createTRPCRouter({
       db
         .select({
           active: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null)::int`,
+          tables: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and ${judgingRooms.kind} = 'table')::int`,
           archived: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is not null)::int`,
           linked: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${judgingRooms.id} and ${judgingRoomLinks.revokedAt} is null))::int`,
         })
@@ -397,6 +406,7 @@ export const judgingAdminRouter = createTRPCRouter({
         },
         rooms: {
           active: rooms?.active ?? 0,
+          tables: rooms?.tables ?? 0,
           archived: rooms?.archived ?? 0,
           linked: rooms?.linked ?? 0,
         },
@@ -953,7 +963,11 @@ export const judgingAdminRouter = createTRPCRouter({
           )
           .groupBy(judgingEntryChallenges.challengeId),
         db
-          .select({ challengeId: judgingRooms.challengeId, value: count() })
+          .select({
+            challengeId: judgingRooms.challengeId,
+            value: count(),
+            tables: sql<number>`count(*) filter (where ${judgingRooms.kind} = 'table')::int`,
+          })
           .from(judgingRooms)
           .where(
             and(
@@ -971,14 +985,17 @@ export const judgingAdminRouter = createTRPCRouter({
           const entries = entryCounts.find(
             (row) => row.challengeId === challenge.id,
           );
+          const stations = roomCounts.find(
+            (row) => row.challengeId === challenge.id,
+          );
           return {
             ...challenge,
             effectiveMode: effectiveMode(challenges, challenge.id),
             optIns: entries?.optIns ?? 0,
             entries: entries?.total ?? 0,
-            rooms:
-              roomCounts.find((row) => row.challengeId === challenge.id)
-                ?.value ?? 0,
+            // Rooms and tables together; `tables` is how many are tables.
+            rooms: stations?.value ?? 0,
+            tables: stations?.tables ?? 0,
             children: challenges.filter((c) => c.parentId === challenge.id)
               .length,
           };
@@ -1223,7 +1240,11 @@ export const judgingAdminRouter = createTRPCRouter({
         const uses = [
           [optIn?.value ?? 0, "project opted in", "projects opted in"],
           [children, "challenge in the group", "challenges in the group"],
-          [room?.value ?? 0, "room", "rooms (archived ones too)"],
+          [
+            room?.value ?? 0,
+            "room or table",
+            "rooms and tables (archived ones too)",
+          ],
           [appointment?.value ?? 0, "presentation", "presentations"],
           [
             (evaluation?.value ?? 0) + (draft?.value ?? 0),
@@ -1276,6 +1297,7 @@ export const judgingAdminRouter = createTRPCRouter({
           .select({
             id: judgingRooms.id,
             name: judgingRooms.name,
+            kind: judgingRooms.kind,
             buildingId: judgingRooms.buildingId,
             challengeId: judgingRooms.challengeId,
             displayOrder: judgingRooms.displayOrder,
@@ -1349,12 +1371,20 @@ export const judgingAdminRouter = createTRPCRouter({
       list.find((row) => row.roomId === roomId)?.value ?? 0;
 
     return {
-      buildings: buildings.map((building) => ({
-        ...building,
-        rooms: rooms.filter(
-          (room) => room.buildingId === building.id && !room.archivedAt,
-        ).length,
-      })),
+      buildings: buildings.map((building) => {
+        const inside = rooms.filter((room) => room.buildingId === building.id);
+        return {
+          ...building,
+          rooms: inside.filter((room) => !room.archivedAt).length,
+          // Where "Add tables" starts when no first number is given.
+          nextTable: nextTableNumber(
+            inside.map((room) => ({
+              name: room.name,
+              archived: !!room.archivedAt,
+            })),
+          ),
+        };
+      }),
       rooms: rooms.map((room) => {
         const link = links.find((l) => l.roomId === room.id);
         const challenge = challenges.find((c) => c.id === room.challengeId);
@@ -1465,6 +1495,7 @@ export const judgingAdminRouter = createTRPCRouter({
     .input(
       hackathonInput.extend({
         name: roomName,
+        kind: roomKind.default("room"),
         challengeId: uuid,
         buildingId: uuid.nullable().default(null),
       }),
@@ -1487,6 +1518,7 @@ export const judgingAdminRouter = createTRPCRouter({
             .values({
               hackathonId: input.hackathonId,
               name: input.name,
+              kind: input.kind,
               challengeId: input.challengeId,
               buildingId: input.buildingId,
               displayOrder: (order?.value ?? -1) + 1,
@@ -1496,6 +1528,110 @@ export const judgingAdminRouter = createTRPCRouter({
         });
       } catch (error) {
         if (isUniqueViolation(error)) throw roomNameTaken(input.name);
+        throw error;
+      }
+    }),
+
+  /**
+   * Adds a hall's numbered tables in one go, "Table 1" to "Table 30" say,
+   * listed in number order among the hall's tables. Numbers an active station
+   * in the hall already goes by are skipped, so re-running a range fills gaps.
+   */
+  createTables: isAdmin
+    .input(
+      hackathonInput.extend({
+        challengeId: uuid,
+        buildingId: uuid,
+        count: z.number().int().min(1).max(200),
+        // Left out: one past the hall's highest table number.
+        firstNumber: z.number().int().min(1).max(MAX_TABLE_NUMBER).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      try {
+        return await db.transaction(async (tx) => {
+          await lockEdition(tx, input.hackathonId);
+          await assertRoomChallenge(tx, input.hackathonId, input.challengeId);
+          await assertBuilding(tx, input.hackathonId, input.buildingId);
+          const listed = await tx
+            .select({
+              id: judgingRooms.id,
+              name: judgingRooms.name,
+              buildingId: judgingRooms.buildingId,
+              displayOrder: judgingRooms.displayOrder,
+              archivedAt: judgingRooms.archivedAt,
+            })
+            .from(judgingRooms)
+            .where(eq(judgingRooms.hackathonId, input.hackathonId))
+            .orderBy(asc(judgingRooms.displayOrder), asc(judgingRooms.name));
+          const inHall = (room: { buildingId: string | null }) =>
+            room.buildingId === input.buildingId;
+          const stations = listed.filter(inHall).map((room) => ({
+            name: room.name,
+            archived: !!room.archivedAt,
+          }));
+          const first = input.firstNumber ?? nextTableNumber(stations);
+          const last = first + input.count - 1;
+          if (last > MAX_TABLE_NUMBER) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Table numbers stop at ${MAX_TABLE_NUMBER}. Start lower or add fewer tables.`,
+            });
+          }
+          const numbers = newTableNumbers(stations, input.count, first);
+          if (numbers.length === 0) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                input.count === 1
+                  ? `${tableName(first)} is in that building already.`
+                  : `${tableName(first)} to ${tableName(last)} are all in that building already.`,
+            });
+          }
+          const order = slotTables(
+            listed.map((room) => ({
+              id: room.id as string | null,
+              displayOrder: room.displayOrder,
+              number: inHall(room) ? tableNumber(room.name) : null,
+            })),
+            numbers.map((number) => ({ id: null, displayOrder: -1, number })),
+          );
+          // Stations after a table slotted in ahead of them move down.
+          for (const [index, station] of order.entries()) {
+            if (station.id && station.displayOrder !== index) {
+              await tx
+                .update(judgingRooms)
+                .set({ displayOrder: index })
+                .where(eq(judgingRooms.id, station.id));
+            }
+          }
+          await tx.insert(judgingRooms).values(
+            order.flatMap((station, index) =>
+              station.id || station.number === null
+                ? []
+                : [
+                    {
+                      hackathonId: input.hackathonId,
+                      name: tableName(station.number),
+                      kind: "table" as const,
+                      challengeId: input.challengeId,
+                      buildingId: input.buildingId,
+                      displayOrder: index,
+                    },
+                  ],
+            ),
+          );
+          return { created: numbers.length, numbers };
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "One of these table numbers was taken in that building just now. Refresh the Rooms tab and try again.",
+          });
+        }
         throw error;
       }
     }),
@@ -1511,6 +1647,7 @@ export const judgingAdminRouter = createTRPCRouter({
       z.object({
         roomId: uuid,
         name: roomName.optional(),
+        kind: roomKind.optional(),
         challengeId: uuid.optional(),
         buildingId: uuid.nullable().optional(),
         confirmation: z.string().trim().max(120).optional(),
@@ -1581,6 +1718,7 @@ export const judgingAdminRouter = createTRPCRouter({
 
           if (
             input.name === undefined &&
+            input.kind === undefined &&
             input.challengeId === undefined &&
             input.buildingId === undefined
           ) {
@@ -1590,6 +1728,7 @@ export const judgingAdminRouter = createTRPCRouter({
             .update(judgingRooms)
             .set({
               name: input.name,
+              kind: input.kind,
               challengeId: input.challengeId,
               buildingId: input.buildingId,
             })
@@ -1618,14 +1757,29 @@ export const judgingAdminRouter = createTRPCRouter({
       }
     }),
 
-  /** Sets the order rooms are listed in, first to last. */
+  /**
+   * Sets the order rooms are listed in, first to last. Only stations whose
+   * place changed are written, so swapping two rooms in an edition of
+   * hundreds of tables is two updates.
+   */
   reorderRooms: isAdmin
-    .input(hackathonInput.extend({ roomIds: z.array(uuid).max(500) }))
+    .input(hackathonInput.extend({ roomIds: z.array(uuid).max(2000) }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       await db.transaction(async (tx) => {
         await lockEdition(tx, input.hackathonId);
+        const current = await tx
+          .select({
+            id: judgingRooms.id,
+            displayOrder: judgingRooms.displayOrder,
+          })
+          .from(judgingRooms)
+          .where(eq(judgingRooms.hackathonId, input.hackathonId));
+        const orderOf = new Map(
+          current.map((room) => [room.id, room.displayOrder]),
+        );
         for (const [index, roomId] of input.roomIds.entries()) {
+          if (orderOf.get(roomId) === index) continue;
           await tx
             .update(judgingRooms)
             .set({ displayOrder: index })
@@ -1784,6 +1938,55 @@ export const judgingAdminRouter = createTRPCRouter({
         replaced: result.revoked.links > 0,
         guestsSignedOut: result.revoked.sessions,
       };
+    }),
+
+  /**
+   * Issues a QR link to each listed room or table that has none, so a hall's
+   * tables need not be linked one at a time. One with a live link keeps it,
+   * so no printed code stops working. The first link locks the project list.
+   */
+  generateRoomLinks: isAdmin
+    .input(hackathonInput.extend({ roomIds: z.array(uuid).min(1).max(500) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const issued = await db.transaction(async (tx) => {
+        await lockEdition(tx, input.hackathonId);
+        const rooms = await tx
+          .select({ id: judgingRooms.id, hackathonId: judgingRooms.hackathonId })
+          .from(judgingRooms)
+          .where(
+            and(
+              eq(judgingRooms.hackathonId, input.hackathonId),
+              inArray(judgingRooms.id, input.roomIds),
+              isNull(judgingRooms.archivedAt),
+              notExists(
+                tx
+                  .select({ one: sql`1` })
+                  .from(judgingRoomLinks)
+                  .where(
+                    and(
+                      eq(judgingRoomLinks.roomId, judgingRooms.id),
+                      isNull(judgingRoomLinks.revokedAt),
+                    ),
+                  ),
+              ),
+            ),
+          );
+        for (const room of rooms) {
+          await issueRoomLink(tx, room, ctx.userId);
+        }
+        return rooms.length;
+      });
+
+      if (issued > 0) {
+        await recordAdminAction(db, {
+          userId: ctx.userId,
+          action: "judging.generateRoomLinks",
+          resourceId: input.hackathonId,
+          metadata: { issued },
+        });
+      }
+      return { issued };
     }),
 
   /** Retires the room's QR link and signs out its guest judges. */

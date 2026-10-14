@@ -20,10 +20,10 @@ import {
 
 type Room = RouterOutputs["judging"]["admin"]["listRooms"]["rooms"][number];
 
-// Every live room QR, ready to print and tape by each door. The portal's
-// sidebar and header would print too, so the sheet that prints is a copy
-// mounted straight under <body>, and the print stylesheet hides everything
-// else. Paper is white whatever the screen theme.
+// Every live room and table QR, ready to print for each door or each table's
+// judges. The portal's sidebar and header would print too, so the sheet
+// that prints is a copy mounted straight under <body>, and the print
+// stylesheet hides everything else. Paper is white whatever the screen theme.
 const PRINT_CSS = `
 @media print {
   @page { margin: 16mm; }
@@ -64,11 +64,12 @@ export default function RoomQrSheetPage() {
       <header className="mt-4 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
-            Room QR codes
+            Judging QR codes
           </h1>
           <p className={pageDek}>
-            One room per page. Tape each sheet by its door; guest judges scan
-            it to join that room.
+            One room or table per page. Tape each room&apos;s sheet by its door,
+            and hand each table&apos;s to its judges rather than leaving it on
+            the table: teams sit there, and anyone who scans a code can judge.
           </p>
         </div>
         <button
@@ -83,11 +84,14 @@ export default function RoomQrSheetPage() {
       </header>
 
       {rooms.isLoading ? (
-        <p className={body}>Loading rooms…</p>
+        <p className={body}>Loading rooms and tables…</p>
       ) : rooms.isError ? (
         <div className="space-y-4">
           <p className={body}>
-            {trpcErrorMessage(rooms.error, "Could not load the rooms.")}
+            {trpcErrorMessage(
+              rooms.error,
+              "Could not load the rooms and tables.",
+            )}
           </p>
           <button
             type="button"
@@ -99,7 +103,7 @@ export default function RoomQrSheetPage() {
         </div>
       ) : printable.length === 0 ? (
         <p className={body}>
-          No room has a QR link yet. Generate links on{" "}
+          No room or table has a QR link yet. Generate links on{" "}
           <Link
             href={`/admin/judging/${hackathonId}#rooms`}
             className="font-semibold text-[var(--text-primary)] underline decoration-accent decoration-2 underline-offset-[5px]"
@@ -199,7 +203,7 @@ function Sheet({
         />
       </div>
       <p className={print ? "mt-10 text-[14pt]" : `mt-4 ${meta}`}>
-        Judges: scan with your phone camera to join this room.
+        Judges: scan with your phone camera to join this {room.kind}.
       </p>
       <p
         className={`break-all font-[family-name:var(--font-mono)] ${

@@ -14,8 +14,8 @@ export default function InvalidRoomLinkPage() {
     <main className={page}>
       <h1 className={pageTitle}>This QR code no longer works</h1>
       <p className={pageDek}>
-        Organisers replaced or switched off this room&apos;s link. Ask the
-        room&apos;s organiser for a new QR code, then scan that one.
+        Organisers replaced or switched off this link. Ask an organiser for
+        the new QR code at your room or table, then scan that one.
       </p>
       <p className={`mt-8 ${meta}`}>
         Judging with a portal account?{" "}

@@ -282,12 +282,14 @@ function Desk({
           {context.judge ? ` · Judging as ${context.judge.displayName}` : ""}
         </p>
         <h1 className={`mt-2 ${pageTitle}`}>
-          {room ? roomPlace(room.name, room.buildingName) : "No room yet"}
+          {room
+            ? roomPlace(room.name, room.buildingName)
+            : "No room or table yet"}
         </h1>
         <p className={pageDek}>
           {room
-            ? `This room judges ${room.challengeLabel}.`
-            : "Pick the room you are sitting in, and its presentations come first."}
+            ? `This ${room.kind} judges ${room.challengeLabel}.`
+            : "Pick the room or table you are at, and its presentations come first."}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1">
           <p className={status(state.tone)}>{state.text}</p>
@@ -297,7 +299,7 @@ function Desk({
               className={`${textLink} min-h-11`}
               onClick={() => setPickingRoom(true)}
             >
-              {room ? "Change room" : "Pick your room"}
+              {room ? `Change ${room.kind}` : "Pick your room or table"}
             </button>
           )}
         </div>

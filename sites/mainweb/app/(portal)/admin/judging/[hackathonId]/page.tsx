@@ -19,6 +19,7 @@ import {
   OFFICER_POLL_MS,
   SECTIONS,
   plural,
+  stationCount,
 } from "@/components/admin/judging/shared";
 import type { Overview, SectionId } from "@/components/admin/judging/shared";
 import { ChecklistSection } from "@/components/admin/judging/ChecklistSection";
@@ -107,8 +108,10 @@ export default function AdminEditionJudgingPage() {
                 "project",
               )}
             </span>
-            <span>{plural(data.counts.rooms.active, "room")}</span>
-            <span>{plural(data.counts.judgesSeated, "judge")} in rooms</span>
+            <span>
+              {stationCount(data.counts.rooms.active, data.counts.rooms.tables)}
+            </span>
+            <span>{plural(data.counts.judgesSeated, "judge")} seated</span>
             {data.config.emergencyMode && (
               <span className={status("danger")}>Emergency mode on</span>
             )}

@@ -48,6 +48,7 @@ const room = (
   id,
   challengeId: "general",
   name: id,
+  kind: "room",
   building: "Klaus",
   displayOrder: 0,
   archived: false,
@@ -206,7 +207,12 @@ describe("buildItinerary", () => {
   const rooms = [
     room("r1", { name: "Room 1" }),
     room("r2", { name: "Room 2", challengeId: "sponsor", building: "CULC" }),
-    room("m1", { name: "MLH Table", challengeId: "mlh", displayOrder: 1 }),
+    room("m1", {
+      name: "MLH Table",
+      kind: "table",
+      challengeId: "mlh",
+      displayOrder: 1,
+    }),
     room("m0", { name: "MLH Booth", challengeId: "mlh", building: null }),
     room("m9", { name: "Old Table", challengeId: "mlh", archived: true }),
   ];
@@ -321,8 +327,8 @@ describe("buildItinerary", () => {
         challenge: "MLH Challenges",
         children: ["Best use of MongoDB"],
         rooms: [
-          { name: "MLH Booth", building: null },
-          { name: "MLH Table", building: "Klaus" },
+          { name: "MLH Booth", kind: "room", building: null },
+          { name: "MLH Table", kind: "table", building: "Klaus" },
         ],
         judged: false,
       },

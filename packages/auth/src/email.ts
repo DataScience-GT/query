@@ -218,7 +218,7 @@ export async function sendJudgeApprovedEmail({
     heading: "You're confirmed as a judge",
     paragraphs: [
       `Your application to judge ${hackathonName} has been approved.`,
-      "On the day, scan the QR code on your judging room's door to take your seat, then score each project as it presents.",
+      "On the day, scan the QR code at your judging room or table to take your seat, then score each project as it presents.",
     ],
     ctaLabel: "Open the judge portal",
     ctaUrl: `${host}/judge`,
@@ -378,7 +378,7 @@ export async function sendJudgingClaimEmail({
       invitedBy
         ? `${invitedBy} added you to ${projectTitle} for judging at ${hackathonName}.`
         : `${projectTitle} is entered for judging at ${hackathonName}, and you are listed on its team.`,
-      "Open the link while signed in to the portal account you checked in with. Your judging times, rooms and feedback then appear on the Judging tab.",
+      "Open the link while signed in to the portal account you checked in with. Where and when you present, and your feedback, then appear on the Judging tab.",
       "The link works once and stops working when the event ends.",
     ],
     ctaLabel: "Claim your place",

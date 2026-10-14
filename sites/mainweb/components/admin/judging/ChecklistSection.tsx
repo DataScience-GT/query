@@ -77,14 +77,14 @@ export function ChecklistSection({
       detail: plural(counts.challenges.groups, "group"),
     },
     {
-      label: "Rooms",
+      label: "Rooms and tables",
       value: counts.rooms.active,
-      detail: `${counts.rooms.linked} with a QR link${
+      detail: `${plural(counts.rooms.tables, "table")} · ${counts.rooms.linked} with a QR link${
         counts.rooms.archived ? ` · ${counts.rooms.archived} archived` : ""
       }`,
     },
     {
-      label: "Judges in rooms",
+      label: "Judges seated",
       value: counts.judgesSeated,
       detail: "Seen in the last 15 minutes",
     },

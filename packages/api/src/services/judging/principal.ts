@@ -36,7 +36,7 @@ import {
 export { JUDGING_GUEST_COOKIE };
 
 export const GUEST_SESSION_ENDED =
-  "Your guest judging session has ended. Scan the QR code on your room's door again to keep judging.";
+  "Your guest judging session has ended. Scan the QR code at your room or table again to keep judging.";
 
 export type MemberJudge = {
   kind: "member";

@@ -111,8 +111,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             {approved} approved · {roster.length - approved} waiting
           </p>
           <p className={`mt-1 max-w-xl ${meta}`}>
-            Approved judges sign in and pick a room on their judge desk. Guest
-            judges scan a room&apos;s QR code instead and are not listed here.
+            Approved judges sign in and pick a room or table on their judge
+            desk. Guest judges scan the QR code at a room or table instead and
+            are not listed here.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
