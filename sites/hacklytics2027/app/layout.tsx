@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     images: ["/og-image.jpg"],
     creator: "@datasciencegt",
   },
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
   metadataBase: new URL("https://hacklytics.io"),
 };
 
