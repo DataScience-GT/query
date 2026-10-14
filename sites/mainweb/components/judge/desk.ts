@@ -107,3 +107,40 @@ export function linkHost(href: string) {
     return href;
   }
 }
+
+/**
+ * A station picker's rows in order: the judge's own track first, then the
+ * rest a building at a time. A group has a heading only where it tells
+ * something apart; stations with no building come last.
+ */
+export function stationGroups<
+  S extends { buildingName: string | null; yourTrack: boolean },
+>(stations: readonly S[]): { heading: string | null; stations: S[] }[] {
+  const groups: { heading: string | null; stations: S[] }[] = [];
+
+  const mine = stations.filter((station) => station.yourTrack);
+  if (mine.length > 0) groups.push({ heading: null, stations: mine });
+
+  const buildings = new Map<string, S[]>();
+  const loose: S[] = [];
+  for (const station of stations) {
+    if (station.yourTrack) continue;
+    if (!station.buildingName) {
+      loose.push(station);
+      continue;
+    }
+    const inBuilding = buildings.get(station.buildingName) ?? [];
+    inBuilding.push(station);
+    buildings.set(station.buildingName, inBuilding);
+  }
+  for (const [heading, inBuilding] of buildings) {
+    groups.push({ heading, stations: inBuilding });
+  }
+  if (loose.length > 0) {
+    groups.push({
+      heading: groups.length > 0 ? "Elsewhere" : null,
+      stations: loose,
+    });
+  }
+  return groups;
+}

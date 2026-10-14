@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import {
@@ -11,6 +12,8 @@ import {
   meta,
   pageDek,
   pageTitle,
+  sectionRule,
+  textLink,
 } from "@/components/portal/ui";
 import { deskPage, inOrAt, roomPlace } from "./desk";
 import type { DeskContext } from "./desk";
@@ -83,6 +86,22 @@ export function GuestNameGate({
           {setGuestName.isPending ? "Starting…" : "Start judging"}
         </button>
       </form>
+
+      <div className={`mt-10 max-w-md ${sectionRule}`}>
+        <p className={meta}>
+          Approved judge?{" "}
+          <Link
+            href={`/login?callbackUrl=${encodeURIComponent(`/judge/${hackathonId}`)}`}
+            className={textLink}
+          >
+            Sign in instead
+          </Link>
+        </p>
+        <p className={`mt-1 ${meta}`}>
+          After you sign in, scan the code again. It seats you as a member
+          instead of a guest.
+        </p>
+      </div>
     </main>
   );
 }

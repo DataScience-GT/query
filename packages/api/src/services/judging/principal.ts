@@ -31,7 +31,9 @@ import {
 //           its sha256); typing a name creates their judging_judge row and
 //           seats them in that room. A guest judges only the room's
 //           challenge and what sits below it, and the session ends when the
-//           link is revoked, the room archived, or eight hours pass.
+//           link is revoked, the room archived, or eight hours pass. Scanning
+//           another room's code from the same browser moves them to a new
+//           session for the same judge row.
 
 export { JUDGING_GUEST_COOKIE };
 
@@ -94,9 +96,17 @@ export function readCookie(
 }
 
 /**
+ * How long after a guest session ends a scan of another room's code still
+ * recognises the judge who held it.
+ */
+export const GUEST_CARRY_OVER_SECONDS = 4 * 3600;
+
+/**
  * Options for the guest session cookie, set by the room-link route handler.
  * Lax so the cookie rides along when the QR code opens the desk from a camera
- * app; httpOnly because the desk never reads it, only the API does.
+ * app; httpOnly because the desk never reads it, only the API does. It
+ * outlives the session by GUEST_CARRY_OVER_SECONDS: a lapsed session opens
+ * nothing, but scanning a code again in that time keeps the same judge.
  */
 export function guestCookieOptions() {
   return {
@@ -104,7 +114,7 @@ export function guestCookieOptions() {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",
-    maxAge: GUEST_SESSION_SECONDS,
+    maxAge: GUEST_SESSION_SECONDS + GUEST_CARRY_OVER_SECONDS,
   };
 }
 
@@ -411,10 +421,43 @@ export type RoomLinkActivation =
     };
 
 /**
+ * The judge a guest browser already is in this edition: the named session its
+ * cookie holds, live or lapsed within GUEST_CARRY_OVER_SECONDS. Null for an
+ * unnamed session, another edition's session, one an organiser revoked, or one
+ * that lapsed longer ago.
+ */
+async function carriedGuest(
+  db: JudgingDb,
+  token: string,
+  hackathonId: string,
+  now: Date,
+): Promise<{ sessionId: string; judgeId: string } | null> {
+  const [row] = await db
+    .select({
+      sessionId: judgingGuestSessions.id,
+      hackathonId: judgingGuestSessions.hackathonId,
+      judgeId: judgingGuestSessions.judgeId,
+      expiresAt: judgingGuestSessions.expiresAt,
+      revokedAt: judgingGuestSessions.revokedAt,
+    })
+    .from(judgingGuestSessions)
+    .where(eq(judgingGuestSessions.tokenHash, hashGuestToken(token)))
+    .limit(1);
+  if (!row?.judgeId || row.revokedAt || row.hackathonId !== hackathonId) {
+    return null;
+  }
+  const lapsedMs = now.getTime() - row.expiresAt.getTime();
+  return lapsedMs <= GUEST_CARRY_OVER_SECONDS * 1000
+    ? { sessionId: row.sessionId, judgeId: row.judgeId }
+    : null;
+}
+
+/**
  * What scanning a room's QR code does, for the /judge/activate route
  * handler. A signed-in member judge is seated in the room. Anyone else gets a
  * guest session, unless their browser already has a live one from this same
  * link: scanning twice must not turn a named guest into a new, nameless one.
+ * A named guest scanning a different room's code keeps their judge row.
  */
 export async function activateRoomLink(
   db: DrizzleDB,
@@ -486,14 +529,47 @@ export async function activateRoomLink(
     }
   }
 
+  // A named guest scanning another room's code is the same judge: the new
+  // session keeps their judge row, so they skip the name gate and their scores
+  // stay under one name.
+  const carried = input.guestToken
+    ? await carriedGuest(db, input.guestToken, link.hackathonId, now)
+    : null;
+
   const token = newGuestToken();
   const expiresAt = new Date(now.getTime() + GUEST_SESSION_SECONDS * 1000);
-  await db.insert(judgingGuestSessions).values({
-    tokenHash: hashGuestToken(token),
-    linkId: input.linkId,
-    roomId: link.roomId,
-    hackathonId: link.hackathonId,
-    expiresAt,
+  await db.transaction(async (tx) => {
+    await tx.insert(judgingGuestSessions).values({
+      tokenHash: hashGuestToken(token),
+      linkId: input.linkId,
+      roomId: link.roomId,
+      hackathonId: link.hackathonId,
+      judgeId: carried?.judgeId ?? null,
+      completedAt: carried ? now : null,
+      expiresAt,
+    });
+    if (carried) {
+      // The browser moves to the new session. The old one ends now rather
+      // than counting as a guest in the room they left until it lapses.
+      await tx
+        .update(judgingGuestSessions)
+        .set({ expiresAt: now })
+        .where(
+          and(
+            eq(judgingGuestSessions.id, carried.sessionId),
+            gt(judgingGuestSessions.expiresAt, now),
+          ),
+        );
+      await seatJudge(
+        tx,
+        {
+          judgeId: carried.judgeId,
+          roomId: link.roomId,
+          hackathonId: link.hackathonId,
+        },
+        now,
+      );
+    }
   });
 
   return {

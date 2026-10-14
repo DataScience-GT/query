@@ -94,6 +94,7 @@ export function ProjectQueue({
   filters,
   onFilters,
   onOpen,
+  onShowSubmitted,
   onPickRoom,
 }: {
   hackathonId: string;
@@ -101,6 +102,8 @@ export function ProjectQueue({
   filters: QueueFilters;
   onFilters: (next: QueueFilters) => void;
   onOpen: (entryId: string, challengeId: string) => void;
+  /** Switches the desk to the judge's submitted evaluations. */
+  onShowSubmitted: () => void;
   /** Members only: opens the room picker. */
   onPickRoom?: () => void;
 }) {
@@ -147,8 +150,35 @@ export function ProjectQueue({
       : null;
   const rest = data ? data.projects.filter((p) => p !== next) : [];
 
+  // Above the filters, so it is the first thing on a phone's screen.
+  const upNext =
+    data && challenge && next?.presentation ? (
+      <div className={`mb-6 ${object} p-5`}>
+        {now !== null && next.presentation.startsAt.getTime() <= now ? (
+          <p className={status("accent")}>Presenting now</p>
+        ) : (
+          <p className={status("neutral")}>
+            Up next
+            {now !== null &&
+              `, ${startsIn(next.presentation.startsAt.getTime() - now)}`}
+          </p>
+        )}
+        <h2 className={`mt-2 ${itemTitle}`}>{next.title}</h2>
+        <p className={`mt-1 ${meta}`}>{where(next)}</p>
+        <button
+          type="button"
+          className={`${btnPrimary} mt-5 min-h-11 w-full sm:w-auto`}
+          onClick={() => onOpen(next.id, challenge.id)}
+        >
+          {next.hasDraft ? "Keep judging" : "Judge this project"}
+        </button>
+      </div>
+    ) : null;
+
   return (
     <div className="mt-6">
+      {upNext}
+
       <div className="space-y-3">
         {context.challenges.length > 1 && (
           <div>
@@ -260,29 +290,6 @@ export function ProjectQueue({
         </div>
       ) : data && challenge ? (
         <>
-          {next?.presentation && (
-            <div className={`mt-8 ${object} p-5`}>
-              {now !== null && next.presentation.startsAt.getTime() <= now ? (
-                <p className={status("accent")}>Presenting now</p>
-              ) : (
-                <p className={status("neutral")}>
-                  Up next
-                  {now !== null &&
-                    `, ${startsIn(next.presentation.startsAt.getTime() - now)}`}
-                </p>
-              )}
-              <h2 className={`mt-2 ${itemTitle}`}>{next.title}</h2>
-              <p className={`mt-1 ${meta}`}>{where(next)}</p>
-              <button
-                type="button"
-                className={`${btnPrimary} mt-5 min-h-11 w-full sm:w-auto`}
-                onClick={() => onOpen(next.id, challenge.id)}
-              >
-                {next.hasDraft ? "Keep judging" : "Judge this project"}
-              </button>
-            </div>
-          )}
-
           {rest.length > 0 ? (
             <section
               className="mt-8"
@@ -338,9 +345,8 @@ export function ProjectQueue({
                 roomOnly={data.roomFilter === "applied"}
                 roomKind={context.room?.kind ?? "room"}
                 challengeLabel={challenge.label}
-                onShowJudged={() =>
-                  onFilters({ ...filters, hideJudged: false })
-                }
+                judgedCount={data.judgedCount}
+                onShowSubmitted={onShowSubmitted}
                 onShowAll={() => onFilters({ ...filters, inMyRoomOnly: false })}
               />
             )
@@ -404,7 +410,8 @@ function EmptyQueue({
   roomOnly,
   roomKind,
   challengeLabel,
-  onShowJudged,
+  judgedCount,
+  onShowSubmitted,
   onShowAll,
 }: {
   search: string;
@@ -412,7 +419,8 @@ function EmptyQueue({
   roomOnly: boolean;
   roomKind: StationKind;
   challengeLabel: string;
-  onShowJudged: () => void;
+  judgedCount: number;
+  onShowSubmitted: () => void;
   onShowAll: () => void;
 }) {
   if (search) {
@@ -423,18 +431,21 @@ function EmptyQueue({
       </p>
     );
   }
-  if (hideJudged) {
+  if (hideJudged && judgedCount > 0) {
     return (
       <div className="mt-8">
-        <p className={body}>
-          Nothing left to judge in this view. Projects you judged are hidden.
+        <p className={itemTitle}>You&rsquo;ve judged every presentation here</p>
+        <p className={`mt-1 ${body}`}>
+          {judgedCount} {judgedCount === 1 ? "evaluation" : "evaluations"}{" "}
+          submitted for {challengeLabel}. Organisers post what comes next as
+          announcements at the top of this page.
         </p>
         <button
           type="button"
           className={`${textLink} mt-2 min-h-11`}
-          onClick={onShowJudged}
+          onClick={onShowSubmitted}
         >
-          Show projects I judged
+          See what you submitted
         </button>
       </div>
     );

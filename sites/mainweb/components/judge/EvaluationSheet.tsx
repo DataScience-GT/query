@@ -30,8 +30,10 @@ import {
 import type { ProjectSheet } from "./desk";
 import { missingItems, onRubric, storedForm } from "./answers";
 import type { Answer } from "./answers";
+import { clearMirror, mirrorKey, readMirror } from "./draft-mirror";
 import { useDraftAutosave } from "./use-draft-autosave";
 import type { SaveStatus } from "./use-draft-autosave";
+import { useScreenWake } from "./use-screen-wake";
 import { useServerNow } from "./use-server-now";
 
 const MAX_RESPONSE = 2000;
@@ -56,14 +58,20 @@ function BackButton({ onClose }: { onClose: () => void }) {
 /** One project, opened for evaluation. */
 export function EvaluationSheet({
   hackathonId,
+  judgeId,
   entryId,
   challengeId,
   onClose,
+  onPickRoom,
 }: {
   hackathonId: string;
+  /** Keys the copy of the answers kept on this device. */
+  judgeId: string | null;
   entryId: string;
   challengeId: string | undefined;
   onClose: () => void;
+  /** Members only: leaves the project for the room picker. */
+  onPickRoom?: () => void;
 }) {
   const [reloads, setReloads] = useState(0);
   const sheet = trpc.judging.desk.project.useQuery(
@@ -128,12 +136,16 @@ export function EvaluationSheet({
       <EvaluationForm
         key={version}
         hackathonId={hackathonId}
+        judgeId={judgeId}
         data={data}
         now={now}
+        skew={data.serverNow.getTime() - sheet.dataUpdatedAt}
         refresh={sheet.refetch}
         onReload={() =>
           void sheet.refetch().then(() => setReloads((n) => n + 1))
         }
+        onNext={onClose}
+        onPickRoom={onPickRoom}
       />
     </>
   );
@@ -141,17 +153,27 @@ export function EvaluationSheet({
 
 function EvaluationForm({
   hackathonId,
+  judgeId,
   data,
   now,
+  skew,
   refresh,
   onReload,
+  onNext,
+  onPickRoom,
 }: {
   hackathonId: string;
+  judgeId: string | null;
   data: ProjectSheet;
   now: number | null;
+  /** How far the server's clock runs ahead of this device's, in ms. */
+  skew: number;
   /** Stable: React Query's refetch. */
   refresh: () => Promise<unknown>;
   onReload: () => void;
+  /** Back to the queue, where the next project waits. */
+  onNext: () => void;
+  onPickRoom?: () => void;
 }) {
   const utils = trpc.useUtils();
   const { entry, challenge, rubric, evaluation, draft, access, presentation } =
@@ -159,11 +181,40 @@ function EvaluationForm({
   const ratingItems = rubric.filter((item) => item.kind === "rating");
   const responseItems = rubric.filter((item) => item.kind === "response");
 
+  const serverRatings = onRubric(
+    draft?.ratings ?? evaluation?.ratings ?? {},
+    ratingItems,
+  );
+  const serverResponses = onRubric(
+    draft?.responses ?? evaluation?.responses ?? {},
+    responseItems,
+  );
+  const storageKey = judgeId
+    ? mirrorKey(judgeId, entry.id, challenge.id)
+    : null;
+  // Answers kept on this device after the server last heard of this task: a
+  // save that never got through, or a tab that closed first. The device
+  // stamps them on its own clock, so the server's time is moved onto it. An
+  // evaluation submitted for the judge when time ran out, and not touched
+  // since, holds an older save than anything the device kept before then.
+  const [restored] = useState(() => {
+    const serverAt = (draft?.updatedAt ?? evaluation?.updatedAt)?.getTime();
+    const untouchedAuto =
+      !draft &&
+      !!evaluation?.autoSubmittedAt &&
+      evaluation.updatedAt.getTime() === evaluation.autoSubmittedAt.getTime();
+    return storageKey && access.canEdit
+      ? readMirror(
+          storageKey,
+          serverAt === undefined || untouchedAuto ? 0 : serverAt - skew,
+        )
+      : null;
+  });
   const [ratings, setRatings] = useState<Record<string, number>>(() =>
-    onRubric(draft?.ratings ?? evaluation?.ratings ?? {}, ratingItems),
+    restored ? onRubric(restored.ratings, ratingItems) : serverRatings,
   );
   const [responses, setResponses] = useState<Record<string, Answer>>(() =>
-    onRubric(draft?.responses ?? evaluation?.responses ?? {}, responseItems),
+    restored ? onRubric(restored.responses, responseItems) : serverResponses,
   );
   const [showMissing, setShowMissing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -190,6 +241,8 @@ function EvaluationForm({
     answersKey: JSON.stringify([ratings, responses]),
     enabled: writable,
     revision: draft?.revision ?? 0,
+    serverKey: JSON.stringify([serverRatings, serverResponses]),
+    storageKey,
     save: (revision) =>
       utils.client.judging.desk.saveDraft.mutate({
         hackathonId,
@@ -201,6 +254,9 @@ function EvaluationForm({
       }),
   });
   const { hold, release } = autosave;
+
+  // A phone that locks mid-presentation leaves a countdown nobody can see.
+  useScreenWake(deadlineAt !== null);
 
   // When the clock runs out the server submits the draft on its next read.
   // Ask for that read now rather than wait for the poll.
@@ -222,6 +278,9 @@ function EvaluationForm({
     !evaluation ||
     storedForm(rubric, ratings, responses) !==
       storedForm(rubric, evaluation.ratings, evaluation.responses);
+  // Not submit.isSuccess: the editor remounts on the new revision, which
+  // resets the mutation.
+  const submitted = !!evaluation && !changed && !sending;
 
   async function send() {
     if (missing.length > 0) {
@@ -245,6 +304,7 @@ function EvaluationForm({
       },
       {
         onSuccess: () => {
+          if (storageKey) clearMirror(storageKey);
           void utils.judging.desk.project.invalidate({ hackathonId });
           void utils.judging.desk.projects.invalidate({ hackathonId });
           void utils.judging.desk.myEvaluations.invalidate({ hackathonId });
@@ -358,7 +418,7 @@ function EvaluationForm({
         )}
       </header>
 
-      <AccessNotice data={data} opensIn={opensIn} />
+      <AccessNotice data={data} opensIn={opensIn} onPickRoom={onPickRoom} />
 
       <form
         className="mt-8"
@@ -541,6 +601,7 @@ function EvaluationForm({
                       autosave.status,
                       writable,
                       draft?.updatedAt ?? null,
+                      submitted,
                     )}
               </p>
               {autosave.status.kind === "stopped" && (
@@ -555,26 +616,46 @@ function EvaluationForm({
                   <button
                     type="button"
                     className={`${textLink} min-h-11`}
-                    onClick={onReload}
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          "Reload the saved answers? Anything on this screen that has not saved will be lost.",
+                        )
+                      ) {
+                        return;
+                      }
+                      if (storageKey) clearMirror(storageKey);
+                      onReload();
+                    }}
                   >
                     Reload saved answers
                   </button>
                 </span>
               )}
             </div>
-            <button
-              type="submit"
-              className={`${btnPrimary} min-h-11 shrink-0`}
-              disabled={!editable || !changed}
-            >
-              {sending && !submit.isSuccess
-                ? "Submitting…"
-                : submit.isSuccess || (evaluation && !changed)
-                  ? "Submitted"
-                  : evaluation
-                    ? "Update"
-                    : "Submit"}
-            </button>
+            {submitted ? (
+              <button
+                type="button"
+                className={`${btnPrimary} min-h-11 shrink-0`}
+                onClick={onNext}
+              >
+                Next project
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className={`${btnPrimary} min-h-11 shrink-0`}
+                disabled={!editable || !changed}
+              >
+                {sending && !submit.isSuccess
+                  ? "Submitting…"
+                  : submit.isSuccess || (evaluation && !changed)
+                    ? "Submitted"
+                    : evaluation
+                      ? "Update"
+                      : "Submit"}
+              </button>
+            )}
           </div>
           {submitError && (
             <p role="alert" className="mt-2 text-[13px] text-[var(--danger)]">
@@ -591,6 +672,7 @@ function saveLine(
   saving: SaveStatus,
   writable: boolean,
   restoredAt: Date | null,
+  submitted: boolean,
 ): string {
   switch (saving.kind) {
     case "saving":
@@ -600,8 +682,9 @@ function saveLine(
     case "retrying":
       return "Not saved yet. Retrying…";
     case "stopped":
-      return `Saving stopped after 5 tries. ${saving.message}`;
+      return `Saving stopped. ${saving.message}`;
     case "idle":
+      if (submitted) return "Submitted";
       if (!writable) return "";
       return restoredAt
         ? `Draft from ${clockTime(restoredAt)} restored`
@@ -613,9 +696,11 @@ function saveLine(
 function AccessNotice({
   data,
   opensIn,
+  onPickRoom,
 }: {
   data: ProjectSheet;
   opensIn: number | null;
+  onPickRoom?: () => void;
 }) {
   const { access, evaluation } = data;
 
@@ -629,6 +714,15 @@ function AccessNotice({
       <div className="mt-6">
         <p className={status("warning")}>{heading}</p>
         <p className={`mt-1 ${body}`}>{access.reason}</p>
+        {access.needsRoom && onPickRoom && (
+          <button
+            type="button"
+            className={`${textLink} mt-1 min-h-11`}
+            onClick={onPickRoom}
+          >
+            Pick your room or table
+          </button>
+        )}
       </div>
     );
   }

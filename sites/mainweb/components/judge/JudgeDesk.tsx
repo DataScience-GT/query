@@ -250,15 +250,30 @@ function Desk({
     }
   };
 
+  // The picker sits under the header; a judge sent here from a project may
+  // come back to the list scrolled down.
+  useEffect(() => {
+    if (pickingRoom && !projectId) window.scrollTo(0, 0);
+  }, [pickingRoom, projectId]);
+
   if (projectId) {
     return (
       <main className={deskPage}>
         <DeskAnnouncements hackathonId={hackathonId} urgentOnly />
         <EvaluationSheet
           hackathonId={hackathonId}
+          judgeId={context.judge?.id ?? null}
           entryId={projectId}
           challengeId={projectChallenge}
           onClose={close}
+          onPickRoom={
+            isMember
+              ? () => {
+                  setPickingRoom(true);
+                  close();
+                }
+              : undefined
+          }
         />
       </main>
     );
@@ -336,6 +351,7 @@ function Desk({
                 filters={filters}
                 onFilters={setFilters}
                 onOpen={open}
+                onShowSubmitted={() => setView("submitted")}
                 onPickRoom={isMember ? () => setPickingRoom(true) : undefined}
               />
             ) : view === "submitted" ? (

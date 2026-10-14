@@ -11,7 +11,7 @@ import {
   status,
   textLink,
 } from "@/components/portal/ui";
-import { roomPlace } from "./desk";
+import { roomPlace, stationGroups } from "./desk";
 
 /**
  * Where a member judge says they are sitting. Organisers schedule by room, so
@@ -62,6 +62,36 @@ export function RoomSwitcher({
     >
       <h2 className={label}>Pick the room or table you are at</h2>
 
+      {/* Above the list: a long one pushes them off a phone's screen. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-4">
+        <button
+          type="button"
+          className={`${textLink} min-h-11`}
+          onClick={() => onDone(false)}
+        >
+          Cancel
+        </button>
+        {current && (
+          <button
+            type="button"
+            className={`${btnSecondary} min-h-11`}
+            disabled={busy}
+            onClick={() => {
+              setError(null);
+              leave.mutate({ hackathonId });
+            }}
+          >
+            {leave.isPending ? "Leaving…" : `Leave this ${currentKind}`}
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+          {error}
+        </p>
+      )}
+
       {rooms.isPending ? (
         <p role="status" className={`mt-3 ${meta}`}>
           Loading rooms and tables…
@@ -77,69 +107,52 @@ export function RoomSwitcher({
           judge projects without one.
         </p>
       ) : (
-        <ul className="mt-3 border-t border-[var(--border-subtle)]">
-          {rooms.data.rooms.map((room) => {
-            const here = room.id === current;
-            return (
-              <li
-                key={room.id}
-                className="border-b border-[var(--border-subtle)]"
-              >
-                <button
-                  type="button"
-                  disabled={busy || here}
-                  onClick={() => {
-                    setError(null);
-                    join.mutate({ hackathonId, roomId: room.id });
-                  }}
-                  className="flex w-full min-h-11 items-center gap-4 py-3 text-left transition-colors hover:bg-[var(--bg-secondary)] disabled:cursor-default disabled:hover:bg-transparent"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-[var(--text-primary)]">
-                      {roomPlace(room.name, room.buildingName)}
-                    </span>
-                    <span className={`block ${meta}`}>
-                      {room.challengeLabel}
-                    </span>
-                  </span>
-                  {here && (
-                    <span className={status("accent")}>You are here</span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        stationGroups(rooms.data.rooms).map((group) => (
+          <div key={group.heading ?? "first"} className="mt-4">
+            {group.heading && <h3 className={label}>{group.heading}</h3>}
+            <ul className="mt-2 border-t border-[var(--border-subtle)]">
+              {group.stations.map((room) => {
+                const here = room.id === current;
+                return (
+                  <li
+                    key={room.id}
+                    className="border-b border-[var(--border-subtle)]"
+                  >
+                    <button
+                      type="button"
+                      disabled={busy || here}
+                      onClick={() => {
+                        setError(null);
+                        join.mutate({ hackathonId, roomId: room.id });
+                      }}
+                      className="flex w-full min-h-11 items-center gap-4 py-3 text-left transition-colors hover:bg-[var(--bg-secondary)] disabled:cursor-default disabled:hover:bg-transparent"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[15px] font-semibold text-[var(--text-primary)]">
+                          {group.heading === room.buildingName
+                            ? room.name
+                            : roomPlace(room.name, room.buildingName)}
+                        </span>
+                        <span className={`block ${meta}`}>
+                          {room.challengeLabel}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 flex-col items-end gap-1">
+                        {room.yourTrack && (
+                          <span className={status("neutral")}>Your track</span>
+                        )}
+                        {here && (
+                          <span className={status("accent")}>You are here</span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))
       )}
-
-      {error && (
-        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
-          {error}
-        </p>
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        {current && (
-          <button
-            type="button"
-            className={`${btnSecondary} min-h-11`}
-            disabled={busy}
-            onClick={() => {
-              setError(null);
-              leave.mutate({ hackathonId });
-            }}
-          >
-            {leave.isPending ? "Leaving…" : `Leave this ${currentKind}`}
-          </button>
-        )}
-        <button
-          type="button"
-          className={`${textLink} min-h-11`}
-          onClick={() => onDone(false)}
-        >
-          Cancel
-        </button>
-      </div>
     </section>
   );
 }

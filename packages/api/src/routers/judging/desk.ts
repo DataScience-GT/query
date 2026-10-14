@@ -3,6 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import {
   hackathons,
+  judgeAssignments,
+  judges,
   judgingAnnouncements,
   judgingAppointments,
   judgingBuildings,
@@ -55,7 +57,7 @@ import {
   overallScore,
   scopedScore,
 } from "../../services/judging/scoring";
-import { effectiveMode } from "../../services/judging/scope";
+import { effectiveMode, rootOf, sameLabel } from "../../services/judging/scope";
 import {
   groupSections,
   isReordering,
@@ -266,6 +268,26 @@ async function openRoomId(db: DrizzleDB, judgeId: string) {
     )
     .limit(1);
   return seat?.roomId ?? null;
+}
+
+/** The track a member judge asked for when they applied, or null. */
+async function preferredTrackOf(
+  db: DrizzleDB,
+  userId: string,
+  hackathonId: string,
+) {
+  const [row] = await db
+    .select({ track: judgeAssignments.track })
+    .from(judgeAssignments)
+    .innerJoin(judges, eq(judges.id, judgeAssignments.judgeId))
+    .where(
+      and(
+        eq(judges.userId, userId),
+        eq(judgeAssignments.hackathonId, hackathonId),
+      ),
+    )
+    .limit(1);
+  return row?.track ?? null;
 }
 
 /** Runs a deliberation write: judging open, the judge still seated. */
@@ -732,6 +754,10 @@ export const judgingDeskRouter = createTRPCRouter({
     const db = ctx.db;
     const challenges = await loadChallenges(db, input.hackathonId);
     const seat = await seatOf(db, ctx.judge.judgeId, challenges);
+    const track =
+      ctx.judge.kind === "member"
+        ? await preferredTrackOf(db, ctx.judge.userId, input.hackathonId)
+        : null;
     const rows = await db
       .select({
         id: judgingRooms.id,
@@ -763,6 +789,14 @@ export const judgingDeskRouter = createTRPCRouter({
         ...room,
         challengeLabel: labelOf.get(room.challengeId) ?? "",
         mode: effectiveMode(challenges, room.challengeId) ?? "scheduled",
+        // The room serves the track the judge applied for, by its challenge
+        // or the group that challenge sits in.
+        yourTrack:
+          !!track &&
+          [
+            labelOf.get(room.challengeId),
+            rootOf(challenges, room.challengeId)?.label,
+          ].some((label) => !!label && sameLabel(label, track)),
       })),
     };
   }),
@@ -959,7 +993,9 @@ export const judgingDeskRouter = createTRPCRouter({
         roomFilter,
         serverNow: new Date(),
       };
-      if (entries.length === 0) return { ...base, projects: [] };
+      if (entries.length === 0) {
+        return { ...base, judgedCount: 0, projects: [] };
+      }
       const entryIds = entries.map((entry) => entry.id);
 
       const presentations = schedule
@@ -1021,14 +1057,23 @@ export const judgingDeskRouter = createTRPCRouter({
       const evaluationOf = new Map(mine.map((e) => [e.entryId, e]));
       const drafted = new Set(drafts.map((d) => d.entryId));
 
-      const projects = entries
+      const inView = entries.filter(
+        (entry) =>
+          !(
+            roomFilter === "applied" &&
+            presentationOf.get(entry.id)?.roomId !== seat?.roomId
+          ),
+      );
+      // An incomplete evaluation (time ran out on it) still has work to do, so
+      // only finished ones are hidden.
+      const judgedCount = inView.filter(
+        (entry) => evaluationOf.get(entry.id)?.isComplete,
+      ).length;
+
+      const projects = inView
         .filter(
           (entry) =>
-            !(input.hideJudged && evaluationOf.has(entry.id)) &&
-            !(
-              roomFilter === "applied" &&
-              presentationOf.get(entry.id)?.roomId !== seat?.roomId
-            ),
+            !(input.hideJudged && evaluationOf.get(entry.id)?.isComplete),
         )
         .map((entry) => {
           const presentation = presentationOf.get(entry.id);
@@ -1068,7 +1113,7 @@ export const judgingDeskRouter = createTRPCRouter({
         return byTitle(a, b);
       });
 
-      return { ...base, projects };
+      return { ...base, judgedCount, projects };
     }),
 
   // One project as the evaluation editor needs it: the project (names only
@@ -1248,6 +1293,10 @@ export const judgingDeskRouter = createTRPCRouter({
               : timing.reason,
           deadlineAt: timing.canEdit ? timing.deadlineAt : null,
           opensAt: timing.canEdit ? null : timing.opensAt,
+          // Shut only because the judge is not in the room that serves this
+          // challenge: a slot exists and has no start to wait for.
+          needsRoom:
+            open && !timing.canEdit && !timing.opensAt && presentation !== null,
         },
         presentation:
           presentation && presentationRoom
