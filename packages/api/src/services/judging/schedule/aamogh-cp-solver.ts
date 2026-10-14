@@ -33,8 +33,11 @@ import type { PlanDiagnostic, PlanResult } from "./solve";
 //              part must beat the goal, and goal-aware value order.
 //   polish     Building changes and breaks only ever involve two projects
 //              per move, so they get a cheap trade-and-move climb with
-//              per-project costs before the exact repair takes a fixed
-//              number of shots at the tightest projects.
+//              per-project costs, then exact re-seating one challenge at a
+//              time, before the exact repair takes a fixed number of kicks.
+//   complete   When the repair cannot finish a schedule, a min-conflicts
+//              search looks for any complete one before breaks are relaxed,
+//              and the repair improves that instead.
 //
 // Budgets count work, not time, and the only randomness is a generator seeded
 // from the inputs, so the same inputs always give the same schedule: a save
@@ -97,13 +100,25 @@ const TRIALS_PER_TASK = 96;
 const MAX_FREED = 48;
 /** Neighbourhoods without progress before a goal is left as it stands. */
 const PATIENCE = 400;
-/** The same for completing a schedule before trying relaxed breaks. */
+/** The same for completing a schedule before the completion search tries. */
 const UNPLACED_PATIENCE = 60;
+/** Most rounds of re-seating then sponsor moves when settling a schedule. */
+const SETTLE_ROUNDS = 8;
 /**
- * Breaks come last and polishing has done most of the work, so the exact
- * repair gets a fixed number of tries at them, however they go.
+ * Building changes and breaks are settled by exact re-seating, which no
+ * small repair improves on, so the exact repair instead gets a fixed number
+ * of kicks: re-place a neighbourhood however it fits, settle again, keep the
+ * result if it is no worse.
  */
-const BREAKS_KICKS = 60;
+const KICKS = 20;
+/**
+ * Cells the completion search may look at per presentation before the
+ * relaxed retry takes over. Where a complete schedule existed, the
+ * benchmarks needed under half of this.
+ */
+const COMPLETE_CELLS = 500;
+/** Least number of moves a displaced presentation waits to retake its cell. */
+const TENURE = 10;
 
 /** Small, fast, seedable; good enough to pick neighbourhoods. */
 function generator(seed: number) {
@@ -165,6 +180,8 @@ function compile(inputs: PlanInputs, relaxed: boolean) {
 
   const entryTasks: number[][] = Array.from({ length: E }, () => []);
   for (let t = 0; t < T; t += 1) entryTasks[taskEntry[t]!]!.push(t);
+  const challengeTasks: number[][] = Array.from({ length: C }, () => []);
+  for (let t = 0; t < T; t += 1) challengeTasks[taskChallenge[t]!]!.push(t);
 
   // Symmetry classes: one per (challenge, building), each with its rooms.
   const classesOf: number[][][] = Array.from({ length: C }, () => []);
@@ -181,6 +198,10 @@ function compile(inputs: PlanInputs, relaxed: boolean) {
   }
   const roomsOf: number[][] = Array.from({ length: C }, () => []);
   for (let r = 0; r < R; r += 1) roomsOf[roomChallenge[r]!]!.push(r);
+  const classOfRoom: number[][] = Array.from(
+    { length: R },
+    (_, r) => classKey.get(`${roomChallenge[r]}:${roomBuilding[r]}`)!,
+  );
 
   return {
     R,
@@ -196,7 +217,9 @@ function compile(inputs: PlanInputs, relaxed: boolean) {
     taskEntry,
     taskSponsor,
     entryTasks,
+    challengeTasks,
     classesOf,
+    classOfRoom,
     roomsOf,
     buildings: buildingIndex.size,
   };
@@ -305,14 +328,21 @@ class Board {
 
   /** Whether `t` may present in room `r` at slot `s`, given everyone placed. */
   fits(t: number, r: number, s: number): boolean {
+    if (this.grid[r * this.m.S + s] !== -1) return false;
+    return this.spaced(t, this.m.roomBuilding[r]!, s);
+  }
+
+  /**
+   * Whether `t`'s placed project-mates leave it the breaks it needs at slot
+   * `s` in building `b`. The same for every room there, free or not.
+   */
+  spaced(t: number, b: number, s: number): boolean {
     const m = this.m;
-    if (this.grid[r * m.S + s] !== -1) return false;
-    const building = m.roomBuilding[r]!;
     for (const u of m.entryTasks[m.taskEntry[t]!]!) {
       if (u === t) continue;
       const ru = this.roomOf[u]!;
       if (ru < 0) continue;
-      const gap = m.roomBuilding[ru] === building ? m.sameGap : m.crossGap;
+      const gap = m.roomBuilding[ru] === b ? m.sameGap : m.crossGap;
       const apart = Math.abs(s - this.slotOf[u]!) - 1;
       if (apart < gap) return false;
     }
@@ -357,8 +387,7 @@ class Board {
     for (const tasks of m.entryTasks) {
       if (tasks.length < 2) continue;
       order.length = 0;
-      for (const t of tasks) if (this.slotOf[t]! >= 0) order.push(t);
-      order.sort((a, b) => this.slotOf[a]! - this.slotOf[b]!);
+      for (const t of tasks) if (this.slotOf[t]! >= 0) insertBySlot(order, this.slotOf, t);
       for (let i = 1; i < order.length; i += 1) {
         const a = order[i - 1]!;
         const b = order[i]!;
@@ -376,6 +405,20 @@ class Board {
     out[CHANGES] = changes;
     out[BREAKS] = lessBreaks;
   }
+}
+
+/**
+ * Adds presentation t to `list`, kept in slot order. Insertion beats a sort
+ * call for the handful of presentations one project has.
+ */
+function insertBySlot(list: number[], slotOf: Int32Array, t: number) {
+  let i = list.length;
+  list.push(t);
+  while (i > 0 && slotOf[list[i - 1]!]! > slotOf[t]!) {
+    list[i] = list[i - 1]!;
+    i -= 1;
+  }
+  list[i] = t;
 }
 
 function lexCompare(a: Float64Array, b: Float64Array): number {
@@ -424,6 +467,106 @@ function sweep(m: Model, board: Board) {
   }
 }
 
+/**
+ * Finishes a schedule the repair could not, by min-conflicts search. A
+ * waiting presentation takes the cell where it displaces the least: the
+ * cell's occupant and any project-mates it would now be too close to, each
+ * counted at its weight. Whoever it displaces waits instead and may not
+ * retake the cell it lost for a while. Every move adds one to the weight of
+ * everyone still waiting, so the hardest presentation goes next, the ones
+ * that are hard to seat become expensive to displace, and the search does
+ * not circle. Gives up after about `budget` cells looked at, leaving the
+ * board as it found it. True if everything is placed.
+ */
+function complete(
+  m: Model,
+  board: Board,
+  random: () => number,
+  budget: number,
+  counter: { nodes: number },
+): boolean {
+  const start = new Board(m);
+  start.copyFrom(board);
+  const weight = new Float64Array(m.T).fill(1);
+  const lostCell = new Int32Array(m.T).fill(-1);
+  const lostUntil = new Int32Array(m.T);
+  const waiting: number[] = [];
+  for (let t = 0; t < m.T; t += 1) if (board.roomOf[t]! < 0) waiting.push(t);
+  const displaced: number[] = [];
+  // The project-mates of t too close to slot s in building b, or their
+  // total weight.
+  const clashes = (t: number, b: number, s: number, out: number[] | null) => {
+    let cost = 0;
+    for (const u of m.entryTasks[m.taskEntry[t]!]!) {
+      const ru = board.roomOf[u]!;
+      if (u === t || ru < 0) continue;
+      const gap = m.roomBuilding[ru] === b ? m.sameGap : m.crossGap;
+      if (Math.abs(s - board.slotOf[u]!) - 1 >= gap) continue;
+      cost += weight[u]!;
+      out?.push(u);
+    }
+    return cost;
+  };
+
+  let work = 0;
+  for (let step = 0; waiting.length > 0 && work < budget; step += 1) {
+    let pick = 0;
+    for (let i = 1; i < waiting.length; i += 1) {
+      if (weight[waiting[i]!]! > weight[waiting[pick]!]!) pick = i;
+    }
+    const t = waiting[pick]!;
+
+    // The cheapest cell, ties broken at random.
+    let bestCost = Infinity;
+    let bestCell = -1;
+    let ties = 0;
+    for (const rooms of m.classesOf[m.taskChallenge[t]!]!) {
+      const b = m.roomBuilding[rooms[0]!]!;
+      for (let s = 0; s < m.S; s += 1) {
+        work += 1;
+        const cost = clashes(t, b, s, null);
+        if (cost > bestCost) continue;
+        for (const r of rooms) {
+          const cell = r * m.S + s;
+          if (cell === lostCell[t] && step < lostUntil[t]!) continue;
+          const u = board.grid[cell]!;
+          const total = u < 0 ? cost : cost + weight[u]!;
+          if (total < bestCost) {
+            bestCost = total;
+            bestCell = cell;
+            ties = 1;
+          } else if (total === bestCost && random() * (ties += 1) < 1) {
+            bestCell = cell;
+          }
+          // Free rooms of a class are alike: the first stands for the rest.
+          if (u < 0) break;
+        }
+      }
+    }
+    if (bestCell < 0) break;
+
+    const r = Math.floor(bestCell / m.S);
+    const s = bestCell % m.S;
+    displaced.length = 0;
+    if (board.grid[bestCell]! >= 0) displaced.push(board.grid[bestCell]!);
+    clashes(t, m.roomBuilding[r]!, s, displaced);
+    waiting[pick] = waiting[waiting.length - 1]!;
+    waiting.pop();
+    for (const u of displaced) {
+      lostCell[u] = board.roomOf[u]! * m.S + board.slotOf[u]!;
+      lostUntil[u] = step + TENURE + Math.floor(random() * TENURE);
+      board.lift(u);
+      waiting.push(u);
+    }
+    board.place(t, r, s);
+    for (const u of waiting) weight[u] += 1;
+  }
+  counter.nodes += work;
+  if (waiting.length === 0) return true;
+  board.copyFrom(start);
+  return false;
+}
+
 /** How many of `t`'s placed project-mates are in another building than `r`. */
 function buildingHops(m: Model, board: Board, t: number, r: number): number {
   let hops = 0;
@@ -463,10 +606,12 @@ function repair(
   const budgetEnd = counter.nodes + NODES_PER_TASK * freed.length + 8;
   const values = new Int32Array(m.R * m.S * 2);
   const keys = new Float64Array(m.R * m.S);
+  const capOf = (t: number) =>
+    m.taskSponsor[t] ? Math.min(caps.sponsor, caps.all) : caps.all;
 
   // Every value for t inside the caps, one room per symmetry class and slot.
-  const enumerate = (t: number, limit: number): number => {
-    const cap = m.taskSponsor[t] ? Math.min(caps.sponsor, caps.all) : caps.all;
+  const enumerate = (t: number): number => {
+    const cap = capOf(t);
     let count = 0;
     for (const rooms of m.classesOf[m.taskChallenge[t]!]!) {
       for (let s = 0; s < cap; s += 1) {
@@ -478,13 +623,45 @@ function repair(
             values[count * 2] = r;
             values[count * 2 + 1] = s;
             count += 1;
-            if (count >= limit) return count;
           }
           break;
         }
       }
     }
     return count;
+  };
+
+  // How many values each freed task has, kept current as the search places
+  // and lifts, so picking the next task is a scan rather than a recount.
+  // Placing t at (r, s) changes only its project-mates' values (recounted)
+  // and, when it took the last free room of its class at s, costs each other
+  // task of its challenge that value.
+  const n = freed.length;
+  const waiting = new Uint8Array(n).fill(1);
+  let left = n;
+  const sizes = new Int32Array(n);
+  for (let i = 0; i < n; i += 1) sizes[i] = enumerate(freed[i]!);
+  const savedSizes = new Int32Array(n * (n + 1));
+  let depth = 0;
+  const update = (t: number, r: number, s: number) => {
+    const e = m.taskEntry[t]!;
+    const c = m.taskChallenge[t]!;
+    const b = m.roomBuilding[r]!;
+    let full = true;
+    for (const q of m.classOfRoom[r]!) {
+      if (board.grid[q * m.S + s] === -1) {
+        full = false;
+        break;
+      }
+    }
+    for (let i = 0; i < n; i += 1) {
+      if (!waiting[i]) continue;
+      const u = freed[i]!;
+      if (m.taskEntry[u] === e) sizes[i] = enumerate(u);
+      else if (full && m.taskChallenge[u] === c && s < capOf(u) && board.spaced(u, b, s)) {
+        sizes[i] -= 1;
+      }
+    }
   };
 
   const keyOf = (t: number, r: number, s: number) => {
@@ -500,38 +677,35 @@ function repair(
     }
   };
 
-  const remaining = freed.slice();
-  const placedHere: number[] = [];
-
   const search = (): boolean => {
-    if (remaining.length === 0) return true;
+    if (left === 0) return true;
     if (counter.nodes > budgetEnd) return false;
 
-    // Fail-first: fewest values. Counting stops early past the best so far.
-    let pickIndex = -1;
+    // Fail-first: fewest values, counted up to 64 so that big domains tie
+    // and go in the order they were freed.
+    let pick = -1;
     let pickCount = Infinity;
-    for (let i = 0; i < remaining.length; i += 1) {
-      const count = enumerate(remaining[i]!, Math.min(pickCount, 64));
+    for (let i = 0; i < n; i += 1) {
+      if (!waiting[i]) continue;
+      const count = Math.min(sizes[i]!, 64);
       if (count < pickCount) {
         pickCount = count;
-        pickIndex = i;
+        pick = i;
         if (count === 0) break;
       }
     }
-    const t = remaining[pickIndex]!;
-    remaining.splice(pickIndex, 1);
+    const t = freed[pick]!;
+    waiting[pick] = 0;
+    left -= 1;
 
     if (pickCount === 0) {
-      if (partial) {
-        const done = search();
-        if (!done) remaining.splice(pickIndex, 0, t);
-        return done;
-      }
-      remaining.splice(pickIndex, 0, t);
+      if (partial && search()) return true;
+      waiting[pick] = 1;
+      left += 1;
       return false;
     }
 
-    const count = enumerate(t, Infinity);
+    const count = enumerate(t);
     for (let i = 0; i < count; i += 1) {
       keys[i] = keyOf(t, values[i * 2]!, values[i * 2 + 1]!);
     }
@@ -547,16 +721,21 @@ function repair(
     }
     const tries = chosen.map((i) => [values[i * 2]!, values[i * 2 + 1]!] as const);
 
+    const at = depth * n;
+    for (let i = 0; i < n; i += 1) savedSizes[at + i] = sizes[i]!;
+    depth += 1;
     for (const [r, s] of tries) {
       counter.nodes += 1;
       board.place(t, r, s);
-      placedHere.push(t);
+      update(t, r, s);
       if (search()) return true;
-      placedHere.pop();
       board.lift(t);
+      for (let i = 0; i < n; i += 1) sizes[i] = savedSizes[at + i]!;
       if (counter.nodes > budgetEnd) break;
     }
-    remaining.splice(pickIndex, 0, t);
+    depth -= 1;
+    waiting[pick] = 1;
+    left += 1;
     return false;
   };
 
@@ -685,17 +864,16 @@ function neighbourhood(
  * room's occupancy as it was, so sponsor finish, sponsor idle and the finish
  * cannot move; moves stay inside the current finish.
  *
- * Works through a queue of projects (all of them, or those in `only`); a
- * project that changes goes back on the queue along with its trade partner,
- * so later rounds touch only what moved. Fewer changes first, then more
- * breaks. Returns the tries spent, at most `budget`.
+ * Works through a queue of every project; a project that changes goes back
+ * on the queue along with its trade partner, so later rounds touch only
+ * what moved. Fewer changes first, then more breaks. Returns the tries
+ * spent, at most `budget`.
  */
 function polish(
   m: Model,
   board: Board,
   finish: number,
   budget: number,
-  only?: Uint8Array,
 ): number {
   // Lower is better. One building change outweighs any difference in spread
   // two projects can make between them.
@@ -704,9 +882,10 @@ function polish(
   const changesOf = new Int32Array(m.E);
   const cost = (e: number) => {
     visits.length = 0;
-    for (const t of m.entryTasks[e]!) if (board.slotOf[t]! >= 0) visits.push(t);
+    for (const t of m.entryTasks[e]!) {
+      if (board.slotOf[t]! >= 0) insertBySlot(visits, board.slotOf, t);
+    }
     if (visits.length < 2) return 0;
-    visits.sort((a, b) => board.slotOf[a]! - board.slotOf[b]!);
     let changes = 0;
     for (let i = 1; i < visits.length; i += 1) {
       const before = m.roomBuilding[board.roomOf[visits[i - 1]!]!];
@@ -727,7 +906,7 @@ function polish(
   };
   for (let e = 0; e < m.E; e += 1) {
     cached[e] = cost(e);
-    if (!only || only[e]) enqueue(e);
+    enqueue(e);
   }
 
   // A project already at its own fewest possible building changes can only
@@ -743,6 +922,9 @@ function polish(
     if (u === t) return false;
     const r1 = board.roomOf[t]!;
     const s1 = board.slotOf[t]!;
+    // The trial costs overwrite the cached change counts; a refused change
+    // puts them back.
+    const changesE = changesOf[e]!;
     if (u < 0) {
       if (m.taskSponsor[t]) return false;
       tries += 1;
@@ -757,12 +939,13 @@ function polish(
         board.lift(t);
       }
       board.place(t, r1, s1);
-      cost(e);
+      changesOf[e] = changesE;
       return false;
     }
     const f = m.taskEntry[u]!;
     if (f === e) return false;
     tries += 1;
+    const changesF = changesOf[f]!;
     const before = cached[e]! + cached[f]!;
     board.lift(t);
     board.lift(u);
@@ -784,21 +967,9 @@ function polish(
     }
     board.place(t, r1, s1);
     board.place(u, r, s);
-    // The trial costs overwrote the cached change counts; put them back.
-    cost(e);
-    cost(f);
+    changesOf[e] = changesE;
+    changesOf[f] = changesF;
     return false;
-  };
-
-  // Whether t's own project-mates leave it room at slot s in building b. The
-  // same for every room of a class, so one check rules out the whole class.
-  const mateRoom = (t: number, b: number, s: number) => {
-    for (const v of m.entryTasks[m.taskEntry[t]!]!) {
-      if (v === t || board.roomOf[v]! < 0) continue;
-      const gap = m.roomBuilding[board.roomOf[v]!] === b ? m.sameGap : m.crossGap;
-      if (Math.abs(s - board.slotOf[v]!) - 1 < gap) return false;
-    }
-    return true;
   };
 
   let tries = 0;
@@ -821,7 +992,8 @@ function polish(
         // Every cell of the challenge: untangling may need a move inward.
         for (let s = 0; s < finish && !moved && tries < stop; s += 1) {
           for (const rooms of classes) {
-            if (!mateRoom(t, m.roomBuilding[rooms[0]!]!, s)) continue;
+            // The same for every room of a class: one check rules it out.
+            if (!board.spaced(t, m.roomBuilding[rooms[0]!]!, s)) continue;
             for (const r of rooms) {
               if (attempt(t, e, r, s)) {
                 moved = true;
@@ -838,7 +1010,7 @@ function polish(
           const s = k % 2 === 0 ? k >> 1 : finish - 1 - (k >> 1);
           if (s >= first && s <= last) continue;
           for (const rooms of classes) {
-            if (!mateRoom(t, m.roomBuilding[rooms[0]!]!, s)) continue;
+            if (!board.spaced(t, m.roomBuilding[rooms[0]!]!, s)) continue;
             for (const r of rooms) {
               if (attempt(t, e, r, s)) {
                 moved = true;
@@ -854,6 +1026,427 @@ function polish(
     if (moved) enqueue(e);
   }
   return tries;
+}
+
+/**
+ * Prices one presentation at many cells in a row, for the moves below: its
+ * project-mates are gathered once, in slot order, and each price is then a
+ * short scan. A price is the project's building changes times `weight`,
+ * minus how far apart its first and last presentations are, so lower is
+ * better and, with a weight above any spread the moves at hand can gain,
+ * changes come first and breaks second; Infinity where a mate is too close.
+ * Every presentation of the project must be placed.
+ */
+class Mates {
+  private readonly slots: number[] = [];
+  private readonly halls: number[] = [];
+  private count = 0;
+  private changes = 0;
+
+  constructor(
+    private readonly m: Model,
+    private readonly board: Board,
+    private readonly weight: number,
+  ) {}
+
+  /** Gathers the project-mates of presentation t. */
+  of(t: number) {
+    const { m, board, slots, halls } = this;
+    let n = 0;
+    for (const u of m.entryTasks[m.taskEntry[t]!]!) {
+      if (u === t) continue;
+      const s = board.slotOf[u]!;
+      const hall = m.roomBuilding[board.roomOf[u]!]!;
+      let j = n - 1;
+      while (j >= 0 && slots[j]! > s) {
+        slots[j + 1] = slots[j]!;
+        halls[j + 1] = halls[j]!;
+        j -= 1;
+      }
+      slots[j + 1] = s;
+      halls[j + 1] = hall;
+      n += 1;
+    }
+    let changes = 0;
+    for (let i = 1; i < n; i += 1) if (halls[i] !== halls[i - 1]) changes += 1;
+    this.count = n;
+    this.changes = changes;
+  }
+
+  /** The project's price with the presentation at slot s in building b. */
+  price(b: number, s: number): number {
+    const { m, slots, halls, count: n } = this;
+    if (n === 0) return 0;
+    let at = 0;
+    for (let i = 0; i < n; i += 1) {
+      const gap = Math.abs(s - slots[i]!) - 1;
+      if (gap < (halls[i] === b ? m.sameGap : m.crossGap)) return Infinity;
+      if (slots[i]! < s) at = i + 1;
+    }
+    let changes = this.changes;
+    if (at > 0 && at < n && halls[at - 1] !== halls[at]) changes -= 1;
+    if (at > 0 && halls[at - 1] !== b) changes += 1;
+    if (at < n && halls[at] !== b) changes += 1;
+    return changes * this.weight - (Math.max(slots[n - 1]!, s) - Math.min(slots[0]!, s));
+  }
+}
+
+/**
+ * Sponsor idle is a room-by-room matter: each sponsor room's presentations
+ * should run unbroken. This moves sponsor presentations to free cells of
+ * their challenge before the sponsor finish, each to the cell that cuts the
+ * most idle, then the most building changes, then adds the most breaks,
+ * round after round until no move helps or `budget` trials are spent. A move
+ * touches two rooms and one project, so a trial costs two row scans and one
+ * short itinerary. While the finish is still open (`settled` false), only
+ * moves that cut idle are made: spreading sponsor presentations out for
+ * breaks can leave the general ones no room to finish earlier. Returns the
+ * trials spent.
+ */
+function compact(
+  m: Model,
+  board: Board,
+  sponsorFinish: number,
+  settled: boolean,
+  budget: number,
+): number {
+  // Each room's sponsor presentations: first and last slot, and how many.
+  const firstOf = new Int32Array(m.R);
+  const lastOf = new Int32Array(m.R);
+  const heldOf = new Int32Array(m.R);
+  const sponsorAt = (r: number, s: number) => {
+    const t = board.grid[r * m.S + s]!;
+    return t >= 0 && m.taskSponsor[t] === 1;
+  };
+  const measure = (r: number) => {
+    firstOf[r] = -1;
+    lastOf[r] = -1;
+    heldOf[r] = 0;
+    for (let s = 0; s < m.S; s += 1) {
+      if (!sponsorAt(r, s)) continue;
+      if (firstOf[r]! < 0) firstOf[r] = s;
+      lastOf[r] = s;
+      heldOf[r] += 1;
+    }
+  };
+  for (let r = 0; r < m.R; r += 1) measure(r);
+  const idleOf = (first: number, last: number, held: number) =>
+    held > 0 ? last - first + 1 - held : 0;
+  // The same with one more presentation at slot s.
+  const idleWith = (first: number, last: number, held: number, s: number) =>
+    held > 0 ? Math.max(last, s) - Math.min(first, s) - held : 0;
+  const mates = new Mates(m, board, 2 * m.S + 1);
+
+  let tries = 0;
+  let moved = true;
+  while (moved && tries < budget) {
+    moved = false;
+    for (let x = 0; x < m.T && tries < budget; x += 1) {
+      if (!m.taskSponsor[x]) continue;
+      const r0 = board.roomOf[x]!;
+      const s0 = board.slotOf[x]!;
+      const idle0 = idleOf(firstOf[r0]!, lastOf[r0]!, heldOf[r0]!);
+      // Room r0 without x.
+      let first0 = firstOf[r0]!;
+      let last0 = lastOf[r0]!;
+      const held0 = heldOf[r0]! - 1;
+      if (held0 > 0 && s0 === first0) while (!sponsorAt(r0, ++first0));
+      if (held0 > 0 && s0 === last0) while (!sponsorAt(r0, --last0));
+      const idleLeft = idleOf(first0, last0, held0) - idle0;
+      mates.of(x);
+      const cost0 = mates.price(m.roomBuilding[r0]!, s0);
+      let bestIdle = 0;
+      let bestCost = 0;
+      let bestRoom = -1;
+      let bestSlot = -1;
+      for (const r of m.roomsOf[m.taskChallenge[x]!]!) {
+        const b = m.roomBuilding[r]!;
+        const idleHere = idleOf(firstOf[r]!, lastOf[r]!, heldOf[r]!);
+        for (let s = 0; s < sponsorFinish; s += 1) {
+          if (board.grid[r * m.S + s] !== -1) continue;
+          const price = mates.price(b, s);
+          if (price === Infinity) continue;
+          tries += 1;
+          const idle =
+            r === r0
+              ? idleWith(first0, last0, held0, s) - idle0
+              : idleLeft + idleWith(firstOf[r]!, lastOf[r]!, heldOf[r]!, s) - idleHere;
+          if (idle > bestIdle) continue;
+          const cost = price - cost0;
+          if (idle < bestIdle || (cost < bestCost && (idle < 0 || settled))) {
+            bestIdle = idle;
+            bestCost = cost;
+            bestRoom = r;
+            bestSlot = s;
+          }
+        }
+      }
+      if (bestRoom < 0) continue;
+      board.lift(x);
+      board.place(x, bestRoom, bestSlot);
+      measure(r0);
+      measure(bestRoom);
+      moved = true;
+    }
+
+    // A hole no single move fills may still close by sliding everything on
+    // one side of it a slot towards it. Each presentation that slides needs
+    // only its own project's breaks one slot over, and the room's span
+    // shrinks by one either way, so the cheapest slide in the room wins.
+    for (let r = 0; r < m.R && tries < budget; r += 1) {
+      const row = r * m.S;
+      const b = m.roomBuilding[r]!;
+      let first = -1;
+      let last = -1;
+      for (let s = 0; s < m.S; s += 1) {
+        const t = board.grid[row + s]!;
+        if (t < 0) continue;
+        if (!m.taskSponsor[t]) {
+          first = -1;
+          break;
+        }
+        if (first < 0) first = s;
+        last = s;
+      }
+      if (first < 0) continue;
+      let bestCost = Infinity;
+      let bestFrom = -1;
+      let bestTo = -1;
+      let bestStep = 0;
+      for (let h = first + 1; h < last; h += 1) {
+        if (board.grid[row + h] !== -1) continue;
+        for (const step of [-1, 1]) {
+          const from = step < 0 ? h + 1 : first;
+          const to = step < 0 ? last : h - 1;
+          let cost = 0;
+          for (let s = from; s <= to && cost < bestCost; s += 1) {
+            const t = board.grid[row + s]!;
+            if (t < 0) continue;
+            tries += 1;
+            mates.of(t);
+            cost += mates.price(b, s + step) - mates.price(b, s);
+          }
+          if (cost < bestCost) {
+            bestCost = cost;
+            bestFrom = from;
+            bestTo = to;
+            bestStep = step;
+          }
+        }
+      }
+      if (bestStep === 0) continue;
+      const sliding: number[] = [];
+      for (let s = bestFrom; s <= bestTo; s += 1) {
+        if (board.grid[row + s]! >= 0) sliding.push(board.grid[row + s]!, s);
+      }
+      for (let i = 0; i < sliding.length; i += 2) board.lift(sliding[i]!);
+      for (let i = 0; i < sliding.length; i += 2) {
+        board.place(sliding[i]!, r, sliding[i + 1]! + bestStep);
+      }
+      measure(r);
+      moved = true;
+    }
+  }
+  return tries;
+}
+
+/**
+ * Within one challenge every presentation belongs to a different project,
+ * so with the other challenges held still each presentation has a fixed
+ * cost in each cell, and re-seating the whole challenge is an assignment
+ * problem. This solves it exactly, one challenge at a time, by cancelling
+ * negative cycles over (class, slot) cells: one presentation moves to
+ * another cell, the one there moves on, and so on back to the start or
+ * into a free seat, whenever together they make fewer building changes or
+ * more breaks. Sponsor challenges keep the cells they hold, so sponsor idle
+ * and the sponsor finish stay as they are; general presentations may take
+ * any free cell before the finish. Rounds repeat while any challenge
+ * improves, up to `budget` units of work. Returns the work spent.
+ */
+function reassign(
+  m: Model,
+  board: Board,
+  finish: number,
+  budget: number,
+  seated: { board: Board; finish: number },
+): number {
+  // A single move shifts at most one project's spread, by less than S, so
+  // one building change outweighs any cycle's worth of spread.
+  const mates = new Mates(m, board, m.S * m.T + 1);
+  // `seated` is the last schedule on which no challenge could improve. A
+  // challenge's problem is its own cells and its projects' other
+  // presentations, so only challenges with a project that has moved since
+  // need solving again, and each move made here dirties its project's.
+  const dirty = new Uint8Array(m.C);
+  const touch = (t: number) => {
+    for (const u of m.entryTasks[m.taskEntry[t]!]!) dirty[m.taskChallenge[u]!] = 1;
+  };
+  if (seated.finish !== finish) dirty.fill(1);
+  else {
+    for (let t = 0; t < m.T; t += 1) {
+      if (board.roomOf[t] !== seated.board.roomOf[t] || board.slotOf[t] !== seated.board.slotOf[t]) {
+        touch(t);
+      }
+    }
+  }
+  // Round and round the challenges, so each gets a turn before any second.
+  const nextDirty = (from: number) => {
+    for (let i = 0; i < m.C; i += 1) if (dirty[(from + i) % m.C]) return (from + i) % m.C;
+    return -1;
+  };
+  let work = 0;
+  for (let c = nextDirty(0); c >= 0 && work < budget; c = nextDirty(c + 1)) {
+    const classes = m.classesOf[c]!;
+    const fixed = m.challengeTasks[c]!.some((t) => m.taskSponsor[t]);
+    // Cell (k, s) is node k * finish + s; node K is the pool of free seats.
+    const K = classes.length * finish;
+    const N = K + 1;
+    const cap = new Int32Array(K);
+    const load = new Int32Array(K);
+    const nodeHall = new Int32Array(K);
+    const nodeSlot = new Int32Array(K);
+    for (let u = 0; u < K; u += 1) {
+      for (const r of classes[Math.floor(u / finish)]!) {
+        if (board.grid[r * m.S + (u % finish)]! >= 0) load[u] += 1;
+      }
+      cap[u] = fixed ? load[u]! : classes[Math.floor(u / finish)]!.length;
+      nodeHall[u] = m.roomBuilding[classes[Math.floor(u / finish)]![0]!]!;
+      nodeSlot[u] = u % finish;
+    }
+
+    // weights[u * N + v]: the cheapest move of one presentation from u to
+    // v, and moves[u * N + v] which one it is.
+    const weights = new Float64Array(N * N);
+    const moves = new Int32Array(N * N);
+    const edgesFrom = (u: number) => {
+      weights.fill(Infinity, u * N, u * N + N);
+      if (load[u]! < cap[u]!) weights[u * N + K] = 0;
+      weights[K * N + u] = load[u]! > 0 ? 0 : Infinity;
+      const s = u % finish;
+      for (const r of classes[Math.floor(u / finish)]!) {
+        const t = board.grid[r * m.S + s]!;
+        if (t < 0) continue;
+        mates.of(t);
+        const here = mates.price(m.roomBuilding[r]!, s);
+        for (let v = 0; v < K; v += 1) {
+          if (v === u || cap[v] === 0) continue;
+          work += 1;
+          const delta = mates.price(nodeHall[v]!, nodeSlot[v]!) - here;
+          if (delta < weights[u * N + v]!) {
+            weights[u * N + v] = delta;
+            moves[u * N + v] = t;
+          }
+        }
+      }
+    };
+    weights.fill(Infinity, K * N, N * N);
+    for (let u = 0; u < K; u += 1) edgesFrom(u);
+
+    const dist = new Float64Array(N);
+    const pred = new Int32Array(N);
+    const mark = new Int32Array(N);
+    const queue = new Int32Array(N);
+    const inQueue = new Uint8Array(N);
+    const cycle: number[] = [];
+    const vacated: number[] = [];
+    let solved = false;
+    while (work < budget) {
+      // Bellman-Ford from every node at once, queue-driven so that only
+      // nodes whose distance fell are rescanned. Any cycle among the
+      // predecessors is a negative one, so they are checked every few scans
+      // (a check costs about one scan); an empty queue means there is none.
+      dist.fill(0);
+      pred.fill(-1);
+      let head = 0;
+      let queued = N;
+      for (let u = 0; u < N; u += 1) {
+        queue[u] = u;
+        inQueue[u] = 1;
+      }
+      let x = -1;
+      for (let scans = 1; queued > 0 && x < 0; scans += 1) {
+        const u = queue[head]!;
+        head = head + 1 === N ? 0 : head + 1;
+        queued -= 1;
+        inQueue[u] = 0;
+        const du = dist[u]!;
+        const row = u * N;
+        for (let v = 0; v < N; v += 1) {
+          const w = weights[row + v]!;
+          if (du + w < dist[v]!) {
+            dist[v] = du + w;
+            pred[v] = u;
+            if (!inQueue[v]) {
+              queue[(head + queued) % N] = v;
+              inQueue[v] = 1;
+              queued += 1;
+            }
+          }
+        }
+        work += N;
+        if (scans % 8 !== 0) continue;
+        mark.fill(-1);
+        for (let start = 0; start < N && x < 0; start += 1) {
+          let y = start;
+          while (y >= 0 && mark[y] === -1) {
+            mark[y] = start;
+            y = pred[y]!;
+          }
+          if (y >= 0 && mark[y] === start) x = y;
+        }
+      }
+      if (x < 0) {
+        solved = true;
+        break;
+      }
+      cycle.length = 0;
+      let y = x;
+      do {
+        cycle.push(y);
+        y = pred[y]!;
+      } while (y !== x);
+
+      // Lift everyone moving, then seat each in a cell its predecessor
+      // left (a sponsor room keeps its occupancy) or else a free one.
+      const moving: number[] = [];
+      for (const v of cycle) {
+        const u = pred[v]!;
+        if (u === K || v === K) continue;
+        const t = moves[u * N + v]!;
+        moving.push(t, v);
+        load[u] -= 1;
+        load[v] += 1;
+      }
+      vacated.length = 0;
+      for (let i = 0; i < moving.length; i += 2) {
+        const t = moving[i]!;
+        vacated.push(board.roomOf[t]! * m.S + board.slotOf[t]!);
+        board.lift(t);
+      }
+      for (let i = 0; i < moving.length; i += 2) {
+        const v = moving[i + 1]!;
+        const s = v % finish;
+        const rooms = classes[Math.floor(v / finish)]!;
+        let room = -1;
+        for (let j = 0; j < rooms.length && room < 0; j += 1) {
+          const cell = rooms[j]! * m.S + s;
+          if (vacated.includes(cell) && board.grid[cell] === -1) room = rooms[j]!;
+        }
+        for (let j = 0; j < rooms.length && room < 0; j += 1) {
+          if (board.grid[rooms[j]! * m.S + s] === -1) room = rooms[j]!;
+        }
+        board.place(moving[i]!, room, s);
+      }
+      for (let i = 0; i < moving.length; i += 2) touch(moving[i]!);
+      for (const v of cycle) if (v !== K) edgesFrom(v);
+    }
+    if (solved) dirty[c] = 0;
+  }
+  if (dirty.indexOf(1) < 0) {
+    seated.board.copyFrom(board);
+    seated.finish = finish;
+  }
+  return work;
 }
 
 const patienceFor = (goal: number) =>
@@ -873,6 +1466,7 @@ function improve(
   const current = new Float64Array(GOALS);
   const bestScore = new Float64Array(GOALS);
   const trial = new Float64Array(GOALS);
+  const next = new Float64Array(GOALS);
   board.score(current);
   bestScore.set(current);
 
@@ -881,9 +1475,45 @@ function improve(
   const counter = { nodes: 0 };
   // Polishing tries per presentation; trades are cheap, so this is generous.
   const polishBudget = 400 * m.T;
+  // Re-seating work per round: a few hundred cost checks per presentation
+  // covers the cells of every class it might move to, many times over.
+  const reassignBudget = 2000 * m.T;
+  let compacted = false;
   let polished = false;
-  const afterPolish = new Board(m);
   let kicks = 0;
+  const seated = { board: new Board(m), finish: -1 };
+
+  // Keeps the board if it scores no worse than `current`, otherwise puts
+  // `saved` back. True if it scored better.
+  const keepIfNoWorse = (): boolean => {
+    board.score(trial);
+    const order = lexCompare(trial, current);
+    if (order > 0) {
+      board.copyFrom(saved);
+      return false;
+    }
+    current.set(trial);
+    if (lexCompare(current, bestScore) < 0) {
+      bestScore.set(current);
+      best.copyFrom(board);
+      stats.improvements += 1;
+    }
+    return order < 0;
+  };
+
+  // Sponsor moves, then exact re-seating and sponsor moves in turn for as
+  // long as the pair helps.
+  const settle = () => {
+    stats.nodes += compact(m, board, current[SPONSOR_FINISH]!, true, polishBudget);
+    board.score(trial);
+    for (let round = 0; round < SETTLE_ROUNDS; round += 1) {
+      stats.nodes += reassign(m, board, current[FINISH]!, reassignBudget, seated);
+      stats.nodes += compact(m, board, current[SPONSOR_FINISH]!, true, polishBudget);
+      board.score(next);
+      if (lexCompare(next, trial) >= 0) break;
+      trial.set(next);
+    }
+  };
 
   for (let i = 0; i < iterations; i += 1) {
     let goal = -1;
@@ -897,27 +1527,31 @@ function improve(
     // gets here: unplaced presentations make everything else meaningless.
     if (goal < 0 || (goal > UNPLACED && current[UNPLACED]! > 0)) break;
 
-    // Changes and breaks go to the cheap trades first; the exact repair only
-    // gets what trading cannot reach, and a few kicks to escape it.
+    // Once the sponsor finish has settled, sponsor idle gets single moves
+    // before any exact repair.
+    if (goal >= SPONSOR_IDLE && !compacted) {
+      compacted = true;
+      saved.copyFrom(board);
+      const settled = goal > FINISH || current[FINISH]! <= bounds[FINISH]!;
+      stats.nodes += compact(m, board, current[SPONSOR_FINISH]!, settled, polishBudget);
+      keepIfNoWorse();
+      continue;
+    }
+
+    // Changes and breaks go to the cheap trades first, then to settling.
     if (goal >= CHANGES && !polished) {
       polished = true;
       saved.copyFrom(board);
       stats.nodes += polish(m, board, current[FINISH]!, polishBudget);
-      afterPolish.copyFrom(board);
-      board.score(trial);
-      if (lexCompare(trial, current) <= 0) {
-        current.set(trial);
-        if (lexCompare(current, bestScore) < 0) {
-          bestScore.set(current);
-          best.copyFrom(board);
-          stats.improvements += 1;
-        }
-      } else {
-        board.copyFrom(saved);
-      }
+      settle();
+      keepIfNoWorse();
       continue;
     }
-    if (goal === BREAKS && (kicks += 1) > BREAKS_KICKS) break;
+    // After that each round is a kick: the exact repair re-places a
+    // neighbourhood any way it can inside the finishes, whatever that does
+    // to changes and breaks, and settling from there is kept if it lands
+    // no worse than before.
+    if (goal >= CHANGES && (kicks += 1) > KICKS) break;
     stats.iterations += 1;
 
     const freed = neighbourhood(m, board, goal, current, random);
@@ -935,22 +1569,14 @@ function improve(
     };
     if (goal === UNPLACED) caps.sponsor = m.S;
     const done = repair(m, board, freed, goal, caps, goal === UNPLACED, counter);
-
-    if (done) board.score(trial);
-    if (done && lexCompare(trial, current) <= 0) {
-      const better = lexCompare(trial, current) < 0;
-      current.set(trial);
-      if (better) stalled.fill(0, goal);
-      else stalled[goal] += 1;
-      if (lexCompare(current, bestScore) < 0) {
-        bestScore.set(current);
-        best.copyFrom(board);
-        stats.improvements += 1;
-      }
-    } else {
+    if (!done) {
       board.copyFrom(saved);
       stalled[goal] += 1;
+      continue;
     }
+    if (goal >= CHANGES) settle();
+    if (keepIfNoWorse()) stalled.fill(0, goal);
+    else stalled[goal] += 1;
   }
 
   stats.nodes += counter.nodes;
@@ -958,13 +1584,7 @@ function improve(
   // A last polish of the best schedule, which the kicks may have left with
   // trades still open.
   if (bestScore[UNPLACED] === 0 && polished) {
-    const moved = new Uint8Array(m.E);
-    for (let t = 0; t < m.T; t += 1) {
-      if (board.roomOf[t] !== afterPolish.roomOf[t] || board.slotOf[t] !== afterPolish.slotOf[t]) {
-        moved[m.taskEntry[t]!] = 1;
-      }
-    }
-    stats.nodes += polish(m, board, bestScore[FINISH]!, polishBudget, moved);
+    stats.nodes += polish(m, board, bestScore[FINISH]!, polishBudget);
     board.score(trial);
     if (lexCompare(trial, bestScore) < 0) bestScore.set(trial);
     else board.copyFrom(best);
@@ -1044,7 +1664,10 @@ export function aamoghCPSolver(
     const board = new Board(m);
     if (options.start) seedFrom(m, inputs, board, options.start);
     sweep(m, board);
-    const score = improve(m, board, bounds, iterations, seed, stats);
+    let score = improve(m, board, bounds, iterations, seed, stats);
+    if (score[UNPLACED]! > 0 && complete(m, board, generator(seed), COMPLETE_CELLS * m.T, stats)) {
+      score = improve(m, board, bounds, iterations, seed, stats);
+    }
 
     if (score[UNPLACED]! > 0) {
       unplaced = [];

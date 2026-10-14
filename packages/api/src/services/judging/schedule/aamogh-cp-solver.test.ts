@@ -94,6 +94,36 @@ function largeEvent(): PlanInputs {
   return { rooms, tasks, slots: 48, sameGap: 1, crossGap: 2 };
 }
 
+/**
+ * A tight event: every project presents to general and about a third also
+ * to each of three sponsors, rooms almost full, two buildings apart.
+ */
+function tightEvent(seed: number, projects: number, slots: number): PlanInputs {
+  const pick = lcg(seed);
+  const rooms: PlanRoom[] = [];
+  for (let i = 0; i < Math.ceil(projects / slots); i += 1) {
+    rooms.push(room(`g${i}`, "general", `B${i % 2}`));
+  }
+  const tasks: PlanTask[] = [];
+  const count = [0, 0, 0];
+  for (let p = 0; p < projects; p += 1) {
+    const id = `e${String(p).padStart(3, "0")}`;
+    tasks.push(task(id, "general"));
+    for (let k = 0; k < 3; k += 1) {
+      if (pick(3) === 0) {
+        tasks.push(task(id, `sp${k}`));
+        count[k] = count[k]! + 1;
+      }
+    }
+  }
+  for (let k = 0; k < 3; k += 1) {
+    for (let j = 0; j < Math.max(1, Math.ceil(count[k]! / slots)); j += 1) {
+      rooms.push(room(`s${k}${j}`, `sp${k}`, `B${(k + j) % 2}`));
+    }
+  }
+  return { rooms, tasks, slots, sameGap: 1, crossGap: 2 };
+}
+
 describe("aamoghCPSolver", () => {
   it("finds the true optimum on every small instance", () => {
     for (let seed = 1; seed <= 40; seed += 1) {
@@ -159,6 +189,46 @@ describe("aamoghCPSolver", () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.diagnostics[0]).toMatchObject({ kind: "capacity" });
+  });
+
+  it("finishes a tight schedule that the repair alone leaves incomplete", () => {
+    // The sweep and the repair leave presentations unplaced here, even with
+    // relaxed breaks; the completion search finds a schedule that keeps the
+    // full cross-building break.
+    const inputs = tightEvent(3, 16, 5);
+    const result = solved(inputs);
+    expect(result.relaxed).toBe(false);
+    expect(result.placements).toHaveLength(inputs.tasks.length);
+    expect(validateSchedule(inputs, result.placements, { relaxed: false }).valid).toBe(true);
+    // The search draws from the seeded generator, so a save still lands on
+    // what was previewed.
+    expect(solved(inputs).placements).toEqual(result.placements);
+  });
+
+  it("polishes the best schedule again after the kicks", () => {
+    // The kicks keep the best schedule they settle on, which here still has
+    // a trade open that buys one more break.
+    const result = solved(tightEvent(19, 10, 5));
+    expect(compareScores(result.score, [5, 2, 5, 0, -13])).toBeLessThanOrEqual(0);
+  });
+
+  it("names what it could not place when no schedule exists", () => {
+    // A project's two presentations need a slot between them, which in a
+    // three-slot day means slots 0 and 2: three projects cannot all fit.
+    const tasks: PlanTask[] = [];
+    for (const id of ["a", "b", "c"]) tasks.push(task(id, "general"), task(id, "sp1"));
+    const result = aamoghCPSolver({
+      rooms: [room("g1", "general", "ENG"), room("s1", "sp1", "ENG")],
+      tasks,
+      slots: 3,
+      sameGap: 1,
+      crossGap: 1,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostics.length).toBeGreaterThan(0);
+      for (const d of result.diagnostics) expect(d.kind).toBe("unplaced");
+    }
   });
 
   it("gives the same schedule for the same inputs", () => {
