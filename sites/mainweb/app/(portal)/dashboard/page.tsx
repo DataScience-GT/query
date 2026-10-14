@@ -50,7 +50,24 @@ export default function Dashboard() {
     enabled: !!session,
   });
   const { data: myRegs, isLoading: loadingRegs } =
-    trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+    trpc.hackathon.myRegistrations.useQuery(undefined, {
+      enabled: !!session,
+      // An accepted hacker is waiting on the door scan. While an event runs,
+      // re-read so the headline flips to checked in without a reload.
+      refetchInterval: (query) => {
+        const startOfDay = (d: Date | string) =>
+          new Date(d).setHours(0, 0, 0, 0);
+        const today = startOfDay(new Date());
+        return query.state.data?.some(
+          (r) =>
+            r.registrationStatus === "approved" &&
+            startOfDay(r.hackathon.startDate) <= today &&
+            today <= startOfDay(r.hackathon.endDate),
+        )
+          ? 30_000
+          : false;
+      },
+    });
 
   const memberStatus = portalContext?.member;
   const isAdmin = portalContext?.isAdmin ?? false;
@@ -319,7 +336,7 @@ export default function Dashboard() {
         {/* Judge Portal — judges only */}
         {isJudge && (
           <Destination href="/judge" title="Judge Portal">
-            Your judging editions, rooms and the projects you score.
+            Your judging editions, where you sit and the projects you score.
           </Destination>
         )}
 

@@ -1012,6 +1012,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
         country: "United States",
         whyAttend: "I want to build with data.",
         agreeToCodeOfConduct: true,
+        mlhCodeOfConduct: true,
+        mlhDataSharing: true,
       });
 
       expect(res.id).toBe("participant_new");
@@ -1049,6 +1051,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
           country: "United States",
           whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
+          mlhCodeOfConduct: true,
+          mlhDataSharing: true,
         }),
       ).rejects.toThrowError("You are already registered for this hackathon");
     });
@@ -1084,6 +1088,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
           country: "United States",
           whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
+          mlhCodeOfConduct: true,
+          mlhDataSharing: true,
         })
         .catch((error: unknown) => error);
       expect(String((outcome as Error)?.message ?? "")).not.toMatch(/full/);
@@ -1114,6 +1120,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
           country: "United States",
           whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
+          mlhCodeOfConduct: true,
+          mlhDataSharing: true,
         }),
       ).rejects.toThrowError("Registration is not open for this hackathon");
     });

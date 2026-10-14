@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useOptimistic,
+  startTransition,
+} from "react";
 import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -69,6 +74,18 @@ const TABS: { id: TabType; label: string }[] = [
   { id: "RESULTS", label: "Results" },
 ];
 
+// Nothing to judge, score or announce before the event runs, so these stay
+// out of the strip until it does.
+const EVENT_TABS = new Set<TabType>(["JUDGING", "POINTS", "RESULTS"]);
+const EVENT_STATUSES = new Set(["in_progress", "completed"]);
+
+// The strip's right edge fades out so on a phone it hints at the tabs past it.
+const tabFade =
+  "[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.5rem),transparent)]";
+
+// Day granularity, on the viewer's clock: the last day counts all day.
+const startOfDay = (d: Date | string) => new Date(d).setHours(0, 0, 0, 0);
+
 export default function HackathonDetailPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
@@ -79,17 +96,21 @@ export default function HackathonDetailPage() {
     Array.isArray(rawId) ? (rawId[0] ?? "") : ((rawId as string | undefined) ?? ""),
   );
 
-  const tabParam = searchParams.get("tab") as TabType | null;
-  const [tab, setTab] = useState<TabType>(
-    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "INFO",
-  );
+  // The URL is the only source of the tab, so a same-page ?tab= link works.
+  // The optimistic copy shows a clicked tab at once instead of after the
+  // navigation lands, then hands back to whatever the URL says.
+  const tabParam = searchParams.get("tab");
+  const urlTab = TABS.find((t) => t.id === tabParam)?.id ?? "INFO";
+  const [shownTab, setShownTab] = useOptimistic<TabType>(urlTab);
 
   // Keep the tab in the URL so refreshing, sharing and Back all work.
   const selectTab = (next: TabType) => {
-    setTab(next);
-    const qs = new URLSearchParams(searchParams.toString());
-    qs.set("tab", next);
-    router.replace(`?${qs.toString()}`, { scroll: false });
+    startTransition(() => {
+      setShownTab(next);
+      const qs = new URLSearchParams(searchParams.toString());
+      qs.set("tab", next);
+      router.replace(`?${qs.toString()}`, { scroll: false });
+    });
   };
 
   const {
@@ -101,7 +122,38 @@ export default function HackathonDetailPage() {
   });
   const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
     enabled: !!session,
+    // An accepted hacker is waiting on the door scan. While the event runs,
+    // re-read so the page flips to checked in without a reload.
+    refetchInterval: (query) => {
+      const today = startOfDay(new Date());
+      return query.state.data?.some(
+        (r) =>
+          r.hackathonId === hackathon?.id &&
+          r.registrationStatus === "approved" &&
+          startOfDay(r.hackathon.startDate) <= today &&
+          today <= startOfDay(r.hackathon.endDate),
+      )
+        ? 30_000
+        : false;
+    },
   });
+
+  // Only a flip seen while the page is open counts; the status it first
+  // loaded with never announces itself.
+  const regStatus = myRegs?.find(
+    (r) => r.hackathonId === hackathon?.id,
+  )?.registrationStatus;
+  const [seenStatus, setSeenStatus] = useState(regStatus);
+  const [justCheckedIn, setJustCheckedIn] = useState(false);
+  if (regStatus !== seenStatus) {
+    setSeenStatus(regStatus);
+    if (regStatus === "checked_in" && seenStatus) setJustCheckedIn(true);
+  }
+  useEffect(() => {
+    if (!justCheckedIn) return;
+    const timer = setTimeout(() => setJustCheckedIn(false), 10_000);
+    return () => clearTimeout(timer);
+  }, [justCheckedIn]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") router.push(loginHref());
@@ -117,6 +169,15 @@ export default function HackathonDetailPage() {
 
   const myReg = myRegs?.find((r) => r.hackathonId === hackathon.id);
   const isRegistered = !!myReg;
+  // The status is moved by hand, so the start date counts too: an edition
+  // still marked closed on the weekend itself must not hide Judging.
+  const eventLive =
+    EVENT_STATUSES.has(hackathon.status) ||
+    (hackathon.status !== "cancelled" &&
+      startOfDay(hackathon.startDate) <= startOfDay(new Date()));
+  const tabs = eventLive ? TABS : TABS.filter((t) => !EVENT_TABS.has(t.id));
+  // A ?tab= for a tab that is not shown yet falls back to the overview.
+  const tab = tabs.some((t) => t.id === shownTab) ? shownTab : "INFO";
   const conf = hackathonStatus(hackathon.status);
   const metaParts = [
     formatDateRange(hackathon.startDate, hackathon.endDate),
@@ -147,13 +208,22 @@ export default function HackathonDetailPage() {
         <p className={`mt-3 ${meta}`}>{metaParts.join(" · ")}</p>
       </header>
 
+      {/* Mounted empty so screen readers announce the line when it lands. */}
+      <div role="status">
+        {justCheckedIn && (
+          <p className="mt-6 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
+            You&apos;re checked in.
+          </p>
+        )}
+      </div>
+
       {/* Tabs */}
       <div
         role="tablist"
         aria-label="Hackathon sections"
-        className={`mt-8 scrollbar-none ${tabList}`}
+        className={`mt-8 scrollbar-none ${tabList} ${tabFade}`}
       >
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -186,6 +256,9 @@ export default function HackathonDetailPage() {
           <ScheduleTab
             hackathonId={hackathon.id}
             isRegistered={isRegistered}
+            startDate={hackathon.startDate}
+            endDate={hackathon.endDate}
+            pointsTabShown={eventLive}
           />
         ) : tab === "JUDGING" ? (
           <HackerJudgingTab hackathonId={hackathon.id} />
