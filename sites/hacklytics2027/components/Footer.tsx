@@ -1,7 +1,12 @@
 "use client";
 import Link from "next/link";
 import { PixelBed, bloomSet, plantBed, withBlooms } from "./pixel/PixelBed";
-import { INTEREST_URL, PORTAL_ORIGIN } from "@/lib/links";
+import {
+  INTEREST_URL,
+  JUDGE_URL,
+  PORTAL_HACKATHON_URL,
+  PORTAL_ORIGIN,
+} from "@/lib/links";
 
 const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
 
@@ -31,8 +36,9 @@ export default function Footer() {
         </div>
 
         {/* Side by side only once both rows fit: at tablet width the contact
-            links wrapped "MLH Code of Conduct" onto three lines. */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-10 pt-8 border-t border-rule">
+            links wrapped "MLH Code of Conduct" onto three lines. With the two
+            portal links that is now xl, not lg. */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 xl:gap-10 pt-8 border-t border-rule">
           <nav className="flex flex-wrap gap-x-6 gap-y-3">
             {navIds.map((id) => (
               <Link
@@ -46,6 +52,22 @@ export default function Footer() {
           </nav>
 
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 sm:gap-x-8 whitespace-nowrap">
+            <Link
+              href={PORTAL_HACKATHON_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
+            >
+              Hacker portal
+            </Link>
+            <Link
+              href={JUDGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
+            >
+              Judge Hacklytics
+            </Link>
             <Link
               href="mailto:hello@hacklytics.io"
               className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
