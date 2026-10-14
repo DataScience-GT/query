@@ -7,9 +7,7 @@ import { signIn } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   btnPrimary,
-  btnSecondary,
-  kicker,
-  meta,
+  mastRule,
   pageDek,
   pageTitle,
   textLink,
@@ -63,6 +61,19 @@ function VerifyContent() {
   }, [sends]);
 
   const handleChange = (index: number, value: string) => {
+    // iOS AutoFill puts the whole code into the focused box in one change, so a
+    // full code is taken as it is and anything else keeps its last digit.
+    if (value.length > 1) {
+      const digits = value.replace(/\D/g, "");
+      if (digits.length === 6) {
+        setCode(digits.split(""));
+        setError("");
+        handleSubmit(digits);
+        return;
+      }
+      value = digits.slice(-1);
+    }
+
     // Only allow digits
     if (value && !/^\d$/.test(value)) return;
 
@@ -144,14 +155,19 @@ function VerifyContent() {
           callbackUrl || data.redirectUrl || "/dashboard",
         );
       } else {
-        setError(data.error || "Invalid code. Please try again.");
+        setError(
+          data.error ||
+            "That code didn't match. Check the newest email, or resend.",
+        );
         setVerifying(false);
         // Clear code and refocus
         setCode(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(
+        "We couldn't check the code. Check your connection and try again.",
+      );
       setVerifying(false);
     }
   };
@@ -189,17 +205,25 @@ function VerifyContent() {
   };
 
   return (
-    <main className="min-h-screen flex items-center px-5 sm:px-8">
-      <div className="mx-auto w-full max-w-lg py-16">
-        <p className={kicker}>Sign-in</p>
-        <h1 className={`mt-2 ${pageTitle}`}>Check your email for a code</h1>
+    <main className="min-h-screen flex items-start md:items-center px-5 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-10 md:py-16">
+        <div className={`flex items-center gap-3 ${mastRule}`}>
+          <img
+            src="/images/dsgt/apple-touch-icon.png"
+            alt=""
+            className="h-8 w-8 shrink-0 object-contain"
+          />
+          <p className="text-[13px] font-semibold text-[var(--text-primary)]">
+            DS@GT
+          </p>
+        </div>
+        <h1 className={`mt-10 ${pageTitle}`}>Check your email</h1>
         {email ? (
           <p className={pageDek}>
-            We sent a 6-digit code to{" "}
-            <span className="font-semibold text-[var(--text-primary)] break-all">
+            We sent a 6-digit code to
+            <span className="block font-semibold text-[var(--text-primary)] wrap-anywhere">
               {email}
             </span>
-            .
           </p>
         ) : (
           <p className={pageDek}>
@@ -209,7 +233,7 @@ function VerifyContent() {
         )}
 
         {/* 6-digit code input */}
-        <div className="mt-10 flex gap-2 sm:gap-3" onPaste={handlePaste}>
+        <div className="mt-8 flex gap-2 sm:gap-3" onPaste={handlePaste}>
           {code.map((digit, i) => (
             <input
               key={i}
@@ -221,17 +245,21 @@ function VerifyContent() {
               // Six boxes with no labels read as six unnamed fields. The first
               // also takes the pasted code, which is how most people enter it.
               aria-label={`Verification code, digit ${i + 1} of ${code.length}`}
-              maxLength={1}
+              // Only the first box takes a whole code (iOS AutoFill, see
+              // handleChange); the rest hold a single digit.
+              maxLength={i === 0 ? undefined : 1}
               value={digit}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
               disabled={verifying}
-              className={`w-11 h-14 sm:w-12 sm:h-16 rounded-[var(--radius-sm)] border bg-[var(--bg-input)] text-center font-mono text-2xl font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+              className={`h-14 min-w-0 flex-1 sm:h-16 sm:w-12 sm:flex-none rounded-[var(--radius-sm)] border bg-[var(--bg-input)] text-center font-mono text-2xl font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                i === 3 ? "ml-2 sm:ml-3" : ""
+              } ${
                 error
                   ? "border-[var(--danger)] focus:ring-[var(--danger-glow)]"
                   : "border-[var(--border-medium)] focus:border-accent focus:ring-[var(--accent-dim)]"
               }`}
-              autoComplete="one-time-code"
+              autoComplete={i === 0 ? "one-time-code" : "off"}
             />
           ))}
         </div>
@@ -242,30 +270,47 @@ function VerifyContent() {
           </p>
         )}
 
-        <div className="mt-8 flex flex-wrap items-center gap-6">
-          <button
-            onClick={() => handleSubmit(code.join(""))}
-            disabled={verifying || code.some((d) => d === "")}
-            className={btnPrimary}
-          >
-            {verifying ? "Verifying…" : "Verify code"}
-          </button>
-          {email && (
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={verifying || resending || cooldown > 0}
-              className={btnSecondary}
-            >
-              {cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
-            </button>
-          )}
-          <Link href={loginHref} className={textLink}>
+        {/* Stays enabled: on an incomplete code it moves to the first empty box
+            instead of sitting there greyed out with no reason. */}
+        <button
+          onClick={() => {
+            const i = code.findIndex((d) => d === "");
+            if (i !== -1) {
+              inputRefs.current[i]?.focus();
+              return;
+            }
+            handleSubmit(code.join(""));
+          }}
+          disabled={verifying}
+          className={`mt-6 min-h-11 w-full sm:w-auto ${btnPrimary}`}
+        >
+          {verifying ? "Verifying…" : "Verify code"}
+        </button>
+        <div className="mt-1 flex flex-wrap items-center gap-x-6">
+          {email &&
+            (cooldown > 0 ? (
+              <p className="text-sm text-[var(--text-muted)] tabular-nums">
+                Resend code in {cooldown}s
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={verifying || resending}
+                className={`${textLink} min-h-11`}
+              >
+                {resending ? "Sending…" : "Resend code"}
+              </button>
+            ))}
+          <Link href={loginHref} className={`${textLink} min-h-11`}>
             {email ? "Use a different email" : "Back to sign in"}
           </Link>
         </div>
         {resent && (
-          <p role="status" className={`mt-4 ${meta}`}>
+          <p
+            role="status"
+            className="mt-1 text-[15px] text-[var(--text-muted)]"
+          >
             New code sent. The last one no longer works.
           </p>
         )}

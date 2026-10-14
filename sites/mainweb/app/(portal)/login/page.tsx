@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession, signIn, getProviders } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePortalContext } from "@/lib/use-portal-context";
@@ -8,16 +8,13 @@ import { safeCallback } from "@/lib/safe-callback";
 import { useIsClient } from "@/lib/use-is-client";
 import {
   body,
-  btnInk,
   btnPrimary,
   btnSecondary,
   fieldLabel,
   input,
-  kicker,
-  meta,
+  mastRule,
   pageDek,
   pageTitle,
-  sectionTitle,
 } from "@/components/portal/ui";
 
 /**
@@ -39,6 +36,7 @@ export default function Home() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const { data: portalContext, isPending: contextPending } =
     usePortalContext();
 
@@ -96,7 +94,13 @@ export default function Home() {
   ]);
 
   const handleEmailLogin = async () => {
-    if (!email) return;
+    // The button stays enabled, so an empty field says what is missing instead
+    // of showing a greyed-out control with no reason.
+    if (!email) {
+      setEmailError("Enter your email address.");
+      emailInputRef.current?.focus();
+      return;
+    }
     setEmailSending(true);
     try {
       // redirect:false resolves with a result instead of throwing, so a failed
@@ -151,59 +155,119 @@ export default function Home() {
   // markup never depends on it.
   const inAppBrowser = IN_APP_BROWSER.test(navigator.userAgent);
 
+  // Shown first in an in-app browser, where Google cannot work, and in place of
+  // the "Email me a code" button once that is pressed everywhere else.
+  const emailForm = (
+    <div className={inAppBrowser ? undefined : "pt-3"}>
+      <label htmlFor="login-email" className={fieldLabel}>
+        Email
+      </label>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          ref={emailInputRef}
+          id="login-email"
+          type="email"
+          autoComplete="email"
+          spellCheck={false}
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setEmailError("");
+          }}
+          onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
+          placeholder={forHackers ? "you@school.edu" : "you@gatech.edu"}
+          aria-label="Email address"
+          disabled={emailSending || emailSent || isRedirecting}
+          className={`min-w-0 flex-1 ${input}`}
+        />
+        <button
+          onClick={handleEmailLogin}
+          disabled={emailSending || emailSent || isRedirecting}
+          className={`min-h-11 ${btnPrimary}`}
+        >
+          {emailSent ? "Sent" : emailSending ? "Sending…" : "Send code"}
+        </button>
+      </div>
+      {emailError && (
+        <p role="alert" className="mt-2 text-[13px] text-[var(--danger)]">
+          {emailError}
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <main className="min-h-screen flex items-center px-5 sm:px-8 md:px-12">
-      <div className="mx-auto grid w-full max-w-4xl grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 py-14 items-center">
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 py-10 lg:py-14 items-center">
         <div>
-          <img
-            src="/images/dsgt/apple-touch-icon.png"
-            alt="DSGT Logo"
-            className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
-          />
-          <p className={`mt-8 ${kicker}`}>
-            {forHackers ? "For hackers" : "DS@GT"}
-          </p>
-          <h1 className={`mt-2 ${pageTitle}`}>
+          <div className={`flex items-center justify-between gap-4 ${mastRule}`}>
+            <div className="flex min-w-0 items-center gap-3">
+              <img
+                src="/images/dsgt/apple-touch-icon.png"
+                alt=""
+                className="h-8 w-8 shrink-0 object-contain"
+              />
+              <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
+                DS@GT
+              </p>
+            </div>
+            {forHackers && (
+              <p className="shrink-0 text-[13px] text-[var(--text-muted)]">
+                For hackers
+              </p>
+            )}
+          </div>
+          <h1 className={`mt-10 ${pageTitle}`}>
             {forHacklytics ? "Hacklytics" : forHackers ? "Hackathons" : "Query"}
             <span className="text-accent">.</span>
           </h1>
           <p className={pageDek}>
             {forHackers
               ? `Sign in to apply${forHacklytics ? " to Hacklytics" : ""}. No membership needed; any email works.`
-              : "The member portal for Data Science at Georgia Tech: events, hackathons, and your membership in one place."}
+              : "The portal for Data Science at Georgia Tech members, judges and volunteers."}
           </p>
         </div>
 
-        <div className="w-full max-w-md lg:justify-self-end border-t border-[var(--border-subtle)] pt-8 lg:border-t-0 lg:pt-0 lg:border-l lg:pl-12">
-          <h2 className={sectionTitle}>Sign in</h2>
-          <p className={`mt-2 ${body}`}>
-            {isRedirecting
-              ? "You're signed in. Taking you to the portal…"
-              : "Use your Google or GitHub account, or get a code by email."}
-          </p>
+        <div
+          role="group"
+          aria-label="Sign in"
+          className="w-full max-w-md lg:justify-self-end lg:border-l lg:border-[var(--border-subtle)] lg:pl-12"
+        >
+          {isRedirecting && (
+            <p role="status" className={`mb-5 ${body}`}>
+              You&apos;re signed in. Taking you to the portal…
+            </p>
+          )}
           {inAppBrowser && !isRedirecting && (
-            <p role="note" className={`mt-3 ${meta}`}>
-              Google sign-in doesn&apos;t work in this app&apos;s browser. Use
-              email, or open this page in Safari or Chrome.
+            <p
+              role="note"
+              className="mb-5 text-[15px] leading-relaxed text-[var(--text-primary)]"
+            >
+              Google sign-in is blocked in this app&apos;s browser. Get a code
+              by email, or open this page in Safari or Chrome.
             </p>
           )}
 
-          <div className="mt-6 space-y-3">
-            <button
-              type="button"
-              onClick={handleSignIn}
-              disabled={busy}
-              className={`w-full ${inAppBrowser ? btnSecondary : btnPrimary}`}
-            >
-              {isRedirecting ? "Signed in" : "Continue with Google"}
-            </button>
+          <div className="space-y-3">
+            {inAppBrowser && emailForm}
+
+            {!inAppBrowser && (
+              <button
+                type="button"
+                onClick={handleSignIn}
+                disabled={busy}
+                className={`min-h-11 w-full ${showEmailInput ? btnSecondary : btnPrimary}`}
+              >
+                {isRedirecting ? "Signed in" : "Continue with Google"}
+              </button>
+            )}
 
             {hasProvider("github") && (
               <button
                 type="button"
                 onClick={handleGithubSignIn}
                 disabled={busy}
-                className={`w-full ${btnSecondary}`}
+                className={`min-h-11 w-full ${btnSecondary}`}
               >
                 <svg
                   aria-hidden="true"
@@ -216,53 +280,20 @@ export default function Home() {
               </button>
             )}
 
-            {!showEmailInput ? (
-              <button
-                onClick={() => {
-                  setShowEmailInput(true);
-                }}
-                disabled={busy}
-                className={`w-full ${inAppBrowser ? btnPrimary : btnSecondary}`}
-              >
-                Email me a code
-              </button>
-            ) : (
-              <div className="pt-4 border-t border-[var(--border-subtle)]">
-                <label htmlFor="login-email" className={fieldLabel}>
-                  Email
-                </label>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    id="login-email"
-                    type="email"
-                    autoComplete="email"
-                    spellCheck={false}
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setEmailError("");
-                    }}
-                    onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
-                    placeholder={forHackers ? "you@school.edu" : "you@gatech.edu"}
-                    aria-label="Email address"
-                    disabled={emailSending || emailSent}
-                    className={`min-w-0 flex-1 ${input}`}
-                  />
-                  <button
-                    onClick={handleEmailLogin}
-                    disabled={emailSending || emailSent || !email}
-                    className={btnInk}
-                  >
-                    {emailSent ? "Sent" : emailSending ? "Sending…" : "Send code"}
-                  </button>
-                </div>
-                {emailError && (
-                  <p className="mt-2 text-[13px] text-[var(--danger)]">
-                    {emailError}
-                  </p>
-                )}
-              </div>
-            )}
+            {!inAppBrowser &&
+              (showEmailInput ? (
+                emailForm
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowEmailInput(true);
+                  }}
+                  disabled={busy}
+                  className={`min-h-11 w-full ${btnSecondary}`}
+                >
+                  Email me a code
+                </button>
+              ))}
           </div>
         </div>
       </div>
