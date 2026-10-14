@@ -110,7 +110,7 @@
   --text-primary: #15191A;
   --text-secondary: #3A4341;
   --text-muted: #4C5553;
-  --text-subtle: #66706E;
+  --text-subtle: #5F6967; /* 4.5:1 or better on every light ground */
   --text-disabled: #A3ABA8;
   --text-on-accent: #FFFFFF;
 
