@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
@@ -40,28 +40,9 @@ import type { ShirtSize, LevelOfStudy } from "@/components/hackathon/constants";
 import { InterestForm } from "@/components/hackathon/InterestForm";
 import { ResumeSection } from "@/components/portal/ResumeSection";
 import { hackathonSlug } from "@/lib/hackathon-slug";
-import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import Link from "next/link";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
-
-const STATUS_LINE: Record<string, React.ReactNode> = {
-  pending: "Waiting on review.",
-  approved: (
-    <>
-      You&apos;re accepted. Your check-in pass is on the{" "}
-      <Link href="?tab=SCHEDULE" className={textLink}>
-        Schedule &amp; pass tab
-      </Link>
-      . If you can&apos;t come, withdraw on this page so a waitlisted hacker
-      can have your seat.
-    </>
-  ),
-  waitlisted:
-    "Waitlisted. Organisers may offer you a spot if one opens. Watch your email.",
-  checked_in: "You're checked in.",
-  rejected: "Your registration wasn't accepted this time.",
-};
 
 const MLH_CODE_OF_CONDUCT_URL =
   "https://static.mlh.io/docs/mlh-code-of-conduct.pdf";
@@ -69,15 +50,30 @@ const MLH_PRIVACY_URL = "https://mlh.io/privacy";
 const MLH_CONTEST_TERMS_URL =
   "https://github.com/MLH/mlh-policies/blob/main/contest-terms.md";
 
+// The fields that show their own error under the input (the `error` prop in
+// the form below). Every other field is only told about in the alert.
+const INLINE_ERROR_FIELDS = new Set([
+  "firstName",
+  "lastName",
+  "phone",
+  "age",
+  "graduationYear",
+  "country",
+  "whyAttend",
+]);
+
 // Statuses that can still back out. checked_in is on site and rejected has
 // nothing to withdraw; the server refuses both anyway.
 const WITHDRAWABLE = new Set(["pending", "approved", "waitlisted"]);
 
 // Relative to now so the range never goes stale: last year's grads up to an
 // incoming first-year's eight-year horizon.
-// Native checkboxes; the accent colours the tick.
+// Native checkboxes; the accent colours the tick. The `!` beats the 44px
+// minimum globals.css gives every checkbox on a touch screen, which would turn
+// the box into a 44px block; the label row carries that target instead.
 const checkboxClass =
-  "mt-1 h-4 w-4 shrink-0 accent-[var(--accent)] cursor-pointer";
+  "mt-0.5 h-5 w-5 min-h-0! min-w-0! shrink-0 accent-[var(--accent)] cursor-pointer";
+const checkboxRow = "flex min-h-11 items-start gap-3 cursor-pointer group";
 const checkboxText =
   "text-[15px] leading-relaxed text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors";
 
@@ -329,8 +325,9 @@ export function InfoTab({
     setShowForm(true);
   }
 
-  // The form sits below the page's content, so bring it into view on open
-  // and the new step's heading on every step change.
+  // The form stands in for the overview, but the header and tabs are still
+  // above it, so bring it into view on open and the new step's heading on
+  // every step change.
   useEffect(() => {
     if (showForm) formTop.current?.scrollIntoView({ block: "start" });
   }, [showForm, step]);
@@ -477,6 +474,15 @@ export function InfoTab({
   // confirmMutation covers the refetch that follows the click.
   const attendanceConfirmed =
     !!myReg?.attendanceConfirmedAt || confirmMutation.isSuccess;
+  const registered = isRegistered || success;
+  // The header badge and the next-step strip already say where an application
+  // stands, so this column holds only what can be done about it. Decided or
+  // waiting with nothing to do, it is not drawn.
+  const hasStatusActions =
+    regStatus === "approved" || regStatus === "checked_in" || canEdit;
+  const showsStatus = success || updated || !registered || hasStatusActions;
+  // The register line carries the deadline, so the facts list skips it then.
+  const registerOffered = !registered && canRegister;
 
   // Every field that fails on a step, in form order, as [field, message].
   function stepProblems(s: RegistrationStep): [string, string][] {
@@ -539,7 +545,21 @@ export function InfoTab({
 
   function validateStep(s: RegistrationStep): boolean {
     const problems = stepProblems(s);
-    setError(problems[0]?.[1] ?? "");
+    // A field that prints its own message is not repeated in the alert, which
+    // then only points at it. A step other than the one on screen has no
+    // field to point at, so its messages stay in the alert.
+    const unmarked = problems
+      .filter(([field]) => s !== step || !INLINE_ERROR_FIELDS.has(field))
+      .map(([, message]) => message);
+    setError(
+      unmarked.length
+        ? unmarked.join(" ")
+        : problems.length === 1
+          ? "Fix the field marked above."
+          : problems.length
+            ? "Fix the fields marked above."
+            : "",
+    );
     setAttempted(problems.length > 0);
     return problems.length === 0;
   }
@@ -603,7 +623,7 @@ export function InfoTab({
 
   return (
     <div className="space-y-10">
-      {!showForm && (
+      {!showForm && showsStatus && (
         <section>
           {success && (
             <p className="mb-6 border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
@@ -618,20 +638,18 @@ export function InfoTab({
             </p>
           )}
 
-          {isRegistered || success ? (
+          {registered && hasStatusActions ? (
             <div className="flex flex-col items-start gap-2">
-              <StatusBadge status={regStatus} />
-              <p className={body}>{STATUS_LINE[regStatus] ?? ""}</p>
               {regStatus === "approved" &&
                 (attendanceConfirmed ? (
-                  <p className="mt-3 flex flex-wrap items-center gap-x-3">
+                  <p className="flex flex-wrap items-center gap-x-3">
                     <span className={status("success")}>Confirmed</span>
                     <span className={meta}>
                       Organisers know you&apos;re coming.
                     </span>
                   </p>
                 ) : (
-                  <div className="mt-3 flex flex-col items-start gap-2">
+                  <div className="flex flex-col items-start gap-2">
                     <button
                       type="button"
                       onClick={() =>
@@ -651,7 +669,7 @@ export function InfoTab({
                   </div>
                 ))}
               {canEdit && (
-                <div className="mt-3 flex flex-col items-start gap-2">
+                <div className="flex flex-col items-start gap-2">
                   <button
                     type="button"
                     onClick={openEdit}
@@ -673,72 +691,20 @@ export function InfoTab({
               {regStatus === "checked_in" && (
                 <Link
                   href={`/submit?id=${hackathon.id}`}
-                  className={`mt-3 ${btnPrimary}`}
+                  className={btnPrimary}
                 >
                   Submit your project
                 </Link>
               )}
-              {/* On a team the server refuses until you leave it, so say that
-                  up front rather than after two clicks. */}
-              {WITHDRAWABLE.has(regStatus) && myReg?.teamId ? (
-                <p className={`mt-6 ${meta}`}>
-                  To withdraw, leave your team first.
-                </p>
-              ) : null}
-              {WITHDRAWABLE.has(regStatus) &&
-                !myReg?.teamId &&
-                (confirmWithdraw ? (
-                  <div className="mt-6 flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
-                    <p className={body}>
-                      Withdraw your registration? You can apply again while
-                      registration is open.
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          withdrawMutation.mutate({ hackathonId: hackathon.id })
-                        }
-                        disabled={withdrawMutation.isPending}
-                        className={btnDanger}
-                      >
-                        {withdrawMutation.isPending ? "Withdrawing…" : "Withdraw"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setConfirmWithdraw(false);
-                          setWithdrawError("");
-                        }}
-                        disabled={withdrawMutation.isPending}
-                        className={btnSecondary}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-6 w-full border-t border-[var(--border-subtle)] pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmWithdraw(true)}
-                      className={btnDanger}
-                    >
-                      Withdraw registration
-                    </button>
-                  </div>
-                ))}
-              {withdrawError && (
-                <p role="alert" className="text-[15px] text-[var(--danger)]">
-                  {withdrawError}
-                </p>
-              )}
             </div>
-          ) : canRegister && !deadlinePassed ? (
+          ) : registered ? null : canRegister && !deadlinePassed ? (
             <div>
               <h2 className={sectionTitle}>Register</h2>
               <p className={`mt-2 ${body}`}>
                 Four steps: personal info, school, experience, and logistics.
+                {hackathon.registrationDeadline
+                  ? ` Closes ${formatDate(hackathon.registrationDeadline)}.`
+                  : ""}
               </p>
               {isFull && (
                 <p className={`mt-2 ${body}`}>
@@ -768,87 +734,167 @@ export function InfoTab({
         </section>
       )}
 
-      {hackathon.description && (
-        <section className="border-t border-[var(--border-subtle)] pt-6">
-          <h3 className={itemTitle}>About</h3>
-          <p className={`mt-2 max-w-2xl whitespace-pre-wrap ${body}`}>
-            {hackathon.description}
-          </p>
-        </section>
-      )}
+      {/* With the form open it is the only thing in the panel. */}
+      {!showForm && (
+        <>
+          {hackathon.description && (
+            <section className="border-t border-[var(--border-subtle)] pt-6 first:border-t-0 first:pt-0">
+              <h3 className={itemTitle}>About</h3>
+              <p className={`mt-2 max-w-2xl whitespace-pre-wrap ${body}`}>
+                {hackathon.description}
+              </p>
+            </section>
+          )}
 
-      {hackathon.prizes && hackathon.prizes.length > 0 && (
-        <section className="border-t border-[var(--border-subtle)] pt-6">
-          <h3 className={itemTitle}>Prizes</h3>
-          <dl className="mt-3 max-w-2xl">
-            {hackathon.prizes.map(
-              (
-                p: { place: string; amount: number; description?: string },
-                i: number,
-              ) => (
-                <div
-                  key={i}
-                  className="flex items-baseline justify-between gap-6 border-b border-[var(--border-subtle)] py-3"
-                >
-                  <dt className="min-w-0">
-                    <span className="text-[15px] font-semibold text-[var(--text-primary)]">
-                      {p.place}
-                    </span>
-                    {p.description && (
-                      <span className={`block ${meta}`}>{p.description}</span>
-                    )}
+          {hackathon.prizes && hackathon.prizes.length > 0 && (
+            <section className="border-t border-[var(--border-subtle)] pt-6 first:border-t-0 first:pt-0">
+              <h3 className={itemTitle}>Prizes</h3>
+              <dl className="mt-3 max-w-2xl">
+                {hackathon.prizes.map(
+                  (
+                    p: { place: string; amount: number; description?: string },
+                    i: number,
+                  ) => (
+                    <div
+                      key={i}
+                      className="flex items-baseline justify-between gap-6 border-b border-[var(--border-subtle)] py-3"
+                    >
+                      <dt className="min-w-0">
+                        <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+                          {p.place}
+                        </span>
+                        {p.description && (
+                          <span className={`block ${meta}`}>
+                            {p.description}
+                          </span>
+                        )}
+                      </dt>
+                      <dd className="shrink-0 font-[family-name:var(--font-display)] text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+                        ${p.amount.toLocaleString()}
+                      </dd>
+                    </div>
+                  ),
+                )}
+              </dl>
+            </section>
+          )}
+
+          {hackathon.rules && (
+            <section className="border-t border-[var(--border-subtle)] pt-6 first:border-t-0 first:pt-0">
+              <h3 className={itemTitle}>Rules</h3>
+              <ul className="mt-2 max-w-2xl space-y-3">
+                {hackathon.rules
+                  .split("\n")
+                  .map((rule) => rule.trim())
+                  .filter(Boolean)
+                  .map((rule, i) => (
+                    <li key={i} className={body}>
+                      {rule}
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
+
+          {((hackathon.registrationDeadline && !registerOffered) ||
+            hackathon.websiteUrl) && (
+            <dl className="grid max-w-2xl grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 border-t border-[var(--border-subtle)] pt-6 first:border-t-0 first:pt-0">
+              {hackathon.registrationDeadline && !registerOffered && (
+                <div>
+                  <dt className={label}>
+                    {deadlinePassed
+                      ? "Registration closed"
+                      : "Registration closes"}
                   </dt>
-                  <dd className="shrink-0 font-[family-name:var(--font-display)] text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
-                    ${p.amount.toLocaleString()}
+                  <dd className="mt-0.5 text-[15px] text-[var(--text-primary)]">
+                    {formatDate(hackathon.registrationDeadline)}
                   </dd>
                 </div>
-              ),
-            )}
-          </dl>
-        </section>
-      )}
-
-      {hackathon.rules && (
-        <section className="border-t border-[var(--border-subtle)] pt-6">
-          <h3 className={itemTitle}>Rules</h3>
-          <p className={`mt-2 max-w-2xl whitespace-pre-wrap ${body}`}>
-            {hackathon.rules}
-          </p>
-        </section>
-      )}
-
-      {(hackathon.registrationDeadline || hackathon.websiteUrl) && (
-        <dl className="grid max-w-2xl grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 border-t border-[var(--border-subtle)] pt-6">
-          {hackathon.registrationDeadline && (
-            <div>
-              <dt className={label}>
-                {deadlinePassed ? "Registration closed" : "Registration closes"}
-              </dt>
-              <dd className="mt-0.5 text-[15px] text-[var(--text-primary)]">
-                {formatDate(hackathon.registrationDeadline)}
-              </dd>
-            </div>
+              )}
+              {hackathon.websiteUrl && (
+                <div>
+                  <dt className={label}>Website</dt>
+                  <dd className="mt-0.5">
+                    <a
+                      href={hackathon.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={textLink}
+                    >
+                      Event website
+                    </a>
+                  </dd>
+                </div>
+              )}
+            </dl>
           )}
-          {hackathon.websiteUrl && (
-            <div>
-              <dt className={label}>Website</dt>
-              <dd className="mt-0.5">
-                <a
-                  href={hackathon.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={textLink}
-                >
-                  Event website
-                </a>
-              </dd>
-            </div>
+
+          {/* Last, away from the status and the confirm button. */}
+          {registered && WITHDRAWABLE.has(regStatus) && (
+            <section className="border-t border-[var(--border-subtle)] pt-6 first:border-t-0 first:pt-0">
+              <div className="flex flex-col items-start gap-3">
+                {regStatus === "approved" && !confirmWithdraw && (
+                  <p className={body}>
+                    Can&apos;t make it? Withdraw so a waitlisted hacker can
+                    have your seat.
+                  </p>
+                )}
+                {/* On a team the server refuses until you leave it, so say
+                    that up front rather than after two clicks. */}
+                {myReg?.teamId ? (
+                  <p className={meta}>To withdraw, leave your team first.</p>
+                ) : confirmWithdraw ? (
+                  <div className="flex w-full flex-col gap-3">
+                    <p className={body}>
+                      Withdraw your registration? You can apply again while
+                      registration is open.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          withdrawMutation.mutate({ hackathonId: hackathon.id })
+                        }
+                        disabled={withdrawMutation.isPending}
+                        className={btnDanger}
+                      >
+                        {withdrawMutation.isPending ? "Withdrawing…" : "Withdraw"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmWithdraw(false);
+                          setWithdrawError("");
+                        }}
+                        disabled={withdrawMutation.isPending}
+                        className={btnSecondary}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmWithdraw(true)}
+                    className={btnDanger}
+                  >
+                    Withdraw registration
+                  </button>
+                )}
+                {withdrawError && (
+                  <p role="alert" className="text-[15px] text-[var(--danger)]">
+                    {withdrawError}
+                  </p>
+                )}
+              </div>
+            </section>
           )}
-        </dl>
+        </>
       )}
 
       {showForm && (
-        <section className="border-t border-[var(--border-subtle)] pt-8">
+        <section>
           {/* Clears the fixed 64px top bar on mobile. */}
           <div ref={formTop} className="scroll-mt-24 md:scroll-mt-6">
             <h2 className={`mb-6 ${sectionTitle}`}>
@@ -924,7 +970,7 @@ export function InfoTab({
                   />
                 </div>
                 <div className="pt-4">
-                  <label className="flex items-start gap-3 cursor-pointer group">
+                  <label className={checkboxRow}>
                     <input
                       type="checkbox"
                       checked={underrepresented}
@@ -950,7 +996,7 @@ export function InfoTab({
                   onChange={setSchool}
                   options={schoolOptions}
                   placeholder="Start typing to search schools…"
-                  hint="Not listed? Type it in — anything you enter is accepted."
+                  hint="Not listed? Type it in. Anything you enter is accepted."
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <SearchableSelect
@@ -960,7 +1006,6 @@ export function InfoTab({
                     onChange={setMajor}
                     options={MAJORS}
                     placeholder="Start typing to search majors…"
-                    hint="Not listed? Type it in — anything you enter is accepted."
                   />
                   <FormInput
                     label="Graduation year"
@@ -990,7 +1035,7 @@ export function InfoTab({
                   placeholder="United States"
                 />
                 <div className="pt-4">
-                  <label className="flex items-start gap-3 cursor-pointer group">
+                  <label className={checkboxRow}>
                     <input
                       type="checkbox"
                       checked={firstGeneration}
@@ -1089,7 +1134,7 @@ export function InfoTab({
                   />
                 </div>
                 <div className="pt-4">
-                  <label className="flex items-start gap-3 cursor-pointer group">
+                  <label className={checkboxRow}>
                     <input
                       type="checkbox"
                       checked={needsHardware}
@@ -1106,7 +1151,7 @@ export function InfoTab({
                 {!editing && (
                   <>
                     <div className="pt-4">
-                      <label className="flex items-start gap-3 cursor-pointer group">
+                      <label className={checkboxRow}>
                         <input
                           type="checkbox"
                           checked={agreeToCoC}
@@ -1124,7 +1169,7 @@ export function InfoTab({
                       </label>
                     </div>
                     <div className="pt-2">
-                      <label className="flex items-start gap-3 cursor-pointer group">
+                      <label className={checkboxRow}>
                         <input
                           type="checkbox"
                           checked={mlhCodeOfConduct}
@@ -1146,7 +1191,7 @@ export function InfoTab({
                       </label>
                     </div>
                     <div className="pt-2">
-                      <label className="flex items-start gap-3 cursor-pointer group">
+                      <label className={checkboxRow}>
                         <input
                           type="checkbox"
                           checked={mlhDataSharing}
@@ -1191,7 +1236,7 @@ export function InfoTab({
                   </>
                 )}
                 <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer group">
+                  <label className={checkboxRow}>
                     <input
                       type="checkbox"
                       checked={mlhInformationalEmails}

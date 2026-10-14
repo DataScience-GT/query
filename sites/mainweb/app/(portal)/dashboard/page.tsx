@@ -21,6 +21,7 @@ import Image from "next/image";
 import Link from "next/link";
 import LinkStripeAccount from "@/components/portal/LinkStripeAccount";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
+import { NextStepStrip } from "@/components/hackathon/NextStepStrip";
 import {
   MEMBERSHIP_CENTS,
   SEMESTER_MEMBERSHIP_CENTS,
@@ -292,29 +293,7 @@ export default function Dashboard() {
         {view === "hackathon" && !loadingRegs && !stepLoading && latestReg && (
           <div className="mt-6">
             {nextStep ? (
-              <Link
-                href={nextStep.href}
-                className="group flex max-w-xl items-center justify-between gap-4 border-l-2 border-accent pl-4"
-              >
-                <span className="min-w-0">
-                  <span className={`block ${label}`}>
-                    {nextStep.step === "status" ? "Your status" : "Next step"}
-                  </span>
-                  <span className="mt-0.5 block text-[15px] font-semibold text-[var(--text-primary)] group-hover:underline decoration-accent decoration-2 underline-offset-4">
-                    {nextStep.label}
-                  </span>
-                  {nextStep.detail && (
-                    <span className={`mt-0.5 block ${meta}`}>
-                      {nextStep.detail}
-                    </span>
-                  )}
-                </span>
-                <ArrowRight
-                  className="h-4 w-4 flex-shrink-0 text-[var(--text-subtle)] group-hover:text-[var(--text-primary)] transition-colors"
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                />
-              </Link>
+              <NextStepStrip step={nextStep} />
             ) : (
               <Link
                 href={`/hackathons/${hackathonSlug(latestReg.hackathon.name)}?tab=SCHEDULE`}
@@ -352,111 +331,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* ── MEMBERSHIP ─────────────────────────────────── */}
-      {/* Club view only, and it now also catches lapsed members: `isMember`
-          means paid AND unexpired, so the renew path is reachable instead of
-          being hidden behind the same flag that expired. */}
-      {view === "club" && memberStatus?.isMember && (
-        <section className="mt-8">
-          <p className={statusLine("success")}>Membership active</p>
-          <p className={`mt-1 ${body}`}>
-            {expiresOn ? `Runs until ${expiresOn}` : "Active"}
-            {endsSoon ? ` · ${daysLeft} days left` : ""}
-          </p>
-          {/* Renewing early extends from the current end date rather than
-              from today, so nobody loses time by paying ahead. */}
-          {endsSoon && (
-            <div className="mt-6 max-w-md">
-              <LinkStripeAccount />
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── DESTINATIONS ───────────────────────────────── */}
-      <ul className="mt-8 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Hackathons — open to everyone, no membership needed */}
-        {view === "hackathon" && (
-          <Destination href="/hackathons" title="Hackathon hub">
-            Browse and register for upcoming hackathons. Open to everyone, no
-            membership needed.
-          </Destination>
-        )}
-
-        {/* Club Portal — members only */}
-        {view === "club" &&
-          (memberStatus?.isMember ? (
-            <Destination href="/club" title="Club Portal">
-              Club events, check-ins, and resources.
-            </Destination>
-          ) : (
-            <li className="border-t border-[var(--border-subtle)] pt-4 opacity-60">
-              <p className={itemTitle}>Club Portal</p>
-              <p className={`mt-1 ${body}`}>
-                {memberStatus?.hasLapsed
-                  ? "Your membership has run out. Renew below to get back in."
-                  : "Membership required. Join below to unlock access."}
-              </p>
-            </li>
-          ))}
-
-        {/* Projects — club side, but browsing is open so anyone can see
-            what membership actually buys before paying for it. */}
-        {view === "club" && (
-          <Destination href="/initiatives" title="Projects">
-            Projects the club runs year-round. Join one, or pitch your own.
-          </Destination>
-        )}
-
-        {/* Become a Member — sits beside Projects so the club view says
-            what is missing where the rest of the club lives. The pay UI is
-            the block below; this jumps to it. */}
-        {view === "club" && !memberStatus?.isMember && !isAdmin && (
-          <Destination
-            href="#membership"
-            title={
-              memberStatus?.hasLapsed ? "Renew membership" : "Become a member"
-            }
-            plain
-          >
-            {formatCents(MEMBERSHIP_CENTS)}/year or{" "}
-            {formatCents(SEMESTER_MEMBERSHIP_CENTS)}/semester. Opens the Club
-            Portal and member resources.
-          </Destination>
-        )}
-
-        {/* Judge Portal — judges only */}
-        {isJudge && (
-          <Destination href="/judge" title="Judge Portal">
-            Your judging editions, where you sit and the projects you score.
-          </Destination>
-        )}
-
-        {/* Admin Panel — admins, and bug testers read-only */}
-        {(isAdmin || !!portalContext?.isBugTester) && (
-          <Destination href="/admin" title="Admin Panel">
-            Manage events, attendees, and analytics.
-          </Destination>
-        )}
-      </ul>
-
-      {/* The pay UI itself, below the destinations. The entry above is the
-          label; this is the block. */}
-      {view === "club" && !memberStatus?.isMember && !isAdmin && (
-        <section id="membership" className={`mt-12 scroll-mt-8 ${sectionRule}`}>
-          <h2 className={sectionTitle}>
-            {memberStatus?.hasLapsed ? "Renew your membership" : "Become a member"}
-          </h2>
-          <div className="mt-5 max-w-md">
-            <LinkStripeAccount />
-          </div>
-        </section>
-      )}
-
       {/* ── MY HACKATHONS ───────────────────────────────── */}
-      <section
-        className={`mt-12 ${sectionRule} ${view === "hackathon" ? "" : "hidden"}`}
-      >
+      {/* Straight under the tabs, whose hairline is the divider. */}
+      <section className={view === "hackathon" ? "mt-8" : "hidden"}>
         <div className="flex items-baseline justify-between gap-4">
           <h2 className={sectionTitle}>My hackathons</h2>
           <Link href="/hackathons" className={textLink}>
@@ -482,7 +359,7 @@ export default function Dashboard() {
               <li key={reg.id} className="border-b border-[var(--border-subtle)]">
                 <Link
                   href={`/hackathons/${hackathonSlug(reg.hackathon.name)}?tab=SCHEDULE`}
-                  className="group flex flex-col gap-2 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+                  className="group flex items-center justify-between gap-4 py-5 sm:gap-6"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -501,7 +378,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <span className="flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-[var(--text-primary)]">
-                    View
+                    <span className="hidden sm:inline">View</span>
                     <ArrowRight
                       className="h-4 w-4 text-[var(--text-subtle)] group-hover:text-[var(--text-primary)] transition-colors"
                       strokeWidth={1.75}
@@ -531,7 +408,7 @@ export default function Dashboard() {
               {pastRegs.map((reg) => (
                 <li
                   key={reg.id}
-                  className="border-b border-[var(--border-subtle)] opacity-60 hover:opacity-100 transition-opacity"
+                  className="border-b border-[var(--border-subtle)]"
                 >
                   <Link
                     href={`/hackathons/${hackathonSlug(reg.hackathon.name)}?tab=INFO`}
@@ -551,6 +428,106 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* ── MEMBERSHIP ─────────────────────────────────── */}
+      {/* Club view only, and it now also catches lapsed members: `isMember`
+          means paid AND unexpired, so the renew path is reachable instead of
+          being hidden behind the same flag that expired. */}
+      {view === "club" && memberStatus?.isMember && (
+        <section className="mt-8">
+          <p className={statusLine("success")}>Membership active</p>
+          <p className={`mt-1 ${body}`}>
+            {expiresOn ? `Runs until ${expiresOn}` : "Active"}
+            {endsSoon ? ` · ${daysLeft} days left` : ""}
+          </p>
+          {/* Renewing early extends from the current end date rather than
+              from today, so nobody loses time by paying ahead. */}
+          {endsSoon && (
+            <div className="mt-6 max-w-md">
+              <LinkStripeAccount />
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── DESTINATIONS ───────────────────────────────── */}
+      {/* The hackathon half has no entry of its own: "Browse all" above leads
+          to the hub. It lists only the portals this person can open. */}
+      {(view === "club" ||
+        isJudge ||
+        isAdmin ||
+        !!portalContext?.isBugTester) && (
+        <ul className="mt-8 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Club Portal — members only */}
+          {view === "club" &&
+            (memberStatus?.isMember ? (
+              <Destination href="/club" title="Club Portal">
+                Club events, check-ins, and resources.
+              </Destination>
+            ) : (
+              <li className="border-t border-[var(--border-subtle)] pt-4 opacity-60">
+                <p className={itemTitle}>Club Portal</p>
+                <p className={`mt-1 ${body}`}>
+                  {memberStatus?.hasLapsed
+                    ? "Your membership has run out. Renew below to get back in."
+                    : "Membership required. Join below to unlock access."}
+                </p>
+              </li>
+            ))}
+
+          {/* Projects — club side, but browsing is open so anyone can see
+              what membership actually buys before paying for it. */}
+          {view === "club" && (
+            <Destination href="/initiatives" title="Projects">
+              Projects the club runs year-round. Join one, or pitch your own.
+            </Destination>
+          )}
+
+          {/* Become a Member — sits beside Projects so the club view says
+              what is missing where the rest of the club lives. The pay UI is
+              the block below; this jumps to it. */}
+          {view === "club" && !memberStatus?.isMember && !isAdmin && (
+            <Destination
+              href="#membership"
+              title={
+                memberStatus?.hasLapsed ? "Renew membership" : "Become a member"
+              }
+              plain
+            >
+              {formatCents(MEMBERSHIP_CENTS)}/year or{" "}
+              {formatCents(SEMESTER_MEMBERSHIP_CENTS)}/semester. Opens the Club
+              Portal and member resources.
+            </Destination>
+          )}
+
+          {/* Judge Portal — judges only */}
+          {isJudge && (
+            <Destination href="/judge" title="Judge Portal">
+              Your judging editions, where you sit and the projects you score.
+            </Destination>
+          )}
+
+          {/* Admin Panel — admins, and bug testers read-only */}
+          {(isAdmin || !!portalContext?.isBugTester) && (
+            <Destination href="/admin" title="Admin Panel">
+              Manage events, attendees, and analytics.
+            </Destination>
+          )}
+        </ul>
+      )}
+
+      {/* The pay UI itself, below the destinations. The entry above is the
+          label; this is the block. */}
+      {view === "club" && !memberStatus?.isMember && !isAdmin && (
+        <section id="membership" className={`mt-12 scroll-mt-8 ${sectionRule}`}>
+          <h2 className={sectionTitle}>
+            {memberStatus?.hasLapsed ? "Renew your membership" : "Become a member"}
+          </h2>
+          <div className="mt-5 max-w-md">
+            <LinkStripeAccount />
+          </div>
+        </section>
+      )}
 
       {/* ── SIGN OUT ───────────────────────────────────── */}
       <div className={`mt-16 flex flex-wrap items-center justify-between gap-4 ${sectionRule}`}>

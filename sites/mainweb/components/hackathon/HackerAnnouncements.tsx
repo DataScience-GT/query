@@ -62,28 +62,30 @@ function Announcement({
       >
         {announcement.body}
       </p>
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-        {collapsible && (
-          <button
-            type="button"
-            onClick={() => setOpen((prev) => !prev)}
-            aria-expanded={open}
-            className={textLink}
-          >
-            {open ? "Show less" : "Show more"}
-          </button>
-        )}
-        {announcement.cta && href && (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={textLink}
-          >
-            {announcement.cta.label}
-          </a>
-        )}
-      </div>
+      {(collapsible || (announcement.cta && href)) && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+          {collapsible && (
+            <button
+              type="button"
+              onClick={() => setOpen((prev) => !prev)}
+              aria-expanded={open}
+              className="inline-flex items-center text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              {open ? "Show less" : "Show more"}
+            </button>
+          )}
+          {announcement.cta && href && (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={textLink}
+            >
+              {announcement.cta.label}
+            </a>
+          )}
+        </div>
+      )}
     </article>
   );
 }
