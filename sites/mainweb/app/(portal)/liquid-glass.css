@@ -431,6 +431,14 @@ a {
   --accent-secondary: #ff6a9d;
   --accent-hover: #ff6a9d;
   --accent-dim: rgba(255, 79, 139, 0.12);
+  /* The ground is always dark here, so the states take the night edition's
+     values whichever theme the portal is in; the paper ones fall to 3:1. */
+  --success: #7CC79A;
+  --success-glow: rgba(124, 199, 154, 0.12);
+  --warning: #E2B865;
+  --warning-glow: rgba(226, 184, 101, 0.12);
+  --danger: #F08C82;
+  --danger-glow: rgba(240, 140, 130, 0.12);
   --font-display: var(--font-hl-pixel), ui-monospace, monospace;
   --font-ui: var(--font-hl-sans), ui-sans-serif, system-ui, sans-serif;
   color-scheme: dark;
