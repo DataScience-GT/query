@@ -23,7 +23,6 @@ import {
   page,
   pageDek,
   pageTitle,
-  sectionTitle,
   textLink,
 } from "@/components/portal/ui";
 
@@ -48,20 +47,14 @@ import {
  * their own local rendering of the start date is how a hackathon appears to
  * begin on the wrong day.
  */
-const formatRange = (start: Date, end: Date) => {
-  const opts: Intl.DateTimeFormatOptions = {
-    month: "long",
-    day: "numeric",
-    timeZone: "America/New_York",
-  };
-  const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
-  const startText = start.toLocaleDateString("en-US", opts);
-  const endText = end.toLocaleDateString("en-US", {
-    ...opts,
-    year: "numeric",
-  });
-  return sameYear ? `${startText} – ${endText}` : `${startText} – ${endText}`;
-};
+const rangeFormat = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "America/New_York",
+});
+const formatRange = (start: Date, end: Date) =>
+  rangeFormat.formatRange(start, end);
 
 /** Same fixed time zone, and the time as well — a deadline is a moment. */
 const formatDeadline = (deadline: Date) =>
@@ -73,6 +66,12 @@ const formatDeadline = (deadline: Date) =>
     timeZoneName: "short",
     timeZone: "America/New_York",
   });
+
+// sectionTitle in the pixel display face wraps "Your registration" and
+// "Apply for Hacklytics 2027" into orphaned lines; this steps it down a size.
+// The .hl-theme h2 rule already resets tracking and sets the weight.
+const hlSectionTitle =
+  "font-[family-name:var(--font-display)] text-[22px] font-semibold leading-tight text-[var(--text-primary)] text-balance";
 
 /**
  * The sidebar is suppressed here, so the page carries its own masthead: the
@@ -172,7 +171,7 @@ function FlowerBed() {
             alt=""
             width={width}
             height={plant.map.length * plant.scale}
-            className={`${i % 2 ? "hidden sm:block" : "block"} [image-rendering:pixelated]`}
+            className={`${i % 2 || i === 12 ? "hidden sm:block" : "block"} [image-rendering:pixelated]`}
             style={
               plant.bloom
                 ? {
@@ -316,35 +315,10 @@ export default function HacklyticsPage() {
         ) : null}
       </header>
 
-      <dl className="mt-8 grid grid-cols-1 gap-5 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-3">
-        <div>
-          <dt className={label}>When</dt>
-          <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
-            {formatRange(event.startDate, event.endDate)}
-          </dd>
-        </div>
-        {event.location ? (
-          <div>
-            <dt className={label}>Where</dt>
-            <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
-              {event.location}
-            </dd>
-          </div>
-        ) : null}
-        {event.theme ? (
-          <div>
-            <dt className={label}>Theme</dt>
-            <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
-              {event.theme}
-            </dd>
-          </div>
-        ) : null}
-      </dl>
-
-      <section className="mt-12 border-t border-[var(--border-subtle)] pt-8">
+      <section className="mt-8 border-t border-[var(--border-subtle)] pt-6">
         {myReg ? (
           <div className="space-y-4">
-            <h2 className={sectionTitle}>Your registration</h2>
+            <h2 className={hlSectionTitle}>Your registration</h2>
             <p className={body}>
               Your status: <StatusBadge status={myReg.registrationStatus} />
             </p>
@@ -366,14 +340,14 @@ export default function HacklyticsPage() {
               ))}
             <Link
               href={`/hackathons/${hackathonSlug(event.name)}`}
-              className={btnPrimary}
+              className={`w-full sm:w-auto ${btnPrimary}`}
             >
               Open my Hacklytics
             </Link>
           </div>
         ) : registrationOpen ? (
           <div className="space-y-4">
-            <h2 className={sectionTitle}>Apply for {event.name}</h2>
+            <h2 className={hlSectionTitle}>Apply for {event.name}</h2>
             <p className={body}>
               {event.registrationDeadline
                 ? `Applications close ${formatDeadline(event.registrationDeadline)}.`
@@ -381,7 +355,7 @@ export default function HacklyticsPage() {
             </p>
             <Link
               href={`/hackathons/${hackathonSlug(event.name)}`}
-              className={btnPrimary}
+              className={`w-full sm:w-auto ${btnPrimary}`}
             >
               Register
             </Link>
@@ -392,7 +366,7 @@ export default function HacklyticsPage() {
           // The interest list only takes sign-ups before registration opens;
           // offering it afterwards ended in an error on submit.
           <div className="space-y-4">
-            <h2 className={sectionTitle}>
+            <h2 className={hlSectionTitle}>
               {event.status === "in_progress"
                 ? "Happening now"
                 : event.status === "completed"
@@ -417,6 +391,31 @@ export default function HacklyticsPage() {
           </div>
         )}
       </section>
+
+      <dl className="mt-12 grid grid-cols-1 gap-5 border-t border-[var(--border-subtle)] pt-8 sm:grid-cols-3">
+        <div>
+          <dt className={label}>When</dt>
+          <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
+            {formatRange(event.startDate, event.endDate)}
+          </dd>
+        </div>
+        {event.location ? (
+          <div>
+            <dt className={label}>Where</dt>
+            <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
+              {event.location}
+            </dd>
+          </div>
+        ) : null}
+        {event.theme ? (
+          <div>
+            <dt className={label}>Theme</dt>
+            <dd className="mt-1 text-[15px] text-[var(--text-primary)]">
+              {event.theme}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
 
       {event.websiteUrl ? (
         <a href={event.websiteUrl} className={`mt-10 ${textLink}`}>
