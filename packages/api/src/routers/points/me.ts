@@ -9,6 +9,7 @@ import {
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
+import { notHackathonBanned } from "../../middleware/procedures";
 import { rateLimit } from "../../middleware/security";
 import {
   isSoldOut,
@@ -213,8 +214,11 @@ export const pointsMeRouter = createTRPCRouter({
   }),
 
   // Self check-in with the code shown at the event. Every refusal says what
-  // to do instead, since the hacker is standing in a doorway reading it.
-  checkIn: protectedProcedure
+  // to do instead, since the hacker is standing in a doorway reading it. Behind
+  // the ban gate because it writes: a banned hacker who kept their
+  // registration could otherwise keep collecting points. The reads above stay
+  // open, as with the rest of the API.
+  checkIn: notHackathonBanned
     .input(scope.extend({ code: z.string().max(32) }))
     .mutation(async ({ ctx, input }) => {
       // There are 31^6 codes; this keeps anyone from walking the space. Per
