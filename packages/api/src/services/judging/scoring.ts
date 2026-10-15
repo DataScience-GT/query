@@ -1,7 +1,8 @@
 // Pure scoring for room judging. A judge's evaluation scores the mean of its
 // 1–5 ratings; a project's score in a scope is the mean of those evaluation
 // scores, counting complete evaluations only. Every evaluation weighs the
-// same, whoever wrote it.
+// same, whoever wrote it. Placements feed in the calibrated score of each
+// evaluation (calibration.ts) in place of the raw mean; the judge desk does not.
 
 /** An evaluation as scoring sees it. */
 export type ScoredEvaluation = {
@@ -9,6 +10,8 @@ export type ScoredEvaluation = {
   isComplete: boolean;
   /** The 1–5 rating values it holds. */
   ratings: readonly number[];
+  /** Counted in place of the mean of the ratings when set: the calibrated score. */
+  adjustedScore?: number;
 };
 
 export type ScoreSummary = {
@@ -33,7 +36,10 @@ export function evaluationScore(values: readonly number[]): number | null {
 function summarize(evals: readonly ScoredEvaluation[]): ScoreSummary {
   const scores = evals
     .filter((evaluation) => evaluation.isComplete)
-    .map((evaluation) => evaluationScore(evaluation.ratings))
+    .map(
+      (evaluation) =>
+        evaluation.adjustedScore ?? evaluationScore(evaluation.ratings),
+    )
     .filter((score): score is number => score !== null);
   return { score: meanOrNull(scores), count: scores.length };
 }

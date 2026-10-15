@@ -24,6 +24,11 @@ import {
   eventMoment,
 } from "@/components/hackathon/judging/event-time";
 import { plural, useRefreshJudging } from "@/components/admin/judging/shared";
+import {
+  describeJudge,
+  judgeNumbers,
+} from "@/components/admin/judging/results/calibration";
+import type { CalibrationChallenge } from "@/components/admin/judging/results/calibration";
 
 // Officer screens poll every 10 seconds while judges are still submitting.
 const POLL_MS = 10_000;
@@ -52,6 +57,9 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
 
   const [error, setError] = useState<string | null>(null);
   const [openScopes, setOpenScopes] = useState<Set<string>>(new Set());
+  const [openCalibration, setOpenCalibration] = useState<Set<string>>(
+    new Set(),
+  );
   const [entryFilter, setEntryFilter] = useState<{
     id: string;
     title: string;
@@ -128,8 +136,13 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     );
   }
 
-  const { computedAt, publishedAt, evaluationsSinceCompute, scopes } =
-    list.data;
+  const {
+    computedAt,
+    publishedAt,
+    evaluationsSinceCompute,
+    scopes,
+    calibration,
+  } = list.data;
   const published = !!publishedAt;
 
   // Teams, not rows: one team can place in several lists. A team already
@@ -290,7 +303,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
           <p className={body}>
             {computedAt
               ? "No project has a complete evaluation yet, so nothing was ranked. Compute again once judges submit."
-              : "Compute results once judges have submitted. Each challenge and the overall list rank projects by the mean of their complete evaluations; ties share a placing."}
+              : "Compute results once judges have submitted. Each challenge and the overall list rank projects by the mean of their complete evaluations, each adjusted for how strict or generous its judge is; ties share a placing."}
           </p>
         ) : (
           <div className="space-y-10">
@@ -299,6 +312,11 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
               const rows = open
                 ? scope.placements
                 : scope.placements.slice(0, PLACINGS_SHOWN);
+              // Rows computed before calibration existed have no raw score,
+              // and their score is the plain mean.
+              const calibrated = scope.placements.some(
+                (row) => row.rawScore !== null,
+              );
               return (
                 <div key={scope.scope}>
                   <div className="flex items-baseline justify-between gap-4">
@@ -308,6 +326,11 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                       {scope.placements.length === 1 ? "project" : "projects"}
                     </span>
                   </div>
+                  {calibrated && (
+                    <p className={`mt-1 text-right ${label}`}>
+                      Adjusted for judge bias
+                    </p>
+                  )}
                   <ol className="mt-3 border-t border-[var(--border-subtle)]">
                     {rows.map((row) => (
                       <li
@@ -395,6 +418,11 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                           <span className="text-[15px] font-semibold text-[var(--text-primary)]">
                             {score(row.score)}
                           </span>{" "}
+                          {row.rawScore !== null && (
+                            <span title="The plain mean, before the adjustment">
+                              raw {row.rawScore.toFixed(2)}{" "}
+                            </span>
+                          )}
                           · {row.evaluationCount}{" "}
                           {row.evaluationCount === 1 ? "eval" : "evals"}
                         </span>
@@ -426,6 +454,38 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         )}
       </section>
 
+      {calibration.length > 0 && (
+        <section className={sectionRule}>
+          <h3 className={itemTitle}>Judge calibration</h3>
+          <p className={`mt-1 ${meta}`}>
+            Each project is graded once, so a strict or generous judge moves
+            every project they graded. Scores above are adjusted for that,
+            comparing judges only within their own challenge. Judges and hackers
+            see none of this.
+          </p>
+          <div className="mt-3 border-t border-[var(--border-subtle)]">
+            {calibration.map((challenge) => (
+              <CalibrationChallengeRow
+                key={challenge.challengeId}
+                challenge={challenge}
+                open={openCalibration.has(challenge.challengeId)}
+                onToggle={() =>
+                  setOpenCalibration((previous) => {
+                    const next = new Set(previous);
+                    if (next.has(challenge.challengeId)) {
+                      next.delete(challenge.challengeId);
+                    } else {
+                      next.add(challenge.challengeId);
+                    }
+                    return next;
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section ref={auditRef} className={`scroll-mt-6 ${sectionRule}`}>
         <EvaluationAudit
           hackathonId={hackathonId}
@@ -433,6 +493,50 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
           onClearFilter={() => setEntryFilter(null)}
         />
       </section>
+    </div>
+  );
+}
+
+function CalibrationChallengeRow({
+  challenge,
+  open,
+  onToggle,
+}: {
+  challenge: CalibrationChallenge;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="border-b border-[var(--border-subtle)] py-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex w-full items-baseline justify-between gap-4 text-left"
+      >
+        <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+          {challenge.challenge}
+        </span>
+        <span className={meta}>
+          {plural(challenge.judges.length, "judge")} · {open ? "Hide" : "Show"}
+        </span>
+      </button>
+      {open && (
+        <ul className="mt-3 space-y-3">
+          {challenge.judges.map((judge) => (
+            <li key={judge.judgeId}>
+              <p className="text-[15px] text-[var(--text-primary)]">
+                <span className="font-semibold">{judge.judgeName}</span>
+                {judge.kind === "guest" && (
+                  <span className={meta}> (guest)</span>
+                )}
+              </p>
+              <p className={body}>{describeJudge(judge).join(" · ")}</p>
+              <p className={`${meta} tabular-nums`}>{judgeNumbers(judge)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

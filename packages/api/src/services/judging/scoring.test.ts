@@ -66,6 +66,48 @@ describe("overallScore", () => {
   });
 });
 
+describe("an adjusted score", () => {
+  const adjusted: ScoredEvaluation[] = [
+    {
+      challengeId: "general",
+      isComplete: true,
+      ratings: [5, 5],
+      adjustedScore: 4,
+    },
+    {
+      challengeId: "general",
+      isComplete: true,
+      ratings: [3, 3],
+      adjustedScore: 3.5,
+    },
+    // No adjusted score: the mean of its ratings counts.
+    { challengeId: "general", isComplete: true, ratings: [2, 4] },
+    // Incomplete is still left out, adjusted or not.
+    {
+      challengeId: "general",
+      isComplete: false,
+      ratings: [1],
+      adjustedScore: 1,
+    },
+  ];
+
+  it("counts in place of the mean of the ratings", () => {
+    // (4 + 3.5 + 3) / 3
+    expect(scopedScore(adjusted, "general")).toEqual({ score: 3.5, count: 3 });
+    expect(overallScore(adjusted)).toEqual({ score: 3.5, count: 3 });
+  });
+
+  it("leaves evaluations without one on the raw mean", () => {
+    const raw = adjusted.map(({ challengeId, isComplete, ratings }) => ({
+      challengeId,
+      isComplete,
+      ratings,
+    }));
+    // (5 + 3 + 3) / 3
+    expect(overallScore(raw)).toEqual({ score: 11 / 3, count: 3 });
+  });
+});
+
 describe("rankByScore", () => {
   it("ranks highest first", () => {
     const ranked = rankByScore([

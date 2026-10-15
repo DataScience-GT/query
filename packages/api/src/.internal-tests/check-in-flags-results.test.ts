@@ -4,6 +4,11 @@
  * how many flags are open on each placed team, and the public hackathon.getResults
  * drops a pulled team at once without ever carrying flag data.
  *
+ * It also covers what calibration adds to those procedures: compute stores the
+ * judge-adjusted score with the raw mean beside it, the organiser's list returns
+ * both and a per-judge summary, and the public payload carries neither the raw
+ * score nor anything about a judge.
+ *
  * The schema is the real one; only the database handle is a stand-in, handed
  * to the router through the context the way judge-edge.test.ts does. Its
  * selects answer by the table they read from, and the entries query applies
@@ -24,6 +29,7 @@ import {
   judgingEvaluationDrafts,
   judgingEvaluationRatings,
   judgingEvaluations,
+  judgingJudges,
   judgingPlacements,
 } from "@query/db";
 import { appRouter } from "../root";
@@ -35,7 +41,12 @@ const ADMIN_ROW = { userId: "admin_user", isActive: true, role: "admin" };
 const render = (condition: unknown) =>
   new PgDialect().sqlToQuery(condition as never);
 
-type Query = { table: unknown; wheres: unknown[] };
+type Query = {
+  table: unknown;
+  wheres: unknown[];
+  /** The columns the select asked for, to tell two reads of one table apart. */
+  fields?: Record<string, unknown>;
+};
 
 const mockSelect = vi.fn<(query: Query) => unknown[]>();
 const mockFindMany = vi.fn();
@@ -44,8 +55,8 @@ const deletes: unknown[] = [];
 
 const settled = <T>(value: T) => Object.assign(Promise.resolve(value), {});
 
-const selectChain = () => {
-  const query: Query = { table: null, wheres: [] };
+const selectChain = (fields?: Record<string, unknown>) => {
+  const query: Query = { table: null, wheres: [], fields };
   const chain: any = {
     then: (onOk: any, onErr: any) =>
       Promise.resolve(mockSelect(query)).then(onOk, onErr),
@@ -83,7 +94,7 @@ const fakeDb: any = {
       findMany: (...args: unknown[]) => mockFindMany(...args),
     },
   },
-  select: () => selectChain(),
+  select: (fields?: Record<string, unknown>) => selectChain(fields),
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
   insert: (table: unknown) => ({
     values: (values: unknown) => {
@@ -144,10 +155,26 @@ describe("judging.results.compute", () => {
     { id: "entry-b", deletedAt: null, prizeIneligibleAt: new Date() },
     { id: "entry-c", deletedAt: null, prizeIneligibleAt: null },
   ];
+  const evaluationRow = (
+    id: string,
+    entryId: string,
+    judgeId: string,
+    minute: number,
+  ) => ({
+    id,
+    entryId,
+    challengeId: "ch-1",
+    judgeId,
+    submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
+    isComplete: true,
+  });
+  // One judge marked all three. With the pulled team left out of the
+  // calibration she has two grades, a mean of 3.5 and the pool's own spread, so
+  // nothing about her scores moves; with it counted, they would.
   const scored = [
-    { id: "eval-a", entryId: "entry-a", challengeId: "ch-1", isComplete: true },
-    { id: "eval-b", entryId: "entry-b", challengeId: "ch-1", isComplete: true },
-    { id: "eval-c", entryId: "entry-c", challengeId: "ch-1", isComplete: true },
+    evaluationRow("eval-a", "entry-a", "judge-1", 0),
+    evaluationRow("eval-b", "entry-b", "judge-1", 1),
+    evaluationRow("eval-c", "entry-c", "judge-1", 2),
   ];
   const ratings = [
     { evaluationId: "eval-a", value: 4 },
@@ -206,6 +233,7 @@ describe("judging.results.compute", () => {
       ["entry-a", "overall", 1, "4.00"],
       ["entry-c", "overall", 2, "3.00"],
     ]);
+    expect(placed.map((row) => row.rawScore)).toEqual(["4.00", "3.00"]);
     expect(result.placements).toBe(2);
   });
 
@@ -240,6 +268,82 @@ describe("judging.results.compute", () => {
       "entry-b",
       "entry-a",
       "entry-c",
+    ]);
+  });
+});
+
+describe("judging.results.compute with judge calibration", () => {
+  const entries = ["e1", "e2", "e3", "e4"].map((id) => ({
+    id,
+    deletedAt: null,
+    prizeIneligibleAt: null,
+  }));
+  const evaluation = (
+    id: string,
+    entryId: string,
+    judgeId: string,
+    minute: number,
+  ) => ({
+    id,
+    entryId,
+    challengeId: "ch-1",
+    judgeId,
+    submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
+    isComplete: true,
+  });
+
+  // A strict judge marked e1 and e2, a lenient one e3 and e4. Raw, e2 and e3
+  // tie on 4.00 and the lenient judge's e4 runs away with first.
+  const wire = () =>
+    mockSelect.mockImplementation(({ table }) => {
+      if (table === hackathons) {
+        return [
+          { id: HACK, name: "Hacklytics", startDate: null, endDate: null },
+        ];
+      }
+      if (table === judgingEvaluationDrafts) return [];
+      if (table === judgingConfigs) return [{ hackathonId: HACK }];
+      if (table === judgingPlacements) return [{ n: 0 }];
+      if (table === judgingEntries) return entries;
+      if (table === judgingEvaluations) {
+        return [
+          evaluation("v1", "e1", "strict", 0),
+          evaluation("v2", "e2", "strict", 1),
+          evaluation("v3", "e3", "lenient", 2),
+          evaluation("v4", "e4", "lenient", 3),
+        ];
+      }
+      if (table === judgingEvaluationRatings) {
+        return [
+          { evaluationId: "v1", value: 3 },
+          { evaluationId: "v2", value: 4 },
+          { evaluationId: "v3", value: 4 },
+          { evaluationId: "v4", value: 5 },
+        ];
+      }
+      return [];
+    });
+
+  it("stores the judge-adjusted score with the raw mean beside it", async () => {
+    wire();
+
+    await adminCaller().judging.results.compute({ hackathonId: HACK });
+
+    // Pool mean 4. Two grades each gives an offset of 2/5 of the 0.5 gap: the
+    // strict judge is lifted 0.2, the lenient one lowered 0.2. Both spread
+    // their marks by the same 0.5, so neither is stretched.
+    expect(
+      placementsInserted().map((row) => [
+        row.entryId,
+        row.placement,
+        row.score,
+        row.rawScore,
+      ]),
+    ).toEqual([
+      ["e4", 1, "4.80", "5.00"],
+      ["e2", 2, "4.20", "4.00"],
+      ["e3", 3, "3.80", "4.00"],
+      ["e1", 4, "3.20", "3.00"],
     ]);
   });
 });
@@ -291,10 +395,23 @@ describe("judging.results.list", () => {
     placements: unknown[];
     flags?: unknown[];
     portal?: unknown[];
+    /** Live entries, as the calibration summary reads them. */
+    live?: unknown[];
+    /** Complete evaluations, as the calibration summary reads them. */
+    evaluations?: unknown[];
+    ratings?: unknown[];
+    judges?: unknown[];
+    challenges?: unknown[];
   }) => {
-    mockSelect.mockImplementation(({ table }) => {
+    mockSelect.mockImplementation(({ table, fields }) => {
       if (table === judgingPlacements) return opts.placements;
-      if (table === judgingEvaluations) return [{ n: 0 }];
+      // The stale count reads one column; the calibration summary reads many.
+      if (table === judgingEvaluations) {
+        return fields && "n" in fields ? [{ n: 0 }] : (opts.evaluations ?? []);
+      }
+      if (table === judgingEvaluationRatings) return opts.ratings ?? [];
+      if (table === judgingJudges) return opts.judges ?? [];
+      if (table === judgingChallenges) return opts.challenges ?? [];
       if (table === hackathonCheckInFlags) return opts.flags ?? [];
       if (table === hackathonEvents) {
         return [
@@ -302,7 +419,7 @@ describe("judging.results.list", () => {
           { id: "event-2", name: "Sponsor Talk" },
         ];
       }
-      if (table === judgingEntries) return opts.portal ?? [];
+      if (table === judgingEntries) return opts.portal ?? opts.live ?? [];
       if (table === judgingEntryMembers) return [];
       return [];
     });
@@ -383,10 +500,152 @@ describe("judging.results.list", () => {
       "openCheckInFlags",
       "placement",
       "prizeIneligible",
+      "rawScore",
       "score",
       "title",
       "withdrawn",
     ]);
+  });
+
+  it("returns the raw score beside the adjusted one, and null on older rows", async () => {
+    wire({
+      placements: [
+        placement("p1", "entry-a", { score: "4.20", rawScore: "3.90" }),
+        placement("p2", "entry-b", { placement: 2, rawScore: null }),
+      ],
+    });
+
+    const data = await adminCaller().judging.results.list({
+      hackathonId: HACK,
+    });
+
+    const byEntry = Object.fromEntries(
+      rowsOf(data).map((row) => [row.entryId, row]),
+    ) as Record<string, any>;
+    expect(byEntry["entry-a"].score).toBe(4.2);
+    expect(byEntry["entry-a"].rawScore).toBe(3.9);
+    expect(byEntry["entry-b"].rawScore).toBeNull();
+  });
+
+  describe("judge calibration summary", () => {
+    const graded = (
+      id: string,
+      entryId: string,
+      judgeId: string,
+      challengeId: string,
+      minute: number,
+    ) => ({
+      id,
+      entryId,
+      challengeId,
+      judgeId,
+      submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
+      isComplete: true,
+    });
+    const challenges = [
+      { id: "ch-sponsor", label: "Sponsor Prize" },
+      { id: "ch-general", label: "General" },
+    ];
+    const judges = [
+      { id: "strict", displayName: "Sam Strict", kind: "member" },
+      { id: "lenient", displayName: "Lee Lenient", kind: "guest" },
+      { id: "sponsor-guest", displayName: "Gus Guest", kind: "guest" },
+    ];
+    // Six table grades by two judges, and two by the sponsor's own guest.
+    const table = [
+      ["g1", "strict", 3],
+      ["g2", "strict", 3],
+      ["g3", "strict", 4],
+      ["g4", "lenient", 4],
+      ["g5", "lenient", 5],
+      ["g6", "lenient", 5],
+    ] as const;
+    const evaluations = [
+      ...table.map(([id, judgeId], i) =>
+        graded(id, `entry-${i}`, judgeId, "ch-general", i),
+      ),
+      graded("s1", "entry-0", "sponsor-guest", "ch-sponsor", 10),
+      graded("s2", "entry-1", "sponsor-guest", "ch-sponsor", 11),
+    ];
+    const ratings = [
+      ...table.map(([id, , value]) => ({ evaluationId: id, value })),
+      { evaluationId: "s1", value: 2 },
+      { evaluationId: "s2", value: 2 },
+    ];
+    const live = Array.from({ length: 6 }, (_, i) => ({ id: `entry-${i}` }));
+
+    it("is computed on read, per challenge, one row for each judge", async () => {
+      wire({
+        placements: [placement("p1", "entry-0")],
+        evaluations,
+        ratings,
+        judges,
+        challenges,
+        live,
+      });
+
+      const data = await adminCaller().judging.results.list({
+        hackathonId: HACK,
+      });
+
+      expect(data.calibration.map((c) => c.challenge)).toEqual([
+        "Sponsor Prize",
+        "General",
+      ]);
+      const [sponsor, general] = data.calibration;
+      // The sponsor's guest is compared with no one at the tables.
+      expect(sponsor!.judges).toHaveLength(1);
+      expect(sponsor!.judges[0]).toMatchObject({
+        judgeName: "Gus Guest",
+        kind: "guest",
+        grades: 2,
+        offset: 0,
+        spread: 1,
+        drift: 0,
+      });
+      expect(general!.judges.map((j) => [j.judgeName, j.grades])).toEqual([
+        ["Lee Lenient", 3],
+        ["Sam Strict", 3],
+      ]);
+      const [lee, sam] = general!.judges;
+      expect(lee!.offset).toBeGreaterThan(0);
+      expect(sam!.offset).toBeLessThan(0);
+      // Rounded to two places.
+      for (const judge of general!.judges) {
+        for (const value of [judge.offset, judge.spread, judge.drift]) {
+          expect(value).toBe(Math.round(value * 100) / 100);
+        }
+      }
+    });
+
+    it("leaves a team pulled from prizes out of the summary", async () => {
+      wire({
+        placements: [placement("p1", "entry-0")],
+        evaluations,
+        ratings,
+        judges,
+        challenges,
+        // Only the first four teams are live and prize-eligible.
+        live: live.slice(0, 4),
+      });
+
+      const data = await adminCaller().judging.results.list({
+        hackathonId: HACK,
+      });
+
+      const general = data.calibration.find((c) => c.challenge === "General");
+      expect(general!.judges.map((j) => j.grades)).toEqual([1, 3]);
+    });
+
+    it("is empty before anything is computed", async () => {
+      wire({ placements: [], evaluations, ratings, judges, challenges, live });
+
+      const data = await adminCaller().judging.results.list({
+        hackathonId: HACK,
+      });
+
+      expect(data.calibration).toEqual([]);
+    });
   });
 
   it("reads no flags when nothing is placed", async () => {
@@ -410,6 +669,8 @@ describe("hackathon.getResults", () => {
     scopeLabel: "Overall",
     placement: 1,
     score: "4.25",
+    // Stored beside the score; it must never leave in the public payload.
+    rawScore: "3.75",
     entry: {
       id: `entry-${id}`,
       title: `Project ${id}`,
@@ -481,6 +742,8 @@ describe("hackathon.getResults", () => {
     const text = JSON.stringify(results).toLowerCase();
     expect(text).not.toContain("flag");
     expect(text).not.toContain("ineligible");
+    expect(text).not.toContain("3.75");
+    expect(text).not.toContain("calibrat");
     // The cached payload is built from placements alone: no select, so no
     // flag table, ran for it.
     expect(mockSelect).not.toHaveBeenCalled();
