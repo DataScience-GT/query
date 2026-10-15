@@ -19,8 +19,18 @@ import {
   sectionRule,
   sectionTitle,
 } from "@/components/portal/ui";
-import { ErrorLine, plural } from "@/components/admin/judging/shared";
-import { clock, sameTiming, timingFromFields, windowLabel } from "./format";
+import {
+  ErrorLine,
+  plural,
+  stationCount,
+} from "@/components/admin/judging/shared";
+import {
+  clock,
+  sameTiming,
+  stationWord,
+  timingFromFields,
+  windowLabel,
+} from "./format";
 import type {
   PlanPreview,
   ScheduleBoard,
@@ -102,6 +112,11 @@ export function SchedulePlanner({
     Number(fields.setupMinutes) +
     Number(fields.judgingMinutes) +
     Number(fields.teardownMinutes);
+  const scheduledRooms = rooms.filter((r) => r.scheduled);
+  const station = stationWord(
+    scheduledRooms.length,
+    scheduledRooms.filter((r) => r.kind === "table").length,
+  );
   const result = preview.isFetching ? undefined : preview.data;
   const stale = !!submitted && !sameTiming(timingFromFields(fields), submitted);
   const acknowledged =
@@ -185,7 +200,7 @@ export function SchedulePlanner({
           </div>
           {slot > 0 && (
             <p className={fieldHint}>
-              Each room takes a project every {slot} minutes.
+              Each {station} takes a project every {slot} minutes.
             </p>
           )}
         </fieldset>
@@ -200,10 +215,10 @@ export function SchedulePlanner({
           </div>
         </fieldset>
 
-        {!rooms.some((r) => r.scheduled) && (
+        {scheduledRooms.length === 0 && (
           <p className={`${meta} text-[var(--warning)]`}>
-            No room takes appointments yet. Give each scheduled challenge a room
-            in a building, then preview.
+            No room or table takes appointments yet. Give each scheduled
+            challenge a room or table in a building, then preview.
           </p>
         )}
 
@@ -236,8 +251,8 @@ export function SchedulePlanner({
                 <p className={`mt-1 ${meta}`}>
                   {plural(result.presentations, "presentation")} from{" "}
                   {plural(result.projects, "project")} across{" "}
-                  {plural(result.rooms, "room")}, {plural(result.slots, "slot")}{" "}
-                  each.
+                  {stationCount(result.rooms, result.tables)},{" "}
+                  {plural(result.slots, "slot")} each.
                 </p>
               </div>
               <ul className="max-w-3xl border-t border-[var(--border-subtle)]">
@@ -352,6 +367,7 @@ export function PreviewFigures({
       )
     : null;
 
+  const stations = stationWord(result.rooms, result.tables, true);
   const figures = [
     {
       term: "Sponsor challenges done",
@@ -359,8 +375,8 @@ export function PreviewFigures({
       note: !summary.sponsorsDoneAt
         ? "No sponsor challenge is scheduled"
         : summary.sponsorRoomIdleMinutes === 0
-          ? "Their rooms run back to back"
-          : `Their rooms sit idle ${summary.sponsorRoomIdleMinutes} min in all`,
+          ? `Their ${stations} run back to back`
+          : `Their ${stations} sit idle ${summary.sponsorRoomIdleMinutes} min in all`,
     },
     {
       term: "Everything done",
@@ -378,7 +394,7 @@ export function PreviewFigures({
       note: "Times a team walks to another building",
     },
     {
-      term: "Rooms",
+      term: stations.charAt(0).toUpperCase() + stations.slice(1),
       value: String(result.rooms),
       note: `${plural(result.slots, "slot")} of ${result.slotMinutes} min each`,
     },
@@ -473,7 +489,9 @@ export function PreviewTimetable({
 }) {
   return (
     <div className="space-y-4">
-      <h3 className={label}>Timetable by room</h3>
+      <h3 className={label}>
+        Timetable by {stationWord(result.rooms, result.tables)}
+      </h3>
       <RoomBoard
         rooms={previewRooms(rooms, result)}
         rows={result.appointments.map((a) => ({

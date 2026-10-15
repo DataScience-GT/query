@@ -82,18 +82,27 @@ export type CpsatRun =
     }
   | { status: "failed"; reason: string; log: string[] };
 
+const cancelled = (log: string[] = []): CpsatRun => ({
+  status: "failed",
+  reason: "CP-SAT was cancelled before it finished.",
+  log,
+});
+
 /**
  * Runs cpsat.py on `problem` (a cpsatProblem) and waits for it. The problem
  * goes in as a file, as when an organiser runs the script, and the solution
  * comes back on stdout. CP-SAT stops itself at its time limit; the process is
- * killed if it is still running well past that.
+ * killed if it is still running well past that, or as soon as `signal` fires
+ * (the request that asked for the run went away).
  */
 export async function runCpsat(
   problem: unknown,
-  options: { seconds?: number } = {},
+  options: { seconds?: number; signal?: AbortSignal } = {},
 ): Promise<CpsatRun> {
   const command = cpsatCommand();
   if (!command) return { status: "failed", reason: CPSAT_UNAVAILABLE, log: [] };
+  const { signal } = options;
+  if (signal?.aborted) return cancelled();
   const seconds = Math.min(
     CPSAT_SECONDS.max,
     Math.max(CPSAT_SECONDS.min, Math.round(options.seconds ?? CPSAT_SECONDS.default)),
@@ -111,6 +120,8 @@ export async function runCpsat(
     const file = join(dir, "problem.json");
     await writeFile(file, JSON.stringify(problem));
     return await new Promise<CpsatRun>((done) => {
+      // It may have fired while the file was being written.
+      if (signal?.aborted) return done(cancelled());
       const child = spawn(
         command.python,
         ["-I", command.script, file, "--time-limit", String(seconds), "--workers", String(workers)],
@@ -119,16 +130,25 @@ export async function runCpsat(
       const stdout: Buffer[] = [];
       let stderr = "";
       let killed = false;
+      let aborted = false;
       let settled = false;
 
       const timer = setTimeout(() => {
         killed = true;
         child.kill("SIGKILL");
       }, killAfter * 1000);
+      // The run settles once the process has exited (close), not when it is
+      // told to, so the temp directory is never removed from under it.
+      const onAbort = () => {
+        aborted = true;
+        child.kill("SIGKILL");
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
       const finish = (run: CpsatRun) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
         done(run);
       };
       const log = () =>
@@ -151,7 +171,8 @@ export async function runCpsat(
           log: log(),
         }),
       );
-      child.on("close", (code, signal) => {
+      child.on("close", (code, exitSignal) => {
+        if (aborted) return finish(cancelled(log()));
         if (killed) {
           return finish({
             status: "failed",
@@ -165,7 +186,7 @@ export async function runCpsat(
           return finish({ status, solution: Buffer.concat(stdout).toString("utf8"), log: log() });
         }
         // 1 is bad input or a broken install; anything else is a crash.
-        const how = code === null ? `signal ${signal}` : `exit code ${code}`;
+        const how = code === null ? `signal ${exitSignal}` : `exit code ${code}`;
         const lines = log();
         finish({
           status: "failed",

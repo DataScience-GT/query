@@ -262,9 +262,9 @@ export function CpsatPanel({
       <div aria-live="polite" className="space-y-8">
         {solve.isPending ? (
           <p className={body} role="status">
-            CP-SAT is searching. It can take up to {seconds} seconds and a
-            little setup, or twice that if no schedule keeps the full break
-            between buildings.
+            CP-SAT is searching. It can take up to {seconds} seconds of solving,
+            or twice that if no schedule keeps the full break between buildings,
+            plus up to a minute of setup on large events.
           </p>
         ) : check.isPending ? (
           <p className={body} role="status">

@@ -138,6 +138,7 @@ async function readInventory(db: JudgingDb, hackathonId: string) {
       .select({
         id: judgingRooms.id,
         name: judgingRooms.name,
+        kind: judgingRooms.kind,
         challengeId: judgingRooms.challengeId,
         buildingId: judgingRooms.buildingId,
         buildingName: judgingBuildings.name,
@@ -178,9 +179,12 @@ function namesOf(inventory: Inventory) {
     label: (id: string) => labels.get(id) ?? "Removed challenge",
     title: (id: string) => titles.get(id) ?? "Removed project",
     room: (id: string) => ({
-      roomName: rooms.get(id)?.name ?? "Removed room",
+      roomName: rooms.get(id)?.name ?? "Removed room or table",
       buildingName: rooms.get(id)?.buildingName ?? null,
     }),
+    /** How many of these rooms are tables. */
+    tables: (planned: readonly { id: string }[]) =>
+      planned.filter((r) => rooms.get(r.id)?.kind === "table").length,
   };
 }
 
@@ -195,11 +199,11 @@ function explain(
   for (const d of diagnostics) {
     if (d.kind === "capacity" && d.rooms === 0) {
       sentences.push(
-        `"${names.label(d.challengeId)}" has ${plural(d.presentations, "presentation")} but no room in a building. Add a room for it, or judge it unscheduled.`,
+        `"${names.label(d.challengeId)}" has ${plural(d.presentations, "presentation")} but no room or table in a building. Add one for it, or judge it unscheduled.`,
       );
     } else if (d.kind === "capacity") {
       sentences.push(
-        `"${names.label(d.challengeId)}" has ${plural(d.presentations, "presentation")} but its ${plural(d.rooms, "room")} hold ${d.capacity} in this window. Add a room, lengthen the window or shorten the presentations.`,
+        `"${names.label(d.challengeId)}" has ${plural(d.presentations, "presentation")} but its ${plural(d.rooms, "room or table", "rooms or tables")} hold ${d.capacity} in this window. Add a room or table, lengthen the window or shorten the presentations.`,
       );
     } else if (d.kind === "overload") {
       sentences.push(
@@ -214,7 +218,7 @@ function explain(
     const shown = leftOver.slice(0, 5).join(", ");
     const more = leftOver.length > 5 ? ` and ${leftOver.length - 5} more` : "";
     sentences.push(
-      `No schedule fits every presentation, even with shorter breaks between buildings. Left over: ${shown}${more}. Lengthen the window, add rooms or shorten the breaks.`,
+      `No schedule fits every presentation, even with shorter breaks between buildings. Left over: ${shown}${more}. Lengthen the window, add rooms or tables, or shorten the breaks.`,
     );
   }
   return sentences;
@@ -273,6 +277,7 @@ function describePlan(
     presentations: inputs.tasks.length,
     projects: new Set(inputs.tasks.map((t) => t.entryId)).size,
     rooms: inputs.rooms.length,
+    tables: names.tables(inputs.rooms),
     ok: true as const,
     relaxed: result.relaxed,
     diagnostics: [] as string[],
@@ -332,7 +337,7 @@ async function writeSchedule(
       throw new TRPCError({
         code: "CONFLICT",
         message:
-          "Projects or rooms changed while the schedule was being saved. Preview again and check it before saving.",
+          "Projects, rooms or tables changed while the schedule was being saved. Preview again and check it before saving.",
       });
     }
 
@@ -522,7 +527,7 @@ function pickChoice(
     throw new TRPCError({
       code: "CONFLICT",
       message:
-        "That room and time are no longer open for this project. Reload the choices and pick another.",
+        "That time at that room or table is no longer open for this project. Reload the choices and pick another.",
     });
   }
   if (choice.reducedBreaks > 0 && !wanted.acknowledgeReducedBreaks) {
@@ -592,6 +597,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           presentations: inputs.tasks.length,
           projects: new Set(inputs.tasks.map((t) => t.entryId)).size,
           rooms: inputs.rooms.length,
+          tables: names.tables(inputs.rooms),
           ok: false as const,
           relaxed: false,
           candidateKey: null,
@@ -646,7 +652,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         throw new TRPCError({
           code: "CONFLICT",
           message:
-            "Projects, rooms or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
+            "Projects, rooms, tables or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
         });
       }
       if (result.relaxed && !input.acknowledgeReducedBreaks) {
@@ -840,7 +846,8 @@ export const judgingScheduleRouter = createTRPCRouter({
    * Runs CP-SAT here on the problem cpsatProblem would download, starting
    * from aamoghCPSolver's schedule, and shows the result the way previewCpsat
    * does. `solution` is what the script printed: saveCpsat takes it back and
-   * checks it again, exactly as it does an upload.
+   * checks it again, exactly as it does an upload. The script is stopped if
+   * the request is abandoned (a closed tab) before it ends.
    */
   solveCpsat: isAdmin
     .input(
@@ -855,7 +862,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           .default(CPSAT_SECONDS.default),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input, signal }) => {
       const db = ctx.db as DrizzleDB;
       await assertHackathonExists(db, input.hackathonId);
       assertWindowAhead(input.timing);
@@ -868,7 +875,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       const { inputs, result, fingerprint } = solveInventory(inventory, input.timing);
       const run = await runCpsat(
         cpsatProblem(inputs, fingerprint, result.ok ? result.placements : undefined),
-        { seconds: input.seconds },
+        { seconds: input.seconds, signal },
       );
       if (run.status === "failed") {
         throw new TRPCError({ code: "BAD_REQUEST", message: run.reason });
@@ -932,6 +939,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           .map((r) => ({
             id: r.id,
             name: r.name,
+            kind: r.kind,
             buildingId: r.buildingId,
             buildingName: r.buildingName,
             challengeId: r.challengeId,

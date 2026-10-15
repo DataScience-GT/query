@@ -93,6 +93,7 @@ function solution(overrides: Record<string, unknown> = {}) {
     presentations: 2,
     projects: 1,
     rooms: 1,
+    tables: 0,
     ok: true,
     relaxed: false,
     diagnostics: [],
@@ -183,7 +184,8 @@ describe("CpsatPanel", () => {
   it("says how long a run can take while it runs", () => {
     mocks.solvePending = true;
     const html = render();
-    expect(html).toContain("It can take up to 20 seconds");
+    expect(html).toContain("It can take up to 20 seconds of solving");
+    expect(html).toContain("plus up to a minute of setup on large events");
     expect(button(html, "Solving…")).toContain(DISABLED);
     expect(byId(html, "cpsat-solution")).toContain(DISABLED);
   });
@@ -195,6 +197,33 @@ describe("CpsatPanel", () => {
     expect(html).toContain("2 presentations from 1 project");
     expect(html).toContain("Pathfinder");
     expect(button(html, "Save CP-SAT schedule")).not.toContain(DISABLED);
+  });
+
+  it("calls the stations rooms, tables or both as they are", () => {
+    mocks.solved = solution();
+    expect(render()).toContain("Timetable by room<");
+
+    mocks.reported = false;
+    mocks.solved = solution({
+      rooms: 2,
+      tables: 2,
+      summary: {
+        sponsorsDoneAt: new Date(2026, 10, 1, 10, 20),
+        allDoneAt: new Date(2026, 10, 1, 10, 40),
+        sponsorRoomIdleMinutes: 0,
+        buildingChanges: 0,
+        breakMinutes: 20,
+      },
+    });
+    const tables = render();
+    expect(tables).toContain("Timetable by table<");
+    expect(tables).toContain("Their tables run back to back");
+
+    mocks.reported = false;
+    mocks.solved = solution({ rooms: 3, tables: 2 });
+    const mixed = render();
+    expect(mixed).toContain("Timetable by room or table<");
+    expect(mixed).toContain("Rooms or tables");
   });
 
   it("says when the time limit ended the search", () => {

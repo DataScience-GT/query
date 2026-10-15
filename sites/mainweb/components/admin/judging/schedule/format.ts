@@ -62,6 +62,18 @@ export function timingFromFields(fields: TimingFields): Required<Timing> {
   };
 }
 
+/**
+ * What to call judging stations when `tables` of `stations` are tables: "room",
+ * "table", or "room or table" for a mix (or when there are none to go by).
+ * `many` gives the plural.
+ */
+export function stationWord(stations: number, tables: number, many = false) {
+  const s = many ? "s" : "";
+  if (stations > 0 && tables === 0) return `room${s}`;
+  if (stations > 0 && tables === stations) return `table${s}`;
+  return `room${s} or table${s}`;
+}
+
 export const sameTiming = (a: Timing, b: Timing) =>
   JSON.stringify(a) === JSON.stringify(b);
 
